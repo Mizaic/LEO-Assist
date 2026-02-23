@@ -1,0 +1,71 @@
+---
+description: Code health limits, testing, CI enforcement, formatting
+alwaysApply: true
+---
+
+# Code Quality Rules
+
+These limits apply to ALL new code and ALL modifications to existing code.
+When modifying a function or file that exceeds a limit, refactor to comply.
+
+## Function Length
+
+- **Target:** <=30 lines of code (excluding docstrings and blank lines).
+- **Hard limit:** 60 LOC. Functions over 60 MUST be split.
+- Exception: test fixtures, data declarations. Mark with `# LONG FUNCTION: <reason>`.
+
+## Cyclomatic Complexity
+
+- **Target:** <=10 decision paths.
+- **Hard limit:** 15. Refactor by extracting named functions, using dispatch dicts, early returns.
+
+## Nesting Depth
+
+- **Target:** <=3 levels of indentation within a function body.
+- **Hard limit:** 4 levels. Use guard clauses to flatten:
+
+```python
+# BAD
+if x:
+    if y:
+        if z:
+            do_thing()
+
+# GOOD
+if not x:
+    return
+if not y:
+    return
+if not z:
+    return
+do_thing()
+```
+
+## Function Parameters
+
+- **Target:** <=4 parameters. **Hard limit:** 6.
+- Use a Pydantic model or dataclass when more inputs are needed.
+
+## File Length
+
+- **Target:** <=300 LOC. **Hard limit:** 500 LOC.
+- Split by responsibility: one router per resource, one service per domain concept.
+
+## Formatting & Linting (CI-Enforced)
+
+- **black** (line length 88) for formatting. Run `black .` before committing.
+- **flake8** (max-line-length=88, extend-ignore=E203,W503) for linting.
+- CI MUST run `black --check` and `flake8` and fail on violations.
+
+## Testing
+
+- **pytest** with **pytest-asyncio** for async tests.
+- Minimum **80% code coverage** target.
+- Test files in `tests/` directory.
+- Gold-standard labelled dataset for SNOMED coding accuracy (precision/recall/F1).
+- Regression tests block deploys if accuracy drops below baseline.
+
+## Commits
+
+- Small, logical commits. One concern per commit.
+- Imperative mood: "Add Neo4j schema seed script", not "Added" or "Adding".

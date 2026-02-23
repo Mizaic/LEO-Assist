@@ -1,0 +1,80 @@
+---
+description: FastAPI REST API conventions -- routers, async jobs, programme scoping
+globs: "**/api/**/*.py"
+alwaysApply: false
+---
+
+# API Conventions
+
+## Router Organisation
+
+One router file per bounded context. NEVER put all routes in a single file.
+Target routers:
+- `programmes.py` -- programme CRUD and configuration
+- `pipelines.py` -- pipeline definitions, trigger runs
+- `jobs.py` -- job submission, status, cancellation
+- `episodes.py` -- clinical episode queries
+- `encounters.py` -- encounter coding, review, labels
+- `quality.py` -- quality issues, guideline alerts
+- `terminology.py` -- ValueSets, ConceptMaps, UMLS
+- `audit.py` -- audit trail, change history
+
+Each router file <=300 LOC. Split further if needed.
+
+## Programme Scoping
+
+- All clinical endpoints are scoped to a programme: `/api/v1/programmes/{programme_id}/...`
+- Programme context is resolved via path parameter and injected as a dependency.
+- Cross-programme endpoints (e.g., patient lookup) live under `/api/v1/patients/...`.
+
+## Async Job Pattern (Fire-and-Track)
+
+Long-running operations use this contract:
+
+```
+POST /api/v1/jobs                        -> 202 {job_id, status: "queued"}
+GET  /api/v1/jobs/:id                    -> 200 {job_id, status, progress, steps, result}
+GET  /api/v1/jobs/:id/steps              -> 200 [{step_name, capability, status, duration}]
+POST /api/v1/jobs/:id/cancel             -> 200 {status: "cancelled"}
+```
+
+- The API enqueues work to Redis Streams and returns 202 immediately.
+- A separate worker process consumes from the stream and executes pipeline steps.
+- Job status is polled from Redis (fast) with full detail from Neo4j (on demand).
+- Workers update both Redis (status hash) and Neo4j (Job/JobStep nodes).
+
+## Pipeline Trigger Endpoints
+
+```
+POST /api/v1/programmes/{prog}/pipelines/{pipeline}/run
+  body: {patient_id, organization_id, domains?, date_range?, params?}
+  -> 202 {job_id}
+```
+
+Different pipelines for different use cases (all configured in Neo4j):
+- `full-audit` -- complete pathway reconstruction
+- `quick-code` -- code encounters only
+- `screen-and-alert` -- code + abnormals + guideline check, branch if needed
+
+## Request / Response Models
+
+- Pydantic v2 for ALL request and response models.
+- Models in `models/` directory, one file per domain.
+- Use `Field(...)` with descriptions for API docs.
+- Dates as ISO 8601 strings. UUIDs as strings.
+
+## Error Handling
+
+- Structured errors: `{"error": {"code": "...", "message": "...", "detail": ...}}`.
+- FastAPI exception handlers. Never return raw stack traces.
+- Correlation ID (`trace_id` / `job_id`) on all error logs.
+
+## Authentication
+
+- Azure AD JWT validation on all endpoints via middleware.
+- Role checks via dependency injection: `Depends(require_role("ai.reviewer"))`.
+- 401 for unauthenticated. 403 for insufficient role.
+
+## Versioning
+
+- API prefix: `/api/v1/`. Increment major version for breaking changes only.

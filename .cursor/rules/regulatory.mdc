@@ -1,0 +1,45 @@
+---
+description: IEC 62304, ISO 13485, ISO 14971 compliance -- audit trail and traceability
+alwaysApply: true
+---
+
+# Regulatory Compliance Rules
+
+This is regulated medical device software (SaMD) for the NCDA.
+All code generation MUST comply with IEC 62304, ISO 13485, and ISO 14971.
+
+## Traceability (IEC 62304)
+
+- Every design control traces: User Need -> Design Input -> Design Output -> Verification.
+- Traceability is modelled as Neo4j relationships (`[:TRACES_TO]`), not metadata fields.
+- No orphan requirements. Every node in the traceability chain must be linked.
+- All AI-generated content MUST carry `generated_by` provenance.
+
+## Human Approval (MANDATORY)
+
+- Human approval is REQUIRED before any AI-generated content enters the official audit.
+- Approval creates an `(:Approval)` node: `approved_by`, `approved_at`, `reason`.
+- Approval nodes are NEVER modified after creation. Append-only.
+
+## Risk Management (ISO 14971)
+
+- Risks are `(:Risk)` nodes linked to design controls via `[:MITIGATES]`.
+- Every risk has: `hazardous_situation`, `severity`, `probability`, `risk_level`, `mitigation`.
+- Unacceptable risks MUST generate additional design inputs (risk-mitigating controls).
+- Risk analysis is a workflow step, not a manual afterthought.
+
+## Audit Trail (MANDATORY)
+
+- Every state-changing operation creates a `(:Change)` node in Neo4j.
+- Change nodes record: `changed_by`, `changed_at`, `field`, `old_value`, `new_value`.
+- `(:Change)` nodes are append-only. NEVER update or delete them.
+- `(:Job)` and `(:JobStep)` nodes are append-only for status transitions (never go backwards).
+- Jobs are NEVER deleted. They form part of the audit trail.
+
+## Immutability Rules
+
+- `(:Approval)` nodes: NEVER modified after creation.
+- `(:Change)` nodes: NEVER modified after creation.
+- `(:AIInvocation)` nodes: NEVER modified after creation.
+- `(:WorkflowDefinition)` with status `active`: immutable. Create a new version to change.
+- Versioning: superseded resources linked via `[:SUPERSEDED_BY]` relationships.

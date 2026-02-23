@@ -1,0 +1,76 @@
+---
+description: Clinical NLP rules -- spaCy + UMLS pipeline for SNOMED CT coding, LLM fallback
+alwaysApply: true
+---
+
+# Clinical NLP Rules
+
+## spaCy + UMLS as Primary NLP Stack (MANDATORY)
+
+The NLP pipeline is built on spaCy with biomedical extensions. Every component is a
+standard spaCy pipeline component -- swappable, retrainable, and fully auditable.
+
+Pipeline flow:
+1. **spaCy tokenizer + sentencizer** -- handles messy GP shorthand and abbreviations
+2. **scispaCy biomedical NER** -- detects clinical entities in text
+3. **UMLS entity linker (scispaCy)** -- maps entities to UMLS CUI, then CUI to SNOMED CT concept ID
+4. **negspaCy** -- flags negated concepts ("no evidence of cancer")
+5. **Custom context component** -- classifies: patient vs family, current vs historical, plan vs actual
+6. **Domain filter** -- keeps only concepts matching NCDA ValueSet domains
+7. **Confidence scoring** -- aggregates linker similarity + context confidence
+
+Key packages:
+- `spacy` -- NLP framework (Explosion, industrial-strength, well-maintained SOUP)
+- `scispacy` -- biomedical NER models + UMLS entity linker (Allen Institute for AI)
+- `negspacy` -- clinical negation detection (NegEx/ConText algorithms)
+- `spacy-llm` -- first-party LLM integration for fallback disambiguation
+
+## UMLS as Terminology Source
+
+- UMLS is the terminology source. It includes SNOMED CT, ICD-10, RxNorm, LOINC.
+- The Concept Database is built from the UMLS Metathesaurus, filtered to UK SNOMED CT edition.
+- UMLS CUI (Concept Unique Identifier) maps natively to SNOMED CT concept IDs.
+- Synonyms and relationships come from UMLS. No separate synonym maintenance needed.
+- UMLS releases are versioned. Track the release version in `(:AIModel {provider: "spacy_umls"})` nodes.
+
+## LLM as Fallback Only
+
+- LLMs (OpenAI, Anthropic) are used ONLY when the spaCy pipeline's confidence is below
+  the configured threshold or for genuinely ambiguous disambiguation.
+- Use `spacy-llm` to integrate LLM calls within the spaCy pipeline (not a separate path).
+- Do NOT use LLMs for tasks achievable deterministically: episode classification rules,
+  quality checks, metrics calculation, wait-time arithmetic.
+- PHI must be scrubbed before sending any text to external LLM APIs. Hard rule.
+
+## SNOMED CT Conventions
+
+- All coded concepts MUST use valid UK SNOMED CT edition concept IDs.
+- Every coded concept MUST reference the ValueSet domain it belongs to.
+- Context MUST be captured alongside every code: `patient`, `family`, `negated`, `resolved`, `plan`.
+- Negation detection is mandatory. "No evidence of cancer" must NOT produce a positive cancer code.
+- Confidence scores are mandatory on all coded concepts (0.0-1.0).
+
+## Domain Value Sets
+
+- NCDA domains are defined by FHIR ValueSets loaded at startup.
+- Domain concepts include preferred terms, synonyms, and abbreviations.
+- Adding or changing what the system searches for is a ValueSet update, not a code change.
+- Domains: `cancer_types`, `fast_track_referrals`, `treatment`, `symptoms`, `comorbidities`,
+  `physical_signs`, `investigations`, `lifestyle_factors`, `family_history`, `cancer_risk_factors`,
+  `place_of_presentation`, `seen_by_specialist`, `referral_outcomes`, `screening`,
+  `observable_entities`, `ethnicity`, `housebound_status`, `living_arrangement`,
+  `communication_difficulty`, `english_language_competency`, `performance_status`, `temporal_analysis`.
+
+## Model Training & Versioning
+
+- spaCy's config-driven training system is used for all model training. Configs are version-controlled.
+- Same config + same data = same model. Fully reproducible for regulatory.
+- Unsupervised training on GP encounter corpus to adapt embeddings to UK primary care vocabulary.
+- Supervised fine-tuning on annotated encounters for NCDA-specific accuracy.
+- All trained models tracked as `(:AIModel)` nodes with version, training config hash, and dataset hash.
+
+## Human Review Loop
+
+- All NLP-generated coding is a proposal. No code is final until a human reviewer approves it.
+- Reviewer corrections are captured as training annotations.
+- Corrections feed back into spaCy model retraining for continuous improvement.

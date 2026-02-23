@@ -1,0 +1,63 @@
+---
+description: Python backend conventions -- FastAPI, Pydantic, async, project structure
+globs: "**/*.py"
+alwaysApply: false
+---
+
+# Python Backend Rules
+
+## Language & Runtime
+
+- Python 3.11+.
+- FastAPI with async endpoints for the API server.
+- Pydantic v2 for data validation and serialisation.
+- Type hints on ALL functions (parameters and return types).
+- Docstrings on all public functions (Google style).
+
+## Async Conventions
+
+- Use `async def` for all endpoint handlers and I/O-bound functions.
+- Use `neo4j.AsyncDriver` for database calls.
+- Use `httpx.AsyncClient` for outbound HTTP calls (FHIR API, terminology server).
+- Use `asyncio.gather()` for concurrent independent I/O operations.
+- CPU-bound work (spaCy NLP inference, embedding generation) runs in a thread pool
+  via `asyncio.to_thread()` or `run_in_executor()`.
+
+## Project Structure
+
+```
+app/
+  __init__.py
+  main.py                 # FastAPI app, lifespan, middleware
+  api/                    # REST API layer
+    routers/              # One file per bounded context
+    models/               # Pydantic request/response models
+    dependencies.py       # Shared FastAPI dependencies (auth, db session)
+  agent/                  # Pipeline orchestration
+    supervisor.py         # Pipeline coordinator
+    phases/               # One file per pipeline phase
+    tools/                # Shared tools (hybrid search, neo4j helpers)
+  core/                   # Infrastructure clients
+    config.py             # Settings (env vars -> Azure Key Vault)
+    neo4j_client.py       # Neo4j async driver singleton
+    redis_client.py       # Redis connection + stream helpers
+    nlp_client.py         # spaCy pipeline loading + inference
+    auth.py               # Azure AD JWT validation
+  configs/                # Domain configuration
+    domain_registry.py    # NCDA domain/concept registry
+tests/
+  conftest.py
+  test_*.py
+```
+
+## Dependency Management
+
+- `requirements.txt` with pinned versions for reproducible builds.
+- Key dependencies: `fastapi`, `uvicorn`, `neo4j`, `redis`, `spacy`, `scispacy`,
+  `negspacy`, `pydantic`, `httpx`, `azure-identity`, `azure-keyvault-secrets`.
+
+## Error Handling
+
+- Use custom exception classes inheriting from a base `AppError`.
+- Never catch bare `Exception` unless re-raising or logging + raising a specific error.
+- All exceptions include a machine-readable `code` and human-readable `message`.
