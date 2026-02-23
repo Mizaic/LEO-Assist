@@ -1,0 +1,341 @@
+"""
+Orchestrator: run all terminology load phases in order.
+
+Usage (from repo root):
+    python -m services.terminology.scripts.loaders [--phases 1,2,3,4,5,6]
+
+Phases:
+    1  SNOMED core (Concept, Description, Language, Relationship)
+    2  SNOMED maps (ExtendedMap → ICD-10, SimpleMap → Read)
+    3  UMLS crosswalk (MRCONSO, MRSTY)
+    4  DMWB Read/CTV3 enrichment + additional ICD→SNOMED maps
+    5  dm+d drug extension (VTM, VMP, AMP, VMPP, AMPP)
+    6  Surface forms (known_terms, encounter_analysis, LEXICON)
+
+Neo4j connection comes from secrets/.env:
+    CODING_GRAPH_NEO4J_URI
+    CODING_GRAPH_NEO4J_USERNAME
+    CODING_GRAPH_NEO4J_PASSWORD
+"""
+
+from __future__ import annotations
+
+import argparse
+import asyncio
+import logging
+import os
+import time
+from pathlib import Path
+
+from dotenv import load_dotenv
+from neo4j import AsyncGraphDatabase
+
+from .file_finder import (
+    DmdFiles,
+    DmwbFiles,
+    SnomedFiles,
+    SurfaceFormFiles,
+    UmlsFiles,
+)
+from .schema import ensure_schema
+from .snomed_concept import load_concepts
+from .snomed_description import load_descriptions
+from .snomed_language import load_language_refset
+from .snomed_map import load_extended_map, load_simple_map
+from .snomed_relationship import load_relationships
+from .umls_crosswalk import load_mrconso, load_mrsty
+from .dmwb_read import (
+    load_ctv3_terms,
+    load_rct_terms,
+    load_ctv3_snomed_map,
+    load_rct_snomed_map,
+    load_icd_terms,
+    load_icd_snomed_map,
+)
+from .dmd_drugs import load_dmd
+from .surface_forms import (
+    load_known_terms,
+    load_encounter_analysis,
+    load_clinical_term_analysis,
+    load_lexicon,
+)
+
+logger = logging.getLogger(__name__)
+
+
+def _load_neo4j_config() -> tuple[str, str, str]:
+    """Load Neo4j connection details from secrets/.env, then env vars."""
+    secrets_env = Path("secrets") / ".env"
+    if secrets_env.exists():
+        load_dotenv(secrets_env)
+        logger.info("Loaded secrets from %s", secrets_env)
+
+    uri = os.environ.get("CODING_GRAPH_NEO4J_URI", "")
+    user = os.environ.get("CODING_GRAPH_NEO4J_USERNAME", "")
+    password = os.environ.get("CODING_GRAPH_NEO4J_PASSWORD", "")
+
+    if not all([uri, user, password]):
+        raise RuntimeError(
+            "Missing CODING_GRAPH_NEO4J_URI / _USERNAME / _PASSWORD. "
+            "Set in secrets/.env or environment."
+        )
+    return uri, user, password
+
+
+async def _load_if_found(
+    loader, driver, path: Path | None, label: str
+) -> int:
+    if path is None:
+        logger.warning("SKIP %s — file not found", label)
+        return 0
+    return await loader(driver, path)
+
+
+async def run_phase_1(driver, files: SnomedFiles) -> None:
+    """Phase 1: SNOMED core — concepts, descriptions, language, relationships."""
+    logger.info("=" * 60)
+    logger.info("PHASE 1: SNOMED Core")
+    logger.info("=" * 60)
+
+    await _load_if_found(
+        load_concepts, driver, files.int_concept(), "INT Concepts"
+    )
+    await _load_if_found(
+        load_concepts, driver, files.ukcl_concept(), "UKCL Concepts"
+    )
+
+    await _load_if_found(
+        load_descriptions,
+        driver,
+        files.int_description(),
+        "INT Descriptions",
+    )
+    await _load_if_found(
+        load_descriptions,
+        driver,
+        files.ukcl_description(),
+        "UKCL Descriptions",
+    )
+
+    await _load_if_found(
+        load_language_refset,
+        driver,
+        files.ukcl_language(),
+        "UKCL Language",
+    )
+    await _load_if_found(
+        load_language_refset,
+        driver,
+        files.uked_language(),
+        "UKED Language",
+    )
+
+    await _load_if_found(
+        load_relationships,
+        driver,
+        files.int_relationship(),
+        "INT Relationships",
+    )
+    await _load_if_found(
+        load_relationships,
+        driver,
+        files.ukcl_relationship(),
+        "UKCL Relationships",
+    )
+
+
+async def run_phase_2(driver, files: SnomedFiles) -> None:
+    """Phase 2: SNOMED maps — ICD-10 and Read codes."""
+    logger.info("=" * 60)
+    logger.info("PHASE 2: SNOMED Maps")
+    logger.info("=" * 60)
+
+    await _load_if_found(
+        load_extended_map,
+        driver,
+        files.int_extended_map(),
+        "INT ExtendedMap (ICD-10)",
+    )
+    await _load_if_found(
+        load_extended_map,
+        driver,
+        files.ukcl_extended_map(),
+        "UKCL ExtendedMap (ICD-10 UK)",
+    )
+    await _load_if_found(
+        load_simple_map,
+        driver,
+        files.int_simple_map(),
+        "INT SimpleMap (CTV3)",
+    )
+
+
+async def run_phase_3(driver, umls_files: UmlsFiles) -> None:
+    """Phase 3: UMLS crosswalk — CUI↔SNOMED links + semantic types."""
+    logger.info("=" * 60)
+    logger.info("PHASE 3: UMLS Crosswalk")
+    logger.info("=" * 60)
+
+    await _load_if_found(
+        load_mrconso,
+        driver,
+        umls_files.mrconso(),
+        "MRCONSO (CUI→SNOMED/ICD10)",
+    )
+    await _load_if_found(
+        load_mrsty,
+        driver,
+        umls_files.mrsty(),
+        "MRSTY (semantic types)",
+    )
+
+
+async def _load_mdb_if_found(
+    loader, driver, mdb_path: Path | None, label: str
+) -> int:
+    """Run a DMWB loader if the .mdb file exists."""
+    if mdb_path is None:
+        logger.warning("SKIP %s — .mdb not found", label)
+        return 0
+    return await loader(driver, str(mdb_path))
+
+
+async def run_phase_4(driver, dmwb: DmwbFiles) -> None:
+    """Phase 4: DMWB Read/CTV3 enrichment + ICD terms/maps."""
+    logger.info("=" * 60)
+    logger.info("PHASE 4: DMWB Read / CTV3 / ICD Enrichment")
+    logger.info("=" * 60)
+
+    read_mdb = dmwb.read_mdb()
+    maps_mdb = dmwb.maps_mdb()
+
+    await _load_mdb_if_found(load_ctv3_terms, driver, read_mdb, "CTV3 terms")
+    await _load_mdb_if_found(load_rct_terms, driver, read_mdb, "Read v2 terms")
+    await _load_mdb_if_found(
+        load_ctv3_snomed_map, driver, maps_mdb, "CTV3→SNOMED map"
+    )
+    await _load_mdb_if_found(
+        load_rct_snomed_map, driver, maps_mdb, "RCT→SNOMED map"
+    )
+    await _load_mdb_if_found(load_icd_terms, driver, maps_mdb, "ICD terms")
+    await _load_mdb_if_found(
+        load_icd_snomed_map, driver, maps_mdb, "ICD→SNOMED map"
+    )
+
+
+async def run_phase_5(driver, dmd: DmdFiles) -> None:
+    """Phase 5: dm+d drug extension."""
+    logger.info("=" * 60)
+    logger.info("PHASE 5: dm+d Drug Extension")
+    logger.info("=" * 60)
+
+    dmd_dir = dmd.dmd_dir()
+    if dmd_dir is None:
+        logger.warning("SKIP dm+d — directory not found")
+        return
+    await load_dmd(driver, dmd_dir)
+
+
+async def run_phase_6(driver, sf: SurfaceFormFiles) -> None:
+    """Phase 6: Surface forms."""
+    logger.info("=" * 60)
+    logger.info("PHASE 6: Surface Forms")
+    logger.info("=" * 60)
+
+    await _load_if_found(
+        load_known_terms, driver, sf.known_terms(), "known_terms.json"
+    )
+    await _load_if_found(
+        load_encounter_analysis,
+        driver,
+        sf.encounter_analysis(),
+        "encounter_analysis.json",
+    )
+    await _load_if_found(
+        load_clinical_term_analysis,
+        driver,
+        sf.clinical_term_analysis(),
+        "clinical_term_analysis.json",
+    )
+    await _load_if_found(
+        load_lexicon, driver, sf.lexicon(), "LEXICON.txt"
+    )
+
+
+async def main(
+    external_content: Path,
+    phases: set[int],
+) -> None:
+    uri, user, password = _load_neo4j_config()
+    logger.info("Connecting to Neo4j at %s", uri)
+
+    snomed_files = SnomedFiles(external_content)
+    umls_files = UmlsFiles(external_content)
+    dmwb_files = DmwbFiles(external_content)
+    dmd_files = DmdFiles(external_content)
+    sf_files = SurfaceFormFiles(external_content)
+
+    all_found = {
+        **snomed_files.all_found(),
+        **umls_files.all_found(),
+        **dmwb_files.all_found(),
+        **dmd_files.all_found(),
+        **sf_files.all_found(),
+    }
+    for name, path in all_found.items():
+        status = str(path) if path else "NOT FOUND"
+        logger.info("  %-25s %s", name, status)
+
+    driver = AsyncGraphDatabase.driver(uri, auth=(user, password))
+
+    try:
+        await ensure_schema(driver)
+
+        t0 = time.monotonic()
+        if 1 in phases:
+            await run_phase_1(driver, snomed_files)
+        if 2 in phases:
+            await run_phase_2(driver, snomed_files)
+        if 3 in phases:
+            await run_phase_3(driver, umls_files)
+        if 4 in phases:
+            await run_phase_4(driver, dmwb_files)
+        if 5 in phases:
+            await run_phase_5(driver, dmd_files)
+        if 6 in phases:
+            await run_phase_6(driver, sf_files)
+        elapsed = time.monotonic() - t0
+        logger.info("All phases complete in %.1fs", elapsed)
+    finally:
+        await driver.close()
+
+
+def cli() -> None:
+    parser = argparse.ArgumentParser(
+        description="Load terminology data into Neo4j"
+    )
+    parser.add_argument(
+        "--external-content",
+        type=Path,
+        default=Path("external_content"),
+        help="Path to external_content/ directory",
+    )
+    parser.add_argument(
+        "--phases",
+        default="1,2,3,4,5,6",
+        help="Comma-separated phase numbers to run (default: 1,2,3,4,5,6)",
+    )
+    args = parser.parse_args()
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)-5s %(name)s — %(message)s",
+        datefmt="%H:%M:%S",
+    )
+
+    phases = {int(p.strip()) for p in args.phases.split(",")}
+    asyncio.run(main(args.external_content, phases))
+
+
+if __name__ == "__main__":
+    cli()
