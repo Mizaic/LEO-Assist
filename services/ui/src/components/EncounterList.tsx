@@ -2,7 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { fetchPatientEncounters, fetchTasks } from "@/lib/api";
+import {
+  fetchPatientEncounters,
+  fetchTasks,
+  resetPatient,
+  syncGoldToPatient,
+} from "@/lib/api";
 import type { EncounterSummary, ReviewTaskSummary } from "@/lib/types";
 
 interface Props {
@@ -21,7 +26,47 @@ export default function EncounterList({ patientId }: Props) {
   const [encounters, setEncounters] = useState<EncounterSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [resetting, setResetting] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const router = useRouter();
+
+  async function handleReset() {
+    setResetting(true);
+    setError(null);
+    try {
+      await resetPatient(patientId);
+      await Promise.all([
+        fetchPatientEncounters(patientId),
+        fetchTasks(undefined, patientId),
+      ]).then(([encounterRows, taskRows]) => {
+        setEncounters(encounterRows);
+        setTasks(taskRows);
+      });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Reset failed");
+    } finally {
+      setResetting(false);
+    }
+  }
+
+  async function handleSyncGold() {
+    setSyncing(true);
+    setError(null);
+    try {
+      await syncGoldToPatient(patientId);
+      await Promise.all([
+        fetchPatientEncounters(patientId),
+        fetchTasks(undefined, patientId),
+      ]).then(([encounterRows, taskRows]) => {
+        setEncounters(encounterRows);
+        setTasks(taskRows);
+      });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Sync failed");
+    } finally {
+      setSyncing(false);
+    }
+  }
 
   useEffect(() => {
     setLoading(true);
@@ -85,9 +130,44 @@ export default function EncounterList({ patientId }: Props) {
       <h1 style={{ fontFamily: "var(--font-heading)", fontSize: 24, fontWeight: 700, marginBottom: 4 }}>
         Patient {patientId}
       </h1>
-      <p style={{ color: "#64748b", fontSize: 14, marginBottom: 24 }}>
+      <p style={{ color: "#64748b", fontSize: 14, marginBottom: 16 }}>
         {rows.length} encounters &middot; {withTask} processed &middot; {approved} reviewed
       </p>
+
+      <div style={{ display: "flex", gap: 8, marginBottom: 24 }}>
+        <button
+          onClick={handleReset}
+          disabled={resetting || loading}
+          style={{
+            padding: "8px 16px",
+            border: "1px solid #e2e8f0",
+            borderRadius: 8,
+            background: "#fff",
+            fontSize: 13,
+            fontWeight: 500,
+            cursor: resetting || loading ? "not-allowed" : "pointer",
+            color: "#64748b",
+          }}
+        >
+          {resetting ? "Resetting…" : "Reset patient"}
+        </button>
+        <button
+          onClick={handleSyncGold}
+          disabled={syncing || loading || approved === 0}
+          style={{
+            padding: "8px 16px",
+            border: "1px solid #16a34a",
+            borderRadius: 8,
+            background: approved > 0 ? "#fff" : "#f1f5f9",
+            fontSize: 13,
+            fontWeight: 500,
+            cursor: syncing || loading || approved === 0 ? "not-allowed" : "pointer",
+            color: approved > 0 ? "#16a34a" : "#94a3b8",
+          }}
+        >
+          {syncing ? "Syncing…" : "Sync gold to patient"}
+        </button>
+      </div>
 
       {loading && <p style={{ color: "#64748b" }}>Loading encounters…</p>}
       {error && <p style={{ color: "#b91c1c" }}>{error}</p>}

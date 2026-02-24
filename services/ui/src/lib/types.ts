@@ -1,0 +1,122 @@
+export interface Patient {
+  patient_id: string;
+  encounter_count: number;
+}
+
+export interface EncounterSummary {
+  encounter_id: string;
+  date: string;
+  text?: string;
+  coded_count?: number;
+}
+
+export interface CodedLink {
+  concept_id: string;
+  term?: string;
+  read_code?: string;
+  semantic_tag?: string;
+  evidence?: string;
+  modifiers?: Record<string, unknown>;
+  context?: Record<string, unknown>;
+}
+
+export interface TermSearchResult {
+  snomed_concept_id: string;
+  term: string;
+  read_code?: string;
+  semantic_tag?: string;
+  score?: number;
+}
+
+export interface Correction {
+  type: string;
+  text: string;
+  detail: string;
+  time: string;
+}
+
+export interface PipelineRunResponse {
+  run_id: string;
+  processed_encounters: number;
+  queued_for_review: number;
+  rejected_hard_fail: number;
+  warnings_only: number;
+}
+
+export interface ReviewTaskSummary {
+  task_id: string;
+  candidate_id: string;
+  patient_id: string;
+  encounter_id: string;
+  priority: number;
+  status: string;
+  warning_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TermContext {
+  negated: boolean;
+  uncertain: boolean;
+  historical: boolean;
+  subject: "patient" | "family" | "other";
+  temporality: "present" | "past" | "planned" | "hypothetical" | "unknown";
+}
+
+export interface TermCodingProposal {
+  snomed_concept_id?: string;
+  read_code?: string;
+  snomed_term?: string;
+  score?: number;
+  source?: string;
+}
+
+export interface EncounterTerm {
+  term_id: string;
+  text: string;
+  span_start: number;
+  span_end: number;
+  context: TermContext;
+  coding: TermCodingProposal;
+  evidence_text: string;
+  extraction_method: string;
+  extraction_confidence?: number;
+}
+
+export interface EncounterSentence {
+  sentence_id: string;
+  start: number;
+  end: number;
+  text: string;
+  section?: string;
+  terms: EncounterTerm[];
+}
+
+export interface EncounterCandidate {
+  candidate_id: string;
+  patient_id: string;
+  encounter_id: string;
+  date: string;
+  source_hash: string;
+  deidentified_hash: string;
+  deidentified_text: string;
+  approval_status: string;
+  hard_fail_reasons: string[];
+  warning_reasons: string[];
+  sentences: EncounterSentence[];
+  audit_events?: unknown[];
+}
+
+export interface ReviewTaskDetail {
+  task: ReviewTaskSummary;
+  candidate: EncounterCandidate;
+}
+
+export const CTX_FLAGS: Array<{ key: string; short: string; color: string }> = [
+  { key: "negated", short: "Neg", color: "#dc2626" },
+  { key: "uncertain", short: "Unc", color: "#f59e0b" },
+  { key: "historical", short: "Hist", color: "#8b5cf6" },
+  { key: "family", short: "Fam", color: "#06b6d4" },
+  { key: "hypothetical", short: "Hyp", color: "#6366f1" },
+  { key: "resolved", short: "Res", color: "#059669" },
+];

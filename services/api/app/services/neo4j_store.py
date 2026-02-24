@@ -14,6 +14,7 @@ from app.models.neo4j_schema import (
     GET_AUDIT_TIMELINE,
     GET_TASK_DETAIL,
     LIST_APPROVED_CANDIDATES,
+    LIST_APPROVED_CANDIDATES_FOR_PATIENT,
     LIST_TASKS,
     UPSERT_CANDIDATE,
 )
@@ -146,6 +147,20 @@ def get_audit_timeline(candidate_id: str, session) -> dict[str, Any]:
 
 def list_approved_candidates(session) -> list[dict[str, Any]]:
     records = session.run(LIST_APPROVED_CANDIDATES)
+    payload: list[dict[str, Any]] = []
+    for record in records:
+        candidate = dict(record["c"])
+        try:
+            candidate["sentences"] = json.loads(candidate.get("sentences_json", "[]"))
+        except json.JSONDecodeError:
+            candidate["sentences"] = []
+        payload.append(candidate)
+    return payload
+
+
+def list_approved_candidates_for_patient(patient_id: str, session) -> list[dict[str, Any]]:
+    """Return approved EncounterCandidates for a patient."""
+    records = session.run(LIST_APPROVED_CANDIDATES_FOR_PATIENT, patient_id=patient_id)
     payload: list[dict[str, Any]] = []
     for record in records:
         candidate = dict(record["c"])

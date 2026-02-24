@@ -64,20 +64,18 @@ def main() -> int:
     print(f"  warnings_only: {stats.warnings_only}")
 
     if not args.dry_run and stats.processed_encounters > 0:
-        with patient_client.session() as session:
+        with coding_client.session() as session:
             result = session.run(
-                "MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter) "
-                "WHERE toString(p.id) = $pid "
-                "OPTIONAL MATCH (e)-[r:DOCUMENTS]->() "
-                "WITH e, count(r) AS coded "
-                "RETURN toString(e.id) AS encounter_id, coded "
-                "ORDER BY e.date LIMIT $limit",
+                "MATCH (c:EncounterCandidate)-[:HAS_TASK]->(t:ReviewTask) "
+                "WHERE c.patient_id = $pid "
+                "RETURN c.encounter_id AS encounter_id, t.status AS status "
+                "ORDER BY c.encounter_id LIMIT $limit",
                 pid=args.patient_id,
                 limit=args.max_encounters,
             )
             rows = list(result)
-            total_coded = sum(r["coded"] for r in rows)
-            print(f"  patient_graph DOCUMENTS links: {total_coded} across {len(rows)} encounters")
+            print(f"  coding_graph: {len(rows)} candidates queued for review")
+            print("  (Patient graph DOCUMENTS written via sync-gold only)")
 
     patient_client.close()
     coding_client.close()

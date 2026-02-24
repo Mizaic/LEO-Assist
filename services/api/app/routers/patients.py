@@ -8,7 +8,7 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 
-from app.db.neo4j_client import PatientGraphClient
+from app.db.neo4j_client import CodingGraphClient, PatientGraphClient
 from app.models.neo4j_schema import (
     DELETE_CODED_LINK,
     GET_ENCOUNTER,
@@ -17,6 +17,9 @@ from app.models.neo4j_schema import (
     LIST_PATIENT_ENCOUNTERS,
     LIST_PATIENTS,
 )
+from app.services.inference_service import infer_encounter
+from app.services.reset_service import reset_patient
+from app.services.sync_service import sync_gold_to_patient
 from app.services.v3.patient_graph_writer import PatientGraphWriter, SemanticLinkPayload
 
 
@@ -40,6 +43,10 @@ class AddCodedLinkRequest(BaseModel):
     modifiers: dict[str, Any] | None = None
 
 
+class InferRequest(BaseModel):
+    dry_run: bool = True
+
+
 @router.get("")
 def list_patients():
     client = PatientGraphClient()
@@ -47,6 +54,50 @@ def list_patients():
         return client.run(LIST_PATIENTS)
     finally:
         client.close()
+
+
+@router.post("/{patient_id}/reset")
+def reset_patient_documents(patient_id: str):
+    """Remove all DOCUMENTS for a patient's encounters. Keeps Patient, Encounters, text."""
+    client = PatientGraphClient()
+    try:
+        with client.session() as session:
+            result = reset_patient(patient_id, session)
+        if result.get("error") == "patient_not_found":
+            raise HTTPException(status_code=404, detail="Patient not found")
+        return {
+            "patient_id": result["patient_id"],
+            "links_deleted": result["links_deleted"],
+        }
+    finally:
+        client.close()
+
+
+@router.post("/{patient_id}/sync-gold")
+def sync_gold_to_patient_graph(patient_id: str):
+    """Apply approved gold from Coding graph to Patient graph DOCUMENTS."""
+    coding_client = CodingGraphClient()
+    patient_client = PatientGraphClient()
+    try:
+        with coding_client.session() as coding_session, patient_client.session() as patient_session:
+            result = sync_gold_to_patient(
+                patient_id,
+                coding_session=coding_session,
+                patient_session=patient_session,
+            )
+        if result.get("error") == "no_approved_gold":
+            raise HTTPException(
+                status_code=400,
+                detail="No approved gold for this patient. Complete review and approve first.",
+            )
+        return {
+            "patient_id": result["patient_id"],
+            "encounters_synced": result["encounters_synced"],
+            "links_created": result["links_created"],
+        }
+    finally:
+        coding_client.close()
+        patient_client.close()
 
 
 @router.get("/{patient_id}")
@@ -78,6 +129,27 @@ def get_encounter(patient_id: str, encounter_id: str):
         if not rows:
             raise HTTPException(status_code=404, detail="Encounter not found")
         return rows[0]
+    finally:
+        client.close()
+
+
+@router.post("/{patient_id}/encounters/{encounter_id}/infer")
+def infer_encounter_coding(
+    patient_id: str,
+    encounter_id: str,
+    body: InferRequest | None = None,
+):
+    """Run MedSpaCy inference on encounter. dry_run=true returns entities only."""
+    client = PatientGraphClient()
+    try:
+        rows = client.run(GET_ENCOUNTER, patient_id=patient_id, encounter_id=encounter_id)
+        if not rows:
+            raise HTTPException(status_code=404, detail="Encounter not found")
+        encounter = rows[0]
+        text = encounter.get("text", "") or ""
+        dry_run = body.dry_run if body else True
+        result = infer_encounter(text, encounter_id, dry_run=dry_run)
+        return result
     finally:
         client.close()
 
