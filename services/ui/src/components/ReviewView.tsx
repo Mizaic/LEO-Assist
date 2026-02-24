@@ -37,6 +37,9 @@ export default function ReviewView({ taskId, patientId }: Props) {
   const [showManualAdd, setShowManualAdd] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [localCandidate, setLocalCandidate] = useState<EncounterCandidate | null>(null);
+  const [reason, setReason] = useState("");
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [decisionError, setDecisionError] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -46,7 +49,13 @@ export default function ReviewView({ taskId, patientId }: Props) {
         setDetail(d);
         setLocalCandidate(d.candidate);
       })
-      .catch((e) => setError(e instanceof Error ? e.message : "Failed to load"))
+      .catch((e) =>
+        setError(
+          e instanceof Error
+            ? e.message
+            : "Could not load review task. It may have been completed. Return to the list.",
+        ),
+      )
       .finally(() => setLoading(false));
   }, [taskId]);
 
@@ -151,8 +160,8 @@ export default function ReviewView({ taskId, patientId }: Props) {
       text,
       span_start: start,
       span_end: end,
-      context: { negated: false, uncertain: false, historical: false, subject: "patient", temporality: "current" },
-      coding: { snomed_concept_id: null, snomed_term: null, read_code: null, score: 0, source: "manual" },
+      context: { negated: false, uncertain: false, historical: false, subject: "patient", temporality: "present" },
+      coding: { snomed_concept_id: undefined, snomed_term: undefined, read_code: undefined, score: 0, source: "manual" },
       evidence_text: text,
       extraction_method: "manual",
       extraction_confidence: 1.0,
@@ -167,19 +176,36 @@ export default function ReviewView({ taskId, patientId }: Props) {
     setShowManualAdd(false);
   }
 
+  function buildReason(action: string): string {
+    if (action === "reject") return reason.trim();
+    if (corrections.length > 0) return `${corrections.length} corrections applied`;
+    return "Approved as-is";
+  }
+
   async function handleDecision(action: string) {
     if (!detail) return;
+    if (action === "reject" && reason.trim().length < 3) {
+      setDecisionError("Reason is required for reject (min 3 characters).");
+      return;
+    }
+    setDecisionError(null);
     setSubmitting(true);
+    setError(null);
     try {
       await submitDecision(taskId, {
         action,
         reviewer: "current_user",
-        reason: corrections.length > 0 ? `${corrections.length} corrections applied` : "",
+        reason: buildReason(action),
         edited_candidate: action === "edit" ? localCandidate : undefined,
       });
-      router.push(`/patients/${patientId}`);
+      setSubmitSuccess(true);
+      setTimeout(() => router.push(`/patients/${patientId}`), 800);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Submit failed");
+      setError(
+        e instanceof Error
+          ? e.message
+          : "Submit failed. Your corrections are still in place. Try again.",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -297,15 +323,33 @@ export default function ReviewView({ taskId, patientId }: Props) {
           borderTop: "1px solid #e2e8f0",
           background: "#fff",
           display: "flex",
+          flexWrap: "wrap",
           gap: 10,
           alignItems: "center",
         }}>
-          <div style={{ flex: 1, fontSize: 12, color: "#94a3b8" }}>
+          <div style={{ flex: 1, minWidth: 200, fontSize: 12, color: "#94a3b8" }}>
             <kbd style={{ background: "#f1f5f9", padding: "2px 6px", borderRadius: 4, fontSize: 11 }}>A</kbd> Approve
             <kbd style={{ background: "#f1f5f9", padding: "2px 6px", borderRadius: 4, fontSize: 11, marginLeft: 10 }}>R</kbd> Reject
             <kbd style={{ background: "#f1f5f9", padding: "2px 6px", borderRadius: 4, fontSize: 11, marginLeft: 10 }}>C</kbd> Correct &amp; approve
             <kbd style={{ background: "#f1f5f9", padding: "2px 6px", borderRadius: 4, fontSize: 11, marginLeft: 10 }}>J/K</kbd> Navigate
           </div>
+          <input
+            type="text"
+            value={reason}
+            onChange={(e) => {
+              setReason(e.target.value);
+              setDecisionError(null);
+            }}
+            placeholder="Reason (required for Reject)"
+            style={{
+              padding: "6px 12px",
+              border: "1px solid #e2e8f0",
+              borderRadius: 8,
+              fontSize: 13,
+              width: 220,
+              fontFamily: "var(--font-body)",
+            }}
+          />
           <button onClick={() => handleDecision("reject")} disabled={submitting}
             style={{ padding: "8px 18px", borderRadius: 8, border: "1px solid #fecaca", background: "#fff", color: "#dc2626", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
             Reject
@@ -318,6 +362,14 @@ export default function ReviewView({ taskId, patientId }: Props) {
             style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: "#4f46e5", color: "#fff", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
             Approve
           </button>
+          {decisionError && (
+            <span style={{ color: "#dc2626", fontSize: 12 }}>{decisionError}</span>
+          )}
+          {submitSuccess && (
+            <span style={{ color: "#16a34a", fontSize: 13, fontWeight: 600 }}>
+              Decision submitted
+            </span>
+          )}
         </div>
       </div>
 

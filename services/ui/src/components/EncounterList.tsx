@@ -9,6 +9,7 @@ import {
   syncGoldToPatient,
 } from "@/lib/api";
 import type { EncounterSummary, ReviewTaskSummary } from "@/lib/types";
+import ConfirmDialog from "./ConfirmDialog";
 
 interface Props {
   patientId: string;
@@ -28,43 +29,49 @@ export default function EncounterList({ patientId }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [resetting, setResetting] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [confirmReset, setConfirmReset] = useState(false);
+  const [confirmSync, setConfirmSync] = useState(false);
   const router = useRouter();
 
-  async function handleReset() {
+  async function doReset() {
     setResetting(true);
     setError(null);
     try {
       await resetPatient(patientId);
-      await Promise.all([
+      const [encounterRows, taskRows] = await Promise.all([
         fetchPatientEncounters(patientId),
         fetchTasks(undefined, patientId),
-      ]).then(([encounterRows, taskRows]) => {
-        setEncounters(encounterRows);
-        setTasks(taskRows);
-      });
+      ]);
+      setEncounters(encounterRows);
+      setTasks(taskRows);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Reset failed");
+      setError(
+        e instanceof Error ? e.message : "Reset failed. No changes were made.",
+      );
     } finally {
       setResetting(false);
+      setConfirmReset(false);
     }
   }
 
-  async function handleSyncGold() {
+  async function doSyncGold() {
     setSyncing(true);
     setError(null);
     try {
       await syncGoldToPatient(patientId);
-      await Promise.all([
+      const [encounterRows, taskRows] = await Promise.all([
         fetchPatientEncounters(patientId),
         fetchTasks(undefined, patientId),
-      ]).then(([encounterRows, taskRows]) => {
-        setEncounters(encounterRows);
-        setTasks(taskRows);
-      });
+      ]);
+      setEncounters(encounterRows);
+      setTasks(taskRows);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Sync failed");
+      setError(
+        e instanceof Error ? e.message : "Sync failed. Approved data was not applied.",
+      );
     } finally {
       setSyncing(false);
+      setConfirmSync(false);
     }
   }
 
@@ -78,7 +85,9 @@ export default function EncounterList({ patientId }: Props) {
         setEncounters(encounterRows);
         setTasks(taskRows);
       })
-      .catch((e) => setError(e instanceof Error ? e.message : "Failed to load"))
+      .catch((e) =>
+        setError(e instanceof Error ? e.message : "Could not load encounters. Check your connection and try again."),
+      )
       .finally(() => setLoading(false));
   }, [patientId]);
 
@@ -136,8 +145,9 @@ export default function EncounterList({ patientId }: Props) {
 
       <div style={{ display: "flex", gap: 8, marginBottom: 24 }}>
         <button
-          onClick={handleReset}
+          onClick={() => setConfirmReset(true)}
           disabled={resetting || loading}
+          title="Remove all coded links. Cannot be undone."
           style={{
             padding: "8px 16px",
             border: "1px solid #e2e8f0",
@@ -152,8 +162,13 @@ export default function EncounterList({ patientId }: Props) {
           {resetting ? "Resetting…" : "Reset patient"}
         </button>
         <button
-          onClick={handleSyncGold}
+          onClick={() => approved > 0 && setConfirmSync(true)}
           disabled={syncing || loading || approved === 0}
+          title={
+            approved === 0
+              ? "Approve at least one encounter first"
+              : "Apply approved encounters to patient graph"
+          }
           style={{
             padding: "8px 16px",
             border: "1px solid #16a34a",
@@ -168,6 +183,26 @@ export default function EncounterList({ patientId }: Props) {
           {syncing ? "Syncing…" : "Sync gold to patient"}
         </button>
       </div>
+
+      {confirmReset && (
+        <ConfirmDialog
+          title="Reset patient?"
+          body="This will remove all coded links for this patient. The encounter text will remain, but you will need to run the pipeline and review again. This cannot be undone."
+          confirmLabel="Reset"
+          variant="danger"
+          onConfirm={doReset}
+          onCancel={() => setConfirmReset(false)}
+        />
+      )}
+      {confirmSync && (
+        <ConfirmDialog
+          title="Sync gold to patient?"
+          body="This will apply your approved encounters to the patient graph. Only encounters you have approved will be synced."
+          confirmLabel="Sync"
+          onConfirm={doSyncGold}
+          onCancel={() => setConfirmSync(false)}
+        />
+      )}
 
       {loading && <p style={{ color: "#64748b" }}>Loading encounters…</p>}
       {error && <p style={{ color: "#b91c1c" }}>{error}</p>}

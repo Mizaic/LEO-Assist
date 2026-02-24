@@ -13,6 +13,7 @@ from app.models.neo4j_schema import (
     DELETE_CODED_LINK,
     GET_ENCOUNTER,
     GET_PATIENT,
+    LIST_APPROVED_COUNT_BY_PATIENT,
     LIST_ENCOUNTER_CODED_LINKS,
     LIST_PATIENT_ENCOUNTERS,
     LIST_PATIENTS,
@@ -49,11 +50,23 @@ class InferRequest(BaseModel):
 
 @router.get("")
 def list_patients():
-    client = PatientGraphClient()
+    patient_client = PatientGraphClient()
+    coding_client = CodingGraphClient()
     try:
-        return client.run(LIST_PATIENTS)
+        rows = patient_client.run(LIST_PATIENTS)
+        reviewed = {
+            r["patient_id"]: r["reviewed_count"]
+            for r in coding_client.run(LIST_APPROVED_COUNT_BY_PATIENT)
+        }
+        for row in rows:
+            enc = row.get("encounter_count") or 0
+            rev = reviewed.get(row["patient_id"], 0)
+            row["reviewed_count"] = rev
+            row["progress"] = rev / enc if enc > 0 else 0.0
+        return rows
     finally:
-        client.close()
+        patient_client.close()
+        coding_client.close()
 
 
 @router.post("/{patient_id}/reset")

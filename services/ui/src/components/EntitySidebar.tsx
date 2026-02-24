@@ -16,7 +16,7 @@ export default function EntitySidebar({ terms, selectedId, onSelect }: Props) {
       </h3>
       <div style={{ overflowY: "auto", maxHeight: "calc(100vh - 320px)" }}>
         {terms.map((t) => {
-          const score = Math.round(t.extraction_confidence * 100);
+          const score = Math.round((t.extraction_confidence ?? 0) * 100);
           const scoreColor = score >= 80 ? "#16a34a" : score >= 50 ? "#f59e0b" : "#dc2626";
           const isSelected = t.term_id === selectedId;
 

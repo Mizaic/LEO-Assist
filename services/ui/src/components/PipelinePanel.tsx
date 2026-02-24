@@ -19,12 +19,14 @@ export default function PipelinePanel() {
     kb_count: number;
     encounter_count: number;
   } | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   const stream = usePipelineStream();
 
   async function handleExportMedSpaCy() {
     setExporting(true);
     setExportResult(null);
+    setExportError(null);
     try {
       const ids = patientIds.split(/[\s,]+/).map((s) => s.trim()).filter(Boolean);
       const result = await exportMedSpaCyTraining({
@@ -38,24 +40,25 @@ export default function PipelinePanel() {
       });
     } catch (e) {
       setExportResult(null);
-      console.error(e);
+      setExportError(e instanceof Error ? e.message : "Export failed");
     } finally {
       setExporting(false);
     }
   }
 
+  const patientIdList = patientIds
+    .split(/[\s,]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+
   function handleRun() {
-    const ids = patientIds
-      .split(/[\s,]+/)
-      .map((s) => s.trim())
-      .filter(Boolean);
-    if (ids.length === 0) return;
+    if (patientIdList.length === 0) return;
 
     const maxEncVal = parseInt(maxEnc, 10);
     const workerVal = Math.max(1, Math.min(8, parseInt(workers, 10) || 4));
 
     stream.start({
-      patientIds: ids,
+      patientIds: patientIdList,
       maxEncountersPerPatient: Number.isNaN(maxEncVal) ? undefined : maxEncVal,
       dryRun,
       workers: workerVal,
@@ -93,7 +96,7 @@ export default function PipelinePanel() {
           }}
         >
           <label style={{ display: "flex", flexDirection: "column", gap: 4, flex: "1 1 200px" }}>
-            <span style={{ fontSize: 13, color: "#64748b" }}>Patient IDs (comma-separated)</span>
+            <span style={{ fontSize: 13, color: "#64748b" }}>Patient IDs (comma or space separated)</span>
             <input
               value={patientIds}
               onChange={(e) => setPatientIds(e.target.value)}
@@ -131,7 +134,12 @@ export default function PipelinePanel() {
           </label>
           <button
             onClick={handleRun}
-            disabled={stream.running}
+            disabled={stream.running || patientIdList.length === 0}
+            title={
+              patientIdList.length === 0
+                ? "Enter at least one patient ID"
+                : undefined
+            }
             style={{
               background: stream.running ? "#94a3b8" : "#4f46e5",
               color: "#fff",
@@ -140,7 +148,7 @@ export default function PipelinePanel() {
               padding: "8px 20px",
               fontSize: 14,
               fontWeight: 600,
-              cursor: stream.running ? "not-allowed" : "pointer",
+              cursor: stream.running || patientIdList.length === 0 ? "not-allowed" : "pointer",
             }}
           >
             {stream.running ? "Running…" : "Run Pipeline"}
@@ -249,6 +257,9 @@ export default function PipelinePanel() {
           <div style={{ marginTop: 8, padding: 12, background: "#f0fdf4", borderRadius: 8, fontSize: 13 }}>
             Exported: {exportResult.entity_count} entities, {exportResult.kb_count} KB rows, {exportResult.encounter_count} encounters
           </div>
+        )}
+        {exportError && (
+          <p style={{ color: "#b91c1c", fontSize: 13, marginTop: 8 }}>{exportError}</p>
         )}
       </div>
 

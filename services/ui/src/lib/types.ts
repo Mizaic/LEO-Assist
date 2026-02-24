@@ -1,6 +1,8 @@
 export interface Patient {
   patient_id: string;
   encounter_count: number;
+  reviewed_count?: number;
+  progress?: number;
 }
 
 export interface EncounterSummary {
@@ -26,6 +28,7 @@ export interface TermSearchResult {
   read_code?: string;
   semantic_tag?: string;
   score?: number;
+  icd10?: string;
 }
 
 export interface Correction {
@@ -112,11 +115,11 @@ export interface ReviewTaskDetail {
   candidate: EncounterCandidate;
 }
 
-export const CTX_FLAGS: Array<{ key: string; short: string; color: string }> = [
-  { key: "negated", short: "Neg", color: "#dc2626" },
-  { key: "uncertain", short: "Unc", color: "#f59e0b" },
-  { key: "historical", short: "Hist", color: "#8b5cf6" },
-  { key: "family", short: "Fam", color: "#06b6d4" },
-  { key: "hypothetical", short: "Hyp", color: "#6366f1" },
-  { key: "resolved", short: "Res", color: "#059669" },
+export const CTX_FLAGS: Array<{ key: string; short: string; label: string; color: string }> = [
+  { key: "negated", short: "Neg", label: "Negated", color: "#dc2626" },
+  { key: "uncertain", short: "Unc", label: "Uncertain", color: "#f59e0b" },
+  { key: "historical", short: "Hist", label: "Historical", color: "#8b5cf6" },
+  { key: "family", short: "Fam", label: "Family history", color: "#06b6d4" },
+  { key: "hypothetical", short: "Hyp", label: "Hypothetical", color: "#6366f1" },
+  { key: "resolved", short: "Res", label: "Resolved", color: "#059669" },
 ];
