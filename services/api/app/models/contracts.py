@@ -196,3 +196,16 @@ class ExportDatasetResponse(BaseModel):
     train_rows: int
     validation_rows: int
     manifest: dict[str, Any]
+
+
+class ExportMedSpaCyRequest(BaseModel):
+    export_name: str = Field(min_length=3)
+    patient_ids: list[str] | None = Field(default=None, description="Limit to these patients; omit for all")
+
+
+class ExportMedSpaCyResponse(BaseModel):
+    export_id: str
+    entity_count: int
+    kb_count: int
+    encounter_count: int
+    export_path: str | None = None

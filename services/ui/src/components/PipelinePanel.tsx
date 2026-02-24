@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { exportMedSpaCyTraining } from "@/lib/api";
 import { usePipelineStream } from "@/hooks/usePipelineStream";
 import PipelineModal from "./PipelineModal";
 
@@ -11,8 +12,37 @@ export default function PipelinePanel() {
   const [workers, setWorkers] = useState("4");
   const [showModal, setShowModal] = useState(false);
   const [minimized, setMinimized] = useState(false);
+  const [exportName, setExportName] = useState("medspacy_v1");
+  const [exporting, setExporting] = useState(false);
+  const [exportResult, setExportResult] = useState<{
+    entity_count: number;
+    kb_count: number;
+    encounter_count: number;
+  } | null>(null);
 
   const stream = usePipelineStream();
+
+  async function handleExportMedSpaCy() {
+    setExporting(true);
+    setExportResult(null);
+    try {
+      const ids = patientIds.split(/[\s,]+/).map((s) => s.trim()).filter(Boolean);
+      const result = await exportMedSpaCyTraining({
+        export_name: exportName,
+        patient_ids: ids.length > 0 ? ids : undefined,
+      });
+      setExportResult({
+        entity_count: result.entity_count,
+        kb_count: result.kb_count,
+        encounter_count: result.encounter_count,
+      });
+    } catch (e) {
+      setExportResult(null);
+      console.error(e);
+    } finally {
+      setExporting(false);
+    }
+  }
 
   function handleRun() {
     const ids = patientIds
@@ -180,6 +210,45 @@ export default function PipelinePanel() {
 
         {stream.error && !stream.running && (
           <p style={{ color: "#b91c1c", fontSize: 13, marginTop: 8 }}>{stream.error}</p>
+        )}
+
+        <h3 style={{ fontFamily: "var(--font-heading)", fontSize: 18, marginTop: 24, marginBottom: 12 }}>
+          Export MedSpaCy Training
+        </h3>
+        <div style={{ display: "flex", gap: 12, alignItems: "end", flexWrap: "wrap" }}>
+          <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <span style={{ fontSize: 13, color: "#64748b" }}>Export name</span>
+            <input
+              value={exportName}
+              onChange={(e) => setExportName(e.target.value)}
+              placeholder="medspacy_v1"
+              style={inputStyle}
+            />
+          </label>
+          <button
+            onClick={handleExportMedSpaCy}
+            disabled={exporting}
+            style={{
+              background: exporting ? "#94a3b8" : "#16a34a",
+              color: "#fff",
+              border: "none",
+              borderRadius: 8,
+              padding: "8px 20px",
+              fontSize: 14,
+              fontWeight: 600,
+              cursor: exporting ? "not-allowed" : "pointer",
+            }}
+          >
+            {exporting ? "Exporting…" : "Export MedSpaCy training"}
+          </button>
+        </div>
+        <p style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>
+          Uses patient IDs above if set; otherwise exports all approved gold.
+        </p>
+        {exportResult && (
+          <div style={{ marginTop: 8, padding: 12, background: "#f0fdf4", borderRadius: 8, fontSize: 13 }}>
+            Exported: {exportResult.entity_count} entities, {exportResult.kb_count} KB rows, {exportResult.encounter_count} encounters
+          </div>
         )}
       </div>
 

@@ -17,6 +17,7 @@ from app.models.neo4j_schema import (
     LIST_PATIENT_ENCOUNTERS,
     LIST_PATIENTS,
 )
+from app.services.inference_service import infer_encounter
 from app.services.reset_service import reset_patient
 from app.services.sync_service import sync_gold_to_patient
 from app.services.v3.patient_graph_writer import PatientGraphWriter, SemanticLinkPayload
@@ -40,6 +41,10 @@ class AddCodedLinkRequest(BaseModel):
     semantic_tag: str = "SnomedConcept"
     evidence: str = ""
     modifiers: dict[str, Any] | None = None
+
+
+class InferRequest(BaseModel):
+    dry_run: bool = True
 
 
 @router.get("")
@@ -124,6 +129,27 @@ def get_encounter(patient_id: str, encounter_id: str):
         if not rows:
             raise HTTPException(status_code=404, detail="Encounter not found")
         return rows[0]
+    finally:
+        client.close()
+
+
+@router.post("/{patient_id}/encounters/{encounter_id}/infer")
+def infer_encounter_coding(
+    patient_id: str,
+    encounter_id: str,
+    body: InferRequest | None = None,
+):
+    """Run MedSpaCy inference on encounter. dry_run=true returns entities only."""
+    client = PatientGraphClient()
+    try:
+        rows = client.run(GET_ENCOUNTER, patient_id=patient_id, encounter_id=encounter_id)
+        if not rows:
+            raise HTTPException(status_code=404, detail="Encounter not found")
+        encounter = rows[0]
+        text = encounter.get("text", "") or ""
+        dry_run = body.dry_run if body else True
+        result = infer_encounter(text, encounter_id, dry_run=dry_run)
+        return result
     finally:
         client.close()
 

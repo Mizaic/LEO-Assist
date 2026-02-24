@@ -17,10 +17,11 @@ class TestResetService:
         session.run.side_effect = [
             [{"patient_id": "p1", "encounter_count": 2}],
             MagicMock(single=MagicMock(return_value={"links_deleted": 5})),
+            MagicMock(single=MagicMock(return_value={"direct_deleted": 2})),
         ]
         result = reset_patient("p1", session)
         assert result["patient_id"] == "p1"
-        assert result["links_deleted"] == 5
+        assert result["links_deleted"] == 7
         assert "error" not in result
 
     def test_reset_patient_not_found(self) -> None:
@@ -36,6 +37,7 @@ class TestResetService:
         session.run.side_effect = [
             [{"patient_id": "p1", "encounter_count": 2}],
             MagicMock(single=MagicMock(return_value=None)),
+            MagicMock(single=MagicMock(return_value={"direct_deleted": 0})),
         ]
         result = reset_patient("p1", session)
         assert result["patient_id"] == "p1"

@@ -221,6 +221,15 @@ DELETE r
 RETURN links_deleted
 """
 
+RESET_PATIENT_DIRECT_SEMANTIC = """
+MATCH (p:Patient)-[r]->(s)
+WHERE toString(p.id) = $patient_id
+  AND (s:SnomedConcept OR s:Clinical_finding OR s:Disease OR s:Situation
+       OR s:Observable_entity OR s:Procedure)
+DELETE r
+RETURN count(r) AS direct_deleted
+"""
+
 DELETE_ENCOUNTER_DOCUMENTS = """
 MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter)-[r:DOCUMENTS]->()
 WHERE toString(p.id) = $patient_id AND toString(e.id) = $encounter_id

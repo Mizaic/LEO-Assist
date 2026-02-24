@@ -120,6 +120,48 @@ export async function syncGoldToPatient(patientId: string) {
   }>(`${API_BASE}/patients/${patientId}/sync-gold`, { method: "POST" });
 }
 
+export async function exportMedSpaCyTraining(body: {
+  export_name: string;
+  patient_ids?: string[];
+}) {
+  return fetchJson<{
+    export_id: string;
+    entity_count: number;
+    kb_count: number;
+    encounter_count: number;
+    export_path?: string;
+  }>(`${API_BASE}/exports/medspacy-training`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+export async function inferEncounter(
+  patientId: string,
+  encounterId: string,
+  dryRun = true,
+) {
+  return fetchJson<{
+    encounter_id: string;
+    entities: Array<{
+      text: string;
+      span_start: number;
+      span_end: number;
+      concept_id?: string;
+      term?: string;
+      confidence?: number;
+      semantic_tag?: string;
+    }>;
+    written: boolean;
+    message?: string;
+  }>(`${API_BASE}/patients/${patientId}/encounters/${encounterId}/infer`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ dry_run: dryRun }),
+  });
+}
+
 export async function fetchTasks(
   status?: string | null,
   patientId?: string | null,

@@ -7,10 +7,14 @@ import json
 import random
 import uuid
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
 from app.db.neo4j_client import CodingGraphClient
-from app.services.neo4j_store import list_approved_candidates
+from app.services.neo4j_store import (
+    list_approved_candidates,
+    list_approved_candidates_for_patient,
+)
 
 
 def _stable_hash(payload: Any) -> str:
@@ -47,4 +51,64 @@ class ExportService:
             "train_rows": len(train),
             "validation_rows": len(validation),
             "manifest": manifest,
+        }
+
+    def export_medspacy_training(
+        self,
+        export_name: str,
+        patient_ids: list[str] | None = None,
+    ) -> dict[str, Any]:
+        """Export approved gold to MedSpaCy training format (entities + KB)."""
+        with self.neo4j.session() as session:
+            if patient_ids:
+                candidates = []
+                for pid in patient_ids:
+                    candidates.extend(list_approved_candidates_for_patient(pid, session))
+            else:
+                candidates = list_approved_candidates(session=session)
+
+        entities: list[tuple[str, dict[str, Any]]] = []
+        kb_rows: list[dict[str, str]] = []
+
+        for candidate in candidates:
+            text = candidate.get("deidentified_text", "")
+            sent_entities: list[tuple[int, int, str]] = []
+            for sentence in candidate.get("sentences", []):
+                for term in sentence.get("terms", []):
+                    concept_id = term.get("coding", {}).get("snomed_concept_id")
+                    if not concept_id:
+                        continue
+                    start = int(term.get("span_start", 0))
+                    end = int(term.get("span_end", 0))
+                    label = term.get("semantic_tag", "CLINICAL") or "CLINICAL"
+                    sent_entities.append((start, end, label))
+                    kb_rows.append({
+                        "evidence": term.get("text", ""),
+                        "concept_id": concept_id,
+                        "term": term.get("coding", {}).get("snomed_term", ""),
+                    })
+            if sent_entities:
+                entities.append((text, {"entities": sent_entities}))
+
+        export_id = str(uuid.uuid4())
+        out_dir = Path("exports")
+        out_dir.mkdir(exist_ok=True)
+        prefix = f"medspacy_{export_name}_{export_id[:8]}"
+        entities_path = out_dir / f"{prefix}_entities.jsonl"
+        kb_path = out_dir / f"{prefix}_kb.jsonl"
+
+        with open(entities_path, "w", encoding="utf-8") as f:
+            for text, ann in entities:
+                f.write(json.dumps([text, ann], ensure_ascii=False) + "\n")
+
+        with open(kb_path, "w", encoding="utf-8") as f:
+            for row in kb_rows:
+                f.write(json.dumps(row, ensure_ascii=False) + "\n")
+
+        return {
+            "export_id": export_id,
+            "entity_count": sum(len(e[1]["entities"]) for e in entities),
+            "kb_count": len(kb_rows),
+            "encounter_count": len(candidates),
+            "export_path": str(entities_path.parent),
         }

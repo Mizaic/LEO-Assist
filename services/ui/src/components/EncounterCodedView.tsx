@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { addCodedLink, fetchEncounter } from "@/lib/api";
+import { addCodedLink, fetchEncounter, inferEncounter } from "@/lib/api";
 import type { CodedLink, Correction, EncounterSummary, TermSearchResult } from "@/lib/types";
 import CodedLinksSection from "./CodedLinksSection";
 
@@ -46,8 +46,28 @@ export default function EncounterCodedView({ patientId, encounterId }: Props) {
   const [pendingEvidence, setPendingEvidence] = useState("");
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [codedLinks, setCodedLinks] = useState<CodedLink[]>([]);
+  const [inferring, setInferring] = useState(false);
+  const [inferResult, setInferResult] = useState<string | null>(null);
   const textRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+
+  async function handleRunInference() {
+    setInferring(true);
+    setInferResult(null);
+    try {
+      const result = await inferEncounter(patientId, encounterId, true);
+      if (result.entities.length > 0) {
+        setInferResult(`${result.entities.length} entities inferred`);
+      } else {
+        setInferResult(result.message ?? "No entities (model not yet built)");
+      }
+      setRefreshTrigger((t) => t + 1);
+    } catch (e) {
+      setInferResult(e instanceof Error ? e.message : "Inference failed");
+    } finally {
+      setInferring(false);
+    }
+  }
 
   const highlightedText = useMemo(() => {
     const text = encounter?.text ?? "";
@@ -193,26 +213,49 @@ export default function EncounterCodedView({ patientId, encounterId }: Props) {
               Patient {patientId} · {encounter.date || "no date"} · {(encounter.coded_count ?? 0)} coded
             </span>
           </div>
-          <button
-            onClick={() => {
-              setTermSearchQuery(selection?.text ?? "");
-              setPendingEvidence(selection?.text ?? "");
-              setShowTermSearch(true);
-              setSelection(null);
-            }}
-            style={{
-              padding: "8px 16px",
-              border: "1px solid #4f46e5",
-              borderRadius: 8,
-              background: "#fff",
-              color: "#4f46e5",
-              fontSize: 13,
-              fontWeight: 600,
-              cursor: "pointer",
-            }}
-          >
-            {selection ? `Code "${selection.text.slice(0, 20)}${selection.text.length > 20 ? "…" : ""}"` : "+ Add code"}
-          </button>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                onClick={handleRunInference}
+                disabled={inferring}
+                style={{
+                  padding: "8px 16px",
+                  border: "1px solid #16a34a",
+                  borderRadius: 8,
+                  background: "#fff",
+                  color: "#16a34a",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: inferring ? "not-allowed" : "pointer",
+                }}
+              >
+                {inferring ? "Running…" : "Run inference"}
+              </button>
+              <button
+                onClick={() => {
+                  setTermSearchQuery(selection?.text ?? "");
+                  setPendingEvidence(selection?.text ?? "");
+                  setShowTermSearch(true);
+                  setSelection(null);
+                }}
+                style={{
+                  padding: "8px 16px",
+                  border: "1px solid #4f46e5",
+                  borderRadius: 8,
+                  background: "#fff",
+                  color: "#4f46e5",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                {selection ? `Code "${selection.text.slice(0, 20)}${selection.text.length > 20 ? "…" : ""}"` : "+ Add code"}
+              </button>
+            </div>
+            {inferResult && (
+              <span style={{ fontSize: 12, color: "#64748b" }}>{inferResult}</span>
+            )}
+          </div>
         </div>
 
         <div
