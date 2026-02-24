@@ -7,6 +7,7 @@ Run once before loading data. Idempotent — safe to re-run.
 from __future__ import annotations
 
 import logging
+import os
 
 from neo4j import AsyncDriver
 
@@ -15,17 +16,16 @@ logger = logging.getLogger(__name__)
 CONSTRAINTS = [
     "CREATE CONSTRAINT concept_id IF NOT EXISTS FOR (c:Concept) REQUIRE c.id IS UNIQUE",
     "CREATE CONSTRAINT term_id IF NOT EXISTS FOR (t:Term) REQUIRE t.id IS UNIQUE",
-    "CREATE CONSTRAINT umls_cui IF NOT EXISTS FOR (u:UmlsConcept) REQUIRE u.cui IS UNIQUE",
     "CREATE CONSTRAINT icd10_code IF NOT EXISTS FOR (i:Icd10Code) REQUIRE i.code IS UNIQUE",
     "CREATE CONSTRAINT read_code IF NOT EXISTS FOR (r:ReadCode) REQUIRE r.code IS UNIQUE",
     "CREATE CONSTRAINT drug_id IF NOT EXISTS FOR (d:DrugConcept) REQUIRE d.id IS UNIQUE",
-    "CREATE CONSTRAINT surface_form IF NOT EXISTS FOR (s:SurfaceForm) REQUIRE s.form IS UNIQUE",
+    "CREATE CONSTRAINT surface_form_norm IF NOT EXISTS FOR (s:SurfaceForm) REQUIRE s.normalized IS UNIQUE",
 ]
 
 INDEXES = [
     "CREATE INDEX term_normalized IF NOT EXISTS FOR (t:Term) ON (t.normalized_form)",
-    "CREATE INDEX surface_normalized IF NOT EXISTS FOR (s:SurfaceForm) ON (s.normalized)",
     "CREATE INDEX concept_active IF NOT EXISTS FOR (c:Concept) ON (c.active)",
+    "CREATE INDEX surface_form_text IF NOT EXISTS FOR (s:SurfaceForm) ON (s.form)",
 ]
 
 FULLTEXT_INDEXES = [
@@ -35,6 +35,20 @@ FULLTEXT_INDEXES = [
         "FOR (t:Term) ON EACH [t.surface_form]",
     ),
 ]
+
+
+def _vector_index_stmt() -> tuple[str, str]:
+    dim = int(os.environ.get("VECTOR_DIMENSION", "768"))
+    index_name = "term_embedding_idx"
+    stmt = (
+        f"CREATE VECTOR INDEX {index_name} IF NOT EXISTS "
+        "FOR (t:Term) ON (t.embedding) "
+        "OPTIONS {indexConfig: {"
+        f"`vector.dimensions`: {dim}, "
+        "`vector.similarity_function`: 'cosine'"
+        "}}"
+    )
+    return index_name, stmt
 
 
 async def ensure_schema(driver: AsyncDriver) -> None:
@@ -51,5 +65,9 @@ async def ensure_schema(driver: AsyncDriver) -> None:
         for name, stmt in FULLTEXT_INDEXES:
             logger.info("Schema: fulltext %s", name)
             await session.run(stmt)
+
+        vector_name, vector_stmt = _vector_index_stmt()
+        logger.info("Schema: vector %s", vector_name)
+        await session.run(vector_stmt)
 
     logger.info("Schema setup complete")

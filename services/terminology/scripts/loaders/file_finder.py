@@ -1,5 +1,5 @@
 """
-Locate SNOMED RF2 and UMLS RRF files within external_content/.
+Locate SNOMED RF2 and dm+d files within external_content/.
 
 Handles the variable directory names (date-stamped) by globbing.
 """
@@ -15,7 +15,6 @@ SNOMED_BASE = "trud-snomed-uk-clinical-edition"
 
 INT_DIR_PREFIX = "SnomedCT_InternationalRF2_PRODUCTION_"
 UKCL_DIR_PREFIX = "SnomedCT_UKClinicalRF2_PRODUCTION_"
-UKCR_DIR_PREFIX = "SnomedCT_UKClinicalRefsetsRF2_PRODUCTION_"
 UKED_DIR_PREFIX = "SnomedCT_UKEditionRF2_PRODUCTION_"
 
 
@@ -121,50 +120,6 @@ class SnomedFiles:
         }
 
 
-class UmlsFiles:
-    """Resolves paths for UMLS RRF files."""
-
-    def __init__(self, external_content: Path):
-        full = external_content / "umls" / "full" / "2025AB" / "META"
-        subset = external_content / "umls" / "2025AB" / "META"
-        self._meta = full if full.exists() else subset
-
-    def mrconso(self) -> Path | None:
-        p = self._meta / "MRCONSO.RRF"
-        return p if p.exists() else None
-
-    def mrsty(self) -> Path | None:
-        p = self._meta / "MRSTY.RRF"
-        return p if p.exists() else None
-
-    def all_found(self) -> dict[str, Path | None]:
-        return {
-            "mrconso": self.mrconso(),
-            "mrsty": self.mrsty(),
-        }
-
-
-class DmwbFiles:
-    """Resolves paths for DMWB Access databases."""
-
-    def __init__(self, external_content: Path):
-        self._dir = external_content / "trud-snomed-data-migration"
-
-    def read_mdb(self) -> Path | None:
-        p = self._dir / "DMWB NHS READ.mdb"
-        return p if p.exists() else None
-
-    def maps_mdb(self) -> Path | None:
-        p = self._dir / "DMWB NHS Data Migration Maps.mdb"
-        return p if p.exists() else None
-
-    def all_found(self) -> dict[str, Path | None]:
-        return {
-            "dmwb_read": self.read_mdb(),
-            "dmwb_maps": self.maps_mdb(),
-        }
-
-
 class DmdFiles:
     """Resolves paths for dm+d drug extension XML files."""
 
@@ -176,34 +131,3 @@ class DmdFiles:
 
     def all_found(self) -> dict[str, Path | None]:
         return {"dmd_dir": self.dmd_dir()}
-
-
-class SurfaceFormFiles:
-    """Resolves paths for surface form sources."""
-
-    def __init__(self, external_content: Path):
-        self._ext = external_content
-
-    def known_terms(self) -> Path | None:
-        p = self._ext / "known_terms.json"
-        return p if p.exists() else None
-
-    def encounter_analysis(self) -> Path | None:
-        p = self._ext / "encounter_analysis.json"
-        return p if p.exists() else None
-
-    def clinical_term_analysis(self) -> Path | None:
-        p = self._ext / "clinical_term_analysis.json"
-        return p if p.exists() else None
-
-    def lexicon(self) -> Path | None:
-        p = self._ext / "umls" / "LEXICON.txt"
-        return p if p.exists() else None
-
-    def all_found(self) -> dict[str, Path | None]:
-        return {
-            "known_terms": self.known_terms(),
-            "encounter_analysis": self.encounter_analysis(),
-            "clinical_term_analysis": self.clinical_term_analysis(),
-            "lexicon": self.lexicon(),
-        }

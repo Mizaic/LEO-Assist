@@ -232,3 +232,8 @@ external_content/
 # Cursor AI workspace files (keep rules, ignore state)
 .cursor/chat/
 .cursor/history/
+
+# NLP index artifacts (large binaries, rebuilt from Neo4j)
+services/terminology/data/
+*.joblib
+nmslib_index.bin
