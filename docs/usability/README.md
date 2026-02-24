@@ -19,12 +19,26 @@ This directory contains the Usability Engineering File for the Primary Care Clin
 
 ## 2. Document Index
 
+### Core UEF
 | Document | ID | Description |
 | -------- | -- | ----------- |
 | [Use Specification](./use-specification.md) | USE-SPEC-001 | User groups, use environment, UI description, training assumptions |
+| [Use Specification (NLP Pipeline)](./use-specification-nlp-pipeline.md) | USE-SPEC-002 | NLP pipeline UI: users, environment, critical tasks |
 | [User Needs](./user-needs.md) | USER-NEEDS-001 | Traceable user needs with acceptance criteria |
 | [Critical Task List](./critical-tasks.md) | CRITICAL-TASKS-001 | Tasks where use error could cause harm |
 | [Use-Related Hazard Analysis](./use-related-hazards.md) | URHA-001 | Hazards, causes, effects, risk controls |
+| [Use-Related Risk Table](./use-related-risk-table.md) | URRT-001 | Critical tasks, use errors, mitigations, summative criteria |
+
+### UX Analysis (NLP Pipeline UI)
+| Document | ID | Description |
+| -------- | -- | ----------- |
+| [UX Audit Report](./UX-AUDIT-REPORT.md) | UX-AUDIT-001 | 8 principles + gaps; file/line references |
+| [Prioritised Improvement List](./prioritised-improvement-list.md) | PIL-001 | Ordered changes; effort; implementation phases |
+| [Microcopy and Error Message Audit](./microcopy-error-audit.md) | MEA-001 | Labels, errors, empty states, confirmations |
+
+### Process
+| Document | ID | Description |
+| -------- | -- | ----------- |
 | [Usability Engineering Prompt](./USABILITY-ENGINEERING-PROMPT.md) | — | Process prompt for generating UEF deliverables |
 
 ---
