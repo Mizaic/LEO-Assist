@@ -204,6 +204,16 @@ WHERE s.conceptId = $concept_id
 DELETE r
 """
 
+RESET_PATIENT_DOCUMENTS = """
+MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter)-[r:DOCUMENTS]->()
+WHERE toString(p.id) = $patient_id
+WITH count(r) AS links_deleted
+MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter)-[r:DOCUMENTS]->()
+WHERE toString(p.id) = $patient_id
+DELETE r
+RETURN links_deleted
+"""
+
 
 # ── Terminology search query ───────────────────────────────
 

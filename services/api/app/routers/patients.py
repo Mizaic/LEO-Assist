@@ -17,6 +17,7 @@ from app.models.neo4j_schema import (
     LIST_PATIENT_ENCOUNTERS,
     LIST_PATIENTS,
 )
+from app.services.reset_service import reset_patient
 from app.services.v3.patient_graph_writer import PatientGraphWriter, SemanticLinkPayload
 
 
@@ -45,6 +46,23 @@ def list_patients():
     client = PatientGraphClient()
     try:
         return client.run(LIST_PATIENTS)
+    finally:
+        client.close()
+
+
+@router.post("/{patient_id}/reset")
+def reset_patient_documents(patient_id: str):
+    """Remove all DOCUMENTS for a patient's encounters. Keeps Patient, Encounters, text."""
+    client = PatientGraphClient()
+    try:
+        with client.session() as session:
+            result = reset_patient(patient_id, session)
+        if result.get("error") == "patient_not_found":
+            raise HTTPException(status_code=404, detail="Patient not found")
+        return {
+            "patient_id": result["patient_id"],
+            "links_deleted": result["links_deleted"],
+        }
     finally:
         client.close()
 
