@@ -133,7 +133,11 @@ export default function EncounterCodedView({ patientId, encounterId }: Props) {
     setLoading(true);
     fetchEncounter(patientId, encounterId)
       .then(setEncounter)
-      .catch((e) => setError(e instanceof Error ? e.message : "Failed to load"))
+      .catch((e) =>
+        setError(
+          e instanceof Error ? e.message : "Could not load encounter.",
+        ),
+      )
       .finally(() => setLoading(false));
   }, [patientId, encounterId]);
 
@@ -176,7 +180,9 @@ export default function EncounterCodedView({ patientId, encounterId }: Props) {
           ...prev,
         ]);
       })
-      .catch((e) => setError(e instanceof Error ? e.message : "Failed to add"))
+      .catch((e) =>
+        setError(e instanceof Error ? e.message : "Could not add coded link."),
+      )
       .finally(() => {
         setShowTermSearch(false);
         setTermSearchQuery("");

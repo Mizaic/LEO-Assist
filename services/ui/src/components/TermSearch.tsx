@@ -305,7 +305,7 @@ export default function TermSearch({
                 SNOMED: {r.snomed_concept_id}
                 {r.read_code && <span> · Read: {r.read_code}</span>}
                 {r.icd10 && <span> · ICD-10: {r.icd10}</span>}
-                <span> · Score: {Math.round(r.score * 100)}%</span>
+                <span> · Score: {Math.round((r.score ?? 0) * 100)}%</span>
               </div>
             </button>
           ))}

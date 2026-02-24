@@ -14,9 +14,11 @@ interface Props {
 export default function SpanAdjustBanner({ term, fullText, onSave, onCancel, onCorrection }: Props) {
   const [start, setStart] = useState(term.span_start);
   const [end, setEnd] = useState(term.span_end);
-  const preview = fullText.slice(start, end);
+  const preview = fullText.slice(Math.max(0, start), Math.min(end, fullText.length));
+  const isValid = start < end && start >= 0 && end <= fullText.length;
 
   function save() {
+    if (!isValid) return;
     onSave(term.term_id, start, end, preview);
     onCorrection({
       type: "span",
@@ -71,7 +73,20 @@ export default function SpanAdjustBanner({ term, fullText, onSave, onCancel, onC
         <button onClick={onCancel} style={{ padding: "6px 14px", border: "1px solid #e2e8f0", borderRadius: 8, background: "#fff", cursor: "pointer", fontSize: 13 }}>
           Cancel
         </button>
-        <button onClick={save} style={{ padding: "6px 14px", border: "none", borderRadius: 8, background: "#4f46e5", color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>
+        <button
+          onClick={save}
+          disabled={!isValid}
+          style={{
+            padding: "6px 14px",
+            border: "none",
+            borderRadius: 8,
+            background: isValid ? "#4f46e5" : "#94a3b8",
+            color: "#fff",
+            cursor: isValid ? "pointer" : "not-allowed",
+            fontSize: 13,
+            fontWeight: 600,
+          }}
+        >
           Save
         </button>
       </div>

@@ -3,11 +3,19 @@ const API_BASE =
     ? process.env.NEXT_PUBLIC_API_BASE
     : "http://localhost:8000";
 
+function formatApiError(detail: string | undefined, status: number): string {
+  if (detail && detail.length > 0) return detail;
+  if (status === 404) return "Not found. Check the ID or return to the list.";
+  if (status >= 500) return "Server error. Try again or contact support.";
+  return "Request failed. Please try again.";
+}
+
 async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, init);
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error((err as { detail?: string }).detail ?? res.statusText);
+    const detail = (err as { detail?: string }).detail;
+    throw new Error(formatApiError(detail, res.status));
   }
   return res.json();
 }

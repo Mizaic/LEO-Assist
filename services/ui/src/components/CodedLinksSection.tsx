@@ -38,7 +38,9 @@ export default function CodedLinksSection({
         setLinks(data);
         onLinksChange?.(data);
       })
-      .catch((e) => setError(e instanceof Error ? e.message : "Failed to load"))
+      .catch((e) =>
+        setError(e instanceof Error ? e.message : "Could not load coded links."),
+      )
       .finally(() => setLoading(false));
   }, [patientId, encounterId, refresh, onLinksChange]);
 
@@ -57,7 +59,7 @@ export default function CodedLinksSection({
         time: new Date().toISOString(),
       });
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Remove failed");
+      setError(e instanceof Error ? e.message : "Remove failed.");
     } finally {
       setRemoving(null);
     }
@@ -95,7 +97,9 @@ export default function CodedLinksSection({
           time: new Date().toISOString(),
         });
       })
-      .catch((e) => setError(e instanceof Error ? e.message : "Recode failed"))
+      .catch((e) =>
+        setError(e instanceof Error ? e.message : "Recode failed."),
+      )
       .finally(() => setRecodeTarget(null));
   }
 
@@ -106,11 +110,13 @@ export default function CodedLinksSection({
     <>
       <div style={{ borderTop: "1px solid #e2e8f0", flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
         <h3 style={{ fontSize: 14, fontWeight: 600, color: "#334155", padding: "12px 16px", borderBottom: "1px solid #e2e8f0", flexShrink: 0 }}>
-          Patient graph links ({links.length})
+          Coded terms ({links.length})
         </h3>
         <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "8px 0" }}>
           {links.length === 0 ? (
-            <div style={{ padding: 16, fontSize: 13, color: "#94a3b8" }}>No coded links for this encounter.</div>
+            <div style={{ padding: 16, fontSize: 13, color: "#94a3b8" }}>
+              No coded terms yet. Select text and click &quot;Code selection&quot; to add.
+            </div>
           ) : links.map((link) => (
             <div
               key={link.concept_id}
@@ -127,15 +133,27 @@ export default function CodedLinksSection({
               <div style={{ fontWeight: 500, color: "#334155", marginBottom: 4, lineHeight: 1.4 }}>
                 {link.term ?? link.concept_id}
               </div>
-              {(link.modifiers?.value != null || link.modifiers?.unit || link.modifiers?.reference_range || link.modifiers?.interpretation) && (
+              {Boolean(
+                link.modifiers?.value != null ||
+                  link.modifiers?.unit ||
+                  link.modifiers?.reference_range ||
+                  link.modifiers?.interpretation,
+              ) && (
                 <div style={{ color: "#059669", fontSize: 12, marginBottom: 4 }}>
-                  {[link.modifiers?.value, link.modifiers?.unit].filter(Boolean).join(" ")}
-                  {link.modifiers?.reference_range && (
-                    <span style={{ color: "#64748b", marginLeft: 6 }}>[{link.modifiers.reference_range}]</span>
-                  )}
-                  {link.modifiers?.interpretation && (
-                    <span style={{ color: "#6366f1", marginLeft: 6, fontWeight: 500 }}>{link.modifiers.interpretation}</span>
-                  )}
+                  {[link.modifiers?.value, link.modifiers?.unit]
+                    .filter((x): x is string | number => x != null && x !== "")
+                    .map(String)
+                    .join(" ")}
+                  {link.modifiers?.reference_range ? (
+                    <span style={{ color: "#64748b", marginLeft: 6 }}>
+                      [{String(link.modifiers.reference_range)}]
+                    </span>
+                  ) : null}
+                  {link.modifiers?.interpretation ? (
+                    <span style={{ color: "#6366f1", marginLeft: 6, fontWeight: 500 }}>
+                      {String(link.modifiers.interpretation)}
+                    </span>
+                  ) : null}
                 </div>
               )}
               <div style={{ color: "#64748b", fontFamily: "var(--font-mono)", fontSize: 11, marginBottom: 8 }}>

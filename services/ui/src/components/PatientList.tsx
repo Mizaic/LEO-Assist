@@ -22,7 +22,7 @@ export default function PatientList() {
     try {
       setPatients(await fetchPatients());
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Failed to load patients");
+      setError(e instanceof Error ? e.message : "Could not load patients. Check your connection and try Refresh.");
     } finally {
       setLoading(false);
     }
@@ -56,7 +56,7 @@ export default function PatientList() {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Filter by patient ID..."
+            placeholder="Search by patient ID..."
             style={{
               border: "1px solid #cbd5e1",
               borderRadius: 8,
@@ -135,16 +135,16 @@ export default function PatientList() {
             <div style={{ width: 120, height: 6, background: "#e2e8f0", borderRadius: 3, overflow: "hidden" }}>
               <div
                 style={{
-                  width: `${Math.round(p.progress * 100)}%`,
+                  width: `${Math.round((p.progress ?? 0) * 100)}%`,
                   height: "100%",
-                  background: p.progress >= 1 ? "#16a34a" : "#4f46e5",
+                  background: (p.progress ?? 0) >= 1 ? "#16a34a" : "#4f46e5",
                   borderRadius: 3,
                   transition: "width 0.3s",
                 }}
               />
             </div>
             <span style={{ fontSize: 12, color: "#64748b", minWidth: 50, textAlign: "right" }}>
-              {p.reviewed_count}/{p.encounter_count}
+              {p.reviewed_count ?? 0}/{p.encounter_count}
             </span>
           </button>
         ))}
@@ -157,7 +157,7 @@ export default function PatientList() {
       )}
       {!loading && patients.length > 0 && filteredPatients.length === 0 && !error && (
         <p style={{ color: "#94a3b8", textAlign: "center", padding: 40 }}>
-          No patients match "{query}". Try a different ID fragment.
+          No patients match your search. Try a different ID.
         </p>
       )}
     </div>

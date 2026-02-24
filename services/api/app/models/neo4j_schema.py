@@ -148,6 +148,13 @@ RETURN toString(p.id) AS patient_id, count(e) AS encounter_count
 ORDER BY patient_id
 """
 
+# Coding graph: approved count per patient
+LIST_APPROVED_COUNT_BY_PATIENT = """
+MATCH (c:EncounterCandidate)
+WHERE c.approval_status = 'approved'
+RETURN c.patient_id AS patient_id, count(*) AS reviewed_count
+"""
+
 GET_PATIENT = """
 MATCH (p:Patient)
 WHERE toString(p.id) = $patient_id

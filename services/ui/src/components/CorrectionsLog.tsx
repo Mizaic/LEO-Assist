@@ -18,7 +18,7 @@ export default function CorrectionsLog({ corrections }: Props) {
   if (corrections.length === 0) {
     return (
       <div style={{ padding: 16, color: "#94a3b8", fontSize: 13 }}>
-        No corrections yet
+        No corrections yet. Click an entity to edit.
       </div>
     );
   }

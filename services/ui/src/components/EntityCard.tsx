@@ -46,7 +46,7 @@ export default function EntityCard({
       uncertain: next.uncertain,
       historical: next.historical,
       subject: next.family ? "family" : "patient",
-      temporality: next.hypothetical ? "hypothetical" : "current",
+      temporality: next.hypothetical ? "hypothetical" : "present",
     };
     onContextChange(term.term_id, partial);
     onCorrection({
@@ -57,7 +57,7 @@ export default function EntityCard({
     });
   }
 
-  const score = Math.round(term.extraction_confidence * 100);
+  const score = Math.round((term.extraction_confidence ?? 0) * 100);
   const scoreColor = score >= 80 ? "#16a34a" : score >= 50 ? "#f59e0b" : "#dc2626";
 
   return (
@@ -116,6 +116,7 @@ export default function EntityCard({
           return (
             <button
               key={f.key}
+              title={f.label}
               onClick={() => toggle(f.key)}
               style={{
                 padding: "4px 10px",
