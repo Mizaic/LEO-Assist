@@ -15,7 +15,7 @@ from app.services.neo4j_store import create_review_task, upsert_candidate
 from app.services.v3.coding_resolver import CodingResolver
 from app.services.v3.disambiguator import CodingDisambiguator
 from app.services.v3.llm_extractor import ExtractedTerm, LLMExtractor
-from app.services.v3.patient_graph_writer import PatientGraphWriter, SemanticLinkPayload
+from app.services.v3.patient_graph_writer import SemanticLinkPayload
 from app.services.v3.sentence_splitter import SentenceChunk, SentenceSplitter
 
 
@@ -93,7 +93,6 @@ class V3PipelineService:
         self.extractor = LLMExtractor(model_id=self.settings.model_id, region=region)
         self.resolver = CodingResolver()
         self.disambiguator = CodingDisambiguator(model_id=self.settings.model_id, region=region)
-        self.graph_writer = PatientGraphWriter()
 
     def _resolve_aws_region(self) -> str | None:
         import os
@@ -507,27 +506,7 @@ class V3PipelineService:
                     warning_count=len(candidate.get("warning_reasons", [])),
                 )
 
-        # Write semantic links to patient graph for discoverability/correction UX.
-        with self.patient_graph.session() as patient_session:
-            encounter_id = str(candidate["encounter_id"])
-            for link in semantic_links:
-                if not link.concept_id:
-                    continue
-                payload = SemanticLinkPayload(
-                    encounter_id=encounter_id,
-                    semantic_tag=link.semantic_tag,
-                    concept_id=link.concept_id,
-                    term=link.term,
-                    read_code=link.read_code,
-                    evidence=link.evidence,
-                    confidence=link.confidence,
-                    domain=link.domain,
-                    context=link.context,
-                    modifiers=link.modifiers,
-                    source=link.source,
-                )
-                self.graph_writer.upsert_documents_link(payload, session=patient_session)
-
+        # Patient graph DOCUMENTS are written only via sync-gold (Phase 3).
         self._emit(progress_hook, {"type": "persist_completed", **base, "queued": not hard_fail})
 
     def _fetch_encounters(self, patient_id: str, max_enc: int | None) -> list[dict[str, Any]]:
