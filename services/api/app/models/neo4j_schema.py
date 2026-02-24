@@ -131,6 +131,13 @@ RETURN c
 ORDER BY c.patient_id, c.encounter_id
 """
 
+LIST_APPROVED_CANDIDATES_FOR_PATIENT = """
+MATCH (c:EncounterCandidate)
+WHERE c.approval_status = 'approved' AND c.patient_id = $patient_id
+RETURN c
+ORDER BY c.encounter_id
+"""
+
 
 # ── Patient graph queries ──────────────────────────────────
 
@@ -212,6 +219,12 @@ MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter)-[r:DOCUMENTS]->()
 WHERE toString(p.id) = $patient_id
 DELETE r
 RETURN links_deleted
+"""
+
+DELETE_ENCOUNTER_DOCUMENTS = """
+MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter)-[r:DOCUMENTS]->()
+WHERE toString(p.id) = $patient_id AND toString(e.id) = $encounter_id
+DELETE r
 """
 
 

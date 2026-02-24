@@ -8,7 +8,7 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 
-from app.db.neo4j_client import PatientGraphClient
+from app.db.neo4j_client import CodingGraphClient, PatientGraphClient
 from app.models.neo4j_schema import (
     DELETE_CODED_LINK,
     GET_ENCOUNTER,
@@ -18,6 +18,7 @@ from app.models.neo4j_schema import (
     LIST_PATIENTS,
 )
 from app.services.reset_service import reset_patient
+from app.services.sync_service import sync_gold_to_patient
 from app.services.v3.patient_graph_writer import PatientGraphWriter, SemanticLinkPayload
 
 
@@ -65,6 +66,33 @@ def reset_patient_documents(patient_id: str):
         }
     finally:
         client.close()
+
+
+@router.post("/{patient_id}/sync-gold")
+def sync_gold_to_patient_graph(patient_id: str):
+    """Apply approved gold from Coding graph to Patient graph DOCUMENTS."""
+    coding_client = CodingGraphClient()
+    patient_client = PatientGraphClient()
+    try:
+        with coding_client.session() as coding_session, patient_client.session() as patient_session:
+            result = sync_gold_to_patient(
+                patient_id,
+                coding_session=coding_session,
+                patient_session=patient_session,
+            )
+        if result.get("error") == "no_approved_gold":
+            raise HTTPException(
+                status_code=400,
+                detail="No approved gold for this patient. Complete review and approve first.",
+            )
+        return {
+            "patient_id": result["patient_id"],
+            "encounters_synced": result["encounters_synced"],
+            "links_created": result["links_created"],
+        }
+    finally:
+        coding_client.close()
+        patient_client.close()
 
 
 @router.get("/{patient_id}")
