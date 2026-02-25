@@ -1,4 +1,4 @@
-"""Sync approved gold from Coding graph to Patient graph DOCUMENTS."""
+"""Sync approved gold from patient graph EncounterCandidates to DOCUMENTS."""
 
 from __future__ import annotations
 
@@ -40,14 +40,13 @@ def _term_to_payload(term: dict[str, Any], encounter_id: str) -> SemanticLinkPay
 def sync_gold_to_patient(
     patient_id: str,
     *,
-    coding_session,
     patient_session,
 ) -> dict[str, Any]:
     """
-    Sync approved gold from Coding graph to Patient graph.
-    Returns encounters_synced, links_created, error (if any).
+    Sync approved gold EncounterCandidates into DOCUMENTS on the patient graph.
+    Both candidates and DOCUMENTS now live in the same graph.
     """
-    candidates = list_approved_candidates_for_patient(patient_id, coding_session)
+    candidates = list_approved_candidates_for_patient(patient_id, patient_session)
     if not candidates:
         return {
             "patient_id": patient_id,

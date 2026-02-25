@@ -1,16 +1,26 @@
 "use client";
 
 import { useState } from "react";
-import dynamic from "next/dynamic";
 import type { PipelineRunResponse } from "@/lib/types";
 import type { WorkerState } from "@/hooks/usePipelineStream";
 import ProgressViz from "./games/ProgressViz";
+import SnakeGame from "./games/SnakeGame";
+import SpaceInvaders from "./games/SpaceInvaders";
+import BreakoutGame from "./games/BreakoutGame";
+import LeaderboardTab from "./games/LeaderboardTab";
+import Dialog from "@mui/material/Dialog";
+import Box from "@mui/material/Box";
+import Typography from "@mui/material/Typography";
+import Tabs from "@mui/material/Tabs";
+import Tab from "@mui/material/Tab";
+import IconButton from "@mui/material/IconButton";
+import Button from "@mui/material/Button";
+import LinearProgress from "@mui/material/LinearProgress";
+import CloseIcon from "@mui/icons-material/Close";
+import MinimizeIcon from "@mui/icons-material/Minimize";
+import { keyframes } from "@mui/system";
 
-const SnakeGame = dynamic(() => import("./games/SnakeGame"), { ssr: false });
-const SpaceInvaders = dynamic(() => import("./games/SpaceInvaders"), { ssr: false });
-const BreakoutGame = dynamic(() => import("./games/BreakoutGame"), { ssr: false });
-
-type GameTab = "snake" | "invaders" | "breakout" | "progress";
+type ModalTab = "progress" | "snake" | "invaders" | "breakout" | "leaderboard";
 
 interface Props {
   running: boolean;
@@ -23,31 +33,40 @@ interface Props {
   onMinimize: () => void;
 }
 
-const TAB_META: { id: GameTab; label: string; icon: string }[] = [
-  { id: "snake", label: "Snake", icon: "🐍" },
-  { id: "invaders", label: "Space Invaders", icon: "👾" },
-  { id: "breakout", label: "Breakout", icon: "🧱" },
+const TAB_META: { id: ModalTab; label: string; icon: string }[] = [
   { id: "progress", label: "Progress", icon: "📊" },
+  { id: "snake", label: "Snake", icon: "🐍" },
+  { id: "invaders", label: "Invaders", icon: "👾" },
+  { id: "breakout", label: "Breakout", icon: "🧱" },
+  { id: "leaderboard", label: "Scores", icon: "🏆" },
 ];
+
+const pulse = keyframes`
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+`;
 
 function StatChip({ label, value, color }: { label: string; value: number; color: string }) {
   return (
-    <div
-      style={{
+    <Box
+      sx={{
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        padding: "6px 14px",
-        background: "rgba(255,255,255,0.06)",
-        borderRadius: 8,
+        px: 1.75,
+        py: 0.75,
+        bgcolor: "rgba(255,255,255,0.06)",
+        borderRadius: 2,
         minWidth: 80,
       }}
     >
-      <span style={{ fontSize: 22, fontWeight: 700, color, fontFamily: "var(--font-mono)" }}>
+      <Typography
+        sx={{ fontSize: 22, fontWeight: 700, color, fontFamily: "var(--font-mono)" }}
+      >
         {value}
-      </span>
-      <span style={{ fontSize: 11, color: "#94a3b8" }}>{label}</span>
-    </div>
+      </Typography>
+      <Typography sx={{ fontSize: 11, color: "#94a3b8" }}>{label}</Typography>
+    </Box>
   );
 }
 
@@ -61,220 +80,261 @@ export default function PipelineModal({
   onClose,
   onMinimize,
 }: Props) {
-  const [tab, setTab] = useState<GameTab>("progress");
+  const [tab, setTab] = useState<ModalTab>("progress");
 
   const done = !!result || !!error;
   const stats = result ?? live;
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 9999,
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        background: "rgba(15,23,42,0.92)",
-        backdropFilter: "blur(8px)",
+    <Dialog
+      open
+      fullScreen
+      PaperProps={{
+        sx: {
+          bgcolor: "rgba(15,23,42,0.96)",
+          backdropFilter: "blur(8px)",
+          display: "flex",
+          flexDirection: "column",
+        },
       }}
     >
       {/* Top bar */}
-      <div
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
+      <Box
+        sx={{
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          padding: "12px 24px",
+          px: 3,
+          py: 1.5,
           borderBottom: "1px solid rgba(255,255,255,0.08)",
+          flexShrink: 0,
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div
-            style={{
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+          <Box
+            sx={{
               width: 10,
               height: 10,
               borderRadius: "50%",
-              background: running ? "#22c55e" : done ? "#6366f1" : "#64748b",
+              bgcolor: running ? "#22c55e" : done ? "#6366f1" : "#64748b",
               boxShadow: running ? "0 0 8px #22c55e" : "none",
-              animation: running ? "pulse 1.5s infinite" : "none",
+              animation: running ? `${pulse} 1.5s infinite` : "none",
             }}
           />
-          <span style={{ color: "#e2e8f0", fontSize: 14, fontFamily: "var(--font-mono)" }}>
+          <Typography
+            sx={{
+              color: "#e2e8f0",
+              fontSize: 14,
+              fontFamily: "var(--font-mono)",
+              maxWidth: 500,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
             {status ?? "Pipeline"}
-          </span>
-        </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={onMinimize} style={topBtn} title="Minimize">
-            &#x2015;
-          </button>
+          </Typography>
+        </Box>
+        <Box sx={{ display: "flex", gap: 1 }}>
+          <IconButton
+            onClick={onMinimize}
+            title="Minimize"
+            size="small"
+            sx={{
+              bgcolor: "rgba(255,255,255,0.08)",
+              border: "1px solid rgba(255,255,255,0.12)",
+              color: "#94a3b8",
+              width: 28,
+              height: 28,
+              borderRadius: 1.5,
+              "&:hover": { bgcolor: "rgba(255,255,255,0.14)" },
+            }}
+          >
+            <MinimizeIcon sx={{ fontSize: 14 }} />
+          </IconButton>
           {done && (
-            <button onClick={onClose} style={topBtn} title="Close">
-              &#x2715;
-            </button>
+            <IconButton
+              onClick={onClose}
+              title="Close"
+              size="small"
+              sx={{
+                bgcolor: "rgba(255,255,255,0.08)",
+                border: "1px solid rgba(255,255,255,0.12)",
+                color: "#94a3b8",
+                width: 28,
+                height: 28,
+                borderRadius: 1.5,
+                "&:hover": { bgcolor: "rgba(255,255,255,0.14)" },
+              }}
+            >
+              <CloseIcon sx={{ fontSize: 14 }} />
+            </IconButton>
           )}
-        </div>
-      </div>
+        </Box>
+      </Box>
 
-      {/* Stats bar */}
+      {running && (
+        <LinearProgress
+          sx={{
+            flexShrink: 0,
+            height: 3,
+            bgcolor: "rgba(255,255,255,0.05)",
+            "& .MuiLinearProgress-bar": { bgcolor: "#6366f1" },
+          }}
+        />
+      )}
+
+      {/* Pipeline stats bar */}
       {stats && (
-        <div
-          style={{
-            position: "absolute",
-            top: 52,
+        <Box
+          sx={{
             display: "flex",
-            gap: 12,
-            padding: "8px 0",
+            justifyContent: "center",
+            gap: 1.5,
+            py: 1,
+            flexShrink: 0,
+            borderBottom: "1px solid rgba(255,255,255,0.05)",
           }}
         >
           <StatChip label="Processed" value={stats.processed_encounters} color="#e2e8f0" />
           <StatChip label="Queued" value={stats.queued_for_review} color="#22c55e" />
           <StatChip label="Rejected" value={stats.rejected_hard_fail} color="#ef4444" />
           <StatChip label="Warnings" value={stats.warnings_only} color="#f59e0b" />
-        </div>
+        </Box>
       )}
 
-      {/* Game area */}
-      <div style={{ marginTop: 80 }}>
-        {tab === "snake" && <SnakeGame />}
-        {tab === "invaders" && <SpaceInvaders />}
-        {tab === "breakout" && <BreakoutGame />}
+      {/* Scrollable game/content area */}
+      <Box
+        sx={{
+          flex: 1,
+          overflow: "auto",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: tab === "progress" ? "center" : "flex-start",
+          py: 3,
+          px: 2,
+        }}
+      >
         {tab === "progress" && (
           <ProgressViz status={status} live={live} workerStates={workerStates} />
         )}
-      </div>
+        {tab === "snake" && <SnakeGame />}
+        {tab === "invaders" && <SpaceInvaders />}
+        {tab === "breakout" && <BreakoutGame />}
+        {tab === "leaderboard" && <LeaderboardTab />}
+      </Box>
 
-      {/* Completion overlay */}
+      {/* Completion / error banners */}
       {done && !error && (
-        <div
-          style={{
-            position: "absolute",
-            bottom: 80,
+        <Box
+          sx={{
             display: "flex",
-            flexDirection: "column",
             alignItems: "center",
-            gap: 12,
+            justifyContent: "center",
+            gap: 2,
+            py: 1.5,
+            flexShrink: 0,
+            borderTop: "1px solid rgba(34,197,94,0.2)",
+            bgcolor: "rgba(34,197,94,0.06)",
           }}
         >
-          <span style={{ fontSize: 28, color: "#22c55e", fontWeight: 700 }}>
+          <Typography sx={{ fontSize: 16, color: "#22c55e", fontWeight: 700 }}>
             Pipeline Complete
-          </span>
-          <button
+          </Typography>
+          <Button
             onClick={onClose}
-            style={{
-              background: "#4f46e5",
-              color: "#fff",
-              border: "none",
-              borderRadius: 8,
-              padding: "10px 28px",
-              fontSize: 15,
+            variant="contained"
+            sx={{
+              bgcolor: "#4f46e5",
+              borderRadius: 2,
+              px: 2.5,
+              py: 0.75,
+              fontSize: 13,
               fontWeight: 600,
-              cursor: "pointer",
+              textTransform: "none",
+              "&:hover": { bgcolor: "#4338ca" },
             }}
           >
             View Results
-          </button>
-        </div>
+          </Button>
+        </Box>
       )}
 
       {error && (
-        <div
-          style={{
-            position: "absolute",
-            bottom: 80,
+        <Box
+          sx={{
             display: "flex",
-            flexDirection: "column",
             alignItems: "center",
-            gap: 8,
+            justifyContent: "center",
+            gap: 2,
+            py: 1.5,
+            flexShrink: 0,
+            borderTop: "1px solid rgba(239,68,68,0.2)",
+            bgcolor: "rgba(239,68,68,0.06)",
           }}
         >
-          <span style={{ color: "#ef4444", fontSize: 16, fontWeight: 600 }}>
-            Pipeline Error
-          </span>
-          <span style={{ color: "#f87171", fontSize: 13, maxWidth: 400, textAlign: "center" }}>
-            {error}
-          </span>
-          <button
+          <Typography sx={{ color: "#ef4444", fontSize: 14, fontWeight: 600 }}>
+            Error: {error}
+          </Typography>
+          <Button
             onClick={onClose}
-            style={{
-              background: "#334155",
-              color: "#fff",
-              border: "none",
-              borderRadius: 8,
-              padding: "8px 20px",
-              fontSize: 14,
-              cursor: "pointer",
-              marginTop: 4,
+            variant="contained"
+            sx={{
+              bgcolor: "#334155",
+              borderRadius: 2,
+              px: 2,
+              py: 0.75,
+              fontSize: 13,
+              textTransform: "none",
+              "&:hover": { bgcolor: "#475569" },
             }}
           >
             Close
-          </button>
-        </div>
+          </Button>
+        </Box>
       )}
 
-      {/* Tab bar */}
-      <div
-        style={{
-          position: "absolute",
-          bottom: 0,
-          left: 0,
-          right: 0,
+      {/* Bottom tab bar */}
+      <Box
+        sx={{
           display: "flex",
           justifyContent: "center",
-          gap: 4,
-          padding: "10px 24px",
+          px: 3,
+          py: 1.25,
           borderTop: "1px solid rgba(255,255,255,0.08)",
-          background: "rgba(15,23,42,0.6)",
+          bgcolor: "rgba(15,23,42,0.6)",
+          flexShrink: 0,
         }}
       >
-        {TAB_META.map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            style={{
-              background: tab === t.id ? "rgba(99,102,241,0.25)" : "transparent",
-              border: tab === t.id ? "1px solid #6366f1" : "1px solid transparent",
-              borderRadius: 8,
-              padding: "8px 18px",
-              color: tab === t.id ? "#e2e8f0" : "#94a3b8",
-              fontSize: 13,
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-            }}
-          >
-            <span>{t.icon}</span>
-            {t.label}
-          </button>
-        ))}
-      </div>
-
-      <style>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.4; }
-        }
-      `}</style>
-    </div>
+        <Tabs
+          value={tab}
+          onChange={(_, v) => setTab(v as ModalTab)}
+          sx={{
+            minHeight: 0,
+            "& .MuiTabs-indicator": { display: "none" },
+            "& .MuiTab-root": {
+              minHeight: 0,
+              minWidth: 0,
+              px: 2,
+              py: 1,
+              borderRadius: 2,
+              fontSize: 12,
+              color: "#94a3b8",
+              textTransform: "none",
+              "&.Mui-selected": {
+                color: "#e2e8f0",
+                bgcolor: "rgba(99,102,241,0.25)",
+                border: "1px solid #6366f1",
+              },
+            },
+          }}
+        >
+          {TAB_META.map((t) => (
+            <Tab key={t.id} value={t.id} label={`${t.icon} ${t.label}`} />
+          ))}
+        </Tabs>
+      </Box>
+    </Dialog>
   );
 }
-
-const topBtn: React.CSSProperties = {
-  background: "rgba(255,255,255,0.08)",
-  border: "1px solid rgba(255,255,255,0.12)",
-  borderRadius: 6,
-  color: "#94a3b8",
-  width: 28,
-  height: 28,
-  fontSize: 14,
-  cursor: "pointer",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-};

@@ -8,6 +8,7 @@ export interface PipelineStreamParams {
   maxEncountersPerPatient?: number;
   dryRun?: boolean;
   workers?: number;
+  unprocessedOnly?: boolean;
 }
 
 export interface WorkerState {
@@ -15,6 +16,7 @@ export interface WorkerState {
   step: string;
   encounterId: string;
   statusText: string;
+  completedCount: number;
 }
 
 export interface PipelineStreamState {
@@ -53,15 +55,20 @@ function updateWorker(
   statusText: string,
 ) {
   const wid = d.worker_id ?? 0;
-  setWorkerStates((prev) => ({
-    ...prev,
-    [wid]: {
-      workerId: wid,
-      step: stepKey,
-      encounterId: d.encounter_id ?? prev[wid]?.encounterId ?? "",
-      statusText,
-    },
-  }));
+  setWorkerStates((prev) => {
+    const prev_ws = prev[wid];
+    const justFinished = stepKey === "done" && prev_ws?.step !== "done";
+    return {
+      ...prev,
+      [wid]: {
+        workerId: wid,
+        step: stepKey,
+        encounterId: d.encounter_id ?? prev_ws?.encounterId ?? "",
+        statusText,
+        completedCount: (prev_ws?.completedCount ?? 0) + (justFinished ? 1 : 0),
+      },
+    };
+  });
 }
 
 function attachListeners(
@@ -120,6 +127,19 @@ function attachListeners(
     updateWorker(setWorkerStates, d, "extract", "Extracting…");
   });
 
+  on("term_extraction_completed", (d) => {
+    const tokens = d.llm_usage?.total_tokens ?? 0;
+    const cost = d.llm_usage?.cost_usd;
+    const costStr = cost != null ? ` ($${cost.toFixed(4)})` : "";
+    setStatus(`Extracted ${d.term_count ?? 0} terms (${tokens} tokens${costStr})`);
+    updateWorker(setWorkerStates, d, "extract", `${d.term_count ?? 0} terms`);
+  });
+
+  on("term_extraction_failed", (d) => {
+    setStatus(`Extraction failed: ${d.error ?? "unknown"}`);
+    updateWorker(setWorkerStates, d, "extract", "FAILED");
+  });
+
   on("coding_resolve_completed", (d) => {
     setStatus(`Resolved ${d.resolution_count ?? 0} codings`);
     updateWorker(setWorkerStates, d, "code", `${d.resolution_count ?? 0} codes`);
@@ -159,6 +179,7 @@ function attachListeners(
       queued_for_review: d.queued_for_review,
       rejected_hard_fail: d.rejected_hard_fail,
       warnings_only: d.warnings_only,
+      llm_usage: d.llm_usage,
     });
     updateWorker(setWorkerStates, d, "done", "Done");
   });
@@ -174,6 +195,7 @@ function attachListeners(
       queued_for_review: d.queued_for_review,
       rejected_hard_fail: d.rejected_hard_fail,
       warnings_only: d.warnings_only,
+      llm_usage: d.llm_usage,
     };
     setLive(res);
     setResult(res);
@@ -251,7 +273,8 @@ export function usePipelineStream(): UsePipelineStreamReturn {
       );
     }
 
-    const source = new EventSource(`${API_BASE}/pipeline/stream?${qs}`);
+    const endpoint = params.unprocessedOnly ? "stream-unprocessed" : "stream";
+    const source = new EventSource(`${API_BASE}/pipeline/${endpoint}?${qs}`);
     esRef.current = source;
 
     attachListeners(

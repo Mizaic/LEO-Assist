@@ -545,7 +545,7 @@ class TrainingCreatorService:
             return
 
         self._emit(progress_hook, {"type": "persist_started", **base})
-        with self.coding_graph.session() as session:
+        with self.patient_graph.session() as session:
             upsert_candidate(candidate, session)
             if not result.hard_fails:
                 priority = 100 if result.warnings else 50

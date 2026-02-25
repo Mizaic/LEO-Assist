@@ -3,10 +3,15 @@
 from __future__ import annotations
 
 import json
+import logging
 import re
 from typing import Any
 
+from app.services.v3.bedrock_retry import converse_with_retry
 from app.services.v3.coding_resolver import CodingCandidate
+from app.services.v3.llm_usage import LLMUsage
+
+logger = logging.getLogger(__name__)
 
 
 def _extract_bedrock_text(response: dict[str, Any]) -> str:
@@ -63,13 +68,14 @@ class CodingDisambiguator:
         encounter_text: str,
         term_text: str,
         candidates: list[CodingCandidate],
-    ) -> CodingCandidate | None:
+    ) -> tuple[CodingCandidate | None, LLMUsage]:
+        no_usage = LLMUsage.zero()
         if not candidates:
-            return None
+            return None, no_usage
         if len(candidates) == 1:
-            return candidates[0]
+            return candidates[0], no_usage
         if not self.enabled:
-            return candidates[0]
+            return candidates[0], no_usage
 
         prompt = (
             "You are disambiguating SNOMED concepts for a clinical term in context.\n"
@@ -80,15 +86,21 @@ class CodingDisambiguator:
             f"Candidates: {json.dumps([c.__dict__ for c in candidates], ensure_ascii=False)}"
         )
         try:
-            response = self._client.converse(
-                modelId=self.model_id,
+            response = converse_with_retry(
+                self._client,
+                model_id=self.model_id,
                 messages=[{"role": "user", "content": [{"text": prompt}]}],
                 inferenceConfig={"maxTokens": 320, "temperature": 0.0},
+            )
+            call_usage = LLMUsage.from_bedrock_response(response)
+            logger.info(
+                "Disambiguator response - %d in / %d out tokens",
+                call_usage.input_tokens, call_usage.output_tokens,
             )
             parsed = _parse_json_object(_extract_bedrock_text(response))
             concept_id = str(parsed.get("conceptId", "")).strip()
             if not concept_id or concept_id.upper() == "NONE":
-                return candidates[0]
+                return candidates[0], call_usage
             for candidate in candidates:
                 if candidate.snomed_concept_id == concept_id:
                     return CodingCandidate(
@@ -97,8 +109,8 @@ class CodingDisambiguator:
                         read_code=candidate.read_code,
                         score=float(parsed.get("confidence", candidate.score) or candidate.score),
                         source="llm_disambiguation",
-                    )
+                    ), call_usage
         except Exception:  # pragma: no cover
-            pass
-        return candidates[0]
+            logger.warning("Disambiguator call failed for term=%r", term_text, exc_info=True)
+        return candidates[0], no_usage
 

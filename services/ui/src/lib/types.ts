@@ -10,6 +10,7 @@ export interface EncounterSummary {
   date: string;
   text?: string;
   coded_count?: number;
+  flags?: string;
 }
 
 export interface CodedLink {
@@ -38,12 +39,22 @@ export interface Correction {
   time: string;
 }
 
+export interface LLMUsage {
+  input_tokens: number;
+  output_tokens: number;
+  cached_input_tokens: number;
+  total_tokens: number;
+  llm_calls: number;
+  cost_usd?: number;
+}
+
 export interface PipelineRunResponse {
   run_id: string;
   processed_encounters: number;
   queued_for_review: number;
   rejected_hard_fail: number;
   warnings_only: number;
+  llm_usage?: LLMUsage;
 }
 
 export interface ReviewTaskSummary {
@@ -108,6 +119,7 @@ export interface EncounterCandidate {
   warning_reasons: string[];
   sentences: EncounterSentence[];
   audit_events?: unknown[];
+  llm_usage_json?: string;
 }
 
 export interface ReviewTaskDetail {

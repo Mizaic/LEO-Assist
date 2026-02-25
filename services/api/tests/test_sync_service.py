@@ -10,11 +10,11 @@ from app.services.sync_service import sync_gold_to_patient
 
 
 class TestSyncService:
-    """Test sync gold to patient graph."""
+    """Test sync gold to patient graph (single session for both reads and writes)."""
 
     def test_sync_creates_links_from_gold(self) -> None:
-        coding_session = MagicMock()
-        coding_session.run.return_value = [
+        patient_session = MagicMock()
+        patient_session.run.return_value = [
             {
                 "c": {
                     "candidate_id": "c1",
@@ -25,11 +25,8 @@ class TestSyncService:
             }
         ]
 
-        patient_session = MagicMock()
-
         result = sync_gold_to_patient(
             "p1",
-            coding_session=coding_session,
             patient_session=patient_session,
         )
 
@@ -38,18 +35,13 @@ class TestSyncService:
         assert result["links_created"] == 1
         assert "error" not in result
         assert patient_session.run.call_count >= 1
-        # First call: DELETE_ENCOUNTER_DOCUMENTS
-        # Then: upsert_documents_link (via writer, which calls session.run)
 
     def test_sync_no_approved_gold(self) -> None:
-        coding_session = MagicMock()
-        coding_session.run.return_value = []
-
         patient_session = MagicMock()
+        patient_session.run.return_value = []
 
         result = sync_gold_to_patient(
             "p1",
-            coding_session=coding_session,
             patient_session=patient_session,
         )
 
@@ -57,11 +49,10 @@ class TestSyncService:
         assert result["encounters_synced"] == 0
         assert result["links_created"] == 0
         assert result["error"] == "no_approved_gold"
-        patient_session.run.assert_not_called()
 
     def test_sync_skips_terms_without_snomed(self) -> None:
-        coding_session = MagicMock()
-        coding_session.run.return_value = [
+        patient_session = MagicMock()
+        patient_session.run.return_value = [
             {
                 "c": {
                     "candidate_id": "c1",
@@ -85,11 +76,8 @@ class TestSyncService:
             }
         ]
 
-        patient_session = MagicMock()
-
         result = sync_gold_to_patient(
             "p1",
-            coding_session=coding_session,
             patient_session=patient_session,
         )
 

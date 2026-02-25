@@ -1,5 +1,11 @@
 "use client";
 
+import Box from "@mui/material/Box";
+import Chip from "@mui/material/Chip";
+import List from "@mui/material/List";
+import ListItemButton from "@mui/material/ListItemButton";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 import type { EncounterTerm } from "@/lib/types";
 
 interface Props {
@@ -10,50 +16,77 @@ interface Props {
 
 export default function EntitySidebar({ terms, selectedId, onSelect }: Props) {
   return (
-    <div>
-      <h3 style={{ fontSize: 14, fontWeight: 600, color: "#334155", padding: "12px 16px", borderBottom: "1px solid #e2e8f0" }}>
+    <Box>
+      <Typography
+        variant="overline"
+        sx={{
+          display: "block",
+          fontWeight: 600,
+          color: "text.secondary",
+          px: 2,
+          py: 1.5,
+          borderBottom: 1,
+          borderColor: "divider",
+        }}
+      >
         Entities ({terms.length})
-      </h3>
-      <div style={{ overflowY: "auto", maxHeight: "calc(100vh - 320px)" }}>
+      </Typography>
+      <List disablePadding sx={{ overflowY: "auto", maxHeight: "calc(100vh - 320px)" }}>
         {terms.map((t) => {
           const score = Math.round((t.extraction_confidence ?? 0) * 100);
-          const scoreColor = score >= 80 ? "#16a34a" : score >= 50 ? "#f59e0b" : "#dc2626";
+          const scoreColor =
+            score >= 80 ? "success.main" : score >= 50 ? "warning.main" : "error.main";
           const isSelected = t.term_id === selectedId;
 
           return (
-            <button
-              key={t.term_id}
+            <ListItemButton
+              key={`${t.term_id}-${t.span_start}-${t.span_end}`}
+              selected={isSelected}
               onClick={() => onSelect(t.term_id)}
-              style={{
+              sx={{
                 display: "block",
-                width: "100%",
-                textAlign: "left",
-                padding: "10px 16px",
-                borderBottom: "1px solid #f1f5f9",
-                background: isSelected ? "#eef2ff" : "transparent",
-                border: "none",
-                cursor: "pointer",
-                transition: "background 0.1s",
+                px: 2,
+                py: 1.25,
+                borderBottom: 1,
+                borderColor: "grey.100",
               }}
             >
-              <div style={{ fontSize: 14, fontWeight: 500, color: "#0f172a", marginBottom: 2 }}>
+              <Typography variant="body2" sx={{ fontWeight: 500, color: "text.primary", mb: 0.25 }}>
                 {t.text}
-              </div>
-              <div style={{ fontSize: 12, color: "#64748b", fontFamily: "var(--font-mono)" }}>
-                {t.coding.snomed_concept_id || t.coding.read_code || "unlinked"}
-                <span style={{ float: "right", color: scoreColor, fontWeight: 600 }}>{score}%</span>
-              </div>
-              {(t.context.negated || t.context.uncertain || t.context.historical) && (
-                <div style={{ display: "flex", gap: 4, marginTop: 4 }}>
-                  {t.context.negated && <span style={{ fontSize: 10, background: "#fef2f2", color: "#b91c1c", padding: "1px 5px", borderRadius: 3 }}>NEG</span>}
-                  {t.context.uncertain && <span style={{ fontSize: 10, background: "#fffbeb", color: "#b45309", padding: "1px 5px", borderRadius: 3 }}>UNC</span>}
-                  {t.context.historical && <span style={{ fontSize: 10, background: "#f5f3ff", color: "#6d28d9", padding: "1px 5px", borderRadius: 3 }}>Hx</span>}
-                </div>
+              </Typography>
+              {t.coding.snomed_term && (
+                <Typography variant="caption" sx={{ color: "text.secondary", lineHeight: 1.3, mb: 0.25, display: "block" }}>
+                  {t.coding.snomed_term}
+                </Typography>
               )}
-            </button>
+              <Box sx={{ display: "flex", alignItems: "center" }}>
+                <Typography
+                  variant="caption"
+                  sx={{ color: "text.secondary", fontFamily: "var(--font-mono)", flex: 1 }}
+                >
+                  {t.coding.snomed_concept_id || t.coding.read_code || "unlinked"}
+                </Typography>
+                <Typography variant="caption" sx={{ color: scoreColor, fontWeight: 600 }}>
+                  {score}%
+                </Typography>
+              </Box>
+              {(t.context.negated || t.context.uncertain || t.context.historical) && (
+                <Stack direction="row" spacing={0.5} sx={{ mt: 0.5 }}>
+                  {t.context.negated && (
+                    <Chip label="NEG" size="small" color="error" sx={{ height: 18, fontSize: 10 }} />
+                  )}
+                  {t.context.uncertain && (
+                    <Chip label="UNC" size="small" color="warning" sx={{ height: 18, fontSize: 10 }} />
+                  )}
+                  {t.context.historical && (
+                    <Chip label="Hx" size="small" color="secondary" sx={{ height: 18, fontSize: 10 }} />
+                  )}
+                </Stack>
+              )}
+            </ListItemButton>
           );
         })}
-      </div>
-    </div>
+      </List>
+    </Box>
   );
 }

@@ -2,7 +2,7 @@
 
 **Purpose:** Populate Neo4j with terminology data to support spaCy-based clinical coding of medical records for UK primary care (NCDA).
 
-**Status:** Design document — not yet implemented. Large source files are not loaded until loaders are built.
+**Status:** Design document — partially implemented. Core SNOMED terminology (Concepts, Terms, Relationships, ReadCodes, ICD-10 maps) loaded. Fulltext and vector indexes operational. SurfaceForm writeback active via HITL learning loop. UMLS crosswalk, dm+d drug extension, and SPECIALIST Lexicon loaders not yet built.
 
 ---
 

@@ -21,14 +21,28 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
 }
 
 export async function fetchPatients() {
-  return fetchJson<Array<{ patient_id: string; encounter_count: number }>>(
-    `${API_BASE}/patients`,
-  );
+  return fetchJson<
+    Array<{
+      patient_id: string;
+      encounter_count: number;
+      reviewed_count?: number;
+      progress?: number;
+    }>
+  >(`${API_BASE}/patients`);
+}
+
+export async function fetchPatient(patientId: string) {
+  return fetchJson<{
+    patient_id: string;
+    encounter_count: number;
+    gender?: string;
+    birth_date?: string;
+  }>(`${API_BASE}/patients/${patientId}`);
 }
 
 export async function fetchPatientEncounters(patientId: string, limit = 500) {
   return fetchJson<
-    Array<{ encounter_id: string; date: string; text?: string; coded_count: number }>
+    Array<{ encounter_id: string; date: string; text?: string; coded_count: number; flags?: string }>
   >(`${API_BASE}/patients/${patientId}/encounters?limit=${limit}`);
 }
 
@@ -68,6 +82,7 @@ export async function addCodedLink(
     semantic_tag?: string;
     evidence?: string;
     modifiers?: Record<string, unknown>;
+    context?: Record<string, unknown>;
   },
 ) {
   return fetchJson<{ added: boolean; concept_id: string }>(
@@ -120,11 +135,19 @@ export async function resetPatient(patientId: string) {
   );
 }
 
+export async function resetReviewQueue(patientId: string) {
+  return fetchJson<{ patient_id: string; deleted: number }>(
+    `${API_BASE}/patients/${patientId}/reset-review-queue`,
+    { method: "POST" },
+  );
+}
+
 export async function syncGoldToPatient(patientId: string) {
   return fetchJson<{
     patient_id: string;
     encounters_synced: number;
     links_created: number;
+    surface_forms_written?: number;
   }>(`${API_BASE}/patients/${patientId}/sync-gold`, { method: "POST" });
 }
 
@@ -173,7 +196,7 @@ export async function inferEncounter(
 export async function fetchTasks(
   status?: string | null,
   patientId?: string | null,
-  limit = 100,
+  limit = 500,
 ) {
   const params = new URLSearchParams();
   if (status) params.set("status", status);
@@ -230,6 +253,38 @@ export async function submitDecision(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
+}
+
+// ── Game high scores ───────────────────────────────────────
+export type GameName = "snake" | "invaders" | "breakout";
+
+export interface GameScore {
+  id: string;
+  game: string;
+  player: string;
+  score: number;
+  level: number;
+  created_at: string;
+  rank: number | null;
+}
+
+export async function submitGameScore(body: {
+  game: GameName;
+  player: string;
+  score: number;
+  level?: number;
+}) {
+  return fetchJson<GameScore>(`${API_BASE}/games/scores`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+export async function fetchLeaderboard(game: GameName, limit = 10) {
+  return fetchJson<GameScore[]>(
+    `${API_BASE}/games/leaderboard?game=${game}&limit=${limit}`,
+  );
 }
 
 export async function searchTerms(q: string, limit = 15) {

@@ -3,17 +3,21 @@
 from __future__ import annotations
 
 import json
+import logging
 import re
 from dataclasses import dataclass
 from typing import Any
 
-from app.services.context_reconciler import reconcile_context
+from app.services.v3.bedrock_retry import converse_with_retry
+from app.services.v3.llm_usage import LLMUsage
 from app.services.v3.sentence_splitter import SentenceChunk
 
+logger = logging.getLogger(__name__)
 
-_TERM_FALLBACK_RE = re.compile(
-    r"\b([A-Za-z][A-Za-z\-]{2,}(?:\s+[A-Za-z][A-Za-z\-]{2,}){0,3})\b"
-)
+
+class ExtractionError(RuntimeError):
+    """Raised when LLM extraction fails and no fallback is permitted."""
+
 
 _VALID_ASSERTIONS = frozenset(
     {"present", "absent", "possible", "historical", "hypothetical", "family"}
@@ -89,11 +93,12 @@ DO NOT EXTRACT:
 - Parenthetical Read codes such as (G30..) or (H33..) — these are handled by a \
 separate pipeline step
 - Section labels: "Problem:", "History:", "Medication:", "Examination:", "Comment:"
-- Bare numeric values without their clinical parameter: "130/80" alone, "7.2" alone
+- Bare numeric values without their clinical parameter: "130/80" alone, "7.2" alone \
+(but DO extract when a label is present: "BP: 130/80" or "HR: 73 bpm" are codable)
 - Content appearing ONLY in safety-netting or worsening-advice text — these describe \
 what might happen, not what is present
 - Administrative and workflow entries: "appointment booked", "SMS sent", \
-"prescription issued"
+"prescription issued", "adv" (advised), "N/A", "POV" (point of view)
 - Orders or requests not yet performed: "blood test requested", "referral made"
 
 ## Semantic Tags
@@ -123,11 +128,15 @@ The "lookup_term" field feeds into SNOMED CT terminology resolution.
 
 - "text": Always the exact form as it appears in the sentence. Do not modify, expand, \
 or paraphrase.
-- "lookup_term": The standard clinical term that would appear as a SNOMED CT \
-description. Same as "text" when the source already uses a standard clinical term.
+- "lookup_term": A concise, standard clinical term suitable for SNOMED CT terminology \
+lookup. Same as "text" when the source already uses standard clinical wording. \
+Keep lookup_term short and natural — use the simplest standard name for the concept. \
+Do NOT construct verbose multi-word descriptions. For example: "left shoulder pain" \
+not "pain in the left shoulder region", "polio vaccination" not \
+"diphtheria, tetanus, pertussis and polio vaccination".
 
 When the source uses a GP abbreviation, keep the abbreviation in "text" and place the \
-expansion in "lookup_term":
+standard expansion in "lookup_term":
   HTN → hypertension, DM → diabetes mellitus, T2DM → type 2 diabetes mellitus, \
 AF → atrial fibrillation, OA → osteoarthritis, CKD → chronic kidney disease, \
 COPD (keep as-is — is a recognised SNOMED term), IHD → ischaemic heart disease, \
@@ -137,7 +146,38 @@ SOB → shortness of breath, MI → myocardial infarction, PE → pulmonary embo
 DVT → deep vein thrombosis, CCF → congestive cardiac failure, \
 NAD → no abnormality detected, O/E → on examination, Hx → history, \
 Dx → diagnosis, Rx → prescription, PMH → past medical history, \
-FH → family history, SH → social history.
+FH → family history, SH → social history, FROMS → full range of movements, \
+FROM → full range of movement, ROM → range of movement, \
+MSU / msu → midstream urine, MC&S / MC+S → microscopy culture and sensitivities, \
+KESC → Klebsiella Enterobacter Serratia Citrobacter group, \
+NKDA → no known drug allergies, Nitro → nitrofurantoin (antibiotic context), \
+HR → pulse rate, RR → respiratory rate, Temp → body temperature, \
+BP → blood pressure, SpO2 / sats / O2 sats → oxygen saturation, \
+BMI → body mass index, GCS → Glasgow Coma Scale, \
+NEWS / NEWS2 → National Early Warning Score, \
+Wt → body weight, Ht → height.
+
+When the text contains a vital-signs line with a shorthand label, a value, and a unit \
+(e.g. "HR: 73 bpm", "BP: 142 / 92", "Temp: 36.4 C", "RR: 17 breath/min"), \
+extract the parameter as an observable entity with the shorthand in "text" and the \
+standard clinical term in "lookup_term". Include the numeric value and unit in the \
+lookup_term context: e.g. text="HR" lookup_term="pulse rate" semantic_tag="observable entity".\
+
+
+When the source uses a pharmaceutical brand name, keep the brand name in "text" and \
+place the generic active ingredient in "lookup_term". Common examples: \
+Zomorph → morphine, Amoxil → amoxicillin, Augmentin → co-amoxiclav, \
+Losec → omeprazole, Gaviscon → alginate compound, Ventolin → salbutamol, \
+Seretide → fluticasone/salmeterol, Lantus → insulin glargine.
+
+For drug + formulation mentions (e.g., "Nitrofurantoin 100mg modified-release capsules"), \
+use only the drug name as lookup_term: "nitrofurantoin".
+
+When the surface text describes a clinical action in informal terms, use the standard \
+clinical procedure name in lookup_term: \
+"nephrostomy flush" → "nephrostomy irrigation", \
+"urine sample for MC&S" → "urine microscopy culture and sensitivities", \
+"blood test" → "blood test".
 
 Extract the complete clinical concept, not a fragment. "Type 2 diabetes mellitus" \
 not "diabetes". "Mixed anxiety and depressive disorder" not "anxiety".
@@ -167,7 +207,10 @@ possible — Uncertain or suspected.
 
 historical — Past condition, no longer active.
   Cues: "history of", "Hx of", "previous", "resolved", "cleared", "settled", \
-"has since resolved", "no longer present", "had X but now resolved".
+"has since resolved", "no longer present", "had X but now resolved", "went after", \
+"has stopped", "cleared up", "no longer".
+  When a sentence describes a past event using cues like "went after", "has stopped", \
+"cleared up", the related findings should be classified as "historical".
 
 hypothetical — Conditional or planned, not currently present.
   Cues: "if develops", "should symptoms worsen", "consider if", "risk of developing", \
@@ -264,25 +307,46 @@ class LLMExtractor:
         self,
         encounter_text: str,
         sentences: list[SentenceChunk],
-    ) -> list[ExtractedTerm]:
+    ) -> tuple[list[ExtractedTerm], LLMUsage]:
         if not sentences:
-            return []
+            return [], LLMUsage.zero()
         if not self.enabled:
-            return self._fallback_extract(sentences)
+            raise ExtractionError(
+                "LLM extractor is not enabled (model_id=%s)" % self.model_id
+            )
 
+        sids = [s.sentence_id for s in sentences]
+        logger.info("Sending %d sentences to LLM (%s)", len(sentences), sids)
         user_prompt = self._build_user_prompt(encounter_text, sentences)
         try:
-            response = self._client.converse(
-                modelId=self.model_id,
+            response = converse_with_retry(
+                self._client,
+                model_id=self.model_id,
                 system=[{"text": _SYSTEM_PROMPT}],
                 messages=[{"role": "user", "content": [{"text": user_prompt}]}],
                 inferenceConfig={"maxTokens": 2048, "temperature": 0.0},
             )
-            parsed = _parse_json_object(_extract_bedrock_text(response))
-            terms = self._parse_terms(parsed, sentences)
-            return terms if terms else self._fallback_extract(sentences)
-        except Exception:  # pragma: no cover - runtime provider errors
-            return self._fallback_extract(sentences)
+        except Exception as exc:
+            raise ExtractionError("LLM converse() call failed: %s" % exc) from exc
+
+        batch_usage = LLMUsage.from_bedrock_response(response)
+        logger.info(
+            "LLM response received - %d in / %d out tokens (cached=%d), stop=%s",
+            batch_usage.input_tokens,
+            batch_usage.output_tokens,
+            batch_usage.cached_input_tokens,
+            response.get("stopReason", "?"),
+        )
+        raw_text = _extract_bedrock_text(response)
+        parsed = _parse_json_object(raw_text)
+        if not parsed:
+            raise ExtractionError(
+                "LLM returned unparseable response for sentences %s: %s"
+                % (sids, raw_text[:200])
+            )
+        terms = self._parse_terms(parsed, sentences)
+        logger.info("Parsed %d terms from LLM response", len(terms))
+        return terms, batch_usage
 
     @staticmethod
     def _build_user_prompt(
@@ -294,7 +358,7 @@ class LLMExtractor:
         ]
         return (
             "Extract clinical entities from the sentence subset below.\n"
-            "The encounter text provides clinical context only — "
+            "The encounter text provides clinical context only - "
             "extract from the sentences.\n\n"
             f"Encounter text:\n{encounter_text}\n\n"
             f"Sentences:\n{json.dumps(sentence_payload, ensure_ascii=False)}"
@@ -306,19 +370,27 @@ class LLMExtractor:
         sentences: list[SentenceChunk],
     ) -> list[ExtractedTerm]:
         valid_ids = {s.sentence_id for s in sentences}
+        raw_terms = payload.get("terms", [])
         out: list[ExtractedTerm] = []
-        for row in payload.get("terms", []):
+        dropped = 0
+        for row in raw_terms:
             if not isinstance(row, dict):
+                dropped += 1
                 continue
             sid = str(row.get("sentence_id", "")).strip()
             text = str(row.get("text", "")).strip()
             if not sid or sid not in valid_ids or not text:
+                dropped += 1
                 continue
 
             lookup_term = str(row.get("lookup_term", text)).strip() or text
             semantic_tag = str(row.get("semantic_tag", "finding")).strip() or "finding"
             assertion = str(row.get("assertion", "present")).strip().lower()
             if assertion not in _VALID_ASSERTIONS:
+                logger.warning(
+                    "Invalid assertion %r for text=%r - defaulting to 'present'",
+                    assertion, text,
+                )
                 assertion = "present"
 
             context = assertion_to_context(assertion)
@@ -333,41 +405,7 @@ class LLMExtractor:
                     modifiers={},
                 )
             )
+        if dropped:
+            logger.warning("Dropped %d/%d rows from LLM response (bad sid or empty text)", dropped, len(raw_terms))
         return out
 
-    def _fallback_extract(self, sentences: list[SentenceChunk]) -> list[ExtractedTerm]:
-        out: list[ExtractedTerm] = []
-        for sentence in sentences:
-            ctx = reconcile_context(sentence.text)
-            lowered = sentence.text.lower().strip()
-            starts_negated = lowered.startswith(("no ", "nil ", "denies "))
-
-            assertion = "present"
-            if ctx.subject == "family":
-                assertion = "family"
-            elif ctx.negated or starts_negated:
-                assertion = "absent"
-            elif ctx.uncertain:
-                assertion = "possible"
-            elif ctx.historical:
-                assertion = "historical"
-
-            seen: set[str] = set()
-            for m in _TERM_FALLBACK_RE.finditer(sentence.text):
-                text = m.group(1).strip()
-                lowered = text.lower()
-                if lowered in seen:
-                    continue
-                seen.add(lowered)
-                out.append(
-                    ExtractedTerm(
-                        sentence_id=sentence.sentence_id,
-                        text=text,
-                        lookup_term=text,
-                        semantic_tag="Other",
-                        assertion=assertion,
-                        context=assertion_to_context(assertion),
-                        modifiers={},
-                    )
-                )
-        return out

@@ -2,13 +2,20 @@
 
 from __future__ import annotations
 
-SCHEMA_CONSTRAINTS = [
+PATIENT_SCHEMA_CONSTRAINTS = [
     "CREATE CONSTRAINT encounter_candidate_id IF NOT EXISTS FOR (c:EncounterCandidate) REQUIRE c.candidate_id IS UNIQUE",
     "CREATE CONSTRAINT review_task_id IF NOT EXISTS FOR (t:ReviewTask) REQUIRE t.task_id IS UNIQUE",
     "CREATE CONSTRAINT approval_id IF NOT EXISTS FOR (a:Approval) REQUIRE a.approval_id IS UNIQUE",
     "CREATE CONSTRAINT change_id IF NOT EXISTS FOR (chg:Change) REQUIRE chg.change_id IS UNIQUE",
     "CREATE INDEX review_task_status IF NOT EXISTS FOR (t:ReviewTask) ON (t.status)",
     "CREATE INDEX review_task_priority IF NOT EXISTS FOR (t:ReviewTask) ON (t.priority)",
+    "CREATE CONSTRAINT game_score_id IF NOT EXISTS FOR (gs:GameScore) REQUIRE gs.id IS UNIQUE",
+    "CREATE INDEX game_score_game IF NOT EXISTS FOR (gs:GameScore) ON (gs.game)",
+]
+
+CODING_SCHEMA_CONSTRAINTS: list[str] = [
+    'CREATE FULLTEXT INDEX surface_form_fulltext IF NOT EXISTS FOR (sf:SurfaceForm) ON EACH [sf.form]',
+    "CREATE CONSTRAINT surface_form_normalized IF NOT EXISTS FOR (sf:SurfaceForm) REQUIRE sf.normalized IS UNIQUE",
 ]
 
 
@@ -24,6 +31,7 @@ SET c.patient_id = $patient_id,
     c.hard_fail_reasons = $hard_fail_reasons,
     c.warning_reasons = $warning_reasons,
     c.sentences_json = $sentences_json,
+    c.llm_usage_json = $llm_usage_json,
     c.updated_at = datetime(),
     c.created_at = coalesce(c.created_at, datetime())
 """
@@ -31,14 +39,19 @@ SET c.patient_id = $patient_id,
 
 CREATE_REVIEW_TASK = """
 MATCH (c:EncounterCandidate {candidate_id: $candidate_id})
-MERGE (t:ReviewTask {task_id: $task_id})
-SET t.priority = $priority,
+MERGE (c)-[:HAS_TASK]->(t:ReviewTask {task_id: $task_id})
+ON CREATE SET
+    t.priority = $priority,
     t.status = $status,
     t.assigned_reviewer = $assigned_reviewer,
     t.warning_count = $warning_count,
-    t.created_at = coalesce(t.created_at, datetime()),
+    t.created_at = datetime(),
     t.updated_at = datetime()
-MERGE (c)-[:HAS_TASK]->(t)
+ON MATCH SET
+    t.priority = $priority,
+    t.warning_count = $warning_count,
+    t.updated_at = datetime(),
+    t.status = CASE WHEN t.status IN ['approved', 'rejected', 'escalated'] THEN t.status ELSE $status END
 """
 
 
@@ -94,7 +107,7 @@ RETURN t.task_id AS task_id,
        t.warning_count AS warning_count,
        t.created_at AS created_at,
        t.updated_at AS updated_at
-ORDER BY t.priority DESC, t.updated_at ASC
+ORDER BY t.priority DESC, c.date DESC
 LIMIT $limit
 """
 
@@ -139,6 +152,23 @@ ORDER BY c.encounter_id
 """
 
 
+RESET_PATIENT_REVIEW_QUEUE = """
+MATCH (c:EncounterCandidate {patient_id: $patient_id})
+OPTIONAL MATCH (c)-[:HAS_TASK]->(t:ReviewTask)
+OPTIONAL MATCH (t)-[:HAS_APPROVAL]->(a:Approval)
+OPTIONAL MATCH (c)-[:HAS_CHANGE]->(chg:Change)
+WITH collect(DISTINCT c) AS candidates,
+     collect(DISTINCT t) AS tasks,
+     collect(DISTINCT a) AS approvals,
+     collect(DISTINCT chg) AS changes
+WITH [x IN (candidates + tasks + approvals + changes) WHERE x IS NOT NULL | x] AS nodes
+WITH nodes, size(nodes) AS deleted
+UNWIND nodes AS n
+DETACH DELETE n
+RETURN deleted
+"""
+
+
 # ── Patient graph queries ──────────────────────────────────
 
 LIST_PATIENTS = """
@@ -148,7 +178,7 @@ RETURN toString(p.id) AS patient_id, count(e) AS encounter_count
 ORDER BY patient_id
 """
 
-# Coding graph: approved count per patient
+# Patient graph: approved count per patient (EncounterCandidate lives here)
 LIST_APPROVED_COUNT_BY_PATIENT = """
 MATCH (c:EncounterCandidate)
 WHERE c.approval_status = 'approved'
@@ -159,7 +189,10 @@ GET_PATIENT = """
 MATCH (p:Patient)
 WHERE toString(p.id) = $patient_id
 OPTIONAL MATCH (p)-[:HAS_ENCOUNTER]->(e:Encounter)
-RETURN toString(p.id) AS patient_id, count(e) AS encounter_count
+RETURN toString(p.id) AS patient_id,
+       count(e) AS encounter_count,
+       p.gender AS gender,
+       toString(p.birthDate) AS birth_date
 """
 
 LIST_PATIENT_ENCOUNTERS = """
@@ -167,7 +200,7 @@ MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter)
 WHERE toString(p.id) = $patient_id
 OPTIONAL MATCH (e)-[r:DOCUMENTS]->()
 WITH e, count(r) AS coded_count
-RETURN e.id AS encounter_id, toString(e.date) AS date, e.text AS text, coded_count
+RETURN e.id AS encounter_id, toString(e.date) AS date, e.text AS text, coded_count, e.flags AS flags
 ORDER BY e.date
 LIMIT $limit
 """

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import random
 
-from app.db.neo4j_client import CodingGraphClient
+from app.db.neo4j_client import PatientGraphClient
 from app.models.contracts import ReviewAction, ReviewDecisionRequest, ReviewStatus
 from app.services.neo4j_store import (
     append_approval,
@@ -16,7 +16,7 @@ from app.services.neo4j_store import (
 
 
 class ReviewService:
-    def __init__(self, neo4j_client: CodingGraphClient) -> None:
+    def __init__(self, neo4j_client: PatientGraphClient) -> None:
         self.neo4j = neo4j_client
 
     def list_tasks(self, status: ReviewStatus | None, patient_id: str | None = None, limit: int = 100):

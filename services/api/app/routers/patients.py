@@ -19,8 +19,10 @@ from app.models.neo4j_schema import (
     LIST_PATIENTS,
 )
 from app.services.inference_service import infer_encounter
+from app.services.reset_review_queue_service import reset_review_queue
 from app.services.reset_service import reset_patient
 from app.services.sync_service import sync_gold_to_patient
+from app.services.terminology_writeback_service import writeback_approved_terms
 from app.services.v3.patient_graph_writer import PatientGraphWriter, SemanticLinkPayload
 
 
@@ -42,6 +44,7 @@ class AddCodedLinkRequest(BaseModel):
     semantic_tag: str = "SnomedConcept"
     evidence: str = ""
     modifiers: dict[str, Any] | None = None
+    context: dict[str, Any] | None = None
 
 
 class InferRequest(BaseModel):
@@ -51,12 +54,11 @@ class InferRequest(BaseModel):
 @router.get("")
 def list_patients():
     patient_client = PatientGraphClient()
-    coding_client = CodingGraphClient()
     try:
         rows = patient_client.run(LIST_PATIENTS)
         reviewed = {
             r["patient_id"]: r["reviewed_count"]
-            for r in coding_client.run(LIST_APPROVED_COUNT_BY_PATIENT)
+            for r in patient_client.run(LIST_APPROVED_COUNT_BY_PATIENT)
         }
         for row in rows:
             enc = row.get("encounter_count") or 0
@@ -66,7 +68,6 @@ def list_patients():
         return rows
     finally:
         patient_client.close()
-        coding_client.close()
 
 
 @router.post("/{patient_id}/reset")
@@ -86,16 +87,30 @@ def reset_patient_documents(patient_id: str):
         client.close()
 
 
+@router.post("/{patient_id}/reset-review-queue")
+def reset_patient_review_queue(patient_id: str):
+    """Remove all EncounterCandidates and ReviewTasks for a patient. Use after pipeline failure to clear pending tasks before re-running."""
+    client = PatientGraphClient()
+    try:
+        with client.session() as session:
+            result = reset_review_queue(patient_id, session)
+        return {
+            "patient_id": result["patient_id"],
+            "deleted": result["deleted"],
+        }
+    finally:
+        client.close()
+
+
 @router.post("/{patient_id}/sync-gold")
 def sync_gold_to_patient_graph(patient_id: str):
-    """Apply approved gold from Coding graph to Patient graph DOCUMENTS."""
-    coding_client = CodingGraphClient()
+    """Sync approved EncounterCandidates into DOCUMENTS on the patient graph, then write back surface forms to the coding graph."""
     patient_client = PatientGraphClient()
+    coding_client = CodingGraphClient()
     try:
-        with coding_client.session() as coding_session, patient_client.session() as patient_session:
+        with patient_client.session() as patient_session:
             result = sync_gold_to_patient(
                 patient_id,
-                coding_session=coding_session,
                 patient_session=patient_session,
             )
         if result.get("error") == "no_approved_gold":
@@ -103,14 +118,21 @@ def sync_gold_to_patient_graph(patient_id: str):
                 status_code=400,
                 detail="No approved gold for this patient. Complete review and approve first.",
             )
+        with patient_client.session() as patient_session, coding_client.session() as coding_session:
+            wb = writeback_approved_terms(
+                patient_session=patient_session,
+                coding_session=coding_session,
+                patient_id=patient_id,
+            )
         return {
             "patient_id": result["patient_id"],
             "encounters_synced": result["encounters_synced"],
             "links_created": result["links_created"],
+            "surface_forms_written": wb.get("surface_forms_written", 0),
         }
     finally:
-        coding_client.close()
         patient_client.close()
+        coding_client.close()
 
 
 @router.get("/{patient_id}")
@@ -186,7 +208,7 @@ def add_coded_link(
                 evidence=body.evidence,
                 confidence=0.95,
                 domain="clinical",
-                context={},
+                context=body.context or {},
                 modifiers=body.modifiers or {},
                 source="manual",
             )

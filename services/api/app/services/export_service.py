@@ -10,7 +10,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from app.db.neo4j_client import CodingGraphClient
+from app.db.neo4j_client import PatientGraphClient
 from app.services.neo4j_store import (
     list_approved_candidates,
     list_approved_candidates_for_patient,
@@ -23,7 +23,7 @@ def _stable_hash(payload: Any) -> str:
 
 
 class ExportService:
-    def __init__(self, neo4j_client: CodingGraphClient) -> None:
+    def __init__(self, neo4j_client: PatientGraphClient) -> None:
         self.neo4j = neo4j_client
 
     def create_export(self, export_name: str, train_ratio: float, seed: int) -> dict[str, Any]:

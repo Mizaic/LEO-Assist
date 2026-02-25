@@ -1,5 +1,8 @@
 import "./globals.css";
 import type { Metadata } from "next";
+import ThemeRegistry from "@/components/ThemeRegistry";
+import { PipelineProvider } from "@/context/PipelineContext";
+import AppShell from "@/components/AppShell";
 
 export const metadata: Metadata = {
   title: "Clinical Coding Review",
@@ -9,7 +12,13 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <ThemeRegistry>
+          <PipelineProvider>
+            <AppShell>{children}</AppShell>
+          </PipelineProvider>
+        </ThemeRegistry>
+      </body>
     </html>
   );
 }

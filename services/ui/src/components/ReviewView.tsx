@@ -1,8 +1,22 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { fetchTaskDetail, submitDecision } from "@/lib/api";
+import Alert from "@mui/material/Alert";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Chip from "@mui/material/Chip";
+import CircularProgress from "@mui/material/CircularProgress";
+import Divider from "@mui/material/Divider";
+import Paper from "@mui/material/Paper";
+import Stack from "@mui/material/Stack";
+import TextField from "@mui/material/TextField";
+import Typography from "@mui/material/Typography";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import CheckIcon from "@mui/icons-material/Check";
+import CloseIcon from "@mui/icons-material/Close";
+import AddIcon from "@mui/icons-material/Add";
+import { addCodedLink, fetchTaskDetail, fetchTasks, submitDecision } from "@/lib/api";
 import type {
   Correction,
   EncounterCandidate,
@@ -40,6 +54,12 @@ export default function ReviewView({ taskId, patientId }: Props) {
   const [reason, setReason] = useState("");
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [decisionError, setDecisionError] = useState<string | null>(null);
+  const [selection, setSelection] = useState<{ text: string; rect: DOMRect } | null>(null);
+  const [codeSearchOpen, setCodeSearchOpen] = useState(false);
+  const [codeSearchQuery, setCodeSearchQuery] = useState("");
+  const [pendingEvidence, setPendingEvidence] = useState("");
+  const [pendingSpan, setPendingSpan] = useState<{ start: number; end: number } | null>(null);
+  const [refreshCodedLinks, setRefreshCodedLinks] = useState(0);
   const router = useRouter();
 
   useEffect(() => {
@@ -153,6 +173,115 @@ export default function ReviewView({ taskId, patientId }: Props) {
     setSpanAdjustId(null);
   }
 
+  const handleMouseUp = useCallback(() => {
+    const sel = window.getSelection();
+    const text = sel?.toString().trim();
+    if (!text || text.length < 2) {
+      setSelection(null);
+      return;
+    }
+    const range = sel?.getRangeAt(0);
+    const rect = range?.getBoundingClientRect();
+    if (rect) {
+      setSelection({ text, rect });
+    }
+  }, []);
+
+  function openCodeWithSelection() {
+    const selText = selection?.text ?? "";
+    setCodeSearchQuery(selText);
+    setPendingEvidence(selText);
+    if (selText && localCandidate) {
+      const full = localCandidate.deidentified_text;
+      const idx = full.indexOf(selText);
+      if (idx >= 0) {
+        setPendingSpan({ start: idx, end: idx + selText.length });
+      } else {
+        const idxLower = full.toLowerCase().indexOf(selText.toLowerCase());
+        setPendingSpan(idxLower >= 0 ? { start: idxLower, end: idxLower + selText.length } : null);
+      }
+    } else {
+      setPendingSpan(null);
+    }
+    setCodeSearchOpen(true);
+    setSelection(null);
+  }
+
+  function handleCodeTermSelected(result: TermSearchResult, modifiers?: { value?: string; unit?: string; reference_range?: string; interpretation?: string }, context?: { negated?: boolean; uncertain?: boolean; historical?: boolean }) {
+    if (!localCandidate) return;
+    const mods = modifiers && (modifiers.value || modifiers.unit || modifiers.reference_range || modifiers.interpretation)
+      ? { value: modifiers.value, unit: modifiers.unit, reference_range: modifiers.reference_range, interpretation: modifiers.interpretation }
+      : undefined;
+    const ctx = context && (context.negated || context.uncertain || context.historical) ? context : undefined;
+
+    if (pendingSpan) {
+      const newTerm: EncounterTerm = {
+        term_id: `t_code_${Date.now()}`,
+        text: pendingEvidence,
+        span_start: pendingSpan.start,
+        span_end: pendingSpan.end,
+        context: {
+          negated: context?.negated ?? false,
+          uncertain: context?.uncertain ?? false,
+          historical: context?.historical ?? false,
+          subject: "patient",
+          temporality: "present",
+        },
+        coding: {
+          snomed_concept_id: result.snomed_concept_id,
+          snomed_term: result.term,
+          read_code: result.read_code,
+          score: result.score ?? 0.95,
+          source: "manual_code_selection",
+        },
+        evidence_text: pendingEvidence,
+        extraction_method: "manual_code_selection",
+        extraction_confidence: 0.95,
+      };
+      const sentences = localCandidate.sentences.map((s) => {
+        if (pendingSpan.start >= s.start && pendingSpan.start < s.end) {
+          return { ...s, terms: [...s.terms, newTerm] };
+        }
+        return s;
+      });
+      const added = sentences.some((s) => s.terms.includes(newTerm));
+      if (!added && sentences.length > 0) {
+        sentences[sentences.length - 1] = {
+          ...sentences[sentences.length - 1],
+          terms: [...sentences[sentences.length - 1].terms, newTerm],
+        };
+      }
+      setLocalCandidate({ ...localCandidate, sentences });
+    }
+
+    addCodedLink(patientId, localCandidate.encounter_id, {
+      concept_id: result.snomed_concept_id,
+      term: result.term,
+      read_code: result.read_code,
+      evidence: pendingEvidence || result.term,
+      modifiers: mods,
+      context: ctx,
+    })
+      .then(() => {
+        setRefreshCodedLinks((t) => t + 1);
+        addCorrection({
+          type: "add",
+          text: result.term,
+          detail: `Added SNOMED ${result.snomed_concept_id}`,
+          time: new Date().toISOString(),
+        });
+      })
+      .catch((e) =>
+        setError(e instanceof Error ? e.message : "Could not add coded link."),
+      )
+      .finally(() => {
+        setCodeSearchOpen(false);
+        setCodeSearchQuery("");
+        setPendingEvidence("");
+        setPendingSpan(null);
+      });
+  }
+
   function handleManualAdd(text: string, start: number, end: number) {
     if (!localCandidate) return;
     const newTerm: EncounterTerm = {
@@ -182,7 +311,7 @@ export default function ReviewView({ taskId, patientId }: Props) {
     return "Approved as-is";
   }
 
-  async function handleDecision(action: string) {
+  async function handleDecision(action: string, goNext = false) {
     if (!detail) return;
     if (action === "reject" && reason.trim().length < 3) {
       setDecisionError("Reason is required for reject (min 3 characters).");
@@ -199,6 +328,15 @@ export default function ReviewView({ taskId, patientId }: Props) {
         edited_candidate: action === "edit" ? localCandidate : undefined,
       });
       setSubmitSuccess(true);
+
+      if (goNext) {
+        const pending = await fetchTasks("pending", patientId);
+        const next = pending.find((t) => t.task_id !== taskId);
+        if (next) {
+          router.replace(`/patients/${patientId}/encounters/${next.task_id}`);
+          return;
+        }
+      }
       setTimeout(() => router.push(`/patients/${patientId}`), 800);
     } catch (e: unknown) {
       setError(
@@ -217,15 +355,16 @@ export default function ReviewView({ taskId, patientId }: Props) {
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA") return;
 
-      switch (e.key.toLowerCase()) {
+      switch (e.key) {
         case "a":
-          handleDecision("approve");
+          handleDecision(corrections.length > 0 ? "edit" : "approve", true);
+          break;
+        case "A":
+          handleDecision(corrections.length > 0 ? "edit" : "approve");
           break;
         case "r":
+        case "R":
           handleDecision("reject");
-          break;
-        case "c":
-          handleDecision("edit");
           break;
         case "escape":
           closePopover();
@@ -248,150 +387,234 @@ export default function ReviewView({ taskId, patientId }: Props) {
     return () => window.removeEventListener("keydown", onKey);
   });
 
-  if (loading) return <div style={{ padding: 40, color: "#64748b" }}>Loading review…</div>;
-  if (error) return <div style={{ padding: 40, color: "#b91c1c" }}>{error}</div>;
+  if (loading) {
+    return (
+      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error && !detail) {
+    return (
+      <Box sx={{ p: 5 }}>
+        <Alert severity="error">{error}</Alert>
+      </Box>
+    );
+  }
+
   if (!detail || !localCandidate) return null;
 
   const fullText = localCandidate.deidentified_text;
   const spanAdjustTerm = allTerms.find((t) => t.term_id === spanAdjustId);
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", height: "100vh", overflow: "hidden" }}>
-      {/* Main area */}
-      <div style={{ display: "flex", flexDirection: "column", overflow: "hidden" }}>
+    <Box sx={{ display: "grid", gridTemplateColumns: "1fr 340px", height: "100vh", overflow: "hidden" }}>
+      {/* Left column */}
+      <Paper
+        square
+        elevation={0}
+        sx={{ display: "flex", flexDirection: "column", overflow: "hidden" }}
+      >
         {/* Header */}
-        <div style={{
-          padding: "16px 24px",
-          borderBottom: "1px solid #e2e8f0",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          background: "#fff",
-        }}>
-          <div>
-            <button
-              onClick={() => router.push(`/patients/${patientId}`)}
-              style={{ background: "none", border: "none", color: "#4f46e5", cursor: "pointer", fontSize: 13, padding: 0, marginBottom: 4 }}
-            >
-              ← Back to encounters
-            </button>
-            <h1 style={{ fontFamily: "var(--font-heading)", fontSize: 20, fontWeight: 700 }}>
-              Review: {localCandidate.encounter_id}
-            </h1>
-            <span style={{ color: "#64748b", fontSize: 13 }}>
-              Patient {patientId} · {localCandidate.date || "no date"} · {allTerms.length} entities
-            </span>
-          </div>
-          <div style={{ display: "flex", gap: 8 }}>
-            <button
-              onClick={() => setShowManualAdd(true)}
-              style={{
-                padding: "7px 14px",
-                border: "1px solid #e2e8f0",
-                borderRadius: 8,
-                background: "#fff",
-                fontSize: 13,
-                fontWeight: 500,
-                cursor: "pointer",
-              }}
-            >
-              + Add entity
-            </button>
-          </div>
-        </div>
+        <Box sx={{ px: 3, py: 2, borderBottom: 1, borderColor: "divider", bgcolor: "background.paper" }}>
+          <Stack direction="row" justifyContent="space-between" alignItems="center">
+            <Box>
+              <Button
+                variant="text"
+                size="small"
+                startIcon={<ArrowBackIcon />}
+                onClick={() => router.push(`/patients/${patientId}`)}
+                sx={{ mb: 0.5, textTransform: "none" }}
+              >
+                Back to encounters
+              </Button>
+              <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                Review: {localCandidate.encounter_id}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Patient {patientId} · {localCandidate.date || "no date"} · {allTerms.length} entities
+                {(() => {
+                  try {
+                    const usage = localCandidate.llm_usage_json
+                      ? JSON.parse(localCandidate.llm_usage_json)
+                      : null;
+                    if (!usage) return null;
+                    const tokens = usage.total_tokens?.toLocaleString() ?? "?";
+                    const cost = typeof usage.cost_usd === "number"
+                      ? ` · $${usage.cost_usd.toFixed(4)}`
+                      : "";
+                    return ` · ${tokens} tokens${cost}`;
+                  } catch {
+                    return null;
+                  }
+                })()}
+              </Typography>
+            </Box>
+            <Stack direction="row" spacing={1} alignItems="center">
+              <Chip label="A Approve" size="small" variant="outlined" />
+              <Chip label="R Reject" size="small" variant="outlined" />
+              <Chip label="C Correct" size="small" variant="outlined" />
+              <Chip label="J/K Navigate" size="small" variant="outlined" />
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={<AddIcon />}
+                onClick={() => setShowManualAdd(true)}
+                sx={{ textTransform: "none" }}
+              >
+                Add entity
+              </Button>
+            </Stack>
+          </Stack>
+        </Box>
 
         {/* Source text with highlights */}
-        <div style={{ flex: 1, overflowY: "auto", padding: 24, background: "#f8fafc" }} onClick={closePopover}>
-          <div style={{
-            background: "#fff",
-            borderRadius: 12,
-            border: "1px solid #e2e8f0",
-            padding: 24,
-            fontSize: 15,
-            lineHeight: 1.8,
-            fontFamily: "var(--font-body)",
-            whiteSpace: "pre-wrap",
-            wordBreak: "break-word",
-          }}>
+        <Box
+          sx={{ flex: 1, overflowY: "auto", p: 3, bgcolor: "grey.50" }}
+          onClick={(e) => { if (e.target === e.currentTarget) { closePopover(); setSelection(null); } }}
+          onMouseUp={handleMouseUp}
+        >
+          <Box
+            sx={{
+              bgcolor: "background.paper",
+              borderRadius: 3,
+              border: 1,
+              borderColor: "divider",
+              p: 3,
+              fontSize: 15,
+              lineHeight: 1.8,
+              fontFamily: "var(--font-body)",
+              whiteSpace: "pre-wrap",
+              wordBreak: "break-word",
+              userSelect: "text",
+            }}
+          >
             {renderHighlightedText(fullText, allTerms, selectedTermId, handleEntityClick)}
-          </div>
-        </div>
+          </Box>
+
+          {selection && (
+            <Box
+              sx={{
+                position: "fixed",
+                top: selection.rect.top - 40,
+                left: selection.rect.left,
+                zIndex: 1000,
+              }}
+            >
+              <Button
+                variant="contained"
+                size="small"
+                onClick={openCodeWithSelection}
+                sx={{
+                  textTransform: "none",
+                  fontWeight: 600,
+                  fontSize: 12,
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                }}
+              >
+                Code selection
+              </Button>
+            </Box>
+          )}
+        </Box>
 
         {/* Decision bar */}
-        <div style={{
-          padding: "12px 24px",
-          borderTop: "1px solid #e2e8f0",
-          background: "#fff",
-          display: "flex",
-          flexWrap: "wrap",
-          gap: 10,
-          alignItems: "center",
-        }}>
-          <div style={{ flex: 1, minWidth: 200, fontSize: 12, color: "#94a3b8" }}>
-            <kbd style={{ background: "#f1f5f9", padding: "2px 6px", borderRadius: 4, fontSize: 11 }}>A</kbd> Approve
-            <kbd style={{ background: "#f1f5f9", padding: "2px 6px", borderRadius: 4, fontSize: 11, marginLeft: 10 }}>R</kbd> Reject
-            <kbd style={{ background: "#f1f5f9", padding: "2px 6px", borderRadius: 4, fontSize: 11, marginLeft: 10 }}>C</kbd> Correct &amp; approve
-            <kbd style={{ background: "#f1f5f9", padding: "2px 6px", borderRadius: 4, fontSize: 11, marginLeft: 10 }}>J/K</kbd> Navigate
-          </div>
-          <input
-            type="text"
+        <Divider />
+        <Stack
+          direction="row"
+          spacing={1}
+          sx={{ px: 3, py: 1.5, bgcolor: "background.paper", alignItems: "center", flexWrap: "wrap" }}
+        >
+          <TextField
+            size="small"
             value={reason}
             onChange={(e) => {
               setReason(e.target.value);
               setDecisionError(null);
             }}
             placeholder="Reason (required for Reject)"
-            style={{
-              padding: "6px 12px",
-              border: "1px solid #e2e8f0",
-              borderRadius: 8,
-              fontSize: 13,
-              width: 220,
-              fontFamily: "var(--font-body)",
-            }}
+            sx={{ width: 240 }}
           />
-          <button onClick={() => handleDecision("reject")} disabled={submitting}
-            style={{ padding: "8px 18px", borderRadius: 8, border: "1px solid #fecaca", background: "#fff", color: "#dc2626", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
+          <Button
+            variant="contained"
+            color="error"
+            startIcon={<CloseIcon />}
+            disabled={submitting}
+            onClick={() => handleDecision("reject")}
+            sx={{ textTransform: "none", fontWeight: 600 }}
+          >
             Reject
-          </button>
-          <button onClick={() => handleDecision("edit")} disabled={submitting}
-            style={{ padding: "8px 18px", borderRadius: 8, border: "1px solid #e2e8f0", background: "#fff", color: "#475569", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
-            Correct &amp; Approve
-          </button>
-          <button onClick={() => handleDecision("approve")} disabled={submitting}
-            style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: "#4f46e5", color: "#fff", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
+          </Button>
+          <Button
+            variant="outlined"
+            color="success"
+            startIcon={<CheckIcon />}
+            disabled={submitting}
+            onClick={() => handleDecision(corrections.length > 0 ? "edit" : "approve")}
+            sx={{ textTransform: "none", fontWeight: 600 }}
+          >
             Approve
-          </button>
+          </Button>
+          <Button
+            variant="contained"
+            color="success"
+            startIcon={<CheckIcon />}
+            disabled={submitting}
+            onClick={() => handleDecision(corrections.length > 0 ? "edit" : "approve", true)}
+            sx={{ textTransform: "none", fontWeight: 600 }}
+          >
+            {corrections.length > 0
+              ? `Approve & Next (${corrections.length})`
+              : "Approve & Next"}
+          </Button>
           {decisionError && (
-            <span style={{ color: "#dc2626", fontSize: 12 }}>{decisionError}</span>
+            <Typography variant="caption" color="error">
+              {decisionError}
+            </Typography>
           )}
           {submitSuccess && (
-            <span style={{ color: "#16a34a", fontSize: 13, fontWeight: 600 }}>
+            <Typography variant="caption" color="success.main" sx={{ fontWeight: 600 }}>
               Decision submitted
-            </span>
+            </Typography>
           )}
-        </div>
-      </div>
+          {error && (
+            <Alert severity="error" sx={{ py: 0, flex: 1 }}>
+              {error}
+            </Alert>
+          )}
+        </Stack>
+      </Paper>
 
       {/* Right sidebar */}
-      <div style={{ borderLeft: "1px solid #e2e8f0", background: "#fff", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <Paper
+        square
+        elevation={0}
+        sx={{ borderLeft: 1, borderColor: "divider", display: "flex", flexDirection: "column", overflow: "hidden" }}
+      >
         <EntitySidebar
           terms={allTerms}
           selectedId={selectedTermId}
           onSelect={(id) => setSelectedTermId(id)}
         />
+        <Divider />
         <CodedLinksSection
           patientId={patientId}
           encounterId={localCandidate.encounter_id}
           onCorrection={addCorrection}
+          refreshTrigger={refreshCodedLinks}
         />
-        <div style={{ borderTop: "1px solid #e2e8f0" }}>
-          <h3 style={{ fontSize: 14, fontWeight: 600, color: "#334155", padding: "12px 16px", borderBottom: "1px solid #e2e8f0" }}>
+        <Divider />
+        <Box sx={{ flex: 1, overflow: "auto" }}>
+          <Typography
+            variant="subtitle2"
+            sx={{ px: 2, py: 1.5, borderBottom: 1, borderColor: "divider", color: "text.primary" }}
+          >
             Corrections ({corrections.length})
-          </h3>
+          </Typography>
           <CorrectionsLog corrections={corrections} />
-        </div>
-      </div>
+        </Box>
+      </Paper>
 
       {/* Popover */}
       {selectedTerm && popoverPos && (
@@ -415,6 +638,16 @@ export default function ReviewView({ taskId, patientId }: Props) {
           onCorrection={addCorrection}
         />
       )}
+      {codeSearchOpen && (
+        <TermSearch
+          initialQuery={codeSearchQuery}
+          initialEvidence={pendingEvidence}
+          captureValueUnit
+          onSelect={handleCodeTermSelected}
+          onClose={() => { setCodeSearchOpen(false); setCodeSearchQuery(""); setPendingEvidence(""); }}
+          onCorrection={addCorrection}
+        />
+      )}
       {spanAdjustTerm && (
         <SpanAdjustBanner
           term={spanAdjustTerm}
@@ -432,7 +665,7 @@ export default function ReviewView({ taskId, patientId }: Props) {
           onCorrection={addCorrection}
         />
       )}
-    </div>
+    </Box>
   );
 }
 
@@ -445,26 +678,48 @@ function renderHighlightedText(
   if (terms.length === 0) return text;
 
   const sorted = [...terms].sort((a, b) => a.span_start - b.span_start);
+
+  // Group overlapping/identical spans together
+  const groups: EncounterTerm[][] = [];
+  for (const term of sorted) {
+    if (term.span_start > text.length || term.span_end > text.length) continue;
+    const last = groups[groups.length - 1];
+    if (last) {
+      const lastEnd = Math.max(...last.map((t) => t.span_end));
+      if (term.span_start < lastEnd) {
+        last.push(term);
+        continue;
+      }
+    }
+    groups.push([term]);
+  }
+
   const parts: React.ReactNode[] = [];
   let cursor = 0;
 
-  for (const term of sorted) {
-    if (term.span_start > text.length || term.span_end > text.length) continue;
-    if (term.span_start < cursor) continue;
+  for (const group of groups) {
+    const spanStart = Math.min(...group.map((t) => t.span_start));
+    const spanEnd = Math.max(...group.map((t) => t.span_end));
 
-    if (term.span_start > cursor) {
-      parts.push(<span key={`t-${cursor}`}>{text.slice(cursor, term.span_start)}</span>);
+    if (spanStart > cursor) {
+      parts.push(<span key={`t-${cursor}`}>{text.slice(cursor, spanStart)}</span>);
     }
 
-    const isSelected = term.term_id === selectedId;
-    const hasContext = term.context.negated || term.context.uncertain || term.context.historical;
-    const bg = isSelected ? "#c7d2fe" : hasContext ? "#fef3c7" : "#dbeafe";
-    const border = isSelected ? "2px solid #4f46e5" : "none";
+    const anySelected = group.some((t) => t.term_id === selectedId);
+    const hasContext = group.some(
+      (t) => t.context.negated || t.context.uncertain || t.context.historical,
+    );
+    const bg = anySelected ? "#c7d2fe" : hasContext ? "#fef3c7" : "#dbeafe";
+    const border = anySelected ? "2px solid #4f46e5" : "none";
+    const primary = group.find((t) => t.term_id === selectedId) ?? group[0];
+    const tooltip = group
+      .map((t) => `${t.text} — ${t.coding.snomed_concept_id || "unlinked"}`)
+      .join("\n");
 
     parts.push(
       <mark
-        key={term.term_id}
-        onClick={(e) => { e.stopPropagation(); onClick(term, e); }}
+        key={`g-${spanStart}-${spanEnd}`}
+        onClick={(e) => { e.stopPropagation(); onClick(primary, e); }}
         style={{
           background: bg,
           border,
@@ -472,13 +727,37 @@ function renderHighlightedText(
           padding: "1px 3px",
           cursor: "pointer",
           transition: "background 0.15s",
+          position: "relative",
         }}
-        title={`${term.text} — ${term.coding.snomed_concept_id || "unlinked"}`}
+        title={tooltip}
       >
-        {text.slice(term.span_start, term.span_end)}
+        {text.slice(spanStart, spanEnd)}
+        {group.length > 1 && (
+          <span
+            style={{
+              position: "absolute",
+              top: -8,
+              right: -8,
+              background: "#4f46e5",
+              color: "#fff",
+              borderRadius: "50%",
+              width: 16,
+              height: 16,
+              fontSize: 10,
+              fontWeight: 700,
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              lineHeight: 1,
+              pointerEvents: "none",
+            }}
+          >
+            {group.length}
+          </span>
+        )}
       </mark>,
     );
-    cursor = term.span_end;
+    cursor = spanEnd;
   }
 
   if (cursor < text.length) {

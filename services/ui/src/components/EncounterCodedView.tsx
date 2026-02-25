@@ -5,30 +5,40 @@ import { useRouter } from "next/navigation";
 import { addCodedLink, fetchEncounter, inferEncounter } from "@/lib/api";
 import type { CodedLink, Correction, EncounterSummary, TermSearchResult } from "@/lib/types";
 import CodedLinksSection from "./CodedLinksSection";
+import CorrectionsLog from "./CorrectionsLog";
+import TermSearch from "./TermSearch";
+
+import Alert from "@mui/material/Alert";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import CircularProgress from "@mui/material/CircularProgress";
+import Divider from "@mui/material/Divider";
+import Paper from "@mui/material/Paper";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 
 /** Fixed colors per semantic tag - same tag always same color */
 const SEMANTIC_TAG_COLORS: Record<string, string> = {
-  situation: "#e0e7ff",       // indigo-100
-  clinicalfinding: "#d1fae5", // green-100
+  situation: "#e0e7ff",
+  clinicalfinding: "#d1fae5",
   clinical_finding: "#d1fae5",
-  disease: "#fecaca",         // red-100
+  disease: "#fecaca",
   disorder: "#fecaca",
-  observableentity: "#fef3c7", // amber-100
+  observableentity: "#fef3c7",
   observable_entity: "#fef3c7",
   observable: "#fef3c7",
-  procedure: "#bfdbfe",       // blue-100
-  substance: "#ddd6fe",      // violet-100
+  procedure: "#bfdbfe",
+  substance: "#ddd6fe",
   medication: "#ddd6fe",
-  snomedconcept: "#dbeafe",   // blue-100 (default)
-  other: "#e2e8f0",          // slate-200
+  snomedconcept: "#dbeafe",
+  other: "#e2e8f0",
 };
 
 function colorForTag(tag: string | null | undefined): string {
   const key = (tag ?? "snomedconcept").toLowerCase().replace(/[^a-z0-9]/g, "");
   return SEMANTIC_TAG_COLORS[key] ?? SEMANTIC_TAG_COLORS.snomedconcept;
 }
-import CorrectionsLog from "./CorrectionsLog";
-import TermSearch from "./TermSearch";
 
 interface Props {
   patientId: string;
@@ -104,24 +114,53 @@ export default function EncounterCodedView({ patientId, encounterId }: Props) {
       }
     }
     spans.sort((a, b) => a.start - b.start);
-    const merged: { start: number; end: number; tag: string | null }[] = [];
+    const merged: { start: number; end: number; tag: string | null; count: number }[] = [];
     for (const s of spans) {
       if (merged.length && s.start <= merged[merged.length - 1].end) {
         merged[merged.length - 1].end = Math.max(merged[merged.length - 1].end, s.end);
+        merged[merged.length - 1].count += 1;
       } else {
-        merged.push({ ...s });
+        merged.push({ ...s, count: 1 });
       }
     }
     if (merged.length === 0) return text;
     const parts: React.ReactNode[] = [];
     let i = 0;
-    for (const { start, end, tag } of merged) {
+    for (const { start, end, tag, count } of merged) {
       if (i < start) parts.push(text.slice(i, start));
       const bg = colorForTag(tag);
       parts.push(
-        <mark key={`${start}-${end}`} style={{ background: bg, borderRadius: 2, padding: "0 2px" }}>
+        <Box
+          component="mark"
+          key={`${start}-${end}`}
+          sx={{ background: bg, borderRadius: "2px", px: "2px", position: "relative", display: "inline" }}
+        >
           {text.slice(start, end)}
-        </mark>
+          {count > 1 && (
+            <Box
+              component="span"
+              sx={{
+                position: "absolute",
+                top: -8,
+                right: -8,
+                bgcolor: "#4f46e5",
+                color: "#fff",
+                borderRadius: "50%",
+                width: 16,
+                height: 16,
+                fontSize: 10,
+                fontWeight: 700,
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                lineHeight: 1,
+                pointerEvents: "none",
+              }}
+            >
+              {count}
+            </Box>
+          )}
+        </Box>
       );
       i = end;
     }
@@ -162,16 +201,18 @@ export default function EncounterCodedView({ patientId, encounterId }: Props) {
     setSelection(null);
   }
 
-  function handleTermSelected(result: TermSearchResult, modifiers?: { value?: string; unit?: string; reference_range?: string; interpretation?: string }) {
+  function handleTermSelected(result: TermSearchResult, modifiers?: { value?: string; unit?: string; reference_range?: string; interpretation?: string }, context?: { negated?: boolean; uncertain?: boolean; historical?: boolean }) {
     const mods = modifiers && (modifiers.value || modifiers.unit || modifiers.reference_range || modifiers.interpretation)
       ? { value: modifiers.value, unit: modifiers.unit, reference_range: modifiers.reference_range, interpretation: modifiers.interpretation }
       : undefined;
+    const ctx = context && (context.negated || context.uncertain || context.historical) ? context : undefined;
     addCodedLink(patientId, encounterId, {
       concept_id: result.snomed_concept_id,
       term: result.term,
       read_code: result.read_code,
       evidence: pendingEvidence || result.term,
       modifiers: mods,
+      context: ctx,
     })
       .then(() => {
         setRefreshTrigger((t) => t + 1);
@@ -190,134 +231,154 @@ export default function EncounterCodedView({ patientId, encounterId }: Props) {
       });
   }
 
-  if (loading) return <div style={{ padding: 40, color: "#64748b" }}>Loading encounter…</div>;
-  if (error) return <div style={{ padding: 40, color: "#b91c1c" }}>{error}</div>;
+  if (loading) {
+    return (
+      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box sx={{ p: 5 }}>
+        <Alert severity="error">{error}</Alert>
+      </Box>
+    );
+  }
+
   if (!encounter) return null;
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", height: "100vh", overflow: "hidden" }}>
-      <div style={{ display: "flex", flexDirection: "column", overflow: "hidden" }}>
-        <div style={{
-          padding: "16px 24px",
-          borderBottom: "1px solid #e2e8f0",
-          background: "#fff",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}>
-          <div>
-            <button
-              onClick={() => router.push(`/patients/${patientId}`)}
-              style={{ background: "none", border: "none", color: "#4f46e5", cursor: "pointer", fontSize: 13, padding: 0, marginBottom: 4 }}
-            >
-              ← Back to encounters
-            </button>
-            <h1 style={{ fontFamily: "var(--font-heading)", fontSize: 20, fontWeight: 700 }}>
-              Encounter: {encounterId.slice(0, 8)}…
-            </h1>
-            <span style={{ color: "#64748b", fontSize: 13 }}>
-              Patient {patientId} · {encounter.date || "no date"} · {(encounter.coded_count ?? 0)} coded
-            </span>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
-            <div style={{ display: "flex", gap: 8 }}>
-              <button
-                onClick={handleRunInference}
-                disabled={inferring}
-                style={{
-                  padding: "8px 16px",
-                  border: "1px solid #16a34a",
-                  borderRadius: 8,
-                  background: "#fff",
-                  color: "#16a34a",
-                  fontSize: 13,
-                  fontWeight: 600,
-                  cursor: inferring ? "not-allowed" : "pointer",
-                }}
+    <Box sx={{ display: "grid", gridTemplateColumns: "1fr 340px", height: "100vh", overflow: "hidden" }}>
+      {/* Left column */}
+      <Box sx={{ display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        {/* Header */}
+        <Paper
+          square
+          elevation={0}
+          sx={{ px: 3, py: 2, borderBottom: 1, borderColor: "divider" }}
+        >
+          <Stack direction="row" justifyContent="space-between" alignItems="center">
+            <Box>
+              <Button
+                variant="text"
+                size="small"
+                startIcon={<ArrowBackIcon />}
+                onClick={() => router.push(`/patients/${patientId}`)}
+                sx={{ mb: 0.5, textTransform: "none" }}
               >
-                {inferring ? "Running…" : "Run inference"}
-              </button>
-              <button
-                onClick={() => {
-                  setTermSearchQuery(selection?.text ?? "");
-                  setPendingEvidence(selection?.text ?? "");
-                  setShowTermSearch(true);
-                  setSelection(null);
-                }}
-                style={{
-                  padding: "8px 16px",
-                  border: "1px solid #4f46e5",
-                  borderRadius: 8,
-                  background: "#fff",
-                  color: "#4f46e5",
-                  fontSize: 13,
-                  fontWeight: 600,
-                  cursor: "pointer",
-                }}
-              >
-                {selection ? `Code "${selection.text.slice(0, 20)}${selection.text.length > 20 ? "…" : ""}"` : "+ Add code"}
-              </button>
-            </div>
-            {inferResult && (
-              <span style={{ fontSize: 12, color: "#64748b" }}>{inferResult}</span>
-            )}
-          </div>
-        </div>
+                Back to encounters
+              </Button>
+              <Typography variant="h6" sx={{ fontFamily: "var(--font-heading)", fontWeight: 700 }}>
+                Encounter: {encounterId.slice(0, 8)}…
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Patient {patientId} · {encounter.date || "no date"} · {encounter.coded_count ?? 0} coded
+              </Typography>
+            </Box>
 
-        <div
-          style={{ flex: 1, overflowY: "auto", padding: 24, background: "#f8fafc" }}
+            <Stack alignItems="flex-end" spacing={0.5}>
+              <Stack direction="row" spacing={1}>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={handleRunInference}
+                  disabled={inferring}
+                  sx={{ textTransform: "none", fontWeight: 600 }}
+                  color="success"
+                >
+                  {inferring ? "Running…" : "Run inference"}
+                </Button>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={() => {
+                    setTermSearchQuery(selection?.text ?? "");
+                    setPendingEvidence(selection?.text ?? "");
+                    setShowTermSearch(true);
+                    setSelection(null);
+                  }}
+                  sx={{ textTransform: "none", fontWeight: 600 }}
+                >
+                  {selection
+                    ? `Code "${selection.text.slice(0, 20)}${selection.text.length > 20 ? "…" : ""}"`
+                    : "+ Add code"}
+                </Button>
+              </Stack>
+              {inferResult && (
+                <Typography variant="caption" color="text.secondary">
+                  {inferResult}
+                </Typography>
+              )}
+            </Stack>
+          </Stack>
+        </Paper>
+
+        {/* Text area */}
+        <Box
+          sx={{ flex: 1, overflowY: "auto", p: 3, bgcolor: "grey.50" }}
           onMouseUp={handleMouseUp}
           onClick={(e) => { if (e.target === e.currentTarget) setSelection(null); }}
         >
-          <div
+          <Paper
             ref={textRef}
-            style={{
-              background: "#fff",
-              borderRadius: 12,
-              border: "1px solid #e2e8f0",
-              padding: 24,
+            elevation={0}
+            sx={{
+              p: 3,
               fontSize: 15,
               lineHeight: 1.8,
               fontFamily: "var(--font-body)",
               whiteSpace: "pre-wrap",
               wordBreak: "break-word",
               userSelect: "text",
+              border: 1,
+              borderColor: "divider",
+              borderRadius: 3,
             }}
           >
             {highlightedText || "(No text)"}
-          </div>
+          </Paper>
 
           {selection && (
-            <div
-              style={{
+            <Box
+              sx={{
                 position: "fixed",
                 top: selection.rect.top - 40,
                 left: selection.rect.left,
                 zIndex: 1000,
               }}
             >
-              <button
+              <Button
+                variant="contained"
+                size="small"
                 onClick={openCodeWithSelection}
-                style={{
-                  padding: "6px 12px",
-                  border: "none",
-                  borderRadius: 6,
-                  background: "#4f46e5",
-                  color: "#fff",
-                  fontSize: 12,
+                sx={{
+                  textTransform: "none",
                   fontWeight: 600,
-                  cursor: "pointer",
+                  fontSize: 12,
                   boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
                 }}
               >
                 Code selection
-              </button>
-            </div>
+              </Button>
+            </Box>
           )}
-        </div>
-      </div>
+        </Box>
+      </Box>
 
-      <div style={{ borderLeft: "1px solid #e2e8f0", background: "#fff", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      {/* Right sidebar */}
+      <Paper
+        square
+        elevation={0}
+        sx={{
+          borderLeft: 1,
+          borderColor: "divider",
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+        }}
+      >
         <CodedLinksSection
           patientId={patientId}
           encounterId={encounterId}
@@ -325,13 +386,17 @@ export default function EncounterCodedView({ patientId, encounterId }: Props) {
           refreshTrigger={refreshTrigger}
           onLinksChange={setCodedLinks}
         />
-        <div style={{ borderTop: "1px solid #e2e8f0", flexShrink: 0, display: "flex", flexDirection: "column", minHeight: 0 }}>
-          <h3 style={{ fontSize: 14, fontWeight: 600, color: "#334155", padding: "12px 16px", borderBottom: "1px solid #e2e8f0" }}>
+        <Divider />
+        <Box sx={{ flexShrink: 0, display: "flex", flexDirection: "column", minHeight: 0 }}>
+          <Typography
+            variant="subtitle2"
+            sx={{ px: 2, py: 1.5, borderBottom: 1, borderColor: "divider", color: "text.primary" }}
+          >
             Corrections ({corrections.length})
-          </h3>
+          </Typography>
           <CorrectionsLog corrections={corrections} />
-        </div>
-      </div>
+        </Box>
+      </Paper>
 
       {showTermSearch && (
         <TermSearch
@@ -343,6 +408,6 @@ export default function EncounterCodedView({ patientId, encounterId }: Props) {
           onCorrection={(c) => setCorrections((prev) => [c, ...prev])}
         />
       )}
-    </div>
+    </Box>
   );
 }

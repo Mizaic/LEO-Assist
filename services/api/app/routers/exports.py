@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends
 
-from app.db.neo4j_client import CodingGraphClient
+from app.db.neo4j_client import PatientGraphClient
 from app.models.contracts import (
     ExportDatasetRequest,
     ExportDatasetResponse,
@@ -18,7 +18,7 @@ router = APIRouter(prefix="/exports", tags=["exports"])
 
 
 def get_export_service() -> ExportService:
-    client = CodingGraphClient()
+    client = PatientGraphClient()
     client.initialize_schema()
     return ExportService(client)
 

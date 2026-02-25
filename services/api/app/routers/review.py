@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
-from app.db.neo4j_client import CodingGraphClient
+from app.db.neo4j_client import PatientGraphClient
 from app.models.contracts import (
     ReviewDecisionRequest,
     ReviewDecisionResponse,
@@ -19,7 +19,7 @@ router = APIRouter(prefix="/review", tags=["review"])
 
 
 def get_review_service() -> ReviewService:
-    client = CodingGraphClient()
+    client = PatientGraphClient()
     client.initialize_schema()
     return ReviewService(client)
 
@@ -28,7 +28,7 @@ def get_review_service() -> ReviewService:
 def list_tasks(
     status: ReviewStatus | None = Query(default=None),
     patient_id: str | None = Query(default=None),
-    limit: int = Query(default=100, ge=1, le=500),
+    limit: int = Query(default=500, ge=1, le=2000),
     service: ReviewService = Depends(get_review_service),
 ):
     return service.list_tasks(status=status, patient_id=patient_id, limit=limit)

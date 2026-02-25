@@ -5,6 +5,7 @@ from __future__ import annotations
 import pytest
 
 from app.services.v3.llm_extractor import (
+    ExtractionError,
     ExtractedTerm,
     LLMExtractor,
     _ASSERTION_TO_CONTEXT,
@@ -14,62 +15,23 @@ from app.services.v3.llm_extractor import (
 from app.services.v3.sentence_splitter import SentenceChunk
 
 
-class TestLLMExtractorFallback:
-    """Test extraction when LLM is disabled (fallback mode)."""
+class TestLLMExtractorHardFail:
+    """Extraction must raise ExtractionError when LLM is unavailable."""
 
-    def test_extract_empty_sentences(self) -> None:
+    def test_extract_empty_sentences_returns_empty(self) -> None:
         extractor = LLMExtractor(model_id="unconfigured", region=None)
-        result = extractor.extract_batch("Some text", [])
-        assert result == []
+        terms, usage = extractor.extract_batch("Some text", [])
+        assert terms == []
+        assert usage.llm_calls == 0
+        assert usage.total_tokens == 0
 
-    def test_extract_fallback_produces_terms(self) -> None:
+    def test_disabled_extractor_raises(self) -> None:
         extractor = LLMExtractor(model_id="unconfigured", region=None)
         chunks = [
             SentenceChunk(sentence_id="s0", text="Patient has hypertension.", start=0, end=25),
         ]
-        result = extractor.extract_batch("Patient has hypertension.", chunks)
-        assert len(result) >= 1
-        assert all(isinstance(t, ExtractedTerm) for t in result)
-        assert all(t.sentence_id == "s0" for t in result)
-        assert all(t.semantic_tag == "Other" for t in result)
-        assert all(t.lookup_term == t.text for t in result)
-        assert all(t.assertion in _VALID_ASSERTIONS for t in result)
-        assert all(isinstance(t.context, dict) for t in result)
-
-    def test_extract_fallback_context_fields(self) -> None:
-        extractor = LLMExtractor(model_id="unconfigured", region=None)
-        chunks = [
-            SentenceChunk(sentence_id="s0", text="No diabetes.", start=0, end=12),
-        ]
-        result = extractor.extract_batch("No diabetes.", chunks)
-        assert len(result) >= 1
-        term = result[0]
-        assert term.assertion == "absent"
-        assert term.context["negated"] is True
-        assert term.context["subject"] == "patient"
-        assert "temporality" in term.context
-
-    def test_extract_fallback_historical(self) -> None:
-        extractor = LLMExtractor(model_id="unconfigured", region=None)
-        chunks = [
-            SentenceChunk(sentence_id="s0", text="History of asthma.", start=0, end=18),
-        ]
-        result = extractor.extract_batch("History of asthma.", chunks)
-        assert len(result) >= 1
-        term = result[0]
-        assert term.assertion == "historical"
-        assert term.context["historical"] is True
-        assert term.context["temporality"] == "past"
-
-    def test_extract_fallback_family(self) -> None:
-        extractor = LLMExtractor(model_id="unconfigured", region=None)
-        chunks = [
-            SentenceChunk(sentence_id="s0", text="Family history of cancer.", start=0, end=25),
-        ]
-        result = extractor.extract_batch("Family history of cancer.", chunks)
-        assert len(result) >= 1
-        has_family = any(t.assertion == "family" for t in result)
-        assert has_family
+        with pytest.raises(ExtractionError, match="not enabled"):
+            extractor.extract_batch("Patient has hypertension.", chunks)
 
 
 class TestLLMExtractorParsing:

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends
 
-from app.db.neo4j_client import CodingGraphClient
+from app.db.neo4j_client import PatientGraphClient
 from app.models.contracts import AuditTimelineResponse
 from app.services.review_service import ReviewService
 
@@ -13,7 +13,7 @@ router = APIRouter(prefix="/audit", tags=["audit"])
 
 
 def get_review_service() -> ReviewService:
-    client = CodingGraphClient()
+    client = PatientGraphClient()
     client.initialize_schema()
     return ReviewService(client)
 

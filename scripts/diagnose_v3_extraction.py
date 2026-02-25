@@ -4,13 +4,14 @@ Runs the V3 LLM extractor against real patient encounters and prints
 detailed extraction output for human review ("eyeball tuning").
 
 Usage:
-    python scripts/diagnose_v3_extraction.py --patient-id 4202301609 --max-encounters 5
+    python scripts/diagnose_v3_extraction.py --patient-id 4202301609 --max-encounters 15
 """
 
 from __future__ import annotations
 
 import argparse
-import json
+import logging
+import os
 import sys
 from collections import Counter
 from pathlib import Path
@@ -20,11 +21,36 @@ API_PATH = ROOT / "services" / "api"
 if str(API_PATH) not in sys.path:
     sys.path.insert(0, str(API_PATH))
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s  %(name)-40s  %(levelname)-7s  %(message)s",
+    datefmt="%H:%M:%S",
+)
+logging.getLogger("PyRuSH").setLevel(logging.WARNING)
+logging.getLogger("botocore").setLevel(logging.WARNING)
+logging.getLogger("urllib3").setLevel(logging.WARNING)
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("sentence_transformers").setLevel(logging.WARNING)
+logging.getLogger("transformers").setLevel(logging.WARNING)
+
+# PyRuSH uses loguru, not stdlib logging - suppress its DEBUG spam
+try:
+    from loguru import logger as _loguru_logger
+    _loguru_logger.disable("PyRuSH")
+except ImportError:
+    pass
+
+# Suppress sentence-transformers model loading progress bars
+os.environ.setdefault("SENTENCE_TRANSFORMERS_VERBOSITY", "warning")
+os.environ.setdefault("TRANSFORMERS_VERBOSITY", "warning")
+
 from app.db.neo4j_client import CodingGraphClient, PatientGraphClient
-from app.services.term_patcher import normalize_surface
 from app.services.v3.coding_resolver import CodingResolver
-from app.services.v3.llm_extractor import LLMExtractor
-from app.services.v3.sentence_splitter import SentenceSplitter
+from app.services.v3.llm_extractor import ExtractionError, LLMExtractor
+from app.services.v3.llm_usage import LLMCostConfig, LLMUsage
+from app.services.v3.sentence_splitter import SentenceSplitter, deduplicate_lines
+
+log = logging.getLogger("diagnose_v3")
 
 _BATCH_SIZE = 5
 
@@ -43,8 +69,8 @@ def parse_args() -> argparse.Namespace:
         help="Patient ID to diagnose (default: 4202301609).",
     )
     parser.add_argument(
-        "--max-encounters", type=int, default=5,
-        help="Max encounters to process (default: 5).",
+        "--max-encounters", type=int, default=15,
+        help="Max encounters to process (default: 15).",
     )
     parser.add_argument(
         "--no-resolve", action="store_true",
@@ -61,15 +87,29 @@ def main() -> int:
     args = parse_args()
     deidentify_text = _load_deidentify()
 
+    log.info("Connecting to Neo4j...")
     patient_client = PatientGraphClient()
     coding_client = CodingGraphClient() if not args.no_resolve else None
-    resolver = CodingResolver() if not args.no_resolve else None
 
-    import os
+    embedder = None
+    if not args.no_resolve:
+        try:
+            from scripts.embedding_utils import TextEmbedder, load_vector_settings
+            settings = load_vector_settings()
+            embedder = TextEmbedder(settings)
+            log.info("Vector embedder loaded: model=%s", settings.model_name)
+        except Exception:
+            log.info("Vector embedder unavailable - using exact+fulltext only")
+
+    resolver = CodingResolver(embedder=embedder) if not args.no_resolve else None
+
     region = os.getenv("AWS_REGION") or os.getenv("AWS_DEFAULT_REGION") or "eu-west-2"
     model_id = os.getenv("AWS_SMALL_MODEL", "unconfigured")
+    log.info("Initialising LLM extractor (model=%s, region=%s)", model_id, region)
     extractor = LLMExtractor(model_id=model_id, region=region)
     splitter = SentenceSplitter()
+    cost_config = LLMCostConfig.from_env()
+    total_usage = LLMUsage.zero()
 
     print("=" * 80)
     print("V3 EXTRACTION DIAGNOSTIC")
@@ -82,28 +122,31 @@ def main() -> int:
     print(f"  SNOMED resolution: {'yes' if resolver else 'skip'}")
     print()
 
+    log.info("Fetching encounters for patient %s...", args.patient_id)
     with patient_client.session() as session:
         result = session.run(
             "MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter) "
             "WHERE toString(p.id) = $pid "
             "RETURN e.id AS encounter_id, toString(e.date) AS date, e.text AS text "
-            "ORDER BY e.date LIMIT $limit",
+            "ORDER BY e.date DESC LIMIT $limit",
             pid=args.patient_id,
             limit=args.max_encounters,
         )
         encounters = [dict(r) for r in result]
 
     if not encounters:
-        print(f"ERROR: No encounters found for patient {args.patient_id}")
+        log.error("No encounters found for patient %s", args.patient_id)
         patient_client.close()
         return 1
 
+    log.info("Found %d encounters", len(encounters))
     print(f"Found {len(encounters)} encounters\n")
 
     total_terms = 0
     total_resolved = 0
     total_span_aligned = 0
     total_abbreviation_expanded = 0
+    total_extraction_failures = 0
     assertion_counts: Counter[str] = Counter()
     tag_counts: Counter[str] = Counter()
 
@@ -112,8 +155,17 @@ def main() -> int:
         encounter_text = str(encounter.get("text") or "")
         date = encounter.get("date", "?")
 
+        log.info(
+            "Processing encounter %d/%d  [%s]  date=%s  (%d chars)",
+            enc_idx + 1, len(encounters), encounter_id, date, len(encounter_text),
+        )
+
+        log.info("De-identifying text...")
         deidentified = deidentify_text(encounter_text)
+        deidentified = deduplicate_lines(deidentified)
+        log.info("Splitting into sentences...")
         sentences = splitter.split(deidentified)
+        log.info("Got %d sentences", len(sentences))
 
         print("-" * 80)
         print(f"ENCOUNTER {enc_idx + 1}/{len(encounters)}  |  ID: {encounter_id}  |  Date: {date}")
@@ -126,17 +178,38 @@ def main() -> int:
         print()
 
         all_terms = []
+        encounter_usage = LLMUsage.zero()
+        extraction_failed = False
         for batch_start in range(0, len(sentences), _BATCH_SIZE):
             batch = sentences[batch_start : batch_start + _BATCH_SIZE]
-            extracted = extractor.extract_batch(deidentified, batch)
-            all_terms.extend(extracted)
+            batch_ids = [s.sentence_id for s in batch]
+            log.info("Sending batch %s to LLM...", batch_ids)
+            try:
+                extracted, batch_usage = extractor.extract_batch(deidentified, batch)
+                encounter_usage += batch_usage
+                log.info("LLM returned %d terms (%d tokens)", len(extracted), batch_usage.total_tokens)
+                all_terms.extend(extracted)
+            except ExtractionError as exc:
+                log.error("Extraction failed for batch %s: %s", batch_ids, exc)
+                extraction_failed = True
+
+        total_usage += encounter_usage
+
+        if extraction_failed:
+            total_extraction_failures += 1
+            print("  *** EXTRACTION FAILED - see log above ***\n")
+            continue
 
         if resolver and coding_client and all_terms:
             lookup_texts = [t.lookup_term for t in all_terms]
+            expected_tags = {t.lookup_term: t.semantic_tag for t in all_terms}
+            log.info("Sending %d terms for SNOMED resolution...", len(lookup_texts))
             with coding_client.session() as coding_session:
                 candidates_map = resolver.resolve_candidates(
                     lookup_texts, neo4j_session=coding_session,
+                    expected_tags=expected_tags,
                 )
+            log.info("SNOMED resolution complete")
         else:
             candidates_map = {}
 
@@ -195,6 +268,7 @@ def main() -> int:
     print("SUMMARY")
     print("=" * 80)
     print(f"  Encounters processed:    {len(encounters)}")
+    print(f"  Extraction failures:     {total_extraction_failures}")
     print(f"  Total terms extracted:   {total_terms}")
     if resolver:
         rate = (total_resolved / total_terms * 100) if total_terms else 0
@@ -202,6 +276,22 @@ def main() -> int:
     span_rate = (total_span_aligned / total_terms * 100) if total_terms else 0
     print(f"  Span-aligned:            {total_span_aligned}/{total_terms} ({span_rate:.0f}%)")
     print(f"  Abbreviation expansions: {total_abbreviation_expanded}")
+    print()
+    print("  LLM Usage:")
+    print(f"    API calls:             {total_usage.llm_calls}")
+    print(f"    Input tokens:          {total_usage.input_tokens:,}")
+    print(f"    Output tokens:         {total_usage.output_tokens:,}")
+    print(f"    Cached input tokens:   {total_usage.cached_input_tokens:,}")
+    print(f"    Total tokens:          {total_usage.total_tokens:,}")
+    cost = total_usage.cost_usd(cost_config)
+    print(f"    Estimated cost:        ${cost:.4f}")
+    if len(encounters) > 0 and cost > 0:
+        projected_300 = cost * (300 / len(encounters))
+        print(f"    Projected (300 enc):   ${projected_300:.2f}")
+    if total_usage.llm_calls > 0:
+        avg_in = total_usage.input_tokens / total_usage.llm_calls
+        avg_out = total_usage.output_tokens / total_usage.llm_calls
+        print(f"    Avg tokens/call:       {avg_in:.0f} in / {avg_out:.0f} out")
     print()
     print("  Assertion distribution:")
     for assertion, count in assertion_counts.most_common():

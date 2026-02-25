@@ -2,11 +2,39 @@
 
 from __future__ import annotations
 
+import logging
 import os
 from dataclasses import dataclass
 from typing import Sequence
 
 from dotenv import load_dotenv
+
+log = logging.getLogger(__name__)
+
+
+def _resolve_device(requested: str) -> str:
+    """Return 'cuda' or 'cpu' depending on availability.
+
+    *  ``"auto"`` / ``""`` -> try CUDA, fall back to CPU
+    *  ``"cuda"``          -> use CUDA (will fail fast if unavailable)
+    *  ``"cpu"``           -> always CPU
+    """
+    requested = (requested or "auto").strip().lower()
+    if requested == "cpu":
+        return "cpu"
+    try:
+        import torch
+        if torch.cuda.is_available():
+            name = torch.cuda.get_device_name(0)
+            log.info("CUDA available - using GPU: %s", name)
+            return "cuda"
+    except Exception:
+        pass
+    if requested == "cuda":
+        log.warning("CUDA was explicitly requested but is not available - falling back to CPU")
+    else:
+        log.info("CUDA not available - using CPU for embeddings")
+    return "cpu"
 
 
 @dataclass(frozen=True)
@@ -54,5 +82,6 @@ def load_vector_settings() -> VectorSettings:
     if not model_name:
         raise RuntimeError("Missing VECTOR_MODEL in environment/secrets/.env")
     dimension = int(os.environ.get("VECTOR_DIMENSION", "768"))
-    device = os.environ.get("VECTOR_DEVICE", "cpu").strip() or "cpu"
+    raw_device = os.environ.get("VECTOR_DEVICE", "auto").strip()
+    device = _resolve_device(raw_device)
     return VectorSettings(model_name=model_name, dimension=dimension, device=device)

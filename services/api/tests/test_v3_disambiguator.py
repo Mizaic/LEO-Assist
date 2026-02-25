@@ -13,12 +13,13 @@ class TestCodingDisambiguator:
 
     def test_choose_best_empty_candidates_returns_none(self) -> None:
         disambiguator = CodingDisambiguator(model_id="unconfigured", region=None)
-        result = disambiguator.choose_best(
+        result, usage = disambiguator.choose_best(
             encounter_text="Patient has diabetes.",
             term_text="diabetes",
             candidates=[],
         )
         assert result is None
+        assert usage.llm_calls == 0
 
     def test_choose_best_single_candidate_returns_it(self) -> None:
         disambiguator = CodingDisambiguator(model_id="unconfigured", region=None)
@@ -29,22 +30,24 @@ class TestCodingDisambiguator:
             score=1.0,
             source="neo4j_hybrid",
         )
-        result = disambiguator.choose_best(
+        result, usage = disambiguator.choose_best(
             encounter_text="Patient has diabetes.",
             term_text="diabetes",
             candidates=[candidate],
         )
         assert result is not None
         assert result.snomed_concept_id == "73211009"
+        assert usage.llm_calls == 0
 
     def test_choose_best_disabled_returns_first_when_multiple(self) -> None:
         disambiguator = CodingDisambiguator(model_id="unconfigured", region=None)
         c1 = CodingCandidate("111", "Term A", "R1", 1.0, "neo4j")
         c2 = CodingCandidate("222", "Term B", "R2", 1.0, "neo4j")
-        result = disambiguator.choose_best(
+        result, usage = disambiguator.choose_best(
             encounter_text="Patient has condition.",
             term_text="condition",
             candidates=[c1, c2],
         )
         assert result is not None
         assert result.snomed_concept_id == "111"
+        assert usage.llm_calls == 0

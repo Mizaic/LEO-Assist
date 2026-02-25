@@ -9,6 +9,13 @@ from typing import Any
 from pydantic import BaseModel, Field, field_validator
 
 
+def _clamp_0_1(v: float) -> float:
+    """Clamp score/confidence to [0, 1] for API contract compliance."""
+    if isinstance(v, (int, float)):
+        return max(0.0, min(1.0, float(v)))
+    return v
+
+
 class ReviewStatus(str, Enum):
     pending = "pending"
     in_review = "in_review"
@@ -53,6 +60,11 @@ class TermCodingProposal(BaseModel):
     score: float = Field(default=0.0, ge=0.0, le=1.0)
     source: str = Field(default="neo4j_hybrid")
 
+    @field_validator("score", mode="before")
+    @classmethod
+    def clamp_score(cls, v: float) -> float:
+        return _clamp_0_1(v)
+
 
 class EncounterTerm(BaseModel):
     term_id: str
@@ -64,6 +76,11 @@ class EncounterTerm(BaseModel):
     evidence_text: str
     extraction_method: str
     extraction_confidence: float = Field(default=0.0, ge=0.0, le=1.0)
+
+    @field_validator("extraction_confidence", mode="before")
+    @classmethod
+    def clamp_extraction_confidence(cls, v: float) -> float:
+        return _clamp_0_1(v)
 
     @field_validator("span_end")
     @classmethod
@@ -131,12 +148,22 @@ class PipelineRunRequest(BaseModel):
     dry_run: bool = False
 
 
+class LLMUsageResponse(BaseModel):
+    input_tokens: int = 0
+    output_tokens: int = 0
+    cached_input_tokens: int = 0
+    total_tokens: int = 0
+    llm_calls: int = 0
+    cost_usd: float | None = None
+
+
 class PipelineRunResponse(BaseModel):
     run_id: str
     processed_encounters: int
     queued_for_review: int
     rejected_hard_fail: int
     warnings_only: int
+    llm_usage: LLMUsageResponse | None = None
 
 
 class ReviewTaskSummary(BaseModel):
