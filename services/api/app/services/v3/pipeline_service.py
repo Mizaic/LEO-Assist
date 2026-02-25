@@ -82,10 +82,10 @@ class V3PipelineService:
         ) = _load_v2_utils()
         self.version_bundle = {
             "pipeline_version": f"{self.settings.pipeline_version}-v3",
-            "extractor_version": "v3.llm_batch5",
+            "extractor_version": "v3.llm_batch5_prompt_v2",
             "validator_version": self.settings.validator_version,
             "model_id": self.settings.model_id,
-            "prompt_version": self.settings.prompt_version,
+            "prompt_version": "v2",
             "terminology_version": self.settings.terminology_version,
         }
         region = self._resolve_aws_region()
@@ -330,7 +330,7 @@ class V3PipelineService:
         sentence_chunks: list[SentenceChunk],
         extracted: dict[str, list[ExtractedTerm]],
     ) -> tuple[list[dict[str, Any]], list[SemanticLinkPayload]]:
-        all_texts = [term.text for terms in extracted.values() for term in terms]
+        all_texts = [term.lookup_term for terms in extracted.values() for term in terms]
         with self.coding_graph.session() as coding_session:
             candidates_by_text = self.resolver.resolve_candidates(all_texts, neo4j_session=coding_session)
 
@@ -351,7 +351,7 @@ class V3PipelineService:
 
                 absolute_start = sentence.start + start_in_sentence
                 absolute_end = sentence.start + end_in_sentence
-                candidates = candidates_by_text.get(term.text, [])
+                candidates = candidates_by_text.get(term.lookup_term, [])
                 best = self.disambiguator.choose_best(
                     encounter_text=deidentified_text,
                     term_text=term.text,

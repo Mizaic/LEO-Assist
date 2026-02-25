@@ -41,6 +41,6 @@ def get_settings() -> Settings:
         extractor_version=os.getenv("TRAINING_EXTRACTOR_VERSION", "v2.surface_patch"),
         validator_version=os.getenv("TRAINING_VALIDATOR_VERSION", "v2.gates"),
         model_id=os.getenv("AWS_SMALL_MODEL", "unconfigured"),
-        prompt_version=os.getenv("TRAINING_PROMPT_VERSION", "v1"),
+        prompt_version=os.getenv("TRAINING_PROMPT_VERSION", "v2"),
         terminology_version=os.getenv("TERMINOLOGY_VERSION", "snomed-uk-current"),
     )
