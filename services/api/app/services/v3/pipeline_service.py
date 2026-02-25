@@ -59,12 +59,11 @@ class PipelineStats:
     def record(self, hard_fails: bool, warnings: bool) -> None:
         with self._lock:
             self.processed_encounters += 1
+            self.queued_for_review += 1
             if hard_fails:
                 self.rejected_hard_fail += 1
-            else:
-                if warnings:
-                    self.warnings_only += 1
-                self.queued_for_review += 1
+            elif warnings:
+                self.warnings_only += 1
 
     def add_usage(self, usage: LLMUsage) -> None:
         with self._lock:

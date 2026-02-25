@@ -176,7 +176,7 @@ export default function PipelinePanel() {
               >
                 <span>Processed: {pipeline.result.processed_encounters}</span>
                 <span>Queued: {pipeline.result.queued_for_review}</span>
-                <span>Rejected: {pipeline.result.rejected_hard_fail}</span>
+                <span>Span Issues: {pipeline.result.rejected_hard_fail}</span>
                 <span>Warnings: {pipeline.result.warnings_only}</span>
               </Stack>
             </Alert>

@@ -198,7 +198,7 @@ export default function PipelineModal({
         >
           <StatChip label="Processed" value={stats.processed_encounters} color="#e2e8f0" />
           <StatChip label="Queued" value={stats.queued_for_review} color="#22c55e" />
-          <StatChip label="Rejected" value={stats.rejected_hard_fail} color="#ef4444" />
+          <StatChip label="Span Issues" value={stats.rejected_hard_fail} color="#f59e0b" />
           <StatChip label="Warnings" value={stats.warnings_only} color="#f59e0b" />
         </Box>
       )}

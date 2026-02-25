@@ -163,8 +163,8 @@ function attachListeners(
   });
 
   on("persist_completed", (d) => {
-    setStatus(d.queued ? "Queued for review" : "Hard-fail — not queued");
-    updateWorker(setWorkerStates, d, "persist", d.queued ? "Queued" : "Rejected");
+    setStatus("Queued for review");
+    updateWorker(setWorkerStates, d, "persist", "Queued");
   });
 
   on("persist_skipped", (d) => {
