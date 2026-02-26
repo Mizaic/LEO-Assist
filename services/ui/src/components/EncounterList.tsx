@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Box from "@mui/material/Box";
 import Breadcrumbs from "@mui/material/Breadcrumbs";
 import Chip from "@mui/material/Chip";
+import CircularProgress from "@mui/material/CircularProgress";
 import Divider from "@mui/material/Divider";
 import IconButton from "@mui/material/IconButton";
 import InputAdornment from "@mui/material/InputAdornment";
@@ -19,10 +20,13 @@ import TableCell from "@mui/material/TableCell";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import TextField from "@mui/material/TextField";
+import ToggleButton from "@mui/material/ToggleButton";
+import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import SearchIcon from "@mui/icons-material/Search";
+import TravelExploreIcon from "@mui/icons-material/TravelExplore";
 import Button from "@mui/material/Button";
 import LinearProgress from "@mui/material/LinearProgress";
 import {
@@ -31,8 +35,10 @@ import {
   fetchTasks,
   resetPatient,
   resetReviewQueue,
+  searchPatientEncounters,
   syncGoldToPatient,
 } from "@/lib/api";
+import type { EncounterSearchResult } from "@/lib/api";
 import type { EncounterSummary, ReviewTaskSummary } from "@/lib/types";
 import { usePipeline } from "@/context/PipelineContext";
 import ConfirmDialog from "./ConfirmDialog";
@@ -177,6 +183,10 @@ export default function EncounterList({ patientId }: Props) {
   const [confirmSync, setConfirmSync] = useState(false);
   const [sortKey, setSortKey] = useState<"date-desc" | "date-asc" | "status" | "id">("date-desc");
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchMode, setSearchMode] = useState<"keyword" | "semantic">("keyword");
+  const [semanticResults, setSemanticResults] = useState<EncounterSearchResult[] | null>(null);
+  const [semanticLoading, setSemanticLoading] = useState(false);
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -204,6 +214,41 @@ export default function EncounterList({ patientId }: Props) {
     setEncounters(encounterRows);
     setTasks(taskRows);
   }
+
+  const runSemanticSearch = useCallback(
+    async (query: string) => {
+      if (!query.trim() || searchMode !== "semantic") {
+        setSemanticResults(null);
+        return;
+      }
+      setSemanticLoading(true);
+      try {
+        const results = await searchPatientEncounters(patientId, query, "hybrid");
+        setSemanticResults(results);
+      } catch {
+        setSemanticResults(null);
+      } finally {
+        setSemanticLoading(false);
+      }
+    },
+    [patientId, searchMode],
+  );
+
+  useEffect(() => {
+    if (searchMode !== "semantic") {
+      setSemanticResults(null);
+      return;
+    }
+    if (!searchQuery.trim()) {
+      setSemanticResults(null);
+      return;
+    }
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    debounceTimer.current = setTimeout(() => runSemanticSearch(searchQuery), 400);
+    return () => {
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    };
+  }, [searchQuery, searchMode, runSemanticSearch]);
 
   async function doReset() {
     setResetting(true);
@@ -293,19 +338,34 @@ export default function EncounterList({ patientId }: Props) {
     return acc;
   }, {});
 
+  const semanticHitSet = semanticResults
+    ? new Set(semanticResults.map((r) => String(r.encounter_id)))
+    : null;
+
+  const semanticMatchInfo = semanticResults
+    ? new Map(semanticResults.map((r) => [String(r.encounter_id), r]))
+    : null;
+
   const filteredAndSortedRows = allMappedRows
     .filter(({ encounter, task }) => {
       const rawStatus = task?.status ?? "not_processed";
       if (statusFilter !== null && rawStatus !== statusFilter) return false;
       if (!searchQuery.trim()) return true;
+
+      if (searchMode === "semantic") {
+        return semanticHitSet ? semanticHitSet.has(String(encounter.encounter_id)) : true;
+      }
+
       const q = searchQuery.toLowerCase().trim();
       const referral = (parseReferralType(encounter.flags) ?? "").toLowerCase();
+      const textContent = (encounter.text ?? "").toLowerCase();
       return (
         String(encounter.encounter_id).toLowerCase().includes(q) ||
         (encounter.date ?? "").includes(q) ||
         rawStatus.includes(q) ||
         getStatusLabel(rawStatus).toLowerCase().includes(q) ||
-        referral.includes(q)
+        referral.includes(q) ||
+        textContent.includes(q)
       );
     })
     .sort((a, b) => {
@@ -495,9 +555,42 @@ export default function EncounterList({ patientId }: Props) {
       {/* Filter / sort bar */}
       {!loading && (
         <Stack direction="row" sx={{ flexWrap: "wrap", gap: 1.5, alignItems: "center", mb: 1.5 }}>
+          <ToggleButtonGroup
+            size="small"
+            exclusive
+            value={searchMode}
+            onChange={(_, v) => {
+              if (v) {
+                setSearchMode(v);
+                setSemanticResults(null);
+              }
+            }}
+            sx={{
+              "& .MuiToggleButton-root": {
+                textTransform: "none",
+                px: 1.5,
+                py: 0.5,
+                fontSize: "0.8rem",
+                fontWeight: 600,
+              },
+            }}
+          >
+            <ToggleButton value="keyword">
+              <SearchIcon sx={{ fontSize: 16, mr: 0.5 }} />
+              Keyword
+            </ToggleButton>
+            <ToggleButton value="semantic">
+              <TravelExploreIcon sx={{ fontSize: 16, mr: 0.5 }} />
+              Semantic
+            </ToggleButton>
+          </ToggleButtonGroup>
           <TextField
             size="small"
-            placeholder="Search by referral, date, status, or ID…"
+            placeholder={
+              searchMode === "keyword"
+                ? "Search encounter text, date, status…"
+                : "Search by clinical concept e.g. 'diabetes', 'chest pain'…"
+            }
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             aria-label="Search encounters"
@@ -505,7 +598,13 @@ export default function EncounterList({ patientId }: Props) {
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <SearchIcon fontSize="small" sx={{ color: "text.disabled" }} />
+                  {semanticLoading ? (
+                    <CircularProgress size={16} />
+                  ) : searchMode === "semantic" ? (
+                    <TravelExploreIcon fontSize="small" sx={{ color: "text.disabled" }} />
+                  ) : (
+                    <SearchIcon fontSize="small" sx={{ color: "text.disabled" }} />
+                  )}
                 </InputAdornment>
               ),
             }}
@@ -550,6 +649,9 @@ export default function EncounterList({ patientId }: Props) {
           {(searchQuery.trim() || statusFilter !== null) && (
             <Typography variant="caption" sx={{ color: "text.secondary", alignSelf: "center", ml: 0.5 }}>
               {rows.length} of {totalCount} shown
+              {searchMode === "semantic" && searchQuery.trim() && semanticResults
+                ? ` (${semanticResults.length} vector matches)`
+                : ""}
             </Typography>
           )}
         </Stack>
@@ -670,6 +772,30 @@ export default function EncounterList({ patientId }: Props) {
                         )}
                       </Stack>
                     )}
+                    {/* Semantic similarity badge */}
+                    {searchMode === "semantic" && semanticMatchInfo?.has(fullId) && (() => {
+                      const info = semanticMatchInfo.get(fullId)!;
+                      const sim = info.similarity;
+                      if (sim == null) return null;
+                      const pct = Math.round(sim * 100);
+                      const color = pct >= 90 ? "#16a34a" : pct >= 75 ? "#2563eb" : "#9333ea";
+                      return (
+                        <Chip
+                          label={`${pct}% match`}
+                          size="small"
+                          sx={{
+                            mt: 0.5,
+                            height: 18,
+                            fontSize: "0.65rem",
+                            fontWeight: 600,
+                            bgcolor: `${color}18`,
+                            color,
+                            border: `1px solid ${color}40`,
+                            "& .MuiChip-label": { px: 0.75 },
+                          }}
+                        />
+                      );
+                    })()}
                   </TableCell>
 
                   {/* DR-1: Status chip with proper semantic colours */}

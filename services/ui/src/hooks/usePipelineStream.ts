@@ -9,6 +9,7 @@ export interface PipelineStreamParams {
   dryRun?: boolean;
   workers?: number;
   unprocessedOnly?: boolean;
+  encounterId?: string;
 }
 
 export interface WorkerState {
@@ -84,6 +85,8 @@ function attachListeners(
 ) {
   const on = (name: string, fn: (d: any) => void) =>
     source.addEventListener(name, (e) => fn(JSON.parse((e as MessageEvent).data)));
+
+  on("reset_completed", () => setStatus("Encounter reset — starting pipeline…"));
 
   on("run_started", (d) => setStatus(`Run started (${d.run_id ?? "?"})`));
 
@@ -261,19 +264,31 @@ export function usePipelineStream(): UsePipelineStreamReturn {
     setWorkerStates({});
     finishedRef.current = false;
 
-    const qs = new URLSearchParams({
-      patient_ids: params.patientIds.join(","),
-      dry_run: String(params.dryRun ?? false),
-      workers: String(params.workers ?? 4),
-    });
-    if (params.maxEncountersPerPatient) {
-      qs.set(
-        "max_encounters_per_patient",
-        String(params.maxEncountersPerPatient),
-      );
+    let endpoint: string;
+    let qs: URLSearchParams;
+
+    if (params.encounterId) {
+      endpoint = "stream-encounter";
+      qs = new URLSearchParams({
+        patient_id: params.patientIds[0],
+        encounter_id: params.encounterId,
+        dry_run: String(params.dryRun ?? false),
+      });
+    } else {
+      endpoint = params.unprocessedOnly ? "stream-unprocessed" : "stream";
+      qs = new URLSearchParams({
+        patient_ids: params.patientIds.join(","),
+        dry_run: String(params.dryRun ?? false),
+        workers: String(params.workers ?? 4),
+      });
+      if (params.maxEncountersPerPatient) {
+        qs.set(
+          "max_encounters_per_patient",
+          String(params.maxEncountersPerPatient),
+        );
+      }
     }
 
-    const endpoint = params.unprocessedOnly ? "stream-unprocessed" : "stream";
     const source = new EventSource(`${API_BASE}/pipeline/${endpoint}?${qs}`);
     esRef.current = source;
 

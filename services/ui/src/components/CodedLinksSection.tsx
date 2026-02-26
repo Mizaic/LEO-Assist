@@ -2,20 +2,28 @@
 
 import { useEffect, useState } from "react";
 import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import DialogTitle from "@mui/material/DialogTitle";
 import Divider from "@mui/material/Divider";
 import IconButton from "@mui/material/IconButton";
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
 import ListItemText from "@mui/material/ListItemText";
 import Stack from "@mui/material/Stack";
+import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
+import ScienceIcon from "@mui/icons-material/Science";
 import {
   deleteCodedLink,
   fetchEncounterCodedLinks,
   recodeCodedLink,
+  updateCodedLinkModifiers,
 } from "@/lib/api";
 import type { CodedLink, Correction, TermSearchResult } from "@/lib/types";
 import TermSearch from "./TermSearch";
@@ -40,6 +48,12 @@ export default function CodedLinksSection({
   const [error, setError] = useState<string | null>(null);
   const [recodeTarget, setRecodeTarget] = useState<CodedLink | null>(null);
   const [removing, setRemoving] = useState<string | null>(null);
+  const [modTarget, setModTarget] = useState<CodedLink | null>(null);
+  const [modValue, setModValue] = useState("");
+  const [modUnit, setModUnit] = useState("");
+  const [modRange, setModRange] = useState("");
+  const [modInterp, setModInterp] = useState("");
+  const [modSaving, setModSaving] = useState(false);
   const refresh = refreshTrigger ?? 0;
 
   useEffect(() => {
@@ -73,6 +87,44 @@ export default function CodedLinksSection({
       setError(e instanceof Error ? e.message : "Remove failed.");
     } finally {
       setRemoving(null);
+    }
+  }
+
+  function openModEditor(link: CodedLink) {
+    setModTarget(link);
+    const m = link.modifiers ?? {};
+    setModValue(m.value != null ? String(m.value) : "");
+    setModUnit(m.unit != null ? String(m.unit) : "");
+    setModRange(m.reference_range != null ? String(m.reference_range) : "");
+    setModInterp(m.interpretation != null ? String(m.interpretation) : "");
+  }
+
+  async function handleModSave() {
+    if (!modTarget) return;
+    setModSaving(true);
+    try {
+      const mods: Record<string, string> = {};
+      if (modValue) mods.value = modValue;
+      if (modUnit) mods.unit = modUnit;
+      if (modRange) mods.reference_range = modRange;
+      if (modInterp) mods.interpretation = modInterp;
+      await updateCodedLinkModifiers(patientId, encounterId, modTarget.concept_id, mods);
+      const next = links.map((l) =>
+        l.concept_id === modTarget.concept_id ? { ...l, modifiers: mods } : l,
+      );
+      setLinks(next);
+      onLinksChange?.(next);
+      onCorrection({
+        type: "edit",
+        text: modTarget.term ?? modTarget.concept_id,
+        detail: `Updated measurements: ${Object.entries(mods).map(([k, v]) => `${k}=${v}`).join(", ")}`,
+        time: new Date().toISOString(),
+      });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to update measurements.");
+    } finally {
+      setModSaving(false);
+      setModTarget(null);
     }
   }
 
@@ -161,6 +213,13 @@ export default function CodedLinksSection({
                       <Stack direction="row" spacing={0.5}>
                         <IconButton
                           size="small"
+                          onClick={() => openModEditor(link)}
+                          title="Edit measurements"
+                        >
+                          <ScienceIcon fontSize="small" />
+                        </IconButton>
+                        <IconButton
+                          size="small"
                           onClick={() => setRecodeTarget(link)}
                           title="Recode"
                         >
@@ -241,6 +300,60 @@ export default function CodedLinksSection({
               : undefined
           }
         />
+      )}
+
+      {modTarget && (
+        <Dialog open onClose={() => setModTarget(null)} maxWidth="xs" fullWidth>
+          <DialogTitle sx={{ pb: 1 }}>
+            Edit measurements
+            <Typography variant="caption" display="block" color="text.secondary">
+              {modTarget.term ?? modTarget.concept_id}
+            </Typography>
+          </DialogTitle>
+          <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
+            <Stack direction="row" spacing={1.5}>
+              <TextField
+                label="Value"
+                size="small"
+                value={modValue}
+                onChange={(e) => setModValue(e.target.value)}
+                sx={{ flex: 2 }}
+                autoFocus
+              />
+              <TextField
+                label="Unit"
+                size="small"
+                value={modUnit}
+                onChange={(e) => setModUnit(e.target.value)}
+                sx={{ flex: 1 }}
+              />
+            </Stack>
+            <TextField
+              label="Reference range"
+              size="small"
+              value={modRange}
+              onChange={(e) => setModRange(e.target.value)}
+              placeholder="e.g. 133 - 146"
+              fullWidth
+            />
+            <TextField
+              label="Interpretation"
+              size="small"
+              value={modInterp}
+              onChange={(e) => setModInterp(e.target.value)}
+              placeholder="e.g. Normal, High, Low"
+              fullWidth
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button variant="text" color="inherit" onClick={() => setModTarget(null)}>
+              Cancel
+            </Button>
+            <Button variant="contained" onClick={handleModSave} disabled={modSaving}>
+              {modSaving ? "Saving…" : "Save"}
+            </Button>
+          </DialogActions>
+        </Dialog>
       )}
     </>
   );

@@ -12,13 +12,26 @@ import Divider from "@mui/material/Divider";
 import PeopleOutlineIcon from "@mui/icons-material/PeopleOutline";
 import RocketLaunchOutlinedIcon from "@mui/icons-material/RocketLaunchOutlined";
 import LocalHospitalOutlinedIcon from "@mui/icons-material/LocalHospitalOutlined";
+import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
+import TimelineOutlinedIcon from "@mui/icons-material/TimelineOutlined";
+import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
+import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
+import LogoutIcon from "@mui/icons-material/Logout";
+import { useSession, signOut } from "next-auth/react";
+import Avatar from "@mui/material/Avatar";
+import IconButton from "@mui/material/IconButton";
+import Tooltip from "@mui/material/Tooltip";
 import { usePipeline } from "@/context/PipelineContext";
 import PipelineModal from "./PipelineModal";
 
 const DRAWER_WIDTH = 240;
 
 const NAV_ITEMS = [
+  { label: "Dashboard", path: "/dashboard", icon: <DashboardOutlinedIcon /> },
   { label: "Patients", path: "/patients", icon: <PeopleOutlineIcon /> },
+  { label: "Episodes", path: "/episodes", icon: <TimelineOutlinedIcon /> },
+  { label: "CSS Alerts", path: "/css", icon: <WarningAmberOutlinedIcon /> },
+  { label: "Reports", path: "/reports", icon: <DescriptionOutlinedIcon /> },
   { label: "Pipeline", path: "/pipeline", icon: <RocketLaunchOutlinedIcon /> },
 ];
 
@@ -26,6 +39,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const pipeline = usePipeline();
+  const { data: session } = useSession();
 
   const hasPipelineState =
     pipeline.running ||
@@ -88,7 +102,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </List>
 
         {showIndicator && (
-          <Box sx={{ mt: "auto", p: 1.5 }}>
+          <Box sx={{ p: 1.5 }}>
             <Box
               component="button"
               onClick={() => pipeline.setShowModal(true)}
@@ -133,6 +147,40 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   ? "View error"
                   : "View results"}
             </Box>
+          </Box>
+        )}
+
+        {session?.user && (
+          <Box
+            sx={{
+              mt: "auto",
+              p: 1.5,
+              borderTop: "1px solid",
+              borderColor: "divider",
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
+            }}
+          >
+            <Avatar
+              src={session.user.image ?? undefined}
+              sx={{ width: 32, height: 32, fontSize: "0.8rem", bgcolor: "primary.main" }}
+            >
+              {session.user.name?.charAt(0) ?? "U"}
+            </Avatar>
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Typography
+                variant="body2"
+                sx={{ fontWeight: 600, fontSize: "0.8rem", color: "text.primary", lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+              >
+                {session.user.name}
+              </Typography>
+            </Box>
+            <Tooltip title="Sign out">
+              <IconButton size="small" onClick={() => signOut({ callbackUrl: "/" })}>
+                <LogoutIcon sx={{ fontSize: 18 }} />
+              </IconButton>
+            </Tooltip>
           </Box>
         )}
       </Drawer>

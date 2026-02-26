@@ -10,12 +10,15 @@ import LinearProgress from "@mui/material/LinearProgress";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import CloseIcon from "@mui/icons-material/Close";
 import { CTX_FLAGS } from "@/lib/types";
 import type { EncounterTerm, TermContext, Correction } from "@/lib/types";
 
 interface Props {
   term: EncounterTerm;
+  group?: EncounterTerm[];
   position: { top: number; left: number };
   onClose: () => void;
   onContextChange: (termId: string, ctx: Partial<TermContext>) => void;
@@ -23,6 +26,7 @@ interface Props {
   onAdjustSpan: (termId: string) => void;
   onRemove: (termId: string) => void;
   onCorrection: (c: Correction) => void;
+  onSelectGroupTerm?: (termId: string) => void;
 }
 
 function deriveFlags(ctx: TermContext) {
@@ -38,6 +42,7 @@ function deriveFlags(ctx: TermContext) {
 
 export default function EntityCard({
   term,
+  group = [],
   position,
   onClose,
   onContextChange,
@@ -45,8 +50,11 @@ export default function EntityCard({
   onAdjustSpan,
   onRemove,
   onCorrection,
+  onSelectGroupTerm,
 }: Props) {
   const [flags, setFlags] = useState(deriveFlags(term.context));
+  const groupIndex = group.length > 1 ? group.findIndex((t) => t.term_id === term.term_id) : -1;
+  const hasGroup = group.length > 1;
 
   function toggle(key: string) {
     const next = { ...flags, [key]: !flags[key as keyof typeof flags] };
@@ -108,6 +116,31 @@ export default function EntityCard({
           <CloseIcon fontSize="small" />
         </IconButton>
       </Box>
+
+      {hasGroup && (
+        <Stack
+          direction="row"
+          sx={{ alignItems: "center", mb: 1, gap: 0.5 }}
+        >
+          <IconButton
+            size="small"
+            disabled={groupIndex <= 0}
+            onClick={() => onSelectGroupTerm?.(group[groupIndex - 1].term_id)}
+          >
+            <ChevronLeftIcon fontSize="small" />
+          </IconButton>
+          <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600 }}>
+            Concept {groupIndex + 1} of {group.length}
+          </Typography>
+          <IconButton
+            size="small"
+            disabled={groupIndex >= group.length - 1}
+            onClick={() => onSelectGroupTerm?.(group[groupIndex + 1].term_id)}
+          >
+            <ChevronRightIcon fontSize="small" />
+          </IconButton>
+        </Stack>
+      )}
 
       <Box
         sx={{

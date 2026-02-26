@@ -16,7 +16,10 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
 import AddIcon from "@mui/icons-material/Add";
+import ReplayIcon from "@mui/icons-material/Replay";
 import { addCodedLink, fetchTaskDetail, fetchTasks, submitDecision } from "@/lib/api";
+import { usePipeline } from "@/context/PipelineContext";
+import ConfirmDialog from "./ConfirmDialog";
 import type {
   Correction,
   EncounterCandidate,
@@ -60,7 +63,10 @@ export default function ReviewView({ taskId, patientId }: Props) {
   const [pendingEvidence, setPendingEvidence] = useState("");
   const [pendingSpan, setPendingSpan] = useState<{ start: number; end: number } | null>(null);
   const [refreshCodedLinks, setRefreshCodedLinks] = useState(0);
+  const [confirmRerun, setConfirmRerun] = useState(false);
   const router = useRouter();
+  const pipeline = usePipeline();
+  const prevRunning = useRef(pipeline.running);
 
   useEffect(() => {
     setLoading(true);
@@ -79,6 +85,22 @@ export default function ReviewView({ taskId, patientId }: Props) {
       .finally(() => setLoading(false));
   }, [taskId]);
 
+  useEffect(() => {
+    if (prevRunning.current && !pipeline.running && !pipeline.error) {
+      router.push(`/patients/${patientId}`);
+    }
+    prevRunning.current = pipeline.running;
+  }, [pipeline.running, pipeline.error, patientId, router]);
+
+  function handleResetRerun() {
+    if (!localCandidate) return;
+    setConfirmRerun(false);
+    pipeline.start({
+      patientIds: [patientId],
+      encounterId: localCandidate.encounter_id,
+    });
+  }
+
   const allTerms = useMemo(() => {
     if (!localCandidate) return [];
     return localCandidate.sentences.flatMap((s) => s.terms);
@@ -88,6 +110,21 @@ export default function ReviewView({ taskId, patientId }: Props) {
     () => allTerms.find((t) => t.term_id === selectedTermId) ?? null,
     [allTerms, selectedTermId],
   );
+
+  const selectedTermGroup = useMemo(() => {
+    if (!selectedTerm) return [];
+    const sorted = [...allTerms].sort((a, b) => a.span_start - b.span_start);
+    const groups: EncounterTerm[][] = [];
+    for (const t of sorted) {
+      const last = groups[groups.length - 1];
+      if (last) {
+        const lastEnd = Math.max(...last.map((g) => g.span_end));
+        if (t.span_start < lastEnd) { last.push(t); continue; }
+      }
+      groups.push([t]);
+    }
+    return groups.find((g) => g.some((t) => t.term_id === selectedTermId)) ?? [];
+  }, [allTerms, selectedTerm, selectedTermId]);
 
   const addCorrection = useCallback((c: Correction) => setCorrections((prev) => [c, ...prev]), []);
 
@@ -465,6 +502,17 @@ export default function ReviewView({ taskId, patientId }: Props) {
               >
                 Add entity
               </Button>
+              <Button
+                variant="outlined"
+                size="small"
+                color="warning"
+                startIcon={<ReplayIcon />}
+                onClick={() => setConfirmRerun(true)}
+                disabled={pipeline.running}
+                sx={{ textTransform: "none" }}
+              >
+                {pipeline.running ? "Running…" : "Reset & Re-run"}
+              </Button>
             </Stack>
           </Stack>
         </Box>
@@ -620,6 +668,7 @@ export default function ReviewView({ taskId, patientId }: Props) {
       {selectedTerm && popoverPos && (
         <EntityCard
           term={selectedTerm}
+          group={selectedTermGroup}
           position={popoverPos}
           onClose={closePopover}
           onContextChange={handleContextChange}
@@ -627,6 +676,7 @@ export default function ReviewView({ taskId, patientId }: Props) {
           onAdjustSpan={(id) => { setSpanAdjustId(id); closePopover(); }}
           onRemove={handleRemoveTerm}
           onCorrection={addCorrection}
+          onSelectGroupTerm={(id) => setSelectedTermId(id)}
         />
       )}
 
@@ -663,6 +713,17 @@ export default function ReviewView({ taskId, patientId }: Props) {
           onAdd={handleManualAdd}
           onCancel={() => setShowManualAdd(false)}
           onCorrection={addCorrection}
+        />
+      )}
+
+      {confirmRerun && (
+        <ConfirmDialog
+          title="Reset & re-run this encounter?"
+          body="This will delete all coded links and review data for this encounter, then re-run the pipeline to generate fresh candidates."
+          confirmLabel="Reset & Re-run"
+          variant="danger"
+          onConfirm={handleResetRerun}
+          onCancel={() => setConfirmRerun(false)}
         />
       )}
     </Box>

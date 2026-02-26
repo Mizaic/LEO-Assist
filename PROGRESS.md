@@ -11,7 +11,7 @@
 | C | Coding Worker | DONE | Committed |
 | D | Analysis Worker | DONE | Committed |
 | E | FHIR API + Analytics API | DONE | Committed |
-| F | Frontend | PENDING | |
+| F | Frontend | DONE | Committed |
 | G | Quality + IEC 62304 | PENDING | |
 
 ## WS-A: Mono-repo Scaffold (DONE)
@@ -76,3 +76,45 @@
 - [x] `services/analytics-api/app/routers/imd.py` - UK IMD 2019 postcode lookup + patient enrichment
 - [x] `services/analytics-api/app/routers/cci.py` - Charlson Comorbidity Index scoring
 - [x] `services/analytics-api/app/routers/benchmarks.py` - KPI benchmarks, peer comparison, trends
+
+## WS-F: Frontend (DONE)
+
+### Auth
+- [x] `src/lib/auth.ts` - NextAuth v5 config with Microsoft Entra ID (Azure AD)
+- [x] `src/app/api/auth/[...nextauth]/route.ts` - NextAuth API route handler
+- [x] `src/components/SessionProviderWrapper.tsx` - Session provider wrapper
+- [x] Updated `layout.tsx` with SessionProvider
+- [x] Landing page with sign-in flow
+
+### Navigation
+- [x] Updated `AppShell.tsx` - 6 nav items: Dashboard, Patients, Episodes, CSS Alerts, Reports, Pipeline
+- [x] User avatar + sign-out in drawer
+
+### Dashboard
+- [x] `src/app/dashboard/page.tsx` - Summary stats, episode/KPI/CSS overview
+- [x] `src/components/dashboard/KPICards.tsx` - KPI metrics with NHS targets
+- [x] `src/components/dashboard/EpisodesByTypeChart.tsx` - Recharts bar chart
+- [x] `src/components/dashboard/CSSAlertsSummary.tsx` - Alert severity list
+
+### Episodes
+- [x] `src/app/episodes/page.tsx` - Episode list + timeline detail view
+- [x] `src/components/episodes/EpisodeList.tsx` - Searchable episode cards
+- [x] `src/components/episodes/EpisodeTimelineView.tsx` - Milestone stepper with gap detection
+
+### CSS Alerts
+- [x] `src/app/css/page.tsx` - Full CSS alert table with severity counts, type breakdown
+
+### Reports / Visual Report Builder
+- [x] `src/app/reports/page.tsx` - Report list from FHIR Measures
+- [x] `src/app/reports/builder/page.tsx` - Report builder page
+- [x] `src/components/reports/ReportBuilder.tsx` - Canvas with add/remove/reorder elements
+- [x] `src/components/reports/ElementPalette.tsx` - 7 element types (heading, text, KPI, chart, measure, table, divider)
+- [x] `src/components/reports/ElementRenderer.tsx` - Inline editing for heading/text, placeholder rendering for charts/tables
+
+### API Client
+- [x] `src/lib/analyticsApi.ts` - Typed API client for Analytics API + FHIR API endpoints
+
+### Dependencies Added
+- next-auth@beta (Azure AD/Entra ID)
+- recharts (charts)
+- zustand (state management)

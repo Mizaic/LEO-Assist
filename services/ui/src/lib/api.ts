@@ -128,6 +128,22 @@ export async function recodeCodedLink(
   );
 }
 
+export async function updateCodedLinkModifiers(
+  patientId: string,
+  encounterId: string,
+  conceptId: string,
+  modifiers: { value?: string | number; unit?: string; reference_range?: string; interpretation?: string },
+) {
+  return fetchJson<{ concept_id: string; modifiers: Record<string, unknown> }>(
+    `${API_BASE}/patients/${patientId}/encounters/${encounterId}/coded-links/${conceptId}/modifiers`,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(modifiers),
+    },
+  );
+}
+
 export async function resetPatient(patientId: string) {
   return fetchJson<{ patient_id: string; links_deleted: number }>(
     `${API_BASE}/patients/${patientId}/reset`,
@@ -284,6 +300,28 @@ export async function submitGameScore(body: {
 export async function fetchLeaderboard(game: GameName, limit = 10) {
   return fetchJson<GameScore[]>(
     `${API_BASE}/games/leaderboard?game=${game}&limit=${limit}`,
+  );
+}
+
+export interface EncounterSearchResult {
+  encounter_id: string;
+  date: string;
+  text?: string;
+  coded_count: number;
+  flags?: string;
+  match_type: "keyword" | "semantic" | "both";
+  similarity: number | null;
+}
+
+export async function searchPatientEncounters(
+  patientId: string,
+  q: string,
+  mode: "keyword" | "semantic" | "hybrid" = "hybrid",
+  limit = 50,
+) {
+  const params = new URLSearchParams({ q, mode, limit: String(limit) });
+  return fetchJson<EncounterSearchResult[]>(
+    `${API_BASE}/patients/${patientId}/encounters/search?${params}`,
   );
 }
 
