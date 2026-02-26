@@ -28,6 +28,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app import config  # noqa: F401 - loads secrets/.env
+from app.routers.agent import router as agent_router
 from app.routers.audit import router as audit_router
 from app.routers.auth import router as auth_router
 from app.routers.exports import router as exports_router
@@ -68,6 +69,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(agent_router)
 app.include_router(auth_router)
 app.include_router(proxy_router)
 app.include_router(patients_router)
