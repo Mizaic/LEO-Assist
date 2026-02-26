@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import uuid
 from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, HTTPException, Query
@@ -10,6 +11,39 @@ from fastapi import APIRouter, HTTPException, Query
 from libs.neo4j_client.client import KnowledgeGraphClient
 
 router = APIRouter()
+
+
+def _upsert_report(report_id: str, resource: Dict[str, Any]) -> Dict[str, Any]:
+    """Persist report to Neo4j. Shared by POST and PUT."""
+    client = KnowledgeGraphClient()
+    try:
+        period = resource.get("period", {})
+        client.run(
+            "MERGE (r:MeasureReport {id: $rid}) "
+            "SET r.rawJson = $raw, r.status = $status, r.measure = $measure, "
+            "    r.type = $type, r.periodStart = $periodStart, r.periodEnd = $periodEnd, "
+            "    r.tenantId = $tenantId",
+            rid=report_id,
+            raw=json.dumps(resource),
+            status=resource.get("status"),
+            measure=resource.get("measure"),
+            type=resource.get("type"),
+            periodStart=period.get("start"),
+            periodEnd=period.get("end"),
+            tenantId=resource.get("meta", {}).get("tag", [{}])[0].get("code") if resource.get("meta", {}).get("tag") else None,
+        )
+        return resource
+    finally:
+        client.close()
+
+
+@router.post("/MeasureReport")
+def create_report(resource: Dict[str, Any]):
+    """Create a new MeasureReport. Generates id if missing."""
+    report_id = resource.get("id") or str(uuid.uuid4())
+    resource = {**resource, "id": report_id}
+    _upsert_report(report_id, resource)
+    return resource
 
 
 @router.get("/MeasureReport")
@@ -49,26 +83,9 @@ def get_report(report_id: str):
 
 @router.put("/MeasureReport/{report_id}")
 def upsert_report(report_id: str, resource: Dict[str, Any]):
-    client = KnowledgeGraphClient()
-    try:
-        period = resource.get("period", {})
-        client.run(
-            "MERGE (r:MeasureReport {id: $rid}) "
-            "SET r.rawJson = $raw, r.status = $status, r.measure = $measure, "
-            "    r.type = $type, r.periodStart = $periodStart, r.periodEnd = $periodEnd, "
-            "    r.tenantId = $tenantId",
-            rid=report_id,
-            raw=json.dumps(resource),
-            status=resource.get("status"),
-            measure=resource.get("measure"),
-            type=resource.get("type"),
-            periodStart=period.get("start"),
-            periodEnd=period.get("end"),
-            tenantId=resource.get("meta", {}).get("tag", [{}])[0].get("code") if resource.get("meta", {}).get("tag") else None,
-        )
-        return resource
-    finally:
-        client.close()
+    resource = {**resource, "id": report_id}
+    _upsert_report(report_id, resource)
+    return resource
 
 
 @router.delete("/MeasureReport/{report_id}", status_code=204)
