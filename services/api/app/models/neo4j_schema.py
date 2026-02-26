@@ -11,6 +11,11 @@ PATIENT_SCHEMA_CONSTRAINTS = [
     "CREATE INDEX review_task_priority IF NOT EXISTS FOR (t:ReviewTask) ON (t.priority)",
     "CREATE CONSTRAINT game_score_id IF NOT EXISTS FOR (gs:GameScore) REQUIRE gs.id IS UNIQUE",
     "CREATE INDEX game_score_game IF NOT EXISTS FOR (gs:GameScore) ON (gs.game)",
+    # Multi-tenancy indexes
+    "CREATE INDEX patient_tenant IF NOT EXISTS FOR (p:Patient) ON (p.tenantId)",
+    "CREATE INDEX encounter_candidate_tenant IF NOT EXISTS FOR (c:EncounterCandidate) ON (c.tenantId)",
+    "CREATE INDEX review_task_tenant IF NOT EXISTS FOR (t:ReviewTask) ON (t.tenantId)",
+    "CREATE INDEX organization_id IF NOT EXISTS FOR (o:Organization) ON (o.id)",
 ]
 
 CODING_SCHEMA_CONSTRAINTS: list[str] = [
@@ -168,6 +173,22 @@ DETACH DELETE n
 RETURN deleted
 """
 
+RESET_ENCOUNTER_REVIEW_QUEUE = """
+MATCH (c:EncounterCandidate {patient_id: $patient_id, encounter_id: $encounter_id})
+OPTIONAL MATCH (c)-[:HAS_TASK]->(t:ReviewTask)
+OPTIONAL MATCH (t)-[:HAS_APPROVAL]->(a:Approval)
+OPTIONAL MATCH (c)-[:HAS_CHANGE]->(chg:Change)
+WITH collect(DISTINCT c) AS candidates,
+     collect(DISTINCT t) AS tasks,
+     collect(DISTINCT a) AS approvals,
+     collect(DISTINCT chg) AS changes
+WITH [x IN (candidates + tasks + approvals + changes) WHERE x IS NOT NULL | x] AS nodes
+WITH nodes, size(nodes) AS deleted
+UNWIND nodes AS n
+DETACH DELETE n
+RETURN deleted
+"""
+
 
 # ── Patient graph queries ──────────────────────────────────
 
@@ -251,6 +272,15 @@ WHERE s.conceptId = $concept_id
 DELETE r
 """
 
+UPDATE_CODED_LINK_MODIFIERS = """
+MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter)
+WHERE toString(p.id) = $patient_id AND toString(e.id) = $encounter_id
+MATCH (e)-[r:DOCUMENTS]->(s)
+WHERE s.conceptId = $concept_id
+SET r.modifiers = $modifiers
+RETURN s.conceptId AS concept_id, r.modifiers AS modifiers
+"""
+
 RESET_PATIENT_DOCUMENTS = """
 MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter)-[r:DOCUMENTS]->()
 WHERE toString(p.id) = $patient_id
@@ -278,6 +308,75 @@ DELETE r
 
 
 # ── Terminology search query ───────────────────────────────
+
+# ── Encounter search queries ──────────────────────────────
+
+SEARCH_ENCOUNTERS_KEYWORD = """
+MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter)
+WHERE toString(p.id) = $patient_id
+  AND toLower(e.text) CONTAINS toLower($q)
+OPTIONAL MATCH (e)-[r:DOCUMENTS]->()
+WITH e, count(r) AS coded_count
+RETURN toString(e.id) AS encounter_id,
+       toString(e.date) AS date,
+       e.text AS text,
+       coded_count,
+       e.flags AS flags
+ORDER BY e.date DESC
+LIMIT $limit
+"""
+
+SEARCH_ENCOUNTERS_BY_CONCEPT_DOCS = """
+MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter)-[:DOCUMENTS]->(c:Concept)
+WHERE toString(p.id) = $patient_id AND c.id IN $concept_ids
+WITH e, collect(DISTINCT c.id) AS matched_concepts
+OPTIONAL MATCH (e)-[r:DOCUMENTS]->()
+WITH e, matched_concepts, count(r) AS coded_count
+RETURN toString(e.id) AS encounter_id,
+       toString(e.date) AS date,
+       e.text AS text,
+       coded_count,
+       e.flags AS flags,
+       matched_concepts
+ORDER BY size(matched_concepts) DESC, e.date DESC
+LIMIT $limit
+"""
+
+SEARCH_ENCOUNTERS_BY_CONCEPT_CANDIDATES = """
+MATCH (ec:EncounterCandidate)
+WHERE ec.patient_id = $patient_id
+  AND any(cid IN $concept_ids WHERE ec.sentences_json CONTAINS cid)
+WITH collect(DISTINCT ec.encounter_id) AS eids
+MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter)
+WHERE toString(p.id) = $patient_id AND toString(e.id) IN eids
+OPTIONAL MATCH (e)-[r:DOCUMENTS]->()
+WITH e, count(r) AS coded_count
+RETURN toString(e.id) AS encounter_id,
+       toString(e.date) AS date,
+       e.text AS text,
+       coded_count,
+       e.flags AS flags
+ORDER BY e.date DESC
+LIMIT $limit
+"""
+
+SEARCH_ENCOUNTERS_VECTOR = """
+CALL db.index.vector.queryNodes('encounter_vector_index', $k, $query_vector)
+YIELD node, score
+MATCH (p:Patient)-[:HAS_ENCOUNTER]->(node)
+WHERE toString(p.id) = $patient_id
+OPTIONAL MATCH (node)-[r:DOCUMENTS]->()
+WITH node AS e, score, count(r) AS coded_count
+RETURN toString(e.id) AS encounter_id,
+       toString(e.date) AS date,
+       e.text AS text,
+       coded_count,
+       e.flags AS flags,
+       score AS similarity
+ORDER BY score DESC
+LIMIT $limit
+"""
+
 
 TERMINOLOGY_SEARCH = """
 CALL db.index.fulltext.queryNodes("term_fulltext", $q) YIELD node, score
