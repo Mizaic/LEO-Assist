@@ -1,21 +1,43 @@
 """Coding Worker service.
 
-Consumes messages from Service Bus queue. Runs the two-phase coding pipeline
-(shortlist via Cypher, refine via LLM). Streams progress to Core API via Redis.
+Consumes coding-job messages from the message bus, runs the two-phase
+coding pipeline (LLM extract -> Terminology API resolve), and streams
+progress to Redis for the Core API to relay via SSE.
 """
+
+from __future__ import annotations
 
 import asyncio
 import logging
+import os
+
+from libs.message_bus.factory import create_message_bus
+from libs.message_bus.base import Message
+from services.coding_worker.app.services.job_handler import handle_coding_job
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
 logger = logging.getLogger("coding-worker")
 
+QUEUE_NAME = os.getenv("CODING_QUEUE_NAME", "coding-jobs")
+
 
 async def main():
-    logger.info("Coding Worker starting (skeleton)")
-    # Will subscribe to message bus queue in WS-C
-    while True:
-        await asyncio.sleep(60)
+    logger.info("Coding Worker starting — listening on queue: %s", QUEUE_NAME)
+    bus = create_message_bus()
+
+    async def on_message(msg: Message):
+        await handle_coding_job(msg)
+
+    await bus.subscribe(QUEUE_NAME, on_message)
+    logger.info("Coding Worker subscribed. Waiting for messages...")
+
+    try:
+        while True:
+            await asyncio.sleep(60)
+    except asyncio.CancelledError:
+        logger.info("Coding Worker shutting down")
+    finally:
+        await bus.close()
 
 
 if __name__ == "__main__":
