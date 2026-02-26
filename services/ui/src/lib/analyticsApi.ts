@@ -1,19 +1,19 @@
 /**
- * API client for Analytics API, FHIR API, and new service endpoints.
+ * API client for Analytics API and FHIR API.
+ * Uses backend proxy (session cookie auth). Token stays server-side.
  */
 
-const ANALYTICS_BASE =
-  typeof process !== "undefined" && process.env?.NEXT_PUBLIC_ANALYTICS_API_BASE
-    ? process.env.NEXT_PUBLIC_ANALYTICS_API_BASE
-    : "http://localhost:8004";
+const API_BASE =
+  typeof process !== "undefined" && process.env?.NEXT_PUBLIC_API_BASE
+    ? process.env.NEXT_PUBLIC_API_BASE.replace(/\/+$/, "")
+    : "http://localhost:8000";
 
-const FHIR_BASE =
-  typeof process !== "undefined" && process.env?.NEXT_PUBLIC_FHIR_API_BASE
-    ? process.env.NEXT_PUBLIC_FHIR_API_BASE
-    : "http://localhost:8003";
+const PROXY_BASE = `${API_BASE}/api/proxy`;
+const ANALYTICS_BASE = PROXY_BASE;
+const FHIR_BASE = PROXY_BASE;
 
 async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(url, init);
+  const res = await fetch(url, { ...init, credentials: "include" as RequestCredentials });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error((err as { detail?: string }).detail || `Request failed (${res.status})`);
@@ -30,10 +30,11 @@ export async function fetchEpisodeSummary(orgId?: string) {
   >(`${ANALYTICS_BASE}/analytics/episodes/summary${params}`);
 }
 
-export async function fetchEpisodeTimeline(patientId?: string, orgId?: string) {
+export async function fetchEpisodeTimeline(patientId?: string, orgId?: string, includeMerged?: boolean) {
   const params = new URLSearchParams();
   if (patientId) params.set("patient_id", patientId);
   if (orgId) params.set("org_id", orgId);
+  if (includeMerged) params.set("include_merged", "true");
   const qs = params.toString();
   return fetchJson<
     Array<{
@@ -42,6 +43,15 @@ export async function fetchEpisodeTimeline(patientId?: string, orgId?: string) {
       cancer_type: string;
       status: string;
       referral_date?: string;
+      confidence?: number;
+      agent_reasoning?: string;
+      needs_review?: boolean;
+      merged_into?: string;
+      merged_from?: string[];
+      consolidation_reasoning?: string;
+      referral_route?: string;
+      place_of_presentation?: string;
+      safety_netting_recorded?: boolean;
       milestones?: Array<{
         encounter_id: string;
         date: string;
@@ -51,16 +61,107 @@ export async function fetchEpisodeTimeline(patientId?: string, orgId?: string) {
   >(`${ANALYTICS_BASE}/analytics/episodes/timeline${qs ? `?${qs}` : ""}`);
 }
 
-export async function fetchCSSAlerts(orgId?: string) {
+export async function closeEpisode(
+  episodeId: string,
+  status: "closed" | "completed",
+  reason: string,
+): Promise<{ success: boolean; episode_id: string }> {
+  return fetchJson(`${ANALYTICS_BASE}/analytics/episodes/${encodeURIComponent(episodeId)}/status`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ status, reason }),
+  });
+}
+
+export async function mergeEpisodes(
+  primaryEpisodeId: string,
+  secondaryEpisodeIds: string[],
+  reason: string,
+): Promise<{ success: boolean; primary_episode_id: string; merged_count: number }> {
+  return fetchJson(`${ANALYTICS_BASE}/analytics/episodes/merge`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      primary_episode_id: primaryEpisodeId,
+      secondary_episode_ids: secondaryEpisodeIds,
+      reason,
+    }),
+  });
+}
+
+export async function editMilestone(
+  episodeId: string,
+  encounterId: string,
+  milestoneType: string,
+): Promise<{ success: boolean; encounter_id: string; milestone_type: string }> {
+  return fetchJson(
+    `${ANALYTICS_BASE}/analytics/episodes/${encodeURIComponent(episodeId)}/milestones/${encodeURIComponent(encounterId)}`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ milestone_type: milestoneType }),
+    },
+  );
+}
+
+export async function rebuildPatientEpisodes(
+  patientId: string,
+  deleteExisting = true,
+): Promise<{
+  success: boolean;
+  patient_id: string;
+  episodes_created: number;
+  episodes_completed: number;
+  episodes_merged: number;
+  encounters_linked: number;
+  episode_ids: string[];
+}> {
+  return fetchJson(`${ANALYTICS_BASE}/analytics/episodes/rebuild`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ patient_id: patientId, delete_existing: deleteExisting }),
+  });
+}
+
+export interface CSSAlert {
+  id: string;
+  type: string;
+  rule_name?: string;
+  severity: string;
+  status?: string;
+  guideline?: string;
+  description: string;
+  suggested_action?: string;
+  match_percent?: number;
+  actioned?: boolean;
+  needs_review?: boolean;
+  created_at?: string;
+  episode_id?: string;
+  cancer_type?: string;
+  encounter_id?: string;
+  encounter_date?: string;
+  patient_id?: string;
+}
+
+export async function fetchCSSAlerts(orgId?: string): Promise<CSSAlert[]> {
   const params = orgId ? `?org_id=${orgId}` : "";
-  return fetchJson<
-    Array<{
-      episode_id: string;
-      type: string;
-      severity: string;
-      description: string;
-    }>
-  >(`${ANALYTICS_BASE}/analytics/css/alerts${params}`);
+  return fetchJson<CSSAlert[]>(
+    `${ANALYTICS_BASE}/analytics/css/alerts${params}`,
+  );
+}
+
+export async function actionCSSAlert(
+  alertId: string,
+  actioned: boolean,
+): Promise<{ success: boolean }> {
+  return fetchJson<{ success: boolean }>(
+    `${ANALYTICS_BASE}/analytics/css/alerts/${alertId}/action`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ actioned }),
+    },
+  );
 }
 
 // ── Analytics: CCI ──
@@ -127,5 +228,222 @@ export async function evaluateMeasure(measureId: string, orgId?: string) {
   const params = orgId ? `?org_id=${orgId}` : "";
   return fetchJson<Record<string, unknown>>(
     `${FHIR_BASE}/fhir/Measure/${measureId}/$evaluate-measure${params}`,
+  );
+}
+
+// ── Analytics: Cohorts ──
+
+export interface CohortFilter {
+  org_id?: string;
+  date_range_start?: string;
+  date_range_end?: string;
+  condition_codes?: string[];
+  episode_status?: string[];
+  age_min?: number;
+  age_max?: number;
+  custom_cypher?: string;
+}
+
+export interface Cohort {
+  cohort_id: string;
+  name: string;
+  description: string;
+  filters: CohortFilter;
+  patient_count: number;
+  created_at?: string;
+}
+
+export interface CohortPatients {
+  cohort_id: string;
+  patient_ids: string[];
+  total: number;
+}
+
+export async function createCohort(
+  name: string,
+  description: string,
+  filters: CohortFilter,
+): Promise<Cohort> {
+  return fetchJson<Cohort>(`${ANALYTICS_BASE}/analytics/cohorts`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, description, filters }),
+  });
+}
+
+export async function fetchCohorts(): Promise<Cohort[]> {
+  return fetchJson<Cohort[]>(`${ANALYTICS_BASE}/analytics/cohorts`);
+}
+
+export async function resolveCohort(cohortId: string): Promise<CohortPatients> {
+  return fetchJson<CohortPatients>(
+    `${ANALYTICS_BASE}/analytics/cohorts/${cohortId}/patients`,
+  );
+}
+
+export async function deleteCohort(cohortId: string): Promise<{ success: boolean }> {
+  return fetchJson<{ success: boolean }>(
+    `${ANALYTICS_BASE}/analytics/cohorts/${cohortId}`,
+    { method: "DELETE" },
+  );
+}
+
+// ── Analytics: Domains (two-level hierarchy) ──
+
+export interface DomainSummary {
+  id: string;
+  name: string;
+  description: string;
+  subdomain_count: number;
+}
+
+export interface SubdomainSummary {
+  name: string;
+  description: string;
+  milestone_type?: string;
+  time_window_months?: number;
+  semantic_tags: string[];
+  concept_count: number;
+}
+
+export interface DomainDetail extends DomainSummary {
+  subdomains: SubdomainSummary[];
+}
+
+export interface SubdomainDetail extends SubdomainSummary {
+  concepts: Array<{
+    concept_id: number;
+    term: string;
+    preferred_term: string;
+    semantic_tag?: string;
+    subdomain: string;
+    guideline_synonyms?: string[];
+  }>;
+}
+
+export async function fetchDomains(): Promise<DomainSummary[]> {
+  return fetchJson<DomainSummary[]>(`${ANALYTICS_BASE}/analytics/domains`);
+}
+
+export async function fetchDomain(domainId: string): Promise<DomainDetail> {
+  return fetchJson<DomainDetail>(
+    `${ANALYTICS_BASE}/analytics/domains/${encodeURIComponent(domainId)}`,
+  );
+}
+
+export async function createDomain(
+  name: string,
+  description = "",
+): Promise<DomainSummary> {
+  return fetchJson<DomainSummary>(`${ANALYTICS_BASE}/analytics/domains`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, description }),
+  });
+}
+
+export async function updateDomain(
+  domainId: string,
+  update: { name?: string; description?: string },
+): Promise<DomainSummary> {
+  return fetchJson<DomainSummary>(
+    `${ANALYTICS_BASE}/analytics/domains/${encodeURIComponent(domainId)}`,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(update),
+    },
+  );
+}
+
+export async function deleteDomain(domainId: string): Promise<void> {
+  await fetch(
+    `${ANALYTICS_BASE}/analytics/domains/${encodeURIComponent(domainId)}`,
+    { method: "DELETE" },
+  );
+}
+
+// ── Subdomains ──
+
+export async function createSubdomain(
+  domainId: string,
+  name: string,
+  options?: {
+    description?: string;
+    milestone_type?: string;
+    time_window_months?: number;
+    semantic_tags?: string[];
+  },
+): Promise<SubdomainSummary> {
+  return fetchJson<SubdomainSummary>(
+    `${ANALYTICS_BASE}/analytics/domains/${encodeURIComponent(domainId)}/subdomains`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name,
+        description: options?.description ?? "",
+        milestone_type: options?.milestone_type,
+        time_window_months: options?.time_window_months,
+        semantic_tags: options?.semantic_tags ?? [],
+      }),
+    },
+  );
+}
+
+export async function fetchSubdomain(
+  domainId: string,
+  subdomainName: string,
+): Promise<SubdomainDetail> {
+  return fetchJson<SubdomainDetail>(
+    `${ANALYTICS_BASE}/analytics/domains/${encodeURIComponent(domainId)}/subdomains/${encodeURIComponent(subdomainName)}`,
+  );
+}
+
+export async function updateSubdomain(
+  domainId: string,
+  subdomainName: string,
+  update: {
+    description?: string;
+    milestone_type?: string;
+    time_window_months?: number;
+    semantic_tags?: string[];
+  },
+): Promise<SubdomainSummary> {
+  return fetchJson<SubdomainSummary>(
+    `${ANALYTICS_BASE}/analytics/domains/${encodeURIComponent(domainId)}/subdomains/${encodeURIComponent(subdomainName)}`,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(update),
+    },
+  );
+}
+
+export async function addConceptToSubdomain(
+  domainId: string,
+  subdomainName: string,
+  conceptId: number,
+  term: string,
+  synonyms: string[] = [],
+): Promise<SubdomainDetail> {
+  return fetchJson<SubdomainDetail>(
+    `${ANALYTICS_BASE}/analytics/domains/${encodeURIComponent(domainId)}/subdomains/${encodeURIComponent(subdomainName)}/concepts`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ concept_id: conceptId, term, synonyms }),
+    },
+  );
+}
+
+export async function removeConceptFromSubdomain(
+  domainId: string,
+  subdomainName: string,
+  conceptId: number,
+): Promise<SubdomainDetail> {
+  return fetchJson<SubdomainDetail>(
+    `${ANALYTICS_BASE}/analytics/domains/${encodeURIComponent(domainId)}/subdomains/${encodeURIComponent(subdomainName)}/concepts/${conceptId}`,
+    { method: "DELETE" },
   );
 }

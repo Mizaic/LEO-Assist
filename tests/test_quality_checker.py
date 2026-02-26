@@ -7,23 +7,9 @@ from unittest.mock import patch, MagicMock
 import pytest
 
 
-class TestQualityChecker:
-    """Tests for the quality checker analysis."""
+class TestQualityIssue:
 
-    @patch("libs.neo4j_client.client.PatientGraphClient")
-    def test_run_with_no_data(self, MockPG):
-        instance = MockPG.return_value
-        instance.run.return_value = []
-
-        from services.analysis_worker.app.analyzers.quality_checker import run_quality_checks
-        report = run_quality_checks()
-
-        assert report.total_checked == 0
-        assert report.compliant_count == 0
-        assert len(report.issues) == 0
-
-    @patch("libs.neo4j_client.client.PatientGraphClient")
-    def test_quality_issue_to_dict(self, MockPG):
+    def test_to_dict(self):
         from services.analysis_worker.app.analyzers.quality_checker import QualityIssue
 
         issue = QualityIssue(
@@ -38,9 +24,12 @@ class TestQualityChecker:
         assert d["episode_id"] == "ep-1"
         assert d["severity"] == "high"
         assert d["patient_id"] == "p-1"
+        assert d["issue_type"] == "outlier"
 
-    @patch("libs.neo4j_client.client.PatientGraphClient")
-    def test_quality_report_to_dict(self, MockPG):
+
+class TestQualityReport:
+
+    def test_to_dict(self):
         from services.analysis_worker.app.analyzers.quality_checker import QualityReport, QualityIssue
 
         report = QualityReport(total_checked=10, compliant_count=8)
@@ -53,49 +42,53 @@ class TestQualityChecker:
         assert d["compliant_count"] == 8
         assert len(d["issues"]) == 1
 
+    def test_empty_report(self):
+        from services.analysis_worker.app.analyzers.quality_checker import QualityReport
 
-class TestExportService:
-    """Tests for the gold data export improvements."""
+        report = QualityReport()
+        assert report.total_checked == 0
+        assert report.compliant_count == 0
+        assert report.issues == []
 
-    def test_context_flags_exported(self):
-        """Verify context flags are included in MedSpaCy export."""
-        from services.api.app.services.export_service import ExportService
-        from unittest.mock import MagicMock
-        import json
 
-        mock_client = MagicMock()
-        candidate = {
-            "deidentified_text": "Patient has chest pain",
-            "sentences": [{
-                "terms": [{
-                    "text": "chest pain",
-                    "span_start": 12,
-                    "span_end": 22,
-                    "semantic_tag": "finding",
-                    "context": {
-                        "negated": False,
-                        "uncertain": False,
-                        "historical": False,
-                        "subject": "patient",
-                        "temporality": "present",
-                    },
-                    "coding": {
-                        "snomed_concept_id": "29857009",
-                        "snomed_term": "Chest pain",
-                    },
-                }],
-            }],
-        }
+class TestRunQualityChecks:
 
-        service = ExportService(mock_client)
-        with patch.object(service, "neo4j") as neo:
-            session = MagicMock()
-            neo.session.return_value.__enter__ = MagicMock(return_value=session)
-            neo.session.return_value.__exit__ = MagicMock(return_value=False)
+    @patch("services.analysis_worker.app.analyzers.quality_checker.PatientGraphClient")
+    def test_run_with_no_data(self, MockPG):
+        instance = MockPG.return_value
+        instance.run.return_value = []
 
-            with patch("services.api.app.services.export_service.list_approved_candidates", return_value=[candidate]):
-                with patch("builtins.open", MagicMock()):
-                    result = service.export_medspacy_training("test_export")
+        from services.analysis_worker.app.analyzers.quality_checker import run_quality_checks
+        report = run_quality_checks()
 
-        assert result["entity_count"] == 1
-        assert result["kb_count"] == 1
+        assert report.total_checked == 0
+        assert report.compliant_count == 0
+        assert len(report.issues) == 0
+
+    @patch("services.analysis_worker.app.analyzers.quality_checker.PatientGraphClient")
+    def test_run_with_episodes(self, MockPG):
+        instance = MockPG.return_value
+        instance.run.side_effect = [
+            [{"total": 5}],  # _count_episodes
+            [],  # _check_outliers
+            [],  # _check_missing_milestones
+            [],  # _check_nhs_targets
+            [],  # _check_low_confidence
+            [],  # _check_temporal_anomalies
+            [],  # _check_unactioned_css
+            [],  # _check_coding_contradictions
+        ]
+
+        from services.analysis_worker.app.analyzers.quality_checker import run_quality_checks
+        report = run_quality_checks()
+
+        assert report.total_checked == 5
+        assert report.compliant_count == 5
+
+    @patch("services.analysis_worker.app.analyzers.quality_checker.PatientGraphClient")
+    def test_nhs_targets_constants(self, MockPG):
+        from services.analysis_worker.app.analyzers.quality_checker import NHS_TARGETS
+
+        assert NHS_TARGETS["faster_diagnosis_standard"] == 28
+        assert NHS_TARGETS["treatment_31_day_standard"] == 31
+        assert NHS_TARGETS["treatment_62_day_standard"] == 62

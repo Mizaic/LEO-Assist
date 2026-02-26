@@ -275,7 +275,10 @@ def apply_rules(candidate: dict[str, Any]) -> PostProcessResult:
             result.terms_removed += total_stripped
         _apply_document_codes(candidate, doc_rule, result)
 
-    # Rule 3: Deduplication — remove duplicate concept_ids within the encounter
+    # Rule 3: Remove abbreviations that are substrings of a longer term's parenthetical
+    _remove_parenthetical_abbrev_dupes(candidate, result)
+
+    # Rule 4: Deduplication — remove duplicate concept_ids within the encounter
     _dedup_terms(candidate, result)
 
     return result
@@ -334,6 +337,51 @@ def _apply_document_codes(
             action="add_term",
             detail=f"Auto-added {added} document-type codes",
         ))
+
+
+_PAREN_ABBREV_RE = re.compile(r"\(([A-Za-z]{2,6})\)")
+
+
+def _remove_parenthetical_abbrev_dupes(
+    candidate: dict[str, Any], result: PostProcessResult
+) -> None:
+    """Remove short abbreviation terms that are just the parenthetical code from a longer term.
+
+    E.g. if terms include "Serum alanine aminotransferase level (ALT): 7 iu/L" and "ALT",
+    the standalone "ALT" is redundant and should be removed.
+    """
+    for sent in candidate.get("sentences", []):
+        terms = sent.get("terms", [])
+        if len(terms) <= 1:
+            continue
+
+        abbrevs_in_long_terms: set[str] = set()
+        for term in terms:
+            text = term.get("text", "")
+            if len(text) > 10:
+                for m in _PAREN_ABBREV_RE.finditer(text):
+                    abbrevs_in_long_terms.add(m.group(1).upper())
+
+        if not abbrevs_in_long_terms:
+            continue
+
+        kept: list[dict[str, Any]] = []
+        removed = 0
+        for term in terms:
+            text = term.get("text", "").strip()
+            if text.upper() in abbrevs_in_long_terms and len(text) <= 10:
+                removed += 1
+                continue
+            kept.append(term)
+
+        if removed:
+            sent["terms"] = kept
+            result.terms_removed += removed
+            result.actions.append(RuleAction(
+                rule_id="abbrev_in_parens",
+                action="remove_term",
+                detail=f"Removed {removed} parenthetical abbreviation dupes from sentence {sent.get('sentence_id')}",
+            ))
 
 
 def _dedup_terms(candidate: dict[str, Any], result: PostProcessResult) -> None:

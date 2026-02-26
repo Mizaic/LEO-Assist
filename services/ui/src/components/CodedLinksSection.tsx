@@ -15,6 +15,7 @@ import ListItem from "@mui/material/ListItem";
 import ListItemText from "@mui/material/ListItemText";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -64,7 +65,7 @@ export default function CodedLinksSection({
         onLinksChange?.(data);
       })
       .catch((e) =>
-        setError(e instanceof Error ? e.message : "Could not load coded links."),
+        setError(e instanceof Error ? e.message : "Could not load clinical codes."),
       )
       .finally(() => setLoading(false));
   }, [patientId, encounterId, refresh, onLinksChange]);
@@ -80,7 +81,7 @@ export default function CodedLinksSection({
       onCorrection({
         type: "remove",
         text: link.term ?? link.concept_id,
-        detail: `Removed coded link ${link.concept_id}`,
+        detail: `Removed clinical code ${link.concept_id}`,
         time: new Date().toISOString(),
       });
     } catch (e) {
@@ -169,7 +170,7 @@ export default function CodedLinksSection({
   if (loading) {
     return (
       <Typography variant="body2" sx={{ p: 1.5, color: "text.secondary" }}>
-        Loading coded links…
+        Loading clinical codes…
       </Typography>
     );
   }
@@ -179,6 +180,10 @@ export default function CodedLinksSection({
         {error}
       </Typography>
     );
+  }
+
+  if (links.length === 0) {
+    return null;
   }
 
   return (
@@ -197,17 +202,54 @@ export default function CodedLinksSection({
             flexShrink: 0,
           }}
         >
-          Coded terms ({links.length})
+          Clinical Codes ({links.length})
         </Typography>
         <Box sx={{ flex: 1, minHeight: 0, overflowY: "auto", py: 1 }}>
           {links.length === 0 ? (
             <Typography variant="body2" sx={{ p: 2, color: "text.disabled" }}>
-              No coded terms yet. Select text and click &quot;Code selection&quot; to add.
+              No clinical codes yet. Select text and click &quot;Assign code&quot; to add.
             </Typography>
           ) : (
             <List disablePadding>
-              {links.map((link, idx) => (
+              {links.map((link, idx) => {
+                const relProps: string[] = [];
+                if (link.evidence) relProps.push(`evidence: "${link.evidence}"`);
+                if (link.confidence != null) relProps.push(`confidence: ${Math.round(link.confidence * 100)}%`);
+                if (link.domain) relProps.push(`domain: ${link.domain}`);
+                if (link.coded_at) relProps.push(`coded_at: ${link.coded_at}`);
+                const ctx = link.context as Record<string, unknown> | undefined;
+                if (ctx && Object.keys(ctx).length > 0) {
+                  const ctxStr = Object.entries(ctx)
+                    .filter(([, v]) => v != null && v !== false)
+                    .map(([k, v]) => `${k}: ${String(v)}`)
+                    .join(", ");
+                  if (ctxStr) relProps.push(`context: {${ctxStr}}`);
+                }
+                const mod = link.modifiers as Record<string, unknown> | undefined;
+                if (mod && Object.keys(mod).length > 0) {
+                  const modStr = Object.entries(mod)
+                    .filter(([, v]) => v != null && v !== "")
+                    .map(([k, v]) => `${k}: ${String(v)}`)
+                    .join(", ");
+                  if (modStr) relProps.push(`modifiers: {${modStr}}`);
+                }
+                const docTooltip = relProps.length > 0 ? relProps.join("\n") : null;
+                return (
                 <Box key={link.concept_id}>
+                  <Tooltip
+                    title={
+                      docTooltip ? (
+                        <Box component="span" sx={{ whiteSpace: "pre-wrap", fontSize: "0.75rem" }}>
+                          DOCUMENTS relationship:
+                          {"\n"}
+                          {docTooltip}
+                        </Box>
+                      ) : (
+                        "No DOCUMENTS relationship properties"
+                      )
+                    }
+                    placement="left"
+                  >
                   <ListItem
                     secondaryAction={
                       <Stack direction="row" spacing={0.5}>
@@ -274,9 +316,11 @@ export default function CodedLinksSection({
                       }
                     />
                   </ListItem>
+                  </Tooltip>
                   {idx < links.length - 1 && <Divider component="li" />}
                 </Box>
-              ))}
+              );
+              })}
             </List>
           )}
         </Box>

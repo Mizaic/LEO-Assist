@@ -22,7 +22,7 @@ export default function KPICards({ kpis }: { kpis: KPIs | null }) {
   if (!kpis) {
     return (
       <Typography variant="body2" color="text.secondary">
-        No KPI data available yet. Run the analysis pipeline first.
+        No referral quality data available yet. Process patient records to generate indicators.
       </Typography>
     );
   }
@@ -68,7 +68,7 @@ export default function KPICards({ kpis }: { kpis: KPIs | null }) {
         );
       })}
       <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
-        Based on {kpis.episode_count} episodes
+        Based on {kpis.episode_count} referral pathways
       </Typography>
     </Box>
   );

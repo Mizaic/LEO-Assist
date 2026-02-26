@@ -18,9 +18,18 @@ export interface CodedLink {
   term?: string;
   read_code?: string;
   semantic_tag?: string;
+  /** DOCUMENTS relationship: evidence text from encounter */
   evidence?: string;
-  modifiers?: Record<string, unknown>;
+  /** DOCUMENTS relationship: extraction confidence (0–1) */
+  confidence?: number;
+  /** DOCUMENTS relationship: domain (e.g. clinical_finding) */
+  domain?: string;
+  /** DOCUMENTS relationship: negated, uncertain, historical, etc. */
   context?: Record<string, unknown>;
+  /** DOCUMENTS relationship: value, unit, reference_range, interpretation */
+  modifiers?: Record<string, unknown>;
+  /** DOCUMENTS relationship: when the link was coded */
+  coded_at?: string;
 }
 
 export interface TermSearchResult {

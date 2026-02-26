@@ -10,8 +10,9 @@ import time
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
 
-from app.db.neo4j_client import CodingGraphClient, PatientGraphClient
+from app.db.neo4j_client import CodingGraphClient, PatientGraphClient, run_with_retry
 from app.models.contracts import LLMUsageResponse, PipelineRunRequest, PipelineRunResponse
+from app.models.neo4j_schema import DELETE_ENCOUNTER_DOCUMENTS, RESET_ENCOUNTER_REVIEW_QUEUE
 from app.services.v3.pipeline_service import V3PipelineService
 
 
@@ -36,8 +37,17 @@ def run_pipeline(
     payload: PipelineRunRequest,
     service: V3PipelineService = Depends(get_creator),
 ):
+    patient_ids = payload.patient_ids
+    if not patient_ids and payload.cohort_id:
+        patient_ids = _resolve_cohort_patients(payload.cohort_id)
+    if not patient_ids and payload.org_id:
+        patient_ids = _resolve_org_patients(payload.org_id)
+    if not patient_ids:
+        from fastapi import HTTPException
+        raise HTTPException(400, "Provide patient_ids, cohort_id, or org_id")
+
     run_id, stats = service.run(
-        patient_ids=payload.patient_ids,
+        patient_ids=patient_ids,
         max_encounters_per_patient=payload.max_encounters_per_patient,
         dry_run=payload.dry_run,
     )
@@ -51,6 +61,51 @@ def run_pipeline(
         warnings_only=stats.warnings_only,
         llm_usage=LLMUsageResponse(**usage_dict) if usage_dict else None,
     )
+
+
+def _resolve_cohort_patients(cohort_id: str) -> list[str]:
+    """Resolve a cohort ID to patient IDs via the Patient Graph."""
+    import json as _json
+    from libs.neo4j_client.client import PatientGraphClient
+    pg = PatientGraphClient()
+    try:
+        rows = pg.run(
+            "MATCH (c:Cohort {cohort_id: $cid}) RETURN c.filters AS filters",
+            cid=cohort_id,
+        )
+        if not rows:
+            return []
+        filters_raw = rows[0].get("filters", "{}")
+        filters = _json.loads(filters_raw) if isinstance(filters_raw, str) else filters_raw
+        where_parts, params = [], {}
+        if filters.get("org_id"):
+            where_parts.append("EXISTS { MATCH (p)-[:REGISTERED_AT]->(o:Organization {id: $org_id}) }")
+            params["org_id"] = filters["org_id"]
+        if filters.get("episode_status"):
+            where_parts.append("EXISTS { MATCH (p)-[:HAS_EPISODE]->(ep:CancerEpisode) WHERE ep.status IN $ep_statuses }")
+            params["ep_statuses"] = filters["episode_status"]
+        where_clause = " AND ".join(where_parts) if where_parts else "true"
+        result = pg.run(
+            f"MATCH (p:Patient) WHERE {where_clause} RETURN toString(p.id) AS pid LIMIT 10000",
+            **params,
+        )
+        return [str(r["pid"]) for r in result]
+    finally:
+        pg.close()
+
+
+def _resolve_org_patients(org_id: str) -> list[str]:
+    from libs.neo4j_client.client import PatientGraphClient
+    pg = PatientGraphClient()
+    try:
+        rows = pg.run(
+            "MATCH (p:Patient)-[:REGISTERED_AT]->(o:Organization {id: $org}) "
+            "RETURN toString(p.id) AS pid LIMIT 10000",
+            org=org_id,
+        )
+        return [str(r["pid"]) for r in rows]
+    finally:
+        pg.close()
 
 
 @router.get("/stream-unprocessed")
@@ -76,6 +131,77 @@ def stream_unprocessed(
                 patient_ids=ids,
                 dry_run=dry_run,
                 workers=workers,
+                progress_hook=emit,
+            )
+        except Exception as exc:
+            events.put({"type": "pipeline_error", "message": str(exc)})
+        finally:
+            try:
+                service.patient_graph.close()
+                service.coding_graph.close()
+            finally:
+                events.put(None)
+
+    threading.Thread(target=worker, daemon=True).start()
+
+    def event_generator():
+        while True:
+            try:
+                event = events.get(timeout=2.0)
+            except queue.Empty:
+                yield _format_sse(
+                    "heartbeat", {"type": "heartbeat", "ts": time.time()}
+                )
+                continue
+            if event is None:
+                break
+            event_type = str(event.get("type", "message"))
+            yield _format_sse(event_type, event)
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
+@router.get("/stream-encounter")
+def stream_encounter(
+    patient_id: str = Query(min_length=1),
+    encounter_id: str = Query(min_length=1),
+    dry_run: bool = Query(default=False),
+):
+    """Reset a single encounter (DOCUMENTS + review queue) then re-run the pipeline on it."""
+    service = get_creator()
+    events: queue.Queue[dict[str, object] | None] = queue.Queue()
+
+    def emit(event: dict[str, object]) -> None:
+        events.put(event)
+
+    def worker() -> None:
+        try:
+            run_with_retry(
+                service.patient_graph,
+                DELETE_ENCOUNTER_DOCUMENTS,
+                patient_id=patient_id,
+                encounter_id=encounter_id,
+            )
+            run_with_retry(
+                service.patient_graph,
+                RESET_ENCOUNTER_REVIEW_QUEUE,
+                patient_id=patient_id,
+                encounter_id=encounter_id,
+            )
+            emit({"type": "reset_completed", "patient_id": patient_id, "encounter_id": encounter_id})
+
+            service.run_single_encounter(
+                patient_id=patient_id,
+                encounter_id=encounter_id,
+                dry_run=dry_run,
                 progress_hook=emit,
             )
         except Exception as exc:

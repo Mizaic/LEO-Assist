@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from app.config import get_settings
+from app.db.neo4j_client import run_with_retry
 from app.services.neo4j_store import create_review_task, upsert_candidate
 from app.services.v3.coding_resolver import CodingResolver
 from app.services.v3.disambiguator import CodingDisambiguator
@@ -748,6 +749,62 @@ class V3PipelineService:
                 )
         else:
             self._process_parallel(work, run_id, dry_run, stats, workers, progress_hook)
+
+        self._emit(progress_hook, {
+            "type": "run_completed", "run_id": run_id, **stats.snapshot(),
+        })
+        return run_id, stats
+
+    def run_single_encounter(
+        self,
+        patient_id: str,
+        encounter_id: str,
+        dry_run: bool = False,
+        progress_hook: Callable[[dict[str, Any]], None] | None = None,
+    ) -> tuple[str, PipelineStats]:
+        """Run the pipeline for exactly one encounter."""
+        run_id = str(uuid.uuid4())
+        stats = PipelineStats(_cost_config=self.cost_config)
+
+        rows = run_with_retry(
+            self.patient_graph,
+            "MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter) "
+            "WHERE toString(p.id) = $pid AND toString(e.id) = $eid "
+            "RETURN e.id AS encounter_id, toString(e.date) AS date, e.text AS text",
+            pid=patient_id,
+            eid=encounter_id,
+        )
+
+        if not rows:
+            self._emit(progress_hook, {
+                "type": "run_completed", "run_id": run_id,
+                **stats.snapshot(), "message": "Encounter not found",
+            })
+            return run_id, stats
+
+        encounter = rows[0]
+
+        self._emit(progress_hook, {
+            "type": "run_started",
+            "run_id": run_id,
+            "patient_count": 1,
+            "encounter_count": 1,
+            "dry_run": dry_run,
+            "workers": 1,
+            "pipeline_version": "v3",
+            "mode": "single_encounter",
+        })
+        self._emit(progress_hook, {
+            "type": "patient_started",
+            "run_id": run_id,
+            "patient_id": patient_id,
+            "encounter_count": 1,
+        })
+
+        self._process_encounter(
+            patient_id, encounter, run_id, dry_run, stats,
+            progress_hook=progress_hook,
+        )
 
         self._emit(progress_hook, {
             "type": "run_completed", "run_id": run_id, **stats.snapshot(),

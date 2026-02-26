@@ -17,19 +17,26 @@ import Stack from "@mui/material/Stack";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
 import TableCell from "@mui/material/TableCell";
+import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
+import TablePagination from "@mui/material/TablePagination";
 import TableRow from "@mui/material/TableRow";
 import TextField from "@mui/material/TextField";
 import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
+import Drawer from "@mui/material/Drawer";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
+import CloseIcon from "@mui/icons-material/Close";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import SearchIcon from "@mui/icons-material/Search";
 import TravelExploreIcon from "@mui/icons-material/TravelExplore";
 import Button from "@mui/material/Button";
 import LinearProgress from "@mui/material/LinearProgress";
 import {
+  fetchEncounter,
+  fetchEncounterCodedLinks,
   fetchPatient,
   fetchPatientEncounters,
   fetchTasks,
@@ -38,8 +45,9 @@ import {
   searchPatientEncounters,
   syncGoldToPatient,
 } from "@/lib/api";
+import { rebuildPatientEpisodes } from "@/lib/analyticsApi";
 import type { EncounterSearchResult } from "@/lib/api";
-import type { EncounterSummary, ReviewTaskSummary } from "@/lib/types";
+import type { CodedLink, EncounterSummary, ReviewTaskSummary } from "@/lib/types";
 import { usePipeline } from "@/context/PipelineContext";
 import ConfirmDialog from "./ConfirmDialog";
 
@@ -181,6 +189,7 @@ export default function EncounterList({ patientId }: Props) {
   const [confirmReset, setConfirmReset] = useState(false);
   const [confirmResetQueue, setConfirmResetQueue] = useState(false);
   const [confirmSync, setConfirmSync] = useState(false);
+  const [rebuilding, setRebuilding] = useState(false);
   const [sortKey, setSortKey] = useState<"date-desc" | "date-asc" | "status" | "id">("date-desc");
   const [searchQuery, setSearchQuery] = useState("");
   const [searchMode, setSearchMode] = useState<"keyword" | "semantic">("keyword");
@@ -192,6 +201,61 @@ export default function EncounterList({ patientId }: Props) {
   const searchParams = useSearchParams();
   const [statusFilter, setStatusFilter] = useState<string | null>(
     searchParams.get("status") || null,
+  );
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(25);
+
+  // Right-hand sidebar for encounter preview (click row to open, click another to switch)
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarEncounter, setSidebarEncounter] = useState<{
+    encounterId: string;
+    dateStr: string;
+    taskId?: string;
+  } | null>(null);
+  const [sidebarData, setSidebarData] = useState<{
+    encounter: { text: string };
+    codedLinks: CodedLink[];
+  } | null>(null);
+  const [sidebarLoading, setSidebarLoading] = useState(false);
+  const [sidebarError, setSidebarError] = useState<string | null>(null);
+  const sidebarRequestIdRef = useRef(0);
+
+  const loadSidebarEncounter = useCallback(
+    async (encounterId: string) => {
+      const requestId = ++sidebarRequestIdRef.current;
+      setSidebarLoading(true);
+      setSidebarError(null);
+      try {
+        const [encData, links] = await Promise.all([
+          fetchEncounter(patientId, encounterId),
+          fetchEncounterCodedLinks(patientId, encounterId),
+        ]);
+        if (requestId === sidebarRequestIdRef.current) {
+          setSidebarData({ encounter: encData, codedLinks: links });
+        }
+      } catch (e) {
+        if (requestId === sidebarRequestIdRef.current) {
+          setSidebarError(e instanceof Error ? e.message : "Failed to load encounter");
+        }
+      } finally {
+        if (requestId === sidebarRequestIdRef.current) {
+          setSidebarLoading(false);
+        }
+      }
+    },
+    [patientId],
+  );
+
+  const handleEncounterClick = useCallback(
+    (encounterId: string, dateStr: string, taskId?: string) => {
+      setSidebarOpen(true);
+      setSidebarEncounter({ encounterId, dateStr, taskId });
+      setSidebarData(null);
+      setSidebarError(null);
+      setSidebarLoading(true);
+      loadSidebarEncounter(encounterId);
+    },
+    [loadSidebarEncounter],
   );
 
   function updateStatusFilter(value: string | null) {
@@ -271,7 +335,7 @@ export default function EncounterList({ patientId }: Props) {
       await resetReviewQueue(patientId);
       await reload();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Reset review queue failed. Try again.");
+      setError(e instanceof Error ? e.message : "Reset review list failed. Try again.");
     } finally {
       setResettingQueue(false);
       setConfirmResetQueue(false);
@@ -293,10 +357,26 @@ export default function EncounterList({ patientId }: Props) {
       setSuccessMsg(parts.join(" | "));
       await reload();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Sync failed. Approved data was not applied.");
+      setError(e instanceof Error ? e.message : "Apply failed. Approved data was not written.");
     } finally {
       setSyncing(false);
       setConfirmSync(false);
+    }
+  }
+
+  async function doRebuildPathways() {
+    setRebuilding(true);
+    setError(null);
+    try {
+      const result = await rebuildPatientEpisodes(patientId, true);
+      setSuccessMsg(
+        `Rebuilt pathways: ${result.episodes_created} created, ${result.encounters_linked} encounters linked`,
+      );
+      router.push(`/episodes?patient_id=${encodeURIComponent(patientId)}`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Rebuild failed. Pathways were not updated.");
+    } finally {
+      setRebuilding(false);
     }
   }
 
@@ -380,6 +460,11 @@ export default function EncounterList({ patientId }: Props) {
 
   const rows = filteredAndSortedRows;
   const totalCount = encounters.length;
+  const paginatedRows = rows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+
+  useEffect(() => {
+    setPage(0);
+  }, [searchQuery, searchMode, statusFilter]);
   const approvedCount = allMappedRows.filter((r) => r.task?.status === "approved").length;
   const withTask = allMappedRows.filter((r) => Boolean(r.task)).length;
   const unprocessedCount = totalCount - withTask;
@@ -415,10 +500,19 @@ export default function EncounterList({ patientId }: Props) {
   return (
     <Box sx={{ maxWidth: 1100, mx: "auto", p: 3 }}>
       <Breadcrumbs sx={{ mb: 2 }}>
-        <Link component="button" underline="hover" onClick={() => router.push("/patients")} sx={{ fontSize: 14 }}>
-          Patients
-        </Link>
-        <Typography sx={{ fontSize: 14 }} color="text.primary">Patient {patientId}</Typography>
+        {searchParams.get("from") === "episodes"
+          ? [
+              <Link key="episodes" component="button" underline="hover" onClick={() => router.push("/episodes")} sx={{ fontSize: 14 }}>
+                Referral Pathways
+              </Link>,
+              <Typography key="patient" sx={{ fontSize: 14 }} color="text.primary">Patient {patientId}</Typography>,
+            ]
+          : [
+              <Link key="patients" component="button" underline="hover" onClick={() => router.push("/patients")} sx={{ fontSize: 14 }}>
+                Patients
+              </Link>,
+              <Typography key="patient" sx={{ fontSize: 14 }} color="text.primary">Patient {patientId}</Typography>,
+            ]}
       </Breadcrumbs>
 
       {/* DR-5: Patient header with context + progress + kebab */}
@@ -455,6 +549,24 @@ export default function EncounterList({ patientId }: Props) {
                 }}
               >
                 {pipeline.running ? "Processing…" : `Process ${unprocessedCount} unprocessed`}
+              </Button>
+            )}
+            {(searchParams.get("from") === "episodes" || approvedCount > 0) && (
+              <Button
+                variant="outlined"
+                size="small"
+                disabled={rebuilding}
+                onClick={doRebuildPathways}
+                sx={{
+                  textTransform: "none",
+                  fontWeight: 600,
+                  fontSize: "0.75rem",
+                  px: 1.5,
+                  py: 0.5,
+                  borderRadius: 1.5,
+                }}
+              >
+                {rebuilding ? "Rebuilding…" : "Rebuild Pathways"}
               </Button>
             )}
           </Stack>
@@ -502,14 +614,21 @@ export default function EncounterList({ patientId }: Props) {
             onClick={() => { setMenuAnchor(null); if (withTask > 0) setConfirmResetQueue(true); }}
             disabled={resettingQueue || withTask === 0}
           >
-            {resettingQueue ? "Clearing…" : "Reset review queue"}
+            {resettingQueue ? "Clearing…" : "Reset review list"}
           </MenuItem>
           <Divider />
           <MenuItem
             onClick={() => { setMenuAnchor(null); if (approvedCount > 0) setConfirmSync(true); }}
             disabled={syncing || approvedCount === 0}
           >
-            {syncing ? "Syncing…" : "Sync gold to patient"}
+            {syncing ? "Syncing…" : "Apply approved data"}
+          </MenuItem>
+          <Divider />
+          <MenuItem
+            onClick={() => { setMenuAnchor(null); doRebuildPathways(); }}
+            disabled={rebuilding}
+          >
+            {rebuilding ? "Rebuilding…" : "Rebuild pathways"}
           </MenuItem>
         </Menu>
       </Stack>
@@ -518,7 +637,7 @@ export default function EncounterList({ patientId }: Props) {
       {confirmReset && (
         <ConfirmDialog
           title="Reset patient?"
-          body="This will remove all coded links for this patient. The encounter text will remain, but you will need to run the pipeline and review again. This cannot be undone."
+          body="This will remove all clinical codes for this patient. The encounter text will remain, but you will need to process and review again. This cannot be undone."
           confirmLabel="Reset"
           variant="danger"
           onConfirm={doReset}
@@ -527,9 +646,9 @@ export default function EncounterList({ patientId }: Props) {
       )}
       {confirmResetQueue && (
         <ConfirmDialog
-          title="Reset review queue?"
-          body="This will clear all pending tasks for this patient. Use this after a pipeline failure so you can re-run the pipeline cleanly. Approved and rejected tasks will also be removed."
-          confirmLabel="Clear queue"
+          title="Reset review list?"
+          body="This will clear all pending tasks for this patient. Use this after a processing failure so you can re-process cleanly. Approved and rejected tasks will also be removed."
+          confirmLabel="Clear list"
           variant="danger"
           onConfirm={doResetReviewQueue}
           onCancel={() => setConfirmResetQueue(false)}
@@ -537,9 +656,9 @@ export default function EncounterList({ patientId }: Props) {
       )}
       {confirmSync && (
         <ConfirmDialog
-          title="Sync gold to patient?"
-          body="This will apply your approved encounters to the patient graph. Only encounters you have approved will be synced."
-          confirmLabel="Sync"
+          title="Apply approved data?"
+          body="This will apply your approved encounters to the patient graph. Only encounters you have approved will be applied."
+          confirmLabel="Apply"
           onConfirm={doSyncGold}
           onCancel={() => setConfirmSync(false)}
         />
@@ -672,155 +791,163 @@ export default function EncounterList({ patientId }: Props) {
         </Table>
       )}
 
-      {/* DR-2: Dense table with alternating rows */}
+      {/* DR-2: Dense table with alternating rows + pagination */}
       {!loading && rows.length > 0 && (
-        <Table size="small">
-          <TableHead>
-            <TableRow sx={{ "& th": { py: 1 } }}>
-              <TableCell sx={{ width: 120, fontWeight: 600 }}>Date</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Encounter</TableCell>
-              <TableCell sx={{ width: 130, fontWeight: 600 }}>Status</TableCell>
-              {hasPriority && <TableCell sx={{ width: 80, fontWeight: 600 }}>Priority</TableCell>}
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {rows.map(({ encounter, task }, idx) => {
-              const status = task?.status ?? "not_processed";
-              const referralType = parseReferralType(encounter.flags);
-              const dateStr = encounter.date
-                ? new Date(encounter.date).toLocaleDateString("en-GB", {
-                    year: "numeric",
-                    month: "short",
-                    day: "numeric",
-                  })
-                : "—";
-              const fullId = String(encounter.encounter_id);
-              const isEven = idx % 2 === 0;
-
-              return (
-                <TableRow
-                  key={fullId}
-                  hover
-                  sx={{
-                    cursor: "pointer",
-                    bgcolor: isEven ? "background.paper" : "#FAFBFC",
-                    "& td": { py: 0.75 },
-                  }}
-                  onClick={() => {
-                    if (task?.task_id) {
-                      router.push(`/patients/${patientId}/encounters/${task.task_id}`);
-                    } else {
-                      router.push(`/patients/${patientId}/encounters/view/${encounter.encounter_id}`);
-                    }
-                  }}
-                >
-                  {/* DR-7: Date — primary scanning anchor, semi-bold */}
-                  <TableCell>
-                    <Typography sx={{ fontWeight: 600, fontSize: "0.875rem", whiteSpace: "nowrap" }}>
-                      {dateStr}
-                    </Typography>
-                  </TableCell>
-
-                  {/* DR-3 + DR-7: Referral type primary, hex ID de-emphasised */}
-                  <TableCell>
-                    {referralType ? (
-                      <Box>
-                        <Typography sx={{ fontSize: "0.875rem", fontWeight: 500, lineHeight: 1.3 }}>
-                          {referralType}
-                        </Typography>
-                        <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.25 }}>
-                          <Tooltip title={fullId} arrow>
-                            <Typography
-                              component="span"
-                              sx={{
-                                fontSize: "0.7rem",
-                                fontFamily: "monospace",
-                                color: "#9CA3AF",
-                                letterSpacing: "0.02em",
-                              }}
-                            >
-                              {fullId.slice(0, 8)}
-                            </Typography>
-                          </Tooltip>
-                          {task && task.warning_count > 0 && (
-                            <Chip size="small" color="warning" label={`${task.warning_count}w`} sx={{ height: 16, fontSize: "0.65rem" }} />
-                          )}
-                          {typeof encounter.coded_count === "number" && encounter.coded_count > 0 && (
-                            <Typography component="span" sx={{ fontSize: "0.7rem", color: "success.main" }}>
-                              {encounter.coded_count} coded
-                            </Typography>
-                          )}
-                        </Stack>
-                      </Box>
-                    ) : (
-                      <Stack direction="row" spacing={1} alignItems="center">
-                        <Tooltip title={fullId} arrow>
-                          <Typography
-                            variant="subtitle2"
-                            sx={{ fontFamily: "monospace", color: "text.secondary" }}
-                          >
-                            {fullId.slice(0, 8)}
-                          </Typography>
-                        </Tooltip>
-                        {task && task.warning_count > 0 && (
-                          <Chip size="small" color="warning" label={`${task.warning_count}w`} sx={{ height: 18 }} />
-                        )}
-                        {typeof encounter.coded_count === "number" && encounter.coded_count > 0 && (
-                          <Typography variant="caption" sx={{ color: "success.main" }}>
-                            {encounter.coded_count} coded
-                          </Typography>
-                        )}
-                      </Stack>
-                    )}
-                    {/* Semantic similarity badge */}
-                    {searchMode === "semantic" && semanticMatchInfo?.has(fullId) && (() => {
-                      const info = semanticMatchInfo.get(fullId)!;
-                      const sim = info.similarity;
-                      if (sim == null) return null;
-                      const pct = Math.round(sim * 100);
-                      const color = pct >= 90 ? "#16a34a" : pct >= 75 ? "#2563eb" : "#9333ea";
-                      return (
-                        <Chip
-                          label={`${pct}% match`}
-                          size="small"
-                          sx={{
-                            mt: 0.5,
-                            height: 18,
-                            fontSize: "0.65rem",
-                            fontWeight: 600,
-                            bgcolor: `${color}18`,
-                            color,
-                            border: `1px solid ${color}40`,
-                            "& .MuiChip-label": { px: 0.75 },
-                          }}
-                        />
-                      );
-                    })()}
-                  </TableCell>
-
-                  {/* DR-1: Status chip with proper semantic colours */}
-                  <TableCell>
-                    <Chip
-                      label={getStatusLabel(status)}
-                      color={STATUS_CHIP_COLORS[status] ?? "default"}
-                      size="small"
-                      sx={{ fontWeight: 500 }}
-                    />
-                  </TableCell>
-
-                  {/* DR-4 Option A: Hidden unless any task has priority */}
-                  {hasPriority && (
-                    <TableCell>
-                      <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                        {task ? `P${task.priority}` : "—"}
-                      </Typography>
-                    </TableCell>
-                  )}
+        <>
+          <TableContainer sx={{ maxHeight: 520 }}>
+            <Table size="small" stickyHeader>
+              <TableHead>
+                <TableRow sx={{ "& th": { py: 1 }, bgcolor: "background.paper" }}>
+                  <TableCell sx={{ width: 120, fontWeight: 600 }}>Date</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Encounter</TableCell>
+                  <TableCell sx={{ width: 130, fontWeight: 600 }}>Status</TableCell>
+                  {hasPriority && <TableCell sx={{ width: 80, fontWeight: 600 }}>Priority</TableCell>}
                 </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
+              </TableHead>
+              <TableBody>
+                {paginatedRows.map(({ encounter, task }, idx) => {
+                  const status = task?.status ?? "not_processed";
+                  const referralType = parseReferralType(encounter.flags);
+                  const dateStr = encounter.date
+                    ? new Date(encounter.date).toLocaleDateString("en-GB", {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                      })
+                    : "\u2014";
+                  const fullId = String(encounter.encounter_id);
+                  const isEven = idx % 2 === 0;
+                  const isSelected =
+                    sidebarOpen && sidebarEncounter?.encounterId === fullId;
+
+                  return (
+                    <TableRow
+                      key={encounter.encounter_id}
+                      hover
+                      selected={isSelected}
+                      sx={{
+                        cursor: "pointer",
+                        bgcolor: isEven ? "background.paper" : "#FAFBFC",
+                        "& td": { py: 0.75 },
+                      }}
+                      onClick={() =>
+                        handleEncounterClick(fullId, dateStr, task?.task_id)
+                      }
+                    >
+                      <TableCell>
+                        <Typography sx={{ fontWeight: 600, fontSize: "0.875rem", whiteSpace: "nowrap" }}>
+                          {dateStr}
+                        </Typography>
+                      </TableCell>
+
+                      <TableCell sx={{ position: "relative" }}>
+                        <Box sx={{ display: "block", width: "100%", minHeight: 24 }}>
+                          {referralType ? (
+                            <Box>
+                              <Typography sx={{ fontSize: "0.875rem", fontWeight: 500, lineHeight: 1.3 }}>
+                                {referralType}
+                              </Typography>
+                              <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.25 }}>
+                                <Typography
+                                  component="span"
+                                  sx={{
+                                    fontSize: "0.7rem",
+                                    fontFamily: "monospace",
+                                    color: "#9CA3AF",
+                                    letterSpacing: "0.02em",
+                                  }}
+                                >
+                                  {fullId.slice(0, 8)}
+                                </Typography>
+                                {task && task.warning_count > 0 && (
+                                  <Chip size="small" color="warning" label={`${task.warning_count}w`} sx={{ height: 16, fontSize: "0.65rem" }} />
+                                )}
+                                {typeof encounter.coded_count === "number" && encounter.coded_count > 0 && (
+                                  <Typography component="span" sx={{ fontSize: "0.7rem", color: "success.main" }}>
+                                    {encounter.coded_count} coded
+                                  </Typography>
+                                )}
+                              </Stack>
+                            </Box>
+                          ) : (
+                            <Stack direction="row" spacing={1} alignItems="center">
+                              <Typography
+                                variant="subtitle2"
+                                sx={{ fontFamily: "monospace", color: "text.secondary" }}
+                              >
+                                {fullId.slice(0, 8)}
+                              </Typography>
+                              {task && task.warning_count > 0 && (
+                                <Chip size="small" color="warning" label={`${task.warning_count}w`} sx={{ height: 18 }} />
+                              )}
+                              {typeof encounter.coded_count === "number" && encounter.coded_count > 0 && (
+                                <Typography variant="caption" sx={{ color: "success.main" }}>
+                                  {encounter.coded_count} coded
+                                </Typography>
+                              )}
+                            </Stack>
+                          )}
+                        </Box>
+                        {searchMode === "semantic" && semanticMatchInfo?.has(fullId) && (() => {
+                          const info = semanticMatchInfo.get(fullId)!;
+                          const sim = info.similarity;
+                          if (sim == null) return null;
+                          const pct = Math.round(sim * 100);
+                          const color = pct >= 90 ? "#16a34a" : pct >= 75 ? "#2563eb" : "#9333ea";
+                          return (
+                            <Chip
+                              label={`${pct}% match`}
+                              size="small"
+                              sx={{
+                                mt: 0.5,
+                                height: 18,
+                                fontSize: "0.65rem",
+                                fontWeight: 600,
+                                bgcolor: `${color}18`,
+                                color,
+                                border: `1px solid ${color}40`,
+                                "& .MuiChip-label": { px: 0.75 },
+                              }}
+                            />
+                          );
+                        })()}
+                      </TableCell>
+
+                      <TableCell>
+                        <Chip
+                          label={getStatusLabel(status)}
+                          color={STATUS_CHIP_COLORS[status] ?? "default"}
+                          size="small"
+                          sx={{ fontWeight: 500 }}
+                        />
+                      </TableCell>
+
+                      {hasPriority && (
+                        <TableCell>
+                          <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                            {task ? `P${task.priority}` : "\u2014"}
+                          </Typography>
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </TableContainer>
+          <TablePagination
+            rowsPerPageOptions={[10, 25, 50, 100]}
+            component="div"
+            count={rows.length}
+            rowsPerPage={rowsPerPage}
+            page={page}
+            onPageChange={(_, newPage) => setPage(newPage)}
+            onRowsPerPageChange={(e) => {
+              setRowsPerPage(parseInt(e.target.value, 10));
+              setPage(0);
+            }}
+          />
+        </>
       )}
 
       {!loading && rows.length === 0 && !error && (
@@ -830,6 +957,135 @@ export default function EncounterList({ patientId }: Props) {
             : "No encounters found for this patient."}
         </Typography>
       )}
+
+      <Drawer
+        anchor="right"
+        open={sidebarOpen}
+        hideBackdrop
+        onClose={() => {
+          setSidebarOpen(false);
+          setSidebarEncounter(null);
+          setSidebarData(null);
+        }}
+        slotProps={{
+          root: {
+            sx: { pointerEvents: "none" },
+          },
+          paper: {
+            sx: {
+              width: 480,
+              maxWidth: "95vw",
+              pointerEvents: "auto",
+            },
+          },
+        }}
+      >
+        <Box sx={{ p: 2, height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
+            {sidebarEncounter && (
+              <Typography variant="subtitle1" fontWeight={600}>
+                Encounter {sidebarEncounter.encounterId} ({sidebarEncounter.dateStr})
+              </Typography>
+            )}
+            <Stack direction="row" spacing={0.5}>
+              {sidebarEncounter && (
+                <Button
+                  size="small"
+                  variant="outlined"
+                  startIcon={<OpenInNewIcon />}
+                  onClick={() => {
+                    if (sidebarEncounter.taskId) {
+                      router.push(`/patients/${patientId}/encounters/${sidebarEncounter.taskId}`);
+                    } else {
+                      router.push(`/patients/${patientId}/encounters/view/${sidebarEncounter.encounterId}`);
+                    }
+                  }}
+                >
+                  View full
+                </Button>
+              )}
+              <IconButton size="small" onClick={() => setSidebarOpen(false)} aria-label="Close">
+                <CloseIcon />
+              </IconButton>
+            </Stack>
+          </Stack>
+          <Box sx={{ flex: 1, overflow: "auto", minHeight: 0 }}>
+            {sidebarLoading && (
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1, py: 4 }}>
+                <CircularProgress size={24} />
+                <Typography variant="body2" color="text.secondary">
+                  Loading...
+                </Typography>
+              </Box>
+            )}
+            {sidebarError && (
+              <Typography variant="body2" color="error" sx={{ py: 2 }}>
+                {sidebarError}
+              </Typography>
+            )}
+            {!sidebarLoading && !sidebarError && sidebarData && sidebarEncounter && (
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                <Typography
+                  variant="body2"
+                  component="pre"
+                  sx={{
+                    whiteSpace: "pre-wrap",
+                    wordBreak: "break-word",
+                    maxHeight: 280,
+                    overflow: "auto",
+                    fontSize: "0.85rem",
+                    bgcolor: "grey.50",
+                    p: 1.5,
+                    borderRadius: 1,
+                  }}
+                >
+                  {sidebarData.encounter.text || "(No text)"}
+                </Typography>
+                <Box>
+                  <Typography variant="caption" fontWeight={600} color="text.secondary" sx={{ display: "block", mb: 0.5 }}>
+                    DOCUMENTS (coded links)
+                  </Typography>
+                  {sidebarData.codedLinks.length > 0 ? (
+                    <Box component="ul" sx={{ m: 0, pl: 2, fontSize: "0.8rem", maxHeight: 220, overflow: "auto" }}>
+                      {sidebarData.codedLinks.map((link, i) => (
+                        <li key={link.concept_id + String(i)}>
+                          <Typography component="span" variant="caption">
+                            {link.term || link.concept_id}
+                            {link.read_code && ` (${link.read_code})`}
+                            {link.semantic_tag && ` [${link.semantic_tag}]`}
+                          </Typography>
+                          {(link.evidence || link.confidence != null || link.domain || link.coded_at || (link.context && Object.keys(link.context).length > 0) || (link.modifiers && Object.keys(link.modifiers).length > 0)) && (
+                            <Typography
+                              component="span"
+                              variant="caption"
+                              sx={{ display: "block", color: "text.secondary", fontSize: "0.75rem", mt: 0.25, pl: 1 }}
+                            >
+                              {[
+                                link.evidence && `evidence: "${link.evidence}"`,
+                                link.confidence != null && `confidence: ${Math.round(link.confidence * 100)}%`,
+                                link.domain && `domain: ${link.domain}`,
+                                link.coded_at && `coded_at: ${link.coded_at}`,
+                                link.context && Object.keys(link.context).length > 0 && `context: ${JSON.stringify(link.context)}`,
+                                link.modifiers && Object.keys(link.modifiers).length > 0 && `modifiers: ${JSON.stringify(link.modifiers)}`,
+                              ]
+                                .filter(Boolean)
+                                .join(" · ")}
+                            </Typography>
+                          )}
+                        </li>
+                      ))}
+                    </Box>
+                  ) : (
+                    <Typography variant="caption" color="text.secondary">
+                      No coded links
+                    </Typography>
+                  )}
+                </Box>
+              </Box>
+            )}
+          </Box>
+        </Box>
+      </Drawer>
     </Box>
   );
 }

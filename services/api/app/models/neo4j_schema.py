@@ -327,9 +327,9 @@ LIMIT $limit
 """
 
 SEARCH_ENCOUNTERS_BY_CONCEPT_DOCS = """
-MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter)-[:DOCUMENTS]->(c:Concept)
-WHERE toString(p.id) = $patient_id AND c.id IN $concept_ids
-WITH e, collect(DISTINCT c.id) AS matched_concepts
+MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter)-[:DOCUMENTS]->(s)
+WHERE toString(p.id) = $patient_id AND s.conceptId IN $concept_ids
+WITH e, collect(DISTINCT s.conceptId) AS matched_concepts
 OPTIONAL MATCH (e)-[r:DOCUMENTS]->()
 WITH e, matched_concepts, count(r) AS coded_count
 RETURN toString(e.id) AS encounter_id,
@@ -396,3 +396,23 @@ RETURN c.id AS snomed_concept_id,
 ORDER BY best_score DESC
 LIMIT $limit
 """
+
+TERMINOLOGY_SEARCH_FILTERED = """
+CALL db.index.fulltext.queryNodes("term_fulltext", $q) YIELD node, score
+MATCH (node)-[:DESCRIBES]->(c:Concept)
+WHERE c.active = true AND c.semantic_tag IN $tags
+OPTIONAL MATCH (c)-[:MAPS_TO_READ]->(rd:ReadCode)
+OPTIONAL MATCH (c)-[:MAPS_TO_ICD10]->(icd:Icd10Code)
+WITH c, max(score) AS best_score,
+     collect(DISTINCT rd.code)[0] AS read_code,
+     collect(DISTINCT icd.code)[0] AS icd10
+RETURN c.id AS snomed_concept_id,
+       c.fsn AS term,
+       c.semantic_tag AS semantic_tag,
+       icd10,
+       read_code,
+       best_score AS score
+ORDER BY best_score DESC
+LIMIT $limit
+"""
+

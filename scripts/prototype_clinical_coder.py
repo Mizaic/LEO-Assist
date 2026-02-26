@@ -169,9 +169,9 @@ def build_fulltext_queries(mention: str) -> list[str]:
 
 def load_neo4j_config() -> tuple[str, str, str]:
     load_dotenv(ROOT / "secrets" / ".env")
-    uri = os.environ.get("CODING_GRAPH_NEO4J_URI", "")
-    user = os.environ.get("CODING_GRAPH_NEO4J_USERNAME", "")
-    password = os.environ.get("CODING_GRAPH_NEO4J_PASSWORD", "")
+    uri = os.environ.get("KNOWLEDGE_GRAPH_NEO4J_URI", "")
+    user = os.environ.get("KNOWLEDGE_GRAPH_NEO4J_USERNAME", "")
+    password = os.environ.get("KNOWLEDGE_GRAPH_NEO4J_PASSWORD", "")
     if not all([uri, user, password]):
         raise RuntimeError("Missing Neo4j env vars in secrets/.env")
     return uri, user, password
@@ -763,9 +763,9 @@ def build_fulltext_queries(mention: str) -> list[str]:
 
 def load_neo4j_config() -> tuple[str, str, str]:
     load_dotenv(ROOT / "secrets" / ".env")
-    uri = os.environ.get("CODING_GRAPH_NEO4J_URI", "")
-    user = os.environ.get("CODING_GRAPH_NEO4J_USERNAME", "")
-    password = os.environ.get("CODING_GRAPH_NEO4J_PASSWORD", "")
+    uri = os.environ.get("KNOWLEDGE_GRAPH_NEO4J_URI", "")
+    user = os.environ.get("KNOWLEDGE_GRAPH_NEO4J_USERNAME", "")
+    password = os.environ.get("KNOWLEDGE_GRAPH_NEO4J_PASSWORD", "")
     if not all([uri, user, password]):
         raise RuntimeError("Missing Neo4j env vars in secrets/.env")
     return uri, user, password
@@ -1421,9 +1421,9 @@ def build_fulltext_queries(mention: str) -> list[str]:
 
 def load_neo4j_config() -> tuple[str, str, str]:
     load_dotenv(ROOT / "secrets" / ".env")
-    uri = os.environ.get("CODING_GRAPH_NEO4J_URI", "")
-    user = os.environ.get("CODING_GRAPH_NEO4J_USERNAME", "")
-    password = os.environ.get("CODING_GRAPH_NEO4J_PASSWORD", "")
+    uri = os.environ.get("KNOWLEDGE_GRAPH_NEO4J_URI", "")
+    user = os.environ.get("KNOWLEDGE_GRAPH_NEO4J_USERNAME", "")
+    password = os.environ.get("KNOWLEDGE_GRAPH_NEO4J_PASSWORD", "")
     if not all([uri, user, password]):
         raise RuntimeError("Missing Neo4j env vars in secrets/.env")
     return uri, user, password

@@ -62,9 +62,9 @@ SET t.embedding = r.embedding,
 
 def load_neo4j_config() -> tuple[str, str, str]:
     load_dotenv(ROOT / "secrets" / ".env")
-    uri = os.environ.get("CODING_GRAPH_NEO4J_URI", "").strip()
-    user = os.environ.get("CODING_GRAPH_NEO4J_USERNAME", "").strip()
-    password = os.environ.get("CODING_GRAPH_NEO4J_PASSWORD", "").strip()
+    uri = os.environ.get("KNOWLEDGE_GRAPH_NEO4J_URI", "").strip()
+    user = os.environ.get("KNOWLEDGE_GRAPH_NEO4J_USERNAME", "").strip()
+    password = os.environ.get("KNOWLEDGE_GRAPH_NEO4J_PASSWORD", "").strip()
     if not all([uri, user, password]):
         raise RuntimeError("Missing Neo4j credentials in secrets/.env")
     return uri, user, password

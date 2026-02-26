@@ -27,19 +27,29 @@ except ImportError:
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app import config  # noqa: F401 - loads secrets/.env
 from app.routers.audit import router as audit_router
+from app.routers.auth import router as auth_router
 from app.routers.exports import router as exports_router
 from app.routers.games import router as games_router
 from app.routers.patients import router as patients_router
 from app.routers.pipeline import router as pipeline_router
+from app.routers.proxy import router as proxy_router
 from app.routers.review import router as review_router
 from app.routers.terminology import router as terminology_router
 
 
 @asynccontextmanager
 async def lifespan(app: object):
+    import threading
     from app.services.v3.pipeline_service import V3PipelineService
-    V3PipelineService.preload_embedder()
+
+    def _preload():
+        V3PipelineService.preload_embedder()
+
+    t = threading.Thread(target=_preload, daemon=True)
+    t.start()
+    # Don't block startup — embedder loads in background; pipeline will wait if needed
     yield
 
 
@@ -58,6 +68,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(auth_router)
+app.include_router(proxy_router)
 app.include_router(patients_router)
 app.include_router(pipeline_router)
 app.include_router(review_router)

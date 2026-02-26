@@ -79,9 +79,9 @@ export default function PipelinePanel() {
     <Box sx={{ maxWidth: 960, mx: "auto", py: 4, px: 3 }}>
       <Card>
         <CardContent sx={{ p: 3 }}>
-          {/* ── Run Pipeline ── */}
+          {/* ── Processing ── */}
           <Typography variant="h6" sx={{ mb: 2 }}>
-            Run Pipeline
+            Process Records
           </Typography>
 
           <Stack direction="row" spacing={1.5} flexWrap="wrap" alignItems="flex-end">
@@ -102,7 +102,7 @@ export default function PipelinePanel() {
               InputProps={{ sx: { fontFamily: "var(--font-mono)" } }}
             />
             <TextField
-              label="Workers"
+              label="Threads"
               type="number"
               value={workers}
               onChange={(e) => setWorkers(e.target.value)}
@@ -118,7 +118,7 @@ export default function PipelinePanel() {
                   color="primary"
                 />
               }
-              label="Dry run"
+              label="Preview"
               sx={{ pb: 0.5 }}
             />
             <Button
@@ -132,7 +132,7 @@ export default function PipelinePanel() {
                   : undefined
               }
             >
-              {pipeline.running ? "Running\u2026" : "Run Pipeline"}
+              {pipeline.running ? "Running\u2026" : "Process Records"}
             </Button>
           </Stack>
 
@@ -192,7 +192,7 @@ export default function PipelinePanel() {
           <Divider sx={{ my: 3 }} />
 
           <Typography variant="h6" sx={{ mb: 2 }}>
-            Export MedSpaCy Training
+            Export Training Data
           </Typography>
 
           <Stack direction="row" spacing={1.5} alignItems="flex-end" flexWrap="wrap">
@@ -209,12 +209,12 @@ export default function PipelinePanel() {
               onClick={handleExportMedSpaCy}
               disabled={exporting}
             >
-              {exporting ? "Exporting\u2026" : "Export MedSpaCy training"}
+              {exporting ? "Exporting\u2026" : "Export training data"}
             </Button>
           </Stack>
 
           <Typography variant="caption" sx={{ display: "block", mt: 0.5 }}>
-            Uses patient IDs above if set; otherwise exports all approved gold.
+            Uses patient IDs above if set; otherwise exports all approved data.
           </Typography>
 
           {exportResult && (

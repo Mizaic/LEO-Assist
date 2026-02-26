@@ -17,6 +17,9 @@ from app.models.neo4j_schema import (
     LIST_ENCOUNTER_CODED_LINKS,
     LIST_PATIENT_ENCOUNTERS,
     LIST_PATIENTS,
+    SEARCH_ENCOUNTERS_KEYWORD,
+    SEARCH_ENCOUNTERS_VECTOR,
+    UPDATE_CODED_LINK_MODIFIERS,
 )
 from app.services.inference_service import infer_encounter
 from app.services.reset_review_queue_service import reset_review_queue
@@ -35,6 +38,13 @@ class RecodeCodedLinkRequest(BaseModel):
     read_code: str | None = None
     semantic_tag: str = "SnomedConcept"
     modifiers: dict[str, Any] | None = None
+
+
+class UpdateModifiersRequest(BaseModel):
+    value: str | float | None = None
+    unit: str | None = None
+    reference_range: str | None = None
+    interpretation: str | None = None
 
 
 class AddCodedLinkRequest(BaseModel):
@@ -154,6 +164,70 @@ def list_encounters(patient_id: str, limit: int = Query(default=500, ge=1, le=20
         return client.run(LIST_PATIENT_ENCOUNTERS, patient_id=patient_id, limit=limit)
     finally:
         client.close()
+
+
+@router.get("/{patient_id}/encounters/search")
+def search_encounters(
+    patient_id: str,
+    q: str = Query(min_length=1),
+    mode: str = Query(default="hybrid", pattern="^(keyword|semantic|hybrid)$"),
+    limit: int = Query(default=50, ge=1, le=200),
+):
+    """Hybrid encounter search: keyword on text + vector similarity on encounter embeddings."""
+    from app.services.v3.pipeline_service import V3PipelineService
+
+    results: dict[str, dict] = {}
+
+    patient_client = PatientGraphClient()
+    try:
+        if mode in ("keyword", "hybrid"):
+            for row in patient_client.run(
+                SEARCH_ENCOUNTERS_KEYWORD,
+                patient_id=patient_id,
+                q=q,
+                limit=limit,
+            ):
+                eid = str(row["encounter_id"])
+                results[eid] = {
+                    **row,
+                    "match_type": "keyword",
+                    "similarity": None,
+                }
+
+        if mode in ("semantic", "hybrid"):
+            embedder = V3PipelineService._try_load_embedder()
+            if embedder is not None:
+                query_vec = embedder.encode([q])[0]
+                k = min(limit * 3, 200)
+                for row in patient_client.run(
+                    SEARCH_ENCOUNTERS_VECTOR,
+                    patient_id=patient_id,
+                    query_vector=query_vec,
+                    k=k,
+                    limit=limit,
+                ):
+                    eid = str(row["encounter_id"])
+                    sim = float(row.pop("similarity", 0))
+                    if eid in results:
+                        results[eid]["match_type"] = "both"
+                        results[eid]["similarity"] = sim
+                    else:
+                        results[eid] = {
+                            **row,
+                            "match_type": "semantic",
+                            "similarity": sim,
+                        }
+    finally:
+        patient_client.close()
+
+    ordered = sorted(
+        results.values(),
+        key=lambda r: (
+            0 if r["match_type"] == "both" else 1 if r["match_type"] == "keyword" else 2,
+            -(r.get("similarity") or 0),
+        ),
+    )
+    return ordered[:limit]
 
 
 @router.get("/{patient_id}/encounters/{encounter_id}")
@@ -302,5 +376,32 @@ def recode_coded_link(
                 session=session,
             )
         return {"recode": True, "new_concept_id": body.new_concept_id}
+    finally:
+        client.close()
+
+
+@router.put("/{patient_id}/encounters/{encounter_id}/coded-links/{concept_id}/modifiers")
+def update_coded_link_modifiers(
+    patient_id: str,
+    encounter_id: str,
+    concept_id: str,
+    body: UpdateModifiersRequest,
+):
+    """Update value/unit/reference_range/interpretation on an existing coded link."""
+    modifiers = {
+        k: v for k, v in body.model_dump().items() if v is not None
+    }
+    client = PatientGraphClient()
+    try:
+        rows = client.run(
+            UPDATE_CODED_LINK_MODIFIERS,
+            patient_id=patient_id,
+            encounter_id=encounter_id,
+            concept_id=concept_id,
+            modifiers=json.dumps(modifiers) if modifiers else "{}",
+        )
+        if not rows:
+            raise HTTPException(status_code=404, detail="Coded link not found")
+        return {"concept_id": concept_id, "modifiers": modifiers}
     finally:
         client.close()

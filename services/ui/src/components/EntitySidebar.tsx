@@ -2,19 +2,24 @@
 
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
+import IconButton from "@mui/material/IconButton";
 import List from "@mui/material/List";
+import ListItem from "@mui/material/ListItem";
 import ListItemButton from "@mui/material/ListItemButton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import type { EncounterTerm } from "@/lib/types";
+import DeleteIcon from "@mui/icons-material/Delete";
+import type { Correction, EncounterTerm } from "@/lib/types";
 
 interface Props {
   terms: EncounterTerm[];
   selectedId: string | null;
   onSelect: (termId: string) => void;
+  onRemove?: (termId: string) => void;
+  onCorrection?: (c: Correction) => void;
 }
 
-export default function EntitySidebar({ terms, selectedId, onSelect }: Props) {
+export default function EntitySidebar({ terms, selectedId, onSelect, onRemove, onCorrection }: Props) {
   return (
     <Box>
       <Typography
@@ -29,7 +34,7 @@ export default function EntitySidebar({ terms, selectedId, onSelect }: Props) {
           borderColor: "divider",
         }}
       >
-        Entities ({terms.length})
+        Clinical Terms ({terms.length})
       </Typography>
       <List disablePadding sx={{ overflowY: "auto", maxHeight: "calc(100vh - 320px)" }}>
         {terms.map((t) => {
@@ -39,18 +44,42 @@ export default function EntitySidebar({ terms, selectedId, onSelect }: Props) {
           const isSelected = t.term_id === selectedId;
 
           return (
-            <ListItemButton
+            <ListItem
               key={`${t.term_id}-${t.span_start}-${t.span_end}`}
-              selected={isSelected}
-              onClick={() => onSelect(t.term_id)}
-              sx={{
-                display: "block",
-                px: 2,
-                py: 1.25,
-                borderBottom: 1,
-                borderColor: "grey.100",
-              }}
+              disablePadding
+              secondaryAction={
+                onRemove ? (
+                  <IconButton
+                    size="small"
+                    color="error"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onCorrection?.({
+                        type: "remove",
+                        text: t.text,
+                        detail: `Removed clinical term`,
+                        time: new Date().toISOString(),
+                      });
+                      onRemove(t.term_id);
+                    }}
+                    title="Remove term"
+                    sx={{ mr: 0.5 }}
+                  >
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                ) : null
+              }
+              sx={{ borderBottom: 1, borderColor: "grey.100" }}
             >
+              <ListItemButton
+                selected={isSelected}
+                onClick={() => onSelect(t.term_id)}
+                sx={{
+                  display: "block",
+                  px: 2,
+                  py: 1.25,
+                }}
+              >
               <Typography variant="body2" sx={{ fontWeight: 500, color: "text.primary", mb: 0.25 }}>
                 {t.text}
               </Typography>
@@ -83,7 +112,8 @@ export default function EntitySidebar({ terms, selectedId, onSelect }: Props) {
                   )}
                 </Stack>
               )}
-            </ListItemButton>
+              </ListItemButton>
+            </ListItem>
           );
         })}
       </List>

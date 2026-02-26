@@ -244,3 +244,8 @@ external_content/
 services/terminology/data/
 *.joblib
 nmslib_index.bin
+
+# Playwright
+e2e/.auth/
+playwright-report/
+test-results/

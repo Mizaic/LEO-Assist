@@ -2,14 +2,58 @@
 
 from __future__ import annotations
 
+import logging
+import random
+import time
 from contextlib import contextmanager
 from typing import Any
 
 from neo4j import GraphDatabase
-from neo4j.exceptions import ConfigurationError
+from neo4j.exceptions import (
+    ConfigurationError,
+    ServiceUnavailable,
+    SessionExpired,
+    TransientError,
+)
 
 from app.config import get_settings
 from app.models.neo4j_schema import CODING_SCHEMA_CONSTRAINTS, PATIENT_SCHEMA_CONSTRAINTS
+
+logger = logging.getLogger(__name__)
+
+_RETRYABLE_EXCEPTIONS = (ServiceUnavailable, SessionExpired, TransientError, OSError)
+_MAX_RETRIES = 4
+_BASE_DELAY = 1.0
+_MAX_DELAY = 15.0
+
+
+def run_with_retry(
+    client: "_BaseClient",
+    query: str,
+    **params: Any,
+) -> list[dict[str, Any]]:
+    """Execute a Cypher query with automatic retry on transient connection errors.
+
+    Opens a fresh session per attempt so stale connections are discarded.
+    """
+    last_exc: BaseException | None = None
+    for attempt in range(_MAX_RETRIES):
+        try:
+            with client.session() as s:
+                return [dict(r) for r in s.run(query, **params)]
+        except _RETRYABLE_EXCEPTIONS as exc:
+            last_exc = exc
+            if attempt == _MAX_RETRIES - 1:
+                raise
+            delay = min(_MAX_DELAY, _BASE_DELAY * (2 ** attempt)) + random.uniform(0, 0.5)
+            logger.warning(
+                "Neo4j transient error (attempt %d/%d): %s — retrying in %.1fs",
+                attempt + 1, _MAX_RETRIES, exc, delay,
+            )
+            time.sleep(delay)
+    if last_exc is not None:
+        raise last_exc
+    raise RuntimeError("Neo4j request failed after retries")
 
 
 class _BaseClient:
@@ -30,7 +74,6 @@ class _BaseClient:
                 notifications_min_severity=notifications_min_severity,
             )
         except ConfigurationError:
-            # Fallback for Neo4j < 5.7 that doesn't support notifications_min_severity
             self._driver = GraphDatabase.driver(uri, auth=(username, password))
 
     def close(self) -> None:
@@ -45,8 +88,7 @@ class _BaseClient:
             s.close()
 
     def run(self, query: str, **params: Any) -> list[dict[str, Any]]:
-        with self.session() as s:
-            return [dict(r) for r in s.run(query, **params)]
+        return run_with_retry(self, query, **params)
 
 
 class PatientGraphClient(_BaseClient):
@@ -67,14 +109,14 @@ class PatientGraphClient(_BaseClient):
 
 
 class CodingGraphClient(_BaseClient):
-    """Connects to the terminology graph (CODING_GRAPH_NEO4J_URI). Read-only for app code."""
+    """Connects to the Knowledge Graph (KNOWLEDGE_GRAPH_NEO4J_URI). Read-only for app code."""
 
     def __init__(self) -> None:
         settings = get_settings()
         super().__init__(
-            settings.coding_neo4j_uri,
-            settings.coding_neo4j_username,
-            settings.coding_neo4j_password,
+            settings.knowledge_neo4j_uri,
+            settings.knowledge_neo4j_username,
+            settings.knowledge_neo4j_password,
         )
 
     def initialize_schema(self) -> None:

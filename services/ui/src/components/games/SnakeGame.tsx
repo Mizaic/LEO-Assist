@@ -308,6 +308,7 @@ export default function SnakeGame() {
 
     /* ── render ── */
     function draw(s: GS, now: number) {
+      if (!ctx) return;
       ctx.fillStyle = "#0f172a";
       ctx.fillRect(0, 0, W, H);
 

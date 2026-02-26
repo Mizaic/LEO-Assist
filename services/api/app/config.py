@@ -18,9 +18,9 @@ class Settings:
     patient_neo4j_uri: str
     patient_neo4j_username: str
     patient_neo4j_password: str
-    coding_neo4j_uri: str
-    coding_neo4j_username: str
-    coding_neo4j_password: str
+    knowledge_neo4j_uri: str
+    knowledge_neo4j_username: str
+    knowledge_neo4j_password: str
     pipeline_version: str
     extractor_version: str
     validator_version: str
@@ -34,9 +34,9 @@ def get_settings() -> Settings:
         patient_neo4j_uri=os.getenv("NEO4J_URI", ""),
         patient_neo4j_username=os.getenv("NEO4J_USER", ""),
         patient_neo4j_password=os.getenv("NEO4J_PASSWORD", ""),
-        coding_neo4j_uri=os.getenv("CODING_GRAPH_NEO4J_URI", ""),
-        coding_neo4j_username=os.getenv("CODING_GRAPH_NEO4J_USERNAME", ""),
-        coding_neo4j_password=os.getenv("CODING_GRAPH_NEO4J_PASSWORD", ""),
+        knowledge_neo4j_uri=os.getenv("KNOWLEDGE_GRAPH_NEO4J_URI", ""),
+        knowledge_neo4j_username=os.getenv("KNOWLEDGE_GRAPH_NEO4J_USERNAME", ""),
+        knowledge_neo4j_password=os.getenv("KNOWLEDGE_GRAPH_NEO4J_PASSWORD", ""),
         pipeline_version=os.getenv("TRAINING_PIPELINE_VERSION", "v2.0.0-mvp"),
         extractor_version=os.getenv("TRAINING_EXTRACTOR_VERSION", "v2.surface_patch"),
         validator_version=os.getenv("TRAINING_VALIDATOR_VERSION", "v2.gates"),

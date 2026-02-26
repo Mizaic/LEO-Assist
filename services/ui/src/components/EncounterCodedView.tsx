@@ -67,13 +67,13 @@ export default function EncounterCodedView({ patientId, encounterId }: Props) {
     try {
       const result = await inferEncounter(patientId, encounterId, true);
       if (result.entities.length > 0) {
-        setInferResult(`${result.entities.length} entities inferred`);
+        setInferResult(`${result.entities.length} clinical terms extracted`);
       } else {
-        setInferResult(result.message ?? "No entities (model not yet built)");
+        setInferResult(result.message ?? "No clinical terms found (model not yet built)");
       }
       setRefreshTrigger((t) => t + 1);
     } catch (e) {
-      setInferResult(e instanceof Error ? e.message : "Inference failed");
+      setInferResult(e instanceof Error ? e.message : "Extraction failed");
     } finally {
       setInferring(false);
     }
@@ -222,7 +222,7 @@ export default function EncounterCodedView({ patientId, encounterId }: Props) {
         ]);
       })
       .catch((e) =>
-        setError(e instanceof Error ? e.message : "Could not add coded link."),
+        setError(e instanceof Error ? e.message : "Could not add clinical code."),
       )
       .finally(() => {
         setShowTermSearch(false);
@@ -288,7 +288,7 @@ export default function EncounterCodedView({ patientId, encounterId }: Props) {
                   sx={{ textTransform: "none", fontWeight: 600 }}
                   color="success"
                 >
-                  {inferring ? "Running…" : "Run inference"}
+                  {inferring ? "Running…" : "Extract clinical terms"}
                 </Button>
                 <Button
                   variant="outlined"
@@ -360,7 +360,7 @@ export default function EncounterCodedView({ patientId, encounterId }: Props) {
                   boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
                 }}
               >
-                Code selection
+                Assign code
               </Button>
             </Box>
           )}

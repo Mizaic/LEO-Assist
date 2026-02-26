@@ -13,7 +13,7 @@ export default function EpisodesByTypeChart({ data }: { data: DataItem[] }) {
   if (!data.length) {
     return (
       <Typography variant="body2" color="text.secondary">
-        No episode data available.
+        No referral pathway data available.
       </Typography>
     );
   }

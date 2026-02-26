@@ -23,6 +23,7 @@ logger = logging.getLogger("libs.auth")
 class TenantContext:
     tenant_id: str
     user_oid: Optional[str] = None
+    user_email: Optional[str] = None
     roles: Optional[str] = None
     app_id: Optional[str] = None
 
@@ -66,9 +67,14 @@ def _tenant_from_jwt(token: str) -> TenantContext:
     if not tid:
         raise HTTPException(status_code=401, detail="JWT missing tenant id (tid).")
 
+    email = claims.get("preferred_username") or claims.get("upn") or claims.get("email")
+    if isinstance(email, str):
+        email = email.strip().lower() or None
+
     return TenantContext(
         tenant_id=tid,
         user_oid=claims.get("oid"),
+        user_email=email,
         roles=",".join(claims.get("roles", []) or []),
         app_id=claims.get("azp") or claims.get("appid"),
     )
@@ -86,6 +92,7 @@ def _get_expected_audiences(client_id: str) -> List[str]:
 
 
 def _get_expected_issuers(tenant_id: str) -> List[str]:
+    """Accept v2.0 (preferred) and v1.0 issuers. Prefer accessTokenAcceptedVersion: 2 in app manifest."""
     return [
         f"https://login.microsoftonline.com/{tenant_id}/v2.0",
         f"https://sts.windows.net/{tenant_id}/",

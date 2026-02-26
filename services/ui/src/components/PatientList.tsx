@@ -14,6 +14,7 @@ import LinearProgress from "@mui/material/LinearProgress";
 import Skeleton from "@mui/material/Skeleton";
 import SearchIcon from "@mui/icons-material/Search";
 import RefreshIcon from "@mui/icons-material/Refresh";
+import { Virtuoso } from "react-virtuoso";
 import { fetchPatients } from "@/lib/api";
 import type { Patient } from "@/lib/types";
 
@@ -101,51 +102,55 @@ export default function PatientList() {
         </Stack>
       )}
 
-      {!loading && (
-        <Stack spacing={1}>
-          {filteredPatients.map((p) => {
+      {!loading && filteredPatients.length > 0 && (
+        <Virtuoso
+          data={filteredPatients}
+          useWindowScroll
+          itemContent={(_index, p) => {
             const progress = Math.round((p.progress ?? 0) * 100);
             return (
-              <Card key={p.patient_id} variant="outlined">
-                <CardActionArea onClick={() => router.push(`/patients/${p.patient_id}`)}>
-                  <Box
-                    sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      p: 2,
-                    }}
-                  >
-                    <Box>
-                      <Typography variant="subtitle1" sx={{ fontFamily: "var(--font-mono)", fontWeight: 600 }}>
-                        {p.patient_id}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {p.encounter_count} encounters
-                      </Typography>
+              <Box sx={{ pb: 1 }}>
+                <Card variant="outlined">
+                  <CardActionArea onClick={() => router.push(`/patients/${p.patient_id}`)}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        p: 2,
+                      }}
+                    >
+                      <Box>
+                        <Typography variant="subtitle1" sx={{ fontFamily: "var(--font-mono)", fontWeight: 600 }}>
+                          {p.patient_id}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          {p.encounter_count} encounters
+                        </Typography>
+                      </Box>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                        <LinearProgress
+                          variant="determinate"
+                          value={progress}
+                          color={progress >= 100 ? "success" : "primary"}
+                          sx={{ width: 120, height: 6, borderRadius: 1 }}
+                        />
+                        <Typography variant="caption" color="text.secondary">
+                          {p.reviewed_count ?? 0}/{p.encounter_count}
+                        </Typography>
+                      </Box>
                     </Box>
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                      <LinearProgress
-                        variant="determinate"
-                        value={progress}
-                        color={progress >= 100 ? "success" : "primary"}
-                        sx={{ width: 120, height: 6, borderRadius: 1 }}
-                      />
-                      <Typography variant="caption" color="text.secondary">
-                        {p.reviewed_count ?? 0}/{p.encounter_count}
-                      </Typography>
-                    </Box>
-                  </Box>
-                </CardActionArea>
-              </Card>
+                  </CardActionArea>
+                </Card>
+              </Box>
             );
-          })}
-        </Stack>
+          }}
+        />
       )}
 
       {!loading && patients.length === 0 && !error && (
         <Typography color="text.secondary" sx={{ textAlign: "center", py: 5 }}>
-          No patients found. Run the pipeline to generate review tasks.
+          No patients found. Process records to begin referral quality review.
         </Typography>
       )}
       {!loading && patients.length > 0 && filteredPatients.length === 0 && !error && (

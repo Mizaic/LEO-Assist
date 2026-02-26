@@ -9,11 +9,13 @@ import CardContent from "@mui/material/CardContent";
 import Skeleton from "@mui/material/Skeleton";
 import Chip from "@mui/material/Chip";
 import { fetchEpisodeSummary, fetchKPIBenchmarks, fetchCSSAlerts } from "@/lib/analyticsApi";
+import { useOrgId } from "@/context/OrgContext";
 import KPICards from "@/components/dashboard/KPICards";
 import EpisodesByTypeChart from "@/components/dashboard/EpisodesByTypeChart";
 import CSSAlertsSummary from "@/components/dashboard/CSSAlertsSummary";
 
 export default function DashboardPage() {
+  const orgId = useOrgId();
   const [episodes, setEpisodes] = useState<Array<{ cancer_type: string; status: string; count: number }>>([]);
   const [kpis, setKpis] = useState<any>(null);
   const [alerts, setAlerts] = useState<Array<any>>([]);
@@ -21,12 +23,13 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    setLoading(true);
     async function load() {
       try {
         const [ep, kpi, css] = await Promise.all([
-          fetchEpisodeSummary().catch(() => []),
-          fetchKPIBenchmarks().catch(() => []),
-          fetchCSSAlerts().catch(() => []),
+          fetchEpisodeSummary(orgId).catch(() => []),
+          fetchKPIBenchmarks(orgId).catch(() => []),
+          fetchCSSAlerts(orgId).catch(() => []),
         ]);
         setEpisodes(ep);
         setKpis(kpi?.[0] ?? null);
@@ -38,7 +41,7 @@ export default function DashboardPage() {
       }
     }
     load();
-  }, []);
+  }, [orgId]);
 
   const totalEpisodes = episodes.reduce((s, e) => s + e.count, 0);
   const activeEpisodes = episodes.filter((e) => e.status === "active").reduce((s, e) => s + e.count, 0);
@@ -47,7 +50,7 @@ export default function DashboardPage() {
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h5" sx={{ mb: 3 }}>
-        Dashboard
+        Overview
       </Typography>
 
       {error && (
@@ -59,21 +62,21 @@ export default function DashboardPage() {
       <Grid container spacing={2.5} sx={{ mb: 3 }}>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <StatCard
-            label="Total Episodes"
+            label="Total Referral Pathways"
             value={loading ? undefined : totalEpisodes}
             color="primary.main"
           />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <StatCard
-            label="Active Episodes"
+            label="Active Pathways"
             value={loading ? undefined : activeEpisodes}
             color="secondary.main"
           />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <StatCard
-            label="CSS Alerts"
+            label="Safety Netting Alerts"
             value={loading ? undefined : alerts.length}
             color="warning.main"
             badge={criticalAlerts > 0 ? `${criticalAlerts} critical` : undefined}
@@ -93,7 +96,7 @@ export default function DashboardPage() {
           <Card>
             <CardContent>
               <Typography variant="h6" sx={{ mb: 2, fontSize: "1rem" }}>
-                Episodes by Cancer Type
+                Referral Pathways by Cancer Type
               </Typography>
               {loading ? (
                 <Skeleton variant="rectangular" height={280} />
@@ -107,7 +110,7 @@ export default function DashboardPage() {
           <Card>
             <CardContent>
               <Typography variant="h6" sx={{ mb: 2, fontSize: "1rem" }}>
-                KPI Overview
+                Referral Quality Indicators
               </Typography>
               {loading ? <Skeleton variant="rectangular" height={280} /> : <KPICards kpis={kpis} />}
             </CardContent>
@@ -117,7 +120,7 @@ export default function DashboardPage() {
           <Card>
             <CardContent>
               <Typography variant="h6" sx={{ mb: 2, fontSize: "1rem" }}>
-                Recent CSS Alerts
+                Recent Safety Netting Alerts
               </Typography>
               {loading ? (
                 <Skeleton variant="rectangular" height={200} />

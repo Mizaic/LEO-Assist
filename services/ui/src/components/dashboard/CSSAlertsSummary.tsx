@@ -3,13 +3,8 @@
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import Chip from "@mui/material/Chip";
-
-interface Alert {
-  episode_id: string;
-  type: string;
-  severity: string;
-  description: string;
-}
+import Link from "next/link";
+import type { CSSAlert } from "@/lib/analyticsApi";
 
 const SEVERITY_COLORS: Record<string, "error" | "warning" | "info" | "default"> = {
   critical: "error",
@@ -18,11 +13,11 @@ const SEVERITY_COLORS: Record<string, "error" | "warning" | "info" | "default"> 
   low: "info",
 };
 
-export default function CSSAlertsSummary({ alerts }: { alerts: Alert[] }) {
+export default function CSSAlertsSummary({ alerts }: { alerts: CSSAlert[] }) {
   if (!alerts.length) {
     return (
       <Typography variant="body2" color="text.secondary">
-        No CSS alerts detected. All episodes within expected parameters.
+        No safety netting alerts. All referral pathways within expected parameters.
       </Typography>
     );
   }
@@ -31,7 +26,7 @@ export default function CSSAlertsSummary({ alerts }: { alerts: Alert[] }) {
     <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
       {alerts.map((a, i) => (
         <Box
-          key={`${a.episode_id}-${a.type}-${i}`}
+          key={`${a.id ?? a.episode_id}-${a.type}-${i}`}
           sx={{
             display: "flex",
             alignItems: "flex-start",
@@ -57,16 +52,33 @@ export default function CSSAlertsSummary({ alerts }: { alerts: Alert[] }) {
             <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.25 }}>
               {a.description}
             </Typography>
+            {a.patient_id && (
+              <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.25, fontFamily: "monospace" }}>
+                Patient: {a.patient_id}
+                {a.cancer_type ? ` -- ${a.cancer_type}` : ""}
+              </Typography>
+            )}
           </Box>
           <Typography
             variant="caption"
             color="text.secondary"
             sx={{ whiteSpace: "nowrap", flexShrink: 0 }}
           >
-            {a.episode_id}
+            {a.episode_id ?? ""}
           </Typography>
         </Box>
       ))}
+
+      <Box sx={{ textAlign: "right", pt: 0.5 }}>
+        <Link href="/css" style={{ textDecoration: "none" }}>
+          <Typography
+            variant="caption"
+            sx={{ color: "primary.main", fontWeight: 600, "&:hover": { textDecoration: "underline" } }}
+          >
+            View all alerts
+          </Typography>
+        </Link>
+      </Box>
     </Box>
   );
 }

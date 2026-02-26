@@ -309,7 +309,7 @@ export default function ReviewView({ taskId, patientId }: Props) {
         });
       })
       .catch((e) =>
-        setError(e instanceof Error ? e.message : "Could not add coded link."),
+        setError(e instanceof Error ? e.message : "Could not add clinical code."),
       )
       .finally(() => {
         setCodeSearchOpen(false);
@@ -470,7 +470,7 @@ export default function ReviewView({ taskId, patientId }: Props) {
                 Review: {localCandidate.encounter_id}
               </Typography>
               <Typography variant="caption" color="text.secondary">
-                Patient {patientId} · {localCandidate.date || "no date"} · {allTerms.length} entities
+                Patient {patientId} · {localCandidate.date || "no date"} · {allTerms.length} clinical terms
                 {(() => {
                   try {
                     const usage = localCandidate.llm_usage_json
@@ -500,7 +500,7 @@ export default function ReviewView({ taskId, patientId }: Props) {
                 onClick={() => setShowManualAdd(true)}
                 sx={{ textTransform: "none" }}
               >
-                Add entity
+                Add clinical term
               </Button>
               <Button
                 variant="outlined"
@@ -561,7 +561,7 @@ export default function ReviewView({ taskId, patientId }: Props) {
                   boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
                 }}
               >
-                Code selection
+                Assign code
               </Button>
             </Box>
           )}
@@ -644,6 +644,8 @@ export default function ReviewView({ taskId, patientId }: Props) {
           terms={allTerms}
           selectedId={selectedTermId}
           onSelect={(id) => setSelectedTermId(id)}
+          onRemove={handleRemoveTerm}
+          onCorrection={addCorrection}
         />
         <Divider />
         <CodedLinksSection
@@ -719,7 +721,7 @@ export default function ReviewView({ taskId, patientId }: Props) {
       {confirmRerun && (
         <ConfirmDialog
           title="Reset & re-run this encounter?"
-          body="This will delete all coded links and review data for this encounter, then re-run the pipeline to generate fresh candidates."
+          body="This will delete all clinical codes and review data for this encounter, then re-process to generate fresh candidates."
           confirmLabel="Reset & Re-run"
           variant="danger"
           onConfirm={handleResetRerun}

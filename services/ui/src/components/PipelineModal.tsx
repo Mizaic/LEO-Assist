@@ -132,7 +132,7 @@ export default function PipelineModal({
               whiteSpace: "nowrap",
             }}
           >
-            {status ?? "Pipeline"}
+            {status ?? "Processing"}
           </Typography>
         </Box>
         <Box sx={{ display: "flex", gap: 1 }}>
@@ -184,7 +184,7 @@ export default function PipelineModal({
         />
       )}
 
-      {/* Pipeline stats bar */}
+      {/* Processing stats bar */}
       {stats && (
         <Box
           sx={{
@@ -240,7 +240,7 @@ export default function PipelineModal({
           }}
         >
           <Typography sx={{ fontSize: 16, color: "#22c55e", fontWeight: 700 }}>
-            Pipeline Complete
+            Processing Complete
           </Typography>
           <Button
             onClick={onClose}

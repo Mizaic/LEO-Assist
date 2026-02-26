@@ -143,7 +143,12 @@ class EncounterCandidate(BaseModel):
 
 
 class PipelineRunRequest(BaseModel):
-    patient_ids: list[str] = Field(min_length=1)
+    patient_ids: list[str] = Field(default_factory=list)
+    cohort_id: str | None = None
+    org_id: str | None = None
+    domains: list[str] | None = None
+    skip_episodes: bool = False
+    skip_coding: bool = False
     max_encounters_per_patient: int | None = Field(default=None, gt=0)
     dry_run: bool = False
 
