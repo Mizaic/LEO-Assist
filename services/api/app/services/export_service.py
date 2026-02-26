@@ -73,6 +73,7 @@ class ExportService:
         for candidate in candidates:
             text = candidate.get("deidentified_text", "")
             sent_entities: list[tuple[int, int, str]] = []
+            context_flags: list[dict[str, Any]] = []
             for sentence in candidate.get("sentences", []):
                 for term in sentence.get("terms", []):
                     concept_id = term.get("coding", {}).get("snomed_concept_id")
@@ -80,15 +81,33 @@ class ExportService:
                         continue
                     start = int(term.get("span_start", 0))
                     end = int(term.get("span_end", 0))
-                    label = term.get("semantic_tag", "CLINICAL") or "CLINICAL"
+                    label = term.get("semantic_tag") or "CLINICAL"
                     sent_entities.append((start, end, label))
+
+                    ctx = term.get("context", {})
+                    context_flags.append({
+                        "start": start,
+                        "end": end,
+                        "label": label,
+                        "negated": ctx.get("negated", False),
+                        "uncertain": ctx.get("uncertain", False),
+                        "historical": ctx.get("historical", False),
+                        "subject": ctx.get("subject", "patient"),
+                        "temporality": ctx.get("temporality", "present"),
+                    })
+
                     kb_rows.append({
                         "evidence": term.get("text", ""),
                         "concept_id": concept_id,
                         "term": term.get("coding", {}).get("snomed_term", ""),
+                        "semantic_tag": label,
+                        "negated": str(ctx.get("negated", False)),
                     })
             if sent_entities:
-                entities.append((text, {"entities": sent_entities}))
+                entities.append((
+                    text,
+                    {"entities": sent_entities, "context_flags": context_flags},
+                ))
 
         export_id = str(uuid.uuid4())
         out_dir = Path("exports")

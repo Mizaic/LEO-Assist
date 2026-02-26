@@ -12,7 +12,7 @@
 | D | Analysis Worker | DONE | Committed |
 | E | FHIR API + Analytics API | DONE | Committed |
 | F | Frontend | DONE | Committed |
-| G | Quality + IEC 62304 | PENDING | |
+| G | Quality + IEC 62304 | DONE | Committed |
 
 ## WS-A: Mono-repo Scaffold (DONE)
 
@@ -118,3 +118,24 @@
 - next-auth@beta (Azure AD/Entra ID)
 - recharts (charts)
 - zustand (state management)
+
+## WS-G: Quality + IEC 62304 (DONE)
+
+### Gold Data Improvements
+- [x] Updated `export_service.py` - Fine-grained NER labels (semantic_tag per entity) and context flags (negation, uncertainty, historical, subject, temporality) now exported alongside entity spans
+
+### Ported Services
+- [x] `services/api/app/services/fix_analyzer.py` - Fix Analyzer (from VRB) - analyzes HITL corrections, proposes knowledge-layer fixes
+- [x] `services/analysis-worker/app/analyzers/quality_checker.py` - Quality Checker (from VRB) - duration outliers, missing milestones, NHS targets, low confidence, temporal anomalies, unactioned CSS alerts, coding contradictions
+
+### Test Consolidation
+- [x] `tests/conftest.py` - Shared fixtures with mocked Neo4j and environment
+- [x] `tests/test_terminology_api.py` - Coding resolver, writeback, ValueSet tests
+- [x] `tests/test_fhir_api.py` - Measure CRUD + evaluation, Library CRUD tests
+- [x] `tests/test_analytics_api.py` - CCI scoring, IMD validation, benchmark tests
+- [x] `tests/test_quality_checker.py` - Quality checker + export improvements tests
+- [x] `tests/test_shared_libs.py` - LLM cache, message bus, auth library tests
+
+### IEC 62304 Design Controls
+- [x] Updated `DC-SOUP-001-soup-list.md` - Added 8 new Python packages (httpx, redis, azure-servicebus, openai, langchain-*, PyJWT), 3 new frontend packages (next-auth, recharts, zustand), updated infrastructure section (Neo4j Aura, Azure Redis, Service Bus, Azure AD, AWS Bedrock, Azure OpenAI)
+- [x] Updated `DC-TM-001-traceability-matrix.md` - Added 35 new requirements across 9 categories: Terminology API (4), Coding Worker (5), Analysis Worker (6), FHIR API (5), Analytics API (4), Auth (3), Frontend (5), Fix Analyzer (1), Message Bus (2). Total requirements: 38 -> 73
