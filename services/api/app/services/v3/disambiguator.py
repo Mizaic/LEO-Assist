@@ -10,6 +10,7 @@ from typing import Any
 from app.services.v3.bedrock_retry import converse_with_retry
 from app.services.v3.coding_resolver import CodingCandidate
 from app.services.v3.llm_usage import LLMUsage
+from libs.prompts.registry import get_prompt
 
 logger = logging.getLogger(__name__)
 
@@ -77,10 +78,9 @@ class CodingDisambiguator:
         if not self.enabled:
             return candidates[0], no_usage
 
+        system_text = get_prompt("disambiguation", version=1)
         prompt = (
-            "You are disambiguating SNOMED concepts for a clinical term in context.\n"
-            "Return strict JSON only with keys: conceptId, confidence, reason.\n"
-            'If none fit, return {"conceptId":"NONE","confidence":0.0,"reason":"..."}.\n\n'
+            f"{system_text}\n\n"
             f"Encounter text:\n{encounter_text}\n\n"
             f"Term: {term_text}\n"
             f"Candidates: {json.dumps([c.__dict__ for c in candidates], ensure_ascii=False)}"

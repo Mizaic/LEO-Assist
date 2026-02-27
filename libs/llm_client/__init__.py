@@ -20,6 +20,7 @@ from libs.llm_client.providers import (
     invoke_with_retry,
     invoke_with_fallback,
 )
+from libs.llm_client.factory import create_llm, LLMClient, LLMResponse
 from libs.llm_client.json_helper import invoke_llm_json
 from libs.llm_client.token_tracker import extract_token_counts, track_llm_usage
 
@@ -37,4 +38,7 @@ __all__ = [
     "invoke_llm_json",
     "extract_token_counts",
     "track_llm_usage",
+    "create_llm",
+    "LLMClient",
+    "LLMResponse",
 ]

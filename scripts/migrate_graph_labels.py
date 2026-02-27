@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Neo4j migration: relabel CSSAlert -> SafetyNetAlert, CancerEpisode -> EpisodeOfCare.
+"""Neo4j migration: relabel SafetyNetAlert -> SafetyNetAlert, EpisodeOfCare -> EpisodeOfCare.
 
 Run once against each Neo4j instance (Patient Graph) to update existing data.
 Idempotent: safe to re-run.
@@ -19,18 +19,18 @@ logger = logging.getLogger(__name__)
 
 MIGRATIONS = [
     {
-        "description": "Relabel CSSAlert -> SafetyNetAlert",
+        "description": "Relabel SafetyNetAlert -> SafetyNetAlert",
         "query": """
-            MATCH (n:CSSAlert)
+            MATCH (n:SafetyNetAlert)
             SET n:SafetyNetAlert
-            REMOVE n:CSSAlert
+            REMOVE n:SafetyNetAlert
             RETURN count(n) AS migrated
         """,
     },
     {
-        "description": "Rename HAS_CSS_ALERT -> HAS_SAFETY_NET_ALERT relationships",
+        "description": "Rename HAS_SAFETY_NET_ALERT -> HAS_SAFETY_NET_ALERT relationships",
         "query": """
-            MATCH (a)-[r:HAS_CSS_ALERT]->(b)
+            MATCH (a)-[r:HAS_SAFETY_NET_ALERT]->(b)
             CREATE (a)-[r2:HAS_SAFETY_NET_ALERT]->(b)
             SET r2 = properties(r)
             DELETE r
@@ -38,18 +38,18 @@ MIGRATIONS = [
         """,
     },
     {
-        "description": "Relabel CancerEpisode -> EpisodeOfCare",
+        "description": "Relabel EpisodeOfCare -> EpisodeOfCare",
         "query": """
-            MATCH (n:CancerEpisode)
+            MATCH (n:EpisodeOfCare)
             SET n:EpisodeOfCare
-            REMOVE n:CancerEpisode
+            REMOVE n:EpisodeOfCare
             RETURN count(n) AS migrated
         """,
     },
     {
-        "description": "Rename HAS_EPISODE -> HAS_EPISODE_OF_CARE relationships",
+        "description": "Rename HAS_EPISODE_OF_CARE -> HAS_EPISODE_OF_CARE relationships",
         "query": """
-            MATCH (a)-[r:HAS_EPISODE]->(b)
+            MATCH (a)-[r:HAS_EPISODE_OF_CARE]->(b)
             CREATE (a)-[r2:HAS_EPISODE_OF_CARE]->(b)
             SET r2 = properties(r)
             DELETE r
@@ -57,12 +57,12 @@ MIGRATIONS = [
         """,
     },
     {
-        "description": "Rename cancer_type -> condition_type property on EpisodeOfCare",
+        "description": "Rename condition_type -> condition_type property on EpisodeOfCare",
         "query": """
             MATCH (n:EpisodeOfCare)
-            WHERE n.cancer_type IS NOT NULL
-            SET n.condition_type = n.cancer_type
-            REMOVE n.cancer_type
+            WHERE n.condition_type IS NOT NULL
+            SET n.condition_type = n.condition_type
+            REMOVE n.condition_type
             RETURN count(n) AS migrated
         """,
     },
@@ -86,13 +86,13 @@ MIGRATIONS = [
         "no_return": True,
     },
     {
-        "description": "Drop old CSSAlert index if exists",
-        "query": "DROP INDEX index_CSSAlert_alert_id IF EXISTS",
+        "description": "Drop old SafetyNetAlert index if exists",
+        "query": "DROP INDEX index_SafetyNetAlert_alert_id IF EXISTS",
         "no_return": True,
     },
     {
-        "description": "Drop old CancerEpisode index if exists",
-        "query": "DROP INDEX index_CancerEpisode_episode_id IF EXISTS",
+        "description": "Drop old EpisodeOfCare index if exists",
+        "query": "DROP INDEX index_EpisodeOfCare_episode_id IF EXISTS",
         "no_return": True,
     },
 ]

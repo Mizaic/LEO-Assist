@@ -12,6 +12,8 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
+from libs.prompts.registry import get_prompt
+
 logger = logging.getLogger(__name__)
 
 _VALID_ASSERTIONS = frozenset(
@@ -46,12 +48,7 @@ class ExtractedTerm:
 class LLMExtractor:
     """Extracts clinical terms from encounter text using Bedrock LLM."""
 
-    SYSTEM_PROMPT = (
-        "You are a UK primary care clinical entity extractor. "
-        "Extract SNOMED CT-codable clinical entities from de-identified GP text. "
-        "Return ONLY valid JSON: {\"terms\": [{\"sentence_id\", \"text\", \"lookup_term\", "
-        "\"semantic_tag\", \"assertion\"}]}. Return {\"terms\": []} for no entities."
-    )
+    SYSTEM_PROMPT = get_prompt("extraction", version=1)
 
     def __init__(self, *, model_id: str, region: str | None = None) -> None:
         self.model_id = model_id

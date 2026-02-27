@@ -4,16 +4,16 @@ overview: "Produce 50+ gold patients end-to-end via 4 independent milestones: M1
 todos:
   - id: m1-renames
     content: "M1: Rename CSSAlert -> SafetyNetAlert (~35 files), CancerEpisode -> EpisodeOfCare (~55 files), Neo4j migration script, dead code cleanup (~1700 lines). Commit."
-    status: in_progress
+    status: completed
   - id: m2-prompt-registry
     content: "M2a: Create libs/prompts/ with versioned prompt registry. Move extraction, disambiguation, episode classification prompts."
-    status: pending
+    status: completed
   - id: m2-cypher-registry
     content: "M2b: Create libs/cypher/ starting with cleanup_queries.py, candidate_queries.py, documents_queries.py. Migrate incrementally."
-    status: pending
+    status: completed
   - id: m2-llm-factory
     content: "M2c: Create libs/llm_client/factory.py — sync .converse() wrapping both boto3 Bedrock and Azure OpenAI. Switch V3 extractor + disambiguator to use it. Commit."
-    status: pending
+    status: in_progress
   - id: m3-pre-classify
     content: "M3a: Add encounter pre-classification step — classify encounters as admin/document/clinical + domain tags via 2-model consensus. Build patient encounter index."
     status: pending
