@@ -19,6 +19,7 @@ from services.terminology_api.app.routers import (
     valueset_router,
     conceptmap_router,
     resolve_router,
+    concepts_router,
 )
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
@@ -52,6 +53,7 @@ app.include_router(resolve_router, prefix="/terminology", tags=["resolve"])
 app.include_router(writeback_router, prefix="/terminology", tags=["writeback"])
 app.include_router(valueset_router, prefix="/terminology", tags=["valueset"])
 app.include_router(conceptmap_router, prefix="/terminology", tags=["conceptmap"])
+app.include_router(concepts_router, prefix="/terminology", tags=["concepts"])
 
 
 @app.get("/health")

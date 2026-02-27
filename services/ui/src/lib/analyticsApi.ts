@@ -447,3 +447,18 @@ export async function removeConceptFromSubdomain(
     { method: "DELETE" },
   );
 }
+
+export async function batchAddConceptsToSubdomain(
+  domainId: string,
+  subdomainName: string,
+  concepts: Array<{ concept_id: number; term: string }>,
+): Promise<SubdomainDetail> {
+  return fetchJson<SubdomainDetail>(
+    `${ANALYTICS_BASE}/analytics/domains/${encodeURIComponent(domainId)}/subdomains/${encodeURIComponent(subdomainName)}/concepts/batch`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(concepts),
+    },
+  );
+}

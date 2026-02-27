@@ -2,20 +2,24 @@
 # Creates / activates .venv, installs all deps, starts every microservice.
 #
 # Usage:
-#   .\scripts\start_primary_care.ps1                   # full stack
-#   .\scripts\start_primary_care.ps1 -SkipInstall      # skip pip/npm
-#   .\scripts\start_primary_care.ps1 -NoWorkers         # skip background workers
-#   .\scripts\start_primary_care.ps1 -Services api,ui   # named subset
+#   .\scripts\start_primary_care.ps1                           # full stack (3 coding + 2 analysis workers)
+#   .\scripts\start_primary_care.ps1 -SkipInstall              # skip pip/npm
+#   .\scripts\start_primary_care.ps1 -NoWorkers                # skip background workers
+#   .\scripts\start_primary_care.ps1 -Services api,ui          # named subset
+#   .\scripts\start_primary_care.ps1 -CodingWorkers 1          # single coding worker (debug)
+#   .\scripts\start_primary_care.ps1 -AnalysisWorkers 1        # single analysis worker (debug)
 
 param(
-    [int]$ApiPort       = 8000,
-    [int]$TermPort      = 8001,
-    [int]$FhirPort      = 8002,
-    [int]$AnalyticsPort = 8003,
-    [int]$UiPort        = 3000,
+    [int]$ApiPort        = 8000,
+    [int]$TermPort       = 8001,
+    [int]$FhirPort       = 8002,
+    [int]$AnalyticsPort  = 8003,
+    [int]$UiPort         = 3000,
+    [int]$CodingWorkers  = 3,
+    [int]$AnalysisWorkers = 2,
     [switch]$SkipInstall,
     [switch]$NoWorkers,
-    [string[]]$Services = @()
+    [string[]]$Services  = @()
 )
 
 $ErrorActionPreference = "Stop"
@@ -141,18 +145,22 @@ if (ShouldStart "analytics_api") {
     $windowCount++
 }
 
-# 5  Coding Worker  (message-bus consumer)
+# 5  Coding Workers  (message-bus consumers, fan-out parallel classification + extraction)
 if (-not $NoWorkers -and (ShouldStart "coding_worker")) {
-    Start-ServiceWindow -Title "Coding Worker" -Command "& '$VenvPython' -m services.coding_worker.app.main"
-    Write-Host "    Coding Worker      (message bus listener)" -ForegroundColor White
-    $windowCount++
+    for ($i = 1; $i -le $CodingWorkers; $i++) {
+        Start-ServiceWindow -Title "Coding Worker $i" -Command "& '$VenvPython' -m services.coding_worker.app.main"
+    }
+    Write-Host "    Coding Workers     (x$CodingWorkers - message bus listeners, fan-out mode)" -ForegroundColor White
+    $windowCount += $CodingWorkers
 }
 
-# 6  Analysis Worker  (message-bus consumer)
+# 6  Analysis Workers  (message-bus consumers, one per patient, sequential stages)
 if (-not $NoWorkers -and (ShouldStart "analysis_worker")) {
-    Start-ServiceWindow -Title "Analysis Worker" -Command "& '$VenvPython' -m services.analysis_worker.app.main"
-    Write-Host "    Analysis Worker    (message bus listener)" -ForegroundColor White
-    $windowCount++
+    for ($i = 1; $i -le $AnalysisWorkers; $i++) {
+        Start-ServiceWindow -Title "Analysis Worker $i" -Command "& '$VenvPython' -m services.analysis_worker.app.main"
+    }
+    Write-Host "    Analysis Workers   (x$AnalysisWorkers - message bus listeners)" -ForegroundColor White
+    $windowCount += $AnalysisWorkers
 }
 
 # 7  UI  (Next.js)  ->  :3000

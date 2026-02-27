@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from typing import Optional
+
 from fastapi import APIRouter, Query
 from pydantic import BaseModel
 
@@ -11,6 +13,15 @@ from app.db.neo4j_client import CodingGraphClient, PatientGraphClient
 from app.models.neo4j_schema import (
     TERMINOLOGY_SEARCH,
     TERMINOLOGY_SEARCH_FILTERED,
+    DESCENDANTS_TEMPLATE,
+    LIST_SURFACE_FORMS,
+    COUNT_SURFACE_FORMS,
+    DELETE_SURFACE_FORM,
+    DELETE_SURFACE_FORM_MAPPING,
+    KEEP_SURFACE_FORM_MAPPING,
+    UPSERT_SURFACE_FORM_MAPPING,
+    DEDUPLICATE_SURFACE_FORM_RELS,
+    AUDIT_SURFACE_FORM_DUPLICATES,
 )
 from app.services.terminology_writeback_service import writeback_approved_terms
 
@@ -96,3 +107,130 @@ def trigger_writeback(body: WritebackRequest | None = None):
     finally:
         patient_client.close()
         coding_client.close()
+
+
+@router.get("/surface-forms")
+def list_surface_forms(
+    q: Optional[str] = Query(default=None, description="Filter by form text"),
+    concept_id: Optional[str] = Query(default=None, description="Filter by SNOMED concept ID"),
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+):
+    """List surface forms with their mapped SNOMED concepts."""
+    client = CodingGraphClient()
+    try:
+        rows = client.run(
+            LIST_SURFACE_FORMS,
+            q=q,
+            concept_id=concept_id,
+            offset=offset,
+            limit=limit,
+        )
+        count_rows = client.run(
+            COUNT_SURFACE_FORMS,
+            q=q,
+            concept_id=concept_id,
+        )
+        total = count_rows[0]["total"] if count_rows else 0
+        return {"items": rows, "total": total, "offset": offset, "limit": limit}
+    finally:
+        client.close()
+
+
+class UpsertMappingRequest(BaseModel):
+    normalized: str
+    form: str
+    concept_id: str
+    confidence: float = 1.0
+    source: str = "manual"
+    provenance: str = "manual_correction"
+    created_by: str = "ui_user"
+
+
+@router.post("/surface-forms/upsert-mapping")
+def upsert_surface_form_mapping(body: UpsertMappingRequest):
+    """Add or correct a MAPS_TO relationship. Creates the SurfaceForm node if it doesn't exist."""
+    client = CodingGraphClient()
+    try:
+        rows = client.run(
+            UPSERT_SURFACE_FORM_MAPPING,
+            normalized=body.normalized,
+            form=body.form,
+            concept_id=body.concept_id,
+            confidence=body.confidence,
+            source=body.source,
+            provenance=body.provenance,
+            created_by=body.created_by,
+        )
+        if not rows:
+            from fastapi import HTTPException
+            raise HTTPException(404, f"Concept {body.concept_id} not found")
+        return rows[0]
+    finally:
+        client.close()
+
+
+@router.delete("/surface-forms/{normalized:path}")
+def delete_surface_form(
+    normalized: str,
+    concept_id: Optional[str] = Query(default=None),
+    keep_concept_id: Optional[str] = Query(default=None),
+):
+    """Delete a surface form or one of its mappings.
+
+    No params         → delete the SurfaceForm node entirely.
+    ?concept_id=X     → delete only the MAPS_TO relationship to concept X.
+    ?keep_concept_id=X → delete all MAPS_TO relationships except to concept X.
+    """
+    client = CodingGraphClient()
+    try:
+        if concept_id:
+            rows = client.run(DELETE_SURFACE_FORM_MAPPING, normalized=normalized, concept_id=concept_id)
+            removed = rows[0]["removed"] if rows else 0
+            return {"normalized": normalized, "concept_id": concept_id, "removed": removed}
+        if keep_concept_id:
+            rows = client.run(KEEP_SURFACE_FORM_MAPPING, normalized=normalized, keep_concept_id=keep_concept_id)
+            removed = rows[0]["removed"] if rows else 0
+            return {"normalized": normalized, "kept_concept_id": keep_concept_id, "removed": removed}
+        client.run(DELETE_SURFACE_FORM, normalized=normalized)
+        return {"deleted": normalized}
+    finally:
+        client.close()
+
+
+@router.get("/surface-forms/duplicates")
+def audit_surface_form_duplicates():
+    """Return surface forms that have more than one MAPS_TO relationship (same or different concepts)."""
+    client = CodingGraphClient()
+    try:
+        return client.run(AUDIT_SURFACE_FORM_DUPLICATES)
+    finally:
+        client.close()
+
+
+@router.post("/surface-forms/deduplicate")
+def deduplicate_surface_forms():
+    """Remove duplicate MAPS_TO relationships, keeping the highest-confidence mapping per surface form."""
+    client = CodingGraphClient()
+    try:
+        rows = client.run(DEDUPLICATE_SURFACE_FORM_RELS)
+        removed = rows[0]["duplicates_removed"] if rows else 0
+        return {"duplicates_removed": removed}
+    finally:
+        client.close()
+
+
+@router.get("/concepts/{concept_id}/descendants")
+def get_descendants(
+    concept_id: str,
+    depth: int = Query(default=3, ge=1, le=5),
+    limit: int = Query(default=300, ge=1, le=500),
+    semantic_tag: Optional[str] = Query(default=None),
+):
+    """Return active SNOMED descendants of a concept via IS_A relationships."""
+    query = DESCENDANTS_TEMPLATE.format(depth=int(depth))
+    client = CodingGraphClient()
+    try:
+        return client.run(query, concept_id=concept_id, semantic_tag=semantic_tag, limit=limit)
+    finally:
+        client.close()

@@ -12,6 +12,7 @@ Key differences from the original:
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import os
@@ -22,6 +23,11 @@ from typing import Any, Callable, Optional
 
 import httpx
 
+from libs.cypher.candidate_queries import (
+    UPSERT_CANDIDATE,
+    CREATE_REVIEW_TASK,
+)
+from libs.cypher.documents_queries import write_documents_from_sentences_payload
 from services.coding_worker.app.pipeline.llm_extractor import (
     ExtractionError,
     ExtractedTerm,
@@ -250,6 +256,10 @@ class CodingPipeline:
             })
         return payload
 
+    @staticmethod
+    def _stable_hash(text: str) -> str:
+        return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
     def _persist_candidate(
         self,
         patient_id: str,
@@ -259,20 +269,53 @@ class CodingPipeline:
         candidate_id: str,
         sentences_payload: list[dict[str, Any]],
     ) -> None:
+        source_hash = self._stable_hash(str(encounter.get("text") or ""))
+        deidentified_hash = self._stable_hash(deidentified)
+        sentences_json = json.dumps(sentences_payload, ensure_ascii=False)
+        task_id = str(uuid.uuid5(uuid.NAMESPACE_URL, f"review-task:{candidate_id}"))
+
         with self.patient_client.session() as session:
+            # Write the full candidate (all fields required by the review queue)
             session.run(
-                "MERGE (c:EncounterCandidate {candidate_id: $cid}) "
-                "SET c.patient_id = $pid, c.encounter_id = $eid, "
-                "    c.date = $date, c.deidentified_text = $deid, "
-                "    c.approval_status = 'pending', "
-                "    c.sentences_json = $sj, c.updated_at = datetime(), "
-                "    c.created_at = coalesce(c.created_at, datetime())",
-                cid=candidate_id,
-                pid=patient_id,
-                eid=encounter_id,
+                UPSERT_CANDIDATE,
+                candidate_id=candidate_id,
+                patient_id=patient_id,
+                encounter_id=encounter_id,
                 date=str(encounter.get("date", "")),
-                deid=deidentified,
-                sj=json.dumps(sentences_payload),
+                source_hash=source_hash,
+                deidentified_hash=deidentified_hash,
+                deidentified_text=deidentified,
+                approval_status="pending",
+                hard_fail_reasons=[],
+                warning_reasons=[],
+                sentences_json=sentences_json,
+                llm_usage_json=None,
+            )
+            # Create the ReviewTask so this candidate appears in the review queue
+            # and _fetch_unprocessed_encounters treats the encounter as processed.
+            session.run(
+                CREATE_REVIEW_TASK,
+                candidate_id=candidate_id,
+                task_id=task_id,
+                priority=50,
+                status="pending",
+                assigned_reviewer=None,
+                warning_count=0,
+            )
+
+            # Write provisional DOCUMENTS + HAS_<tag> links immediately so
+            # downstream workers (episode builder, analytics) can query them
+            # before a human reviewer has approved the candidate.
+            written = write_documents_from_sentences_payload(
+                encounter_id,
+                sentences_payload,
+                session,
+                source="provisional",
+            )
+            logger.debug(
+                "_persist_candidate: wrote %d provisional DOCUMENTS links for encounter %s",
+                written,
+                encounter_id,
             )
 
     def _fetch_encounters(self, patient_id: str) -> list[dict[str, Any]]:

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Box from "@mui/material/Box";
 import Drawer from "@mui/material/Drawer";
@@ -17,6 +17,7 @@ import { useTheme } from "@mui/material/styles";
 import Select from "@mui/material/Select";
 import MenuItem from "@mui/material/MenuItem";
 import FormControl from "@mui/material/FormControl";
+import Badge from "@mui/material/Badge";
 import PeopleOutlineIcon from "@mui/icons-material/PeopleOutline";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import HealthAndSafetyOutlinedIcon from "@mui/icons-material/HealthAndSafetyOutlined";
@@ -27,6 +28,8 @@ import BarChartOutlinedIcon from "@mui/icons-material/BarChartOutlined";
 import AssessmentOutlinedIcon from "@mui/icons-material/AssessmentOutlined";
 import GroupWorkOutlinedIcon from "@mui/icons-material/GroupWorkOutlined";
 import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
+import RateReviewOutlinedIcon from "@mui/icons-material/RateReviewOutlined";
+import LibraryBooksOutlinedIcon from "@mui/icons-material/LibraryBooksOutlined";
 import LogoutIcon from "@mui/icons-material/Logout";
 import MenuIcon from "@mui/icons-material/Menu";
 import BusinessOutlinedIcon from "@mui/icons-material/BusinessOutlined";
@@ -36,6 +39,7 @@ import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
 import { usePipeline } from "@/context/PipelineContext";
 import { useOrg } from "@/context/OrgContext";
+import { api } from "@/lib/api";
 import PipelineModal from "./PipelineModal";
 
 const DRAWER_WIDTH = 240;
@@ -51,6 +55,8 @@ const NAV_ITEMS = [
   { label: "Benchmarks", path: "/benchmarks", icon: <AssessmentOutlinedIcon /> },
   { label: "Cohorts", path: "/cohorts", icon: <GroupWorkOutlinedIcon /> },
   { label: "Processing", path: "/pipeline", icon: <SettingsOutlinedIcon /> },
+  { label: "Review Queue", path: "/classification-review", icon: <RateReviewOutlinedIcon />, badgeKey: "reviewQueue" },
+  { label: "Gold Dataset", path: "/gold-dataset", icon: <LibraryBooksOutlinedIcon /> },
   { label: "Domain Config", path: "/settings", icon: <TuneOutlinedIcon /> },
 ];
 
@@ -68,6 +74,29 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  const [reviewBadge, setReviewBadge] = useState<number>(0);
+
+  const refreshReviewBadge = useCallback(async () => {
+    try {
+      const data = await api.get<{ pending_review: number }>(
+        "/pipeline/classification-disagreements?limit=1"
+      );
+      setReviewBadge(data.pending_review ?? 0);
+    } catch {
+      // badge is non-critical, silently ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    if (status === "authenticated") {
+      refreshReviewBadge();
+      const id = setInterval(refreshReviewBadge, 60_000);
+      return () => clearInterval(id);
+    }
+  }, [status, refreshReviewBadge]);
+
+  const badgeCounts: Record<string, number> = { reviewQueue: reviewBadge };
+
   const isPublicPage = pathname === "/" || pathname === "/sign-in";
   const isEditor = isEditorRoute(pathname);
   const isProtected =
@@ -80,7 +109,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     pathname?.startsWith("/measures") ||
     pathname?.startsWith("/benchmarks") ||
     pathname?.startsWith("/cohorts") ||
-    pathname?.startsWith("/settings");
+    pathname?.startsWith("/settings") ||
+    pathname?.startsWith("/classification-review");
 
   useEffect(() => {
     if (status === "unauthenticated" && isProtected) {
@@ -124,6 +154,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <List sx={{ p: 0, width: "100%" }}>
         {NAV_ITEMS.map((item) => {
           const isActive = pathname === item.path || pathname.startsWith(item.path + "/");
+          const badgeCount = item.badgeKey ? (badgeCounts[item.badgeKey] ?? 0) : 0;
           return (
             <Tooltip key={item.path} title={item.label} placement="right">
               <ListItemButton
@@ -137,7 +168,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 }}
               >
                 <ListItemIcon sx={{ minWidth: 0, color: isActive ? "primary.main" : "text.secondary" }}>
-                  {item.icon}
+                  <Badge badgeContent={badgeCount} color="warning" max={99}>
+                    {item.icon}
+                  </Badge>
                 </ListItemIcon>
               </ListItemButton>
             </Tooltip>
@@ -227,6 +260,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         {NAV_ITEMS.map((item) => {
           const isActive =
             pathname === item.path || pathname.startsWith(item.path + "/");
+          const badgeCount = item.badgeKey ? (badgeCounts[item.badgeKey] ?? 0) : 0;
           return (
             <ListItemButton
               key={item.path}
@@ -235,7 +269,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               sx={{ py: 1.2 }}
             >
               <ListItemIcon sx={{ minWidth: 36, color: isActive ? "primary.main" : "text.secondary" }}>
-                {item.icon}
+                <Badge badgeContent={badgeCount} color="warning" max={99}>
+                  {item.icon}
+                </Badge>
               </ListItemIcon>
               <ListItemText
                 primary={item.label}
@@ -244,6 +280,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   fontSize: "0.9rem",
                 }}
               />
+              {badgeCount > 0 && (
+                <Typography variant="caption" sx={{ bgcolor: "warning.main", color: "warning.contrastText", borderRadius: 10, px: 0.8, py: 0.2, fontWeight: 700, fontSize: "0.7rem" }}>
+                  {badgeCount}
+                </Typography>
+              )}
             </ListItemButton>
           );
         })}

@@ -186,3 +186,128 @@ RETURN c.id AS snomed_concept_id,
 ORDER BY best_score DESC
 LIMIT $limit
 """
+
+LIST_SURFACE_FORMS = """
+MATCH (sf:SurfaceForm)-[m:MAPS_TO]->(c:Concept)
+WHERE ($q IS NULL OR toLower(sf.form) CONTAINS toLower($q))
+  AND ($concept_id IS NULL OR c.id = $concept_id)
+WITH sf, c,
+     max(m.confidence)              AS confidence,
+     head(collect(m.approved_by))   AS approved_by,
+     head(collect(m.provenance))    AS provenance
+RETURN sf.normalized    AS normalized,
+       sf.form          AS form,
+       sf.source        AS source,
+       sf.status        AS status,
+       sf.created_by    AS created_by,
+       toString(sf.created_at)    AS created_at,
+       toString(sf.last_seen_at)  AS last_seen_at,
+       c.id             AS concept_id,
+       c.fsn            AS concept_fsn,
+       c.semantic_tag   AS semantic_tag,
+       confidence,
+       approved_by,
+       provenance
+ORDER BY sf.form
+SKIP $offset
+LIMIT $limit
+"""
+
+COUNT_SURFACE_FORMS = """
+MATCH (sf:SurfaceForm)-[:MAPS_TO]->(c:Concept)
+WHERE ($q IS NULL OR toLower(sf.form) CONTAINS toLower($q))
+  AND ($concept_id IS NULL OR c.id = $concept_id)
+WITH sf, c
+RETURN count(*) AS total
+"""
+
+DELETE_SURFACE_FORM = """
+MATCH (sf:SurfaceForm {normalized: $normalized})
+DETACH DELETE sf
+"""
+
+UPSERT_SURFACE_FORM_MAPPING = """
+MATCH (c:Concept {id: $concept_id})
+MERGE (sf:SurfaceForm {normalized: $normalized})
+ON CREATE SET sf.form = $form,
+              sf.source = $source,
+              sf.status = 'active',
+              sf.created_at = datetime(),
+              sf.created_by = $created_by
+MERGE (sf)-[m:MAPS_TO]->(c)
+ON CREATE SET m.created_at = datetime(),
+              m.created_by = $created_by,
+              m.approved_at = datetime()
+SET m.confidence = $confidence,
+    m.provenance = $provenance
+RETURN sf.normalized AS normalized,
+       sf.form       AS form,
+       c.id          AS concept_id,
+       c.fsn         AS concept_fsn
+"""
+
+DELETE_SURFACE_FORM_MAPPING = """
+MATCH (sf:SurfaceForm {normalized: $normalized})-[r:MAPS_TO]->(c:Concept {id: $concept_id})
+DELETE r
+RETURN count(r) AS removed
+"""
+
+KEEP_SURFACE_FORM_MAPPING = """
+MATCH (sf:SurfaceForm {normalized: $normalized})-[r:MAPS_TO]->(c:Concept)
+WHERE c.id <> $keep_concept_id
+DELETE r
+RETURN count(r) AS removed
+"""
+
+DEDUPLICATE_SURFACE_FORM_RELS = """
+MATCH (sf:SurfaceForm)-[r:MAPS_TO]->(c:Concept)
+WITH sf, collect({r: r, confidence: coalesce(r.confidence, 0.0)}) AS all_rels
+WHERE size(all_rels) > 1
+WITH sf, all_rels,
+     reduce(best = all_rels[0], x IN all_rels |
+       CASE WHEN x.confidence > best.confidence THEN x ELSE best END
+     ) AS keeper
+UNWIND all_rels AS entry
+WITH entry.r AS r, keeper
+WHERE r <> keeper.r
+DELETE r
+RETURN count(r) AS duplicates_removed
+"""
+
+AUDIT_SURFACE_FORM_DUPLICATES = """
+MATCH (sf:SurfaceForm)-[r:MAPS_TO]->(c:Concept)
+WITH sf, count(DISTINCT c) AS concept_count, count(r) AS rel_count
+WHERE rel_count > 1
+WITH sf, concept_count, rel_count
+MATCH (sf)-[r:MAPS_TO]->(c:Concept)
+RETURN sf.normalized       AS normalized,
+       sf.form             AS form,
+       concept_count,
+       rel_count,
+       collect({
+           concept_id:  c.id,
+           concept_fsn: c.fsn,
+           confidence:  r.confidence,
+           provenance:  r.provenance
+       }) AS mappings
+ORDER BY rel_count DESC, sf.form
+LIMIT 200
+"""
+
+# Depth must be interpolated via Python .format(depth=N) before execution —
+# Neo4j does not support parameterised variable-length path bounds.
+DESCENDANTS_TEMPLATE = """
+MATCH (ancestor:Concept {{id: $concept_id}})<-[:IS_A*1..{depth}]-(d:Concept)
+WHERE d.active = true
+  AND ($semantic_tag IS NULL OR d.semantic_tag = $semantic_tag)
+OPTIONAL MATCH (sf:SurfaceForm)-[:MAPS_TO]->(d)
+WITH d, count(sf) AS surface_form_count, collect(sf.form)[0..10] AS surface_forms
+RETURN DISTINCT
+    d.id            AS snomed_concept_id,
+    d.fsn           AS term,
+    d.semantic_tag  AS semantic_tag,
+    surface_form_count,
+    surface_forms
+ORDER BY d.fsn
+LIMIT $limit
+"""

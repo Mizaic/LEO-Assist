@@ -20,6 +20,10 @@ import ListItem from "@mui/material/ListItem";
 import ListItemText from "@mui/material/ListItemText";
 import CircularProgress from "@mui/material/CircularProgress";
 import Alert from "@mui/material/Alert";
+import Collapse from "@mui/material/Collapse";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import Switch from "@mui/material/Switch";
+import Tooltip from "@mui/material/Tooltip";
 import Breadcrumbs from "@mui/material/Breadcrumbs";
 import Link from "@mui/material/Link";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
@@ -27,6 +31,7 @@ import AddIcon from "@mui/icons-material/Add";
 import SettingsIcon from "@mui/icons-material/Settings";
 import SearchIcon from "@mui/icons-material/Search";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import {
   fetchDomain,
   createSubdomain,
@@ -34,11 +39,12 @@ import {
   updateSubdomain,
   addConceptToSubdomain,
   removeConceptFromSubdomain,
+  batchAddConceptsToSubdomain,
   type DomainDetail,
   type SubdomainSummary,
   type SubdomainDetail,
 } from "@/lib/analyticsApi";
-import { searchTerms, fetchSemanticTags } from "@/lib/api";
+import { searchTerms, fetchSemanticTags, fetchDescendants } from "@/lib/api";
 
 export default function DomainDetailPage() {
   const params = useParams();
@@ -64,6 +70,16 @@ export default function DomainDetailPage() {
     Array<{ snomed_concept_id: string; term: string; semantic_tag?: string }>
   >([]);
   const [searchLoading, setSearchLoading] = useState(false);
+
+  // Descendant preview state
+  const [descendantPreview, setDescendantPreview] = useState<{
+    parentId: string;
+    parentTerm: string;
+    results: Array<{ snomed_concept_id: string; term: string; semantic_tag?: string; surface_form_count: number; surface_forms: string[] }>;
+  } | null>(null);
+  const [descendantLoading, setDescendantLoading] = useState<string | null>(null);
+  const [descendantListOpen, setDescendantListOpen] = useState(false);
+  const [descendantFilterSf, setDescendantFilterSf] = useState(false);
 
   // Available SNOMED semantic tags (fetched once)
   const [allSemanticTags, setAllSemanticTags] = useState<string[]>([]);
@@ -138,6 +154,10 @@ export default function DomainDetailPage() {
     setConfigOpen(true);
     setSearchQuery("");
     setSearchResults([]);
+    setDescendantPreview(null);
+    setDescendantLoading(null);
+    setDescendantListOpen(false);
+    setDescendantFilterSf(false);
     try {
       setConfigSub(await fetchSubdomain(domainId, sub.name));
     } catch (e) {
@@ -195,6 +215,46 @@ export default function DomainDetailPage() {
       );
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to update subdomain");
+    } finally {
+      setConfigSubmitting(false);
+    }
+  };
+
+  const handleFetchDescendants = async (conceptId: string, term: string) => {
+    if (!configSub) return;
+    setDescendantLoading(conceptId);
+    setDescendantPreview(null);
+    try {
+      const tags = activeTags.length > 0 ? activeTags : undefined;
+      const results = await fetchDescendants(conceptId, 3, tags);
+      setDescendantPreview({ parentId: conceptId, parentTerm: term, results });
+    } catch {
+      setError("Failed to fetch descendants");
+    } finally {
+      setDescendantLoading(null);
+    }
+  };
+
+  const handleConfirmDescendants = async () => {
+    if (!configSub || !descendantPreview) return;
+    setConfigSubmitting(true);
+    try {
+      const toAdd = descendantFilterSf
+        ? descendantPreview.results.filter((r) => r.surface_form_count > 0)
+        : descendantPreview.results;
+      const payload = toAdd.map((r) => ({
+        concept_id: parseInt(r.snomed_concept_id, 10),
+        term: r.term,
+      }));
+      const updated = await batchAddConceptsToSubdomain(domainId, configSub.name, payload);
+      setConfigSub(updated);
+      setDescendantPreview(null);
+      setDescendantListOpen(false);
+      setDescendantFilterSf(false);
+      setSearchQuery("");
+      setSearchResults([]);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to add descendants");
     } finally {
       setConfigSubmitting(false);
     }
@@ -553,18 +613,35 @@ export default function DomainDetailPage() {
                     {searchResults.map((r) => {
                       const cid = parseInt(r.snomed_concept_id, 10);
                       const alreadyAdded = existingConceptIds.has(cid);
+                      const isLoadingDescendants = descendantLoading === r.snomed_concept_id;
                       return (
                         <ListItem
                           key={r.snomed_concept_id}
                           secondaryAction={
                             !alreadyAdded ? (
-                              <Button
-                                size="small"
-                                onClick={() => handleAddConcept(cid, r.term)}
-                                disabled={configSubmitting}
-                              >
-                                Add
-                              </Button>
+                              <Box sx={{ display: "flex", gap: 0.5 }}>
+                                <Button
+                                  size="small"
+                                  onClick={() => handleAddConcept(cid, r.term)}
+                                  disabled={configSubmitting || isLoadingDescendants}
+                                >
+                                  Add
+                                </Button>
+                                <IconButton
+                                  size="small"
+                                  title="Fill subdomain with all IS_A descendants"
+                                  onClick={() =>
+                                    handleFetchDescendants(r.snomed_concept_id, r.term)
+                                  }
+                                  disabled={configSubmitting || !!descendantLoading}
+                                >
+                                  {isLoadingDescendants ? (
+                                    <CircularProgress size={16} />
+                                  ) : (
+                                    <AccountTreeIcon fontSize="small" />
+                                  )}
+                                </IconButton>
+                              </Box>
                             ) : undefined
                           }
                         >
@@ -589,6 +666,159 @@ export default function DomainDetailPage() {
                     })}
                   </List>
                 )}
+
+                {/* Descendant preview + confirm */}
+                {descendantPreview && (() => {
+                  const sfCount = descendantPreview.results.filter(
+                    (r) => r.surface_form_count > 0,
+                  ).length;
+                  const visibleResults = descendantFilterSf
+                    ? descendantPreview.results.filter((r) => r.surface_form_count > 0)
+                    : descendantPreview.results;
+                  const addCount = descendantFilterSf ? sfCount : descendantPreview.results.length;
+                  return (
+                    <Box sx={{ mt: 1 }}>
+                      <Alert
+                        severity="info"
+                        action={
+                          <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+                            <Button
+                              size="small"
+                              color="inherit"
+                              onClick={() => setDescendantListOpen((o) => !o)}
+                            >
+                              {descendantListOpen ? "Hide" : "Preview"}
+                            </Button>
+                            <Button
+                              size="small"
+                              color="inherit"
+                              onClick={() => {
+                                setDescendantPreview(null);
+                                setDescendantListOpen(false);
+                                setDescendantFilterSf(false);
+                              }}
+                              disabled={configSubmitting}
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              size="small"
+                              variant="contained"
+                              onClick={handleConfirmDescendants}
+                              disabled={configSubmitting || addCount === 0}
+                            >
+                              {configSubmitting ? (
+                                <CircularProgress size={16} color="inherit" />
+                              ) : (
+                                `Add ${addCount}`
+                              )}
+                            </Button>
+                          </Box>
+                        }
+                      >
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
+                          <span>
+                            Found{" "}
+                            <strong>{descendantPreview.results.length}</strong>{" "}
+                            descendants of{" "}
+                            <strong>{descendantPreview.parentTerm}</strong>
+                            {sfCount > 0 && (
+                              <> &mdash; <strong>{sfCount}</strong> have surface forms</>
+                            )}
+                          </span>
+                          {sfCount > 0 && (
+                            <Tooltip title="Only add concepts that have recognised surface forms in clinical text">
+                              <FormControlLabel
+                                control={
+                                  <Switch
+                                    size="small"
+                                    checked={descendantFilterSf}
+                                    onChange={(e) => setDescendantFilterSf(e.target.checked)}
+                                    disabled={configSubmitting}
+                                  />
+                                }
+                                label={
+                                  <Typography variant="caption">
+                                    Surface forms only
+                                  </Typography>
+                                }
+                                sx={{ m: 0 }}
+                              />
+                            </Tooltip>
+                          )}
+                        </Box>
+                      </Alert>
+                      <Collapse in={descendantListOpen}>
+                        <List
+                          dense
+                          sx={{
+                            border: 1,
+                            borderColor: "info.light",
+                            borderTop: 0,
+                            borderRadius: "0 0 4px 4px",
+                            maxHeight: 240,
+                            overflow: "auto",
+                            bgcolor: "background.paper",
+                          }}
+                        >
+                          {visibleResults.map((d) => (
+                            <ListItem key={d.snomed_concept_id}>
+                              <ListItemText
+                                primary={
+                                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                    <span>{d.term}</span>
+                                    {d.surface_form_count > 0 && (() => {
+                                      const forms = d.surface_forms ?? [];
+                                      return (
+                                      <Tooltip
+                                        title={
+                                          <Box>
+                                            <Typography variant="caption" sx={{ fontWeight: 600, display: "block", mb: 0.5 }}>
+                                              Surface forms ({d.surface_form_count}
+                                              {d.surface_form_count > forms.length ? `, showing ${forms.length}` : ""})
+                                            </Typography>
+                                            {forms.map((sf) => (
+                                              <Typography key={sf} variant="caption" sx={{ display: "block" }}>
+                                                {sf}
+                                              </Typography>
+                                            ))}
+                                          </Box>
+                                        }
+                                        arrow
+                                        placement="right"
+                                      >
+                                        <Chip
+                                          label={d.surface_form_count}
+                                          size="small"
+                                          color="success"
+                                          variant="outlined"
+                                          sx={{ height: 18, fontSize: "0.65rem", cursor: "help" }}
+                                        />
+                                      </Tooltip>
+                                      );
+                                    })()}
+                                  </Box>
+                                }
+                                secondary={
+                                  d.semantic_tag
+                                    ? `${d.snomed_concept_id} \u00b7 ${d.semantic_tag}`
+                                    : d.snomed_concept_id
+                                }
+                              />
+                            </ListItem>
+                          ))}
+                          {visibleResults.length === 0 && (
+                            <ListItem>
+                              <ListItemText
+                                secondary="No descendants match the current filter."
+                              />
+                            </ListItem>
+                          )}
+                        </List>
+                      </Collapse>
+                    </Box>
+                  );
+                })()}
               </Box>
 
               {/* Concepts in subdomain */}

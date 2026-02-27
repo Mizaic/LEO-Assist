@@ -14,8 +14,9 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { exportMedSpaCyTraining } from "@/lib/api";
+import { exportMedSpaCyTraining, enqueueConsensus, cleanPatients } from "@/lib/api";
 import { usePipeline } from "@/context/PipelineContext";
+import { api } from "@/lib/api";
 
 export default function PipelinePanel() {
   const [patientIds, setPatientIds] = useState("");
@@ -32,6 +33,74 @@ export default function PipelinePanel() {
   const [exportError, setExportError] = useState<string | null>(null);
 
   const pipeline = usePipeline();
+  const [recoding, setRecoding] = useState(false);
+  const [recodeResult, setRecodeResult] = useState<string | null>(null);
+  const [recodeError, setRecodeError] = useState<string | null>(null);
+  const [consensusLoading, setConsensusLoading] = useState(false);
+  const [consensusResult, setConsensusResult] = useState<string | null>(null);
+  const [consensusError, setConsensusError] = useState<string | null>(null);
+  const [cleaning, setCleaning] = useState(false);
+  const [cleanResult, setCleanResult] = useState<string | null>(null);
+  const [cleanError, setCleanError] = useState<string | null>(null);
+
+  async function handleConsensus() {
+    if (patientIdList.length === 0) return;
+    setConsensusLoading(true);
+    setConsensusResult(null);
+    setConsensusError(null);
+    try {
+      const result = await enqueueConsensus({
+        patient_ids: patientIdList,
+        dry_run: dryRun,
+      });
+      setConsensusResult(
+        `Consensus queued for ${result.patients_enqueued} patient(s) — run ${result.run_id.slice(0, 8)}`
+      );
+    } catch (e) {
+      setConsensusError(e instanceof Error ? e.message : "Failed to enqueue consensus");
+    } finally {
+      setConsensusLoading(false);
+    }
+  }
+
+  async function handleClean() {
+    if (patientIdList.length === 0) return;
+    setCleaning(true);
+    setCleanResult(null);
+    setCleanError(null);
+    try {
+      const result = await cleanPatients({ patient_ids: patientIdList });
+      const counts = Object.entries(result.totals)
+        .filter(([, v]) => v > 0)
+        .map(([k, v]) => `${k}: ${v}`)
+        .join(", ");
+      setCleanResult(
+        `Cleaned ${result.patients_cleaned} patient(s)${counts ? ` — ${counts}` : ""}`
+      );
+    } catch (e) {
+      setCleanError(e instanceof Error ? e.message : "Failed to clean patients");
+    } finally {
+      setCleaning(false);
+    }
+  }
+
+  async function handleRecode() {
+    if (patientIdList.length === 0) return;
+    setRecoding(true);
+    setRecodeResult(null);
+    setRecodeError(null);
+    try {
+      const result = await api.post<{ run_id: string; queued: number }>("/pipeline/enqueue-recode", {
+        patient_ids: patientIdList,
+        dry_run: dryRun,
+      });
+      setRecodeResult(`Re-code queued for ${result.queued} patient(s) — run ${result.run_id.slice(0, 8)}`);
+    } catch (e) {
+      setRecodeError(e instanceof Error ? e.message : "Failed to enqueue re-code");
+    } finally {
+      setRecoding(false);
+    }
+  }
 
   async function handleExportMedSpaCy() {
     setExporting(true);
@@ -134,7 +203,64 @@ export default function PipelinePanel() {
             >
               {pipeline.running ? "Running\u2026" : "Process Records"}
             </Button>
+            <Button
+              variant="outlined"
+              color="secondary"
+              onClick={handleRecode}
+              disabled={recoding || pipeline.running || patientIdList.length === 0}
+              title="Re-run extraction only — classification already done"
+            >
+              {recoding ? "Queuing\u2026" : "Re-code Only"}
+            </Button>
+            <Button
+              variant="outlined"
+              color="primary"
+              onClick={handleConsensus}
+              disabled={consensusLoading || pipeline.running || patientIdList.length === 0}
+              title="Multi-model consensus extraction via worker queue"
+            >
+              {consensusLoading ? "Queuing\u2026" : "Consensus"}
+            </Button>
+            <Button
+              variant="outlined"
+              color="warning"
+              onClick={handleClean}
+              disabled={cleaning || pipeline.running || patientIdList.length === 0}
+              title="Remove all pipeline artefacts for these patients"
+            >
+              {cleaning ? "Cleaning\u2026" : "Clean"}
+            </Button>
           </Stack>
+          {recodeResult && (
+            <Alert severity="success" sx={{ mt: 1.5 }} onClose={() => setRecodeResult(null)}>
+              {recodeResult}
+            </Alert>
+          )}
+          {recodeError && (
+            <Alert severity="error" sx={{ mt: 1.5 }} onClose={() => setRecodeError(null)}>
+              {recodeError}
+            </Alert>
+          )}
+          {consensusResult && (
+            <Alert severity="success" sx={{ mt: 1.5 }} onClose={() => setConsensusResult(null)}>
+              {consensusResult}
+            </Alert>
+          )}
+          {consensusError && (
+            <Alert severity="error" sx={{ mt: 1.5 }} onClose={() => setConsensusError(null)}>
+              {consensusError}
+            </Alert>
+          )}
+          {cleanResult && (
+            <Alert severity="info" sx={{ mt: 1.5 }} onClose={() => setCleanResult(null)}>
+              {cleanResult}
+            </Alert>
+          )}
+          {cleanError && (
+            <Alert severity="error" sx={{ mt: 1.5 }} onClose={() => setCleanError(null)}>
+              {cleanError}
+            </Alert>
+          )}
 
           {/* Inline summary when modal is minimized (user on Pipeline page) */}
           {!pipeline.showModal && pipeline.running && pipeline.live && (
@@ -175,6 +301,9 @@ export default function PipelinePanel() {
                 divider={<Divider orientation="vertical" flexItem />}
               >
                 <span>Processed: {pipeline.result.processed_encounters}</span>
+                {(pipeline.result.auto_approved ?? 0) > 0 && (
+                  <span>Auto-approved: {pipeline.result.auto_approved}</span>
+                )}
                 <span>Queued: {pipeline.result.queued_for_review}</span>
                 <span>Span Issues: {pipeline.result.rejected_hard_fail}</span>
                 <span>Warnings: {pipeline.result.warnings_only}</span>

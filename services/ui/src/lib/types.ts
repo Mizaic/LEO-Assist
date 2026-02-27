@@ -61,6 +61,7 @@ export interface PipelineRunResponse {
   run_id: string;
   processed_encounters: number;
   queued_for_review: number;
+  auto_approved?: number;
   rejected_hard_fail: number;
   warnings_only: number;
   llm_usage?: LLMUsage;

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import random
 
 from app.db.neo4j_client import PatientGraphClient
@@ -13,6 +14,9 @@ from app.services.neo4j_store import (
     list_review_tasks,
     upsert_candidate,
 )
+from libs.cypher.documents_queries import write_documents_from_sentences_payload
+
+logger = logging.getLogger(__name__)
 
 
 class ReviewService:
@@ -66,6 +70,25 @@ class ReviewService:
                 after_hash=after_hash,
                 session=session,
             )
+
+            # Write authoritative DOCUMENTS + HAS_<tag> links when the reviewer
+            # approves or edits.  These overwrite the provisional links written
+            # by the coding worker, marking them as human-reviewed.
+            if decision.action in (ReviewAction.approve, ReviewAction.edit):
+                sentences = task["candidate"].get("sentences") or []
+                encounter_id_for_docs = candidate["encounter_id"]
+                written = write_documents_from_sentences_payload(
+                    encounter_id_for_docs,
+                    sentences,
+                    session,
+                    source="human_reviewed",
+                )
+                logger.info(
+                    "decide: wrote %d human_reviewed DOCUMENTS links for encounter %s",
+                    written,
+                    encounter_id_for_docs,
+                )
+
             return {
                 "task_id": task_id,
                 "candidate_id": candidate["candidate_id"],

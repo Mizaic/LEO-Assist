@@ -176,6 +176,39 @@ export async function exportMedSpaCyTraining(body: {
   });
 }
 
+export async function enqueueConsensus(body: {
+  patient_ids: string[];
+  dry_run?: boolean;
+  clean?: boolean;
+}) {
+  const params = new URLSearchParams();
+  if (body.clean === false) params.set("clean", "false");
+  const qs = params.toString();
+  return fetchJson<{
+    run_id: string;
+    patients_enqueued: number;
+    queue: string;
+    clean_totals?: Record<string, number>;
+  }>(`${API_BASE}/pipeline/enqueue-consensus${qs ? `?${qs}` : ""}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ patient_ids: body.patient_ids, dry_run: body.dry_run ?? false }),
+  });
+}
+
+export async function cleanPatients(body: {
+  patient_ids: string[];
+}) {
+  return fetchJson<{
+    patients_cleaned: number;
+    totals: Record<string, number>;
+  }>(`${API_BASE}/pipeline/clean-patients`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ patient_ids: body.patient_ids }),
+  });
+}
+
 export async function inferEncounter(
   patientId: string,
   encounterId: string,
@@ -344,4 +377,133 @@ export async function searchTerms(
 
 export async function fetchSemanticTags() {
   return fetchJson<string[]>(`${API_BASE}/terminology/semantic-tags`);
+}
+
+export interface SurfaceFormItem {
+  normalized: string;
+  form: string;
+  source?: string;
+  status?: string;
+  created_by?: string;
+  created_at?: string;
+  last_seen_at?: string;
+  concept_id: string;
+  concept_fsn: string;
+  semantic_tag?: string;
+  confidence?: number;
+  approved_by?: string;
+  provenance?: string;
+}
+
+export interface SurfaceFormsPage {
+  items: SurfaceFormItem[];
+  total: number;
+  offset: number;
+  limit: number;
+}
+
+export async function fetchSurfaceForms(
+  q?: string,
+  conceptId?: string,
+  limit = 50,
+  offset = 0,
+) {
+  const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+  if (q) params.set("q", q);
+  if (conceptId) params.set("concept_id", conceptId);
+  return fetchJson<SurfaceFormsPage>(`${API_BASE}/terminology/surface-forms?${params}`);
+}
+
+export async function deleteSurfaceForm(normalized: string) {
+  return fetchJson<{ deleted: string }>(
+    `${API_BASE}/terminology/surface-forms/${encodeURIComponent(normalized)}`,
+    { method: "DELETE" },
+  );
+}
+
+export interface SurfaceFormDuplicate {
+  normalized: string;
+  form: string;
+  concept_count: number;
+  rel_count: number;
+  mappings: Array<{
+    concept_id: string;
+    concept_fsn: string;
+    confidence?: number;
+    provenance?: string;
+  }>;
+}
+
+export async function fetchSurfaceFormDuplicates() {
+  return fetchJson<SurfaceFormDuplicate[]>(`${API_BASE}/terminology/surface-forms/duplicates`);
+}
+
+export async function deduplicateSurfaceForms() {
+  return fetchJson<{ duplicates_removed: number }>(
+    `${API_BASE}/terminology/surface-forms/deduplicate`,
+    { method: "POST" },
+  );
+}
+
+export async function deleteSurfaceFormMapping(normalized: string, conceptId: string) {
+  const params = new URLSearchParams({ concept_id: conceptId });
+  return fetchJson<{ normalized: string; concept_id: string; removed: number }>(
+    `${API_BASE}/terminology/surface-forms/${encodeURIComponent(normalized)}?${params}`,
+    { method: "DELETE" },
+  );
+}
+
+export async function upsertSurfaceFormMapping(
+  normalized: string,
+  form: string,
+  conceptId: string,
+  options?: { confidence?: number; provenance?: string; source?: string },
+) {
+  return fetchJson<{ normalized: string; form: string; concept_id: string; concept_fsn: string }>(
+    `${API_BASE}/terminology/surface-forms/upsert-mapping`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        normalized,
+        form,
+        concept_id: conceptId,
+        confidence: options?.confidence ?? 1.0,
+        provenance: options?.provenance ?? "manual_correction",
+        source: options?.source ?? "manual",
+      }),
+    },
+  );
+}
+
+export async function keepSurfaceFormMapping(normalized: string, conceptId: string) {
+  const params = new URLSearchParams({ keep_concept_id: conceptId });
+  return fetchJson<{ normalized: string; kept_concept_id: string; removed: number }>(
+    `${API_BASE}/terminology/surface-forms/${encodeURIComponent(normalized)}?${params}`,
+    { method: "DELETE" },
+  );
+}
+
+export async function fetchDescendants(
+  conceptId: string,
+  depth = 3,
+  semanticTags?: string[],
+  limit = 300,
+) {
+  const params = new URLSearchParams({
+    depth: String(depth),
+    limit: String(limit),
+  });
+  if (semanticTags && semanticTags.length > 0) {
+    params.append("semantic_tag", semanticTags[0]);
+  }
+  return fetchJson<
+    Array<{
+      snomed_concept_id: string;
+      term: string;
+      semantic_tag?: string;
+      surface_form_count: number;
+      surface_forms: string[];
+    }>
+  >(`${API_BASE}/terminology/concepts/${conceptId}/descendants?${params}`);
 }

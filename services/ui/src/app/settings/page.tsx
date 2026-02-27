@@ -9,6 +9,7 @@ import CardActionArea from "@mui/material/CardActionArea";
 import Grid from "@mui/material/Grid";
 import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
+import TextFieldsOutlinedIcon from "@mui/icons-material/TextFieldsOutlined";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 
 const SETTINGS_CARDS = [
@@ -19,6 +20,14 @@ const SETTINGS_CARDS = [
       "Manage clinical domains, SNOMED concept sets, and related terms. Add or remove concepts, configure descriptions, milestone types, and surface forms for anchor detection and episode building.",
     icon: <TuneOutlinedIcon sx={{ fontSize: 40, color: "primary.main" }} />,
     path: "/settings/domains",
+  },
+  {
+    id: "surface-forms",
+    title: "Surface Forms",
+    description:
+      "View and manage the text strings the NLP pipeline maps to SNOMED concepts. Remove spurious or over-broad mappings that cause false positives in anchor detection.",
+    icon: <TextFieldsOutlinedIcon sx={{ fontSize: 40, color: "primary.main" }} />,
+    path: "/settings/surface-forms",
   },
   {
     id: "general",

@@ -1,6 +1,7 @@
-"""Proxy endpoints: forward requests to FHIR API and Analytics API with Bearer token.
+"""Proxy endpoints: forward requests to FHIR API, Analytics API, and Core API with Bearer token.
 
-Frontend calls /api/proxy/fhir/*, /api/proxy/benchmarks/*, and /api/proxy/analytics/* with session cookie.
+Frontend calls /api/proxy/fhir/*, /api/proxy/benchmarks/*, /api/proxy/analytics/*, and
+/api/proxy/pipeline/* with session cookie.
 Backend adds Authorization header and forwards to upstream services.
 """
 
@@ -22,6 +23,7 @@ router = APIRouter(prefix="/api/proxy", tags=["proxy"])
 
 FHIR_BASE = os.getenv("FHIR_API_BASE", "http://localhost:8002")
 ANALYTICS_BASE = os.getenv("ANALYTICS_API_BASE", "http://localhost:8003")
+CORE_API_BASE = os.getenv("CORE_API_BASE", "http://localhost:8000")
 
 
 async def _proxy_request(
@@ -96,6 +98,25 @@ async def proxy_analytics(
     if request.url.query:
         full_path = f"{full_path}?{request.url.query}"
     resp = await _proxy_request(request.method, full_path, ANALYTICS_BASE, token, request)
+    return Response(
+        content=resp.content,
+        status_code=resp.status_code,
+        headers=_copy_headers(resp),
+        media_type=resp.headers.get("content-type"),
+    )
+
+
+@router.api_route("/pipeline/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
+async def proxy_pipeline(
+    path: str,
+    request: Request,
+    token: Annotated[str, Depends(get_access_token)],
+):
+    """Proxy pipeline endpoints to Core API (avoids client-side /api/proxy prefix mismatch)."""
+    full_path = f"/pipeline/{path}" if not path.startswith("/") else f"/{path}"
+    if request.url.query:
+        full_path = f"{full_path}?{request.url.query}"
+    resp = await _proxy_request(request.method, full_path, CORE_API_BASE, token, request)
     return Response(
         content=resp.content,
         status_code=resp.status_code,

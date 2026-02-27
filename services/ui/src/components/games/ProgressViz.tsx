@@ -15,6 +15,7 @@ const STEPS = [
   { key: "split", label: "Split" },
   { key: "extract", label: "Extract" },
   { key: "code", label: "Code" },
+  { key: "post", label: "Post" },
   { key: "validate", label: "Validate" },
   { key: "persist", label: "Persist" },
 ] as const;

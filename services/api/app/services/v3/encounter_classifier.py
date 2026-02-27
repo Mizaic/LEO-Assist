@@ -5,18 +5,31 @@ BEFORE extraction. Saves LLM cost by skipping extraction for non-clinical
 encounters and provides domain hints for clinical ones.
 
 Uses two cheap models (Haiku + GPT-5-mini) for consensus.
+
+Exports:
+    classify_encounter            — classify a single encounter
+    build_patient_encounter_index — classify all encounters for a patient
+                                    (accepts optional CheckpointStore)
+    persist_patient_encounter_classification — batch-persist full index
+    persist_encounter_classification_batch   — persist a sub-batch of rows
 """
 from __future__ import annotations
 
+import dataclasses
 import json
 import logging
 import re
 from datetime import datetime, timezone
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from libs.llm_client.factory import create_llm, LLMResponse
 from libs.prompts.registry import get_prompt
+from libs.prompts.few_shot_builder import build_few_shot_section
+from libs.utils.deidentify import deidentify_text
+
+if TYPE_CHECKING:
+    from libs.redis_client.checkpoint import CheckpointStore
 
 logger = logging.getLogger(__name__)
 logging.getLogger("httpx").setLevel(logging.WARNING)
@@ -72,9 +85,25 @@ def classify_encounter(
 
     Uses Haiku (AWS small) and GPT-5-mini (Azure small) for cheap classification.
     If they disagree on content_type, defaults to 'clinical' (safe fallback).
+
+    When human-reviewed examples are available in Neo4j (from the HITL review
+    workflow), they are automatically appended to the system prompt as few-shot
+    demonstrations.  The examples are cached in-process and refreshed every 30
+    minutes so classification runs do not incur per-call Neo4j overhead.
     """
-    system_prompt = get_prompt("encounter_classify", version=1)
-    user_msg = f"Classify this GP encounter:\n\n{encounter_text[:3000]}"
+    base_prompt = get_prompt("encounter_classify", version=1)
+    few_shot = build_few_shot_section()
+    system_prompt = base_prompt + few_shot if few_shot else base_prompt
+
+    if few_shot:
+        logger.debug(
+            "classify_encounter: using few-shot prompt (%d extra chars) for encounter %s",
+            len(few_shot),
+            encounter_id,
+        )
+
+    safe_text = deidentify_text(encounter_text[:3000])
+    user_msg = f"Classify this GP encounter:\n\n{safe_text}"
 
     model_a = create_llm(provider="aws", tier="small")
     model_b = create_llm(provider="azure", tier="small")
@@ -131,12 +160,18 @@ def build_patient_encounter_index(
     patient_id: str,
     encounters: list[dict[str, Any]],
     run_id: str = "",
+    checkpoint_store: "CheckpointStore | None" = None,
 ) -> PatientEncounterIndex:
     """Classify all encounters for a patient and build an index.
 
     Args:
-        patient_id: The patient identifier.
-        encounters: List of dicts with at least ``encounter_id`` and ``text`` keys.
+        patient_id:       The patient identifier.
+        encounters:       List of dicts with at least ``encounter_id`` and ``text`` keys.
+        run_id:           Run identifier for tracking.
+        checkpoint_store: Optional Redis checkpoint store.  When provided, each
+                          encounter classification is read from / written to Redis
+                          so that a retry of the job can skip already-classified
+                          encounters.
 
     Returns:
         PatientEncounterIndex with per-encounter classifications and summary stats.
@@ -148,17 +183,40 @@ def build_patient_encounter_index(
         enc_id = str(enc.get("encounter_id", enc.get("id", "")))
         text = enc.get("text", "")
 
+        # Check Redis checkpoint first
+        cache_key = f"classify:{patient_id}:{enc_id}"
+        if checkpoint_store:
+            cached = checkpoint_store.get(cache_key)
+            if cached:
+                result = ClassificationResult(**cached)
+                logger.info(
+                    "  [%d/%d] Encounter %s → %s [cached]", n, total, enc_id, result.content_type
+                )
+                index.classifications[enc_id] = result
+                if result.content_type == "admin_only":
+                    index.admin_count += 1
+                elif result.content_type == "document_transfer":
+                    index.document_transfer_count += 1
+                else:
+                    index.clinical_count += 1
+                    for domain in result.domains:
+                        index.domain_summary[domain] = index.domain_summary.get(domain, 0) + 1
+                continue
+
         if not text or not text.strip():
             index.admin_count += 1
-            index.classifications[enc_id] = ClassificationResult(
-                content_type="admin_only",
-                consensus_agreement=True,
-            )
+            result = ClassificationResult(content_type="admin_only", consensus_agreement=True)
+            index.classifications[enc_id] = result
             logger.info("  [%d/%d] Encounter %s → admin_only (empty text)", n, total, enc_id)
+            if checkpoint_store:
+                checkpoint_store.set(cache_key, dataclasses.asdict(result))
             continue
 
         result = classify_encounter(text, enc_id)
         index.classifications[enc_id] = result
+
+        if checkpoint_store:
+            checkpoint_store.set(cache_key, dataclasses.asdict(result))
 
         agreement = "✓" if result.consensus_agreement else "✗ DISAGREE"
         domains_str = ",".join(result.domains) if result.domains else "none"
@@ -185,13 +243,74 @@ def build_patient_encounter_index(
     return index
 
 
+def persist_encounter_classification_batch(
+    patient_id: str,
+    run_id: str,
+    batch: list[tuple[str, ClassificationResult]],
+) -> None:
+    """Persist a sub-batch of classification results to Neo4j.
+
+    Creates a fresh PatientGraphClient for each call so idle-timeout SSL
+    errors cannot accumulate across a long classification run.
+    """
+    from libs.neo4j_client.client import PatientGraphClient
+
+    updated_at = datetime.now(timezone.utc).isoformat()
+    rows = [
+        {
+            "encounter_id": enc_id,
+            "classification_content_type": result.content_type,
+            "classification_domains": [str(v) for v in result.domains],
+            "classification_encounter_purpose": [str(v) for v in result.encounter_purpose],
+            "classification_expected_semantic_tags": [
+                str(v) for v in result.expected_semantic_tags
+            ],
+            "classification_clinical_significance": str(result.clinical_significance),
+            "classification_consensus_agreement": bool(result.consensus_agreement),
+            "classification_model_a_type": str(result.model_a_type),
+            "classification_model_b_type": str(result.model_b_type),
+            "classification_run_id": str(run_id),
+            "classification_updated_at": updated_at,
+        }
+        for enc_id, result in batch
+    ]
+
+    client = PatientGraphClient()
+    try:
+        with client.session() as session:
+            session.run(
+                "MATCH (p:Patient) WHERE toString(p.id) = $pid "
+                "UNWIND $rows AS row "
+                "MATCH (p)-[:HAS_ENCOUNTER]->(e:Encounter) "
+                "WHERE toString(e.id) = row.encounter_id "
+                "SET e.classification_content_type      = row.classification_content_type, "
+                "    e.classification_domains           = row.classification_domains, "
+                "    e.classification_encounter_purpose = row.classification_encounter_purpose, "
+                "    e.classification_expected_semantic_tags = row.classification_expected_semantic_tags, "
+                "    e.classification_clinical_significance  = row.classification_clinical_significance, "
+                "    e.classification_consensus_agreement    = row.classification_consensus_agreement, "
+                "    e.classification_model_a_type      = row.classification_model_a_type, "
+                "    e.classification_model_b_type      = row.classification_model_b_type, "
+                "    e.classification_run_id            = row.classification_run_id, "
+                "    e.classification_updated_at        = datetime(row.classification_updated_at)",
+                pid=patient_id,
+                rows=rows,
+            )
+    finally:
+        client.close()
+
+
 def persist_patient_encounter_classification(
     patient_client: Any,
     patient_id: str,
     run_id: str,
     index: PatientEncounterIndex,
 ) -> dict[str, Any]:
-    """Persist encounter-level classification fields and patient-level index node."""
+    """Persist encounter-level classification fields and patient-level index node.
+
+    This is kept for backward compatibility.  The coding worker now uses
+    persist_encounter_classification_batch for incremental batch writes.
+    """
     updated_at = datetime.now(timezone.utc).isoformat()
     rows: list[dict[str, Any]] = []
     for encounter_id, result in index.classifications.items():
@@ -220,16 +339,16 @@ def persist_patient_encounter_classification(
             "UNWIND $rows AS row "
             "MATCH (p)-[:HAS_ENCOUNTER]->(e:Encounter) "
             "WHERE toString(e.id) = row.encounter_id "
-            "SET e.classification_content_type = row.classification_content_type, "
-            "    e.classification_domains = row.classification_domains, "
+            "SET e.classification_content_type      = row.classification_content_type, "
+            "    e.classification_domains           = row.classification_domains, "
             "    e.classification_encounter_purpose = row.classification_encounter_purpose, "
             "    e.classification_expected_semantic_tags = row.classification_expected_semantic_tags, "
-            "    e.classification_clinical_significance = row.classification_clinical_significance, "
-            "    e.classification_consensus_agreement = row.classification_consensus_agreement, "
-            "    e.classification_model_a_type = row.classification_model_a_type, "
-            "    e.classification_model_b_type = row.classification_model_b_type, "
-            "    e.classification_run_id = row.classification_run_id, "
-            "    e.classification_updated_at = datetime(row.classification_updated_at)",
+            "    e.classification_clinical_significance  = row.classification_clinical_significance, "
+            "    e.classification_consensus_agreement    = row.classification_consensus_agreement, "
+            "    e.classification_model_a_type      = row.classification_model_a_type, "
+            "    e.classification_model_b_type      = row.classification_model_b_type, "
+            "    e.classification_run_id            = row.classification_run_id, "
+            "    e.classification_updated_at        = datetime(row.classification_updated_at)",
             pid=patient_id,
             rows=rows,
         )

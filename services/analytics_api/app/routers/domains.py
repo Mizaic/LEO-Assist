@@ -687,6 +687,91 @@ def add_concept(
     )
 
 
+class BatchConceptItem(BaseModel):
+    concept_id: int
+    term: str = Field(..., min_length=1)
+
+
+@router.post(
+    "/domains/{domain_id}/subdomains/{subdomain_name}/concepts/batch",
+    response_model=SubdomainDetail,
+)
+def add_concepts_batch(
+    domain_id: str,
+    subdomain_name: str,
+    body: List[BatchConceptItem],
+):
+    """Bulk-add SNOMED concepts to a subdomain, skipping duplicates. Capped at 500 items."""
+    if len(body) > 500:
+        raise HTTPException(400, "Batch size exceeds maximum of 500 concepts")
+
+    _ensure_domain_owns_subdomain(domain_id, subdomain_name)
+
+    vs_id = _subdomain_to_valueset_id(subdomain_name)
+    raw = _get_valueset_raw(vs_id)
+    if raw is None:
+        raise HTTPException(404, f"Subdomain '{subdomain_name}' not found")
+
+    try:
+        vs = json.loads(raw) if isinstance(raw, str) else raw
+    except (json.JSONDecodeError, TypeError):
+        vs = {}
+
+    compose = vs.setdefault("compose", {})
+    includes = compose.setdefault("include", [])
+    snomed_include = next(
+        (i for i in includes if i.get("system") == SNOMED_SYSTEM), None
+    )
+    if not snomed_include:
+        snomed_include = {"system": SNOMED_SYSTEM, "concept": []}
+        includes.append(snomed_include)
+    concepts = snomed_include.setdefault("concept", [])
+
+    existing_codes = {str(c.get("code")) for c in concepts}
+    added = 0
+    for item in body:
+        code = str(item.concept_id)
+        if code not in existing_codes:
+            concepts.append({"code": code, "display": item.term, "designation": []})
+            existing_codes.add(code)
+            added += 1
+
+    _upsert_valueset_flat(vs_id, vs)
+    DomainRegistry.reset_instance()
+
+    client = KnowledgeGraphClient()
+    try:
+        rows = client.run(
+            "MATCH (v:ValueSet {id: $id}) "
+            "RETURN v.name AS name, v.description AS description, "
+            "       v.milestoneType AS milestoneType, "
+            "       v.timeWindowMonths AS timeWindowMonths, "
+            "       v.semanticTags AS semanticTags, "
+            "       v.rawJson AS rawJson",
+            id=vs_id,
+        )
+    finally:
+        client.close()
+
+    vr = rows[0]
+    tags = vr.get("semanticTags") or []
+    if isinstance(tags, str):
+        try:
+            tags = json.loads(tags)
+        except (json.JSONDecodeError, TypeError):
+            tags = []
+
+    return SubdomainDetail(
+        name=vr.get("name") or subdomain_name,
+        description=vr.get("description") or "",
+        milestone_type=vr.get("milestoneType"),
+        time_window_months=vr.get("timeWindowMonths"),
+        semantic_tags=tags,
+        concepts=_parse_concepts_from_raw(vr.get("rawJson")),
+        concept_count=_count_concepts_from_raw(vr.get("rawJson")),
+    )
+
+
 @router.delete(
     "/domains/{domain_id}/subdomains/{subdomain_name}/concepts/{concept_id}",
     response_model=SubdomainDetail,

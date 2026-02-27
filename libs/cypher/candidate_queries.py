@@ -127,3 +127,41 @@ WHERE c.approval_status = 'approved' AND c.patient_id = $patient_id
 RETURN c
 ORDER BY c.encounter_id
 """
+
+# ---------------------------------------------------------------------------
+# Gold dataset / extraction scorecard queries
+# ---------------------------------------------------------------------------
+
+GET_REVIEW_OUTCOME_COUNTS = """
+MATCH (c:EncounterCandidate)-[:HAS_TASK]->(t:ReviewTask)-[:HAS_APPROVAL]->(a:Approval)
+WITH c.candidate_id AS candidate_id,
+     a.action       AS action,
+     a.reviewer     AS reviewer,
+     a.timestamp    AS ts
+ORDER BY ts DESC
+WITH candidate_id, collect({action: action, reviewer: reviewer})[0] AS latest
+RETURN latest.action  AS action,
+       latest.reviewer AS reviewer,
+       count(*)        AS n
+"""
+
+GET_CANDIDATES_FOR_SCORECARD = """
+MATCH (c:EncounterCandidate)
+WHERE c.approval_status IN ['approved', 'rejected', 'escalated']
+OPTIONAL MATCH (c)-[:HAS_TASK]->(t:ReviewTask)-[:HAS_APPROVAL]->(a:Approval)
+WITH c,
+     a.action   AS action,
+     a.reviewer AS reviewer,
+     a.timestamp AS ts
+ORDER BY ts DESC
+WITH c, collect({action: action, reviewer: reviewer})[0] AS latest_approval
+RETURN c.candidate_id     AS candidate_id,
+       c.patient_id       AS patient_id,
+       c.approval_status  AS approval_status,
+       c.sentences_json   AS sentences_json,
+       c.warning_reasons  AS warning_reasons,
+       c.date             AS date,
+       latest_approval.action   AS last_action,
+       latest_approval.reviewer AS reviewer
+ORDER BY c.date DESC
+"""

@@ -1,1 +1,63 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+/* ── Print: isolate #printable-report as a clean A4 document ───────────── */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 15mm 18mm 22mm 18mm;
+  }
+
+  /* Hide everything; only #printable-report and its children are shown */
+  body * {
+    visibility: hidden;
+  }
+
+  #printable-report,
+  #printable-report * {
+    visibility: visible;
+  }
+
+  #printable-report {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    /* No bottom/right constraints — lets content flow naturally across pages */
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Ensure background colours and borders actually print */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  /* Tables: repeat header row on every page; avoid splitting rows */
+  table {
+    page-break-inside: auto;
+    border-collapse: collapse;
+    width: 100%;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  tfoot {
+    display: table-footer-group;
+  }
+
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+
+  /* Avoid orphan section headings at the bottom of a page */
+  h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid;
+  }
+}

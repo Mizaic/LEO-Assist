@@ -80,14 +80,32 @@ class _BaseClient:
     ) -> None:
         if not all([uri, username, password]):
             raise RuntimeError(f"Neo4j credentials missing for {uri or 'unknown'}")
+        # liveness_check_timeout: if a pooled connection has been idle for this
+        # many seconds the driver sends a lightweight check before reusing it.
+        # This prevents SSLEOFError when Aura closes idle TCP connections during
+        # long-running operations (e.g. LLM disambiguation batches).
+        # max_connection_lifetime: retire connections older than 5 min regardless.
+        _pool_kwargs: dict = {
+            "liveness_check_timeout": 10,
+            "max_connection_lifetime": 300,
+        }
         try:
             self._driver = GraphDatabase.driver(
                 uri,
                 auth=(username, password),
                 notifications_min_severity=notifications_min_severity,
+                **_pool_kwargs,
             )
         except ConfigurationError:
-            self._driver = GraphDatabase.driver(uri, auth=(username, password))
+            # Older driver versions don't accept all kwargs; try without extras.
+            try:
+                self._driver = GraphDatabase.driver(
+                    uri,
+                    auth=(username, password),
+                    **_pool_kwargs,
+                )
+            except ConfigurationError:
+                self._driver = GraphDatabase.driver(uri, auth=(username, password))
 
     def close(self) -> None:
         self._driver.close()

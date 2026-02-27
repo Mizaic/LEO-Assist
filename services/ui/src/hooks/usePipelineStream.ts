@@ -43,6 +43,7 @@ const EMPTY_LIVE: PipelineRunResponse = {
   run_id: "starting",
   processed_encounters: 0,
   queued_for_review: 0,
+  auto_approved: 0,
   rejected_hard_fail: 0,
   warnings_only: 0,
 };
@@ -82,6 +83,7 @@ function attachListeners(
   setWorkerStates: Setter<Record<number, WorkerState>>,
   finished: React.MutableRefObject<boolean>,
   esRef: React.MutableRefObject<EventSource | null>,
+  autoApprovedRef: React.MutableRefObject<number>,
 ) {
   const on = (name: string, fn: (d: any) => void) =>
     source.addEventListener(name, (e) => fn(JSON.parse((e as MessageEvent).data)));
@@ -148,6 +150,16 @@ function attachListeners(
     updateWorker(setWorkerStates, d, "code", `${d.resolution_count ?? 0} codes`);
   });
 
+  on("post_processing_applied", (d) => {
+    const parts: string[] = [];
+    if (d.terms_removed) parts.push(`${d.terms_removed} removed`);
+    if (d.terms_added) parts.push(`${d.terms_added} added`);
+    if (d.auto_approve) parts.push("auto-approve");
+    const detail = parts.length > 0 ? parts.join(", ") : "no changes";
+    setStatus(`Post-processing: ${detail}`);
+    updateWorker(setWorkerStates, d, "post", detail);
+  });
+
   on("validation_started", (d) => {
     setStatus("Validating…");
     updateWorker(setWorkerStates, d, "validate", "Validating…");
@@ -166,8 +178,14 @@ function attachListeners(
   });
 
   on("persist_completed", (d) => {
-    setStatus("Queued for review");
-    updateWorker(setWorkerStates, d, "persist", "Queued");
+    if (d.auto_approved) {
+      autoApprovedRef.current += 1;
+      setStatus("Auto-approved (high confidence)");
+      updateWorker(setWorkerStates, d, "persist", "Auto-approved");
+    } else {
+      setStatus("Queued for review");
+      updateWorker(setWorkerStates, d, "persist", "Queued");
+    }
   });
 
   on("persist_skipped", (d) => {
@@ -176,10 +194,12 @@ function attachListeners(
   });
 
   on("encounter_processed", (d) => {
+    const autoCount = autoApprovedRef.current;
     setLive({
       run_id: d.run_id,
       processed_encounters: d.processed_encounters,
-      queued_for_review: d.queued_for_review,
+      queued_for_review: Math.max(0, (d.queued_for_review ?? 0) - autoCount),
+      auto_approved: autoCount,
       rejected_hard_fail: d.rejected_hard_fail,
       warnings_only: d.warnings_only,
       llm_usage: d.llm_usage,
@@ -192,10 +212,12 @@ function attachListeners(
   );
 
   on("run_completed", (d) => {
+    const autoCount = autoApprovedRef.current;
     const res: PipelineRunResponse = {
       run_id: d.run_id,
       processed_encounters: d.processed_encounters,
-      queued_for_review: d.queued_for_review,
+      queued_for_review: Math.max(0, (d.queued_for_review ?? 0) - autoCount),
+      auto_approved: autoCount,
       rejected_hard_fail: d.rejected_hard_fail,
       warnings_only: d.warnings_only,
       llm_usage: d.llm_usage,
@@ -240,6 +262,7 @@ export function usePipelineStream(): UsePipelineStreamReturn {
 
   const esRef = useRef<EventSource | null>(null);
   const finishedRef = useRef(false);
+  const autoApprovedRef = useRef(0);
 
   useEffect(() => {
     return () => {
@@ -263,6 +286,7 @@ export function usePipelineStream(): UsePipelineStreamReturn {
     setStatus("Connecting…");
     setWorkerStates({});
     finishedRef.current = false;
+    autoApprovedRef.current = 0;
 
     let endpoint: string;
     let qs: URLSearchParams;
@@ -302,6 +326,7 @@ export function usePipelineStream(): UsePipelineStreamReturn {
       setWorkerStates,
       finishedRef,
       esRef,
+      autoApprovedRef,
     );
   }, []);
 

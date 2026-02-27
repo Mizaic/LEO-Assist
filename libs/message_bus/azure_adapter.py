@@ -68,6 +68,8 @@ class AzureServiceBusAdapter(MessageBusAdapter):
         self._receivers.append(receiver)
 
         async def _loop():
+            from azure.servicebus.exceptions import MessageLockLostError
+
             async with AutoLockRenewer() as renewer:
                 async with receiver:
                     async for sb_msg in receiver:
@@ -96,12 +98,28 @@ class AzureServiceBusAdapter(MessageBusAdapter):
                                 await result
                             await receiver.complete_message(sb_msg)
                             logger.info("Message %s completed", sb_msg.message_id)
+                        except MessageLockLostError:
+                            # Lock expired — Service Bus will redeliver automatically.
+                            # There is nothing to settle; any attempt to complete/abandon
+                            # will also raise MessageLockLostError.
+                            logger.warning(
+                                "Message %s lock expired before settlement — "
+                                "Service Bus will redeliver (delivery count will increment)",
+                                sb_msg.message_id,
+                            )
                         except Exception:
                             logger.exception(
                                 "Handler failed for message %s — abandoning (will retry)",
                                 sb_msg.message_id,
                             )
-                            await receiver.abandon_message(sb_msg)
+                            try:
+                                await receiver.abandon_message(sb_msg)
+                            except MessageLockLostError:
+                                logger.warning(
+                                    "Message %s lock also expired during abandon — "
+                                    "Service Bus will redeliver",
+                                    sb_msg.message_id,
+                                )
 
         asyncio.create_task(_loop())
 

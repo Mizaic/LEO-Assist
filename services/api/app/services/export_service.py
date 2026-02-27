@@ -16,6 +16,8 @@ from app.services.neo4j_store import (
     list_approved_candidates_for_patient,
 )
 
+from libs.utils.deidentify import deidentify_text as _deidentify
+
 
 def _stable_hash(payload: Any) -> str:
     raw = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
@@ -71,7 +73,9 @@ class ExportService:
         kb_rows: list[dict[str, str]] = []
 
         for candidate in candidates:
-            text = candidate.get("deidentified_text", "")
+            # Re-apply de-identification as a safety net: the stored text may
+            # have been processed by an older version of the patterns.
+            text = _deidentify(candidate.get("deidentified_text", ""))
             sent_entities: list[tuple[int, int, str]] = []
             context_flags: list[dict[str, Any]] = []
             for sentence in candidate.get("sentences", []):
