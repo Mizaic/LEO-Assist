@@ -24,6 +24,9 @@ for _ns in (
     "azure.servicebus._pyamqp.aio",
     "azure.core.pipeline.policies.http_logging_policy",
     "uamqp",
+    "httpx",
+    "botocore",
+    "botocore.credentials",
 ):
     logging.getLogger(_ns).setLevel(logging.WARNING)
 

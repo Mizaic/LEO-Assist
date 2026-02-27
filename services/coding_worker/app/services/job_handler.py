@@ -97,26 +97,48 @@ async def _run_consensus(
     dry_run: bool,
     progress_hook,
 ) -> None:
-    """Run multi-model consensus extraction using shared libs.
-
-    Step 1: Pre-classify encounters.
-    Step 2: For clinical encounters, run extraction via existing pipeline.
-           (Multi-model consensus is handled at the LLM factory level when
-            the pipeline is configured with consensus mode.)
-    Step 3: Auto-approve high-confidence results.
-    """
+    """Run multi-model consensus extraction using shared libs."""
     from services.api.app.services.v3.encounter_classifier import (
         build_patient_encounter_index,
         persist_patient_encounter_classification,
     )
 
+    logger.info("Patient %s — fetching encounters from graph", patient_id)
     encounters = await asyncio.to_thread(
         _fetch_encounters_sync, pipeline.patient_client, patient_id
     )
+    logger.info("Patient %s — found %d encounters", patient_id, len(encounters))
 
+    if not encounters:
+        logger.info("Patient %s — no encounters to process, done", patient_id)
+        progress_hook({
+            "type": "consensus_classification_done",
+            "patient_id": patient_id,
+            "total": 0, "admin": 0, "document_transfer": 0,
+            "clinical": 0, "skipped_non_clinical": 0,
+            "classification_persisted": {},
+        })
+        return
+
+    logger.info("Patient %s — classifying %d encounters (2-model consensus: Haiku + GPT-5-mini)", patient_id, len(encounters))
     index = await asyncio.to_thread(
         build_patient_encounter_index, patient_id, encounters, run_id
     )
+
+    for enc_id, result in index.classifications.items():
+        logger.info(
+            "  Encounter %s → %s (consensus=%s, domains=%s)",
+            enc_id, result.content_type,
+            "yes" if result.consensus_agreement else "NO",
+            result.domains or "none",
+        )
+
+    logger.info(
+        "Patient %s — classification summary: %d admin, %d document_transfer, %d clinical",
+        patient_id, index.admin_count, index.document_transfer_count, index.clinical_count,
+    )
+
+    logger.info("Patient %s — persisting classifications to Neo4j", patient_id)
     persisted = await asyncio.to_thread(
         persist_patient_encounter_classification,
         pipeline.patient_client,
@@ -124,6 +146,7 @@ async def _run_consensus(
         run_id,
         index,
     )
+    logger.info("Patient %s — classifications persisted (PatientEncounterIndex node created)", patient_id)
 
     clinical_ids = [
         enc_id
@@ -131,11 +154,6 @@ async def _run_consensus(
         if result.content_type == "clinical"
     ]
     skipped_non_clinical = len(encounters) - len(clinical_ids)
-
-    logger.info(
-        "Patient %s consensus: %d/%d clinical encounters",
-        patient_id, len(clinical_ids), len(encounters),
-    )
 
     progress_hook({
         "type": "consensus_classification_done",
@@ -149,6 +167,7 @@ async def _run_consensus(
     })
 
     if not clinical_ids:
+        logger.info("Patient %s — no clinical encounters, skipping extraction", patient_id)
         progress_hook({
             "type": "consensus_extraction_done",
             "patient_id": patient_id,
@@ -157,8 +176,17 @@ async def _run_consensus(
         })
         return
 
+    logger.info(
+        "Patient %s — starting extraction for %d clinical encounters (skipping %d non-clinical)",
+        patient_id, len(clinical_ids), skipped_non_clinical,
+    )
+
     processed = 0
-    for enc_id in clinical_ids:
+    for i, enc_id in enumerate(clinical_ids, 1):
+        logger.info(
+            "Patient %s — extracting encounter %d/%d (id=%s)",
+            patient_id, i, len(clinical_ids), enc_id,
+        )
         await pipeline.run_single_encounter(
             patient_id=patient_id,
             encounter_id=enc_id,
@@ -166,6 +194,15 @@ async def _run_consensus(
             progress_hook=progress_hook,
         )
         processed += 1
+        logger.info(
+            "Patient %s — encounter %s extraction complete (%d/%d done)",
+            patient_id, enc_id, processed, len(clinical_ids),
+        )
+
+    logger.info(
+        "Patient %s — consensus pipeline complete: %d encounters extracted, %d skipped",
+        patient_id, processed, skipped_non_clinical,
+    )
 
     progress_hook({
         "type": "consensus_extraction_done",

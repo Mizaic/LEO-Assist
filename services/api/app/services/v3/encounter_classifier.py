@@ -19,6 +19,7 @@ from libs.llm_client.factory import create_llm, LLMResponse
 from libs.prompts.registry import get_prompt
 
 logger = logging.getLogger(__name__)
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
 _JSON_RE = re.compile(r"\{.*\}", re.DOTALL)
 

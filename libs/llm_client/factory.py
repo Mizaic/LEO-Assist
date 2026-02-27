@@ -173,7 +173,7 @@ class LLMClient:
         response = client.chat.completions.create(
             model=self.model_id,
             messages=oai_messages,
-            max_tokens=max_tokens,
+            max_completion_tokens=max_tokens,
             temperature=temperature,
         )
         choice = response.choices[0] if response.choices else None
