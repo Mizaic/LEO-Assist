@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
+import os
 import queue
 import threading
 import time
+import uuid
 
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
@@ -15,6 +18,7 @@ from app.models.contracts import LLMUsageResponse, PipelineRunRequest, PipelineR
 from app.models.neo4j_schema import DELETE_ENCOUNTER_DOCUMENTS, RESET_ENCOUNTER_REVIEW_QUEUE
 from app.services.v3.pipeline_service import V3PipelineService
 
+CODING_QUEUE = os.getenv("CODING_QUEUE_NAME", "coding-jobs")
 
 router = APIRouter(prefix="/pipeline", tags=["pipeline"])
 
@@ -300,3 +304,49 @@ def stream_pipeline(
             "X-Accel-Buffering": "no",
         },
     )
+
+
+# ── Worker-based consensus pipeline ──────────────────────────
+
+@router.post("/enqueue-consensus")
+async def enqueue_consensus(payload: PipelineRunRequest):
+    """Publish coding jobs to the message bus for worker-based consensus processing.
+
+    Each patient gets a separate message with mode=consensus and
+    trigger_analysis=True so the coding worker fires the analysis
+    worker upon completion.
+    """
+    from libs.message_bus.base import Message
+    from libs.message_bus.factory import create_message_bus
+
+    patient_ids = payload.patient_ids
+    if not patient_ids and payload.cohort_id:
+        patient_ids = _resolve_cohort_patients(payload.cohort_id)
+    if not patient_ids and payload.org_id:
+        patient_ids = _resolve_org_patients(payload.org_id)
+    if not patient_ids:
+        from fastapi import HTTPException
+        raise HTTPException(400, "Provide patient_ids, cohort_id, or org_id")
+
+    run_id = str(uuid.uuid4())
+    bus = create_message_bus()
+    try:
+        for pid in patient_ids:
+            msg = Message(
+                body={
+                    "patient_id": pid,
+                    "dry_run": payload.dry_run,
+                    "mode": "consensus",
+                    "trigger_analysis": True,
+                },
+                correlation_id=run_id,
+            )
+            await bus.send(CODING_QUEUE, msg)
+    finally:
+        await bus.close()
+
+    return {
+        "run_id": run_id,
+        "patients_enqueued": len(patient_ids),
+        "queue": CODING_QUEUE,
+    }

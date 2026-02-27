@@ -22,19 +22,19 @@ todos:
     status: completed
   - id: m3-auto-approve
     content: "M3c: Wire up auto-approve in _persist() — write DOCUMENTS for high-confidence candidates, create Approval with reviewer=consensus_auto. Add tests."
-    status: in_progress
+    status: completed
   - id: m3-validate-5
     content: "M3d: Run on 5 patients, validate confidence calibration, tune thresholds. Commit."
-    status: pending
+    status: completed
   - id: m4-coding-worker
     content: "M4a: Add consensus mode to coding worker using shared libs. API publishes to coding-jobs queue."
-    status: pending
+    status: completed
   - id: m4-analysis-trigger
     content: "M4b: sync-gold publishes to analysis-jobs queue. Analysis worker runs automatically after DOCUMENTS written."
-    status: pending
+    status: completed
   - id: m4-orchestration
     content: "M4c: Create scripts/clean_patients.py + scripts/run_gold_patients.py. Run 50 patients through workers end-to-end. Commit."
-    status: pending
+    status: in_progress
 isProject: true
 ---
 

@@ -1,0 +1,166 @@
+"""Run the gold consensus pipeline end-to-end.
+
+1. Clean specified patients (remove old artefacts).
+2. Run pre-classification + consensus extraction via the V3 pipeline.
+3. Report stats (auto-approved vs review-queue vs low-confidence).
+
+Usage:
+    python scripts/run_gold_patients.py --patients P1,P2,...
+    python scripts/run_gold_patients.py --limit 50
+    python scripts/run_gold_patients.py --limit 50 --dry-run
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import logging
+import os
+import sys
+import time
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / "services" / "api"))
+
+from dotenv import load_dotenv
+load_dotenv(ROOT / "secrets" / ".env")
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)-8s %(name)s: %(message)s",
+)
+logger = logging.getLogger("run_gold")
+
+
+def get_patient_ids(driver, limit: int) -> list[str]:
+    """Fetch patients ordered by encounter count (most encounters first)."""
+    with driver.session() as session:
+        result = session.run(
+            "MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter) "
+            "WITH p, count(e) AS enc_count "
+            "RETURN toString(p.id) AS patient_id, enc_count "
+            "ORDER BY enc_count DESC LIMIT $limit",
+            limit=limit,
+        )
+        return [row["patient_id"] for row in result]
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Run gold consensus pipeline")
+    parser.add_argument("--patients", type=str, help="Comma-separated patient IDs")
+    parser.add_argument("--limit", type=int, default=50, help="Number of patients (if --patients not given)")
+    parser.add_argument("--dry-run", action="store_true", help="Skip persistence")
+    parser.add_argument("--skip-clean", action="store_true", help="Skip cleanup step")
+    parser.add_argument("--workers", type=int, default=4, help="Pipeline parallelism")
+    args = parser.parse_args()
+
+    from neo4j import GraphDatabase
+    neo4j_uri = os.getenv("NEO4J_URI", "bolt://localhost:7687")
+    neo4j_user = os.getenv("NEO4J_USER", "neo4j")
+    neo4j_password = os.getenv("NEO4J_PASSWORD", "")
+    driver = GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password))
+
+    if args.patients:
+        patient_ids = [p.strip() for p in args.patients.split(",")]
+    else:
+        patient_ids = get_patient_ids(driver, limit=args.limit)
+
+    logger.info("Gold pipeline: %d patients", len(patient_ids))
+
+    # Step 1: Clean
+    if not args.skip_clean:
+        logger.info("Step 1: Cleaning patient data...")
+        from scripts.clean_patients import clean_patient
+        t0 = time.time()
+        with driver.session() as session:
+            for pid in patient_ids:
+                clean_patient(session, pid)
+        logger.info("  Cleaned in %.1fs", time.time() - t0)
+    else:
+        logger.info("Step 1: Skipped (--skip-clean)")
+
+    # Step 2: Run pipeline
+    logger.info("Step 2: Running V3 pipeline...")
+    from app.db.neo4j_client import PatientGraphClient, CodingGraphClient
+    from app.services.v3.pipeline_service import V3PipelineService
+
+    patient_client = PatientGraphClient()
+    patient_client.initialize_schema()
+    coding_client = CodingGraphClient()
+
+    service = V3PipelineService(
+        patient_client=patient_client,
+        coding_client=coding_client,
+    )
+
+    events = []
+
+    def progress_hook(event):
+        events.append(event)
+        etype = event.get("type", "")
+        if etype in ("patient_started", "run_completed", "pipeline_error"):
+            logger.info("  %s", json.dumps(event, default=str))
+
+    t0 = time.time()
+    run_id, stats = service.run(
+        patient_ids=patient_ids,
+        dry_run=args.dry_run,
+        workers=args.workers,
+        progress_hook=progress_hook,
+    )
+    elapsed = time.time() - t0
+
+    # Step 3: Report
+    snap = stats.snapshot()
+    logger.info("=" * 60)
+    logger.info("GOLD PIPELINE COMPLETE")
+    logger.info("=" * 60)
+    logger.info("  Run ID:               %s", run_id)
+    logger.info("  Patients:             %d", len(patient_ids))
+    logger.info("  Processed encounters: %d", stats.processed_encounters)
+    logger.info("  Queued for review:    %d", stats.queued_for_review)
+    logger.info("  Hard fail:            %d", stats.rejected_hard_fail)
+    logger.info("  Warnings only:        %d", stats.warnings_only)
+    logger.info("  Elapsed:              %.1fs", elapsed)
+    logger.info("  LLM usage:            %s", json.dumps(snap.get("llm_usage", {}), indent=2))
+
+    auto_approved = sum(
+        1 for e in events if e.get("type") == "persist_completed" and e.get("auto_approved")
+    )
+    logger.info("  Auto-approved:        %d", auto_approved)
+
+    # Encounter-level validation
+    logger.info("\nStep 3: Validating data chain...")
+    with driver.session() as session:
+        for pid in patient_ids[:5]:
+            r = session.run(
+                "MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter)-[d:DOCUMENTS]->() "
+                "WHERE toString(p.id) = $pid "
+                "RETURN count(d) AS doc_count",
+                pid=pid,
+            ).single()
+            doc_count = r["doc_count"] if r else 0
+
+            r2 = session.run(
+                "MATCH (c:EncounterCandidate) WHERE c.patient_id = $pid "
+                "RETURN count(c) AS cand_count, "
+                "       sum(CASE WHEN c.approval_status = 'approved' THEN 1 ELSE 0 END) AS approved",
+                pid=pid,
+            ).single()
+            cand_count = r2["cand_count"] if r2 else 0
+            approved = r2["approved"] if r2 else 0
+
+            logger.info(
+                "  Patient %s: %d DOCUMENTS, %d candidates (%d approved)",
+                pid, doc_count, cand_count, approved,
+            )
+
+    logger.info("=" * 60)
+    patient_client.close()
+    coding_client.close()
+    driver.close()
+
+
+if __name__ == "__main__":
+    main()
