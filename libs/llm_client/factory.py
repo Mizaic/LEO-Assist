@@ -124,7 +124,7 @@ class LLMClient:
     def _converse_bedrock(
         self, client: Any, system: str, messages: list[dict], max_tokens: int, temperature: float,
     ) -> LLMResponse:
-        from app.services.v3.bedrock_retry import converse_with_retry
+        from libs.llm_client.bedrock_retry import converse_with_retry
 
         bedrock_messages = []
         for msg in messages:

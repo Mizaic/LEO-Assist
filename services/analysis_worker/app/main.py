@@ -19,6 +19,17 @@ from libs.message_bus.base import Message
 from services.analysis_worker.app.services.job_handler import handle_analysis_job
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
+
+# Suppress noisy Azure SDK internals — we only care about errors
+for _ns in (
+    "azure.servicebus",
+    "azure.servicebus._pyamqp",
+    "azure.servicebus._pyamqp.aio",
+    "azure.core.pipeline.policies.http_logging_policy",
+    "uamqp",
+):
+    logging.getLogger(_ns).setLevel(logging.WARNING)
+
 logger = logging.getLogger("analysis-worker")
 
 QUEUE_NAME = os.getenv("ANALYSIS_QUEUE_NAME", "analysis-jobs")
