@@ -34,7 +34,7 @@ todos:
     status: completed
   - id: m4-orchestration
     content: "M4c: Create scripts/clean_patients.py + scripts/run_gold_patients.py. Run 50 patients through workers end-to-end. Commit."
-    status: in_progress
+    status: completed
 isProject: true
 ---
 
