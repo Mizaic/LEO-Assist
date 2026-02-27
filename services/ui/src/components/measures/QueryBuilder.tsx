@@ -39,13 +39,13 @@ import { chartTheme, getSeriesColor } from '@/lib/chartTheme';
 
 const NODE_LABELS: Record<string, string> = {
   Patient: 'Patients',
-  CancerEpisode: 'Cancer episodes',
+  EpisodeOfCare: 'Cancer episodes',
   Encounter: 'Consultations',
-  CSSAlert: 'Safety alerts',
+  SafetyNetAlert: 'Safety alerts',
 };
 
 const PROPERTY_LABELS: Record<string, string> = {
-  cancer_type: 'Cancer type',
+  condition_type: 'Cancer type',
   status: 'Status',
   referral_date: 'Referral date',
   referral_route: 'Referral route',
@@ -117,27 +117,27 @@ function formatFilterForDisplay(f: { property: string; op: string; value: unknow
 }
 
 const TEMPLATES = [
-  { label: 'Patients by cancer type', nodeLabel: 'CancerEpisode', groupBy: 'cancer_type', filters: [] },
-  { label: 'Episodes by status', nodeLabel: 'CancerEpisode', groupBy: 'status', filters: [] },
+  { label: 'Patients by cancer type', nodeLabel: 'EpisodeOfCare', groupBy: 'condition_type', filters: [] },
+  { label: 'Episodes by status', nodeLabel: 'EpisodeOfCare', groupBy: 'status', filters: [] },
   {
     label: 'Male/female split (excl. gender-specific cancers)',
-    nodeLabel: 'CancerEpisode',
+    nodeLabel: 'EpisodeOfCare',
     groupBy: 'Patient.gender',
-    filters: [{ property: 'cancer_type', op: 'nin', value: GENDER_SPECIFIC_CANCERS }],
+    filters: [{ property: 'condition_type', op: 'nin', value: GENDER_SPECIFIC_CANCERS }],
   },
   { label: 'Consultations this year', nodeLabel: 'Encounter', groupBy: undefined, filters: [{ property: 'date', op: 'between', value: ['2024-01-01', '2024-12-31'] }] },
-  { label: 'Safety alerts actioned', nodeLabel: 'CSSAlert', groupBy: undefined, filters: [{ property: 'actioned', op: 'eq', value: true }] },
+  { label: 'Safety alerts actioned', nodeLabel: 'SafetyNetAlert', groupBy: undefined, filters: [{ property: 'actioned', op: 'eq', value: true }] },
   // NCDA measure templates (1, 2, 5, 7, 8, 11, 13, 14, 15)
-  { label: 'NCDA 1: Sex distribution', nodeLabel: 'CancerEpisode', groupBy: 'Patient.gender', filters: [], cohortVariant: 'diagnosed' },
-  { label: 'NCDA 2a: Age band at diagnosis', nodeLabel: 'CancerEpisode', groupBy: 'Patient.age_band_at_diagnosis', filters: [], cohortVariant: 'diagnosed' },
-  { label: 'NCDA 2b: Median age at diagnosis', nodeLabel: 'CancerEpisode', groupBy: undefined, aggregation: 'median', valueProperty: 'age_at_diagnosis', filters: [], cohortVariant: 'diagnosed' },
-  { label: 'NCDA 5: Cancer type', nodeLabel: 'CancerEpisode', groupBy: 'cancer_type', filters: [], cohortVariant: 'diagnosed' },
-  { label: 'NCDA 7: Place of presentation', nodeLabel: 'CancerEpisode', groupBy: 'place_of_presentation', filters: [], cohortVariant: 'diagnosed' },
+  { label: 'NCDA 1: Sex distribution', nodeLabel: 'EpisodeOfCare', groupBy: 'Patient.gender', filters: [], cohortVariant: 'diagnosed' },
+  { label: 'NCDA 2a: Age band at diagnosis', nodeLabel: 'EpisodeOfCare', groupBy: 'Patient.age_band_at_diagnosis', filters: [], cohortVariant: 'diagnosed' },
+  { label: 'NCDA 2b: Median age at diagnosis', nodeLabel: 'EpisodeOfCare', groupBy: undefined, aggregation: 'median', valueProperty: 'age_at_diagnosis', filters: [], cohortVariant: 'diagnosed' },
+  { label: 'NCDA 5: Cancer type', nodeLabel: 'EpisodeOfCare', groupBy: 'condition_type', filters: [], cohortVariant: 'diagnosed' },
+  { label: 'NCDA 7: Place of presentation', nodeLabel: 'EpisodeOfCare', groupBy: 'place_of_presentation', filters: [], cohortVariant: 'diagnosed' },
   { label: 'NCDA 8: Median consultations per patient', nodeLabel: 'Encounter', groupBy: undefined, aggregation: 'median', valueProperty: 'count_per_patient', filters: [], cohortVariant: undefined },
-  { label: 'NCDA 11: Referral route', nodeLabel: 'CancerEpisode', groupBy: 'referral_route', filters: [], cohortVariant: 'diagnosed' },
-  { label: 'NCDA 13: Median primary care interval', nodeLabel: 'CancerEpisode', groupBy: undefined, aggregation: 'median', valueProperty: 'primary_care_interval_days', filters: [], cohortVariant: 'diagnosed' },
-  { label: 'NCDA 14: Median diagnostic interval', nodeLabel: 'CancerEpisode', groupBy: undefined, aggregation: 'median', valueProperty: 'diagnostic_interval_days', filters: [], cohortVariant: 'diagnosed' },
-  { label: 'NCDA 15: Safety netting recorded (%)', nodeLabel: 'CancerEpisode', groupBy: undefined, aggregation: 'percentage', percentageProperty: 'safety_netting_recorded', filters: [], cohortVariant: 'diagnosed' },
+  { label: 'NCDA 11: Referral route', nodeLabel: 'EpisodeOfCare', groupBy: 'referral_route', filters: [], cohortVariant: 'diagnosed' },
+  { label: 'NCDA 13: Median primary care interval', nodeLabel: 'EpisodeOfCare', groupBy: undefined, aggregation: 'median', valueProperty: 'primary_care_interval_days', filters: [], cohortVariant: 'diagnosed' },
+  { label: 'NCDA 14: Median diagnostic interval', nodeLabel: 'EpisodeOfCare', groupBy: undefined, aggregation: 'median', valueProperty: 'diagnostic_interval_days', filters: [], cohortVariant: 'diagnosed' },
+  { label: 'NCDA 15: Safety netting recorded (%)', nodeLabel: 'EpisodeOfCare', groupBy: undefined, aggregation: 'percentage', percentageProperty: 'safety_netting_recorded', filters: [], cohortVariant: 'diagnosed' },
 ];
 
 interface QueryBuilderProps {
@@ -159,7 +159,7 @@ export function QueryBuilder({
   const [error, setError] = useState<string | null>(null);
   const [activeStep, setActiveStep] = useState(0);
 
-  const [nodeLabel, setNodeLabel] = useState<string>('CancerEpisode');
+  const [nodeLabel, setNodeLabel] = useState<string>('EpisodeOfCare');
   const [cohortVariant, setCohortVariant] = useState<'diagnosed' | 'referred_excluded' | 'all_referred'>('diagnosed');
   const [filters, setFilters] = useState<Array<{ property: string; op: string; value: unknown }>>([]);
   const [groupBy, setGroupBy] = useState<string | null>(null);
@@ -254,7 +254,7 @@ export function QueryBuilder({
     filters: filters.length ? filters : undefined,
     groupBy: groupBy ?? undefined,
     scopeType,
-    cohortVariant: nodeLabel === 'CancerEpisode' ? cohortVariant : undefined,
+    cohortVariant: nodeLabel === 'EpisodeOfCare' ? cohortVariant : undefined,
     aggregation: aggregation !== 'count' ? aggregation : undefined,
     valueProperty:
       aggregation === 'median'
@@ -439,7 +439,7 @@ export function QueryBuilder({
                 </Card>
               ))}
             </Box>
-            {nodeLabel === 'CancerEpisode' && (
+            {nodeLabel === 'EpisodeOfCare' && (
               <FormControl size="small" fullWidth sx={{ mb: 2 }}>
                 <FormLabel>Cohort</FormLabel>
                 <Select
@@ -708,19 +708,19 @@ export function QueryBuilder({
                 ))}
               </Select>
             </FormControl>
-            {((nodeLabel === 'CancerEpisode' || nodeLabel === 'Encounter') && !groupBy) && (
+            {((nodeLabel === 'EpisodeOfCare' || nodeLabel === 'Encounter') && !groupBy) && (
               <>
                 <FormControl size="small" fullWidth sx={{ mt: 2 }}>
                   <FormLabel>Aggregation</FormLabel>
                   <Select value={aggregation} onChange={(e) => setAggregation(e.target.value as typeof aggregation)}>
                     <MenuItem value="count">Count</MenuItem>
                     <MenuItem value="median">Median</MenuItem>
-                    {nodeLabel === 'CancerEpisode' && (
+                    {nodeLabel === 'EpisodeOfCare' && (
                       <MenuItem value="percentage">Percentage</MenuItem>
                     )}
                   </Select>
                 </FormControl>
-                {aggregation === 'median' && nodeLabel === 'CancerEpisode' && (
+                {aggregation === 'median' && nodeLabel === 'EpisodeOfCare' && (
                   <FormControl size="small" fullWidth sx={{ mt: 2 }}>
                     <FormLabel>Value (days)</FormLabel>
                     <Select value={valueProperty} onChange={(e) => setValueProperty(e.target.value)}>
@@ -736,7 +736,7 @@ export function QueryBuilder({
                     Median consultations per patient
                   </Typography>
                 )}
-                {aggregation === 'percentage' && nodeLabel === 'CancerEpisode' && (
+                {aggregation === 'percentage' && nodeLabel === 'EpisodeOfCare' && (
                   <FormControl size="small" fullWidth sx={{ mt: 2 }}>
                     <FormLabel>Percentage of</FormLabel>
                     <Select value={percentageProperty} onChange={(e) => setPercentageProperty(e.target.value)}>
@@ -976,7 +976,7 @@ export function QueryBuilder({
                 onClick={handleSave}
                 disabled={
                   saving ||
-                  (aggregation === 'median' && nodeLabel === 'CancerEpisode' && !valueProperty) ||
+                  (aggregation === 'median' && nodeLabel === 'EpisodeOfCare' && !valueProperty) ||
                   (aggregation === 'percentage' && !percentageProperty)
                 }
               >

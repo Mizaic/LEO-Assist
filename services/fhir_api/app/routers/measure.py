@@ -122,7 +122,7 @@ def evaluate_measure(
     period_end: Optional[str] = Query(default=None, alias="periodEnd"),
     ce_status: Optional[str] = Query(default=None),
     ce_status_exclude: Optional[str] = Query(default=None),
-    ce_cancer_type: Optional[str] = Query(default=None),
+    ce_condition_type: Optional[str] = Query(default=None),
     ce_referral_date_start: Optional[str] = Query(default=None),
     ce_referral_date_end: Optional[str] = Query(default=None),
     tenant: TenantContext = Depends(get_tenant_context),
@@ -159,8 +159,8 @@ def evaluate_measure(
         params["ce_status"] = [s.strip() for s in ce_status.split(",") if s.strip()]
     if ce_status_exclude:
         params["ce_status_exclude"] = [s.strip() for s in ce_status_exclude.split(",") if s.strip()]
-    if ce_cancer_type:
-        params["ce_cancer_type"] = [s.strip() for s in ce_cancer_type.split(",") if s.strip()]
+    if ce_condition_type:
+        params["ce_condition_type"] = [s.strip() for s in ce_condition_type.split(",") if s.strip()]
     if ce_referral_date_start:
         params["ce_referral_date_start"] = ce_referral_date_start
     if ce_referral_date_end:

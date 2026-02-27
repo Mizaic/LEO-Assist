@@ -19,7 +19,7 @@ export interface Milestone {
 export interface Episode {
   episode_id: string;
   patient_id?: string;
-  cancer_type: string;
+  condition_type: string;
   status: string;
   referral_date?: string;
   milestones?: Milestone[];
@@ -425,7 +425,7 @@ function detectConvergence(
     return { hasRisk: false, note: null };
   }
 
-  const types = active.map((e) => e.cancer_type?.toLowerCase().trim());
+  const types = active.map((e) => e.condition_type?.toLowerCase().trim());
   const typeSet = new Set(types.filter(Boolean));
 
   if (typeSet.size < types.filter(Boolean).length) {

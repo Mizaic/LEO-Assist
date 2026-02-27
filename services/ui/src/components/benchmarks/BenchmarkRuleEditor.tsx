@@ -37,13 +37,13 @@ import type { BenchmarkSet } from '@/lib/api/benchmarks';
 
 const NODE_LABELS: Record<string, string> = {
   Patient: 'Patients',
-  CancerEpisode: 'Cancer episodes',
+  EpisodeOfCare: 'Cancer episodes',
   Encounter: 'Consultations',
-  CSSAlert: 'Safety alerts',
+  SafetyNetAlert: 'Safety alerts',
 };
 
 const PROPERTY_LABELS: Record<string, string> = {
-  cancer_type: 'Cancer type',
+  condition_type: 'Cancer type',
   status: 'Status',
   referral_date: 'Referral date',
   gender: 'Gender',
@@ -56,13 +56,13 @@ const PROPERTY_LABELS: Record<string, string> = {
 const GENDER_SPECIFIC_CANCERS = ['breast', 'prostate', 'gynaecological'];
 
 const TEMPLATES = [
-  { label: 'Patients by cancer type', nodeLabel: 'CancerEpisode', groupBy: 'cancer_type', filters: [] },
-  { label: 'Episodes by status', nodeLabel: 'CancerEpisode', groupBy: 'status', filters: [] },
+  { label: 'Patients by cancer type', nodeLabel: 'EpisodeOfCare', groupBy: 'condition_type', filters: [] },
+  { label: 'Episodes by status', nodeLabel: 'EpisodeOfCare', groupBy: 'status', filters: [] },
   {
     label: 'Male/female split (excl. gender-specific cancers)',
-    nodeLabel: 'CancerEpisode',
+    nodeLabel: 'EpisodeOfCare',
     groupBy: 'Patient.gender',
-    filters: [{ property: 'cancer_type', op: 'nin', value: GENDER_SPECIFIC_CANCERS }],
+    filters: [{ property: 'condition_type', op: 'nin', value: GENDER_SPECIFIC_CANCERS }],
   },
   { label: 'Consultations this year', nodeLabel: 'Encounter', groupBy: undefined, filters: [{ property: 'date', op: 'between', value: ['2024-01-01', '2024-12-31'] }] },
 ];
@@ -88,7 +88,7 @@ export function BenchmarkRuleEditor({ ruleId }: BenchmarkRuleEditorProps) {
   const [activeStep, setActiveStep] = useState(0);
 
   const [name, setName] = useState('');
-  const [nodeLabel, setNodeLabel] = useState('CancerEpisode');
+  const [nodeLabel, setNodeLabel] = useState('EpisodeOfCare');
   const [cohortVariant, setCohortVariant] = useState<'diagnosed' | 'referred_excluded' | 'all_referred'>('diagnosed');
   const [filters, setFilters] = useState<Array<{ property: string; op: string; value: unknown }>>([]);
   const [groupBy, setGroupBy] = useState<string | null>(null);
@@ -113,7 +113,7 @@ export function BenchmarkRuleEditor({ ruleId }: BenchmarkRuleEditorProps) {
         .then((r) => {
           setName(r.name);
           const qd = r.query_definition || {};
-          setNodeLabel((qd.nodeLabel as string) || 'CancerEpisode');
+          setNodeLabel((qd.nodeLabel as string) || 'EpisodeOfCare');
           setCohortVariant((qd.cohortVariant as typeof cohortVariant) || 'diagnosed');
           setFilters((qd.filters as Array<{ property: string; op: string; value: unknown }>) || []);
           setGroupBy((qd.groupBy as string) || null);
@@ -153,7 +153,7 @@ export function BenchmarkRuleEditor({ ruleId }: BenchmarkRuleEditorProps) {
         filters: filters.length ? filters : undefined,
         groupBy: groupBy ?? undefined,
         scopeType,
-        cohortVariant: nodeLabel === 'CancerEpisode' ? cohortVariant : undefined,
+        cohortVariant: nodeLabel === 'EpisodeOfCare' ? cohortVariant : undefined,
       };
       const targetSetId = benchmarkSetId || `computed-${Date.now()}`;
       if (ruleId) {
@@ -266,7 +266,7 @@ export function BenchmarkRuleEditor({ ruleId }: BenchmarkRuleEditorProps) {
                 </Card>
               ))}
             </Box>
-            {nodeLabel === 'CancerEpisode' && (
+            {nodeLabel === 'EpisodeOfCare' && (
               <FormControl size="small" fullWidth sx={{ mb: 2 }}>
                 <FormLabel>Cohort</FormLabel>
                 <Select value={cohortVariant} onChange={(e) => setCohortVariant(e.target.value as typeof cohortVariant)}>

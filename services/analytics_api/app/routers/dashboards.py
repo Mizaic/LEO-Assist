@@ -50,7 +50,7 @@ async def rebuild_patient_episodes(body: RebuildEpisodesRequest):
     try:
         if body.delete_existing:
             client.run(
-                "MATCH (p:Patient)-[:HAS_EPISODE]->(ep:CancerEpisode) "
+                "MATCH (p:Patient)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
                 "WHERE toString(p.id) = $pid "
                 "DETACH DELETE ep",
                 pid=body.patient_id,
@@ -91,7 +91,7 @@ def close_episode(episode_id: str, body: EpisodeStatusRequest):
     client = PatientGraphClient()
     try:
         result = client.run(
-            "MATCH (ep:CancerEpisode {episode_id: $eid}) "
+            "MATCH (ep:EpisodeOfCare {episode_id: $eid}) "
             "SET ep.status = $status, ep.completed_at = datetime(), "
             "    ep.completed_by = 'manual', ep.agent_reasoning = $reason, "
             "    ep.status_updated_at = datetime(), ep.needs_review = false "
@@ -116,8 +116,8 @@ def merge_episodes_endpoint(body: EpisodeMergeRequest):
     try:
         client.run(
             "UNWIND $sids AS sec_id "
-            "MATCH (enc:Encounter)-[r:IS_PART_OF]->(sec:CancerEpisode {episode_id: sec_id}) "
-            "MATCH (primary:CancerEpisode {episode_id: $pid}) "
+            "MATCH (enc:Encounter)-[r:IS_PART_OF]->(sec:EpisodeOfCare {episode_id: sec_id}) "
+            "MATCH (primary:EpisodeOfCare {episode_id: $pid}) "
             "MERGE (enc)-[r2:IS_PART_OF]->(primary) "
             "ON CREATE SET r2.milestone_type = r.milestone_type, "
             "              r2.agent_reasoning = 'Merged from ' + sec_id, "
@@ -128,7 +128,7 @@ def merge_episodes_endpoint(body: EpisodeMergeRequest):
         )
         client.run(
             "UNWIND $sids AS sec_id "
-            "MATCH (ep:CancerEpisode {episode_id: sec_id}) "
+            "MATCH (ep:EpisodeOfCare {episode_id: sec_id}) "
             "SET ep.status = 'merged', ep.merged_into = $pid, "
             "    ep.merged_at = datetime(), ep.merge_reasoning = $reasoning, "
             "    ep.needs_review = false, ep.status_updated_at = datetime()",
@@ -137,7 +137,7 @@ def merge_episodes_endpoint(body: EpisodeMergeRequest):
             reasoning=body.reason,
         )
         client.run(
-            "MATCH (primary:CancerEpisode {episode_id: $pid}) "
+            "MATCH (primary:EpisodeOfCare {episode_id: $pid}) "
             "OPTIONAL MATCH (enc:Encounter)-[:IS_PART_OF]->(primary) "
             "WITH primary, min(toString(enc.date)) AS earliest, max(toString(enc.date)) AS latest "
             "SET primary.first_encounter_date = earliest, "
@@ -177,7 +177,7 @@ def edit_milestone(episode_id: str, encounter_id: str, body: MilestoneUpdateRequ
     client = PatientGraphClient()
     try:
         result = client.run(
-            "MATCH (e:Encounter {id: $eid})-[r:IS_PART_OF]->(ep:CancerEpisode {episode_id: $epid}) "
+            "MATCH (e:Encounter {id: $eid})-[r:IS_PART_OF]->(ep:EpisodeOfCare {episode_id: $epid}) "
             "SET r.milestone_type = $mt, r.linked_by = 'manual_edit', r.linked_at = datetime() "
             "RETURN e.id AS encounter_id, ep.episode_id AS episode_id",
             eid=encounter_id,
@@ -199,14 +199,14 @@ def episode_summary(org_id: Optional[str] = Query(default=None)):
         if org_id:
             return client.run(
                 "MATCH (p:Patient)-[:REGISTERED_AT]->(o:Organization {id: $org}) "
-                "MATCH (p)-[:HAS_EPISODE]->(ep:CancerEpisode) "
-                "RETURN ep.cancer_type AS cancer_type, ep.status AS status, count(ep) AS count "
+                "MATCH (p)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
+                "RETURN ep.condition_type AS condition_type, ep.status AS status, count(ep) AS count "
                 "ORDER BY count DESC",
                 org=org_id,
             )
         return client.run(
-            "MATCH (ep:CancerEpisode) "
-            "RETURN ep.cancer_type AS cancer_type, ep.status AS status, count(ep) AS count "
+            "MATCH (ep:EpisodeOfCare) "
+            "RETURN ep.condition_type AS condition_type, ep.status AS status, count(ep) AS count "
             "ORDER BY count DESC",
         )
     finally:
@@ -229,10 +229,10 @@ def episode_timeline(
     try:
         if patient_id:
             return client.run(
-                "MATCH (p:Patient)-[:HAS_EPISODE]->(ep:CancerEpisode) "
+                "MATCH (p:Patient)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
                 f"WHERE toString(p.id) = $pid {merged_filter}"
                 "OPTIONAL MATCH (e:Encounter)-[r:IS_PART_OF]->(ep) "
-                "RETURN ep.episode_id AS episode_id, ep.cancer_type AS cancer_type, "
+                "RETURN ep.episode_id AS episode_id, ep.condition_type AS condition_type, "
                 "       ep.status AS status, ep.agent_confidence AS confidence, "
                 "       ep.agent_reasoning AS agent_reasoning, "
                 "       ep.needs_review AS needs_review, "
@@ -251,13 +251,13 @@ def episode_timeline(
         if org_id:
             return client.run(
                 "MATCH (p:Patient)-[:REGISTERED_AT]->(o:Organization {id: $org}) "
-                "MATCH (p)-[:HAS_EPISODE]->(ep:CancerEpisode) "
+                "MATCH (p)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
                 f"WHERE true {merged_filter}"
                 "OPTIONAL MATCH (e:Encounter)-[r:IS_PART_OF]->(ep) "
                 "WITH ep, p, collect({encounter_id: e.id, date: toString(e.date), "
                 "     milestone: r.milestone_type}) AS milestones "
                 "RETURN ep.episode_id AS episode_id, toString(p.id) AS patient_id, "
-                "       ep.cancer_type AS cancer_type, ep.status AS status, "
+                "       ep.condition_type AS condition_type, ep.status AS status, "
                 "       ep.agent_confidence AS confidence, "
                 "       ep.agent_reasoning AS agent_reasoning, "
                 "       ep.needs_review AS needs_review, "
@@ -269,13 +269,13 @@ def episode_timeline(
                 org=org_id,
             )
         return client.run(
-            "MATCH (p:Patient)-[:HAS_EPISODE]->(ep:CancerEpisode) "
+            "MATCH (p:Patient)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
             f"WHERE true {merged_filter}"
             "OPTIONAL MATCH (e:Encounter)-[r:IS_PART_OF]->(ep) "
             "WITH ep, p, collect({encounter_id: e.id, date: toString(e.date), "
             "     milestone: r.milestone_type}) AS milestones "
             "RETURN ep.episode_id AS episode_id, toString(p.id) AS patient_id, "
-            "       ep.cancer_type AS cancer_type, ep.status AS status, "
+            "       ep.condition_type AS condition_type, ep.status AS status, "
             "       ep.agent_confidence AS confidence, "
             "       ep.agent_reasoning AS agent_reasoning, "
             "       ep.needs_review AS needs_review, "
@@ -289,9 +289,9 @@ def episode_timeline(
         client.close()
 
 
-@router.get("/css/alerts")
-def css_alerts(org_id: Optional[str] = Query(default=None)):
-    """List CSS alerts from the Patient Graph."""
+@router.get("/safety-netting/alerts")
+def safety_net_alerts(org_id: Optional[str] = Query(default=None)):
+    """List safety-net alerts from the Patient Graph."""
     client = PatientGraphClient()
     try:
         org_match = (
@@ -301,9 +301,9 @@ def css_alerts(org_id: Optional[str] = Query(default=None)):
         )
         params = {"org": org_id} if org_id else {}
         return client.run(
-            f"MATCH (p:Patient)-[:HAS_CSS_ALERT]->(a:CSSAlert) "
+            f"MATCH (p:Patient)-[:HAS_SAFETY_NET_ALERT]->(a:SafetyNetAlert) "
             f"{org_match}"
-            "OPTIONAL MATCH (a)-[:FOR_EPISODE]->(ep:CancerEpisode) "
+            "OPTIONAL MATCH (a)-[:FOR_EPISODE]->(ep:EpisodeOfCare) "
             "OPTIONAL MATCH (a)-[:TRIGGERED_AT]->(enc:Encounter) "
             "RETURN a.id AS id, a.alert_type AS type, a.rule_name AS rule_name, "
             "       a.severity AS severity, a.status AS status, "
@@ -312,7 +312,7 @@ def css_alerts(org_id: Optional[str] = Query(default=None)):
             "       a.match_percent AS match_percent, "
             "       a.actioned AS actioned, a.needs_review AS needs_review, "
             "       toString(a.created_at) AS created_at, "
-            "       ep.episode_id AS episode_id, ep.cancer_type AS cancer_type, "
+            "       ep.episode_id AS episode_id, ep.condition_type AS condition_type, "
             "       enc.id AS encounter_id, toString(enc.date) AS encounter_date, "
             "       p.id AS patient_id "
             "ORDER BY a.created_at DESC LIMIT 200",
@@ -322,13 +322,13 @@ def css_alerts(org_id: Optional[str] = Query(default=None)):
         client.close()
 
 
-@router.patch("/css/alerts/{alert_id}/action")
+@router.patch("/safety-netting/alerts/{alert_id}/action")
 def action_css_alert(alert_id: str, body: ActionAlertRequest):
-    """Mark a CSS alert as actioned or un-actioned."""
+    """Mark a safety-net alert as actioned or un-actioned."""
     client = PatientGraphClient()
     try:
         result = client.run(
-            "MATCH (a:CSSAlert {id: $aid}) "
+            "MATCH (a:SafetyNetAlert {id: $aid}) "
             "SET a.actioned = $actioned "
             "RETURN a.id AS id",
             aid=alert_id,

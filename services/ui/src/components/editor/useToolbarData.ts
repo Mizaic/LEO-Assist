@@ -144,8 +144,8 @@ export function useCohortFilterValues(cohortFilters: CohortFilters): CohortFilte
   );
 
   const cancerTypeValue = useMemo(
-    () => (cohortFilters.ce_cancer_type || []).join(', '),
-    [cohortFilters.ce_cancer_type]
+    () => (cohortFilters.ce_condition_type || []).join(', '),
+    [cohortFilters.ce_condition_type]
   );
 
   return { cohortStatusValue, excludedStatusValue, cancerTypeValue };

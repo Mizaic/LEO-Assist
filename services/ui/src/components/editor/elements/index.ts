@@ -9,4 +9,4 @@ export { ComparisonBarsElement } from './ComparisonBarsElement';
 export { PopulationPyramidElement } from './PopulationPyramidElement';
 export { PathwayGanttElement } from './PathwayGanttElement';
 export { ComplianceHeatmapElement } from './ComplianceHeatmapElement';
-export { CSSMatchProgressionElement } from './CSSMatchProgressionElement';
+export { SafetyNetMatchProgressionElement } from './SafetyNetMatchProgressionElement';

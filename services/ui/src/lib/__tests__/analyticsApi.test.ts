@@ -1,7 +1,7 @@
 import {
   fetchEpisodeSummary,
   fetchEpisodeTimeline,
-  fetchCSSAlerts,
+  fetchSafetyNetAlerts,
   fetchPatientCCI,
   fetchKPIBenchmarks,
   fetchKPITrends,
@@ -66,9 +66,9 @@ describe("Analytics API — episodes", () => {
     expect(url).toContain("org_id=ORG1");
   });
 
-  it("fetchCSSAlerts with orgId", async () => {
+  it("fetchSafetyNetAlerts with orgId", async () => {
     mockFetchOk([]);
-    await fetchCSSAlerts("ORG1");
+    await fetchSafetyNetAlerts("ORG1");
     expect(global.fetch).toHaveBeenCalledWith(
       `${ANALYTICS}/analytics/css/alerts?org_id=ORG1`,
       CREDENTIALS,

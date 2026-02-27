@@ -164,7 +164,7 @@ function PathwayCard({
             variant="body2"
             sx={{ fontWeight: 600, fontSize: "0.82rem" }}
           >
-            {episode.cancer_type || "Unknown type"}
+            {episode.condition_type || "Unknown type"}
           </Typography>
           <Chip
             label={riskCfg.label}

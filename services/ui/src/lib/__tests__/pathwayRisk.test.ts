@@ -13,7 +13,7 @@ const TODAY = "2026-02-26";
 function makeEpisode(overrides: Partial<Episode> = {}): Episode {
   return {
     episode_id: "EP-001",
-    cancer_type: "Breast",
+    condition_type: "Breast",
     status: "active",
     referral_date: "2026-02-01",
     milestones: [],
@@ -240,8 +240,8 @@ describe("groupByPatient", () => {
 
   it("detects convergence when same patient has multiple active pathways", () => {
     const episodes: EpisodeWithRisk[] = [
-      withRisk(makeEpisode({ episode_id: "EP-1", patient_id: "PAT-A", cancer_type: "Lung", referral_date: "2026-02-20" })),
-      withRisk(makeEpisode({ episode_id: "EP-2", patient_id: "PAT-A", cancer_type: "Breast", referral_date: "2026-02-22" })),
+      withRisk(makeEpisode({ episode_id: "EP-1", patient_id: "PAT-A", condition_type: "Lung", referral_date: "2026-02-20" })),
+      withRisk(makeEpisode({ episode_id: "EP-2", patient_id: "PAT-A", condition_type: "Breast", referral_date: "2026-02-22" })),
     ];
 
     const groups = groupByPatient(episodes);
@@ -252,8 +252,8 @@ describe("groupByPatient", () => {
 
   it("flags duplicate cancer type as convergence note", () => {
     const episodes: EpisodeWithRisk[] = [
-      withRisk(makeEpisode({ episode_id: "EP-1", patient_id: "PAT-A", cancer_type: "Lung", referral_date: "2026-02-20" })),
-      withRisk(makeEpisode({ episode_id: "EP-2", patient_id: "PAT-A", cancer_type: "Lung", referral_date: "2026-02-22" })),
+      withRisk(makeEpisode({ episode_id: "EP-1", patient_id: "PAT-A", condition_type: "Lung", referral_date: "2026-02-20" })),
+      withRisk(makeEpisode({ episode_id: "EP-2", patient_id: "PAT-A", condition_type: "Lung", referral_date: "2026-02-22" })),
     ];
 
     const groups = groupByPatient(episodes);
@@ -350,7 +350,7 @@ describe("groupByPatient", () => {
       withRisk(makeEpisode({
         episode_id: "EP-1",
         patient_id: "PAT-A",
-        cancer_type: "Lung",
+        condition_type: "Lung",
         referral_date: "2026-02-01",
         milestones: [
           { encounter_id: "E1", date: "2026-02-01", milestone_type: "referral" },
@@ -360,7 +360,7 @@ describe("groupByPatient", () => {
       withRisk(makeEpisode({
         episode_id: "EP-2",
         patient_id: "PAT-A",
-        cancer_type: "Breast",
+        condition_type: "Breast",
         referral_date: "2026-02-05",
         milestones: [
           { encounter_id: "E2", date: "2026-02-05", milestone_type: "referral" },

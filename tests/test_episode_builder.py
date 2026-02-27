@@ -9,29 +9,29 @@ import pytest
 from services.analysis_worker.app.analyzers.anchor_detector import AnchorResult
 
 
-class TestExtractCancerKey:
+class TestExtractConditionKey:
 
     def test_strips_prefixes(self):
-        from services.analysis_worker.app.analyzers.episode_builder import _extract_cancer_key
+        from services.analysis_worker.app.analyzers.episode_builder import _extract_condition_key
 
-        assert _extract_cancer_key({"concept_name": "Fast track referral for suspected breast cancer"}) == "breast"
-        assert _extract_cancer_key({"concept_name": "suspected lung cancer"}) == "lung"
-        assert _extract_cancer_key({"concept_name": "diagnosis of colorectal carcinoma"}) == "colorectal"
+        assert _extract_condition_key({"concept_name": "Fast track referral for suspected breast cancer"}) == "breast"
+        assert _extract_condition_key({"concept_name": "suspected lung cancer"}) == "lung"
+        assert _extract_condition_key({"concept_name": "diagnosis of colorectal carcinoma"}) == "colorectal"
 
     def test_unknown_fallback(self):
-        from services.analysis_worker.app.analyzers.episode_builder import _extract_cancer_key
+        from services.analysis_worker.app.analyzers.episode_builder import _extract_condition_key
 
-        assert _extract_cancer_key({"concept_name": ""}) == "unknown"
-        assert _extract_cancer_key({}) == "unknown"
+        assert _extract_condition_key({"concept_name": ""}) == "unknown"
+        assert _extract_condition_key({}) == "unknown"
 
 
-class TestSimplifyCancerType:
+class TestSimplifyConditionType:
 
     def test_strips_prefix_and_cancer(self):
-        from services.analysis_worker.app.analyzers.episode_builder import _simplify_cancer_type
+        from services.analysis_worker.app.analyzers.episode_builder import _simplify_condition_type
 
-        assert _simplify_cancer_type("Fast track referral for suspected breast cancer") == "breast"
-        assert _simplify_cancer_type("Unknown") == "Unknown"
+        assert _simplify_condition_type("Fast track referral for suspected breast cancer") == "breast"
+        assert _simplify_condition_type("Unknown") == "Unknown"
 
 
 class TestBuildEpisodes:

@@ -13,7 +13,7 @@ describe("EpisodeTimelineView", () => {
   it("renders cancer type heading and risk chip", () => {
     const ep = withRisk({
       episode_id: "EP-001",
-      cancer_type: "Colorectal",
+      condition_type: "Colorectal",
       status: "active",
       referral_date: "2026-02-20",
       milestones: [
@@ -27,7 +27,7 @@ describe("EpisodeTimelineView", () => {
   it("renders achieved milestones in the stepper", () => {
     const ep = withRisk({
       episode_id: "EP-002",
-      cancer_type: "Lung",
+      condition_type: "Lung",
       status: "active",
       referral_date: "2026-02-01",
       milestones: [
@@ -43,7 +43,7 @@ describe("EpisodeTimelineView", () => {
   it("renders pending milestone placeholders", () => {
     const ep = withRisk({
       episode_id: "EP-003",
-      cancer_type: "Breast",
+      condition_type: "Breast",
       status: "active",
       referral_date: "2026-02-20",
       milestones: [
@@ -58,7 +58,7 @@ describe("EpisodeTimelineView", () => {
   it("shows next milestone label for the expected step", () => {
     const ep = withRisk({
       episode_id: "EP-004",
-      cancer_type: "Skin",
+      condition_type: "Skin",
       status: "active",
       referral_date: "2026-02-20",
       milestones: [
@@ -73,7 +73,7 @@ describe("EpisodeTimelineView", () => {
   it("shows breach summary chips when breaches exist", () => {
     const ep = withRisk({
       episode_id: "EP-005",
-      cancer_type: "Prostate",
+      condition_type: "Prostate",
       status: "active",
       referral_date: "2026-01-01",
       milestones: [
@@ -89,7 +89,7 @@ describe("EpisodeTimelineView", () => {
   it("shows alert when pathway is at risk or breached", () => {
     const ep = withRisk({
       episode_id: "EP-006",
-      cancer_type: "Breast",
+      condition_type: "Breast",
       status: "active",
       referral_date: "2026-02-01",
       milestones: [
@@ -104,7 +104,7 @@ describe("EpisodeTimelineView", () => {
     const ep = withRisk({
       episode_id: "EP-007",
       patient_id: "PAT-123",
-      cancer_type: "Lung",
+      condition_type: "Lung",
       status: "active",
       referral_date: "2026-02-15",
       milestones: [],
@@ -118,7 +118,7 @@ describe("EpisodeTimelineView", () => {
   it("renders pending milestone placeholders when no milestones achieved", () => {
     const ep = withRisk({
       episode_id: "EP-008",
-      cancer_type: "Unknown",
+      condition_type: "Unknown",
       status: "active",
       referral_date: undefined,
       milestones: [],
@@ -131,7 +131,7 @@ describe("EpisodeTimelineView", () => {
   it("shows day-gap chip between consecutive milestones", () => {
     const ep = withRisk({
       episode_id: "EP-009",
-      cancer_type: "Breast",
+      condition_type: "Breast",
       status: "active",
       referral_date: "2026-02-01",
       milestones: [
@@ -147,7 +147,7 @@ describe("EpisodeTimelineView", () => {
     const main = withRisk({
       episode_id: "EP-MAIN",
       patient_id: "PAT-A",
-      cancer_type: "Lung",
+      condition_type: "Lung",
       status: "active",
       referral_date: "2026-02-01",
       milestones: [
@@ -157,7 +157,7 @@ describe("EpisodeTimelineView", () => {
     const sibling = withRisk({
       episode_id: "EP-SIB",
       patient_id: "PAT-A",
-      cancer_type: "Breast",
+      condition_type: "Breast",
       status: "active",
       referral_date: "2026-02-05",
       milestones: [],
@@ -179,7 +179,7 @@ describe("EpisodeTimelineView", () => {
     const ep = withRisk({
       episode_id: "EP-SOLO",
       patient_id: "PAT-B",
-      cancer_type: "Skin",
+      condition_type: "Skin",
       status: "active",
       referral_date: "2026-02-20",
       milestones: [],

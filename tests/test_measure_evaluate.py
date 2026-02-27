@@ -154,7 +154,7 @@ class TestBuildMeasureReport:
         from services.fhir_api.app.services.measure_service import _build_measure_report
 
         measure = {"id": "m-1", "name": "Test"}
-        results = [{"cancer_type": "breast", "count": 10}]
+        results = [{"condition_type": "breast", "count": 10}]
 
         report = _build_measure_report("m-1", measure, results)
         assert report["resourceType"] == "MeasureReport"
@@ -162,4 +162,4 @@ class TestBuildMeasureReport:
         assert report["measure"] == "Measure/m-1"
         assert len(report["extension"]) == 1
         data = json.loads(report["extension"][0]["valueString"])
-        assert data[0]["cancer_type"] == "breast"
+        assert data[0]["condition_type"] == "breast"

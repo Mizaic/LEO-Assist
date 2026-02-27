@@ -125,6 +125,13 @@ ORDER BY best_score DESC
 LIMIT $k
 """
 
+_READ_CODE_QUERY = """
+MATCH (rd:ReadCode {code: $read_code})<-[:MAPS_TO_READ]-(c:Concept)
+WHERE c.active = true
+RETURN c.id AS concept_id, c.fsn AS fsn
+LIMIT 1
+"""
+
 
 @dataclass(frozen=True)
 class CodingCandidate:
@@ -359,3 +366,27 @@ class CodingResolver:
             )
             for fused, c in scored
         ]
+
+    def resolve_read_code(
+        self,
+        read_code: str,
+        *,
+        neo4j_session,
+    ) -> CodingCandidate | None:
+        """Resolve a Read/CTV3 code to a SNOMED concept. Returns None if not found."""
+        if not read_code or not read_code.strip():
+            return None
+        try:
+            result = neo4j_session.run(_READ_CODE_QUERY, read_code=read_code.strip())
+            row = result.single()
+            if not row:
+                return None
+            return CodingCandidate(
+                snomed_concept_id=str(row["concept_id"]),
+                snomed_term=row.get("fsn"),
+                read_code=read_code.strip(),
+                score=0.95,
+                source="inline_read_code",
+            )
+        except Exception:
+            return None

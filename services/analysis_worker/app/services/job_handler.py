@@ -3,7 +3,7 @@
 Orchestrates the full analysis pipeline for a patient:
 1. Anchor detection
 2. Episode building + consolidation
-3. CSS / unwarranted variation
+3. Safety-net / unwarranted variation
 4. Abnormal results
 5. KPI metrics
 """
@@ -18,7 +18,7 @@ from libs.message_bus.base import Message
 from libs.neo4j_client.client import PatientGraphClient, KnowledgeGraphClient
 from services.analysis_worker.app.analyzers.anchor_detector import detect_anchors
 from services.analysis_worker.app.analyzers.episode_builder import build_episodes
-from services.analysis_worker.app.analyzers.css_detector import detect_css_signals
+from services.analysis_worker.app.analyzers.safety_net_detector import detect_safety_net_signals
 from services.analysis_worker.app.analyzers.abnormal_results import detect_abnormal_results
 from services.analysis_worker.app.analyzers.kpi_calculator import calculate_kpis
 
@@ -65,15 +65,15 @@ async def handle_analysis_job(msg: Message) -> None:
             episode_result.episodes_merged,
         )
 
-        # Step 3: CSS / unwarranted variation
-        css_signals = detect_css_signals(
+        # Step 3: Safety-net / unwarranted variation
+        safety_net_signals = detect_safety_net_signals(
             patient_id=patient_id,
             episode_ids=episode_result.episode_ids,
             patient_client=patient_client,
             knowledge_client=knowledge_client,
         )
-        _persist_css_alerts(patient_id, css_signals, patient_client)
-        logger.info("CSS signals: %d detected and persisted", len(css_signals))
+        _persist_safety_net_alerts(patient_id, safety_net_signals, patient_client)
+        logger.info("safety-net signals: %d detected and persisted", len(safety_net_signals))
 
         # Step 4: Abnormal results
         abnormal = detect_abnormal_results(
@@ -100,18 +100,18 @@ async def handle_analysis_job(msg: Message) -> None:
         knowledge_client.close()
 
 
-def _persist_css_alerts(
+def _persist_safety_net_alerts(
     patient_id: str,
     signals: List[Dict[str, Any]],
     client: PatientGraphClient,
 ) -> None:
-    """Persist detected CSS signals as CSSAlert nodes linked to Patient and Episode."""
+    """Persist detected safety-net signals as SafetyNetAlert nodes linked to Patient and Episode."""
     for signal in signals:
-        alert_id = f"css_{uuid4().hex[:12]}"
+        alert_id = f"safetynet_{uuid4().hex[:12]}"
         try:
             client.run(
                 "MATCH (p:Patient) WHERE toString(p.id) = $pid "
-                "MERGE (a:CSSAlert {id: $aid}) "
+                "MERGE (a:SafetyNetAlert {id: $aid}) "
                 "SET a.alert_type       = $alert_type, "
                 "    a.rule_name        = $alert_type, "
                 "    a.severity         = $severity, "
@@ -121,9 +121,9 @@ def _persist_css_alerts(
                 "    a.actioned         = false, "
                 "    a.needs_review     = true, "
                 "    a.created_at       = datetime() "
-                "MERGE (p)-[:HAS_CSS_ALERT]->(a) "
+                "MERGE (p)-[:HAS_SAFETY_NET_ALERT]->(a) "
                 "WITH a "
-                "OPTIONAL MATCH (ep:CancerEpisode {episode_id: $eid}) "
+                "OPTIONAL MATCH (ep:EpisodeOfCare {episode_id: $eid}) "
                 "FOREACH (_ IN CASE WHEN ep IS NOT NULL THEN [1] ELSE [] END | "
                 "    MERGE (a)-[:FOR_EPISODE]->(ep))",
                 pid=patient_id,
@@ -134,4 +134,4 @@ def _persist_css_alerts(
                 eid=signal.get("episode_id", ""),
             )
         except Exception:
-            logger.warning("Failed to persist CSS alert %s", alert_id, exc_info=True)
+            logger.warning("Failed to persist safety-net alert %s", alert_id, exc_info=True)

@@ -3,10 +3,10 @@
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Chip from '@mui/material/Chip';
-import { CSSMatchProgressionElement as CSSMatchProgressionElementType } from '@/lib/types/layout';
+import { SafetyNetMatchProgressionElement as SafetyNetMatchProgressionElementType } from '@/lib/types/layout';
 
-interface CSSMatchProgressionElementProps {
-  element: CSSMatchProgressionElementType;
+interface SafetyNetMatchProgressionElementProps {
+  element: SafetyNetMatchProgressionElementType;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -17,7 +17,7 @@ const STATUS_COLORS: Record<string, string> = {
   covered: '#9C27B0',
 };
 
-export function CSSMatchProgressionElement({ element }: CSSMatchProgressionElementProps) {
+export function SafetyNetMatchProgressionElement({ element }: SafetyNetMatchProgressionElementProps) {
   const { rules = [], summary } = element;
 
   return (

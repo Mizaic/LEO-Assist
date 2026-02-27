@@ -54,7 +54,7 @@ Build the cancer episode for patient {patient_id}.
 
 Episode entry point:
 - Episode ID: {episode_id}
-- Cancer type: {cancer_type}
+- Cancer type: {condition_type}
 - Entry type: {anchor_type}
 - Entry date: {anchor_date}
 

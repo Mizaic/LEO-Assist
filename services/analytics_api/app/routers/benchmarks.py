@@ -25,7 +25,7 @@ def kpi_benchmarks(org_id: Optional[str] = Query(default=None)):
         if org_id:
             return client.run(
                 "MATCH (p:Patient)-[:REGISTERED_AT]->(o:Organization {id: $org}) "
-                "MATCH (p)-[:HAS_EPISODE]->(ep:CancerEpisode) "
+                "MATCH (p)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
                 "WITH ep WHERE ep.kpi_days_referral_to_diagnosis IS NOT NULL "
                 "RETURN "
                 "  avg(ep.kpi_days_presentation_to_referral) AS avg_days_to_referral, "
@@ -36,7 +36,7 @@ def kpi_benchmarks(org_id: Optional[str] = Query(default=None)):
                 org=org_id,
             )
         return client.run(
-            "MATCH (ep:CancerEpisode) "
+            "MATCH (ep:EpisodeOfCare) "
             "WITH ep WHERE ep.kpi_days_referral_to_diagnosis IS NOT NULL "
             "RETURN "
             "  avg(ep.kpi_days_presentation_to_referral) AS avg_days_to_referral, "
@@ -59,7 +59,7 @@ def peer_comparison(
     try:
         return client.run(
             "MATCH (p:Patient)-[:REGISTERED_AT]->(o:Organization) "
-            "MATCH (p)-[:HAS_EPISODE]->(ep:CancerEpisode) "
+            "MATCH (p)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
             "WHERE ep[$metric] IS NOT NULL "
             "WITH o.id AS org, o.name AS org_name, avg(ep[$metric]) AS avg_val, count(ep) AS cnt "
             "RETURN org, org_name, avg_val, cnt, "
@@ -82,7 +82,7 @@ def kpi_trends(
         if org_id:
             return client.run(
                 "MATCH (p:Patient)-[:REGISTERED_AT]->(o:Organization {id: $org}) "
-                "MATCH (p)-[:HAS_EPISODE]->(ep:CancerEpisode) "
+                "MATCH (p)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
                 "WHERE ep[$metric] IS NOT NULL AND ep.referral_date IS NOT NULL "
                 "WITH substring(ep.referral_date, 0, 7) AS month, "
                 "     avg(ep[$metric]) AS avg_val, count(ep) AS cnt "
@@ -90,7 +90,7 @@ def kpi_trends(
                 org=org_id, metric=metric,
             )
         return client.run(
-            "MATCH (ep:CancerEpisode) "
+            "MATCH (ep:EpisodeOfCare) "
             "WHERE ep[$metric] IS NOT NULL AND ep.referral_date IS NOT NULL "
             "WITH substring(ep.referral_date, 0, 7) AS month, "
             "     avg(ep[$metric]) AS avg_val, count(ep) AS cnt "

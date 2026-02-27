@@ -175,7 +175,7 @@ export function CohortFiltersDialog({
             label="Cancer type"
             placeholder="e.g. Breast, Lung"
             value={cancerTypeValue}
-            filterKey="ce_cancer_type"
+            filterKey="ce_condition_type"
             onChange={onUpdateCohortFilters}
           />
 

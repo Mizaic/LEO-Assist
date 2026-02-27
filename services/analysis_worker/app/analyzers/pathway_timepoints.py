@@ -1,5 +1,5 @@
 """Pathway Timepoints: identifies and persists the 6 critical timepoints
-in a cancer pathway as PathwayTimepoint nodes linked to CancerEpisode.
+in a cancer pathway as PathwayTimepoint nodes linked to EpisodeOfCare.
 
 Timepoints:
 1. Presentation      -- Patient first presents with symptoms
@@ -10,7 +10,7 @@ Timepoints:
 6. First Treatment   -- Treatment started
 
 Schema:
-- (CancerEpisode)-[:HAS_TIMEPOINT]->(PathwayTimepoint)
+- (EpisodeOfCare)-[:HAS_TIMEPOINT]->(PathwayTimepoint)
 - (PathwayTimepoint)-[:AT_ENCOUNTER]->(Encounter)
 
 Ported from VRB clinical-ai/app/agent/tools/pathway_timepoints.py.
@@ -90,7 +90,7 @@ def _fetch_episode_encounters(
 ) -> List[Dict[str, Any]]:
     c = client or _default_client()
     return c.run(
-        "MATCH (e:Encounter)-[r:IS_PART_OF]->(ep:CancerEpisode {episode_id: $eid}) "
+        "MATCH (e:Encounter)-[r:IS_PART_OF]->(ep:EpisodeOfCare {episode_id: $eid}) "
         "RETURN e.id AS encounter_id, toString(e.date) AS date, "
         "       r.milestone_type AS milestone_type "
         "ORDER BY e.date ASC",
@@ -249,7 +249,7 @@ def _create_single_timepoint(
 
     try:
         c.run(
-            "MATCH (ep:CancerEpisode {episode_id: $eid}) "
+            "MATCH (ep:EpisodeOfCare {episode_id: $eid}) "
             "MATCH (enc:Encounter {id: $enc_id}) "
             "MERGE (tp:PathwayTimepoint {timepoint_id: $tp_id}) "
             "ON CREATE SET tp.episode_id = $eid, tp.encounter_id = $enc_id, "

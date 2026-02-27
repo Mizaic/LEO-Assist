@@ -58,7 +58,7 @@
 - [x] `services/analysis-worker/app/services/job_handler.py` - Full analysis pipeline orchestration
 - [x] `services/analysis-worker/app/analyzers/anchor_detector.py` - Referral/diagnosis/treatment anchor detection
 - [x] `services/analysis-worker/app/analyzers/episode_builder.py` - Episode construction + consolidation
-- [x] `services/analysis-worker/app/analyzers/css_detector.py` - Clinical safety signal detection
+- [x] `services/analysis-worker/app/analyzers/safety_net_detector.py` - Clinical safety signal detection
 - [x] `services/analysis-worker/app/analyzers/abnormal_results.py` - Abnormal test result tracking
 - [x] `services/analysis-worker/app/analyzers/kpi_calculator.py` - KPI computation (wait times, consultation counts)
 
@@ -72,7 +72,7 @@
 
 ### Analytics API
 - [x] `services/analytics-api/app/main.py` - FastAPI app with dashboards, IMD, CCI, benchmarks routers
-- [x] `services/analytics-api/app/routers/dashboards.py` - Episode summary, timeline, CSS alerts
+- [x] `services/analytics-api/app/routers/dashboards.py` - Episode summary, timeline, safety-net alerts
 - [x] `services/analytics-api/app/routers/imd.py` - UK IMD 2019 postcode lookup + patient enrichment
 - [x] `services/analytics-api/app/routers/cci.py` - Charlson Comorbidity Index scoring
 - [x] `services/analytics-api/app/routers/benchmarks.py` - KPI benchmarks, peer comparison, trends
@@ -94,7 +94,7 @@
 - [x] `src/app/dashboard/page.tsx` - Summary stats, episode/KPI/CSS overview
 - [x] `src/components/dashboard/KPICards.tsx` - KPI metrics with NHS targets
 - [x] `src/components/dashboard/EpisodesByTypeChart.tsx` - Recharts bar chart
-- [x] `src/components/dashboard/CSSAlertsSummary.tsx` - Alert severity list
+- [x] `src/components/dashboard/SafetyNetAlertsSummary.tsx` - Alert severity list
 
 ### Episodes
 - [x] `src/app/episodes/page.tsx` - Episode list + timeline detail view
@@ -102,7 +102,7 @@
 - [x] `src/components/episodes/EpisodeTimelineView.tsx` - Milestone stepper with gap detection
 
 ### CSS Alerts
-- [x] `src/app/css/page.tsx` - Full CSS alert table with severity counts, type breakdown
+- [x] `src/app/css/page.tsx` - Full safety-net alert table with severity counts, type breakdown
 
 ### Reports / Visual Report Builder
 - [x] `src/app/reports/page.tsx` - Report list from FHIR Measures
@@ -126,7 +126,7 @@
 
 ### Ported Services
 - [x] `services/api/app/services/fix_analyzer.py` - Fix Analyzer (from VRB) - analyzes HITL corrections, proposes knowledge-layer fixes
-- [x] `services/analysis-worker/app/analyzers/quality_checker.py` - Quality Checker (from VRB) - duration outliers, missing milestones, NHS targets, low confidence, temporal anomalies, unactioned CSS alerts, coding contradictions
+- [x] `services/analysis-worker/app/analyzers/quality_checker.py` - Quality Checker (from VRB) - duration outliers, missing milestones, NHS targets, low confidence, temporal anomalies, unactioned safety-net alerts, coding contradictions
 
 ### Test Consolidation
 - [x] `tests/conftest.py` - Shared fixtures with mocked Neo4j and environment

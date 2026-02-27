@@ -1,4 +1,4 @@
-"""Episode builder: creates CancerEpisode nodes and links encounters.
+"""Episode builder: creates EpisodeOfCare nodes and links encounters.
 
 Full VRB parity: creates episodes from anchors, links milestones
 (pre-referral, post-referral coded + uncoded), classifies via LLM,
@@ -64,7 +64,7 @@ async def build_episodes(
     """Build cancer episodes from detected anchors.
 
     For each referral anchor:
-    1. Create a CancerEpisode
+    1. Create a EpisodeOfCare
     2. Link the referral encounter
     3. Search for and link milestone encounters (pre/post-referral)
     4. Classify episode status using LLM
@@ -92,9 +92,9 @@ async def build_episodes(
         key=lambda r: (r.get("encounter_date", "") or "")[:10],
     )
     for ref in sorted_refs:
-        cancer_key = _extract_cancer_key(ref)
-        if cancer_key not in seen_types:
-            seen_types.add(cancer_key)
+        condition_key = _extract_condition_key(ref)
+        if condition_key not in seen_types:
+            seen_types.add(condition_key)
             unique_referrals.append(ref)
 
     for referral in unique_referrals[:max_episodes]:
@@ -129,7 +129,7 @@ async def build_episodes(
     return result
 
 
-def _extract_cancer_key(ref: Dict[str, Any]) -> str:
+def _extract_condition_key(ref: Dict[str, Any]) -> str:
     name = (ref.get("concept_name") or "").lower()
     for prefix in (
         "fast track referral for suspected ", "suspected ",
@@ -164,7 +164,7 @@ async def _build_non_referral_episodes(
     seen_types: set = set()
     unique_anchors: List[Dict[str, Any]] = []
     for anchor in sorted(primary, key=lambda r: (r.get("encounter_date", "") or "")[:10]):
-        key = _extract_cancer_key(anchor)
+        key = _extract_condition_key(anchor)
         if key not in seen_types:
             seen_types.add(key)
             unique_anchors.append(anchor)
@@ -210,19 +210,19 @@ async def _build_single_episode(
 ) -> Dict[str, Any]:
     ref_date = (referral.get("encounter_date", "") or "")[:10]
     ref_id = referral.get("encounter_id", "")
-    cancer_type = referral.get("concept_name", "Unknown")
+    condition_type = referral.get("concept_name", "Unknown")
 
-    if "(" in cancer_type:
-        cancer_type = cancer_type.split("(")[0].strip()
-    cancer_type = (
-        cancer_type.replace("Fast track referral for suspected ", "")
+    if "(" in condition_type:
+        condition_type = condition_type.split("(")[0].strip()
+    condition_type = (
+        condition_type.replace("Fast track referral for suspected ", "")
         .replace("cancer", "")
         .strip()
     )
-    if not cancer_type:
-        cancer_type = "Unknown"
+    if not condition_type:
+        condition_type = "Unknown"
 
-    ep = create_episode(patient_id, cancer_type, ref_id, ref_date, client=client)
+    ep = create_episode(patient_id, condition_type, ref_id, ref_date, client=client)
     episode_id = ep.get("episode_id", "")
     if not episode_id:
         return {"error": "Failed to create episode"}
@@ -245,7 +245,7 @@ async def _build_single_episode(
     linked += _link_post_referral(patient_id, ref_date, episode_id, linked_ids, client=client)
 
     classification = await _classify_episode(
-        patient_id, episode_id, cancer_type, ref_date, anchors, anchor_type,
+        patient_id, episode_id, condition_type, ref_date, anchors, anchor_type,
     )
     if isinstance(classification, list):
         classification = classification[0] if classification and isinstance(classification[0], dict) else {}
@@ -295,7 +295,7 @@ def _detect_safety_netting(episode_id: str, client=None) -> bool:
     from libs.neo4j_client.client import PatientGraphClient
     c = client or PatientGraphClient()
     rows = c.run(
-        "MATCH (e:Encounter)-[r:IS_PART_OF]->(ep:CancerEpisode {episode_id: $eid}) "
+        "MATCH (e:Encounter)-[r:IS_PART_OF]->(ep:EpisodeOfCare {episode_id: $eid}) "
         "WHERE r.milestone_type IN ['first_presentation', 'referral'] "
         "RETURN coalesce(e.text, '') AS text LIMIT 10",
         eid=episode_id,
@@ -542,7 +542,7 @@ def _build_rich_coded_summary(
 async def _classify_episode(
     patient_id: str,
     episode_id: str,
-    cancer_type: str,
+    condition_type: str,
     anchor_date: str,
     anchors: AnchorResult,
     anchor_type: str = "referral",
@@ -560,7 +560,7 @@ async def _classify_episode(
         patient_id=patient_id,
         coded_summary=coded_summary,
         episode_id=episode_id,
-        cancer_type=cancer_type,
+        condition_type=condition_type,
         referral_date=anchor_date,
         anchor_type=anchor_type,
         anchor_date=anchor_date,

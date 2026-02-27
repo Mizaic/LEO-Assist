@@ -39,7 +39,7 @@ def calculate_kpis(
 
 def _get_milestone_dates(episode_id: str, client) -> Dict[str, Optional[str]]:
     rows = client.run(
-        "MATCH (e:Encounter)-[r:IS_PART_OF]->(ep:CancerEpisode {episode_id: $eid}) "
+        "MATCH (e:Encounter)-[r:IS_PART_OF]->(ep:EpisodeOfCare {episode_id: $eid}) "
         "RETURN r.milestone_type AS milestone, min(toString(e.date)) AS earliest_date "
         "ORDER BY earliest_date",
         eid=episode_id,
@@ -125,7 +125,7 @@ def _count_consultations(patient_id: str, start: str, end: str, client) -> int:
 
 def _persist_kpi(episode_id: str, kpi: Dict[str, Any], client) -> None:
     client.run(
-        "MATCH (ep:CancerEpisode {episode_id: $eid}) "
+        "MATCH (ep:EpisodeOfCare {episode_id: $eid}) "
         "SET ep[$key] = $val",
         eid=episode_id,
         key=f"kpi_{kpi['metric']}",

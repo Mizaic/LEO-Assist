@@ -108,7 +108,7 @@ class PatientGraphClient(_BaseClient):
     """Connects to the Patient Graph (NEO4J_URI).
 
     Contains: Patient, Encounter, EncounterCandidate, ReviewTask,
-    Approval, Change, CancerEpisode, CSSAlert, Benchmark, etc.
+    Approval, Change, EpisodeOfCare, SafetyNetAlert, Benchmark, etc.
     """
 
     def __init__(self) -> None:

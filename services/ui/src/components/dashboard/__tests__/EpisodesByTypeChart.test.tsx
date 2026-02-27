@@ -20,9 +20,9 @@ describe("EpisodesByTypeChart", () => {
 
   it("renders chart container when data is provided", () => {
     const data = [
-      { cancer_type: "Lung", status: "active", count: 5 },
-      { cancer_type: "Lung", status: "closed", count: 3 },
-      { cancer_type: "Breast", status: "active", count: 2 },
+      { condition_type: "Lung", status: "active", count: 5 },
+      { condition_type: "Lung", status: "closed", count: 3 },
+      { condition_type: "Breast", status: "active", count: 2 },
     ];
     render(<EpisodesByTypeChart data={data} />);
     expect(screen.getByTestId("responsive-container")).toBeInTheDocument();

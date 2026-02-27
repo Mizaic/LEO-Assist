@@ -10,7 +10,7 @@ from typing import Any, Dict, List, Optional
 
 from services.fhir_api.app.config.scopes import get_scope_cypher_fragment
 
-# Cohort variants: filter CancerEpisode by status
+# Cohort variants: filter EpisodeOfCare by status
 # Values must match episode_builder (confirmed|excluded|inconclusive)
 # diagnosed = cancer confirmed; referred_excluded = cancer ruled out; all_referred = all three
 COHORT_STATUS_FILTERS = {
@@ -21,7 +21,7 @@ COHORT_STATUS_FILTERS = {
 
 # Derived value properties: computed in Cypher (node_label -> property -> expression)
 DERIVED_VALUE_EXPRESSIONS = {
-    "CancerEpisode": {
+    "EpisodeOfCare": {
         "primary_care_interval_days": (
             "duration.between(date(ep.first_presentation_date), date(ep.referral_date)).days"
         ),
@@ -38,9 +38,9 @@ DERIVED_VALUE_EXPRESSIONS = {
 # Pattern: (p:Patient)-[:REL]->(target:TargetLabel)
 NODE_PATTERNS = {
     "Patient": ("p", "p", None, "Patient"),  # count patients directly
-    "CancerEpisode": ("p", "ep", "HAS_EPISODE", "CancerEpisode"),
+    "EpisodeOfCare": ("p", "ep", "HAS_EPISODE_OF_CARE", "EpisodeOfCare"),
     "Encounter": ("p", "e", "HAS_ENCOUNTER", "Encounter"),
-    "CSSAlert": ("p", "a", "HAS_CSS_ALERT", "CSSAlert"),
+    "SafetyNetAlert": ("p", "a", "HAS_SAFETY_NET_ALERT", "SafetyNetAlert"),
 }
 
 
@@ -112,7 +112,7 @@ def generate_cypher(definition: Dict[str, Any]) -> tuple[str, Dict[str, Any]]:
     """Generate Cypher from a query definition.
 
     Input:
-        nodeLabel: Patient | CancerEpisode | Encounter | CSSAlert
+        nodeLabel: Patient | EpisodeOfCare | Encounter | SafetyNetAlert
         filters: [{ property, op, value }]
         groupBy: property name or null for single total
         scopeType: "gp" | "icb" | "alliance" (required for tenant scoping)
@@ -120,7 +120,7 @@ def generate_cypher(definition: Dict[str, Any]) -> tuple[str, Dict[str, Any]]:
     Output:
         (cypher_string, params_dict)
     """
-    node_label = definition.get("nodeLabel", "CancerEpisode")
+    node_label = definition.get("nodeLabel", "EpisodeOfCare")
     filters = definition.get("filters", [])
     group_by = definition.get("groupBy")
     scope_type = definition.get("scopeType", "gp")
@@ -148,10 +148,10 @@ def generate_cypher(definition: Dict[str, Any]) -> tuple[str, Dict[str, Any]]:
     filter_conditions, filter_params = _build_filter_conditions(node_label, target_var, filters)
     params.update(filter_params)
 
-    # Cohort filter (when target is CancerEpisode) - inject status filter
+    # Cohort filter (when target is EpisodeOfCare) - inject status filter
     cohort_variant = definition.get("cohortVariant", "diagnosed")
     cohort_cond = ""
-    if node_label == "CancerEpisode" and cohort_variant in COHORT_STATUS_FILTERS:
+    if node_label == "EpisodeOfCare" and cohort_variant in COHORT_STATUS_FILTERS:
         status_val = COHORT_STATUS_FILTERS[cohort_variant]
         if isinstance(status_val, list):
             params["_cohort_statuses"] = status_val
@@ -165,7 +165,7 @@ def generate_cypher(definition: Dict[str, Any]) -> tuple[str, Dict[str, Any]]:
         parts.append(" WHERE " + " AND ".join(all_conditions))
 
     # Build RETURN (Cypher implicitly groups by non-aggregate expressions)
-    # Support groupBy from Patient when target is CancerEpisode (e.g. Patient.gender for sex split)
+    # Support groupBy from Patient when target is EpisodeOfCare (e.g. Patient.gender for sex split)
     # Patient.age_band_at_diagnosis: derived from birthDate + diagnosis_date
     if group_by and group_by.startswith("Patient."):
         patient_prop = group_by.replace("Patient.", "")
@@ -179,8 +179,8 @@ def generate_cypher(definition: Dict[str, Any]) -> tuple[str, Dict[str, Any]]:
     percentage_property = definition.get("percentageProperty")
     percentage_value = definition.get("percentageValue", True)
 
-    if aggregation == "median" and value_property and node_label == "CancerEpisode":
-        expr = DERIVED_VALUE_EXPRESSIONS.get("CancerEpisode", {}).get(value_property)
+    if aggregation == "median" and value_property and node_label == "EpisodeOfCare":
+        expr = DERIVED_VALUE_EXPRESSIONS.get("EpisodeOfCare", {}).get(value_property)
         if expr:
             parts.append(
                 f"WITH {target_var}, {expr} AS val "
@@ -193,7 +193,7 @@ def generate_cypher(definition: Dict[str, Any]) -> tuple[str, Dict[str, Any]]:
             )
             cypher = " ".join(parts)
             return cypher, params
-    elif aggregation == "percentage" and percentage_property and node_label == "CancerEpisode":
+    elif aggregation == "percentage" and percentage_property and node_label == "EpisodeOfCare":
         parts.append(
             f"WITH count(*) AS total, "
             f"sum(CASE WHEN {target_var}.{percentage_property} = $pct_val THEN 1 ELSE 0 END) AS yes_count "
@@ -206,7 +206,7 @@ def generate_cypher(definition: Dict[str, Any]) -> tuple[str, Dict[str, Any]]:
         return cypher, params
 
     if group_by:
-        if patient_prop == "age_band_at_diagnosis" and node_label == "CancerEpisode":
+        if patient_prop == "age_band_at_diagnosis" and node_label == "EpisodeOfCare":
             age_expr = (
                 "toInteger(duration.between(date(p.birthDate), date(ep.diagnosis_date)).days / 365.25)"
             )
@@ -231,7 +231,7 @@ def generate_cypher(definition: Dict[str, Any]) -> tuple[str, Dict[str, Any]]:
                 f"RETURN coalesce(toString({group_var}.{patient_prop}), '(unknown)') AS name, count(*) AS value "
                 "ORDER BY value DESC"
             )
-        elif group_by in ("primary_care_interval_band", "diagnostic_interval_band") and node_label == "CancerEpisode":
+        elif group_by in ("primary_care_interval_band", "diagnostic_interval_band") and node_label == "EpisodeOfCare":
             if group_by == "primary_care_interval_band":
                 days_expr = "duration.between(date(ep.first_presentation_date), date(ep.referral_date)).days"
             else:

@@ -38,26 +38,26 @@ class TestDetectReferralInText:
         assert result is None
 
 
-class TestNormaliseCancerType:
+class TestNormaliseConditionType:
 
     def test_known_types(self):
-        from services.analysis_worker.app.analyzers.anchor_detector import _normalise_cancer_type
+        from services.analysis_worker.app.analyzers.anchor_detector import _normalise_condition_type
 
-        assert _normalise_cancer_type("lower gi") == "lower gastrointestinal"
-        assert _normalise_cancer_type("Breast") == "breast"
-        assert _normalise_cancer_type("Colorectal ") == "colorectal"
-        assert _normalise_cancer_type("upper gi.") == "upper GI"
-        assert _normalise_cancer_type("urological") == "urological"
+        assert _normalise_condition_type("lower gi") == "lower gastrointestinal"
+        assert _normalise_condition_type("Breast") == "breast"
+        assert _normalise_condition_type("Colorectal ") == "colorectal"
+        assert _normalise_condition_type("upper gi.") == "upper GI"
+        assert _normalise_condition_type("urological") == "urological"
 
     def test_unknown_type_strips_parens(self):
-        from services.analysis_worker.app.analyzers.anchor_detector import _normalise_cancer_type
+        from services.analysis_worker.app.analyzers.anchor_detector import _normalise_condition_type
 
-        assert _normalise_cancer_type("prostate (suspected)") == "prostate"
+        assert _normalise_condition_type("prostate (suspected)") == "prostate"
 
     def test_empty_string(self):
-        from services.analysis_worker.app.analyzers.anchor_detector import _normalise_cancer_type
+        from services.analysis_worker.app.analyzers.anchor_detector import _normalise_condition_type
 
-        assert _normalise_cancer_type("") == "unknown"
+        assert _normalise_condition_type("") == "unknown"
 
 
 class TestAnchorResult:

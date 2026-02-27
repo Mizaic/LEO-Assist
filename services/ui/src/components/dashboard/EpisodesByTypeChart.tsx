@@ -4,7 +4,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import Typography from "@mui/material/Typography";
 
 interface DataItem {
-  cancer_type: string;
+  condition_type: string;
   status: string;
   count: number;
 }
@@ -18,10 +18,10 @@ export default function EpisodesByTypeChart({ data }: { data: DataItem[] }) {
     );
   }
 
-  const grouped = new Map<string, { cancer_type: string; active: number; closed: number; total: number }>();
+  const grouped = new Map<string, { condition_type: string; active: number; closed: number; total: number }>();
   for (const row of data) {
-    const key = row.cancer_type || "Unknown";
-    const entry = grouped.get(key) ?? { cancer_type: key, active: 0, closed: 0, total: 0 };
+    const key = row.condition_type || "Unknown";
+    const entry = grouped.get(key) ?? { condition_type: key, active: 0, closed: 0, total: 0 };
     if (row.status === "active") entry.active += row.count;
     else entry.closed += row.count;
     entry.total += row.count;
@@ -35,7 +35,7 @@ export default function EpisodesByTypeChart({ data }: { data: DataItem[] }) {
       <BarChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
         <XAxis
-          dataKey="cancer_type"
+          dataKey="condition_type"
           tick={{ fontSize: 11 }}
           angle={-30}
           textAnchor="end"

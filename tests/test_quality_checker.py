@@ -75,7 +75,7 @@ class TestRunQualityChecks:
             [],  # _check_nhs_targets
             [],  # _check_low_confidence
             [],  # _check_temporal_anomalies
-            [],  # _check_unactioned_css
+            [],  # _check_unactioned_safety_net
             [],  # _check_coding_contradictions
         ]
 

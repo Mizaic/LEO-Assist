@@ -2,11 +2,11 @@
 
 Fields used by the no-code measure builder and their data sources.
 
-## CancerEpisode Properties
+## EpisodeOfCare Properties
 
 | Property | Source | Status |
 |----------|--------|--------|
-| cancer_type | Episode builder | Available |
+| condition_type | Episode builder | Available |
 | status | Episode builder | Available |
 | referral_date | Episode builder | Available |
 | diagnosis_date | Episode builder | Available |

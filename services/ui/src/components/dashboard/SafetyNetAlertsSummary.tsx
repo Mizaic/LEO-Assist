@@ -4,7 +4,7 @@ import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import Chip from "@mui/material/Chip";
 import Link from "next/link";
-import type { CSSAlert } from "@/lib/analyticsApi";
+import type { SafetyNetAlert } from "@/lib/analyticsApi";
 
 const SEVERITY_COLORS: Record<string, "error" | "warning" | "info" | "default"> = {
   critical: "error",
@@ -13,7 +13,7 @@ const SEVERITY_COLORS: Record<string, "error" | "warning" | "info" | "default"> 
   low: "info",
 };
 
-export default function CSSAlertsSummary({ alerts }: { alerts: CSSAlert[] }) {
+export default function SafetyNetAlertsSummary({ alerts }: { alerts: SafetyNetAlert[] }) {
   if (!alerts.length) {
     return (
       <Typography variant="body2" color="text.secondary">
@@ -55,7 +55,7 @@ export default function CSSAlertsSummary({ alerts }: { alerts: CSSAlert[] }) {
             {a.patient_id && (
               <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.25, fontFamily: "monospace" }}>
                 Patient: {a.patient_id}
-                {a.cancer_type ? ` -- ${a.cancer_type}` : ""}
+                {a.condition_type ? ` -- ${a.condition_type}` : ""}
               </Typography>
             )}
           </Box>
@@ -70,7 +70,7 @@ export default function CSSAlertsSummary({ alerts }: { alerts: CSSAlert[] }) {
       ))}
 
       <Box sx={{ textAlign: "right", pt: 0.5 }}>
-        <Link href="/css" style={{ textDecoration: "none" }}>
+        <Link href="/safety-netting" style={{ textDecoration: "none" }}>
           <Typography
             variant="caption"
             sx={{ color: "primary.main", fontWeight: 600, "&:hover": { textDecoration: "underline" } }}

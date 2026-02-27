@@ -16,16 +16,16 @@ router = APIRouter()
 # Curated aggregation targets for measures
 AGGREGATION_TARGETS = [
     {"nodeLabel": "Patient", "description": "FHIR Patient resource"},
-    {"nodeLabel": "CancerEpisode", "description": "Cancer care pathway episode"},
+    {"nodeLabel": "EpisodeOfCare", "description": "Cancer care pathway episode"},
     {"nodeLabel": "Encounter", "description": "FHIR Encounter / consultation"},
-    {"nodeLabel": "CSSAlert", "description": "Safety netting alert"},
+    {"nodeLabel": "SafetyNetAlert", "description": "Safety netting alert"},
 ]
 
 # Curated filters per node (property, type, fhirType, exampleValues)
 # place_of_presentation, referral_route, safety_netting_recorded: pipeline extraction in progress
 FILTERS = {
-    "CancerEpisode": [
-        {"property": "cancer_type", "type": "string", "fhirType": "code", "exampleValues": ["Lung", "Breast"]},
+    "EpisodeOfCare": [
+        {"property": "condition_type", "type": "string", "fhirType": "code", "exampleValues": ["Lung", "Breast"]},
         {"property": "status", "type": "string", "fhirType": "code", "distinctFromNeo4j": True},
         {"property": "referral_date", "type": "string", "fhirType": "date"},
         {"property": "referral_route", "type": "string", "fhirType": "code"},
@@ -44,29 +44,29 @@ FILTERS = {
         {"property": "date", "type": "string", "fhirType": "date"},
         {"property": "encounter_type", "type": "string", "fhirType": "code"},
     ],
-    "CSSAlert": [
+    "SafetyNetAlert": [
         {"property": "actioned", "type": "boolean", "fhirType": "boolean"},
         {"property": "alert_type", "type": "string", "fhirType": "code"},
     ],
 }
 
 # Curated groupBy options per node
-# Patient.gender for CancerEpisode = sex split of patients (group by patient's gender)
+# Patient.gender for EpisodeOfCare = sex split of patients (group by patient's gender)
 # Patient.age_band_at_diagnosis = derived from birthDate + diagnosis_date (0-24, 25-49, 50-64, 65-74, 75-84, 85+)
 # valueProperties: numeric fields for median/percentile aggregation (Phase 2)
 GROUP_BY = {
-    "CancerEpisode": [
-        "cancer_type", "status", "referral_route", "place_of_presentation",
+    "EpisodeOfCare": [
+        "condition_type", "status", "referral_route", "place_of_presentation",
         "Patient.gender", "Patient.age_band_at_diagnosis", "cancer_stage",
         "primary_care_interval_band", "diagnostic_interval_band",
     ],
     "Patient": ["gender", "ethnicity"],
     "Encounter": ["encounter_type", "date", "count_per_patient_band"],
-    "CSSAlert": ["alert_type", "actioned"],
+    "SafetyNetAlert": ["alert_type", "actioned"],
 }
 
 VALUE_PROPERTIES = {
-    "CancerEpisode": ["primary_care_interval_days", "diagnostic_interval_days", "age_at_diagnosis"],
+    "EpisodeOfCare": ["primary_care_interval_days", "diagnostic_interval_days", "age_at_diagnosis"],
     "Encounter": ["count_per_patient"],
 }
 
@@ -81,9 +81,9 @@ SCOPE_TYPES = [
 # Map nodeLabel to (patient_var, target_var, relationship, target_label) for distinct-value queries
 _NODE_PATTERNS = {
     "Patient": ("p", "p", None, "Patient"),
-    "CancerEpisode": ("p", "ep", "HAS_EPISODE", "CancerEpisode"),
+    "EpisodeOfCare": ("p", "ep", "HAS_EPISODE_OF_CARE", "EpisodeOfCare"),
     "Encounter": ("p", "e", "HAS_ENCOUNTER", "Encounter"),
-    "CSSAlert": ("p", "a", "HAS_CSS_ALERT", "CSSAlert"),
+    "SafetyNetAlert": ("p", "a", "HAS_SAFETY_NET_ALERT", "SafetyNetAlert"),
 }
 
 
@@ -104,7 +104,7 @@ def get_patient_graph_schema():
 
 @router.get("/schema/distinct-values")
 def get_distinct_filter_values(
-    node_label: str = Query(..., description="Node label (e.g. CancerEpisode)"),
+    node_label: str = Query(..., description="Node label (e.g. EpisodeOfCare)"),
     property_name: str = Query(..., description="Property name (e.g. status)"),
 ):
     """Return distinct values for a filter property from Neo4j.

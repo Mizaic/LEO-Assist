@@ -26,7 +26,7 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
 export async function fetchEpisodeSummary(orgId?: string) {
   const params = orgId ? `?org_id=${orgId}` : "";
   return fetchJson<
-    Array<{ cancer_type: string; status: string; count: number }>
+    Array<{ condition_type: string; status: string; count: number }>
   >(`${ANALYTICS_BASE}/analytics/episodes/summary${params}`);
 }
 
@@ -40,7 +40,7 @@ export async function fetchEpisodeTimeline(patientId?: string, orgId?: string, i
     Array<{
       episode_id: string;
       patient_id?: string;
-      cancer_type: string;
+      condition_type: string;
       status: string;
       referral_date?: string;
       confidence?: number;
@@ -123,7 +123,7 @@ export async function rebuildPatientEpisodes(
   });
 }
 
-export interface CSSAlert {
+export interface SafetyNetAlert {
   id: string;
   type: string;
   rule_name?: string;
@@ -137,20 +137,20 @@ export interface CSSAlert {
   needs_review?: boolean;
   created_at?: string;
   episode_id?: string;
-  cancer_type?: string;
+  condition_type?: string;
   encounter_id?: string;
   encounter_date?: string;
   patient_id?: string;
 }
 
-export async function fetchCSSAlerts(orgId?: string): Promise<CSSAlert[]> {
+export async function fetchSafetyNetAlerts(orgId?: string): Promise<SafetyNetAlert[]> {
   const params = orgId ? `?org_id=${orgId}` : "";
-  return fetchJson<CSSAlert[]>(
+  return fetchJson<SafetyNetAlert[]>(
     `${ANALYTICS_BASE}/analytics/css/alerts${params}`,
   );
 }
 
-export async function actionCSSAlert(
+export async function actionSafetyNetAlert(
   alertId: string,
   actioned: boolean,
 ): Promise<{ success: boolean }> {

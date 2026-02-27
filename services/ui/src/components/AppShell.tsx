@@ -45,7 +45,7 @@ const NAV_ITEMS = [
   { label: "Overview", path: "/dashboard", icon: <DashboardOutlinedIcon /> },
   { label: "Patients", path: "/patients", icon: <PeopleOutlineIcon /> },
   { label: "Referral Pathways", path: "/episodes", icon: <TimelineOutlinedIcon /> },
-  { label: "Safety Netting", path: "/css", icon: <HealthAndSafetyOutlinedIcon /> },
+  { label: "Safety Netting", path: "/safety-netting", icon: <HealthAndSafetyOutlinedIcon /> },
   { label: "Reports", path: "/reports", icon: <DescriptionOutlinedIcon /> },
   { label: "Measures", path: "/measures", icon: <BarChartOutlinedIcon /> },
   { label: "Benchmarks", path: "/benchmarks", icon: <AssessmentOutlinedIcon /> },
@@ -73,7 +73,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const isProtected =
     pathname?.startsWith("/dashboard") ||
     pathname?.startsWith("/episodes") ||
-    pathname?.startsWith("/css") ||
+    pathname?.startsWith("/safety-netting") ||
     pathname?.startsWith("/reports") ||
     pathname?.startsWith("/patients") ||
     pathname?.startsWith("/pipeline") ||

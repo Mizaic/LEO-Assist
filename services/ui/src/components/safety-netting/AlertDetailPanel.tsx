@@ -11,7 +11,7 @@ import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import UndoIcon from "@mui/icons-material/Undo";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import Link from "next/link";
-import type { CSSAlert } from "@/lib/analyticsApi";
+import type { SafetyNetAlert } from "@/lib/analyticsApi";
 
 const SEVERITY_COLORS: Record<string, "error" | "warning" | "info" | "default"> = {
   critical: "error",
@@ -21,7 +21,7 @@ const SEVERITY_COLORS: Record<string, "error" | "warning" | "info" | "default"> 
 };
 
 interface AlertDetailPanelProps {
-  alert: CSSAlert;
+  alert: SafetyNetAlert;
   onClose: () => void;
   onAction: (alertId: string, actioned: boolean) => void;
   actionLoading: boolean;
@@ -155,10 +155,10 @@ export default function AlertDetailPanel({
           </DetailRow>
         )}
 
-        {alert.cancer_type && (
+        {alert.condition_type && (
           <DetailRow label="Cancer type">
             <Typography variant="body2" sx={{ fontSize: "0.85rem" }}>
-              {alert.cancer_type}
+              {alert.condition_type}
             </Typography>
           </DetailRow>
         )}

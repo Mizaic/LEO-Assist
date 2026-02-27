@@ -1,6 +1,6 @@
-"""Clinical Safety Signal (CSS) and Unwarranted Variation detector.
+"""Clinical Safety Signal (safety-net) and Unwarranted Variation detector.
 
-Identifies NG12 pathway signals, safety-netting gaps, and CSS alerts
+Identifies NG12 pathway signals, safety-netting gaps, and safety-net alerts
 by scanning episodes and coded encounter data against guideline pathways.
 """
 
@@ -22,7 +22,7 @@ _INVESTIGATION_CONCEPTS = frozenset([
 ])
 
 
-def detect_css_signals(
+def detect_safety_net_signals(
     patient_id: str,
     episode_ids: List[str],
     patient_client,
@@ -69,7 +69,7 @@ def detect_css_signals(
 
 def _load_episode_data(episode_id: str, client) -> Dict[str, Any]:
     rows = client.run(
-        "MATCH (e:Encounter)-[r:IS_PART_OF]->(ep:CancerEpisode {episode_id: $eid}) "
+        "MATCH (e:Encounter)-[r:IS_PART_OF]->(ep:EpisodeOfCare {episode_id: $eid}) "
         "RETURN e.id AS encounter_id, e.text AS text, e.date AS date, "
         "       r.milestone_type AS milestone_type "
         "ORDER BY e.date",

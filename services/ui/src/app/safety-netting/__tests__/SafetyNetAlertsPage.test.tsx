@@ -1,8 +1,8 @@
 import React from "react";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import CSSAlertsPage from "../page";
-import type { CSSAlert } from "@/lib/analyticsApi";
+import SafetyNetAlertsPage from "../page";
+import type { SafetyNetAlert } from "@/lib/analyticsApi";
 
 jest.mock("next/link", () => {
   return ({ children, href }: { children: React.ReactNode; href: string }) =>
@@ -14,41 +14,41 @@ jest.mock("@/context/OrgContext", () => ({
 }));
 
 jest.mock("@/lib/analyticsApi", () => ({
-  fetchCSSAlerts: jest.fn(),
-  actionCSSAlert: jest.fn(),
+  fetchSafetyNetAlerts: jest.fn(),
+  actionSafetyNetAlert: jest.fn(),
 }));
 
-import { fetchCSSAlerts, actionCSSAlert } from "@/lib/analyticsApi";
+import { fetchSafetyNetAlerts, actionSafetyNetAlert } from "@/lib/analyticsApi";
 
-function makeAlert(overrides: Partial<CSSAlert> = {}): CSSAlert {
+function makeAlert(overrides: Partial<SafetyNetAlert> = {}): SafetyNetAlert {
   return {
     id: "A1",
     type: "missing_safety_netting",
     severity: "high",
     description: "No safety-netting language found",
     patient_id: "P001",
-    cancer_type: "Colorectal",
+    condition_type: "Colorectal",
     episode_id: "EP-1",
     actioned: false,
     ...overrides,
   };
 }
 
-const ALERTS: CSSAlert[] = [
-  makeAlert({ id: "A1", severity: "critical", type: "investigation_gap", description: "No investigation after referral", patient_id: "P001", cancer_type: "Lung" }),
-  makeAlert({ id: "A2", severity: "high", type: "missing_safety_netting", description: "No safety-net language", patient_id: "P002", cancer_type: "Colorectal" }),
+const ALERTS: SafetyNetAlert[] = [
+  makeAlert({ id: "A1", severity: "critical", type: "investigation_gap", description: "No investigation after referral", patient_id: "P001", condition_type: "Lung" }),
+  makeAlert({ id: "A2", severity: "high", type: "missing_safety_netting", description: "No safety-net language", patient_id: "P002", condition_type: "Colorectal" }),
   makeAlert({ id: "A3", severity: "medium", type: "excessive_referral_wait", description: "Wait 21 days", patient_id: "P003", actioned: true }),
   makeAlert({ id: "A4", severity: "low", type: "missing_safety_netting", description: "Minor gap", patient_id: "P004" }),
 ];
 
-describe("CSSAlertsPage", () => {
+describe("SafetyNetAlertsPage", () => {
   beforeEach(() => {
-    (fetchCSSAlerts as jest.Mock).mockResolvedValue(ALERTS);
-    (actionCSSAlert as jest.Mock).mockResolvedValue({ success: true });
+    (fetchSafetyNetAlerts as jest.Mock).mockResolvedValue(ALERTS);
+    (actionSafetyNetAlert as jest.Mock).mockResolvedValue({ success: true });
   });
 
   it("renders page title and subtitle", async () => {
-    render(<CSSAlertsPage />);
+    render(<SafetyNetAlertsPage />);
     expect(screen.getByText("Safety Netting")).toBeInTheDocument();
     await waitFor(() => {
       expect(screen.getByText(/Clinical safety signals/)).toBeInTheDocument();
@@ -56,7 +56,7 @@ describe("CSSAlertsPage", () => {
   });
 
   it("shows summary cards after loading", async () => {
-    render(<CSSAlertsPage />);
+    render(<SafetyNetAlertsPage />);
     await waitFor(() => {
       expect(screen.getByText("Total alerts")).toBeInTheDocument();
     });
@@ -64,7 +64,7 @@ describe("CSSAlertsPage", () => {
   });
 
   it("displays correct total count in summary card", async () => {
-    render(<CSSAlertsPage />);
+    render(<SafetyNetAlertsPage />);
     await waitFor(() => {
       expect(screen.getByText("Total alerts")).toBeInTheDocument();
     });
@@ -73,7 +73,7 @@ describe("CSSAlertsPage", () => {
   });
 
   it("defaults to grouped view and outstanding filter", async () => {
-    render(<CSSAlertsPage />);
+    render(<SafetyNetAlertsPage />);
     await waitFor(() => {
       expect(screen.getByText("3 patients, 3 alerts")).toBeInTheDocument();
     });
@@ -84,7 +84,7 @@ describe("CSSAlertsPage", () => {
 
   it("switches to flat view and shows flat count text", async () => {
     const user = userEvent.setup();
-    render(<CSSAlertsPage />);
+    render(<SafetyNetAlertsPage />);
     await waitFor(() => {
       expect(screen.getByText("3 patients, 3 alerts")).toBeInTheDocument();
     });
@@ -94,7 +94,7 @@ describe("CSSAlertsPage", () => {
 
   it("shows all alerts when 'All' filter is selected", async () => {
     const user = userEvent.setup();
-    render(<CSSAlertsPage />);
+    render(<SafetyNetAlertsPage />);
     await waitFor(() => {
       expect(screen.getByText("3 patients, 3 alerts")).toBeInTheDocument();
     });
@@ -104,7 +104,7 @@ describe("CSSAlertsPage", () => {
 
   it("filters by severity chip", async () => {
     const user = userEvent.setup();
-    render(<CSSAlertsPage />);
+    render(<SafetyNetAlertsPage />);
     await waitFor(() => {
       expect(screen.getByText("critical (1)")).toBeInTheDocument();
     });
@@ -114,7 +114,7 @@ describe("CSSAlertsPage", () => {
 
   it("opens detail panel when clicking an alert row cell", async () => {
     const user = userEvent.setup();
-    render(<CSSAlertsPage />);
+    render(<SafetyNetAlertsPage />);
     await waitFor(() => {
       expect(screen.getByText("investigation_gap")).toBeInTheDocument();
     });
@@ -125,20 +125,20 @@ describe("CSSAlertsPage", () => {
     ).toBeGreaterThanOrEqual(2);
   });
 
-  it("calls actionCSSAlert when marking alert as actioned", async () => {
+  it("calls actionSafetyNetAlert when marking alert as actioned", async () => {
     const user = userEvent.setup();
-    render(<CSSAlertsPage />);
+    render(<SafetyNetAlertsPage />);
     await waitFor(() => {
       expect(screen.getByText("investigation_gap")).toBeInTheDocument();
     });
     await user.click(screen.getByText("investigation_gap"));
     await user.click(screen.getByText("Mark actioned"));
-    expect(actionCSSAlert).toHaveBeenCalledWith("A1", true);
+    expect(actionSafetyNetAlert).toHaveBeenCalledWith("A1", true);
   });
 
   it("handles fetch failure gracefully", async () => {
-    (fetchCSSAlerts as jest.Mock).mockRejectedValue(new Error("Network error"));
-    render(<CSSAlertsPage />);
+    (fetchSafetyNetAlerts as jest.Mock).mockRejectedValue(new Error("Network error"));
+    render(<SafetyNetAlertsPage />);
     await waitFor(() => {
       expect(screen.getByText("Total alerts")).toBeInTheDocument();
     });
@@ -148,7 +148,7 @@ describe("CSSAlertsPage", () => {
 
   it("filters by search text", async () => {
     const user = userEvent.setup();
-    render(<CSSAlertsPage />);
+    render(<SafetyNetAlertsPage />);
     await waitFor(() => {
       expect(screen.getByText("P001")).toBeInTheDocument();
     });
@@ -163,7 +163,7 @@ describe("CSSAlertsPage", () => {
 
   it("closes detail panel when close button clicked", async () => {
     const user = userEvent.setup();
-    render(<CSSAlertsPage />);
+    render(<SafetyNetAlertsPage />);
     await waitFor(() => {
       expect(screen.getByText("investigation_gap")).toBeInTheDocument();
     });

@@ -151,7 +151,7 @@ function EpisodesPageContent() {
   const searched = episodes.filter(
     (e) =>
       !search ||
-      e.cancer_type?.toLowerCase().includes(search.toLowerCase()) ||
+      e.condition_type?.toLowerCase().includes(search.toLowerCase()) ||
       e.patient_id?.toLowerCase().includes(search.toLowerCase()) ||
       e.episode_id?.toLowerCase().includes(search.toLowerCase()),
   );

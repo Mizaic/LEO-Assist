@@ -15,7 +15,7 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
-import type { CSSAlert } from "@/lib/analyticsApi";
+import type { SafetyNetAlert } from "@/lib/analyticsApi";
 
 const SEVERITY_COLORS: Record<string, "error" | "warning" | "info" | "default"> = {
   critical: "error",
@@ -28,12 +28,12 @@ const SEVERITY_ORDER: Record<string, number> = { critical: 0, high: 1, medium: 2
 
 interface PatientGroup {
   patientId: string;
-  alerts: CSSAlert[];
+  alerts: SafetyNetAlert[];
   worstSeverity: string;
 }
 
-function groupByPatient(alerts: CSSAlert[]): PatientGroup[] {
-  const map = new Map<string, CSSAlert[]>();
+function groupByPatient(alerts: SafetyNetAlert[]): PatientGroup[] {
+  const map = new Map<string, SafetyNetAlert[]>();
   for (const a of alerts) {
     const key = a.patient_id ?? "Unknown";
     const list = map.get(key);
@@ -65,9 +65,9 @@ function groupByPatient(alerts: CSSAlert[]): PatientGroup[] {
 export type ViewMode = "grouped" | "flat";
 
 interface AlertWorklistProps {
-  alerts: CSSAlert[];
+  alerts: SafetyNetAlert[];
   selectedId: string | null;
-  onSelect: (alert: CSSAlert) => void;
+  onSelect: (alert: SafetyNetAlert) => void;
   viewMode?: ViewMode;
 }
 
@@ -168,7 +168,7 @@ export default function AlertWorklist({
                 </TableCell>
                 <TableCell>
                   <Typography variant="caption" sx={{ fontSize: "0.8rem" }}>
-                    {alert.cancer_type ?? "-"}
+                    {alert.condition_type ?? "-"}
                   </Typography>
                 </TableCell>
                 <TableCell sx={{ textAlign: "center" }}>
@@ -248,7 +248,7 @@ function PatientGroupRows({
   outstandingCount: number;
   selectedId: string | null;
   onToggle: () => void;
-  onSelect: (alert: CSSAlert) => void;
+  onSelect: (alert: SafetyNetAlert) => void;
 }) {
   return (
     <>
@@ -337,7 +337,7 @@ function PatientGroupRows({
             </TableCell>
             <TableCell>
               <Typography variant="caption" sx={{ fontSize: "0.8rem" }}>
-                {alert.cancer_type ?? "-"}
+                {alert.condition_type ?? "-"}
               </Typography>
             </TableCell>
             <TableCell sx={{ textAlign: "center" }}>

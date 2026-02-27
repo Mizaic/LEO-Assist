@@ -154,8 +154,8 @@ const PALETTE_ITEMS: PaletteItemConfig[] = [
     description: 'NHS target compliance by cancer type / time period',
   },
   {
-    type: 'cssMatchProgression',
-    label: 'CSS Match Progression',
+    type: 'safetyNetMatchProgression',
+    label: 'SafetyNet Match Progression',
     icon: <InsertChartOutlined />,
     description: 'NG12 guideline match progression per patient',
   },

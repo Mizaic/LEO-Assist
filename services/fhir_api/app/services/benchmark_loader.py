@@ -154,18 +154,18 @@ def _flatten_simple_section(
     return nodes
 
 
-def _flatten_cancer_type_section(
+def _flatten_condition_type_section(
     section: Dict[str, Any],
     entity_map: Dict[str, Dict[str, str]],
     audit_id: str,
     source: str,
 ) -> List[Dict[str, Any]]:
-    """Flatten the cancer_type section with its array structure."""
+    """Flatten the condition_type section with its array structure."""
     nodes: List[Dict[str, Any]] = []
     unit = section.get("unit", "pct")
     for cancer in section.get("cancer_types", []):
         cancer_name = cancer.get("type", "")
-        metric_id = f"cancer_type.{cancer_name}"
+        metric_id = f"condition_type.{cancer_name}"
         label = f"{cancer_name.capitalize()} cancer"
         for entity_id, value in cancer.get("values", {}).items():
             if isinstance(value, dict):
@@ -173,7 +173,7 @@ def _flatten_cancer_type_section(
                 if sub_val is not None:
                     nodes.extend(
                         _flatten_simple_value(
-                            entity_id, sub_val, "cancer_type", metric_id,
+                            entity_id, sub_val, "condition_type", metric_id,
                             label, unit, entity_map,
                             audit_id, source,
                         )
@@ -181,7 +181,7 @@ def _flatten_cancer_type_section(
             else:
                 nodes.extend(
                     _flatten_simple_value(
-                        entity_id, value, "cancer_type", metric_id,
+                        entity_id, value, "condition_type", metric_id,
                         label, unit, entity_map,
                         audit_id, source,
                     )
@@ -198,8 +198,8 @@ def _flatten_ncda(data: Dict[str, Any], audit_id: str, source: str) -> List[Dict
     for category, section in benchmarks.items():
         if not isinstance(section, dict):
             continue
-        if category == "cancer_type":
-            nodes.extend(_flatten_cancer_type_section(section, entity_map, audit_id, source))
+        if category == "condition_type":
+            nodes.extend(_flatten_condition_type_section(section, entity_map, audit_id, source))
         else:
             nodes.extend(
                 _flatten_simple_section(category, section, entity_map, audit_id, source)

@@ -130,7 +130,7 @@ def _format_summaries(summaries: List[Dict[str, Any]]) -> str:
     for s in summaries:
         lines.append(
             f"Episode: {s['episode_id']}\n"
-            f"  Cancer type: {s.get('cancer_type', 'unknown')}\n"
+            f"  Cancer type: {s.get('condition_type', 'unknown')}\n"
             f"  Status: {s.get('status', 'unknown')} "
             f"(confidence: {s.get('confidence', 0)})\n"
             f"  Referral date: {s.get('referral_date', 'unknown')}\n"
@@ -165,7 +165,7 @@ def _apply_merge(
     if not secondary_ids:
         return 0
 
-    referral_types = [s.get("cancer_type", "unknown") for s in summaries]
+    referral_types = [s.get("condition_type", "unknown") for s in summaries]
     merge_episodes(primary_id, secondary_ids, reasoning, referral_types, client=client)
 
     if merged_type:
@@ -180,12 +180,12 @@ def _apply_merge(
     return len(secondary_ids)
 
 
-def _update_cancer_type(episode_id: str, cancer_type: str, client=None) -> None:
+def _update_cancer_type(episode_id: str, condition_type: str, client=None) -> None:
     from libs.neo4j_client.client import PatientGraphClient
     c = client or PatientGraphClient()
     c.run(
-        "MATCH (ep:CancerEpisode {episode_id: $eid}) SET ep.cancer_type = $ct",
-        eid=episode_id, ct=cancer_type,
+        "MATCH (ep:EpisodeOfCare {episode_id: $eid}) SET ep.condition_type = $ct",
+        eid=episode_id, ct=condition_type,
     )
 
 

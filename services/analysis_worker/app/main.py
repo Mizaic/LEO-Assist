@@ -3,7 +3,7 @@
 Consumes analysis-job messages from the message bus. Runs:
 - Anchor detection (referral / diagnosis / treatment)
 - Episode building and consolidation
-- CSS / unwarranted variation detection
+- Safety-net / unwarranted variation detection
 - Abnormal results analysis
 - KPI and quality metric calculation
 """

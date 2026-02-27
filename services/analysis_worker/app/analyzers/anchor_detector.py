@@ -75,12 +75,12 @@ def detect_anchors(
         enc_id = str(enc.get("encounter_id", ""))
         enc_date = str(enc.get("date", ""))
 
-        cancer_type = _detect_referral_in_text(text)
-        if cancer_type:
+        condition_type = _detect_referral_in_text(text)
+        if condition_type:
             result.referral_anchors.append({
                 "encounter_id": enc_id,
                 "encounter_date": enc_date,
-                "concept_name": f"Fast track referral for suspected {cancer_type} cancer",
+                "concept_name": f"Fast track referral for suspected {condition_type} cancer",
                 "source": "text_search",
             })
 
@@ -111,14 +111,14 @@ def _fetch_encounters_with_text(patient_id, start_date, end_date, client):
 def _detect_referral_in_text(text: str) -> Optional[str]:
     m = _FAST_TRACK_RE.search(text)
     if m:
-        return _normalise_cancer_type(m.group(1).strip())
+        return _normalise_condition_type(m.group(1).strip())
     m = _2WW_RE.search(text)
     if m:
-        return _normalise_cancer_type(m.group(1).strip())
+        return _normalise_condition_type(m.group(1).strip())
     return None
 
 
-def _normalise_cancer_type(raw: str) -> str:
+def _normalise_condition_type(raw: str) -> str:
     low = raw.lower().rstrip(".")
     for keyword, standard in _CANCER_TYPE_MAP.items():
         if keyword in low:

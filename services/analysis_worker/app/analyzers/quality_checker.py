@@ -8,7 +8,7 @@ Checks completed episodes for:
 - NHS wait time target breaches
 - Low confidence flags
 - Temporal anomalies
-- Unactioned CSS alerts
+- Unactioned safety-net alerts
 - Coding contradictions
 
 Persists findings as QualityIssue graph nodes for the review queue.
@@ -86,7 +86,7 @@ def run_quality_checks(
         _check_nhs_targets(client, report, patient_id, org_id)
         _check_low_confidence(client, report, patient_id, org_id, limit)
         _check_temporal_anomalies(client, report, patient_id, org_id, limit)
-        _check_unactioned_css(client, report, patient_id, org_id)
+        _check_unactioned_safety_net(client, report, patient_id, org_id)
         _check_coding_contradictions(client, report, patient_id, org_id)
 
         episode_ids_with_issues = {i.episode_id for i in report.issues}
@@ -115,7 +115,7 @@ def _where(patient_id: Optional[str], org_id: Optional[str] = None) -> tuple[str
 
 def _count_episodes(client: PatientGraphClient, report: QualityReport, pid: Optional[str], org: Optional[str]):
     where, params = _where(pid, org)
-    rows = client.run(f"MATCH (ep:CancerEpisode) {where} RETURN count(ep) AS total", **params)
+    rows = client.run(f"MATCH (ep:EpisodeOfCare) {where} RETURN count(ep) AS total", **params)
     report.total_checked = rows[0]["total"] if rows else 0
     report.summary["total_episodes"] = report.total_checked
 
@@ -124,14 +124,14 @@ def _check_outliers(client: PatientGraphClient, report: QualityReport, pid: Opti
     where, params = _where(pid, org)
     params["lim"] = limit
     rows = client.run(
-        f"MATCH (ep:CancerEpisode) {where} "
+        f"MATCH (ep:EpisodeOfCare) {where} "
         "WHERE ep.kpi_days_referral_to_diagnosis IS NOT NULL "
-        "WITH ep.cancer_type AS ct, avg(ep.kpi_days_referral_to_diagnosis) AS m, "
+        "WITH ep.condition_type AS ct, avg(ep.kpi_days_referral_to_diagnosis) AS m, "
         "     stDev(ep.kpi_days_referral_to_diagnosis) AS sd "
-        "MATCH (ep2:CancerEpisode) WHERE ep2.cancer_type = ct "
+        "MATCH (ep2:EpisodeOfCare) WHERE ep2.condition_type = ct "
         "AND ep2.kpi_days_referral_to_diagnosis > m + 2*sd "
         "RETURN ep2.episode_id AS episode_id, ep2.patient_id AS patient_id, "
-        "       ep2.cancer_type AS cancer_type, ep2.kpi_days_referral_to_diagnosis AS days, "
+        "       ep2.condition_type AS condition_type, ep2.kpi_days_referral_to_diagnosis AS days, "
         "       m AS mean_days, sd AS stddev_days LIMIT $lim",
         **params,
     )
@@ -139,7 +139,7 @@ def _check_outliers(client: PatientGraphClient, report: QualityReport, pid: Opti
         report.issues.append(QualityIssue(
             episode_id=r["episode_id"], patient_id=r.get("patient_id", ""),
             issue_type="outlier", severity="high",
-            description=f"Duration {r['days']:.0f}d is >= 2 std dev above mean ({r['mean_days']:.0f} +/- {r['stddev_days']:.0f}) for {r['cancer_type']}",
+            description=f"Duration {r['days']:.0f}d is >= 2 std dev above mean ({r['mean_days']:.0f} +/- {r['stddev_days']:.0f}) for {r['condition_type']}",
             suggested_action="Review and reprocess this episode",
         ))
 
@@ -148,7 +148,7 @@ def _check_missing_milestones(client: PatientGraphClient, report: QualityReport,
     where, params = _where(pid, org)
     params["lim"] = limit
     rows = client.run(
-        f"MATCH (ep:CancerEpisode) {where} "
+        f"MATCH (ep:EpisodeOfCare) {where} "
         "WHERE ep.status = 'confirmed' "
         "OPTIONAL MATCH (enc:Encounter)-[r:IS_PART_OF]->(ep) "
         "WITH ep, collect(r.milestone_type) AS milestones "
@@ -156,7 +156,7 @@ def _check_missing_milestones(client: PatientGraphClient, report: QualityReport,
         "  [m IN ['presentation','referral','diagnosis'] WHERE NOT m IN milestones] AS missing "
         "WHERE size(missing) > 0 "
         "RETURN ep.episode_id AS episode_id, ep.patient_id AS patient_id, "
-        "       ep.cancer_type AS cancer_type, missing LIMIT $lim",
+        "       ep.condition_type AS condition_type, missing LIMIT $lim",
         **params,
     )
     for r in rows:
@@ -164,7 +164,7 @@ def _check_missing_milestones(client: PatientGraphClient, report: QualityReport,
         report.issues.append(QualityIssue(
             episode_id=r["episode_id"], patient_id=r.get("patient_id", ""),
             issue_type="missing_milestone", severity="high",
-            description=f"Missing milestones: {missing_str} for {r.get('cancer_type', 'Unknown')}",
+            description=f"Missing milestones: {missing_str} for {r.get('condition_type', 'Unknown')}",
             suggested_action="Review encounter timeline and fill missing milestones",
         ))
 
@@ -173,11 +173,11 @@ def _check_nhs_targets(client: PatientGraphClient, report: QualityReport, pid: O
     where, params = _where(pid, org)
     params["fds"] = NHS_TARGETS["faster_diagnosis_standard"]
     rows = client.run(
-        f"MATCH (ep:CancerEpisode) {where} "
+        f"MATCH (ep:EpisodeOfCare) {where} "
         "WHERE ep.status = 'confirmed' AND ep.kpi_days_referral_to_diagnosis IS NOT NULL "
         "AND ep.kpi_days_referral_to_diagnosis > $fds "
         "RETURN ep.episode_id AS episode_id, ep.patient_id AS patient_id, "
-        "       ep.cancer_type AS cancer_type, ep.kpi_days_referral_to_diagnosis AS days "
+        "       ep.condition_type AS condition_type, ep.kpi_days_referral_to_diagnosis AS days "
         "LIMIT 100",
         **params,
     )
@@ -185,7 +185,7 @@ def _check_nhs_targets(client: PatientGraphClient, report: QualityReport, pid: O
         report.issues.append(QualityIssue(
             episode_id=r["episode_id"], patient_id=r.get("patient_id", ""),
             issue_type="wait_time_breach", severity="high",
-            description=f"Referral-to-diagnosis: {r['days']:.0f}d (target: {params['fds']}d) for {r.get('cancer_type', 'Unknown')}",
+            description=f"Referral-to-diagnosis: {r['days']:.0f}d (target: {params['fds']}d) for {r.get('condition_type', 'Unknown')}",
             suggested_action="Review for avoidable delays",
         ))
 
@@ -194,17 +194,17 @@ def _check_low_confidence(client: PatientGraphClient, report: QualityReport, pid
     where, params = _where(pid, org)
     params.update({"threshold": 70, "lim": limit})
     rows = client.run(
-        f"MATCH (ep:CancerEpisode) {where} "
+        f"MATCH (ep:EpisodeOfCare) {where} "
         "WHERE ep.agent_confidence IS NOT NULL AND ep.agent_confidence < $threshold "
         "RETURN ep.episode_id AS episode_id, ep.patient_id AS patient_id, "
-        "       ep.cancer_type AS cancer_type, ep.agent_confidence AS confidence LIMIT $lim",
+        "       ep.condition_type AS condition_type, ep.agent_confidence AS confidence LIMIT $lim",
         **params,
     )
     for r in rows:
         report.issues.append(QualityIssue(
             episode_id=r["episode_id"], patient_id=r.get("patient_id", ""),
             issue_type="low_confidence", severity="medium",
-            description=f"Confidence {r.get('confidence', 'N/A')} below 70% for {r.get('cancer_type', 'Unknown')}",
+            description=f"Confidence {r.get('confidence', 'N/A')} below 70% for {r.get('condition_type', 'Unknown')}",
             suggested_action="Review episode classification and evidence",
         ))
 
@@ -213,33 +213,33 @@ def _check_temporal_anomalies(client: PatientGraphClient, report: QualityReport,
     where, params = _where(pid, org)
     params["lim"] = limit
     rows = client.run(
-        f"MATCH (ep:CancerEpisode) {where} "
+        f"MATCH (ep:EpisodeOfCare) {where} "
         "WHERE ep.referral_date IS NOT NULL AND ep.diagnosis_date IS NOT NULL "
         "AND date(ep.diagnosis_date) < date(ep.referral_date) "
         "RETURN ep.episode_id AS episode_id, ep.patient_id AS patient_id, "
-        "       ep.cancer_type AS cancer_type LIMIT $lim",
+        "       ep.condition_type AS condition_type LIMIT $lim",
         **params,
     )
     for r in rows:
         report.issues.append(QualityIssue(
             episode_id=r["episode_id"], patient_id=r.get("patient_id", ""),
             issue_type="temporal_anomaly", severity="high",
-            description=f"Diagnosis before referral for {r.get('cancer_type', 'Unknown')}",
+            description=f"Diagnosis before referral for {r.get('condition_type', 'Unknown')}",
             suggested_action="Review milestone dates and correct ordering",
         ))
 
 
-def _check_unactioned_css(client: PatientGraphClient, report: QualityReport, pid: Optional[str], org: Optional[str]):
+def _check_unactioned_safety_net(client: PatientGraphClient, report: QualityReport, pid: Optional[str], org: Optional[str]):
     if pid:
-        match = "MATCH (p:Patient)-[:HAS_CSS_ALERT]->(a:CSSAlert) WHERE toString(p.id) = $pid"
+        match = "MATCH (p:Patient)-[:HAS_SAFETY_NET_ALERT]->(a:SafetyNetAlert) WHERE toString(p.id) = $pid"
         params: Dict[str, Any] = {"pid": pid}
     else:
-        match = "MATCH (p:Patient)-[:HAS_CSS_ALERT]->(a:CSSAlert)"
+        match = "MATCH (p:Patient)-[:HAS_SAFETY_NET_ALERT]->(a:SafetyNetAlert)"
         params = {}
 
     rows = client.run(
         f"{match} AND a.actioned = false AND a.severity = 'critical' "
-        "OPTIONAL MATCH (a)-[:FOR_EPISODE]->(ep:CancerEpisode) "
+        "OPTIONAL MATCH (a)-[:FOR_EPISODE]->(ep:EpisodeOfCare) "
         "RETURN ep.episode_id AS episode_id, p.id AS patient_id, "
         "       a.rule_name AS rule_name LIMIT 200",
         **params,
@@ -248,29 +248,29 @@ def _check_unactioned_css(client: PatientGraphClient, report: QualityReport, pid
         report.issues.append(QualityIssue(
             episode_id=r.get("episode_id", _PATIENT_LEVEL),
             patient_id=r.get("patient_id", ""),
-            issue_type="unactioned_css_alert", severity="high",
-            description=f"Unactioned critical CSS alert: {r.get('rule_name', 'Unknown')}",
-            suggested_action="Review CSS alert and action or document reason for no action",
+            issue_type="unactioned_safety_net_alert", severity="high",
+            description=f"Unactioned critical safety-net alert: {r.get('rule_name', 'Unknown')}",
+            suggested_action="Review safety-net alert and action or document reason for no action",
         ))
 
 
 def _check_coding_contradictions(client: PatientGraphClient, report: QualityReport, pid: Optional[str], org: Optional[str]):
     where, params = _where(pid, org)
     rows = client.run(
-        f"MATCH (ep:CancerEpisode) {where} WHERE ep.status = 'confirmed' "
+        f"MATCH (ep:EpisodeOfCare) {where} WHERE ep.status = 'confirmed' "
         "MATCH (ep)<-[:IS_PART_OF]-(enc:Encounter)-[r:DOCUMENTS]->(c) "
         "WITH ep, collect(c.conceptId) AS cids "
         "WHERE any(cid IN cids WHERE cid IN [415068001, 161451009]) "
         "  AND any(cid IN cids WHERE cid IN [182992009, 363679005, 108290001, 373808002, 363706009]) "
         "RETURN ep.episode_id AS episode_id, ep.patient_id AS patient_id, "
-        "       ep.cancer_type AS cancer_type LIMIT 200",
+        "       ep.condition_type AS condition_type LIMIT 200",
         **params,
     )
     for r in rows:
         report.issues.append(QualityIssue(
             episode_id=r["episode_id"], patient_id=r.get("patient_id", ""),
             issue_type="coding_contradiction", severity="high",
-            description=f"Contradictory codes for {r.get('cancer_type', 'Unknown')}: treatment co-exists with no-evidence-of-cancer",
+            description=f"Contradictory codes for {r.get('condition_type', 'Unknown')}: treatment co-exists with no-evidence-of-cancer",
             suggested_action="Review and correct conflicting codes",
         ))
 

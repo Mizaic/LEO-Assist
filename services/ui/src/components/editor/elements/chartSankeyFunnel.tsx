@@ -11,7 +11,7 @@ import {
 // ─── buildSankeyFromRows ─────────────────────────────────────────────
 
 const SOURCE_CANDIDATES = ['source', 'from', 'comorbidity', 'comorbidity_name'];
-const TARGET_CANDIDATES = ['target', 'to', 'cancer_type', 'cancerType'];
+const TARGET_CANDIDATES = ['target', 'to', 'condition_type', 'cancerType'];
 const VALUE_CANDIDATES = ['value', 'count', 'patient_count', 'patients', 'total'];
 
 export interface SankeyData {

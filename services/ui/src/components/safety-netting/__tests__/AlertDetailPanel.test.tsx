@@ -2,14 +2,14 @@ import React from "react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import AlertDetailPanel from "../AlertDetailPanel";
-import type { CSSAlert } from "@/lib/analyticsApi";
+import type { SafetyNetAlert } from "@/lib/analyticsApi";
 
 jest.mock("next/link", () => {
   return ({ children, href }: { children: React.ReactNode; href: string }) =>
     React.createElement("a", { href }, children);
 });
 
-function makeAlert(overrides: Partial<CSSAlert> = {}): CSSAlert {
+function makeAlert(overrides: Partial<SafetyNetAlert> = {}): SafetyNetAlert {
   return {
     id: "ALERT-1",
     type: "missing_safety_netting",
@@ -18,7 +18,7 @@ function makeAlert(overrides: Partial<CSSAlert> = {}): CSSAlert {
     suggested_action: "Review and add safety-net advice",
     guideline: "NG12",
     patient_id: "P001",
-    cancer_type: "Colorectal",
+    condition_type: "Colorectal",
     episode_id: "EP-42",
     encounter_date: "2025-11-03",
     created_at: "2025-12-01",
@@ -167,7 +167,7 @@ describe("AlertDetailPanel", () => {
       suggested_action: undefined,
       guideline: undefined,
       patient_id: undefined,
-      cancer_type: undefined,
+      condition_type: undefined,
       episode_id: undefined,
       encounter_date: undefined,
       created_at: undefined,

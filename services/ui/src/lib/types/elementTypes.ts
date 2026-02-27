@@ -25,7 +25,7 @@ export type ElementType =
   | 'tableOfContents'
   | 'pathwayGantt'
   | 'complianceHeatmap'
-  | 'cssMatchProgression';
+  | 'safetyNetMatchProgression';
 
 export type ChartType =
   | 'bar'
@@ -49,7 +49,7 @@ export type ObjectFit = 'contain' | 'cover' | 'fill' | 'none';
 
 export interface CohortFilters {
   ce_agent_confidence?: number | null;
-  ce_cancer_type?: string[];
+  ce_condition_type?: string[];
   ce_status?: string[];
   ce_status_exclude?: string[];
   ce_created_at_start?: string;
@@ -374,8 +374,8 @@ export interface CSSSummary {
   alertsMissed: number;
 }
 
-export interface CSSMatchProgressionElement extends BaseElement {
-  type: 'cssMatchProgression';
+export interface SafetyNetMatchProgressionElement extends BaseElement {
+  type: 'safetyNetMatchProgression';
   title?: string;
   rules: CSSRuleProgression[];
   summary?: CSSSummary;
@@ -402,4 +402,4 @@ export type LayoutElement =
   | TableOfContentsElement
   | PathwayGanttElement
   | ComplianceHeatmapElement
-  | CSSMatchProgressionElement;
+  | SafetyNetMatchProgressionElement;

@@ -24,7 +24,7 @@ import { PopulationPyramidElement } from './elements/PopulationPyramidElement';
 import { TableOfContentsElement } from './elements/TableOfContentsElement';
 import { PathwayGanttElement } from './elements/PathwayGanttElement';
 import { ComplianceHeatmapElement } from './elements/ComplianceHeatmapElement';
-import { CSSMatchProgressionElement } from './elements/CSSMatchProgressionElement';
+import { SafetyNetMatchProgressionElement } from './elements/SafetyNetMatchProgressionElement';
 
 interface ResizeHandle {
   position: 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w';
@@ -150,8 +150,8 @@ export function Element({ element, pageId, scale, readOnly = false }: ElementPro
         return <PathwayGanttElement element={element} />;
       case 'complianceHeatmap':
         return <ComplianceHeatmapElement element={element} />;
-      case 'cssMatchProgression':
-        return <CSSMatchProgressionElement element={element} />;
+      case 'safetyNetMatchProgression':
+        return <SafetyNetMatchProgressionElement element={element} />;
       default:
         return <div>Unknown element type</div>;
     }

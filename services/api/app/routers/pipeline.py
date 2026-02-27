@@ -82,7 +82,7 @@ def _resolve_cohort_patients(cohort_id: str) -> list[str]:
             where_parts.append("EXISTS { MATCH (p)-[:REGISTERED_AT]->(o:Organization {id: $org_id}) }")
             params["org_id"] = filters["org_id"]
         if filters.get("episode_status"):
-            where_parts.append("EXISTS { MATCH (p)-[:HAS_EPISODE]->(ep:CancerEpisode) WHERE ep.status IN $ep_statuses }")
+            where_parts.append("EXISTS { MATCH (p)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) WHERE ep.status IN $ep_statuses }")
             params["ep_statuses"] = filters["episode_status"]
         where_clause = " AND ".join(where_parts) if where_parts else "true"
         result = pg.run(

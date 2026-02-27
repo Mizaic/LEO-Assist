@@ -139,7 +139,7 @@ export default function EpisodeList({
                     variant="body2"
                     sx={{ fontWeight: 600, fontSize: "0.85rem" }}
                   >
-                    {ep.cancer_type || "Unknown type"}
+                    {ep.condition_type || "Unknown type"}
                   </Typography>
                   <Box sx={{ display: "flex", gap: 0.5, alignItems: "center" }}>
                     {ep.status === "merged" && (

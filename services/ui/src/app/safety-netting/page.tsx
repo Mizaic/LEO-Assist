@@ -8,13 +8,13 @@ import CardContent from "@mui/material/CardContent";
 import Skeleton from "@mui/material/Skeleton";
 import Grid from "@mui/material/Grid";
 import Chip from "@mui/material/Chip";
-import { fetchCSSAlerts, actionCSSAlert } from "@/lib/analyticsApi";
-import type { CSSAlert } from "@/lib/analyticsApi";
+import { fetchSafetyNetAlerts, actionSafetyNetAlert } from "@/lib/analyticsApi";
+import type { SafetyNetAlert } from "@/lib/analyticsApi";
 import { useOrgId } from "@/context/OrgContext";
-import AlertFilters from "@/components/css/AlertFilters";
-import type { AlertFilterState, ViewMode } from "@/components/css/AlertFilters";
-import AlertWorklist from "@/components/css/AlertWorklist";
-import AlertDetailPanel from "@/components/css/AlertDetailPanel";
+import AlertFilters from "@/components/safety-netting/AlertFilters";
+import type { AlertFilterState, ViewMode } from "@/components/safety-netting/AlertFilters";
+import AlertWorklist from "@/components/safety-netting/AlertWorklist";
+import AlertDetailPanel from "@/components/safety-netting/AlertDetailPanel";
 
 const SEVERITY_ORDER: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
 
@@ -25,18 +25,18 @@ const INITIAL_FILTERS: AlertFilterState = {
   actionedFilter: "outstanding",
 };
 
-export default function CSSAlertsPage() {
+export default function SafetyNetAlertsPage() {
   const orgId = useOrgId();
-  const [alerts, setAlerts] = useState<CSSAlert[]>([]);
+  const [alerts, setAlerts] = useState<SafetyNetAlert[]>([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<AlertFilterState>(INITIAL_FILTERS);
-  const [selected, setSelected] = useState<CSSAlert | null>(null);
+  const [selected, setSelected] = useState<SafetyNetAlert | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("grouped");
 
   useEffect(() => {
     setLoading(true);
-    fetchCSSAlerts(orgId)
+    fetchSafetyNetAlerts(orgId)
       .then(setAlerts)
       .catch(() => setAlerts([]))
       .finally(() => setLoading(false));
@@ -52,7 +52,7 @@ export default function CSSAlertsPage() {
         if (filters.type && a.type !== filters.type) return false;
         if (q) {
           const haystack = [
-            a.type, a.description, a.patient_id, a.cancer_type, a.episode_id,
+            a.type, a.description, a.patient_id, a.condition_type, a.episode_id,
           ]
             .filter(Boolean)
             .join(" ")
@@ -71,7 +71,7 @@ export default function CSSAlertsPage() {
     async (alertId: string, actioned: boolean) => {
       setActionLoading(true);
       try {
-        await actionCSSAlert(alertId, actioned);
+        await actionSafetyNetAlert(alertId, actioned);
         setAlerts((prev) =>
           prev.map((a) => (a.id === alertId ? { ...a, actioned } : a)),
         );

@@ -122,7 +122,7 @@ This document traces software requirements (DC-SRS-001) to design elements, impl
 |--------|-------------|-----------|----------------|-----------|-------------|
 | FR-AW-001 | Anchor detection (referral, diagnosis, treatment) | Plan WS-D | analysis-worker/app/analyzers/anchor_detector.py | -- | ST-AW-001 |
 | FR-AW-002 | Episode building + consolidation | Plan WS-D | analysis-worker/app/analyzers/episode_builder.py | -- | ST-AW-001 |
-| FR-AW-003 | Clinical safety signal detection | Plan WS-D | analysis-worker/app/analyzers/css_detector.py | -- | ST-AW-002 |
+| FR-AW-003 | Clinical safety signal detection | Plan WS-D | analysis-worker/app/analyzers/safety_net_detector.py | -- | ST-AW-002 |
 | FR-AW-004 | Abnormal results tracking | Plan WS-D | analysis-worker/app/analyzers/abnormal_results.py | -- | ST-AW-003 |
 | FR-AW-005 | KPI calculation (wait times, consultation counts) | Plan WS-D | analysis-worker/app/analyzers/kpi_calculator.py | -- | ST-AW-004 |
 | FR-AW-006 | Quality checks (outliers, milestones, NHS targets, contradictions) | Plan WS-G | analysis-worker/app/analyzers/quality_checker.py | test_quality_checker.py (3 tests) | ST-AW-005 |
@@ -159,9 +159,9 @@ This document traces software requirements (DC-SRS-001) to design elements, impl
 | Req ID | Requirement | Design Doc | Implementation | Unit Test | System Test |
 |--------|-------------|-----------|----------------|-----------|-------------|
 | FR-UI-001 | Azure AD sign-in flow | Plan WS-F | lib/auth.ts, SessionProviderWrapper.tsx | -- | ST-UI-001 |
-| FR-UI-002 | Dashboard with episode/KPI/CSS summary | Plan WS-F | app/dashboard/page.tsx | -- | ST-UI-002 |
+| FR-UI-002 | Dashboard with episode/KPI/safety-net summary | Plan WS-F | app/dashboard/page.tsx | -- | ST-UI-002 |
 | FR-UI-003 | Episode timeline with milestones | Plan WS-F | components/episodes/EpisodeTimelineView.tsx | -- | ST-UI-003 |
-| FR-UI-004 | CSS alerts table | Plan WS-F | app/css/page.tsx | -- | ST-UI-004 |
+| FR-UI-004 | safety-net alerts table | Plan WS-F | app/css/page.tsx | -- | ST-UI-004 |
 | FR-UI-005 | Visual report builder (FHIR Measure-backed) | Plan WS-F | components/reports/ReportBuilder.tsx | -- | ST-UI-005 |
 
 ### 2.16 Fix Analyzer (New — from VRB)

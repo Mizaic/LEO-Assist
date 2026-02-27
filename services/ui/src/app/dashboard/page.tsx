@@ -8,15 +8,15 @@ import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import Skeleton from "@mui/material/Skeleton";
 import Chip from "@mui/material/Chip";
-import { fetchEpisodeSummary, fetchKPIBenchmarks, fetchCSSAlerts } from "@/lib/analyticsApi";
+import { fetchEpisodeSummary, fetchKPIBenchmarks, fetchSafetyNetAlerts } from "@/lib/analyticsApi";
 import { useOrgId } from "@/context/OrgContext";
 import KPICards from "@/components/dashboard/KPICards";
 import EpisodesByTypeChart from "@/components/dashboard/EpisodesByTypeChart";
-import CSSAlertsSummary from "@/components/dashboard/CSSAlertsSummary";
+import SafetyNetAlertsSummary from "@/components/dashboard/SafetyNetAlertsSummary";
 
 export default function DashboardPage() {
   const orgId = useOrgId();
-  const [episodes, setEpisodes] = useState<Array<{ cancer_type: string; status: string; count: number }>>([]);
+  const [episodes, setEpisodes] = useState<Array<{ condition_type: string; status: string; count: number }>>([]);
   const [kpis, setKpis] = useState<any>(null);
   const [alerts, setAlerts] = useState<Array<any>>([]);
   const [loading, setLoading] = useState(true);
@@ -26,14 +26,14 @@ export default function DashboardPage() {
     setLoading(true);
     async function load() {
       try {
-        const [ep, kpi, css] = await Promise.all([
+        const [ep, kpi, safetyNetAlerts] = await Promise.all([
           fetchEpisodeSummary(orgId).catch(() => []),
           fetchKPIBenchmarks(orgId).catch(() => []),
-          fetchCSSAlerts(orgId).catch(() => []),
+          fetchSafetyNetAlerts(orgId).catch(() => []),
         ]);
         setEpisodes(ep);
         setKpis(kpi?.[0] ?? null);
-        setAlerts(css);
+        setAlerts(safetyNetAlerts);
       } catch (e: any) {
         setError(e.message);
       } finally {
@@ -125,7 +125,7 @@ export default function DashboardPage() {
               {loading ? (
                 <Skeleton variant="rectangular" height={200} />
               ) : (
-                <CSSAlertsSummary alerts={alerts.slice(0, 10)} />
+                <SafetyNetAlertsSummary alerts={alerts.slice(0, 10)} />
               )}
             </CardContent>
           </Card>

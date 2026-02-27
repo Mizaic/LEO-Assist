@@ -41,7 +41,7 @@ export const DEFAULT_ELEMENT_SIZES: Record<ElementType, { w: number; h: number }
   tableOfContents: { w: 120, h: 80 },
   pathwayGantt: { w: 140, h: 80 },
   complianceHeatmap: { w: 140, h: 80 },
-  cssMatchProgression: { w: 140, h: 60 },
+  safetyNetMatchProgression: { w: 140, h: 60 },
 };
 
 // ── Formatters ───────────────────────────────────────────────────────────────

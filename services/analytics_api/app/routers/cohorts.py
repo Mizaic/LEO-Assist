@@ -202,7 +202,7 @@ def _build_where_clauses(f: CohortFilter) -> tuple[str, Dict[str, Any]]:
 
     if f.episode_status:
         clauses.append(
-            "EXISTS { MATCH (p)-[:HAS_EPISODE]->(ep:CancerEpisode) "
+            "EXISTS { MATCH (p)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
             "WHERE ep.status IN $ep_statuses }"
         )
         params["ep_statuses"] = f.episode_status

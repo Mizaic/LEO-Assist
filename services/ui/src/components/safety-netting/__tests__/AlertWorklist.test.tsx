@@ -2,9 +2,9 @@ import React from "react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import AlertWorklist from "../AlertWorklist";
-import type { CSSAlert } from "@/lib/analyticsApi";
+import type { SafetyNetAlert } from "@/lib/analyticsApi";
 
-function makeAlert(overrides: Partial<CSSAlert> = {}): CSSAlert {
+function makeAlert(overrides: Partial<SafetyNetAlert> = {}): SafetyNetAlert {
   return {
     id: "A1",
     type: "missing_safety_netting",
@@ -85,7 +85,7 @@ describe("AlertWorklist", () => {
         type: "investigation_gap",
         description: "No investigation after referral",
         patient_id: "P001",
-        cancer_type: "Lung",
+        condition_type: "Lung",
       }),
     ];
     render(
@@ -258,8 +258,8 @@ describe("AlertWorklist flat mode", () => {
     expect(onSelect).toHaveBeenCalledWith(alerts[0]);
   });
 
-  it("shows dashes for missing patient_id and cancer_type in flat mode", () => {
-    const alerts = [makeAlert({ patient_id: undefined, cancer_type: undefined })];
+  it("shows dashes for missing patient_id and condition_type in flat mode", () => {
+    const alerts = [makeAlert({ patient_id: undefined, condition_type: undefined })];
     render(
       <AlertWorklist alerts={alerts} selectedId={null} onSelect={jest.fn()} viewMode="flat" />,
     );

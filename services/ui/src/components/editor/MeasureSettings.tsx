@@ -45,7 +45,7 @@ function axisLabel(key: string): string {
 function getMeasureDefaults(measureId: string): Partial<MeasureElement> {
   switch (measureId) {
     case 'place-of-presentation':
-      return { displayMode: 'heatmap', dataBindings: { xAxisKey: 'cancer_type', seriesKey: 'place_name', yAxisKey: 'episode_count' } };
+      return { displayMode: 'heatmap', dataBindings: { xAxisKey: 'condition_type', seriesKey: 'place_name', yAxisKey: 'episode_count' } };
     case 'pathway-funnel':
       return { displayMode: 'funnel', dataBindings: undefined };
     case 'diagnostic-interval':
@@ -218,16 +218,16 @@ export function CohortFiltersEditor({ filters, onUpdate, cancerTypeOptions, canc
     [filters.ce_status_exclude],
   );
   const cancerTypeValue = useMemo(
-    () => (filters.ce_cancer_type || []).join(', '),
-    [filters.ce_cancer_type],
+    () => (filters.ce_condition_type || []).join(', '),
+    [filters.ce_condition_type],
   );
   const cancerTypeSelectValue = useMemo(() => {
     if (!cancerTypeOptions || cancerTypeOptions.length === 0) return 'custom';
-    const selected = filters.ce_cancer_type || [];
+    const selected = filters.ce_condition_type || [];
     if (selected.length === 0) return 'all';
     if (selected.length === 1 && cancerTypeOptions.includes(selected[0])) return selected[0];
     return 'custom';
-  }, [cancerTypeOptions, filters.ce_cancer_type]);
+  }, [cancerTypeOptions, filters.ce_condition_type]);
 
   const dateFields = [
     'ce_created_at', 'ce_first_encounter_date', 'ce_last_encounter_date',
@@ -262,9 +262,9 @@ export function CohortFiltersEditor({ filters, onUpdate, cancerTypeOptions, canc
         <TextField select size="small" value={cancerTypeSelectValue} disabled={cancerTypeLoading}
           onChange={(e) => {
             const v = e.target.value;
-            if (v === 'all') onUpdate({ ce_cancer_type: undefined });
-            else if (v === 'custom') onUpdate({ ce_cancer_type: filters.ce_cancer_type || [] });
-            else onUpdate({ ce_cancer_type: [v] });
+            if (v === 'all') onUpdate({ ce_condition_type: undefined });
+            else if (v === 'custom') onUpdate({ ce_condition_type: filters.ce_condition_type || [] });
+            else onUpdate({ ce_condition_type: [v] });
           }}>
           <MenuItem value="all">All cancer types</MenuItem>
           {cancerTypeOptions.map((opt) => <MenuItem key={opt} value={opt}>{opt}</MenuItem>)}
@@ -274,7 +274,7 @@ export function CohortFiltersEditor({ filters, onUpdate, cancerTypeOptions, canc
         <TextField size="small" placeholder="e.g. Breast, Lung" value={cancerTypeValue}
           onChange={(e) => {
             const parsed = e.target.value.split(',').map((s) => s.trim()).filter(Boolean);
-            onUpdate({ ce_cancer_type: parsed.length ? parsed : undefined });
+            onUpdate({ ce_condition_type: parsed.length ? parsed : undefined });
           }} />
       )}
 
@@ -282,7 +282,7 @@ export function CohortFiltersEditor({ filters, onUpdate, cancerTypeOptions, canc
         <TextField size="small" placeholder="e.g. Breast, Lung" value={cancerTypeValue}
           onChange={(e) => {
             const parsed = e.target.value.split(',').map((s) => s.trim()).filter(Boolean);
-            onUpdate({ ce_cancer_type: parsed.length ? parsed : undefined });
+            onUpdate({ ce_condition_type: parsed.length ? parsed : undefined });
           }} />
       )}
 
@@ -398,7 +398,7 @@ function useCancerTypes() {
         const result = await evaluateMeasure('diagnosis-cancer-types', { periodStart, periodEnd, subject, orgId, orgIds });
         const rows = extractMeasureReportRows(result as any);
         const options = rows.map((row) => {
-          const value = (row as any).cancer_type || (row as any).cancerType || Object.values(row).find((item) => typeof item === 'string');
+          const value = (row as any).condition_type || (row as any).cancerType || Object.values(row).find((item) => typeof item === 'string');
           return typeof value === 'string' ? value : null;
         }).filter((v): v is string => Boolean(v));
         const unique = Array.from(new Set(options));

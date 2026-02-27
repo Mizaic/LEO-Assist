@@ -86,7 +86,7 @@ def get_encounter_full_text(
     rows = c.run(
         "MATCH (e:Encounter {id: $eid}) "
         "OPTIONAL MATCH (e)<-[:HAS_ENCOUNTER]-(p:Patient) "
-        "OPTIONAL MATCH (e)-[r:IS_PART_OF]->(ep:CancerEpisode) "
+        "OPTIONAL MATCH (e)-[r:IS_PART_OF]->(ep:EpisodeOfCare) "
         "RETURN e.id AS encounter_id, toString(e.date) AS encounter_date, "
         "       coalesce(e.text, e.flags) AS encounter_text, "
         "       toString(p.id) AS patient_id, ep.episode_id AS episode_id, "
@@ -117,26 +117,26 @@ def get_encounter_full_text(
 
 def create_episode(
     patient_id: str,
-    cancer_type: str,
+    condition_type: str,
     referral_encounter_id: str,
     referral_date: str,
     client: Optional[PatientGraphClient] = None,
 ) -> Dict[str, Any]:
     c = client or _default_client()
-    safe_type = cancer_type.upper().replace(" ", "_")[:20]
+    safe_type = condition_type.upper().replace(" ", "_")[:20]
     episode_id = f"EP_{safe_type}_{referral_date[:4]}_{uuid4().hex[:8]}"
 
     rows = c.run(
         "MATCH (p:Patient) WHERE toString(p.id) = $pid "
         "MATCH (e:Encounter {id: $ref_id}) "
-        "CREATE (ep:CancerEpisode { "
-        "    episode_id: $eid, patient_id: $pid, cancer_type: $ct, "
+        "CREATE (ep:EpisodeOfCare { "
+        "    episode_id: $eid, patient_id: $pid, condition_type: $ct, "
         "    referral_date: $rd, first_encounter_date: $rd, "
         "    last_encounter_date: $rd, status: 'building', "
         "    needs_review: false, created_at: datetime(), "
         "    created_by: 'episode_builder' "
         "}) "
-        "CREATE (p)-[:HAS_EPISODE]->(ep) "
+        "CREATE (p)-[:HAS_EPISODE_OF_CARE]->(ep) "
         "MERGE (e)-[r:IS_PART_OF]->(ep) "
         "ON CREATE SET r.milestone_type = 'referral', "
         "              r.is_first_of_type = true, "
@@ -145,7 +145,7 @@ def create_episode(
         "RETURN ep.episode_id AS episode_id, ep.status AS status, "
         "       ep.referral_date AS referral_date",
         pid=patient_id, ref_id=referral_encounter_id, eid=episode_id,
-        ct=cancer_type, rd=referral_date,
+        ct=condition_type, rd=referral_date,
     )
     return rows[0] if rows else {"error": "Failed to create episode"}
 
@@ -159,7 +159,7 @@ def link_encounter_to_episode(
 ) -> Dict[str, Any]:
     c = client or _default_client()
     rows = c.run(
-        "MATCH (ep:CancerEpisode {episode_id: $epid}) "
+        "MATCH (ep:EpisodeOfCare {episode_id: $epid}) "
         "MATCH (e:Encounter {id: $eid}) "
         "MERGE (e)-[r:IS_PART_OF]->(ep) "
         "ON CREATE SET r.milestone_type = $mt, r.agent_reasoning = $reason, "
@@ -214,7 +214,7 @@ def complete_episode(
     params["review_reason"] = review_reason
 
     rows = c.run(
-        f"MATCH (ep:CancerEpisode {{episode_id: $eid}}) "
+        f"MATCH (ep:EpisodeOfCare {{episode_id: $eid}}) "
         f"SET ep.status = $status, ep.agent_confidence = $confidence, "
         f"    ep.agent_reasoning = $reasoning, ep.needs_review = $needs_review, "
         f"    ep.review_reason = $review_reason, "
@@ -233,7 +233,7 @@ def get_episode_place_of_presentation(
 ) -> Optional[str]:
     c = client or _default_client()
     rows = c.run(
-        "MATCH (e:Encounter)-[r:IS_PART_OF]->(ep:CancerEpisode {episode_id: $eid}) "
+        "MATCH (e:Encounter)-[r:IS_PART_OF]->(ep:EpisodeOfCare {episode_id: $eid}) "
         "WHERE r.milestone_type = 'first_presentation' "
         "MATCH (e)-[rc:DOCUMENTS]->(concept) "
         "WHERE rc.domain = 'place_of_presentation' "
@@ -266,7 +266,7 @@ def set_episode_ncda_fields(
     if not sets:
         return
     c.run(
-        f"MATCH (ep:CancerEpisode {{episode_id: $eid}}) SET {', '.join(sets)}",
+        f"MATCH (ep:EpisodeOfCare {{episode_id: $eid}}) SET {', '.join(sets)}",
         **params,
     )
 
@@ -280,7 +280,7 @@ def get_earliest_episode_milestone_dates(
     if milestone_types is None:
         milestone_types = ["treatment", "diagnosis"]
     rows = c.run(
-        "MATCH (e:Encounter)-[r:IS_PART_OF]->(ep:CancerEpisode {episode_id: $eid}) "
+        "MATCH (e:Encounter)-[r:IS_PART_OF]->(ep:EpisodeOfCare {episode_id: $eid}) "
         "WHERE r.milestone_type IN $types "
         "RETURN r.milestone_type AS milestone_type, toString(min(e.date)) AS earliest_date",
         eid=episode_id, types=milestone_types,
@@ -307,8 +307,8 @@ def merge_episodes(
 
     c.run(
         "UNWIND $sids AS sec_id "
-        "MATCH (enc:Encounter)-[r:IS_PART_OF]->(sec:CancerEpisode {episode_id: sec_id}) "
-        "MATCH (primary:CancerEpisode {episode_id: $pid}) "
+        "MATCH (enc:Encounter)-[r:IS_PART_OF]->(sec:EpisodeOfCare {episode_id: sec_id}) "
+        "MATCH (primary:EpisodeOfCare {episode_id: $pid}) "
         "MERGE (enc)-[r2:IS_PART_OF]->(primary) "
         "ON CREATE SET r2.milestone_type = r.milestone_type, "
         "              r2.agent_reasoning = 'Merged from ' + sec_id, "
@@ -319,7 +319,7 @@ def merge_episodes(
 
     c.run(
         "UNWIND $sids AS sec_id "
-        "MATCH (ep:CancerEpisode {episode_id: sec_id}) "
+        "MATCH (ep:EpisodeOfCare {episode_id: sec_id}) "
         "SET ep.status = 'merged', ep.merged_into = $pid, "
         "    ep.merged_at = datetime(), ep.merge_reasoning = $reasoning, "
         "    ep.needs_review = false, ep.status_updated_at = datetime()",
@@ -327,7 +327,7 @@ def merge_episodes(
     )
 
     result = c.run(
-        "MATCH (primary:CancerEpisode {episode_id: $pid}) "
+        "MATCH (primary:EpisodeOfCare {episode_id: $pid}) "
         "OPTIONAL MATCH (enc:Encounter)-[:IS_PART_OF]->(primary) "
         "WITH primary, min(toString(enc.date)) AS earliest, max(toString(enc.date)) AS latest "
         "SET primary.first_encounter_date = earliest, "
@@ -344,9 +344,9 @@ def merge_episodes(
     )
 
     c.run(
-        "MATCH (primary:CancerEpisode {episode_id: $pid}) "
+        "MATCH (primary:EpisodeOfCare {episode_id: $pid}) "
         "UNWIND $sids AS sec_id "
-        "MATCH (sec:CancerEpisode {episode_id: sec_id}) "
+        "MATCH (sec:EpisodeOfCare {episode_id: sec_id}) "
         "WITH primary, min(sec.referral_date) AS earliest_sec "
         "WITH primary, CASE WHEN earliest_sec < primary.referral_date "
         "  THEN earliest_sec ELSE primary.referral_date END AS new_ref "
@@ -366,8 +366,8 @@ def get_episode_summary(
 ) -> Optional[Dict[str, Any]]:
     c = client or _default_client()
     rows = c.run(
-        "MATCH (ep:CancerEpisode {episode_id: $eid}) "
-        "RETURN ep.episode_id AS episode_id, ep.cancer_type AS cancer_type, "
+        "MATCH (ep:EpisodeOfCare {episode_id: $eid}) "
+        "RETURN ep.episode_id AS episode_id, ep.condition_type AS condition_type, "
         "       ep.status AS status, ep.agent_confidence AS confidence, "
         "       ep.agent_reasoning AS reasoning, "
         "       toString(ep.referral_date) AS referral_date",

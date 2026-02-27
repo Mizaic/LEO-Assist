@@ -10,7 +10,7 @@ import Tooltip from "@mui/material/Tooltip";
 import SearchIcon from "@mui/icons-material/Search";
 import PeopleOutlineIcon from "@mui/icons-material/PeopleOutline";
 import ListIcon from "@mui/icons-material/List";
-import type { CSSAlert } from "@/lib/analyticsApi";
+import type { SafetyNetAlert } from "@/lib/analyticsApi";
 
 export type ViewMode = "grouped" | "flat";
 
@@ -31,7 +31,7 @@ const SEVERITY_COLORS: Record<string, "error" | "warning" | "info" | "default"> 
 interface AlertFiltersProps {
   filters: AlertFilterState;
   onChange: (filters: AlertFilterState) => void;
-  alerts: CSSAlert[];
+  alerts: SafetyNetAlert[];
   viewMode: ViewMode;
   onViewModeChange: (mode: ViewMode) => void;
 }

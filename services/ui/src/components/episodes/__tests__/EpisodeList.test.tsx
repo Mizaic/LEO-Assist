@@ -12,7 +12,7 @@ function withRisk(ep: Episode): Episode & { risk: PathwayRisk } {
 
 const breachedEpisode = withRisk({
   episode_id: "EP-BREACH",
-  cancer_type: "Lung",
+  condition_type: "Lung",
   status: "active",
   referral_date: "2026-01-15",
   milestones: [
@@ -22,7 +22,7 @@ const breachedEpisode = withRisk({
 
 const onTrackEpisode = withRisk({
   episode_id: "EP-TRACK",
-  cancer_type: "Breast",
+  condition_type: "Breast",
   status: "active",
   referral_date: "2026-02-24",
   milestones: [

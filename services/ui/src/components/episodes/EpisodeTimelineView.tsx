@@ -275,7 +275,7 @@ export default function EpisodeTimelineView({
     <Box>
       <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1 }}>
         <Typography variant="h6">
-          {episode.cancer_type || "Referral Pathway"}
+          {episode.condition_type || "Referral Pathway"}
         </Typography>
         <Chip
           label={chipCfg.label}
@@ -409,7 +409,7 @@ export default function EpisodeTimelineView({
                   }
                   label={
                     <Typography variant="body2">
-                      {sib.cancer_type} - Referred {sib.referral_date} ({sib.episode_id})
+                      {sib.condition_type} - Referred {sib.referral_date} ({sib.episode_id})
                     </Typography>
                   }
                 />
@@ -677,7 +677,7 @@ function RelatedPathways({ siblings }: { siblings: EpisodeWithRisk[] }) {
               }}
             >
               <Typography variant="caption" sx={{ fontWeight: 600 }}>
-                {sib.cancer_type || "Unknown"}
+                {sib.condition_type || "Unknown"}
               </Typography>
               <Chip
                 label={chipCfg.label}

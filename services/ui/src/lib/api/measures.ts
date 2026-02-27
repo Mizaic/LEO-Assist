@@ -72,7 +72,7 @@ export async function evaluateMeasure(
   }
 
   if (params.cohortFilters) {
-    const arrayKeys = new Set(['ce_status', 'ce_status_exclude', 'ce_cancer_type']);
+    const arrayKeys = new Set(['ce_status', 'ce_status_exclude', 'ce_condition_type']);
     Object.entries(params.cohortFilters).forEach(([key, value]) => {
       if (value == null || value === '' || (Array.isArray(value) && value.length === 0)) return;
       if (arrayKeys.has(key) && Array.isArray(value)) {

@@ -18,13 +18,13 @@ class TestEpisodeSummary:
         from services.analytics_api.app.routers.dashboards import episode_summary
 
         MockPG.return_value.run.return_value = [
-            {"cancer_type": "breast", "status": "confirmed", "count": 15},
-            {"cancer_type": "lung", "status": "pending", "count": 7},
+            {"condition_type": "breast", "status": "confirmed", "count": 15},
+            {"condition_type": "lung", "status": "pending", "count": 7},
         ]
 
         result = episode_summary(org_id=None)
         assert len(result) == 2
-        assert result[0]["cancer_type"] == "breast"
+        assert result[0]["condition_type"] == "breast"
         MockPG.return_value.close.assert_called_once()
 
     @patch("services.analytics_api.app.routers.dashboards.PatientGraphClient")
@@ -32,7 +32,7 @@ class TestEpisodeSummary:
         from services.analytics_api.app.routers.dashboards import episode_summary
 
         MockPG.return_value.run.return_value = [
-            {"cancer_type": "skin", "status": "pending", "count": 3},
+            {"condition_type": "skin", "status": "pending", "count": 3},
         ]
 
         result = episode_summary(org_id="org-123")
@@ -53,7 +53,7 @@ class TestEpisodeSummary:
         episode_summary(org_id=None)
         query = MockPG.return_value.run.call_args[0][0]
         assert "REGISTERED_AT" not in query
-        assert "MATCH (ep:CancerEpisode)" in query
+        assert "MATCH (ep:EpisodeOfCare)" in query
 
 
 class TestEpisodeTimeline:
@@ -65,7 +65,7 @@ class TestEpisodeTimeline:
         MockPG.return_value.run.return_value = [
             {
                 "episode_id": "ep-1",
-                "cancer_type": "breast",
+                "condition_type": "breast",
                 "status": "confirmed",
                 "milestones": [
                     {"encounter_id": "e1", "date": "2024-01-15", "milestone": "referral"},
@@ -78,14 +78,14 @@ class TestEpisodeTimeline:
         assert result[0]["episode_id"] == "ep-1"
 
         query = MockPG.return_value.run.call_args[0][0]
-        assert "HAS_EPISODE" in query
+        assert "HAS_EPISODE_OF_CARE" in query
 
     @patch("services.analytics_api.app.routers.dashboards.PatientGraphClient")
     def test_org_timeline_uses_registered_at(self, MockPG):
         from services.analytics_api.app.routers.dashboards import episode_timeline
 
         MockPG.return_value.run.return_value = [
-            {"episode_id": "ep-1", "patient_id": "P1", "cancer_type": "lung", "status": "pending", "referral_date": "2024-03-01"},
+            {"episode_id": "ep-1", "patient_id": "P1", "condition_type": "lung", "status": "pending", "referral_date": "2024-03-01"},
         ]
 
         result = episode_timeline(patient_id=None, org_id="org-1")
@@ -104,40 +104,40 @@ class TestEpisodeTimeline:
 
         episode_timeline(patient_id=None, org_id=None)
         query = MockPG.return_value.run.call_args[0][0]
-        assert "HAS_EPISODE" in query
+        assert "HAS_EPISODE_OF_CARE" in query
         assert "REGISTERED_AT" not in query
 
 
-class TestCSSAlerts:
+class TestSafetyNetAlerts:
 
     @patch("services.analytics_api.app.routers.dashboards.PatientGraphClient")
     def test_returns_alerts(self, MockPG):
-        from services.analytics_api.app.routers.dashboards import css_alerts
+        from services.analytics_api.app.routers.dashboards import safety_net_alerts
 
         MockPG.return_value.run.return_value = [
             {"episode_id": "ep-1", "type": "missing_safety_netting", "severity": "warning", "description": "No safety-netting found"},
         ]
 
-        result = css_alerts(org_id=None)
+        result = safety_net_alerts(org_id=None)
         assert len(result) == 1
         assert result[0]["type"] == "missing_safety_netting"
         MockPG.return_value.close.assert_called_once()
 
     @patch("services.analytics_api.app.routers.dashboards.PatientGraphClient")
     def test_empty_alerts(self, MockPG):
-        from services.analytics_api.app.routers.dashboards import css_alerts
+        from services.analytics_api.app.routers.dashboards import safety_net_alerts
 
         MockPG.return_value.run.return_value = []
-        result = css_alerts(org_id=None)
+        result = safety_net_alerts(org_id=None)
         assert result == []
 
     @patch("services.analytics_api.app.routers.dashboards.PatientGraphClient")
     def test_org_filter_uses_registered_at(self, MockPG):
-        from services.analytics_api.app.routers.dashboards import css_alerts
+        from services.analytics_api.app.routers.dashboards import safety_net_alerts
 
         MockPG.return_value.run.return_value = []
 
-        css_alerts(org_id="org-x")
+        safety_net_alerts(org_id="org-x")
         query = MockPG.return_value.run.call_args[0][0]
         assert "REGISTERED_AT" in query
         assert "Organization" in query
@@ -145,17 +145,17 @@ class TestCSSAlerts:
 
     @patch("services.analytics_api.app.routers.dashboards.PatientGraphClient")
     def test_no_org_filter_omits_org_match(self, MockPG):
-        from services.analytics_api.app.routers.dashboards import css_alerts
+        from services.analytics_api.app.routers.dashboards import safety_net_alerts
 
         MockPG.return_value.run.return_value = []
 
-        css_alerts(org_id=None)
+        safety_net_alerts(org_id=None)
         query = MockPG.return_value.run.call_args[0][0]
         assert "REGISTERED_AT" not in query
-        assert "HAS_CSS_ALERT" in query
+        assert "HAS_SAFETY_NET_ALERT" in query
 
 
-class TestActionCSSAlert:
+class TestActionSafetyNetAlert:
 
     @patch("services.analytics_api.app.routers.dashboards.PatientGraphClient")
     def test_marks_alert_actioned(self, MockPG):

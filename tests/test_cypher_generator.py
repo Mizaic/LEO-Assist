@@ -7,27 +7,27 @@ import pytest
 from services.fhir_api.app.services.cypher_generator import generate_cypher
 
 
-def test_generate_episodes_by_cancer_type():
+def test_generate_episodes_by_condition_type():
     definition = {
-        "nodeLabel": "CancerEpisode",
+        "nodeLabel": "EpisodeOfCare",
         "filters": [],
-        "groupBy": "cancer_type",
+        "groupBy": "condition_type",
         "scopeType": "gp",
     }
     cypher, params = generate_cypher(definition)
     assert "$practiceOdsCode" in cypher
-    assert "HAS_EPISODE" in cypher
-    assert "CancerEpisode" in cypher
-    assert "cancer_type" in cypher
-    assert "RETURN coalesce(toString(ep.cancer_type)" in cypher
+    assert "HAS_EPISODE_OF_CARE" in cypher
+    assert "EpisodeOfCare" in cypher
+    assert "condition_type" in cypher
+    assert "RETURN coalesce(toString(ep.condition_type)" in cypher
     assert "ORDER BY value DESC" in cypher
 
 
 def test_generate_total_with_filters():
     definition = {
-        "nodeLabel": "CancerEpisode",
+        "nodeLabel": "EpisodeOfCare",
         "filters": [
-            {"property": "cancer_type", "op": "eq", "value": "Lung"},
+            {"property": "condition_type", "op": "eq", "value": "Lung"},
             {"property": "status", "op": "neq", "value": "merged"},
         ],
         "groupBy": None,
@@ -37,8 +37,8 @@ def test_generate_total_with_filters():
     assert "$icbOdsCode" in cypher
     assert "COMMISSIONED_BY" in cypher
     assert "ICB" in cypher
-    assert "f0_cancer_type" in params or "cancer_type" in str(params)
-    assert params.get("f0_cancer_type") == "Lung" or "Lung" in str(params)
+    assert "f0_condition_type" in params or "condition_type" in str(params)
+    assert params.get("f0_condition_type") == "Lung" or "Lung" in str(params)
 
 
 def test_generate_patients_total():
@@ -61,30 +61,30 @@ def test_invalid_node_label_raises():
 
 def test_invalid_scope_type_raises():
     with pytest.raises(ValueError, match="Unknown scopeType"):
-        generate_cypher({"nodeLabel": "CancerEpisode", "scopeType": "invalid"})
+        generate_cypher({"nodeLabel": "EpisodeOfCare", "scopeType": "invalid"})
 
 
 def test_nin_operator_excludes_cancer_types():
     definition = {
-        "nodeLabel": "CancerEpisode",
+        "nodeLabel": "EpisodeOfCare",
         "filters": [
-            {"property": "cancer_type", "op": "nin", "value": ["breast", "prostate", "gynaecological"]},
+            {"property": "condition_type", "op": "nin", "value": ["breast", "prostate", "gynaecological"]},
         ],
         "groupBy": "Patient.gender",
         "scopeType": "gp",
     }
     cypher, params = generate_cypher(definition)
-    assert "NOT (ep.cancer_type IN " in cypher or "NOT (ep.cancer_type IN $" in cypher
-    assert "f0_cancer_type" in params
-    assert params["f0_cancer_type"] == ["breast", "prostate", "gynaecological"]
+    assert "NOT (ep.condition_type IN " in cypher or "NOT (ep.condition_type IN $" in cypher
+    assert "f0_condition_type" in params
+    assert params["f0_condition_type"] == ["breast", "prostate", "gynaecological"]
 
 
 def test_cohort_and_nin_filter_no_duplicate_where():
     """Regression: cohort + nin filter must not produce 'AND WHERE NOT' (invalid Cypher)."""
     definition = {
-        "nodeLabel": "CancerEpisode",
+        "nodeLabel": "EpisodeOfCare",
         "filters": [
-            {"property": "cancer_type", "op": "nin", "value": ["breast", "lung"]},
+            {"property": "condition_type", "op": "nin", "value": ["breast", "lung"]},
         ],
         "groupBy": "Patient.gender",
         "scopeType": "gp",
@@ -92,12 +92,12 @@ def test_cohort_and_nin_filter_no_duplicate_where():
     }
     cypher, params = generate_cypher(definition)
     assert "AND WHERE " not in cypher, "Invalid Cypher: duplicate WHERE clause"
-    assert "ep.status = $_cohort_status" in cypher and "NOT (ep.cancer_type IN $" in cypher
+    assert "ep.status = $_cohort_status" in cypher and "NOT (ep.condition_type IN $" in cypher
 
 
 def test_patient_gender_groupby():
     definition = {
-        "nodeLabel": "CancerEpisode",
+        "nodeLabel": "EpisodeOfCare",
         "filters": [],
         "groupBy": "Patient.gender",
         "scopeType": "gp",
@@ -109,9 +109,9 @@ def test_patient_gender_groupby():
 
 def test_cohort_filter_diagnosed():
     definition = {
-        "nodeLabel": "CancerEpisode",
+        "nodeLabel": "EpisodeOfCare",
         "filters": [],
-        "groupBy": "cancer_type",
+        "groupBy": "condition_type",
         "scopeType": "gp",
         "cohortVariant": "diagnosed",
     }
@@ -122,8 +122,8 @@ def test_cohort_filter_diagnosed():
 
 def test_cohort_filter_all_referred():
     definition = {
-        "nodeLabel": "CancerEpisode",
-        "filters": [{"property": "cancer_type", "op": "eq", "value": "lung"}],
+        "nodeLabel": "EpisodeOfCare",
+        "filters": [{"property": "condition_type", "op": "eq", "value": "lung"}],
         "groupBy": None,
         "scopeType": "gp",
         "cohortVariant": "all_referred",
@@ -131,12 +131,12 @@ def test_cohort_filter_all_referred():
     cypher, params = generate_cypher(definition)
     assert "ep.status IN $_cohort_statuses" in cypher
     assert params.get("_cohort_statuses") == ["confirmed", "excluded", "inconclusive"]
-    assert "ep.cancer_type" in cypher
+    assert "ep.condition_type" in cypher
 
 
 def test_age_band_at_diagnosis_groupby():
     definition = {
-        "nodeLabel": "CancerEpisode",
+        "nodeLabel": "EpisodeOfCare",
         "filters": [],
         "groupBy": "Patient.age_band_at_diagnosis",
         "scopeType": "gp",
@@ -150,7 +150,7 @@ def test_age_band_at_diagnosis_groupby():
 
 def test_median_aggregation():
     definition = {
-        "nodeLabel": "CancerEpisode",
+        "nodeLabel": "EpisodeOfCare",
         "filters": [],
         "groupBy": None,
         "scopeType": "gp",
@@ -168,7 +168,7 @@ def test_median_aggregation():
 
 def test_median_age_at_diagnosis():
     definition = {
-        "nodeLabel": "CancerEpisode",
+        "nodeLabel": "EpisodeOfCare",
         "filters": [],
         "groupBy": None,
         "scopeType": "gp",
@@ -184,7 +184,7 @@ def test_median_age_at_diagnosis():
 
 def test_percentage_aggregation():
     definition = {
-        "nodeLabel": "CancerEpisode",
+        "nodeLabel": "EpisodeOfCare",
         "filters": [],
         "groupBy": None,
         "scopeType": "gp",

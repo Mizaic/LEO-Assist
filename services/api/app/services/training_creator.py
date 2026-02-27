@@ -1,4 +1,9 @@
-"""Training data creator pipeline service for HITL MVP."""
+"""Training data creator pipeline service for HITL MVP.
+
+.. deprecated::
+    Superseded by the V3 consensus pipeline (services/api/app/services/v3/).
+    Retained only for backward compatibility with pilot scripts.
+"""
 
 from __future__ import annotations
 

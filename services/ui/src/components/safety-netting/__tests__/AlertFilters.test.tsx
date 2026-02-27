@@ -3,9 +3,9 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import AlertFilters from "../AlertFilters";
 import type { AlertFilterState } from "../AlertFilters";
-import type { CSSAlert } from "@/lib/analyticsApi";
+import type { SafetyNetAlert } from "@/lib/analyticsApi";
 
-function makeAlert(overrides: Partial<CSSAlert> = {}): CSSAlert {
+function makeAlert(overrides: Partial<SafetyNetAlert> = {}): SafetyNetAlert {
   return {
     id: "A1",
     type: "missing_safety_netting",
@@ -25,7 +25,7 @@ const BASE_FILTERS: AlertFilterState = {
 const defaultProps = {
   filters: BASE_FILTERS,
   onChange: jest.fn(),
-  alerts: [] as CSSAlert[],
+  alerts: [] as SafetyNetAlert[],
   viewMode: "grouped" as const,
   onViewModeChange: jest.fn(),
 };

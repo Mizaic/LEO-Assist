@@ -473,104 +473,149 @@ class V3PipelineService:
         all_terms = [term for terms in extracted.values() for term in terms]
         all_texts = [t.lookup_term for t in all_terms]
         expected_tags = {t.lookup_term: t.semantic_tag for t in all_terms}
+        sentences_payload: list[dict[str, Any]] = []
+        links: list[SemanticLinkPayload] = []
+        disambig_usage = LLMUsage.zero()
+        term_counter = 0
+
         with self.coding_graph.session() as coding_session:
             candidates_by_text = self.resolver.resolve_candidates(
                 all_texts, neo4j_session=coding_session,
                 expected_tags=expected_tags,
             )
 
-        sentences_payload: list[dict[str, Any]] = []
-        links: list[SemanticLinkPayload] = []
-        disambig_usage = LLMUsage.zero()
-        term_counter = 0
+            for sentence in sentence_chunks:
+                sentence_terms = extracted.get(sentence.sentence_id, [])
+                payload_terms: list[dict[str, Any]] = []
+                sentence_cursor = 0
+                for term in sentence_terms:
+                    start_in_sentence = sentence.text.lower().find(term.text.lower(), sentence_cursor)
+                    if start_in_sentence < 0:
+                        continue
+                    end_in_sentence = start_in_sentence + len(term.text)
+                    sentence_cursor = end_in_sentence
 
-        for sentence in sentence_chunks:
-            sentence_terms = extracted.get(sentence.sentence_id, [])
-            payload_terms: list[dict[str, Any]] = []
-            sentence_cursor = 0
-            for term in sentence_terms:
-                start_in_sentence = sentence.text.lower().find(term.text.lower(), sentence_cursor)
-                if start_in_sentence < 0:
-                    continue
-                end_in_sentence = start_in_sentence + len(term.text)
-                sentence_cursor = end_in_sentence
-
-                absolute_start = sentence.start + start_in_sentence
-                absolute_end = sentence.start + end_in_sentence
-                candidates = candidates_by_text.get(term.lookup_term, [])
-                best, call_usage = self.disambiguator.choose_best(
-                    encounter_text=deidentified_text,
-                    term_text=term.text,
-                    candidates=candidates,
-                )
-                disambig_usage += call_usage
-                coding = {
-                    "snomed_concept_id": best.snomed_concept_id if best else None,
-                    "read_code": best.read_code if best else None,
-                    "snomed_term": best.snomed_term if best else None,
-                    "score": best.score if best else 0.0,
-                    "source": best.source if best else "neo4j_hybrid",
-                }
-                payload_terms.append(
-                    {
-                        "term_id": f"{sentence.sentence_id}_t{term_counter}",
-                        "text": term.text,
-                        "span_start": absolute_start,
-                        "span_end": absolute_end,
-                        "context": term.context,
-                        "coding": coding,
-                        "evidence_text": sentence.text,
-                        "extraction_method": "v3_llm_batch",
-                        "extraction_confidence": coding["score"],
-                        "semantic_tag": term.semantic_tag,
-                        "modifiers": term.modifiers,
-                    }
-                )
-                term_counter += 1
-
-                if best and best.snomed_concept_id:
-                    links.append(
-                        SemanticLinkPayload(
-                            encounter_id=str(sentence.sentence_id),  # replaced in persist
-                            semantic_tag=term.semantic_tag,
-                            concept_id=best.snomed_concept_id,
-                            term=best.snomed_term,
-                            read_code=best.read_code,
-                            evidence=term.text,
-                            confidence=float(best.score),
-                            domain="clinical",
-                            context=term.context,
-                            modifiers=term.modifiers,
-                            source=best.source,
-                        )
+                    absolute_start = sentence.start + start_in_sentence
+                    absolute_end = sentence.start + end_in_sentence
+                    candidates = candidates_by_text.get(term.lookup_term, [])
+                    best, call_usage = self.disambiguator.choose_best(
+                        encounter_text=deidentified_text,
+                        term_text=term.text,
+                        candidates=candidates,
                     )
-            payload = {
-                "sentence_id": sentence.sentence_id,
-                "start": sentence.start,
-                "end": sentence.end,
-                "text": sentence.text,
-                "section": None,
-                "terms": payload_terms,
-            }
-            self._append_inline_read_codes(payload, sentence)
-            sentences_payload.append(payload)
+                    disambig_usage += call_usage
+                    coding = {
+                        "snomed_concept_id": best.snomed_concept_id if best else None,
+                        "read_code": best.read_code if best else None,
+                        "snomed_term": best.snomed_term if best else None,
+                        "score": best.score if best else 0.0,
+                        "source": best.source if best else "neo4j_hybrid",
+                    }
+                    payload_terms.append(
+                        {
+                            "term_id": f"{sentence.sentence_id}_t{term_counter}",
+                            "text": term.text,
+                            "span_start": absolute_start,
+                            "span_end": absolute_end,
+                            "context": term.context,
+                            "coding": coding,
+                            "evidence_text": sentence.text,
+                            "extraction_method": "v3_llm_batch",
+                            "extraction_confidence": coding["score"],
+                            "semantic_tag": term.semantic_tag,
+                            "modifiers": term.modifiers,
+                        }
+                    )
+                    term_counter += 1
+
+                    if best and best.snomed_concept_id:
+                        links.append(
+                            SemanticLinkPayload(
+                                encounter_id=str(sentence.sentence_id),  # replaced in persist
+                                semantic_tag=term.semantic_tag,
+                                concept_id=best.snomed_concept_id,
+                                term=best.snomed_term,
+                                read_code=best.read_code,
+                                evidence=term.text,
+                                confidence=float(best.score),
+                                domain="clinical",
+                                context=term.context,
+                                modifiers=term.modifiers,
+                                source=best.source,
+                            )
+                        )
+                payload = {
+                    "sentence_id": sentence.sentence_id,
+                    "start": sentence.start,
+                    "end": sentence.end,
+                    "text": sentence.text,
+                    "section": None,
+                    "terms": payload_terms,
+                }
+                self._append_inline_read_codes(payload, sentence, coding_session)
+                sentences_payload.append(payload)
         return sentences_payload, links, disambig_usage
 
-    def _append_inline_read_codes(self, sentence_payload: dict[str, Any], sentence: SentenceChunk) -> None:
-        seen = {str(t.get("text", "")).lower() for t in sentence_payload["terms"]}
-        next_idx = len(sentence_payload["terms"])
-        for idx, match in enumerate(READ_CODE_RE.finditer(sentence.text), start=next_idx):
+    def _append_inline_read_codes(
+        self,
+        sentence_payload: dict[str, Any],
+        sentence: SentenceChunk,
+        coding_session,
+    ) -> None:
+        """Attach inline read codes (e.g. (XaMeF)) to the preceding clinical span.
+
+        Inline read codes in parentheses typically code the preceding phrase.
+        Instead of creating a separate entity, we merge the read_code into the
+        nearest preceding term's coding.
+        """
+        terms = sentence_payload["terms"]
+        for match in READ_CODE_RE.finditer(sentence.text):
             read_code = match.group(1)
+            read_code_abs_start = sentence.start + match.start()
+
+            # Find the preceding term whose span ends before (or near) this read code.
+            # Allow up to 10 chars gap for " (" between phrase and parenthetical code.
+            max_gap = 10
+            preceding: dict[str, Any] | None = None
+            best_span_end = -1
+            for t in terms:
+                span_end = int(t.get("span_end", 0))
+                if span_end <= read_code_abs_start + max_gap and span_end > best_span_end:
+                    best_span_end = span_end
+                    preceding = t
+
+            if preceding is not None:
+                # Attach read_code to the preceding span's coding
+                coding = preceding.setdefault("coding", {})
+                coding["read_code"] = read_code
+                if coding.get("source") != "inline_read_code":
+                    coding["source"] = (
+                        "inline_read_code" if not coding.get("snomed_concept_id") else "neo4j_hybrid+inline_read_code"
+                    )
+                # Resolve read code to SNOMED if term has no concept yet
+                if not coding.get("snomed_concept_id"):
+                    resolved = self.resolver.resolve_read_code(
+                        read_code, neo4j_session=coding_session,
+                    )
+                    if resolved:
+                        coding["snomed_concept_id"] = resolved.snomed_concept_id
+                        coding["snomed_term"] = resolved.snomed_term
+                        coding["score"] = max(float(coding.get("score", 0)), resolved.score)
+                continue
+
+            # No preceding term: create a standalone term only if truly orphaned
+            # (e.g. sentence starts with (XaMeF)). Avoid creating duplicates.
+            seen = {str(t.get("text", "")).lower() for t in terms}
             key = f"read:{read_code.lower()}"
             if key in seen:
                 continue
-            seen.add(key)
-            sentence_payload["terms"].append(
+            next_idx = len(terms)
+            terms.append(
                 {
-                    "term_id": f"{sentence.sentence_id}_t{idx}",
+                    "term_id": f"{sentence.sentence_id}_t{next_idx}",
                     "text": read_code,
-                    "span_start": sentence.start + match.start(1),
-                    "span_end": sentence.start + match.end(1),
+                    "span_start": read_code_abs_start,
+                    "span_end": read_code_abs_end,
                     "context": {
                         "negated": False,
                         "uncertain": False,
