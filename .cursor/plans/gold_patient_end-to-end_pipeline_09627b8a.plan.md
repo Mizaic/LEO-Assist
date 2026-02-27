@@ -13,16 +13,16 @@ todos:
     status: completed
   - id: m2-llm-factory
     content: "M2c: Create libs/llm_client/factory.py — sync .converse() wrapping both boto3 Bedrock and Azure OpenAI. Switch V3 extractor + disambiguator to use it. Commit."
-    status: in_progress
+    status: completed
   - id: m3-pre-classify
     content: "M3a: Add encounter pre-classification step — classify encounters as admin/document/clinical + domain tags via 2-model consensus. Build patient encounter index."
-    status: pending
+    status: completed
   - id: m3-consensus-extract
     content: "M3b: Multi-model extraction (Haiku + Sonnet + GPT-5-mini) with post-resolution SNOMED-level entity alignment and composite confidence scoring."
-    status: pending
+    status: completed
   - id: m3-auto-approve
     content: "M3c: Wire up auto-approve in _persist() — write DOCUMENTS for high-confidence candidates, create Approval with reviewer=consensus_auto. Add tests."
-    status: pending
+    status: in_progress
   - id: m3-validate-5
     content: "M3d: Run on 5 patients, validate confidence calibration, tune thresholds. Commit."
     status: pending

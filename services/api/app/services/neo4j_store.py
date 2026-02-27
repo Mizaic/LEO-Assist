@@ -73,15 +73,20 @@ def upsert_candidate(candidate: dict[str, Any], session) -> None:
         )
 
 
-def create_review_task(candidate_id: str, session, priority: int = 50, warning_count: int = 0) -> str:
-    # Keep one mutable task per candidate (candidate is now per encounter).
+def create_review_task(
+    candidate_id: str,
+    session,
+    priority: int = 50,
+    warning_count: int = 0,
+    status: str = "pending",
+) -> str:
     task_id = str(uuid.uuid5(uuid.NAMESPACE_URL, f"review-task:{candidate_id}"))
     session.run(
         CREATE_REVIEW_TASK,
         candidate_id=candidate_id,
         task_id=task_id,
         priority=priority,
-        status="pending",
+        status=status,
         assigned_reviewer=None,
         warning_count=warning_count,
     )

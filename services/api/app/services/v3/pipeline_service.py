@@ -13,12 +13,12 @@ from typing import Any, Callable
 
 from app.config import get_settings
 from app.db.neo4j_client import run_with_retry
-from app.services.neo4j_store import create_review_task, upsert_candidate
+from app.services.neo4j_store import append_approval, create_review_task, upsert_candidate
 from app.services.v3.coding_resolver import CodingResolver
 from app.services.v3.disambiguator import CodingDisambiguator
 from app.services.v3.llm_extractor import ExtractionError, ExtractedTerm, LLMExtractor
 from app.services.v3.llm_usage import LLMCostConfig, LLMUsage
-from app.services.v3.patient_graph_writer import SemanticLinkPayload
+from app.services.v3.patient_graph_writer import PatientGraphWriter, SemanticLinkPayload
 from app.services.v3.post_processing_rules import apply_rules as apply_post_rules
 from app.services.v3.sentence_splitter import SentenceChunk, SentenceSplitter, deduplicate_lines
 
@@ -689,22 +689,66 @@ class V3PipelineService:
             self._emit(progress_hook, {**base, "type": "persist_skipped"})
             return
         self._emit(progress_hook, {**base, "type": "persist_started"})
+
+        is_auto_approved = (
+            candidate.get("approval_status") == "approved"
+            and not hard_fail
+        )
+
         with self.patient_graph.session() as patient_session:
             upsert_candidate(candidate, patient_session)
-            if hard_fail:
-                priority = 150
-            elif candidate.get("warning_reasons"):
-                priority = 100
-            else:
-                priority = 50
-            create_review_task(
-                candidate_id=candidate["candidate_id"],
-                session=patient_session,
-                priority=priority,
-                warning_count=len(candidate.get("warning_reasons", [])),
-            )
 
-        self._emit(progress_hook, {**base, "type": "persist_completed", "queued": True})
+            if is_auto_approved:
+                graph_writer = PatientGraphWriter()
+                for link in semantic_links:
+                    try:
+                        graph_writer.upsert_documents_link(link, session=patient_session)
+                    except Exception:
+                        logger.warning(
+                            "Failed to write DOCUMENTS for %s concept %s",
+                            candidate["candidate_id"],
+                            link.concept_id,
+                            exc_info=True,
+                        )
+                task_id = f"auto_{candidate['candidate_id']}"
+                create_review_task(
+                    candidate_id=candidate["candidate_id"],
+                    session=patient_session,
+                    priority=0,
+                    warning_count=0,
+                    status="approved",
+                )
+                append_approval(
+                    candidate_id=candidate["candidate_id"],
+                    task_id=task_id,
+                    action="approve",
+                    reviewer="consensus_auto",
+                    reason=f"consensus_confidence={candidate.get('consensus_confidence', 0):.2f}",
+                    status_after="approved",
+                    before_hash=candidate.get("deidentified_hash", ""),
+                    after_hash=candidate.get("deidentified_hash", ""),
+                    session=patient_session,
+                )
+            else:
+                if hard_fail:
+                    priority = 150
+                elif candidate.get("warning_reasons"):
+                    priority = 100
+                else:
+                    priority = 50
+                create_review_task(
+                    candidate_id=candidate["candidate_id"],
+                    session=patient_session,
+                    priority=priority,
+                    warning_count=len(candidate.get("warning_reasons", [])),
+                )
+
+        self._emit(progress_hook, {
+            **base,
+            "type": "persist_completed",
+            "queued": not is_auto_approved,
+            "auto_approved": is_auto_approved,
+        })
 
     def _fetch_encounters(self, patient_id: str, max_enc: int | None) -> list[dict[str, Any]]:
         with self.patient_graph.session() as session:
