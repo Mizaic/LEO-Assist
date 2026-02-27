@@ -53,6 +53,7 @@ async def handle_coding_job(msg: Message) -> None:
         if mode == "consensus":
             await _run_consensus(
                 patient_id=patient_id,
+                run_id=run_id,
                 pipeline=pipeline,
                 dry_run=dry_run,
                 progress_hook=progress_hook,
@@ -91,6 +92,7 @@ async def handle_coding_job(msg: Message) -> None:
 
 async def _run_consensus(
     patient_id: str,
+    run_id: str,
     pipeline: CodingPipeline,
     dry_run: bool,
     progress_hook,
@@ -105,6 +107,7 @@ async def _run_consensus(
     """
     from services.api.app.services.v3.encounter_classifier import (
         build_patient_encounter_index,
+        persist_patient_encounter_classification,
     )
 
     encounters = await asyncio.to_thread(
@@ -112,14 +115,22 @@ async def _run_consensus(
     )
 
     index = await asyncio.to_thread(
-        build_patient_encounter_index, patient_id, encounters
+        build_patient_encounter_index, patient_id, encounters, run_id
+    )
+    persisted = await asyncio.to_thread(
+        persist_patient_encounter_classification,
+        pipeline.patient_client,
+        patient_id,
+        run_id,
+        index,
     )
 
-    clinical_ids = {
+    clinical_ids = [
         enc_id
         for enc_id, result in index.classifications.items()
         if result.content_type == "clinical"
-    }
+    ]
+    skipped_non_clinical = len(encounters) - len(clinical_ids)
 
     logger.info(
         "Patient %s consensus: %d/%d clinical encounters",
@@ -133,13 +144,35 @@ async def _run_consensus(
         "admin": index.admin_count,
         "document_transfer": index.document_transfer_count,
         "clinical": len(clinical_ids),
+        "skipped_non_clinical": skipped_non_clinical,
+        "classification_persisted": persisted,
     })
 
-    await pipeline.run_unprocessed(
-        patient_ids=[patient_id],
-        dry_run=dry_run,
-        progress_hook=progress_hook,
-    )
+    if not clinical_ids:
+        progress_hook({
+            "type": "consensus_extraction_done",
+            "patient_id": patient_id,
+            "clinical_processed": 0,
+            "skipped_non_clinical": skipped_non_clinical,
+        })
+        return
+
+    processed = 0
+    for enc_id in clinical_ids:
+        await pipeline.run_single_encounter(
+            patient_id=patient_id,
+            encounter_id=enc_id,
+            dry_run=dry_run,
+            progress_hook=progress_hook,
+        )
+        processed += 1
+
+    progress_hook({
+        "type": "consensus_extraction_done",
+        "patient_id": patient_id,
+        "clinical_processed": processed,
+        "skipped_non_clinical": skipped_non_clinical,
+    })
 
 
 def _fetch_encounters_sync(patient_client, patient_id: str) -> list[dict]:

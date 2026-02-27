@@ -20,7 +20,7 @@ import {
   formatInsight,
   formatQualityCheck,
   formatRecommendation,
-} from './interpretationParsing';
+} from '@/components/editor/elements/interpretationParsing';
 
 const containerSx = {
   width: '100%',
@@ -123,7 +123,7 @@ export function InterpretationElement({ element, pageId, readOnly = false }: Int
         )}
         {summary && format === 'bullets' && (
           <>
-            {insights.slice(0, 4).map((item, idx) => (
+            {insights.slice(0, 4).map((item: string | Record<string, unknown>, idx: number) => (
               <Typography key={`${element.id}-insight-${idx}`} sx={{ fontSize: '0.625rem', color: 'text.secondary' }}>
                 • {formatInsight(item)}
               </Typography>
@@ -218,17 +218,17 @@ function FullFormatContent({ elementId, summary, insights, qualityChecks, recomm
   return (
     <>
       <Typography sx={{ fontSize: '0.75rem', color: 'text.primary' }}>{summary}</Typography>
-      {insights.slice(0, 3).map((item, idx) => (
+      {insights.slice(0, 3).map((item: string | Record<string, unknown>, idx: number) => (
         <Typography key={`${elementId}-insight-${idx}`} sx={{ fontSize: '0.625rem', color: 'text.secondary' }}>
           • {formatInsight(item)}
         </Typography>
       ))}
-      {qualityChecks.slice(0, 2).map((item, idx) => (
+      {qualityChecks.slice(0, 2).map((item: string | Record<string, unknown>, idx: number) => (
         <Typography key={`${elementId}-quality-${idx}`} sx={{ fontSize: '0.625rem', color: 'text.secondary' }}>
           • {formatQualityCheck(item)}
         </Typography>
       ))}
-      {recommended.slice(0, 2).map((item, idx) => (
+      {recommended.slice(0, 2).map((item: string | Record<string, unknown>, idx: number) => (
         <Typography key={`${elementId}-rec-${idx}`} sx={{ fontSize: '0.625rem', color: 'text.secondary' }}>
           • {formatRecommendation(item)}
         </Typography>

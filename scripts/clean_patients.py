@@ -23,8 +23,12 @@ from dotenv import load_dotenv
 load_dotenv(ROOT / "secrets" / ".env")
 
 from libs.cypher.cleanup_queries import (
+    RESET_PATIENT_ALERTS,
     RESET_PATIENT_DOCUMENTS,
     RESET_PATIENT_DIRECT_SEMANTIC,
+    RESET_PATIENT_EPISODES,
+    RESET_PATIENT_LEGACY_ALERTS,
+    RESET_PATIENT_LEGACY_EPISODES,
     RESET_PATIENT_REVIEW_QUEUE,
 )
 
@@ -33,21 +37,6 @@ logging.basicConfig(
     format="%(asctime)s %(levelname)-8s %(name)s: %(message)s",
 )
 logger = logging.getLogger("clean_patients")
-
-
-RESET_PATIENT_EPISODES = """
-MATCH (p:Patient)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare)
-WHERE toString(p.id) = $patient_id
-DETACH DELETE ep
-RETURN count(ep) AS deleted
-"""
-
-RESET_PATIENT_ALERTS = """
-MATCH (p:Patient)-[:HAS_SAFETY_NET_ALERT]->(a:SafetyNetAlert)
-WHERE toString(p.id) = $patient_id
-DETACH DELETE a
-RETURN count(a) AS deleted
-"""
 
 
 def clean_patient(session, patient_id: str) -> dict[str, int]:
@@ -63,11 +52,17 @@ def clean_patient(session, patient_id: str) -> dict[str, int]:
     r = session.run(RESET_PATIENT_DIRECT_SEMANTIC, patient_id=patient_id).single()
     totals["direct_semantic"] = r["direct_deleted"] if r else 0
 
+    r = session.run(RESET_PATIENT_ALERTS, patient_id=patient_id).single()
+    totals["alerts"] = r["deleted"] if r else 0
+
     r = session.run(RESET_PATIENT_EPISODES, patient_id=patient_id).single()
     totals["episodes"] = r["deleted"] if r else 0
 
-    r = session.run(RESET_PATIENT_ALERTS, patient_id=patient_id).single()
-    totals["alerts"] = r["deleted"] if r else 0
+    r = session.run(RESET_PATIENT_LEGACY_ALERTS, patient_id=patient_id).single()
+    totals["legacy_alerts"] = r["deleted"] if r else 0
+
+    r = session.run(RESET_PATIENT_LEGACY_EPISODES, patient_id=patient_id).single()
+    totals["legacy_episodes"] = r["deleted"] if r else 0
 
     return totals
 

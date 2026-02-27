@@ -11,6 +11,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+from datetime import datetime, timezone
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -39,6 +40,7 @@ class ClassificationResult:
 class PatientEncounterIndex:
     """Summary of classified encounters for a patient."""
     patient_id: str
+    run_id: str = ""
     total: int = 0
     admin_count: int = 0
     document_transfer_count: int = 0
@@ -127,6 +129,7 @@ def _call_model(
 def build_patient_encounter_index(
     patient_id: str,
     encounters: list[dict[str, Any]],
+    run_id: str = "",
 ) -> PatientEncounterIndex:
     """Classify all encounters for a patient and build an index.
 
@@ -137,7 +140,7 @@ def build_patient_encounter_index(
     Returns:
         PatientEncounterIndex with per-encounter classifications and summary stats.
     """
-    index = PatientEncounterIndex(patient_id=patient_id, total=len(encounters))
+    index = PatientEncounterIndex(patient_id=patient_id, run_id=run_id, total=len(encounters))
 
     for enc in encounters:
         enc_id = str(enc.get("encounter_id", enc.get("id", "")))
@@ -169,3 +172,85 @@ def build_patient_encounter_index(
         index.document_transfer_count, index.clinical_count,
     )
     return index
+
+
+def persist_patient_encounter_classification(
+    patient_client: Any,
+    patient_id: str,
+    run_id: str,
+    index: PatientEncounterIndex,
+) -> dict[str, Any]:
+    """Persist encounter-level classification fields and patient-level index node."""
+    updated_at = datetime.now(timezone.utc).isoformat()
+    rows: list[dict[str, Any]] = []
+    for encounter_id, result in index.classifications.items():
+        rows.append(
+            {
+                "encounter_id": str(encounter_id),
+                "classification_content_type": result.content_type,
+                "classification_domains": [str(v) for v in result.domains],
+                "classification_encounter_purpose": [str(v) for v in result.encounter_purpose],
+                "classification_expected_semantic_tags": [
+                    str(v) for v in result.expected_semantic_tags
+                ],
+                "classification_clinical_significance": str(result.clinical_significance),
+                "classification_consensus_agreement": bool(result.consensus_agreement),
+                "classification_model_a_type": str(result.model_a_type),
+                "classification_model_b_type": str(result.model_b_type),
+                "classification_run_id": str(run_id),
+                "classification_updated_at": updated_at,
+            }
+        )
+
+    with patient_client.session() as session:
+        session.run(
+            "MATCH (p:Patient) "
+            "WHERE toString(p.id) = $pid "
+            "UNWIND $rows AS row "
+            "MATCH (p)-[:HAS_ENCOUNTER]->(e:Encounter) "
+            "WHERE toString(e.id) = row.encounter_id "
+            "SET e.classification_content_type = row.classification_content_type, "
+            "    e.classification_domains = row.classification_domains, "
+            "    e.classification_encounter_purpose = row.classification_encounter_purpose, "
+            "    e.classification_expected_semantic_tags = row.classification_expected_semantic_tags, "
+            "    e.classification_clinical_significance = row.classification_clinical_significance, "
+            "    e.classification_consensus_agreement = row.classification_consensus_agreement, "
+            "    e.classification_model_a_type = row.classification_model_a_type, "
+            "    e.classification_model_b_type = row.classification_model_b_type, "
+            "    e.classification_run_id = row.classification_run_id, "
+            "    e.classification_updated_at = datetime(row.classification_updated_at)",
+            pid=patient_id,
+            rows=rows,
+        )
+
+        session.run(
+            "MATCH (p:Patient) "
+            "WHERE toString(p.id) = $pid "
+            "MERGE (idx:PatientEncounterIndex {patient_id: $pid, run_id: $run_id}) "
+            "SET idx.total = $total, "
+            "    idx.admin_count = $admin_count, "
+            "    idx.document_transfer_count = $document_transfer_count, "
+            "    idx.clinical_count = $clinical_count, "
+            "    idx.domain_summary_json = $domain_summary_json, "
+            "    idx.classified_count = $classified_count, "
+            "    idx.updated_at = datetime(), "
+            "    idx.created_at = coalesce(idx.created_at, datetime()) "
+            "MERGE (p)-[:HAS_ENCOUNTER_INDEX]->(idx)",
+            pid=patient_id,
+            run_id=run_id,
+            total=index.total,
+            admin_count=index.admin_count,
+            document_transfer_count=index.document_transfer_count,
+            clinical_count=index.clinical_count,
+            domain_summary_json=json.dumps(index.domain_summary, sort_keys=True),
+            classified_count=len(index.classifications),
+        )
+
+    return {
+        "patient_id": patient_id,
+        "run_id": run_id,
+        "total": index.total,
+        "classified_count": len(index.classifications),
+        "clinical_count": index.clinical_count,
+        "non_clinical_count": index.admin_count + index.document_transfer_count,
+    }

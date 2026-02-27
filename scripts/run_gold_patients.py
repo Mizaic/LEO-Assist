@@ -17,6 +17,7 @@ import logging
 import os
 import sys
 import time
+import uuid
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -80,14 +81,19 @@ def main():
     else:
         logger.info("Step 1: Skipped (--skip-clean)")
 
-    # Step 2: Run pipeline
-    logger.info("Step 2: Running V3 pipeline...")
+    # Step 2: Run classification + clinical-only extraction
+    logger.info("Step 2: Running encounter classification + V3 extraction...")
     from app.db.neo4j_client import PatientGraphClient, CodingGraphClient
+    from app.services.v3.encounter_classifier import (
+        build_patient_encounter_index,
+        persist_patient_encounter_classification,
+    )
     from app.services.v3.pipeline_service import V3PipelineService
 
     patient_client = PatientGraphClient()
     patient_client.initialize_schema()
     coding_client = CodingGraphClient()
+    coding_client.initialize_schema()
 
     service = V3PipelineService(
         patient_client=patient_client,
@@ -99,31 +105,91 @@ def main():
     def progress_hook(event):
         events.append(event)
         etype = event.get("type", "")
-        if etype in ("patient_started", "run_completed", "pipeline_error"):
+        if etype in ("patient_started", "run_completed", "pipeline_error", "persist_completed"):
             logger.info("  %s", json.dumps(event, default=str))
 
+    orchestration_run_id = str(uuid.uuid4())
+    extraction_run_ids: list[str] = []
+    total_encounters = 0
+    total_classified = 0
+    clinical_total = 0
+    non_clinical_total = 0
+    processed_encounters = 0
+    queued_for_review = 0
+    rejected_hard_fail = 0
+    warnings_only = 0
+
     t0 = time.time()
-    run_id, stats = service.run(
-        patient_ids=patient_ids,
-        dry_run=args.dry_run,
-        workers=args.workers,
-        progress_hook=progress_hook,
-    )
+    for patient_id in patient_ids:
+        encounters = patient_client.run(
+            "MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter) "
+            "WHERE toString(p.id) = $pid "
+            "RETURN e.id AS encounter_id, toString(e.date) AS date, e.text AS text "
+            "ORDER BY e.date",
+            pid=patient_id,
+        )
+        total_encounters += len(encounters)
+        index = build_patient_encounter_index(patient_id, encounters, orchestration_run_id)
+        total_classified += len(index.classifications)
+
+        if not args.dry_run:
+            persist_patient_encounter_classification(
+                patient_client=patient_client,
+                patient_id=patient_id,
+                run_id=orchestration_run_id,
+                index=index,
+            )
+
+        clinical_ids = [
+            encounter_id
+            for encounter_id, result in index.classifications.items()
+            if result.content_type == "clinical"
+        ]
+        clinical_total += len(clinical_ids)
+        non_clinical_total += (len(encounters) - len(clinical_ids))
+
+        logger.info(
+            "  Patient %s classified: total=%d admin=%d doc=%d clinical=%d skipped_non_clinical=%d",
+            patient_id,
+            len(encounters),
+            index.admin_count,
+            index.document_transfer_count,
+            len(clinical_ids),
+            len(encounters) - len(clinical_ids),
+        )
+
+        for encounter_id in clinical_ids:
+            encounter_run_id, encounter_stats = service.run_single_encounter(
+                patient_id=patient_id,
+                encounter_id=str(encounter_id),
+                dry_run=args.dry_run,
+                progress_hook=progress_hook,
+            )
+            extraction_run_ids.append(encounter_run_id)
+            processed_encounters += encounter_stats.processed_encounters
+            queued_for_review += encounter_stats.queued_for_review
+            rejected_hard_fail += encounter_stats.rejected_hard_fail
+            warnings_only += encounter_stats.warnings_only
+
     elapsed = time.time() - t0
 
     # Step 3: Report
-    snap = stats.snapshot()
+    unique_extraction_run_ids = sorted(set(extraction_run_ids))
     logger.info("=" * 60)
     logger.info("GOLD PIPELINE COMPLETE")
     logger.info("=" * 60)
-    logger.info("  Run ID:               %s", run_id)
+    logger.info("  Orchestration run ID: %s", orchestration_run_id)
+    logger.info("  Extraction run IDs:   %d unique", len(unique_extraction_run_ids))
     logger.info("  Patients:             %d", len(patient_ids))
-    logger.info("  Processed encounters: %d", stats.processed_encounters)
-    logger.info("  Queued for review:    %d", stats.queued_for_review)
-    logger.info("  Hard fail:            %d", stats.rejected_hard_fail)
-    logger.info("  Warnings only:        %d", stats.warnings_only)
+    logger.info("  Total encounters:     %d", total_encounters)
+    logger.info("  Classified:           %d", total_classified)
+    logger.info("  Clinical processed:   %d", clinical_total)
+    logger.info("  Skipped non-clinical: %d", non_clinical_total)
+    logger.info("  Processed encounters: %d", processed_encounters)
+    logger.info("  Queued for review:    %d", queued_for_review)
+    logger.info("  Hard fail:            %d", rejected_hard_fail)
+    logger.info("  Warnings only:        %d", warnings_only)
     logger.info("  Elapsed:              %.1fs", elapsed)
-    logger.info("  LLM usage:            %s", json.dumps(snap.get("llm_usage", {}), indent=2))
 
     auto_approved = sum(
         1 for e in events if e.get("type") == "persist_completed" and e.get("auto_approved")

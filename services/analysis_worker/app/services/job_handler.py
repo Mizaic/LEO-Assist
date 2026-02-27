@@ -114,6 +114,7 @@ def _persist_safety_net_alerts(
                 "MERGE (a:SafetyNetAlert {id: $aid}) "
                 "SET a.alert_type       = $alert_type, "
                 "    a.rule_name        = $alert_type, "
+                "    a.patient_id       = $pid, "
                 "    a.severity         = $severity, "
                 "    a.status           = 'open', "
                 "    a.recommendation_title = $description, "

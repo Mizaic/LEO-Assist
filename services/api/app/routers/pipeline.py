@@ -27,6 +27,7 @@ def get_creator() -> V3PipelineService:
     patient_client = PatientGraphClient()
     patient_client.initialize_schema()
     coding_client = CodingGraphClient()
+    coding_client.initialize_schema()
     return V3PipelineService(
         patient_client=patient_client, coding_client=coding_client
     )
@@ -306,10 +307,71 @@ def stream_pipeline(
     )
 
 
+def _clean_patients(patient_ids: list[str]) -> dict:
+    """Remove all pipeline artefacts for the given patients and return totals."""
+    from libs.cypher.cleanup_queries import (
+        RESET_PATIENT_REVIEW_QUEUE,
+        RESET_PATIENT_DOCUMENTS,
+        RESET_PATIENT_DIRECT_SEMANTIC,
+        RESET_PATIENT_ALERTS,
+        RESET_PATIENT_EPISODES,
+        RESET_PATIENT_LEGACY_ALERTS,
+        RESET_PATIENT_LEGACY_EPISODES,
+    )
+
+    pg = PatientGraphClient()
+    totals: dict[str, int] = {}
+    try:
+        with pg.session() as session:
+            for pid in patient_ids:
+                for query_name, query in [
+                    ("review_queue", RESET_PATIENT_REVIEW_QUEUE),
+                    ("documents", RESET_PATIENT_DOCUMENTS),
+                    ("direct_semantic", RESET_PATIENT_DIRECT_SEMANTIC),
+                    ("alerts", RESET_PATIENT_ALERTS),
+                    ("episodes", RESET_PATIENT_EPISODES),
+                    ("legacy_alerts", RESET_PATIENT_LEGACY_ALERTS),
+                    ("legacy_episodes", RESET_PATIENT_LEGACY_EPISODES),
+                ]:
+                    r = session.run(query, patient_id=pid).single()
+                    count = 0
+                    if r:
+                        count = r.get("deleted", r.get("links_deleted", r.get("direct_deleted", 0)))
+                    totals[query_name] = totals.get(query_name, 0) + count
+    finally:
+        pg.close()
+
+    return totals
+
+
+@router.post("/clean-patients")
+def clean_patients_endpoint(payload: PipelineRunRequest):
+    """Clean all pipeline artefacts for the specified patients.
+
+    Removes EncounterCandidates, ReviewTasks, Approvals, Changes,
+    DOCUMENTS links, SafetyNetAlerts, EpisodeOfCare nodes,
+    and legacy CSSAlert/CancerEpisode nodes.
+    """
+    patient_ids = payload.patient_ids
+    if not patient_ids and payload.cohort_id:
+        patient_ids = _resolve_cohort_patients(payload.cohort_id)
+    if not patient_ids and payload.org_id:
+        patient_ids = _resolve_org_patients(payload.org_id)
+    if not patient_ids:
+        from fastapi import HTTPException
+        raise HTTPException(400, "Provide patient_ids, cohort_id, or org_id")
+
+    totals = _clean_patients(patient_ids)
+    return {
+        "patients_cleaned": len(patient_ids),
+        "totals": totals,
+    }
+
+
 # ── Worker-based consensus pipeline ──────────────────────────
 
 @router.post("/enqueue-consensus")
-async def enqueue_consensus(payload: PipelineRunRequest):
+async def enqueue_consensus(payload: PipelineRunRequest, clean: bool = Query(default=True)):
     """Publish coding jobs to the message bus for worker-based consensus processing.
 
     Each patient gets a separate message with mode=consensus and
@@ -328,6 +390,10 @@ async def enqueue_consensus(payload: PipelineRunRequest):
         from fastapi import HTTPException
         raise HTTPException(400, "Provide patient_ids, cohort_id, or org_id")
 
+    clean_totals = None
+    if clean:
+        clean_totals = _clean_patients(patient_ids)
+
     run_id = str(uuid.uuid4())
     bus = create_message_bus()
     try:
@@ -345,8 +411,11 @@ async def enqueue_consensus(payload: PipelineRunRequest):
     finally:
         await bus.close()
 
-    return {
+    result = {
         "run_id": run_id,
         "patients_enqueued": len(patient_ids),
         "queue": CODING_QUEUE,
     }
+    if clean_totals is not None:
+        result["clean_totals"] = clean_totals
+    return result
