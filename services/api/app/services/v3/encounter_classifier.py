@@ -143,7 +143,8 @@ def build_patient_encounter_index(
     """
     index = PatientEncounterIndex(patient_id=patient_id, run_id=run_id, total=len(encounters))
 
-    for enc in encounters:
+    total = len(encounters)
+    for n, enc in enumerate(encounters, 1):
         enc_id = str(enc.get("encounter_id", enc.get("id", "")))
         text = enc.get("text", "")
 
@@ -153,10 +154,19 @@ def build_patient_encounter_index(
                 content_type="admin_only",
                 consensus_agreement=True,
             )
+            logger.info("  [%d/%d] Encounter %s → admin_only (empty text)", n, total, enc_id)
             continue
 
         result = classify_encounter(text, enc_id)
         index.classifications[enc_id] = result
+
+        agreement = "✓" if result.consensus_agreement else "✗ DISAGREE"
+        domains_str = ",".join(result.domains) if result.domains else "none"
+        logger.info(
+            "  [%d/%d] Encounter %s → %s [%s] domains=%s significance=%s",
+            n, total, enc_id, result.content_type, agreement, domains_str,
+            result.clinical_significance,
+        )
 
         if result.content_type == "admin_only":
             index.admin_count += 1
