@@ -170,19 +170,21 @@ class LLMClient:
                 )
             oai_messages.append({"role": role, "content": content})
 
-        response = client.chat.completions.create(
-            model=self.model_id,
-            messages=oai_messages,
-            max_completion_tokens=max_tokens,
-            temperature=temperature,
-        )
+        kwargs: dict[str, Any] = {
+            "model": self.model_id,
+            "messages": oai_messages,
+            "max_completion_tokens": max_tokens,
+        }
+        if temperature != 0.0:
+            kwargs["temperature"] = temperature
+        response = client.chat.completions.create(**kwargs)
         choice = response.choices[0] if response.choices else None
         usage = response.usage
         return LLMResponse(
             text=choice.message.content.strip() if choice and choice.message.content else "",
             input_tokens=usage.prompt_tokens if usage else 0,
             output_tokens=usage.completion_tokens if usage else 0,
-            cached_input_tokens=getattr(usage, "prompt_tokens_details", {}).get("cached_tokens", 0) if usage else 0,
+            cached_input_tokens=getattr(getattr(usage, "prompt_tokens_details", None), "cached_tokens", 0) if usage else 0,
             stop_reason=choice.finish_reason if choice else "",
             model_id=self.model_id,
         )
