@@ -62,13 +62,9 @@ class AzureServiceBusAdapter(MessageBusAdapter):
             receiver = self._client.get_subscription_receiver(
                 topic_name=queue_or_topic,
                 subscription_name=subscription,
-                max_wait_time=30,
             )
         else:
-            receiver = self._client.get_queue_receiver(
-                queue_or_topic,
-                max_wait_time=30,
-            )
+            receiver = self._client.get_queue_receiver(queue_or_topic)
         self._receivers.append(receiver)
 
         async def _loop():
