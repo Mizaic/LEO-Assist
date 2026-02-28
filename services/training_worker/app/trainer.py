@@ -47,28 +47,19 @@ def _should_use_gpu() -> bool:
 
 
 def _build_env() -> dict:
-    """Return a subprocess env with CUDA DLL paths added for CuPy on Windows.
+    """Return a clean subprocess env for spaCy training.
 
-    When only PyTorch's bundled CUDA is present (no standalone CUDA toolkit),
-    CuPy needs PyTorch's lib directory on PATH so it can find the CUDA runtime
-    DLLs (cudart64_*.dll etc.).
+    CUDA DLLs are provided by the nvidia-*-cu12 wheel packages (resolved
+    automatically by cuda-pathfinder).  Do NOT add torch\\lib to PATH —
+    that causes CuPy's _setup_win32_dll_directory() to mis-detect the
+    CUDA root as torch\\ and crash on the non-existent torch\\bin dir.
     """
     env = dict(os.environ)
-    try:
-        import torch
-        torch_lib = os.path.join(os.path.dirname(torch.__file__), "lib")
-        if os.path.isdir(torch_lib):
-            env["PATH"] = f"{torch_lib};{env.get('PATH', '')}"
-        # CuPy appends \bin to CUDA_PATH and calls os.add_dll_directory() on it.
-        # If that path doesn't exist (e.g. torch\lib\bin), it raises FileNotFoundError.
-        # Unset invalid CUDA_PATH so CuPy falls back to nvidia-*-cu12 wheel packages.
-        cuda_path = env.get("CUDA_PATH", "").strip()
-        if cuda_path:
-            cuda_bin = os.path.join(cuda_path, "bin")
-            if not os.path.isdir(cuda_bin):
-                env.pop("CUDA_PATH", None)
-    except Exception:
-        pass
+    # Strip any CUDA_PATH that points to a directory without a bin/ subdir,
+    # which would cause CuPy's os.add_dll_directory() to raise FileNotFoundError.
+    cuda_path = env.get("CUDA_PATH", "").strip()
+    if cuda_path and not os.path.isdir(os.path.join(cuda_path, "bin")):
+        env.pop("CUDA_PATH", None)
     env.setdefault("TRANSFORMERS_CACHE", os.getenv("TRANSFORMERS_CACHE", "/tmp/hf_cache"))
     return env
 
