@@ -40,6 +40,8 @@ import RefreshIcon from "@mui/icons-material/Refresh";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import HourglassTopIcon from "@mui/icons-material/HourglassTop";
+import PauseIcon from "@mui/icons-material/Pause";
+import PlayCircleOutlineIcon from "@mui/icons-material/PlayCircleOutline";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -169,6 +171,9 @@ export default function TrainingDataPanel() {
   const esRef = useRef<EventSource | null>(null);
   const heroLogRef = useRef<HTMLDivElement | null>(null);
   const historyLogRef = useRef<HTMLDivElement | null>(null);
+  const [pollingPaused, setPollingPaused] = useState(false);
+  const pollingPausedRef = useRef(false);
+  const jobsRef = useRef<TrainingJob[]>([]);
 
   // Auto-scroll both log boxes to bottom whenever log lines change
   useEffect(() => {
@@ -221,17 +226,24 @@ export default function TrainingDataPanel() {
   useEffect(() => { fetchStats(); fetchJobs(); fetchPreview(); }, [fetchStats, fetchJobs, fetchPreview]);
   useEffect(() => { fetchLabels(); }, [fetchLabels]);
 
-  // Adaptive polling:
-  //   Active job running → every 8s (fast enough to feel live)
-  //   No jobs yet        → every 60s (just in case another session starts one)
-  //   All jobs finished  → no polling
+  // Keep refs in sync so the polling interval can read them without being recreated
+  useEffect(() => { jobsRef.current = jobs; }, [jobs]);
+  useEffect(() => { pollingPausedRef.current = pollingPaused; }, [pollingPaused]);
+
+  // Single stable interval (8 s). Each tick checks refs before firing.
+  // Stops itself when no active job and jobs exist (all finished).
   useEffect(() => {
-    const hasActive = jobs.some((j) => ACTIVE_STATUSES.has(j.status));
-    const interval = hasActive ? 8000 : jobs.length === 0 ? 60000 : null;
-    if (!interval) return;
-    const id = setInterval(() => { fetchJobs(); fetchStats(); }, interval);
+    const id = setInterval(() => {
+      if (pollingPausedRef.current) return;
+      const current = jobsRef.current;
+      const hasActive = current.some((j) => ACTIVE_STATUSES.has(j.status));
+      // Don't poll if all jobs are finished
+      if (current.length > 0 && !hasActive) return;
+      fetchJobs();
+      fetchStats();
+    }, 8000);
     return () => clearInterval(id);
-  }, [jobs, fetchJobs, fetchStats]);
+  }, [fetchJobs, fetchStats]); // stable — never recreated
 
   // ---------- actions ----------
 
@@ -435,9 +447,23 @@ export default function TrainingDataPanel() {
       {/* ── Run history ── */}
       {jobs.length > 0 && (
         <>
-          <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, textTransform: "uppercase", letterSpacing: 0.5, fontSize: 11 }}>
-            Run history
-          </Typography>
+          <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
+            <Typography variant="subtitle2" color="text.secondary" sx={{ textTransform: "uppercase", letterSpacing: 0.5, fontSize: 11, flex: 1 }}>
+              Run history
+            </Typography>
+            <Tooltip title={pollingPaused ? "Resume live updates" : "Pause live updates"}>
+              <IconButton size="small" onClick={() => setPollingPaused((p) => !p)}>
+                {pollingPaused
+                  ? <PlayCircleOutlineIcon fontSize="small" color="success" />
+                  : <PauseIcon fontSize="small" color="action" />}
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Refresh now">
+              <IconButton size="small" onClick={() => { fetchJobs(); fetchStats(); }}>
+                <RefreshIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          </Stack>
           <Stack spacing={1} sx={{ mb: 3 }}>
             {jobs.map((job) => {
               const isActive = ACTIVE_STATUSES.has(job.status);
