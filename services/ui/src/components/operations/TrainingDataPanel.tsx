@@ -221,11 +221,15 @@ export default function TrainingDataPanel() {
   useEffect(() => { fetchStats(); fetchJobs(); fetchPreview(); }, [fetchStats, fetchJobs, fetchPreview]);
   useEffect(() => { fetchLabels(); }, [fetchLabels]);
 
-  // Poll every 5 s while a job is active (or no jobs yet — so we catch first run)
+  // Adaptive polling:
+  //   Active job running → every 8s (fast enough to feel live)
+  //   No jobs yet        → every 60s (just in case another session starts one)
+  //   All jobs finished  → no polling
   useEffect(() => {
     const hasActive = jobs.some((j) => ACTIVE_STATUSES.has(j.status));
-    if (!hasActive && jobs.length > 0) return;
-    const id = setInterval(() => { fetchJobs(); fetchStats(); }, 5000);
+    const interval = hasActive ? 8000 : jobs.length === 0 ? 60000 : null;
+    if (!interval) return;
+    const id = setInterval(() => { fetchJobs(); fetchStats(); }, interval);
     return () => clearInterval(id);
   }, [jobs, fetchJobs, fetchStats]);
 
