@@ -188,7 +188,7 @@ if (ShouldStart "analytics_api") {
 $needsModelInference = $ModelInference -or ($env:CODING_EXTRACTOR_BACKEND -in @("model", "auto"))
 if ($needsModelInference -and (ShouldStart "model_inference")) {
     $miCmd = "& '$VenvPython' -m uvicorn app.main:app --app-dir '$ModelInferenceDir' --host 0.0.0.0 --port $ModelInferencePort"
-    Start-ServiceWindow -Title "Model Inference :$ModelInferencePort" -Command $miCmd -WorkDir $ModelInferenceDir
+    Start-ServiceWindow -Title "Model Inference :$ModelInferencePort" -Command $miCmd -WorkDir $RepoRoot
     Write-Host "    Model Inference    http://localhost:$ModelInferencePort  (NER /extract /health /reload /versions)" -ForegroundColor White
     $windowCount++
 } elseif (-not $needsModelInference) {
@@ -206,7 +206,7 @@ if ($TrainingWorker -and (ShouldStart "training_worker")) {
         Start-Sleep -Seconds 2
     }
     $twCmd = "& '$VenvPython' -m uvicorn app.main:app --app-dir '$TrainingWorkerDir' --host 0.0.0.0 --port $TrainingWorkerPort"
-    Start-ServiceWindow -Title "Training Worker :$TrainingWorkerPort" -Command $twCmd -WorkDir $TrainingWorkerDir
+    Start-ServiceWindow -Title "Training Worker :$TrainingWorkerPort" -Command $twCmd -WorkDir $RepoRoot
     Write-Host "    Training Worker    http://localhost:$TrainingWorkerPort  (NER fine-tuning /train/jobs /train/progress)" -ForegroundColor White
     $windowCount++
 } else {

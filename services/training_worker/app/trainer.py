@@ -33,7 +33,10 @@ def _should_use_gpu() -> bool:
 
     torch.cuda.is_available() is not sufficient — spaCy uses CuPy internally
     and will crash if CuPy cannot load the CUDA runtime even when torch can.
+    Set TRAINING_USE_GPU=false to force CPU (avoids CuPy/CUDA issues on Windows).
     """
+    if os.getenv("TRAINING_USE_GPU", "true").lower() in ("false", "0", "no"):
+        return False
     try:
         import cupy
         cupy.array([1.0])   # actually execute on GPU; raises if CUDA load fails
@@ -56,10 +59,14 @@ def _build_env() -> dict:
         torch_lib = os.path.join(os.path.dirname(torch.__file__), "lib")
         if os.path.isdir(torch_lib):
             env["PATH"] = f"{torch_lib};{env.get('PATH', '')}"
-        # Do NOT set CUDA_PATH to torch_lib — CuPy appends \bin to CUDA_PATH
-        # and calls os.add_dll_directory() on it; torch\lib has no \bin subdir
-        # and the call raises FileNotFoundError.  The nvidia-*-cu12 wheel
-        # packages supply all required DLLs via cuda-pathfinder instead.
+        # CuPy appends \bin to CUDA_PATH and calls os.add_dll_directory() on it.
+        # If that path doesn't exist (e.g. torch\lib\bin), it raises FileNotFoundError.
+        # Unset invalid CUDA_PATH so CuPy falls back to nvidia-*-cu12 wheel packages.
+        cuda_path = env.get("CUDA_PATH", "").strip()
+        if cuda_path:
+            cuda_bin = os.path.join(cuda_path, "bin")
+            if not os.path.isdir(cuda_bin):
+                env.pop("CUDA_PATH", None)
     except Exception:
         pass
     env.setdefault("TRANSFORMERS_CACHE", os.getenv("TRANSFORMERS_CACHE", "/tmp/hf_cache"))
