@@ -167,6 +167,16 @@ export default function TrainingDataPanel() {
 
   const PAGE_SIZE = 30;
   const esRef = useRef<EventSource | null>(null);
+  const heroLogRef = useRef<HTMLDivElement | null>(null);
+  const historyLogRef = useRef<HTMLDivElement | null>(null);
+
+  // Auto-scroll both log boxes to bottom whenever log lines change
+  useEffect(() => {
+    heroLogRef.current?.scrollTo({ top: heroLogRef.current.scrollHeight });
+  }, [jobs]);
+  useEffect(() => {
+    historyLogRef.current?.scrollTo({ top: historyLogRef.current.scrollHeight });
+  }, [jobs]);
 
   // ---------- fetching ----------
 
@@ -259,7 +269,6 @@ export default function TrainingDataPanel() {
       );
       setStartJobOpen(false);
       setJobNotes("");
-      setExpandedJob(res.job_id);
       const es = new EventSource(`${window.location.origin}/api/training-worker/progress/${res.job_id}`);
       esRef.current?.close();
       esRef.current = es;
@@ -322,8 +331,8 @@ export default function TrainingDataPanel() {
             </Stack>
             <LinearProgress sx={{ borderRadius: 1 }} />
             {activeJob.log_lines?.length > 0 && (
-              <Box sx={{ background: "#0f172a", color: "#86efac", fontFamily: "monospace", fontSize: 11, p: 1.5, borderRadius: 1, maxHeight: 100, overflowY: "auto" }}>
-                {activeJob.log_lines.slice(-6).map((l, i) => <div key={i}>{l}</div>)}
+              <Box ref={heroLogRef} sx={{ background: "#0f172a", color: "#86efac", fontFamily: "monospace", fontSize: 11.5, p: 1.5, borderRadius: 1, height: 200, overflowY: "auto" }}>
+                {activeJob.log_lines.map((l, i) => <div key={i}>{l}</div>)}
               </Box>
             )}
           </Stack>
@@ -428,7 +437,8 @@ export default function TrainingDataPanel() {
           <Stack spacing={1} sx={{ mb: 3 }}>
             {jobs.map((job) => {
               const isActive = ACTIVE_STATUSES.has(job.status);
-              const isExpanded = expandedJob === job.job_id;
+              // Don't expand active jobs in history — the hero card already shows progress
+              const isExpanded = !isActive && expandedJob === job.job_id;
               return (
                 <Paper key={job.job_id} variant="outlined" sx={{ p: 1.5, borderRadius: 1.5 }}>
                   <Stack direction="row" spacing={1.5} alignItems="center">
@@ -469,7 +479,7 @@ export default function TrainingDataPanel() {
                         );
                       })()}
                       {/* Log */}
-                      <Box sx={{ background: "#0f172a", color: job.status === "failed" ? "#fca5a5" : "#86efac", fontFamily: "monospace", fontSize: 11, p: 1.5, borderRadius: 1, maxHeight: 200, overflowY: "auto" }}>
+                      <Box ref={historyLogRef} sx={{ background: "#0f172a", color: job.status === "failed" ? "#fca5a5" : "#86efac", fontFamily: "monospace", fontSize: 11.5, p: 1.5, borderRadius: 1, height: 200, overflowY: "auto" }}>
                         {(job.log_lines ?? []).length === 0
                           ? <span style={{ opacity: 0.5 }}>No log output yet…</span>
                           : (job.log_lines ?? []).map((l, i) => <div key={i}>{l}</div>)}

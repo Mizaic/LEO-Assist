@@ -56,10 +56,10 @@ def _build_env() -> dict:
         torch_lib = os.path.join(os.path.dirname(torch.__file__), "lib")
         if os.path.isdir(torch_lib):
             env["PATH"] = f"{torch_lib};{env.get('PATH', '')}"
-            # CuPy accepts a non-standard CUDA_PATH; point it at torch's lib
-            # so it finds cudart without a full CUDA toolkit install.
-            if not env.get("CUDA_PATH"):
-                env["CUDA_PATH"] = torch_lib
+        # Do NOT set CUDA_PATH to torch_lib — CuPy appends \bin to CUDA_PATH
+        # and calls os.add_dll_directory() on it; torch\lib has no \bin subdir
+        # and the call raises FileNotFoundError.  The nvidia-*-cu12 wheel
+        # packages supply all required DLLs via cuda-pathfinder instead.
     except Exception:
         pass
     env.setdefault("TRANSFORMERS_CACHE", os.getenv("TRANSFORMERS_CACHE", "/tmp/hf_cache"))
