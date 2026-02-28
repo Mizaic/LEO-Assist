@@ -28,6 +28,44 @@ _HF_MODEL = os.getenv("TRAINING_HF_BASE_MODEL", "emilyalsentzer/Bio_ClinicalBERT
 _FROZEN = os.getenv("TRAINING_FROZEN_COMPONENTS", "transformer")
 
 
+def _should_use_gpu() -> bool:
+    """Return True only if CuPy can actually initialise a CUDA device.
+
+    torch.cuda.is_available() is not sufficient — spaCy uses CuPy internally
+    and will crash if CuPy cannot load the CUDA runtime even when torch can.
+    """
+    try:
+        import cupy
+        cupy.array([1.0])   # actually execute on GPU; raises if CUDA load fails
+        return True
+    except Exception as exc:
+        logger.warning("CuPy GPU test failed (%s) — falling back to CPU", exc)
+        return False
+
+
+def _build_env() -> dict:
+    """Return a subprocess env with CUDA DLL paths added for CuPy on Windows.
+
+    When only PyTorch's bundled CUDA is present (no standalone CUDA toolkit),
+    CuPy needs PyTorch's lib directory on PATH so it can find the CUDA runtime
+    DLLs (cudart64_*.dll etc.).
+    """
+    env = dict(os.environ)
+    try:
+        import torch
+        torch_lib = os.path.join(os.path.dirname(torch.__file__), "lib")
+        if os.path.isdir(torch_lib):
+            env["PATH"] = f"{torch_lib};{env.get('PATH', '')}"
+            # CuPy accepts a non-standard CUDA_PATH; point it at torch's lib
+            # so it finds cudart without a full CUDA toolkit install.
+            if not env.get("CUDA_PATH"):
+                env["CUDA_PATH"] = torch_lib
+    except Exception:
+        pass
+    env.setdefault("TRANSFORMERS_CACHE", os.getenv("TRANSFORMERS_CACHE", "/tmp/hf_cache"))
+    return env
+
+
 def run_training(
     work_dir: Path,
     *,
@@ -65,7 +103,8 @@ def run_training(
         if log_fn:
             log_fn(msg)
 
-    _log(f"Starting spaCy training (frozen: {_FROZEN}, base: {_HF_MODEL})")
+    use_gpu = _should_use_gpu()
+    _log(f"Starting spaCy training (frozen: {_FROZEN}, base: {_HF_MODEL}, gpu: {use_gpu})")
     _log(f"Train: {train_path} | Dev: {dev_path}")
 
     cmd = [
@@ -75,8 +114,10 @@ def run_training(
         "--paths.train", str(train_path),
         "--paths.dev", str(dev_path),
     ]
+    if use_gpu:
+        cmd.extend(["--gpu-id", "0"])
 
-    env = {**os.environ, "TRANSFORMERS_CACHE": os.getenv("TRANSFORMERS_CACHE", "/tmp/hf_cache")}
+    env = _build_env()
 
     try:
         proc = subprocess.Popen(
@@ -125,19 +166,29 @@ def _write_filled_config(
     """Write a resolved spaCy config with paths and overrides filled in."""
     config_text = _CONFIG_PATH.read_text(encoding="utf-8")
 
-    # Override frozen components and HF model name
     frozen_list = [c.strip() for c in _FROZEN.split(",") if c.strip()]
     frozen_str = json_list(frozen_list)
 
-    overrides = {
-        "[vars]\nhf_model_name": f'"{ _HF_MODEL }"',
-        "frozen_components = []": f"frozen_components = {frozen_str}",
-        "frozen_components = [\"transformer\"]": f"frozen_components = {frozen_str}",
-    }
+    import re
+    config_text = re.sub(
+        r'\$\{vars\.hf_model_name\}',
+        f'"{_HF_MODEL}"',
+        config_text,
+    )
 
-    for old, new in overrides.items():
-        if old in config_text:
-            config_text = config_text.replace(old, new, 1)
+    config_text = re.sub(
+        r'frozen_components\s*=\s*\[.*?\]',
+        f'frozen_components = {frozen_str}',
+        config_text,
+    )
+
+    use_gpu = _should_use_gpu()
+    if use_gpu:
+        config_text = re.sub(
+            r'gpu_allocator\s*=\s*null',
+            'gpu_allocator = "pytorch"',
+            config_text,
+        )
 
     out_path.write_text(config_text, encoding="utf-8")
 

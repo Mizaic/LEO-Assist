@@ -2,6 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
   Alert,
   Box,
   Button,
@@ -12,7 +15,6 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  Divider,
   IconButton,
   LinearProgress,
   Paper,
@@ -35,6 +37,9 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import RefreshIcon from "@mui/icons-material/Refresh";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import HourglassTopIcon from "@mui/icons-material/HourglassTop";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -98,6 +103,13 @@ async function jsonFetch<T>(url: string, init?: RequestInit): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+const SOURCE_LABELS: Record<string, string> = {
+  hitl_approval: "HITL",
+  coding_correction: "Correction",
+  anchor_mining: "Mined",
+  seed: "Seed",
+};
+
 const SOURCE_COLORS: Record<string, "primary" | "secondary" | "success" | "warning"> = {
   hitl_approval: "success",
   coding_correction: "primary",
@@ -105,47 +117,24 @@ const SOURCE_COLORS: Record<string, "primary" | "secondary" | "success" | "warni
   seed: "warning",
 };
 
-const SOURCE_LABELS: Record<string, string> = {
-  hitl_approval: "HITL approved",
-  coding_correction: "Coding correction",
-  anchor_mining: "Anchor mining",
-  seed: "Seed",
-};
+const ACTIVE_STATUSES = new Set(["queued", "running", "evaluating", "uploading"]);
 
-const JOB_STATUS_COLORS: Record<string, "default" | "primary" | "warning" | "success" | "error"> = {
-  queued: "default",
-  running: "primary",
-  evaluating: "warning",
-  uploading: "warning",
-  done: "success",
-  failed: "error",
-  cancelled: "default",
-};
-
-// ---------------------------------------------------------------------------
-// Sub-components
-// ---------------------------------------------------------------------------
-
-function StatCard({ label, value, sub }: { label: string; value: number | string; sub?: string }) {
-  return (
-    <Paper variant="outlined" sx={{ p: 2, minWidth: 120, textAlign: "center" }}>
-      <Typography variant="h4" sx={{ fontWeight: 700 }}>{value}</Typography>
-      <Typography variant="caption" color="text.secondary">{label}</Typography>
-      {sub && <Typography variant="caption" display="block" color="text.disabled">{sub}</Typography>}
-    </Paper>
-  );
+function fmtElapsed(s: number | null) {
+  if (s == null) return "";
+  if (s < 60) return `${Math.round(s)}s`;
+  return `${Math.floor(s / 60)}m ${Math.round(s % 60)}s`;
 }
 
 function EntityPills({ entitiesJson }: { entitiesJson: string }) {
   let entities: { text: string; label: string }[] = [];
   try { entities = JSON.parse(entitiesJson); } catch { /* ignore */ }
-  if (!entities.length) return <Typography variant="caption" color="text.disabled">no entities</Typography>;
+  if (!entities.length) return <Typography variant="caption" color="text.disabled">—</Typography>;
   return (
     <Stack direction="row" flexWrap="wrap" gap={0.5}>
-      {entities.slice(0, 6).map((e, i) => (
-        <Chip key={i} label={`${e.text} [${e.label}]`} size="small" variant="outlined" />
+      {entities.slice(0, 5).map((e, i) => (
+        <Chip key={i} label={`${e.text} · ${e.label}`} size="small" variant="outlined" sx={{ fontSize: 11 }} />
       ))}
-      {entities.length > 6 && <Chip label={`+${entities.length - 6}`} size="small" />}
+      {entities.length > 5 && <Chip label={`+${entities.length - 5} more`} size="small" />}
     </Stack>
   );
 }
@@ -169,85 +158,68 @@ export default function TrainingDataPanel() {
   const [excludeBusy, setExcludeBusy] = useState(false);
 
   const [preview, setPreview] = useState<ExportPreview | null>(null);
-  const [loadingPreview, setLoadingPreview] = useState(false);
-
   const [jobs, setJobs] = useState<TrainingJob[]>([]);
-  const [loadingJobs, setLoadingJobs] = useState(false);
   const [startJobOpen, setStartJobOpen] = useState(false);
   const [jobNotes, setJobNotes] = useState("");
   const [startingJob, setStartingJob] = useState(false);
   const [expandedJob, setExpandedJob] = useState<string | null>(null);
-
   const [error, setError] = useState<string | null>(null);
 
   const PAGE_SIZE = 30;
   const esRef = useRef<EventSource | null>(null);
 
-  // ------------------------------------------------------------------
-  // Data fetching
-  // ------------------------------------------------------------------
+  // ---------- fetching ----------
 
   const fetchStats = useCallback(async () => {
     try {
       const data = await jsonFetch<LabelStats>("/api/training/labels/stats");
       setStats(data);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load stats");
-    }
+    } catch { /* silently swallow on background poll */ }
   }, []);
 
   const fetchLabels = useCallback(async () => {
     setLoadingLabels(true);
     try {
-      const params = new URLSearchParams({
-        page: String(labelPage),
-        page_size: String(PAGE_SIZE),
-      });
+      const params = new URLSearchParams({ page: String(labelPage), page_size: String(PAGE_SIZE) });
       if (filterSource) params.set("source", filterSource);
       if (filterInclude !== null) params.set("include", String(filterInclude));
       if (searchText) params.set("search", searchText);
-      const data = await jsonFetch<{ labels: TrainingLabel[]; total: number }>(
-        `/api/training/labels?${params}`
-      );
+      const data = await jsonFetch<{ labels: TrainingLabel[]; total: number }>(`/api/training/labels?${params}`);
       setLabels(data.labels);
       setLabelTotal(data.total);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load labels");
+      setError(e instanceof Error ? e.message : "Could not load labels");
     } finally {
       setLoadingLabels(false);
     }
   }, [labelPage, filterSource, filterInclude, searchText]);
 
   const fetchJobs = useCallback(async () => {
-    setLoadingJobs(true);
     try {
       const data = await jsonFetch<{ jobs: TrainingJob[] }>("/api/training-worker/jobs");
       setJobs(data.jobs);
-    } catch {
-      // Training worker may not be running locally; suppress silently
-    } finally {
-      setLoadingJobs(false);
-    }
+    } catch { /* training worker may be offline */ }
   }, []);
 
   const fetchPreview = useCallback(async () => {
-    setLoadingPreview(true);
     try {
       const data = await jsonFetch<ExportPreview>("/api/training/export-preview", { method: "POST" });
       setPreview(data);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load preview");
-    } finally {
-      setLoadingPreview(false);
-    }
+    } catch { /* silently swallow */ }
   }, []);
 
   useEffect(() => { fetchStats(); fetchJobs(); fetchPreview(); }, [fetchStats, fetchJobs, fetchPreview]);
   useEffect(() => { fetchLabels(); }, [fetchLabels]);
 
-  // ------------------------------------------------------------------
-  // Actions
-  // ------------------------------------------------------------------
+  // Poll every 5 s while a job is active (or no jobs yet — so we catch first run)
+  useEffect(() => {
+    const hasActive = jobs.some((j) => ACTIVE_STATUSES.has(j.status));
+    if (!hasActive && jobs.length > 0) return;
+    const id = setInterval(() => { fetchJobs(); fetchStats(); }, 5000);
+    return () => clearInterval(id);
+  }, [jobs, fetchJobs, fetchStats]);
+
+  // ---------- actions ----------
 
   const handleExclude = async () => {
     if (!excludeTarget || !excludeReason.trim()) return;
@@ -259,435 +231,395 @@ export default function TrainingDataPanel() {
       });
       setExcludeTarget(null);
       setExcludeReason("");
-      await fetchStats();
-      await fetchLabels();
+      fetchStats();
+      fetchLabels();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to exclude label");
+      setError(e instanceof Error ? e.message : "Failed to exclude");
     } finally {
       setExcludeBusy(false);
     }
   };
 
-  const handleInclude = async (labelId: string) => {
+  const handleInclude = async (id: string) => {
     try {
-      await jsonFetch(`/api/training/labels/${labelId}/include`, { method: "POST" });
-      await fetchStats();
-      await fetchLabels();
+      await jsonFetch(`/api/training/labels/${id}/include`, { method: "POST" });
+      fetchStats();
+      fetchLabels();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to re-include label");
+      setError(e instanceof Error ? e.message : "Failed to re-include");
     }
   };
 
   const handleStartJob = async () => {
     setStartingJob(true);
     try {
-      const res = await jsonFetch<{ job_id: string; stream_path: string }>(
+      const res = await jsonFetch<{ job_id: string }>(
         "/api/training-worker/jobs",
-        {
-          method: "POST",
-          body: JSON.stringify({ notes: jobNotes, triggered_by: "ui" }),
-        }
+        { method: "POST", body: JSON.stringify({ notes: jobNotes, triggered_by: "ui" }) }
       );
       setStartJobOpen(false);
       setJobNotes("");
       setExpandedJob(res.job_id);
-      // Subscribe to SSE for this job
-      const es = new EventSource(
-        `${window.location.origin}/api/training-worker/progress/${res.job_id}`
-      );
+      const es = new EventSource(`${window.location.origin}/api/training-worker/progress/${res.job_id}`);
       esRef.current?.close();
       esRef.current = es;
       es.addEventListener("training_log", () => fetchJobs());
       es.addEventListener("training_done", () => { fetchJobs(); es.close(); });
       es.addEventListener("training_failed", () => { fetchJobs(); es.close(); });
-      await fetchJobs();
+      fetchJobs();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to start training job");
+      setError(e instanceof Error ? e.message : "Could not start training");
     } finally {
       setStartingJob(false);
     }
   };
 
   const totalPages = Math.max(1, Math.ceil(labelTotal / PAGE_SIZE));
+  const activeJob = jobs.find((j) => ACTIVE_STATUSES.has(j.status));
+  const lastJob = !activeJob ? jobs[0] : undefined;
 
-  // ------------------------------------------------------------------
-  // Render
-  // ------------------------------------------------------------------
+  // ---------- render ----------
 
   return (
-    <Box sx={{ maxWidth: 1200, mx: "auto", px: 3, py: 2 }}>
-      <Typography variant="h6" sx={{ fontWeight: 700, mb: 0.5 }}>
-        Training Data
-      </Typography>
+    <Box sx={{ maxWidth: 900, mx: "auto", px: 3, py: 3 }}>
+
+      {/* Page title */}
+      <Typography variant="h6" sx={{ fontWeight: 700, mb: 0.5 }}>Model training</Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-        Every approved candidate, HITL resolution, and manual correction is captured here.
-        Include or exclude individual records, then trigger a training run to fine-tune the NER model.
+        Review what's in the training set, then start a run to update the NER model.
       </Typography>
 
       {error && (
-        <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>
-          {error}
-        </Alert>
+        <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>{error}</Alert>
       )}
 
-      {/* ---- Stats ---- */}
-      <Stack direction="row" spacing={2} flexWrap="wrap" sx={{ mb: 3 }}>
-        <StatCard label="Total labels" value={stats?.total ?? "—"} />
-        <StatCard label="Included" value={stats?.included ?? "—"} sub="used in training" />
-        <StatCard label="Excluded" value={stats?.excluded ?? "—"} sub="soft-deleted" />
-        <StatCard label="HITL approved" value={stats?.by_source.hitl_approval ?? "—"} />
-        <StatCard label="Coding corrections" value={stats?.by_source.coding_correction ?? "—"} />
-        <StatCard label="Anchor mining" value={stats?.by_source.anchor_mining ?? "—"} />
-      </Stack>
-
-      {/* ---- Training readiness ---- */}
-      {preview && (
-        <Paper variant="outlined" sx={{ p: 2, mb: 3, borderColor: preview.ready_to_train ? "success.main" : "warning.main" }}>
-          <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
-            <Box>
-              <Typography variant="subtitle2">
-                {preview.ready_to_train
-                  ? `Ready to train — ${preview.exportable_label_count} labels available`
-                  : `Not ready — ${preview.exportable_label_count} / ${preview.min_required} labels required`}
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                Label types: {Object.entries(preview.by_label_type).map(([l, n]) => `${l}: ${n}`).join(" · ")}
-              </Typography>
-            </Box>
-            <Box sx={{ ml: "auto" }}>
-              <Button
-                variant="contained"
-                startIcon={<PlayArrowIcon />}
-                disabled={!preview.ready_to_train}
-                onClick={() => setStartJobOpen(true)}
-              >
-                Start training run
-              </Button>
-            </Box>
-          </Stack>
-        </Paper>
-      )}
-
-      {/* ---- Label library ---- */}
-      <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
-        Label Library
-      </Typography>
-
-      <Stack direction="row" spacing={1} sx={{ mb: 1.5 }} flexWrap="wrap" alignItems="center">
-        <TextField
-          size="small"
-          placeholder="Search text…"
-          value={searchText}
-          onChange={(e) => { setSearchText(e.target.value); setLabelPage(1); }}
-          sx={{ width: 220 }}
-        />
-        <ToggleButtonGroup
-          size="small"
-          exclusive
-          value={filterSource}
-          onChange={(_, v) => { setFilterSource(v); setLabelPage(1); }}
-        >
-          <ToggleButton value="">All sources</ToggleButton>
-          <ToggleButton value="hitl_approval">HITL</ToggleButton>
-          <ToggleButton value="coding_correction">Correction</ToggleButton>
-          <ToggleButton value="anchor_mining">Mined</ToggleButton>
-          <ToggleButton value="seed">Seed</ToggleButton>
-        </ToggleButtonGroup>
-        <ToggleButtonGroup
-          size="small"
-          exclusive
-          value={filterInclude === null ? "" : String(filterInclude)}
-          onChange={(_, v) => {
-            setFilterInclude(v === "" ? null : v === "true");
-            setLabelPage(1);
-          }}
-        >
-          <ToggleButton value="">All</ToggleButton>
-          <ToggleButton value="true">Included</ToggleButton>
-          <ToggleButton value="false">Excluded</ToggleButton>
-        </ToggleButtonGroup>
-        <IconButton size="small" onClick={fetchLabels}><RefreshIcon fontSize="small" /></IconButton>
-      </Stack>
-
-      <TableContainer component={Paper} variant="outlined" sx={{ mb: 1 }}>
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell sx={{ fontWeight: 600 }}>Text</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Entities</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Source</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Quality</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
-              <TableCell />
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {loadingLabels && (
-              <TableRow>
-                <TableCell colSpan={6} align="center">
-                  <CircularProgress size={20} />
-                </TableCell>
-              </TableRow>
-            )}
-            {!loadingLabels && labels.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={6} align="center">
-                  <Typography variant="caption" color="text.secondary">No labels found</Typography>
-                </TableCell>
-              </TableRow>
-            )}
-            {labels.map((label) => (
-              <TableRow
-                key={label.label_id}
-                sx={{ opacity: label.include ? 1 : 0.5 }}
-              >
-                <TableCell sx={{ maxWidth: 300 }}>
-                  <Typography variant="caption" sx={{ fontFamily: "monospace", wordBreak: "break-all" }}>
-                    {label.text.slice(0, 120)}{label.text.length > 120 ? "…" : ""}
-                  </Typography>
-                </TableCell>
-                <TableCell sx={{ minWidth: 200 }}>
-                  <EntityPills entitiesJson={label.entities_json} />
-                </TableCell>
-                <TableCell>
-                  <Chip
-                    label={SOURCE_LABELS[label.source] ?? label.source}
-                    color={SOURCE_COLORS[label.source] ?? "default"}
-                    size="small"
-                    variant="outlined"
-                  />
-                </TableCell>
-                <TableCell>
-                  <Typography variant="caption">
-                    {typeof label.quality_score === "number"
-                      ? `${Math.round(label.quality_score * 100)}%`
-                      : "—"}
-                  </Typography>
-                </TableCell>
-                <TableCell>
-                  {label.include ? (
-                    <Chip label="Included" color="success" size="small" />
-                  ) : (
-                    <Tooltip title={label.excluded_reason ?? ""}>
-                      <Chip label="Excluded" color="error" size="small" />
-                    </Tooltip>
-                  )}
-                </TableCell>
-                <TableCell align="right">
-                  {label.include ? (
-                    <Tooltip title="Exclude from training">
-                      <IconButton
-                        size="small"
-                        onClick={() => setExcludeTarget(label.label_id)}
-                      >
-                        <BlockIcon fontSize="small" color="error" />
-                      </IconButton>
-                    </Tooltip>
-                  ) : (
-                    <Tooltip title="Re-include in training">
-                      <IconButton
-                        size="small"
-                        onClick={() => handleInclude(label.label_id)}
-                      >
-                        <CheckCircleOutlineIcon fontSize="small" color="success" />
-                      </IconButton>
-                    </Tooltip>
-                  )}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-
-      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 4 }}>
-        <Button size="small" disabled={labelPage <= 1} onClick={() => setLabelPage((p) => p - 1)}>
-          Previous
-        </Button>
-        <Typography variant="caption">
-          Page {labelPage} of {totalPages} ({labelTotal} labels)
-        </Typography>
-        <Button size="small" disabled={labelPage >= totalPages} onClick={() => setLabelPage((p) => p + 1)}>
-          Next
-        </Button>
-      </Stack>
-
-      <Divider sx={{ mb: 3 }} />
-
-      {/* ---- Training jobs ---- */}
-      <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 2 }}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-          Training Jobs
-        </Typography>
-        <Button
-          size="small"
-          variant="contained"
-          startIcon={<PlayArrowIcon />}
-          disabled={!preview?.ready_to_train}
-          onClick={() => setStartJobOpen(true)}
-        >
-          Start training run
-        </Button>
-        <IconButton size="small" onClick={fetchJobs}><RefreshIcon fontSize="small" /></IconButton>
-      </Stack>
-
-      {loadingJobs && <LinearProgress sx={{ mb: 2 }} />}
-
-      {jobs.length === 0 && !loadingJobs && (
-        <Alert severity="info" sx={{ mb: 2 }}>
-          No training jobs yet. Click "Start training run" to fine-tune the NER model.
-        </Alert>
-      )}
-
-      {jobs.map((job) => (
-        <Paper key={job.job_id} variant="outlined" sx={{ mb: 1.5, p: 2 }}>
-          <Stack direction="row" alignItems="center" spacing={1.5} flexWrap="wrap">
-            <Chip
-              label={job.status}
-              color={JOB_STATUS_COLORS[job.status] ?? "default"}
-              size="small"
-            />
-            {job.phase && (
-              <Typography variant="caption" color="text.secondary">
-                Phase: {job.phase}
-              </Typography>
-            )}
-            {job.model_version && (
-              <Typography variant="caption">
-                Version: <strong>{job.model_version}</strong>
-              </Typography>
-            )}
-            {job.elapsed_s != null && (
-              <Typography variant="caption" color="text.secondary">
-                {job.elapsed_s}s
-              </Typography>
-            )}
-            <Typography variant="caption" color="text.disabled" sx={{ ml: "auto" }}>
-              {new Date(job.created_at * 1000).toLocaleString()}
-            </Typography>
-            <IconButton size="small" onClick={() => setExpandedJob(expandedJob === job.job_id ? null : job.job_id)}>
-              {expandedJob === job.job_id ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
-            </IconButton>
-          </Stack>
-
-          {job.status === "running" || job.status === "evaluating" || job.status === "uploading" ? (
-            <LinearProgress sx={{ mt: 1 }} />
-          ) : null}
-
-          {job.error && (
-            <Alert severity="error" sx={{ mt: 1 }}>
-              {job.error}
-            </Alert>
-          )}
-
-          <Collapse in={expandedJob === job.job_id}>
-            <Box sx={{ mt: 1.5 }}>
-              {job.notes && (
-                <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: "block" }}>
-                  Notes: {job.notes}
+      {/* ── Hero: current state ── */}
+      <Paper
+        variant="outlined"
+        sx={{
+          p: 3,
+          mb: 3,
+          borderRadius: 2,
+          borderColor: activeJob ? "primary.main"
+            : lastJob?.status === "failed" ? "error.light"
+            : lastJob?.status === "done" ? "success.light"
+            : "divider",
+          borderWidth: activeJob ? 2 : 1,
+        }}
+      >
+        {/* Active job */}
+        {activeJob && (
+          <Stack spacing={1.5}>
+            <Stack direction="row" spacing={1.5} alignItems="center">
+              <HourglassTopIcon color="primary" />
+              <Box flex={1}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Training in progress</Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Step: {activeJob.phase || "starting up"}
+                  {activeJob.elapsed_s != null && ` · ${fmtElapsed(activeJob.elapsed_s)} elapsed`}
                 </Typography>
-              )}
-              {/* Metrics */}
-              {job.metrics && (job.metrics as any).ner && (
-                <Box sx={{ mb: 1 }}>
-                  <Typography variant="caption" sx={{ fontWeight: 600 }}>Results</Typography>
-                  {(() => {
-                    const m = (job.metrics as any).ner;
-                    return (
-                      <Stack direction="row" spacing={2} sx={{ mt: 0.5 }}>
-                        <Typography variant="caption">P: {m.precision}</Typography>
-                        <Typography variant="caption">R: {m.recall}</Typography>
-                        <Typography variant="caption">F1: {m.f1}</Typography>
-                        <Chip
-                          label={m.passed_gates ? "Gates passed" : "Gates failed"}
-                          color={m.passed_gates ? "success" : "error"}
-                          size="small"
-                        />
-                      </Stack>
-                    );
-                  })()}
-                </Box>
-              )}
-              {/* Log */}
-              <Box
-                sx={{
-                  background: "#111",
-                  color: "#cfc",
-                  fontFamily: "monospace",
-                  fontSize: 11,
-                  p: 1,
-                  borderRadius: 1,
-                  maxHeight: 200,
-                  overflowY: "auto",
-                }}
-              >
-                {(job.log_lines ?? []).map((line, i) => (
-                  <div key={i}>{line}</div>
-                ))}
-                {(!job.log_lines || job.log_lines.length === 0) && (
-                  <Typography variant="caption" color="inherit" sx={{ opacity: 0.5 }}>
-                    No log output yet…
-                  </Typography>
-                )}
               </Box>
-              {job.model_version && (
-                <Alert severity="success" sx={{ mt: 1 }}>
-                  Version <strong>{job.model_version}</strong> registered —
-                  go to the <strong>Model Deployment</strong> tab to validate and promote.
-                </Alert>
-              )}
-            </Box>
-          </Collapse>
-        </Paper>
-      ))}
+            </Stack>
+            <LinearProgress sx={{ borderRadius: 1 }} />
+            {activeJob.log_lines?.length > 0 && (
+              <Box sx={{ background: "#0f172a", color: "#86efac", fontFamily: "monospace", fontSize: 11, p: 1.5, borderRadius: 1, maxHeight: 100, overflowY: "auto" }}>
+                {activeJob.log_lines.slice(-6).map((l, i) => <div key={i}>{l}</div>)}
+              </Box>
+            )}
+          </Stack>
+        )}
 
-      {/* ---- Exclude dialog ---- */}
+        {/* Last job failed */}
+        {!activeJob && lastJob?.status === "failed" && (
+          <Stack direction="row" spacing={1.5} alignItems="flex-start">
+            <ErrorOutlineIcon color="error" sx={{ mt: 0.3 }} />
+            <Box flex={1}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Last run failed</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+                {lastJob.error || "An error occurred during training."}
+                {lastJob.elapsed_s != null && ` · ran for ${fmtElapsed(lastJob.elapsed_s)}`}
+              </Typography>
+              <Button variant="contained" startIcon={<PlayArrowIcon />} onClick={() => setStartJobOpen(true)}>
+                Try again
+              </Button>
+              <Button size="small" sx={{ ml: 1 }} onClick={() => setExpandedJob(expandedJob === lastJob.job_id ? null : lastJob.job_id)}>
+                {expandedJob === lastJob.job_id ? "Hide log" : "Show log"}
+              </Button>
+              <Collapse in={expandedJob === lastJob.job_id}>
+                <Box sx={{ mt: 1.5, background: "#0f172a", color: "#fca5a5", fontFamily: "monospace", fontSize: 11, p: 1.5, borderRadius: 1, maxHeight: 160, overflowY: "auto" }}>
+                  {(lastJob.log_lines ?? []).map((l, i) => <div key={i}>{l}</div>)}
+                </Box>
+              </Collapse>
+            </Box>
+          </Stack>
+        )}
+
+        {/* Last job done */}
+        {!activeJob && lastJob?.status === "done" && (
+          <Stack direction="row" spacing={1.5} alignItems="center">
+            <CheckCircleIcon color="success" />
+            <Box flex={1}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                Training complete{lastJob.model_version ? ` — version ${lastJob.model_version}` : ""}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Go to the <strong>Model Deployment</strong> tab to validate and promote.
+                {lastJob.elapsed_s != null && ` · took ${fmtElapsed(lastJob.elapsed_s)}`}
+              </Typography>
+            </Box>
+            <Button variant="outlined" startIcon={<PlayArrowIcon />} onClick={() => setStartJobOpen(true)}>
+              New run
+            </Button>
+          </Stack>
+        )}
+
+        {/* No jobs yet */}
+        {!activeJob && !lastJob && (
+          <Stack direction="row" spacing={2} alignItems="center">
+            <Box flex={1}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                {preview?.exportable_label_count.toLocaleString() ?? stats?.included.toLocaleString() ?? "…"} records ready
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                No training runs yet. Start one to build the NER model.
+              </Typography>
+            </Box>
+            <Button
+              variant="contained"
+              size="large"
+              startIcon={<PlayArrowIcon />}
+              disabled={!preview?.ready_to_train}
+              onClick={() => setStartJobOpen(true)}
+            >
+              Start training
+            </Button>
+          </Stack>
+        )}
+      </Paper>
+
+      {/* Start button when there's a previous job but no active one */}
+      {!activeJob && lastJob && (
+        <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 3 }}>
+          <Typography variant="body2" color="text.secondary">
+            {(preview?.exportable_label_count ?? stats?.included ?? 0).toLocaleString()} records included ·{" "}
+            {(stats?.excluded ?? 0).toLocaleString()} excluded
+          </Typography>
+          <Box flex={1} />
+          <Button
+            variant="contained"
+            startIcon={<PlayArrowIcon />}
+            disabled={!preview?.ready_to_train}
+            onClick={() => setStartJobOpen(true)}
+          >
+            Start training
+          </Button>
+          <IconButton size="small" onClick={() => { fetchJobs(); fetchStats(); fetchPreview(); }}>
+            <RefreshIcon fontSize="small" />
+          </IconButton>
+        </Stack>
+      )}
+
+      {/* ── Run history ── */}
+      {jobs.length > 0 && (
+        <>
+          <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, textTransform: "uppercase", letterSpacing: 0.5, fontSize: 11 }}>
+            Run history
+          </Typography>
+          <Stack spacing={1} sx={{ mb: 3 }}>
+            {jobs.map((job) => {
+              const isActive = ACTIVE_STATUSES.has(job.status);
+              const isExpanded = expandedJob === job.job_id;
+              return (
+                <Paper key={job.job_id} variant="outlined" sx={{ p: 1.5, borderRadius: 1.5 }}>
+                  <Stack direction="row" spacing={1.5} alignItems="center">
+                    <Chip
+                      label={job.status}
+                      color={job.status === "done" ? "success" : job.status === "failed" ? "error" : job.status === "running" || isActive ? "primary" : "default"}
+                      size="small"
+                      sx={{ minWidth: 70, fontWeight: 600 }}
+                    />
+                    <Typography variant="body2" sx={{ flex: 1 }}>
+                      {job.model_version ? `v${job.model_version}` : isActive ? (job.phase || "running…") : "—"}
+                    </Typography>
+                    {job.elapsed_s != null && (
+                      <Typography variant="caption" color="text.disabled">{fmtElapsed(job.elapsed_s)}</Typography>
+                    )}
+                    <Typography variant="caption" color="text.disabled">
+                      {new Date(job.created_at * 1000).toLocaleString([], { dateStyle: "short", timeStyle: "short" })}
+                    </Typography>
+                    <IconButton size="small" onClick={() => setExpandedJob(isExpanded ? null : job.job_id)}>
+                      {isExpanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+                    </IconButton>
+                  </Stack>
+
+                  {isActive && <LinearProgress sx={{ mt: 1, borderRadius: 1 }} />}
+
+                  <Collapse in={isExpanded}>
+                    <Box sx={{ mt: 1.5 }}>
+                      {/* Metrics */}
+                      {job.metrics && (job.metrics as any).ner && (() => {
+                        const m = (job.metrics as any).ner;
+                        return (
+                          <Stack direction="row" spacing={2} sx={{ mb: 1.5 }}>
+                            <Typography variant="caption">Precision <strong>{m.precision}</strong></Typography>
+                            <Typography variant="caption">Recall <strong>{m.recall}</strong></Typography>
+                            <Typography variant="caption">F1 <strong>{m.f1}</strong></Typography>
+                            <Chip label={m.passed_gates ? "Gates passed" : "Gates failed"} color={m.passed_gates ? "success" : "error"} size="small" />
+                          </Stack>
+                        );
+                      })()}
+                      {/* Log */}
+                      <Box sx={{ background: "#0f172a", color: job.status === "failed" ? "#fca5a5" : "#86efac", fontFamily: "monospace", fontSize: 11, p: 1.5, borderRadius: 1, maxHeight: 200, overflowY: "auto" }}>
+                        {(job.log_lines ?? []).length === 0
+                          ? <span style={{ opacity: 0.5 }}>No log output yet…</span>
+                          : (job.log_lines ?? []).map((l, i) => <div key={i}>{l}</div>)}
+                      </Box>
+                    </Box>
+                  </Collapse>
+                </Paper>
+              );
+            })}
+          </Stack>
+        </>
+      )}
+
+      {/* ── Label library (collapsed) ── */}
+      <Accordion disableGutters variant="outlined" sx={{ borderRadius: "8px !important" }}>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ px: 2 }}>
+          <Stack direction="row" spacing={1.5} alignItems="center">
+            <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Label library</Typography>
+            {labelTotal > 0 && (
+              <Chip label={`${labelTotal.toLocaleString()} records`} size="small" variant="outlined" />
+            )}
+            {(stats?.excluded ?? 0) > 0 && (
+              <Chip label={`${stats!.excluded} excluded`} size="small" color="warning" variant="outlined" />
+            )}
+          </Stack>
+        </AccordionSummary>
+        <AccordionDetails sx={{ p: 0 }}>
+          {/* Filters */}
+          <Stack direction="row" spacing={1} sx={{ px: 2, py: 1.5 }} flexWrap="wrap" alignItems="center">
+            <TextField
+              size="small"
+              placeholder="Search…"
+              value={searchText}
+              onChange={(e) => { setSearchText(e.target.value); setLabelPage(1); }}
+              sx={{ width: 200 }}
+            />
+            <ToggleButtonGroup size="small" exclusive value={filterSource ?? ""} onChange={(_, v) => { setFilterSource(v || null); setLabelPage(1); }}>
+              <ToggleButton value="">All</ToggleButton>
+              <ToggleButton value="hitl_approval">HITL</ToggleButton>
+              <ToggleButton value="coding_correction">Corrections</ToggleButton>
+              <ToggleButton value="anchor_mining">Mined</ToggleButton>
+              <ToggleButton value="seed">Seed</ToggleButton>
+            </ToggleButtonGroup>
+            <ToggleButtonGroup size="small" exclusive value={filterInclude === null ? "" : String(filterInclude)} onChange={(_, v) => { setFilterInclude(v === "" ? null : v === "true"); setLabelPage(1); }}>
+              <ToggleButton value="">All</ToggleButton>
+              <ToggleButton value="true">Included</ToggleButton>
+              <ToggleButton value="false">Excluded</ToggleButton>
+            </ToggleButtonGroup>
+            <IconButton size="small" onClick={fetchLabels}><RefreshIcon fontSize="small" /></IconButton>
+          </Stack>
+
+          {/* Table */}
+          <TableContainer sx={{ borderTop: "1px solid", borderColor: "divider" }}>
+            <Table size="small">
+              <TableHead>
+                <TableRow sx={{ background: "action.hover" }}>
+                  <TableCell sx={{ fontWeight: 600 }}>Text</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Entities</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Source</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+                  <TableCell />
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {loadingLabels && (
+                  <TableRow><TableCell colSpan={5} align="center"><CircularProgress size={18} /></TableCell></TableRow>
+                )}
+                {!loadingLabels && labels.length === 0 && (
+                  <TableRow><TableCell colSpan={5} align="center"><Typography variant="caption" color="text.disabled">No records found</Typography></TableCell></TableRow>
+                )}
+                {labels.map((label) => (
+                  <TableRow key={label.label_id} sx={{ opacity: label.include ? 1 : 0.45 }}>
+                    <TableCell sx={{ maxWidth: 260 }}>
+                      <Typography variant="caption" sx={{ fontFamily: "monospace" }}>
+                        {label.text.slice(0, 100)}{label.text.length > 100 ? "…" : ""}
+                      </Typography>
+                    </TableCell>
+                    <TableCell sx={{ minWidth: 180 }}>
+                      <EntityPills entitiesJson={label.entities_json} />
+                    </TableCell>
+                    <TableCell>
+                      <Chip label={SOURCE_LABELS[label.source] ?? label.source} color={SOURCE_COLORS[label.source] ?? "default"} size="small" variant="outlined" />
+                    </TableCell>
+                    <TableCell>
+                      {label.include
+                        ? <Chip label="In" color="success" size="small" />
+                        : <Tooltip title={label.excluded_reason ?? ""}><Chip label="Out" color="default" size="small" /></Tooltip>}
+                    </TableCell>
+                    <TableCell align="right">
+                      {label.include
+                        ? <Tooltip title="Remove from training"><IconButton size="small" onClick={() => setExcludeTarget(label.label_id)}><BlockIcon fontSize="small" color="error" /></IconButton></Tooltip>
+                        : <Tooltip title="Add back to training"><IconButton size="small" onClick={() => handleInclude(label.label_id)}><CheckCircleOutlineIcon fontSize="small" color="success" /></IconButton></Tooltip>}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+
+          {/* Pagination */}
+          <Stack direction="row" spacing={1} alignItems="center" sx={{ px: 2, py: 1.5 }}>
+            <Button size="small" disabled={labelPage <= 1} onClick={() => setLabelPage((p) => p - 1)}>← Prev</Button>
+            <Typography variant="caption" color="text.secondary">
+              {labelPage} / {totalPages} ({labelTotal.toLocaleString()} records)
+            </Typography>
+            <Button size="small" disabled={labelPage >= totalPages} onClick={() => setLabelPage((p) => p + 1)}>Next →</Button>
+          </Stack>
+        </AccordionDetails>
+      </Accordion>
+
+      {/* ── Exclude dialog ── */}
       <Dialog open={!!excludeTarget} onClose={() => setExcludeTarget(null)} maxWidth="sm" fullWidth>
-        <DialogTitle>Exclude label from training</DialogTitle>
+        <DialogTitle>Remove this record from training?</DialogTitle>
         <DialogContent>
           <Typography variant="body2" sx={{ mb: 2 }}>
-            This record will be excluded from future training runs. It is not deleted and can be re-included at any time.
+            The record won't be used in future training runs. You can add it back at any time.
           </Typography>
           <TextField
-            fullWidth
+            fullWidth autoFocus
             label="Reason"
-            placeholder="e.g. incorrect span, PHI risk, duplicate…"
+            placeholder="e.g. wrong entity, contains identifiable information…"
             value={excludeReason}
             onChange={(e) => setExcludeReason(e.target.value)}
-            multiline
-            rows={2}
+            multiline rows={2}
           />
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setExcludeTarget(null)}>Cancel</Button>
-          <Button
-            onClick={handleExclude}
-            disabled={!excludeReason.trim() || excludeBusy}
-            color="error"
-            variant="contained"
-          >
-            {excludeBusy ? "Excluding…" : "Exclude"}
+          <Button onClick={handleExclude} disabled={!excludeReason.trim() || excludeBusy} color="error" variant="contained">
+            {excludeBusy ? "Removing…" : "Remove"}
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* ---- Start job dialog ---- */}
+      {/* ── Start training dialog ── */}
       <Dialog open={startJobOpen} onClose={() => setStartJobOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Start training run</DialogTitle>
+        <DialogTitle>Start a training run</DialogTitle>
         <DialogContent>
           <Typography variant="body2" sx={{ mb: 2 }}>
-            This will fine-tune the NER head on top of Bio_ClinicalBERT using all{" "}
-            <strong>{preview?.exportable_label_count ?? "?"} included labels</strong>. Training
-            runs in the background — you can close this dialog and check progress below.
+            This will train the NER model using{" "}
+            <strong>{(preview?.exportable_label_count ?? 0).toLocaleString()} records</strong>.
+            Training runs in the background — you can watch progress on this page.
           </Typography>
           <TextField
             fullWidth
             label="Notes (optional)"
-            placeholder="e.g. added 20 haemoptysis corrections"
+            placeholder="e.g. added corrections for haemoptysis"
             value={jobNotes}
             onChange={(e) => setJobNotes(e.target.value)}
-            multiline
-            rows={2}
+            multiline rows={2}
           />
         </DialogContent>
         <DialogActions>
@@ -696,10 +628,9 @@ export default function TrainingDataPanel() {
             onClick={handleStartJob}
             disabled={startingJob}
             variant="contained"
-            color="primary"
             startIcon={startingJob ? <CircularProgress size={14} /> : <PlayArrowIcon />}
           >
-            {startingJob ? "Queuing…" : "Start"}
+            {startingJob ? "Starting…" : "Start"}
           </Button>
         </DialogActions>
       </Dialog>

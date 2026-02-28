@@ -196,10 +196,19 @@ if ($needsModelInference -and (ShouldStart "model_inference")) {
 }
 
 # 6  Training Worker  (NER fine-tuning; only when -TrainingWorker flag)
+#    Starts in external PowerShell window like other services. Kills any existing process on port first.
 if ($TrainingWorker -and (ShouldStart "training_worker")) {
+    $existing = Get-NetTCPConnection -LocalPort $TrainingWorkerPort -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($existing) {
+        $procId = $existing.OwningProcess
+        Stop-Process -Id $procId -Force -ErrorAction SilentlyContinue
+        Write-Host "    Training Worker    [killed existing PID $procId]" -ForegroundColor Yellow
+        Start-Sleep -Seconds 2
+    }
     $twCmd = "& '$VenvPython' -m uvicorn app.main:app --app-dir '$TrainingWorkerDir' --host 0.0.0.0 --port $TrainingWorkerPort"
     Start-ServiceWindow -Title "Training Worker :$TrainingWorkerPort" -Command $twCmd -WorkDir $TrainingWorkerDir
     Write-Host "    Training Worker    http://localhost:$TrainingWorkerPort  (NER fine-tuning /train/jobs /train/progress)" -ForegroundColor White
+    $windowCount++
 } else {
     Write-Host "    Training Worker    [skipped; use -TrainingWorker to start]" -ForegroundColor DarkGray
 }

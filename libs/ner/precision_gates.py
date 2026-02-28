@@ -116,6 +116,47 @@ _NON_CANCER_RE = re.compile(
     r"(?i)(" + "|".join(re.escape(w) for w in NON_CANCER_CONTEXT_WORDS) + r")",
 )
 
+_FIT_NOTE_CONTEXT_RE = re.compile(
+    r"\b(fit\s+notes?|not\s+fit\s+for\s+work|fit\s+for\s+work|eMED3|"
+    r"statement\s+issued|sick\s*notes?|fit\s+note\s+document)\b",
+    re.IGNORECASE,
+)
+
+_URL_RE = re.compile(r"https?://[^\s]+", re.IGNORECASE)
+
+# Location/organisation names that must not be tagged as clinical entities
+LOCATION_BLOCKLIST: frozenset[str] = frozenset(
+    {
+        "lri",
+        "leicester",
+        "rutland",
+        "leicestershire",
+        "qmc",
+        "nottingham",
+        "charnwood",
+        "nhs south central and west csu",
+        "leicester, leicestershire & rutland chis - nhs south central and west csu",
+    }
+)
+
+# Person names that leaked through de-id; records containing these are rejected
+PERSON_BLOCKLIST: frozenset[str] = frozenset(
+    {
+        "naynaben",
+        "dr d p ryan",
+        "dr t",
+        "dr j lisle",
+        "dr j lisle (gpst2)",
+        "dr a p taylor",
+        "dr noble",
+        "dr m al-attar",
+        "dr m al-attar, gh",
+        "dr r s patel",
+        "dr j bennett",
+        "john",
+    }
+)
+
 
 def _has_malignancy_signal(text: str) -> bool:
     return bool(_MALIGNANCY_RE.search(text))
@@ -182,6 +223,22 @@ def check_entity(
 
     # ---- General cross-domain hardening ----
 
+    # "GP Surgery" as a bare entity is always an administrative/location
+    # reference, not a clinical finding.  The valid SNOMED concept
+    # "Seen in GP surgery" requires the full phrase, not "GP Surgery" alone.
+    if etext == "gp surgery":
+        reasons.append("gp_surgery_header_boilerplate")
+
+    # "fit"/"FIT" meaning fitness-to-work certificate (eMED3), not the
+    # Faecal Immunochemical Test.  Reject when nearby context indicates a
+    # fit-note / sick-note administrative action.
+    if etext == "fit" and _FIT_NOTE_CONTEXT_RE.search(context):
+        reasons.append("fit_note_false_positive")
+
+    # Entity text matches a blocklisted location/organisation name
+    if etext in LOCATION_BLOCKLIST:
+        reasons.append("entity_text_blocklisted_location")
+
     # Very short entities (≤2 chars) are almost always spurious, EXCEPT for
     # modifier/cue labels (X_NEGATION_CUE etc.) where single words like "No"
     # are clinically valid and intentional.
@@ -220,6 +277,18 @@ def check_record_entities(record: dict[str, Any]) -> list[str]:
     """
     text = str(record.get("text") or "")
     all_reasons: list[str] = []
+
+    # Record-level: reject if text contains a URL (web addresses are not clinical)
+    if _URL_RE.search(text):
+        all_reasons.append("record_contains_url")
+
+    # Record-level: reject if text contains leaked person names (de-id failure)
+    text_lower = text.lower()
+    for name in PERSON_BLOCKLIST:
+        if name in text_lower:
+            all_reasons.append("record_contains_blocklisted_person")
+            break
+
     for ent in record.get("entities", []):
         reasons = check_entity(ent, text)
         all_reasons.extend(reasons)
