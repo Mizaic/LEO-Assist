@@ -2,35 +2,56 @@
 # Creates / activates .venv, installs all deps, starts every microservice.
 #
 # Usage:
-#   .\scripts\start_primary_care.ps1                           # full stack (3 coding + 2 analysis workers)
-#   .\scripts\start_primary_care.ps1 -SkipInstall              # skip pip/npm
-#   .\scripts\start_primary_care.ps1 -NoWorkers                # skip background workers
-#   .\scripts\start_primary_care.ps1 -Services api,ui          # named subset
-#   .\scripts\start_primary_care.ps1 -CodingWorkers 1          # single coding worker (debug)
-#   .\scripts\start_primary_care.ps1 -AnalysisWorkers 1        # single analysis worker (debug)
+#   .\scripts\start_primary_care.ps1                            # full stack (3 coding + 2 analysis workers)
+#   .\scripts\start_primary_care.ps1 -SkipInstall               # skip pip/npm
+#   .\scripts\start_primary_care.ps1 -NoWorkers                 # skip background workers
+#   .\scripts\start_primary_care.ps1 -Services api,ui           # named subset
+#   .\scripts\start_primary_care.ps1 -CodingWorkers 1           # single coding worker (debug)
+#   .\scripts\start_primary_care.ps1 -AnalysisWorkers 1         # single analysis worker (debug)
+#   .\scripts\start_primary_care.ps1 -ModelInference            # also start NER model inference service
+#   .\scripts\start_primary_care.ps1 -TrainingWorker            # also start NER training worker (port 8005)
+#
+# Model inference service notes:
+#   Only needed when CODING_EXTRACTOR_BACKEND=model|auto (default: llm).
+#   Downloads the active NER model artifact from Azure Blob at startup.
+#   Exposes /extract, /health, /reload, /versions on -ModelInferencePort (default 8004).
+#
+# Training worker notes:
+#   On-demand — start when you want to fine-tune the NER model.
+#   Reads TrainingLabel nodes from Neo4j, trains NER head on Bio_ClinicalBERT, uploads to blob.
+#   Exposes /train/jobs, /train/progress/{job_id} on -TrainingWorkerPort (default 8005).
 
 param(
-    [int]$ApiPort        = 8000,
-    [int]$TermPort       = 8001,
-    [int]$FhirPort       = 8002,
-    [int]$AnalyticsPort  = 8003,
-    [int]$UiPort         = 3000,
-    [int]$CodingWorkers  = 3,
-    [int]$AnalysisWorkers = 2,
+    [int]$ApiPort             = 8000,
+    [int]$TermPort            = 8001,
+    [int]$FhirPort            = 8002,
+    [int]$AnalyticsPort       = 8003,
+    [int]$ModelInferencePort  = 8004,
+    [int]$TrainingWorkerPort  = 8005,
+    [int]$UiPort              = 3000,
+    [int]$CodingWorkers       = 3,
+    [int]$AnalysisWorkers     = 2,
     [switch]$SkipInstall,
     [switch]$NoWorkers,
-    [string[]]$Services  = @()
+    [switch]$ModelInference,
+    [switch]$TrainingWorker,
+    [string[]]$Services       = @()
 )
 
 $ErrorActionPreference = "Stop"
 
-$RepoRoot   = Split-Path -Parent $PSScriptRoot
-$VenvDir    = Join-Path $RepoRoot ".venv"
-$VenvPython = Join-Path $VenvDir  "Scripts\python.exe"
-$VenvPip    = Join-Path $VenvDir  "Scripts\pip.exe"
-$UiDir      = Join-Path $RepoRoot "services\ui"
-$ApiDir     = Join-Path $RepoRoot "services\api"
-$ReqFile    = Join-Path $RepoRoot "requirements.txt"
+$RepoRoot           = Split-Path -Parent $PSScriptRoot
+$VenvDir            = Join-Path $RepoRoot ".venv"
+$VenvPython         = Join-Path $VenvDir  "Scripts\python.exe"
+# $VenvPip            = Join-Path $VenvDir  "Scripts\pip.exe"
+$UiDir              = Join-Path $RepoRoot "services\ui"
+$ApiDir             = Join-Path $RepoRoot "services\api"
+$ModelInferenceDir  = Join-Path $RepoRoot "services\model_inference"
+$TrainingWorkerDir  = Join-Path $RepoRoot "services\training_worker"
+$ReqFile            = Join-Path $RepoRoot "requirements.txt"
+$ModelInferenceReq  = Join-Path $ModelInferenceDir "requirements.txt"
+$TrainingWorkerReq  = Join-Path $TrainingWorkerDir "requirements.txt"
+$ModelCacheDir      = Join-Path $RepoRoot ".model_cache"
 
 Write-Host ""
 Write-Host "  Primary Care Audit - Local Dev Startup" -ForegroundColor Cyan
@@ -62,6 +83,14 @@ if (Test-Path $masterEnv) {
     Write-Host "         Create secrets\.env or set environment variables manually." -ForegroundColor Yellow
 }
 
+# -- Local model cache directory -------------------------------------------
+# Model inference service downloads NER artifacts from Azure Blob into this dir.
+# Committed to .gitignore; safe to delete between dev sessions.
+if (-not (Test-Path $ModelCacheDir)) {
+    New-Item -ItemType Directory -Path $ModelCacheDir | Out-Null
+    Write-Host "  [dir]  Created .model_cache/ for NER model artifacts." -ForegroundColor Green
+}
+
 # -- Python virtual environment --------------------------------------------
 if (-not (Test-Path $VenvPython)) {
     Write-Host "  [venv] Creating virtual environment..." -ForegroundColor Yellow
@@ -74,6 +103,14 @@ if (-not $SkipInstall) {
     Write-Host "  [pip]  Installing / upgrading Python dependencies..." -ForegroundColor Yellow
     & $VenvPython -m pip install --quiet --upgrade pip
     & $VenvPython -m pip install --quiet --upgrade -r $ReqFile
+    # Model inference service has its own requirements (spaCy, azure-storage-blob)
+    # that may drift from the monorepo floor - install on top of the venv.
+    if (Test-Path $ModelInferenceReq) {
+        & $VenvPython -m pip install --quiet --upgrade -r $ModelInferenceReq
+    }
+    if ($TrainingWorker -and (Test-Path $TrainingWorkerReq)) {
+        & $VenvPython -m pip install --quiet --upgrade -r $TrainingWorkerReq
+    }
     Write-Host "  [pip]  Python dependencies up to date." -ForegroundColor Green
 }
 
@@ -145,7 +182,29 @@ if (ShouldStart "analytics_api") {
     $windowCount++
 }
 
-# 5  Coding Workers  (message-bus consumers, fan-out parallel classification + extraction)
+# 5  Model Inference Service  (NER spaCy endpoint; only when -ModelInference or CODING_EXTRACTOR_BACKEND=model|auto)
+#    Downloads the active model from Azure Blob at startup. Hot-reload via /reload.
+#    Skipped by default because CODING_EXTRACTOR_BACKEND defaults to 'llm'.
+$needsModelInference = $ModelInference -or ($env:CODING_EXTRACTOR_BACKEND -in @("model", "auto"))
+if ($needsModelInference -and (ShouldStart "model_inference")) {
+    $miCmd = "& '$VenvPython' -m uvicorn app.main:app --app-dir '$ModelInferenceDir' --host 0.0.0.0 --port $ModelInferencePort"
+    Start-ServiceWindow -Title "Model Inference :$ModelInferencePort" -Command $miCmd -WorkDir $ModelInferenceDir
+    Write-Host "    Model Inference    http://localhost:$ModelInferencePort  (NER /extract /health /reload /versions)" -ForegroundColor White
+    $windowCount++
+} elseif (-not $needsModelInference) {
+    Write-Host "    Model Inference    [skipped - CODING_EXTRACTOR_BACKEND=llm; use -ModelInference to start]" -ForegroundColor DarkGray
+}
+
+# 6  Training Worker  (NER fine-tuning; only when -TrainingWorker flag)
+if ($TrainingWorker -and (ShouldStart "training_worker")) {
+    $twCmd = "& '$VenvPython' -m uvicorn app.main:app --app-dir '$TrainingWorkerDir' --host 0.0.0.0 --port $TrainingWorkerPort"
+    Start-ServiceWindow -Title "Training Worker :$TrainingWorkerPort" -Command $twCmd -WorkDir $TrainingWorkerDir
+    Write-Host "    Training Worker    http://localhost:$TrainingWorkerPort  (NER fine-tuning /train/jobs /train/progress)" -ForegroundColor White
+} else {
+    Write-Host "    Training Worker    [skipped; use -TrainingWorker to start]" -ForegroundColor DarkGray
+}
+
+# 6  Coding Workers  (message-bus consumers, fan-out parallel classification + extraction)
 if (-not $NoWorkers -and (ShouldStart "coding_worker")) {
     for ($i = 1; $i -le $CodingWorkers; $i++) {
         Start-ServiceWindow -Title "Coding Worker $i" -Command "& '$VenvPython' -m services.coding_worker.app.main"
@@ -154,7 +213,7 @@ if (-not $NoWorkers -and (ShouldStart "coding_worker")) {
     $windowCount += $CodingWorkers
 }
 
-# 6  Analysis Workers  (message-bus consumers, one per patient, sequential stages)
+# 7  Analysis Workers  (message-bus consumers, one per patient, sequential stages)
 if (-not $NoWorkers -and (ShouldStart "analysis_worker")) {
     for ($i = 1; $i -le $AnalysisWorkers; $i++) {
         Start-ServiceWindow -Title "Analysis Worker $i" -Command "& '$VenvPython' -m services.analysis_worker.app.main"
@@ -163,7 +222,7 @@ if (-not $NoWorkers -and (ShouldStart "analysis_worker")) {
     $windowCount += $AnalysisWorkers
 }
 
-# 7  UI  (Next.js)  ->  :3000
+# 8  UI  (Next.js)  ->  :3000
 if (ShouldStart "ui") {
     Start-ServiceWindow -Title "UI :$UiPort" -Command "npm.cmd run dev -- --port $UiPort" -WorkDir $UiDir
     Write-Host "    UI                 http://localhost:$UiPort" -ForegroundColor White

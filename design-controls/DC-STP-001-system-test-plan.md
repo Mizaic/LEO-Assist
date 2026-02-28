@@ -48,7 +48,7 @@ This document defines the system-level test plan for the NLP Training and Infere
 |----|------|-------|-----------------|-----------|
 | ST-TP-001 | Run pipeline on single patient | POST /pipeline/run with 1 patient, max_encounters=5 | EncounterCandidates created in Patient graph; ReviewTasks created; SSE events streamed | FR-TP-001 to FR-TP-010 |
 | ST-TP-002 | Run pipeline dry run | POST /pipeline/run with dry_run=true | Stats returned; no EncounterCandidates persisted | FR-TP-007 |
-| ST-TP-003 | Pipeline LLM failure | Run with invalid AWS credentials | ExtractionError raised; no regex fallback; encounter_error SSE event | FR-TP-008 |
+| ST-TP-003 | Pipeline LLM failure | Run with invalid AWS credentials | ExtractionError raised; canonical path has no fallback; encounter_error SSE event | FR-TP-008 |
 | ST-TP-004 | LLM usage tracked | Run pipeline on 1 encounter | llm_usage_json populated on EncounterCandidate with token counts and cost | FR-LU-001 to FR-LU-003 |
 
 ### 4.2 HITL Review

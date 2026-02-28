@@ -23,7 +23,7 @@ DEFAULT_INPUT = (
     / "terminology"
     / "data"
     / "training"
-    / "surface_forms_4202301609.prototype_coding.jsonl"
+    / "surface_forms_9990000001.prototype_coding.jsonl"
 )
 
 UPSERT_QUERY = """

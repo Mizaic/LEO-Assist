@@ -12,6 +12,7 @@ from app.models.contracts import (
     ExportMedSpaCyResponse,
 )
 from app.services.export_service import ExportService
+from libs.auth.org_scope import CallerScope, get_caller_scope
 
 
 router = APIRouter(prefix="/exports", tags=["exports"])
@@ -24,7 +25,11 @@ def get_export_service() -> ExportService:
 
 
 @router.post("/dataset", response_model=ExportDatasetResponse)
-def export_dataset(request: ExportDatasetRequest, service: ExportService = Depends(get_export_service)):
+def export_dataset(
+    request: ExportDatasetRequest,
+    scope: CallerScope = Depends(get_caller_scope),
+    service: ExportService = Depends(get_export_service),
+):
     payload = service.create_export(
         export_name=request.export_name,
         train_ratio=request.train_ratio,
@@ -36,6 +41,7 @@ def export_dataset(request: ExportDatasetRequest, service: ExportService = Depen
 @router.post("/medspacy-training", response_model=ExportMedSpaCyResponse)
 def export_medspacy_training(
     request: ExportMedSpaCyRequest,
+    scope: CallerScope = Depends(get_caller_scope),
     service: ExportService = Depends(get_export_service),
 ):
     """Export approved gold to MedSpaCy training format (entities + KB)."""

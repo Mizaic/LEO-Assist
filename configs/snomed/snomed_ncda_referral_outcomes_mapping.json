@@ -1,0 +1,306 @@
+{
+  "metadata": {
+    "domain": "referral_outcomes",
+    "description": "Outcomes from 2WW/urgent cancer referrals - cancer excluded or confirmed situations",
+    "focus": "Situation concepts that close cancer pathways",
+    "total_keywords": 11,
+    "generated_at": "2025-01-01T00:00:00Z",
+    "enriched_with_synonyms": true,
+    "synonym_enrichment_date": "2025-12-06T08:06:08.625221",
+    "synonym_stats": {
+      "concepts_with_synonyms": 11,
+      "concepts_not_found": 0,
+      "average_synonyms_per_concept": 5.0
+    },
+    "dentist_referral_added": "2025-12-07",
+    "dentist_referral_note": "Added referral to dentist for oral cavity cancer pathway",
+    "imaging_normal_enriched": "2025-12-07",
+    "imaging_normal_note": "Enhanced mammogram and CT normal with 'came back clear' synonyms",
+    "normal_tissue_enriched": "2025-12-07",
+    "normal_tissue_note": "Added 'normal glandular breast tissue' to normal breast tissue synonyms"
+  },
+  "mappings": {
+    "Patient cancelled referral": {
+      "keyword": "Patient cancelled referral",
+      "concept_id": 923501000000103,
+      "preferred_term": "Referral cancelled by patient (finding)",
+      "semantic_tag": "Clinical_finding",
+      "outcome_type": "cancer_excluded",
+      "pathway_action": "close",
+      "description": "Patient cancelled referral",
+      "guideline_synonyms": [
+        "Cancelled by patient",
+        "pt cancelled referral",
+        "C&B cancelled by patient",
+        "patient cancelled"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Referral cancelled by patient (finding)"
+    },
+    "No evidence of cancer found": {
+      "keyword": "No evidence of cancer found",
+      "concept_id": 395100000,
+      "preferred_term": "No evidence of cancer found (situation)",
+      "semantic_tag": "Situation",
+      "outcome_type": "cancer_excluded",
+      "pathway_action": "close",
+      "description": "Investigation complete with no cancer identified",
+      "guideline_synonyms": [
+        "No evidence of cancer found",
+        "No cancer",
+        "Cancer excluded",
+        "No evidence of malignancy",
+        "Negative for malignancy",
+        "No clinical evidence of cancer",
+        "No radiological evidence of cancer",
+        "No suspicious lesions identified",
+        "No signs of recurrent or residual cancer",
+        "NED (no evidence of disease)",
+        "Findings not suggestive of malignancy",
+        "Cancer ruled out",
+        "No evidence of cancer",
+        "All clear from colorectal team",
+        "Cancer has been excluded",
+        "Cancer not found",
+        "discharged from 2WW pathway",
+        "no evidence of colorectal cancer",
+        "no evidence of colorectal malignancy",
+        "No evidence of lymphoma",
+        "no malignancy found"
+      ],
+      "guideline_synonym_count": 21,
+      "guideline_name": "No evidence of cancer found (situation)"
+    },
+    "Benign pathology found": {
+      "keyword": "Benign pathology found",
+      "concept_id": 20376005,
+      "preferred_term": "Benign neoplastic disease (disorder)",
+      "semantic_tag": "Disease",
+      "outcome_type": "benign_pathology",
+      "pathway_action": "close",
+      "description": "Investigation identified a benign lesion with no evidence of malignancy",
+      "guideline_synonyms": [
+        "Benign",
+        "benign lesion",
+        "benign in nature",
+        "benign tumour",
+        "benign neoplasm"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Benign pathology found (situation)"
+    },
+    "No evidence of recurrence of cancer": {
+      "keyword": "No evidence of recurrence of cancer",
+      "concept_id": 414861001,
+      "preferred_term": "No evidence of recurrence of cancer (situation)",
+      "semantic_tag": "Situation",
+      "outcome_type": "cancer_excluded",
+      "pathway_action": "close",
+      "description": "Follow-up confirms no cancer recurrence",
+      "guideline_synonyms": [
+        "recurrence of cancer",
+        "recurrent cancer",
+        "no cancer recurrence",
+        "no evidence of relapse"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "No evidence of recurrence of cancer (situation)"
+    },
+    "Suspected cancer": {
+      "keyword": "Suspected cancer",
+      "concept_id": 162572001,
+      "preferred_term": "Malignant neoplastic disease suspected (situation)",
+      "semantic_tag": "Situation",
+      "outcome_type": "pending",
+      "pathway_action": "await",
+      "description": "Cancer suspected but not yet confirmed - awaiting diagnostics",
+      "guideline_synonyms": [
+        "Suspected cancer",
+        "Suspicious for malignancy",
+        "Suspicious of cancer",
+        "Query malignancy",
+        "?Malignancy",
+        "suspected malignancy",
+        "query Ca"
+      ],
+      "guideline_synonym_count": 7,
+      "guideline_name": "Suspected malignant neoplasm (situation)"
+    },
+    "Normal breast tissue": {
+      "keyword": "Normal breast tissue",
+      "concept_id": 281900007,
+      "preferred_term": "No abnormality detected (finding)",
+      "semantic_tag": "Clinical_finding",
+      "outcome_type": "cancer_excluded",
+      "pathway_action": "close",
+      "alias_for": "Normal finding",
+      "guideline_synonyms": [
+        "NAD - No abnormality detected",
+        "No abnormality detected",
+        "No abnormality detected (finding)",
+        "Normal breast tissue",
+        "Normal glandular breast tissue",
+        "Normal glandular tissue",
+        "within normal limits",
+        "no significant abnormality"
+      ],
+      "guideline_synonym_count": 8,
+      "guideline_name": "No abnormality detected (finding)"
+    },
+    "Negative biopsy": {
+      "keyword": "Negative biopsy",
+      "concept_id": 165324008,
+      "preferred_term": "Biopsy result normal (finding)",
+      "semantic_tag": "Clinical_finding",
+      "outcome_type": "cancer_excluded",
+      "pathway_action": "close",
+      "description": "Biopsy negative for malignancy",
+      "guideline_synonyms": [
+        "Biopsy",
+        "biopsy normal",
+        "normal biopsy result"
+      ],
+      "guideline_synonym_count": 3,
+      "guideline_name": "Biopsy result normal (finding)"
+    },
+    "Breast neoplasm screening normal": {
+      "keyword": "Breast neoplasm screening normal",
+      "concept_id": 171175005,
+      "preferred_term": "Breast neoplasm screening normal (finding)",
+      "semantic_tag": "Clinical_finding",
+      "outcome_type": "cancer_excluded",
+      "pathway_action": "close",
+      "description": "Breast cancer screening returned normal result",
+      "guideline_synonyms": [
+        "screening",
+        "breast screening normal",
+        "breast screen normal"
+      ],
+      "guideline_synonym_count": 3,
+      "guideline_name": "Breast neoplasm screening normal (finding)"
+    },
+    "Normal mammogram": {
+      "keyword": "Normal mammogram",
+      "concept_id": 168749009,
+      "preferred_term": "Mammography normal (finding)",
+      "semantic_tag": "Clinical_finding",
+      "outcome_type": "cancer_excluded",
+      "pathway_action": "close",
+      "alias_for": "Mammography normal",
+      "guideline_synonyms": [
+        "Mammography normal",
+        "Mammography normal (finding)",
+        "Normal mammogram",
+        "Mammogram normal",
+        "Mammogram came back clear",
+        "Mammogram clear",
+        "Normal mammography",
+        "Clear mammogram",
+        "mammo normal",
+        "mammogram NAD",
+        "mammo NAD",
+        "mammogram unremarkable"
+      ],
+      "guideline_synonym_count": 12,
+      "guideline_name": "Mammography normal (finding)"
+    },
+    "Normal appearance": {
+      "keyword": "No abnormality detected (finding)",
+      "concept_id": 281900007,
+      "preferred_term": "Normal appearance (finding)",
+      "semantic_tag": "Clinical_finding",
+      "outcome_type": "cancer_excluded",
+      "pathway_action": "close",
+      "alias_for": "Unremarkable",
+      "guideline_synonyms": [
+        "Normal appearance",
+        "Unremarkable",
+        "NAD - No abnormality detected",
+        "No abnormality detected",
+        "No abnormality detected (finding)",
+        "within normal limits",
+        "no significant abnormality"
+      ],
+      "guideline_synonym_count": 7,
+      "guideline_name": "Normal appearance (finding)"
+    },
+    "Referral to dentist": {
+      "keyword": "Referral to dentist",
+      "concept_id": 772071006,
+      "preferred_term": "Referral to dentist (procedure)",
+      "semantic_tag": "Procedure",
+      "outcome_type": "referral_made",
+      "pathway_action": "refer",
+      "description": "Patient referred to dental services for oral cavity concerns",
+      "guideline_synonyms": [
+        "Referral to dentist",
+        "Referral to dentist (procedure)",
+        "Dental referral",
+        "dentist referral",
+        "dental ref",
+        "refer to dentist",
+        "dentist ref",
+        "referred to dentist",
+        "sent to dentist"
+      ],
+      "guideline_synonym_count": 9,
+      "guideline_name": "Referral to dentist (procedure)"
+    },
+    "CT scan normal": {
+      "keyword": "CT scan normal",
+      "concept_id": 169064005,
+      "preferred_term": "Computed tomography normal (finding)",
+      "semantic_tag": "Clinical_finding",
+      "outcome_type": "cancer_excluded",
+      "pathway_action": "close",
+      "description": "CT scan returned normal result - no abnormality detected",
+      "guideline_synonyms": [
+        "CT scan normal",
+        "CT normal",
+        "Computed tomography normal",
+        "Computed tomography normal (finding)",
+        "CT scan came back clear",
+        "CT came back clear",
+        "CT scan clear",
+        "Normal CT",
+        "Normal CT scan",
+        "CT unremarkable",
+        "CT clear"
+      ],
+      "guideline_synonym_count": 11,
+      "guideline_name": "Computed tomography normal (finding)"
+    }
+  },
+  "outcome_types": {
+    "cancer_excluded": {
+      "label": "Cancer Excluded",
+      "description": "No cancer found",
+      "badge_color": "success",
+      "icon": "CheckCircle"
+    },
+    "cancer_confirmed": {
+      "label": "Cancer Confirmed",
+      "description": "Cancer diagnosis confirmed",
+      "badge_color": "error",
+      "icon": "Warning"
+    },
+    "pending": {
+      "label": "Pending",
+      "description": "Awaiting definitive outcome",
+      "badge_color": "warning",
+      "icon": "Schedule"
+    },
+    "benign_pathology": {
+      "label": "Benign Pathology",
+      "description": "Benign lesion identified, no evidence of malignancy",
+      "badge_color": "info",
+      "icon": "Info"
+    },
+    "referral_made": {
+      "label": "Referral Made",
+      "description": "Patient referred to specialist service",
+      "badge_color": "primary",
+      "icon": "Send"
+    }
+  }
+}

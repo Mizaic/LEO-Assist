@@ -14,8 +14,9 @@ import time
 from typing import Any, Dict, Optional
 
 import httpx
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
+from libs.auth.org_scope import CallerScope, get_caller_scope, require_patient_in_scope
 from libs.neo4j_client.client import PatientGraphClient
 
 router = APIRouter()
@@ -42,6 +43,7 @@ async def get_imd_data(postcode: str):
 async def enrich_patient_imd(
     patient_id: str = Query(...),
     postcode: str = Query(...),
+    scope: CallerScope = Depends(get_caller_scope),
 ):
     """Retrieve IMD data and store it on the Patient node."""
     clean = postcode.strip().upper()
@@ -54,6 +56,7 @@ async def enrich_patient_imd(
 
     client = PatientGraphClient()
     try:
+        require_patient_in_scope(client, scope, patient_id)
         client.run(
             "MATCH (p:Patient) WHERE toString(p.id) = $pid "
             "MERGE (p)-[:HAS_ADDRESS]->(addr:Address {postcode: $pc}) "

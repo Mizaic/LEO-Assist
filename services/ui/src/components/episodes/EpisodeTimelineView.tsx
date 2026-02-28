@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, type ReactNode } from "react";
 import Link from "next/link";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -24,6 +24,9 @@ import Select from "@mui/material/Select";
 import MenuItem from "@mui/material/MenuItem";
 import FormControl from "@mui/material/FormControl";
 import InputLabel from "@mui/material/InputLabel";
+import Collapse from "@mui/material/Collapse";
+import IconButton from "@mui/material/IconButton";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import type {
   Episode,
   PathwayRisk,
@@ -88,7 +91,7 @@ const MILESTONE_COLORS: Record<string, string> = {
 };
 
 const RISK_CHIP: Record<string, { label: string; color: "error" | "warning" | "success" | "default" }> = {
-  breached: { label: "Breached", color: "error" },
+  breached: { label: "Overdue", color: "error" },
   "at-risk": { label: "At risk", color: "warning" },
   "on-track": { label: "On track", color: "success" },
   completed: { label: "Completed", color: "default" },
@@ -125,10 +128,10 @@ function BreachSummaryBar({ breaches }: { breaches: BreachStatus[] }) {
           label = formatBreachLabel(b);
         } else if (atRisk) {
           color = "warning";
-          label = `${b.target.label}: ${b.daysRemaining}d left`;
+          label = `${b.target.label}: ${b.daysRemaining} days left`;
         } else {
           color = "default";
-          label = `${b.target.label}: ${b.daysRemaining}d left`;
+          label = `${b.target.label}: ${b.daysRemaining} days left`;
         }
 
         return (
@@ -162,12 +165,12 @@ function PendingMilestoneAlert({ risk }: { risk: PathwayRisk }) {
   const severity = remaining < 0 ? "error" : "warning";
   const staleNote =
     remaining < 0 && Math.abs(remaining) > 365
-      ? " (Likely stale - pathway needs review)"
+      ? " This pathway may be stale."
       : "";
   const msg =
     remaining < 0
-      ? `${nextLabel} is overdue -- ${worst.target.label} breached by ${Math.abs(remaining)} days.${staleNote}`
-      : `${nextLabel} needed within ${remaining} days to meet the ${worst.target.label} standard.`;
+      ? `${nextLabel} is ${Math.abs(remaining)} days overdue.${staleNote}`
+      : `${nextLabel} is due within ${remaining} days.`;
 
   return (
     <Alert severity={severity} sx={{ mb: 2, fontSize: "0.85rem" }}>
@@ -284,28 +287,25 @@ export default function EpisodeTimelineView({
         />
       </Box>
 
-      <Box sx={{ display: "flex", gap: 2, mb: 2, flexWrap: "wrap", alignItems: "center" }}>
-        <InfoChip label="Pathway" value={episode.episode_id} />
+      <Box sx={{ display: "flex", gap: 1.5, mb: 1, flexWrap: "wrap", alignItems: "center" }}>
         {episode.patient_id && (
-          <Link
-            href={`/patients/${episode.patient_id}?from=episodes`}
-            style={{ textDecoration: "none" }}
-          >
-            <InfoChip label="Patient" value={episode.patient_id} />
-          </Link>
+          <InfoChip label="Patient" value={episode.patient_id} />
         )}
         {episode.referral_date && (
-          <InfoChip label="Referral" value={episode.referral_date} />
+          <InfoChip label="Referred" value={episode.referral_date} />
         )}
+      </Box>
+
+      <Box sx={{ display: "flex", gap: 1, mb: 2, flexWrap: "wrap", alignItems: "center" }}>
         {episode.patient_id && (
           <Button
             component={Link}
-            href={`/patients/${episode.patient_id}?from=episodes`}
+            href={`/patients/${episode.patient_id}?from=pathways`}
             variant="outlined"
             size="small"
             sx={{ textTransform: "none" }}
           >
-            View Patient Encounters
+            View patient encounters
           </Button>
         )}
         {canClose && (
@@ -316,7 +316,7 @@ export default function EpisodeTimelineView({
             sx={{ textTransform: "none" }}
             onClick={() => setShowCloseDialog(true)}
           >
-            Close Pathway
+            Close pathway
           </Button>
         )}
         {canMerge && (
@@ -330,7 +330,7 @@ export default function EpisodeTimelineView({
               setShowMergeDialog(true);
             }}
           >
-            Merge with...
+            Merge with\u2026
           </Button>
         )}
       </Box>
@@ -470,19 +470,7 @@ export default function EpisodeTimelineView({
       )}
 
       {episode.needs_review && (
-        <Alert severity="warning" sx={{ mb: 2 }}>
-          This pathway needs human review.
-          {episode.agent_reasoning && (
-            <Typography variant="caption" display="block" sx={{ mt: 0.5 }}>
-              Agent reasoning: {episode.agent_reasoning}
-            </Typography>
-          )}
-          {episode.confidence != null && (
-            <Typography variant="caption" display="block">
-              Confidence: {episode.confidence}%
-            </Typography>
-          )}
-        </Alert>
+        <ReviewAlert episode={episode} />
       )}
 
       {pathwayRisk && <BreachSummaryBar breaches={pathwayRisk.breaches} />}
@@ -639,61 +627,119 @@ export default function EpisodeTimelineView({
   );
 }
 
+function ReviewAlert({ episode }: { episode: Episode }) {
+  const [showDetails, setShowDetails] = useState(false);
+  const hasDetails = Boolean(episode.agent_reasoning);
+
+  return (
+    <Alert severity="warning" sx={{ mb: 2 }}>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+        <Typography variant="body2" sx={{ fontWeight: 500 }}>
+          This pathway needs review.
+        </Typography>
+        {hasDetails && (
+          <Button
+            size="small"
+            onClick={() => setShowDetails((p) => !p)}
+            sx={{ textTransform: "none", fontSize: "0.75rem", minWidth: 0, p: 0.5 }}
+          >
+            {showDetails ? "Hide details" : "Show details"}
+          </Button>
+        )}
+      </Box>
+      <Collapse in={showDetails}>
+        {episode.agent_reasoning && (
+          <Typography variant="caption" display="block" sx={{ mt: 1, lineHeight: 1.5 }}>
+            {episode.agent_reasoning}
+          </Typography>
+        )}
+        {episode.confidence != null && (
+          <Typography variant="caption" display="block" sx={{ mt: 0.5, color: "text.secondary" }}>
+            Confidence: {episode.confidence}%
+          </Typography>
+        )}
+      </Collapse>
+    </Alert>
+  );
+}
+
 function RelatedPathways({ siblings }: { siblings: EpisodeWithRisk[] }) {
+  const [open, setOpen] = useState(false);
+
   return (
     <Box
       sx={{
         mb: 2,
-        p: 1.5,
         borderRadius: 1.5,
         border: "1px solid",
-        borderColor: "warning.200",
-        bgcolor: "warning.50",
+        borderColor: "divider",
+        bgcolor: "grey.50",
       }}
     >
-      <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
-        <Typography
-          variant="body2"
-          sx={{ fontWeight: 600, color: "warning.dark" }}
+      <Box
+        onClick={() => setOpen((p) => !p)}
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          gap: 1,
+          px: 1.5,
+          py: 1,
+          cursor: "pointer",
+          "&:hover": { bgcolor: "action.hover" },
+          borderRadius: 1.5,
+        }}
+      >
+        <IconButton
+          size="small"
+          sx={{
+            transform: open ? "rotate(180deg)" : "rotate(0deg)",
+            transition: "transform 0.2s",
+            p: 0.25,
+          }}
+          tabIndex={-1}
         >
-          {siblings.length} other pathway{siblings.length !== 1 && "s"} for
-          this patient
+          <ExpandMoreIcon fontSize="small" />
+        </IconButton>
+        <Typography variant="body2" sx={{ fontWeight: 500 }}>
+          {siblings.length} other pathway{siblings.length !== 1 && "s"} for this patient
         </Typography>
       </Box>
-      <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
-        {siblings.map((sib) => {
-          const chipCfg = RISK_CHIP[sib.risk?.level ?? "unknown"];
-          return (
-            <Box
-              key={sib.episode_id}
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                gap: 1,
-                px: 1,
-                py: 0.5,
-                borderRadius: 1,
-                bgcolor: "background.paper",
-              }}
-            >
-              <Typography variant="caption" sx={{ fontWeight: 600 }}>
-                {sib.condition_type || "Unknown"}
-              </Typography>
-              <Chip
-                label={chipCfg.label}
-                size="small"
-                color={chipCfg.color}
-                sx={{ height: 18, fontSize: "0.65rem" }}
-              />
-              {sib.referral_date && (
-                <Typography variant="caption" color="text.secondary">
-                  Referred: {sib.referral_date}
+      <Collapse in={open}>
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5, px: 1.5, pb: 1.5 }}>
+          {siblings.map((sib) => {
+            const chipCfg = RISK_CHIP[sib.risk?.level ?? "unknown"];
+            return (
+              <Box
+                key={sib.episode_id}
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1,
+                  px: 1,
+                  py: 0.5,
+                  borderRadius: 1,
+                  bgcolor: "background.paper",
+                }}
+              >
+                <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                  {sib.condition_type || "Unknown"}
                 </Typography>
-              )}
-            </Box>
-          );
-        })}
-      </Box>
+                <Chip
+                  label={chipCfg.label}
+                  size="small"
+                  color={chipCfg.color}
+                  sx={{ height: 18, fontSize: "0.65rem" }}
+                />
+                {sib.referral_date && (
+                  <Typography variant="caption" color="text.secondary">
+                    Referred: {sib.referral_date}
+                  </Typography>
+                )}
+              </Box>
+            );
+          })}
+        </Box>
+      </Collapse>
     </Box>
   );
 }

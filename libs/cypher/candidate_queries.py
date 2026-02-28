@@ -16,6 +16,11 @@ SET c.patient_id = $patient_id,
     c.warning_reasons = $warning_reasons,
     c.sentences_json = $sentences_json,
     c.llm_usage_json = $llm_usage_json,
+    c.extraction_source = $extraction_source,
+    c.extraction_model_name = $extraction_model_name,
+    c.extraction_model_version = $extraction_model_version,
+    c.contract_version = $contract_version,
+    c.run_id = $run_id,
     c.updated_at = datetime(),
     c.created_at = coalesce(c.created_at, datetime())
 """

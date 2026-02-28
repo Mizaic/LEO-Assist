@@ -1,0 +1,265 @@
+{
+  "metadata": {
+    "domain": "place_of_first_presentation",
+    "total_terms": 17,
+    "successful_mappings": 17,
+    "failed_mappings": 0,
+    "llm_disambiguations": 12,
+    "generated_at": "2025-12-01T17:30:59.385728Z",
+    "enriched_with_synonyms": true,
+    "synonym_enrichment_date": "2025-12-06T08:05:54.246961",
+    "synonym_stats": {
+      "concepts_with_synonyms": 14,
+      "concepts_not_found": 0,
+      "average_synonyms_per_concept": 3.1
+    }
+  },
+  "mappings": {
+    "GP Surgery": {
+      "concept_id": 185202000,
+      "preferred_term": "Seen in general practitioner surgery (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8650574684143066,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Seen in GP's surgery",
+        "Seen in GP's surgery (finding)",
+        "Seen in general practitioner surgery",
+        "Seen in general practitioner surgery (finding)",
+        "seen at GP surgery"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Seen in general practitioner surgery (finding)"
+    },
+    "GP home visit": {
+      "concept_id": 439708006,
+      "preferred_term": "Home visit (procedure)",
+      "semantic_tag": "Procedure",
+      "score": 0.8789918422698975,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Home visit",
+        "Home visit (procedure)",
+        "domiciliary visit",
+        "dom visit",
+        "house call"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Home visit (procedure)"
+    },
+    "Other primary care facility": {
+      "concept_id": 307778003,
+      "preferred_term": "Seen in primary care establishment (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8410474251271793,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Seen in primary care establishment",
+        "Seen in primary care establishment (finding)",
+        "seen at primary care"
+      ],
+      "guideline_synonym_count": 3,
+      "guideline_name": "Seen in primary care establishment (finding)"
+    },
+    "Hospital outpatient": {
+      "concept_id": 185211000,
+      "preferred_term": "Seen in hospital outpatient department (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8631897098257505,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Seen in hospital out-pat.",
+        "Seen in hospital out-pat. (finding)",
+        "Seen in hospital outpatient department",
+        "Seen in hospital outpatient department (finding)",
+        "hospital OPD",
+        "OPD attendance"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Seen in hospital outpatient department (finding)"
+    },
+    "Hospital inpatient": {
+      "concept_id": 308540004,
+      "preferred_term": "Inpatient stay (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.85,
+      "llm_disambiguated": false,
+      "manually_corrected": true,
+      "guideline_synonyms": [
+        "Inpatient stay",
+        "Inpatient stay (finding)",
+        "inpatient admission",
+        "hospital stay",
+        "IP stay",
+        "IP admission"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Inpatient stay (finding)"
+    },
+    "Accident and Emergency": {
+      "concept_id": 305351004,
+      "preferred_term": "Seen in accident and emergency department (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.85,
+      "llm_disambiguated": false,
+      "manually_corrected": true,
+      "guideline_synonyms": [
+        "Admission to intensive care unit",
+        "Admission to intensive care unit (procedure)",
+        "Admit to ITU",
+        "Admit to intensive care unit",
+        "ICU - Admission to intensive care unit",
+        "A&E attendance",
+        "A&E visit",
+        "attended A&E",
+        "ED attendance"
+      ],
+      "guideline_synonym_count": 9,
+      "guideline_name": "Admission to intensive care unit (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Walk-in centre": {
+      "concept_id": 287721000000104,
+      "preferred_term": "Seen in walk in centre (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9140283138516189,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Seen in walk in centre",
+        "Seen in walk in centre (finding)",
+        "seen at WIC",
+        "WIC attendance",
+        "seen at walk-in",
+        "walk in centre visit"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Seen in walk in centre (finding)"
+    },
+    "Out Of Hours service": {
+      "concept_id": 305752008,
+      "preferred_term": "Seen in out of hours service (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.85,
+      "llm_disambiguated": false,
+      "manually_corrected": true,
+      "guideline_synonyms": [
+        "Seen by CMHN",
+        "Seen by CPN",
+        "Seen by community mental health nurse",
+        "Seen by community psychiatric nurse",
+        "Seen by community psychiatric nurse (finding)",
+        "seen OOH",
+        "OOH attendance",
+        "OOH consult"
+      ],
+      "guideline_synonym_count": 8,
+      "guideline_name": "Seen by community psychiatric nurse (finding)"
+    },
+    "Telephone consultation": {
+      "concept_id": 386472008,
+      "preferred_term": "Telephone consultation (procedure)",
+      "semantic_tag": "Procedure",
+      "score": 0.955376148223877,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Telephone consultation",
+        "Telephone consultation (procedure)",
+        "telephone consult",
+        "phone consultation",
+        "tel consult",
+        "phone consult",
+        "tele consult"
+      ],
+      "guideline_synonym_count": 7,
+      "guideline_name": "Telephone consultation (procedure)"
+    },
+    "Email consultation": {
+      "concept_id": 557761000005104,
+      "preferred_term": "Email consultation",
+      "semantic_tag": "Procedure",
+      "score": 0.9205915927886963,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "E-mail consultation",
+        "E-mail consultation (procedure)",
+        "Email consultation",
+        "email consult",
+        "email review"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Email consultation"
+    },
+    "Video consultation": {
+      "concept_id": 719410009,
+      "preferred_term": "Video consultation",
+      "semantic_tag": "Procedure",
+      "score": 0.9224724769592285,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Consultation via video conference",
+        "Consultation via video conference (procedure)",
+        "Video consultation",
+        "video consult",
+        "video appt",
+        "video call consult",
+        "video review"
+      ],
+      "guideline_synonym_count": 7,
+      "guideline_name": "Video consultation"
+    },
+    "Dentist": {
+      "concept_id": 185289007,
+      "preferred_term": "Seen by dental surgeon (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8691911697387695,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Seen by dental surgeon",
+        "Seen by dental surgeon (finding)",
+        "Seen by dentist",
+        "seen dentist",
+        "reviewed by dentist",
+        "seen at dentist"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Seen by dental surgeon (finding)"
+    },
+    "Optometrist": {
+      "concept_id": 185307008,
+      "preferred_term": "Seen by optometrist (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8779027462005615,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Seen by optician",
+        "Seen by optometrist",
+        "Seen by optometrist (finding)",
+        "optometrist review",
+        "optometrist check",
+        "optom review",
+        "optician review"
+      ],
+      "guideline_synonym_count": 7,
+      "guideline_name": "Seen by optometrist (finding)"
+    },
+    "Community care nurse": {
+      "concept_id": 305751001,
+      "preferred_term": "Seen by community-based nurse (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8768734931945801,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Seen by community nurse",
+        "Seen by community-based nurse",
+        "Seen by community-based nurse (finding)",
+        "community nurse review",
+        "seen by DN",
+        "community nurse seen"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Seen by community-based nurse (finding)"
+    }
+  }
+}

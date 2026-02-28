@@ -1,7 +1,7 @@
 # V3 Training Pipeline Validation Report
 
 **Date:** 2025-02-25  
-**Patient:** 4202301609  
+**Patient:** 9990000001 *(synthetic test ID — original NHS number redacted)*  
 **Sample:** 20 encounters (most recent by date)  
 **Purpose:** Validate extraction quality, SNOMED resolution, and cost before full 300+ encounter run
 
@@ -159,7 +159,7 @@ The following enhancements were added to `scripts/diagnose_v3_extraction.py`:
 
 ## 7. Conclusion
 
-**The V3 training pipeline is ready for the full 300+ encounter run for patient 4202301609.**
+**The V3 training pipeline is ready for the full 300+ encounter run for patient 9990000001.**
 
 Recommended next steps:
 

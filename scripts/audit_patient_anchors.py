@@ -1,9 +1,8 @@
 """Phase 1 — Anchor Audit Script.
 
-Runs the three-tier anchor detector (SNOMED concepts → hybrid terminology →
-optional regex) against every patient in the graph, then performs a deep-dive
-investigation for any missing milestones using date-windowed encounter
-scanning.
+Runs canonical anchor detection (:DOCUMENTS-backed SNOMED concepts) against
+every patient in the graph, then performs a deep-dive investigation for any
+missing milestones using date-windowed encounter scanning.
 
 Deep mode (default, --no-deep to disable)
 -----------------------------------------
@@ -16,8 +15,6 @@ When running in deep mode (the default for auditing), the script activates:
   • Resolver-based investigation — when a milestone is missing, the hybrid
     resolver (exact + fulltext + vector) searches each candidate encounter to
     confirm or rule out the milestone, with LLM classification of hits.
-  • Tier-3 regex suppressed — the legacy regex fallback is not used; the
-    resolver + LLM provide better signal without hand-crafted patterns.
 
 Output
 ------
@@ -44,8 +41,7 @@ Save as ``anchor_audit_<timestamp>_labelled.jsonl`` and run
 Usage
 -----
     python scripts/audit_patient_anchors.py
-    python scripts/audit_patient_anchors.py --patients 4203796334,9876543210
-    python scripts/audit_patient_anchors.py --limit 50 --no-hybrid
+    python scripts/audit_patient_anchors.py --patients 9990000002,9990000003
     python scripts/audit_patient_anchors.py --no-deep   # disable LLM + hierarchy expansion
     python scripts/audit_patient_anchors.py --resume --output-dir exports/
 """
@@ -59,6 +55,7 @@ import datetime
 import json
 import logging
 import os
+import re
 import sys
 import textwrap
 from pathlib import Path
@@ -90,6 +87,29 @@ _DEFAULT_WINDOWS: dict[str, dict[str, tuple[int, int]]] = {
 
 SNIPPET_LEN = 200   # chars of encounter text to include in candidates
 TOP_CANDIDATES = 5  # max candidates per missing milestone per patient
+
+# Canonical keyword and context rules used by audit scoring (kept local to avoid
+# dependency on removed hybrid fallback module).
+MILESTONE_KEYWORDS: dict[str, list[str]] = {
+    "referral": ["2ww", "two week wait", "fast track", "urgent referral", "referral"],
+    "diagnosis": ["diagnosed", "biopsy", "histology", "malignant", "carcinoma", "cancer"],
+    "treatment_start": ["commenced", "started", "chemotherapy", "radiotherapy", "surgery"],
+    "specialist_visit": ["clinic", "seen by", "oncology", "consultant", "mdt"],
+}
+CONFIRMED_RE = re.compile(
+    r"\b(confirmed|diagnosed|malignant|carcinoma|commenced|started)\b", re.IGNORECASE
+)
+SUSPECTED_RE = re.compile(
+    r"\b(suspected|possible|query|awaiting|rule out)\b", re.IGNORECASE
+)
+AMBIGUOUS_RE = re.compile(r"\b(history of|previous|prior)\b", re.IGNORECASE)
+SPLIT_SENTENCE_RE = re.compile(r"(?<=[.!?])\s+|[\r\n]+|\s*;\s*")
+MILESTONE_EXPECTED_TAG = {
+    "referral": "procedure",
+    "diagnosis": "disorder",
+    "treatment_start": "procedure",
+    "specialist_visit": "finding",
+}
 
 
 # ─── Neo4j helpers ───────────────────────────────────────────────────────────
@@ -149,10 +169,26 @@ def get_encounters_in_window(
 
 # ─── Encounter scoring ───────────────────────────────────────────────────────
 
-# Imported lazily inside functions that need it to avoid circular imports
 def _get_milestone_keywords() -> dict[str, list[str]]:
-    from services.analysis_worker.app.analyzers.hybrid_anchor_search import MILESTONE_KEYWORDS
     return MILESTONE_KEYWORDS
+
+
+def split_sentences(text: str) -> list[str]:
+    return [s.strip() for s in SPLIT_SENTENCE_RE.split(text or "") if s.strip()]
+
+
+def disambiguate_llm(sentence: str, concept: str, milestone_type: str) -> str:
+    """Heuristic disambiguation used in canonical cutover mode."""
+    text = f"{sentence} {concept}".lower()
+    if SUSPECTED_RE.search(text):
+        return "suspected"
+    if AMBIGUOUS_RE.search(text):
+        return "historical"
+    if CONFIRMED_RE.search(text):
+        return "confirmed"
+    if milestone_type in {"referral", "treatment_start", "specialist_visit"}:
+        return "confirmed"
+    return "irrelevant"
 
 
 def score_encounter_for_milestone(
@@ -175,14 +211,6 @@ def score_encounter_for_milestone(
         score          0.0 – 1.0
         context_signal "confirmed" | "suspected" | "ambiguous" | "none"
     """
-    from services.analysis_worker.app.analyzers.hybrid_anchor_search import (
-        CONFIRMED_RE,
-        SUSPECTED_RE,
-        AMBIGUOUS_RE,
-        split_sentences,
-        disambiguate_llm,
-    )
-
     if not text:
         return 0.0, "none"
 
@@ -291,21 +319,25 @@ def _run_resolver_sync(sentences: list[str], expected_tag: str | None) -> dict:
     Creates a new event loop in a worker thread so this can be called safely
     even when a parent event loop is already running (e.g. inside asyncio.run).
     """
-    import concurrent.futures
-    from services.analysis_worker.app.analyzers.hybrid_anchor_search import (
-        _resolve_sentences,
-    )
+    import requests
 
-    async def _call():
-        return await _resolve_sentences(sentences, expected_tag)
-
-    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
-        future = pool.submit(asyncio.run, _call())
-        try:
-            return future.result(timeout=30)
-        except Exception:
-            logger.warning("_run_resolver_sync: resolver call timed out or failed")
-            return {}
+    if not sentences:
+        return {}
+    base_url = os.getenv("TERMINOLOGY_API_URL", "http://localhost:8001").rstrip("/")
+    payload = {
+        "terms": sentences,
+        "expected_tags": [expected_tag] if expected_tag else None,
+        "top_k": 3,
+    }
+    try:
+        resp = requests.post(f"{base_url}/terminology/resolve", json=payload, timeout=30)
+        resp.raise_for_status()
+        data = resp.json()
+        results = data.get("results", {})
+        return results if isinstance(results, dict) else {}
+    except Exception:
+        logger.warning("_run_resolver_sync: resolver call timed out or failed")
+        return {}
 
 
 def investigate_missing(
@@ -326,12 +358,6 @@ def investigate_missing(
     - Resolver-based concept matching is run on top candidates with LLM
       disambiguation, giving a resolver_hit and LLM label per candidate.
     """
-    from services.analysis_worker.app.analyzers.hybrid_anchor_search import (
-        split_sentences,
-        disambiguate_llm,
-        _MILESTONE_EXPECTED_TAG,
-    )
-
     win_start, win_end = compute_investigation_window(
         milestone_type, anchors, patient_start, patient_end, override_days
     )
@@ -377,7 +403,7 @@ def investigate_missing(
                 if any(kw in s.lower() for kw in keywords)
             ][:5]  # top 5 sentences to resolver
             if relevant_sentences:
-                expected_tag = _MILESTONE_EXPECTED_TAG.get(milestone_type)
+                expected_tag = MILESTONE_EXPECTED_TAG.get(milestone_type)
                 resolver_results = _run_resolver_sync(relevant_sentences, expected_tag)
                 resolver_hits = []
                 for sent, candidates_list in resolver_results.items():
@@ -443,7 +469,6 @@ def audit_patient(
     patient_id: str,
     enc_count: int,
     client,
-    use_hybrid: bool = True,
     window_days: int | None = None,
     deep_mode: bool = True,
     kg_session=None,
@@ -466,9 +491,6 @@ def audit_patient(
             start_date=date_start,
             end_date=date_end,
             patient_client=client,
-            use_hybrid=use_hybrid,
-            deep_mode=deep_mode,
-            kg_session=kg_session,
         )
     except Exception:
         logger.exception("detect_anchors failed for patient %s", patient_id)
@@ -486,7 +508,7 @@ def audit_patient(
     }
     missing = [m for m, lst in anchors.items() if not lst]
 
-    # Tier attribution per found milestone
+    # Detection-method attribution per found milestone
     tier_breakdown: dict[str, str] = {}
     for milestone, lst in anchors.items():
         if not lst:
@@ -694,15 +716,13 @@ def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(
         description=textwrap.dedent("""\
             Anchor Audit — Phase 1 of ISO 13485 V&V.
-            Runs three-tier anchor detection for every patient and produces
+            Runs canonical anchor detection for every patient and produces
             a JSONL ground-truth file + VnV proxy statistics.
         """)
     )
     p.add_argument("--patients", help="Comma-separated patient IDs to audit (default: all)")
     p.add_argument("--limit", type=int, default=0,
                    help="Max patients to process (0 = all, default 0)")
-    p.add_argument("--no-hybrid", action="store_true",
-                   help="Skip tier-2 hybrid search (faster, text-only)")
     p.add_argument("--window-days", type=int, default=None,
                    help="Override per-milestone investigation windows (days)")
     p.add_argument("--output-dir", default="exports",
@@ -754,11 +774,10 @@ def main() -> int:
         logger.info("Resume: %d patients left after skipping %d", len(all_rows), len(done_ids))
 
     deep_mode = not args.no_deep
-    use_hybrid = not args.no_hybrid
 
     logger.info(
-        "Audit starting: %d patients, hybrid=%s, deep_mode=%s, window_days=%s",
-        len(all_rows), use_hybrid, deep_mode, args.window_days,
+        "Audit starting: %d patients, deep_mode=%s, window_days=%s",
+        len(all_rows), deep_mode, args.window_days,
     )
     if deep_mode:
         logger.info(
@@ -791,7 +810,6 @@ def main() -> int:
                 try:
                     res = audit_patient(
                         pid, enc_count, c,
-                        use_hybrid=use_hybrid,
                         window_days=args.window_days,
                         deep_mode=deep_mode,
                         kg_session=kg_session,

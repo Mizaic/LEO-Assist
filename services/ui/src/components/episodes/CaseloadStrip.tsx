@@ -14,7 +14,7 @@ interface Segment {
 function buildSegments(summary: CaseloadSummary): Segment[] {
   return [
     {
-      label: "Breached",
+      label: "Overdue",
       count: summary.breached,
       color: "#dc2626",
       bg: "#fef2f2",

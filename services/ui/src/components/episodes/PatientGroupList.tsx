@@ -28,7 +28,7 @@ const RISK_CHIP: Record<
   RiskLevel,
   { label: string; color: "error" | "warning" | "success" | "default" }
 > = {
-  breached: { label: "Breached", color: "error" },
+  breached: { label: "Overdue", color: "error" },
   "at-risk": { label: "At risk", color: "warning" },
   "on-track": { label: "On track", color: "success" },
   completed: { label: "Completed", color: "default" },
@@ -105,10 +105,10 @@ function PatientHeader({
           </Typography>
           <Chip label={riskCfg.label} size="small" color={riskCfg.color} />
           {group.hasConvergenceRisk && (
-            <Tooltip title={group.convergenceNote ?? "Multiple referrals"}>
+            <Tooltip title={group.convergenceNote ?? "This patient has several referrals that may be related"}>
               <Chip
                 icon={<CallSplitIcon sx={{ fontSize: 14 }} />}
-                label="Convergence"
+                label="Multiple referrals"
                 size="small"
                 color="warning"
                 variant="outlined"

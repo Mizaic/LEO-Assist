@@ -1,0 +1,678 @@
+{
+  "metadata": {
+    "domain": "cancer_risk_factors",
+    "total_terms": 37,
+    "successful_mappings": 37,
+    "failed_mappings": 0,
+    "llm_disambiguations": 0,
+    "generated_at": "2025-01-27T00:00:00.000000Z",
+    "notes": "Pre-cancerous conditions and abnormal findings that increase cancer risk - includes upper GI, lower GI, hepato-biliary, gynae, breast, oral, dermatologic, and haematology risk factors",
+    "enriched_with_synonyms": true,
+    "synonym_enrichment_date": "2025-12-06T08:06:47.514264",
+    "synonym_stats": {
+      "concepts_with_synonyms": 36,
+      "concepts_not_found": 0,
+      "average_synonyms_per_concept": 4.3
+    }
+  },
+  "mappings": {
+    "Cervical smear - borderline changes": {
+      "concept_id": 168410007,
+      "preferred_term": "Cervical smear - borderline changes (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Cervical smear - borderline changes",
+        "Cervical smear - borderline changes (finding)",
+        "borderline smear",
+        "borderline cervical smear",
+        "cervical smear borderline",
+        "smear borderline changes",
+        "borderline cervical cytology"
+      ],
+      "guideline_synonym_count": 7,
+      "guideline_name": "Cervical smear - borderline changes (finding)"
+    },
+    "Cervical cytology finding": {
+      "concept_id": 302796001,
+      "preferred_term": "Cervical cytology finding (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Cervical cytology finding",
+        "Cervical cytology finding (finding)",
+        "Cervical cytology observations",
+        "cervical smear finding",
+        "cervical smear result",
+        "cervical cytology result"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Cervical cytology finding (finding)"
+    },
+    "Cervical smear result": {
+      "concept_id": 269957009,
+      "preferred_term": "Cervical smear result (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Cervical smear result",
+        "Cervical smear result (finding)",
+        "smear result",
+        "smear test result",
+        "cervical screening result",
+        "cervical cytology result"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Cervical smear result (finding)"
+    },
+    "Abnormal cervical smear": {
+      "concept_id": 309081009,
+      "preferred_term": "Abnormal cervical smear (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Abnormal cervical smear",
+        "Abnormal cervical smear (finding)",
+        "abnormal smear",
+        "abnormal cervical cytology",
+        "abnormal cervical smear result"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Abnormal cervical smear (finding)"
+    },
+    "Intestinal metaplasia of gastric mucosa": {
+      "concept_id": 72519002,
+      "preferred_term": "Intestinal metaplasia of gastric mucosa (disorder)",
+      "semantic_tag": "Disease",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Intestinal metaplasia of gastric mucosa",
+        "Intestinal metaplasia of gastric mucosa (disorder)",
+        "gastric intestinal metaplasia",
+        "gastric IM",
+        "intestinal metaplasia stomach",
+        "IM of stomach",
+        "stomach intestinal metaplasia"
+      ],
+      "guideline_synonym_count": 7,
+      "guideline_name": "Intestinal metaplasia of gastric mucosa (disorder)"
+    },
+    "Atrophic gastritis": {
+      "concept_id": 84568007,
+      "preferred_term": "Atrophic gastritis (disorder)",
+      "semantic_tag": "Disease",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "AG - Atrophic gastritis",
+        "Atrophic gastritis",
+        "Atrophic gastritis (disorder)",
+        "Autoimmune gastritis",
+        "CAG - Chronic atrophic gastritis",
+        "Chronic atrophic gastritis",
+        "Gastric atrophy",
+        "type A gastritis",
+        "fundal atrophic gastritis"
+      ],
+      "guideline_synonym_count": 9,
+      "guideline_name": "Atrophic gastritis (disorder)"
+    },
+    "Columnar-lined oesophagus": {
+      "concept_id": 302914006,
+      "preferred_term": "Columnar-lined oesophagus",
+      "semantic_tag": "Disease",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "BO - Barrett's esophagus",
+        "BO - Barrett's oesophagus",
+        "Barrett esophagus",
+        "Barrett's esophagus",
+        "Barrett's esophagus (disorder)",
+        "Barrett's oesophagus",
+        "Barrett's syndrome",
+        "Barretts esophagus",
+        "CELLO - Columnar epithelial-lined lower esophagus",
+        "CELLO - Columnar epithelial-lined lower oesophagus",
+        "CLE - Columnar-lined esophagus",
+        "CLE - Columnar-lined oesophagus",
+        "Columnar epithelial-lined lower esophagus",
+        "Columnar epithelial-lined lower oesophagus",
+        "Columnar-lined esophagus",
+        "Columnar-lined oesophagus",
+        "Gastric metaplasia of esophagus",
+        "Gastric metaplasia of oesophagus",
+        "Barrett oesophagus"
+      ],
+      "guideline_synonym_count": 19,
+      "guideline_name": "Columnar-lined oesophagus"
+    },
+    "Barretts esophagus with dysplasia": {
+      "concept_id": 1082751000119109,
+      "preferred_term": "Barretts esophagus with dysplasia (disorder)",
+      "semantic_tag": "Disease",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Barretts esophagus with dysplasia",
+        "Barretts esophagus with dysplasia (disorder)",
+        "Barretts oesophagus with dysplasia",
+        "Barrett's with dysplasia"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Barretts esophagus with dysplasia (disorder)"
+    },
+    "Gastric dysplasia": {
+      "concept_id": 20915006,
+      "preferred_term": "Gastric dysplasia (disorder)",
+      "semantic_tag": "Disease",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Gastric dysplasia",
+        "Gastric dysplasia (disorder)",
+        "Gastric dysplasia, NOS",
+        "Stomach dysplasia",
+        "gastric epithelial dysplasia",
+        "dysplasia of stomach",
+        "gastric mucosal dysplasia",
+        "stomach epithelial dysplasia",
+        "dysplastic gastric mucosa"
+      ],
+      "guideline_synonym_count": 9,
+      "guideline_name": "Gastric dysplasia (disorder)"
+    },
+    "Esophageal dysplasia": {
+      "concept_id": 308857008,
+      "preferred_term": "Esophageal dysplasia (disorder)",
+      "semantic_tag": "Disease",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Esophageal dysplasia",
+        "Esophageal dysplasia (disorder)",
+        "Oesophageal dysplasia",
+        "dysplasia of oesophagus"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Esophageal dysplasia (disorder)"
+    },
+    "Helicobacter pylori-associated gastritis": {
+      "concept_id": 708164002,
+      "preferred_term": "Helicobacter pylori–associated gastritis (disorder)",
+      "semantic_tag": "Disease",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Gastritis caused by H. pylori (Helicobacter pylori)",
+        "Gastritis caused by Helicobacter pylori",
+        "Gastritis caused by Helicobacter pylori (disorder)",
+        "Helicobacter pylori-associated gastritis",
+        "H. pylori gastritis",
+        "H pylori gastritis",
+        "H. pylori-related gastritis",
+        "HP gastritis"
+      ],
+      "guideline_synonym_count": 8,
+      "guideline_name": "Gastritis caused by H. pylori (Helicobacter pylori)"
+    },
+    "Gastric adenoma": {
+      "concept_id": 110265006,
+      "preferred_term": "Gastric adenoma (disorder)",
+      "semantic_tag": "Disease",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Haemorrhage postprocedure",
+        "Hemorrhage postprocedure",
+        "Postoperative bleeding",
+        "Postoperative haemorrhage",
+        "Postoperative hemorrhage",
+        "Postoperative hemorrhage (disorder)",
+        "stomach adenoma",
+        "gastric adenomatous polyp",
+        "adenoma of stomach",
+        "gastric adenomatous lesion"
+      ],
+      "guideline_synonym_count": 10,
+      "guideline_name": "Postoperative hemorrhage (disorder)"
+    },
+    "Adenoma of large intestine": {
+      "concept_id": 399432003,
+      "preferred_term": "Adenoma of large intestine (disorder)",
+      "semantic_tag": "Disease",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Adenoma of large intestine",
+        "Adenoma of large intestine (disorder)",
+        "colonic adenoma",
+        "large bowel adenoma",
+        "colon adenoma",
+        "colorectal adenoma",
+        "adenomatous polyp colon",
+        "bowel adenoma",
+        "rectal adenoma"
+      ],
+      "guideline_synonym_count": 9,
+      "guideline_name": "Adenoma of large intestine (disorder)"
+    },
+    "Tubular adenoma of colon": {
+      "concept_id": 444898006,
+      "preferred_term": "Tubular adenoma of colon (disorder)",
+      "semantic_tag": "Disease",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Tubular adenoma of colon",
+        "Tubular adenoma of colon (disorder)",
+        "colonic tubular adenoma",
+        "tubular adenoma",
+        "tubular colonic adenoma",
+        "colon tubular adenoma"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Tubular adenoma of colon (disorder)"
+    },
+    "Sessile serrated adenoma of colon": {
+      "concept_id": 443157008,
+      "preferred_term": "Sessile serrated adenoma (disorder)",
+      "semantic_tag": "Disease",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Sessile serrated adenoma",
+        "Sessile serrated adenoma (morphologic abnormality)",
+        "Sessile serrated polyp",
+        "sessile serrated lesion"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Sessile serrated adenoma (morphologic abnormality)",
+      "guideline_labels": [
+        "Body_structure"
+      ]
+    },
+    "Tubulovillous adenoma": {
+      "concept_id": 61722000,
+      "preferred_term": "Tubulovillous adenoma (disorder)",
+      "semantic_tag": "Disease",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Papillotubular adenoma",
+        "Tubulo-papillary adenoma",
+        "Tubulovillous adenoma",
+        "Tubulovillous adenoma (morphologic abnormality)",
+        "Tubulovillous adenoma, NOS",
+        "Villoglandular adenoma",
+        "tubulovillous polyp",
+        "TV adenoma"
+      ],
+      "guideline_synonym_count": 8,
+      "guideline_name": "Tubulovillous adenoma (morphologic abnormality)",
+      "guideline_labels": [
+        "Body_structure"
+      ]
+    },
+    "Ulcerative colitis": {
+      "concept_id": 64766004,
+      "preferred_term": "Ulcerative colitis (chronic) (disorder)",
+      "semantic_tag": "Disease",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Chronic ulcerative colitis",
+        "Chronic ulcerative colitis, NOS",
+        "Colitis gravis",
+        "Colitis gravis, NOS",
+        "Idiopathic proctocolitis",
+        "UC - Ulcerative colitis",
+        "UC - ulcerative colitis",
+        "Ulcerative colitis",
+        "Ulcerative colitis (disorder)",
+        "Ulcerative colitis, NOS",
+        "chronic UC"
+      ],
+      "guideline_synonym_count": 11,
+      "guideline_name": "UC - ulcerative colitis"
+    },
+    "Crohn's disease of colon": {
+      "concept_id": 50440006,
+      "preferred_term": "Crohn's disease of colon (Crohn's colitis) (disorder)",
+      "semantic_tag": "Disease",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "CC - Crohn's colitis",
+        "Crohn disease of colon",
+        "Crohn's disease of colon",
+        "Crohn's disease of colon (disorder)",
+        "Crohns disease, colon",
+        "GC - Granulomatous colitis",
+        "Granulomatous colitis",
+        "Regional colitis",
+        "Crohn's colitis",
+        "colonic Crohn's"
+      ],
+      "guideline_synonym_count": 10,
+      "guideline_name": "Granulomatous colitis"
+    },
+    "Sclerosing cholangitis": {
+      "concept_id": 235917005,
+      "preferred_term": "Sclerosing cholangitis (disorder)",
+      "semantic_tag": "Disease",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Sclerosing cholangitis",
+        "Sclerosing cholangitis (disorder)"
+      ],
+      "guideline_synonym_count": 2,
+      "guideline_name": "Sclerosing cholangitis (disorder)"
+    },
+    "Cirrhosis of liver": {
+      "concept_id": 19943007,
+      "preferred_term": "Cirrhosis of liver (disorder)",
+      "semantic_tag": "Disease",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "CL - Cirrhosis of liver",
+        "Cirrhosis of liver",
+        "Cirrhosis of liver (disorder)",
+        "Cirrhosis of liver without mention of alcohol",
+        "Cirrhosis of liver, NOS",
+        "Hepatic cirrhosis",
+        "Hepatic cirrhosis, NOS",
+        "cirrhosis"
+      ],
+      "guideline_synonym_count": 8,
+      "guideline_name": "Cirrhosis of liver (disorder)"
+    },
+    "Chronic hepatitis C": {
+      "concept_id": 128302006,
+      "preferred_term": "Chronic hepatitis C (disorder)",
+      "semantic_tag": "Disease",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Chronic hepatitis C",
+        "Chronic hepatitis C (disorder)",
+        "Chronic type C viral hepatitis",
+        "chronic hep C",
+        "chronic HCV",
+        "chronic hepatitis C infection",
+        "persistent hep C"
+      ],
+      "guideline_synonym_count": 7,
+      "guideline_name": "Chronic hepatitis C (disorder)"
+    },
+    "Chronic active hepatitis": {
+      "concept_id": 197284004,
+      "preferred_term": "Chronic active hepatitis (disorder)",
+      "semantic_tag": "Disease",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Autoimmune chronic active hepatitis",
+        "Autoimmune hepatitis",
+        "CAH - Chronic active hepatitis",
+        "CAH - Chronic aggressive hepatitis",
+        "Chronic active hepatitis",
+        "Chronic active hepatitis (disorder)",
+        "chronic aggressive hepatitis",
+        "active chronic hepatitis",
+        "chronic active hep"
+      ],
+      "guideline_synonym_count": 9,
+      "guideline_name": "Chronic active hepatitis (disorder)"
+    },
+    "Chronic pancreatitis": {
+      "concept_id": 235494005,
+      "preferred_term": "Chronic pancreatitis (disorder)",
+      "semantic_tag": "Disease",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "CP - Chronic pancreatitis",
+        "Chronic pancreatitis",
+        "Chronic pancreatitis (disorder)",
+        "chronic panc"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Chronic pancreatitis (disorder)"
+    },
+    "Intraductal papillary mucinous neoplasm of pancreas": {
+      "concept_id": 690771000119106,
+      "preferred_term": "Intraductal papillary mucinous neoplasm of pancreas (IPMN) (disorder)",
+      "semantic_tag": "Disease",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Intraductal papillary mucinous neoplasm of pancreas",
+        "Intraductal papillary mucinous neoplasm of pancreas (disorder)",
+        "pancreatic IPMN",
+        "IPMN of pancreas",
+        "intraductal papillary mucinous neoplasm"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Intraductal papillary mucinous neoplasm of pancreas (disorder)"
+    },
+    "Human papillomavirus infection": {
+      "concept_id": 240532009,
+      "preferred_term": "Human papillomavirus infection (disorder)",
+      "semantic_tag": "Disease",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "HPV (Human papillomavirus) disease",
+        "HPV (Human papillomavirus) infection",
+        "Human papilloma virus infection",
+        "Human papilloma virus infection (disorder)",
+        "Human papillomavirus infection",
+        "Human papillomavirus infection (disorder)",
+        "HPV infection",
+        "human papilloma virus",
+        "HPV disease",
+        "papillomavirus infection"
+      ],
+      "guideline_synonym_count": 10,
+      "guideline_name": "HPV (Human papillomavirus) disease"
+    },
+    "Anal intraepithelial neoplasia grade III": {
+      "concept_id": 92537005,
+      "preferred_term": "carcinoma in situ of anus (disorder)",
+      "semantic_tag": "Disease",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Anal intraepithelial neoplasia grade III",
+        "Carcinoma in situ of anus",
+        "Carcinoma in situ of anus (disorder)",
+        "anal HSIL",
+        "anal CIS",
+        "anal ca in situ"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Carcinoma in situ of anus (disorder)"
+    },
+    "Vulval intraepithelial neoplasia": {
+      "concept_id": 399933001,
+      "preferred_term": "Vulval intraepithelial neoplasia (VIN) (disorder)",
+      "semantic_tag": "Disease",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Vulval intraepithelial neoplasia",
+        "Vulval intraepithelial neoplasia (VIN)",
+        "Vulval intraepithelial neoplasia (VIN) (disorder)",
+        "Vulval intraepithelial neoplasia (disorder)",
+        "vulval VIN",
+        "vulvar VIN"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Vulval intraepithelial neoplasia (disorder)"
+    },
+    "Vaginal intraepithelial neoplasia": {
+      "concept_id": 254894004,
+      "preferred_term": "Vaginal intraepithelial neoplasia (VAIN) (disorder)",
+      "semantic_tag": "Disease",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "VAIN - Vaginal intraepithelial neoplasia",
+        "Vaginal intraepithelial neoplasia",
+        "Vaginal intraepithelial neoplasia (disorder)",
+        "VAIN lesion",
+        "vaginal dysplasia"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Vaginal intraepithelial neoplasia (disorder)"
+    },
+    "Lichen sclerosus": {
+      "concept_id": 895217008,
+      "preferred_term": "Lichen sclerosus (disorder)",
+      "semantic_tag": "Disease",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Lichen sclerosus",
+        "Lichen sclerosus (morphologic abnormality)",
+        "vulval lichen sclerosus",
+        "lichen sclerosus vulva",
+        "LS of vulva"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Lichen sclerosus (morphologic abnormality)",
+      "guideline_labels": [
+        "Body_structure"
+      ]
+    },
+    "Atypical hyperplasia of breast": {
+      "concept_id": 369462000,
+      "preferred_term": "Atypical hyperplasia of breast (disorder)",
+      "semantic_tag": "Disease",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Atypical hyperplasia of breast",
+        "Atypical hyperplasia of breast (disorder)",
+        "atypical breast hyperplasia",
+        "breast atypical hyperplasia",
+        "atypical ductal hyperplasia"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Atypical hyperplasia of breast (disorder)"
+    },
+    "Atypical ductal hyperplasia of breast": {
+      "concept_id": 427785007,
+      "preferred_term": "Atypical ductal hyperplasia of breast (ADH) (disorder)",
+      "semantic_tag": "Disease",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Atypical ductal hyperplasia of breast",
+        "Atypical hyperplasia of lactiferous duct",
+        "Atypical hyperplasia of lactiferous duct (disorder)",
+        "Atypical mammary duct hyperplasia",
+        "ADH of breast",
+        "atypical ductal hyperplasia",
+        "breast ADH",
+        "ADH breast",
+        "atypical duct hyperplasia"
+      ],
+      "guideline_synonym_count": 9,
+      "guideline_name": "Atypical hyperplasia of lactiferous duct (disorder)"
+    },
+    "Carcinoma in situ of breast": {
+      "concept_id": 189336000,
+      "preferred_term": "Carcinoma in situ of breast (disorder)",
+      "semantic_tag": "Disease",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Breast Ca in situ",
+        "Carcinoma in situ of breast",
+        "Carcinoma in situ of breast (disorder)",
+        "Non-invasive carcinoma of breast",
+        "breast CIS",
+        "in situ breast ca"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Carcinoma in situ of breast (disorder)"
+    },
+    "Oral submucous fibrosis": {
+      "concept_id": 32883009,
+      "preferred_term": "Oral submucous fibrosis (disorder)",
+      "semantic_tag": "Disease",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Oral submucosal fibrosis",
+        "Oral submucosal fibrosis (disorder)",
+        "Oral submucous fibrosis"
+      ],
+      "guideline_synonym_count": 3,
+      "guideline_name": "Oral submucosal fibrosis (disorder)"
+    },
+    "Oral lichen planus": {
+      "concept_id": 235049008,
+      "preferred_term": "Oral lichen planus (disorder)",
+      "semantic_tag": "Disease",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "OLP - Oral lichen planus",
+        "Oral lichen planus",
+        "Oral lichen planus (disorder)",
+        "oral LP"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Oral lichen planus (disorder)"
+    },
+    "Leukoplakia of vulva": {
+      "concept_id": 198380007,
+      "preferred_term": "Leukoplakia of vulva (disorder)",
+      "semantic_tag": "Disease",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Leucoplakia of vulva",
+        "Leukoplakia of vulva",
+        "Leukoplakia of vulva (disorder)",
+        "vulval leukoplakia",
+        "vulval leucoplakia",
+        "vulvar leukoplakia"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Leukoplakia of vulva (disorder)"
+    },
+    "Monoclonal gammopathy of undetermined significance": {
+      "concept_id": 35601003,
+      "preferred_term": "Monoclonal gammopathy of undetermined significance (MGUS) (disorder)",
+      "semantic_tag": "Disease",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "MGUS",
+        "MGUS - monoclonal gammopathy of undetermined significance",
+        "Monoclonal gammopathy",
+        "Monoclonal gammopathy of undetermined significance",
+        "Monoclonal gammopathy of undetermined significance (morphologic abnormality)",
+        "Paraproteinaemia",
+        "Paraproteinemia",
+        "benign paraproteinaemia"
+      ],
+      "guideline_synonym_count": 8,
+      "guideline_name": "MGUS - monoclonal gammopathy of undetermined significance",
+      "guideline_labels": [
+        "Body_structure"
+      ]
+    }
+  }
+}

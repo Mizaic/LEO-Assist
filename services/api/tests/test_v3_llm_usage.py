@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from app.services.v3.llm_usage import LLMCostConfig, LLMUsage
+from app.services.llm_usage import LLMCostConfig, LLMUsage
 
 
 class TestLLMUsage:

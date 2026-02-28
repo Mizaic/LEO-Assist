@@ -1,0 +1,102 @@
+{
+  "metadata": {
+    "domain": "living_arrangement",
+    "total_terms": 4,
+    "successful_mappings": 4,
+    "failed_mappings": 0,
+    "llm_disambiguations": 3,
+    "generated_at": "2025-12-01T16:37:05.666240Z",
+    "enriched_with_synonyms": true,
+    "synonym_enrichment_date": "2025-12-06T08:05:51.639472",
+    "synonym_stats": {
+      "concepts_with_synonyms": 5,
+      "concepts_not_found": 0,
+      "average_synonyms_per_concept": 3.0
+    }
+  },
+  "mappings": {
+    "Co-habiting": {
+      "concept_id": 38070000,
+      "preferred_term": "Cohabiting (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8767938613891602,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Cohabitation",
+        "Cohabiting",
+        "Cohabiting (finding)",
+        "lives with partner",
+        "living together",
+        "cohabiting with partner"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Cohabiting (finding)"
+    },
+    "Living alone": {
+      "concept_id": 105529008,
+      "preferred_term": "Lives alone (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8708140506499517,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Home alone",
+        "Lives alone",
+        "Lives alone (finding)",
+        "Living alone",
+        "lives on own"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Lives alone (finding)"
+    },
+    "In residential or nursing home": {
+      "concept_id": 224224003,
+      "preferred_term": "Lives in staffed home (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9046775802233276,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Lives in staffed home",
+        "Lives in staffed home (finding)",
+        "lives in care home"
+      ],
+      "guideline_synonym_count": 3,
+      "guideline_name": "Lives in staffed home (finding)"
+    },
+    "Homeless": {
+      "concept_id": 32911000,
+      "preferred_term": "Homeless (finding) ",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9046775802233276,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Homeless",
+        "Homeless (finding)",
+        "Homeless person",
+        "Living on the street",
+        "no fixed abode",
+        "of no fixed abode",
+        "rough sleeper",
+        "street homeless"
+      ],
+      "guideline_synonym_count": 8,
+      "guideline_name": "Homeless (finding)"
+    },
+    "HMO": {
+      "concept_id": 160712002,
+      "preferred_term": "Multiple occupancy (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9046775802233276,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Multiple occupancy",
+        "Multiple occupancy (finding)",
+        "multi-occupancy",
+        "shared accommodation",
+        "shared housing",
+        "shared house"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Multiple occupancy (finding)"
+    }
+  }
+}

@@ -1,0 +1,3940 @@
+{
+  "metadata": {
+    "domain": "treatment",
+    "total_terms": 184,
+    "successful_mappings": 184,
+    "failed_mappings": 0,
+    "llm_disambiguations": 170,
+    "generated_at": "2025-12-04T16:36:59.414283Z",
+    "notes": "Comprehensive cancer treatment mappings including surgery, chemotherapy, radiotherapy, and cancer-specific procedures.",
+    "categories": [
+      "breast_surgery",
+      "colorectal_surgery",
+      "lung_surgery",
+      "prostate_treatment",
+      "head_neck_surgery",
+      "gynae_surgery",
+      "urological_surgery",
+      "upper_gi_surgery",
+      "skin_surgery",
+      "neuro_surgery",
+      "haematology_treatment",
+      "systemic_treatment",
+      "radiotherapy",
+      "other_procedures",
+      "treatment_situations"
+    ],
+    "enriched_with_synonyms": true,
+    "synonym_enrichment_date": "2025-12-06T08:06:44.899318",
+    "synonym_stats": {
+      "concepts_with_synonyms": 181,
+      "concepts_not_found": 2,
+      "average_synonyms_per_concept": 3.7
+    }
+  },
+  "mappings": {
+    "Mastectomy": {
+      "concept_id": 5884001,
+      "preferred_term": "Mastectomy (procedure)",
+      "semantic_tag": null,
+      "score": 0.9175376892089844,
+      "llm_disambiguated": true,
+      "category": "breast_surgery",
+      "guideline_synonyms": [
+        "Mammectomy",
+        "Mammectomy, NOS",
+        "Mastectomy",
+        "Mastectomy (procedure)",
+        "Mastectomy, NOS",
+        "Mastectomy of left breast",
+        "Post mastectomy recovery",
+        "R mastectomy",
+        "bilateral mastectomy",
+        "total mastectomy",
+        "simple mastectomy",
+        "mastectomy scar"
+      ],
+      "guideline_synonym_count": 12,
+      "guideline_name": "Mastectomy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Simple mastectomy": {
+      "concept_id": 172043006,
+      "preferred_term": "Mastectomy",
+      "semantic_tag": null,
+      "score": 0.9219033718109131,
+      "llm_disambiguated": true,
+      "category": "breast_surgery",
+      "guideline_synonyms": [
+        "Mastectomy",
+        "SM - Simple mastectomy",
+        "Simple mastectomy",
+        "Simple mastectomy (procedure)",
+        "Total mastectomy",
+        "Mastectomy of right breast",
+        "left mastectomy",
+        "right mastectomy"
+      ],
+      "guideline_synonym_count": 8,
+      "guideline_name": "Mastectomy",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Modified radical mastectomy": {
+      "concept_id": 406505007,
+      "preferred_term": "Modified radical mastectomy (procedure)",
+      "semantic_tag": null,
+      "score": 0.960770845413208,
+      "llm_disambiguated": true,
+      "category": "breast_surgery",
+      "guideline_synonyms": [
+        "Modified radical mastectomy",
+        "Modified radical mastectomy (procedure)",
+        "mod radical mastectomy",
+        "mod rad mastectomy"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Modified radical mastectomy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Radical mastectomy": {
+      "concept_id": 384723003,
+      "preferred_term": "Radical mastectomy (procedure)",
+      "semantic_tag": null,
+      "score": 0.9503507614135742,
+      "llm_disambiguated": true,
+      "category": "breast_surgery",
+      "guideline_synonyms": [
+        "Radical mastectomy",
+        "Radical mastectomy (procedure)",
+        "Halsted mastectomy",
+        "rad mastectomy",
+        "radical mast",
+        "rad mast"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Radical mastectomy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Skin sparing mastectomy": {
+      "concept_id": 226721000000109,
+      "preferred_term": "Skin-sparing mastectomy (procedure)",
+      "semantic_tag": null,
+      "score": 0.9737331867218018,
+      "llm_disambiguated": true,
+      "category": "breast_surgery",
+      "guideline_synonyms": [
+        "Skin-sparing mastectomy",
+        "Skin-sparing mastectomy (procedure)",
+        "skin-sparing mx",
+        "skin sparing mx"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Skin-sparing mastectomy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Nipple sparing mastectomy": {
+      "concept_id": 70183006,
+      "preferred_term": "Nipple-sparing mastectomy",
+      "semantic_tag": null,
+      "score": 0.922247703738992,
+      "llm_disambiguated": true,
+      "category": "breast_surgery",
+      "guideline_synonyms": [
+        "Nipple preserving subcutaneous mastectomy",
+        "Nipple-sparing mastectomy",
+        "Subcutaneous mastectomy",
+        "Subcutaneous mastectomy (procedure)",
+        "Subcutaneous mastectomy, NOS",
+        "Unilateral mastectomy with preservation of skin and nipple",
+        "Unilateral subcutaneous mammectomy",
+        "nipple-sparing mx"
+      ],
+      "guideline_synonym_count": 8,
+      "guideline_name": "Nipple-sparing mastectomy",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Lumpectomy": {
+      "concept_id": 392021009,
+      "preferred_term": "Lumpectomy of breast (procedure)",
+      "semantic_tag": null,
+      "score": 0.8861678750163908,
+      "llm_disambiguated": true,
+      "category": "breast_surgery",
+      "guideline_synonyms": [
+        "Breast lumpectomy",
+        "Excision of breast lump",
+        "Lumpectomy of breast",
+        "Lumpectomy of breast (procedure)",
+        "Tylectomy of breast",
+        "wide local excision",
+        "WLE breast",
+        "breast WLE",
+        "partial mastectomy"
+      ],
+      "guideline_synonym_count": 9,
+      "guideline_name": "Lumpectomy of breast (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Wide local excision of breast": {
+      "concept_id": 237371007,
+      "preferred_term": "WLE (wide local excision) of breast lesion",
+      "semantic_tag": null,
+      "score": 0.9157958030700684,
+      "llm_disambiguated": true,
+      "category": "breast_surgery",
+      "guideline_synonyms": [
+        "WLE (wide local excision) of breast lesion",
+        "Wide local excision of breast lesion",
+        "Wide local excision of breast lesion (procedure)",
+        "WLE breast",
+        "WLE of breast",
+        "WLE breast lesion",
+        "wide local excision breast",
+        "breast WLE",
+        "wide local excision"
+      ],
+      "guideline_synonym_count": 9,
+      "guideline_name": "WLE (wide local excision) of breast lesion",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Breast conserving surgery": {
+      "concept_id": 392021009,
+      "preferred_term": "Lumpectomy of breast (procedure)",
+      "semantic_tag": null,
+      "score": 0.8633935451507568,
+      "llm_disambiguated": true,
+      "category": "breast_surgery",
+      "guideline_synonyms": [
+        "Breast lumpectomy",
+        "Excision of breast lump",
+        "Lumpectomy of breast",
+        "Lumpectomy of breast (procedure)",
+        "Tylectomy of breast",
+        "WLE breast",
+        "breast WLE",
+        "partial mastectomy"
+      ],
+      "guideline_synonym_count": 8,
+      "guideline_name": "Lumpectomy of breast (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Segmental mastectomy": {
+      "concept_id": 367502008,
+      "preferred_term": "Segmental excision of breast (procedure)",
+      "semantic_tag": null,
+      "score": 0.9123885631561279,
+      "llm_disambiguated": true,
+      "category": "breast_surgery",
+      "guideline_synonyms": [
+        "Segmental excision of breast",
+        "Segmental excision of breast (procedure)",
+        "partial mastectomy",
+        "segmental breast resection"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Segmental excision of breast (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Quadrantectomy": {
+      "concept_id": 172049005,
+      "preferred_term": "Quadrantectomy of breast (procedure)",
+      "semantic_tag": null,
+      "score": 0.881035566329956,
+      "llm_disambiguated": true,
+      "category": "breast_surgery",
+      "guideline_synonyms": [
+        "Excision of breast quadrant",
+        "Quadrantectomy of breast",
+        "Quadrantectomy of breast (procedure)",
+        "breast quadrantectomy",
+        "quadrant excision breast"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Quadrantectomy of breast (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Sentinel lymph node biopsy": {
+      "concept_id": 847671000000109,
+      "preferred_term": "Biopsy of sentinel lymph node of breast (procedure)",
+      "semantic_tag": null,
+      "score": 0.9409174919128418,
+      "llm_disambiguated": true,
+      "category": "breast_surgery",
+      "guideline_synonyms": [
+        "Biopsy of sentinel lymph node of breast",
+        "Biopsy of sentinel lymph node of breast (procedure)",
+        "breast SLNB",
+        "sentinel node biopsy"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Biopsy of sentinel lymph node of breast (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Axillary lymph node dissection": {
+      "concept_id": 79544006,
+      "preferred_term": "Complete axillary lymphadenectomy (procedure)",
+      "semantic_tag": null,
+      "score": 0.914799690246582,
+      "llm_disambiguated": true,
+      "category": "breast_surgery",
+      "guideline_synonyms": [
+        "Axillary lymph nodes clearance",
+        "Block dissection of axillary lymph nodes",
+        "Complete axillary lymphadenectomy",
+        "Complete axillary lymphadenectomy (procedure)",
+        "Radical excision of axillary lymph nodes",
+        "axillary node clearance",
+        "axillary dissection",
+        "complete axillary clearance",
+        "axillary LN clearance"
+      ],
+      "guideline_synonym_count": 9,
+      "guideline_name": "Complete axillary lymphadenectomy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Axillary clearance": {
+      "concept_id": 79544006,
+      "preferred_term": "Complete axillary lymphadenectomy (procedure)",
+      "semantic_tag": null,
+      "score": 0.8718583583831787,
+      "llm_disambiguated": true,
+      "category": "breast_surgery",
+      "guideline_synonyms": [
+        "Axillary lymph nodes clearance",
+        "Block dissection of axillary lymph nodes",
+        "Complete axillary lymphadenectomy",
+        "Complete axillary lymphadenectomy (procedure)",
+        "Radical excision of axillary lymph nodes",
+        "axillary node clearance",
+        "axillary dissection",
+        "complete axillary clearance",
+        "axillary LN clearance"
+      ],
+      "guideline_synonym_count": 9,
+      "guideline_name": "Complete axillary lymphadenectomy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Breast reconstruction": {
+      "concept_id": 33496007,
+      "preferred_term": "Reconstruction of breast (procedure)",
+      "semantic_tag": null,
+      "score": 0.9038717746734619,
+      "llm_disambiguated": true,
+      "category": "breast_surgery",
+      "guideline_synonyms": [
+        "Breast reconstruction",
+        "Breast reconstruction, NOS",
+        "Mammaplasty",
+        "Mammaplasty, NOS",
+        "Mammoplasty",
+        "Mammoplasty, NOS",
+        "Mastoplasty",
+        "Mastoplasty, NOS",
+        "Reconstruction of breast",
+        "Reconstruction of breast (procedure)",
+        "breast recon",
+        "reconstructive mammoplasty"
+      ],
+      "guideline_synonym_count": 12,
+      "guideline_name": "Reconstruction of breast (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Immediate breast reconstruction": {
+      "concept_id": 854321000000108,
+      "preferred_term": "Immediate reconstruction of breast with free flap (procedure)",
+      "semantic_tag": null,
+      "score": 0.9252171516418457,
+      "llm_disambiguated": false,
+      "category": "breast_surgery",
+      "guideline_synonyms": [
+        "Immediate reconstruction of breast with free flap",
+        "Immediate reconstruction of breast with free flap (procedure)",
+        "immediate free flap breast recon",
+        "immediate free flap recon"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Immediate reconstruction of breast with free flap (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Delayed breast reconstruction": {
+      "concept_id": 854381000000109,
+      "preferred_term": "Delayed reconstruction of breast with submuscular implant (procedure)",
+      "semantic_tag": null,
+      "score": 0.918736457824707,
+      "llm_disambiguated": false,
+      "category": "breast_surgery",
+      "guideline_synonyms": [
+        "Delayed reconstruction of breast with submuscular implant",
+        "Delayed reconstruction of breast with submuscular implant (procedure)"
+      ],
+      "guideline_synonym_count": 2,
+      "guideline_name": "Delayed reconstruction of breast with submuscular implant (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Colectomy": {
+      "concept_id": 23968004,
+      "preferred_term": "Excision of colon (procedure)",
+      "semantic_tag": null,
+      "score": 0.9004175662994385,
+      "llm_disambiguated": true,
+      "category": "colorectal_surgery",
+      "guideline_synonyms": [
+        "Colectomy",
+        "Colectomy (procedure)",
+        "Colectomy, NOS",
+        "Excision of colon",
+        "Excision of colon (procedure)",
+        "colon resection",
+        "colonic resection"
+      ],
+      "guideline_synonym_count": 7,
+      "guideline_name": "Excision of colon (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Right hemicolectomy": {
+      "concept_id": 235326000,
+      "preferred_term": "Right hemicolectomy (procedure)",
+      "semantic_tag": null,
+      "score": 0.9523880481719971,
+      "llm_disambiguated": true,
+      "category": "colorectal_surgery",
+      "guideline_synonyms": [
+        "Right hemicolectomy",
+        "Right hemicolectomy (procedure)",
+        "R hemicolectomy",
+        "right colectomy"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Right hemicolectomy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Left hemicolectomy": {
+      "concept_id": 82619000,
+      "preferred_term": "Left hemicolectomy",
+      "semantic_tag": null,
+      "score": 0.9196059016424151,
+      "llm_disambiguated": true,
+      "category": "colorectal_surgery",
+      "guideline_synonyms": [
+        "Excision of left hemicolon",
+        "Left colectomy",
+        "Left colectomy (procedure)",
+        "Left hemicolectomy",
+        "Resection of descending colon",
+        "Resection of left hemicolon",
+        "L hemicolectomy",
+        "left colon resection",
+        "left-sided colectomy"
+      ],
+      "guideline_synonym_count": 9,
+      "guideline_name": "Left hemicolectomy",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Sigmoid colectomy": {
+      "concept_id": 84604002,
+      "preferred_term": "Sigmoid colectomy (procedure)",
+      "semantic_tag": null,
+      "score": 0.9253523349761963,
+      "llm_disambiguated": true,
+      "category": "colorectal_surgery",
+      "guideline_synonyms": [
+        "Excision of sigmoid colon",
+        "Sigmoid colectomy",
+        "Sigmoid colectomy (procedure)",
+        "Sigmoidectomy",
+        "sigmoid colon resection"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Sigmoid colectomy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Anterior resection": {
+      "concept_id": 4558008,
+      "preferred_term": "Anterior resection of rectum (procedure)",
+      "semantic_tag": null,
+      "score": 0.872718334197998,
+      "llm_disambiguated": true,
+      "category": "colorectal_surgery",
+      "guideline_synonyms": [
+        "Anterior resection of rectum",
+        "Anterior resection of rectum (procedure)",
+        "low anterior resection",
+        "anterior rectal resection",
+        "rectal anterior resection"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Anterior resection of rectum (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Low anterior resection": {
+      "concept_id": 314592008,
+      "preferred_term": "Low anterior resection of rectum (procedure)",
+      "semantic_tag": null,
+      "score": 0.8987038135528564,
+      "llm_disambiguated": true,
+      "category": "colorectal_surgery",
+      "guideline_synonyms": [
+        "Low anterior resection of rectum",
+        "Low anterior resection of rectum (procedure)",
+        "LAR of rectum",
+        "anterior resection",
+        "low ant resection"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Low anterior resection of rectum (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Abdominoperineal resection": {
+      "concept_id": 265414003,
+      "preferred_term": "Abdominoperineal resection of rectum (procedure)",
+      "semantic_tag": null,
+      "score": 0.9075028896331787,
+      "llm_disambiguated": true,
+      "category": "colorectal_surgery",
+      "guideline_synonyms": [
+        "AP resection",
+        "AP resection of rectum",
+        "APR - Abdominoperineal resection",
+        "APR - Abdominoperineal resection of rectum and end colostomy",
+        "Abdominoperineal proctectomy",
+        "Abdominoperineal resection",
+        "Abdominoperineal resection of rectum",
+        "Abdominoperineal resection of rectum (procedure)",
+        "abdomino-perineal resection"
+      ],
+      "guideline_synonym_count": 9,
+      "guideline_name": "Abdominoperineal resection of rectum (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Total mesorectal excision": {
+      "concept_id": 395136002,
+      "preferred_term": "Total mesorectal excision (procedure)",
+      "semantic_tag": null,
+      "score": 0.9447228908538818,
+      "llm_disambiguated": true,
+      "category": "colorectal_surgery",
+      "guideline_synonyms": [
+        "Total mesorectal excision",
+        "Total mesorectal excision (procedure)",
+        "TME surgery",
+        "total mesorectal resection",
+        "TME procedure"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Total mesorectal excision (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Proctectomy": {
+      "concept_id": 235364003,
+      "preferred_term": "Total proctectomy (procedure)",
+      "semantic_tag": null,
+      "score": 0.8912332057952881,
+      "llm_disambiguated": true,
+      "category": "colorectal_surgery",
+      "guideline_synonyms": [
+        "Complete proctectomy",
+        "Total proctectomy",
+        "Total proctectomy (procedure)",
+        "total rectal resection"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Total proctectomy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Hartmann procedure": {
+      "concept_id": 16564004,
+      "preferred_term": "Rectosigmoidectomy, closure of rectal stump and exteriorization of bowel",
+      "semantic_tag": null,
+      "score": 0.8556404113769531,
+      "llm_disambiguated": true,
+      "category": "colorectal_surgery",
+      "guideline_synonyms": [
+        "Hartmann operation, rectal resection",
+        "Hartmann operation, rectal resection (procedure)",
+        "Hartmann's procedure",
+        "Rectosigmoidectomy, closure of rectal stump and exteriorisation of bowel",
+        "Rectosigmoidectomy, closure of rectal stump and exteriorization of bowel",
+        "Hartmann resection"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Rectosigmoidectomy, closure of rectal stump and exteriorization of bowel",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Colostomy formation": {
+      "concept_id": 398740003,
+      "preferred_term": "Construction of colostomy",
+      "semantic_tag": null,
+      "score": 0.9196107387542725,
+      "llm_disambiguated": true,
+      "category": "colorectal_surgery",
+      "guideline_synonyms": [
+        "Colostomy",
+        "Colostomy (procedure)",
+        "Colostomy formed",
+        "Construction of colostomy",
+        "colostomy created",
+        "colostomy fashioned"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Construction of colostomy",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Ileostomy formation": {
+      "concept_id": 173977007,
+      "preferred_term": "Creation of ileostomy (procedure)",
+      "semantic_tag": null,
+      "score": 0.9217557907104492,
+      "llm_disambiguated": true,
+      "category": "colorectal_surgery",
+      "guideline_synonyms": [
+        "Creation of ileostomy",
+        "Creation of ileostomy (procedure)",
+        "Ileostomy formed",
+        "ileostomy fashioned"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Creation of ileostomy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Polypectomy": {
+      "concept_id": 274025005,
+      "preferred_term": "Colonic polypectomy (procedure)",
+      "semantic_tag": null,
+      "score": 0.9192972183227539,
+      "llm_disambiguated": true,
+      "category": "colorectal_surgery",
+      "guideline_synonyms": [
+        "Colonic polypectomy",
+        "Colonic polypectomy (procedure)",
+        "colonoscopic polypectomy",
+        "colon polypectomy",
+        "colonic polyp removal",
+        "colonic polyp excision",
+        "large bowel polypectomy"
+      ],
+      "guideline_synonym_count": 7,
+      "guideline_name": "Colonic polypectomy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Transanal endoscopic microsurgery": {
+      "concept_id": 1263735008,
+      "preferred_term": "Endoscopic microsurgical excision of rectum by transanal approach (procedure)",
+      "semantic_tag": null,
+      "score": 0.9084815979003906,
+      "llm_disambiguated": true,
+      "category": "colorectal_surgery",
+      "guideline_synonyms": [
+        "Endoscopic microsurgical excision of rectum by transanal approach",
+        "Endoscopic microsurgical excision of rectum by transanal approach (procedure)",
+        "Excision of rectum by TEM (transanal endoscopic microsurgery)",
+        "Excision of rectum by transanal endoscopic microsurgery",
+        "Proctectomy using transanal endoscopic microsurgery",
+        "TEMS (transanal endoscopic microsurgery) proctectomy",
+        "TEMS rectal excision"
+      ],
+      "guideline_synonym_count": 7,
+      "guideline_name": "Endoscopic microsurgical excision of rectum by transanal approach (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Transanal minimally invasive surgery": {
+      "concept_id": 1264200003,
+      "preferred_term": "Excision of lesion of rectum by transanal minimal invasive surgery (procedure)",
+      "semantic_tag": null,
+      "score": 0.8921300232080551,
+      "llm_disambiguated": true,
+      "category": "colorectal_surgery",
+      "guideline_synonyms": [
+        "Excision of lesion of rectum by TAMIS (transanal minimal invasive surgery)",
+        "Excision of lesion of rectum by transanal minimal invasive surgery",
+        "Excision of lesion of rectum by transanal minimal invasive surgery (procedure)",
+        "TAMIS excision rectal lesion",
+        "TAMIS rectal excision",
+        "transanal MIS rectal lesion excision",
+        "rectal TAMIS excision"
+      ],
+      "guideline_synonym_count": 7,
+      "guideline_name": "Excision of lesion of rectum by transanal minimal invasive surgery (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Lobectomy": {
+      "concept_id": 173171007,
+      "preferred_term": "Lobectomy of lung",
+      "semantic_tag": null,
+      "score": 0.9184038639068604,
+      "llm_disambiguated": true,
+      "category": "lung_surgery",
+      "guideline_synonyms": [
+        "Lobectomy of lung",
+        "Lobectomy of lung (procedure)",
+        "Pulmonary lobectomy",
+        "lung lobectomy",
+        "pulmonary lobe resection",
+        "lung lobe removal"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Lobectomy of lung",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Pneumonectomy": {
+      "concept_id": 49795001,
+      "preferred_term": "Pneumonectomy operations",
+      "semantic_tag": null,
+      "score": 0.8908493518829346,
+      "llm_disambiguated": true,
+      "category": "lung_surgery",
+      "guideline_synonyms": [
+        "Pneumonectomy",
+        "Pneumonectomy (procedure)",
+        "Pneumonectomy operations",
+        "Total pneumonectomy",
+        "Total pneumonectomy (procedure)",
+        "lung resection",
+        "total lung removal"
+      ],
+      "guideline_synonym_count": 7,
+      "guideline_name": "Pneumonectomy operations",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Segmentectomy": {
+      "concept_id": 173172000,
+      "preferred_term": "Excision of segment of lung (procedure)",
+      "semantic_tag": null,
+      "score": 0.8716511726379395,
+      "llm_disambiguated": true,
+      "category": "lung_surgery",
+      "guideline_synonyms": [
+        "Excision of segment of lung",
+        "Excision of segment of lung (procedure)",
+        "Pulmonary segmentectomy",
+        "lung segmentectomy",
+        "lung segment resection"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Excision of segment of lung (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Wedge resection of lung": {
+      "concept_id": 232632009,
+      "preferred_term": "Wedge excision of lung (procedure)",
+      "semantic_tag": null,
+      "score": 0.9316058158874512,
+      "llm_disambiguated": true,
+      "category": "lung_surgery",
+      "guideline_synonyms": [
+        "Wedge excision of lung",
+        "Wedge excision of lung (procedure)",
+        "lung wedge resection",
+        "pulmonary wedge resection",
+        "wedge lung resection",
+        "pulmonary wedge excision",
+        "lung wedge excision",
+        "wedge resection lung"
+      ],
+      "guideline_synonym_count": 8,
+      "guideline_name": "Wedge excision of lung (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Sleeve resection": {
+      "concept_id": 116165008,
+      "preferred_term": "Bronchial sleeve resection with pulmonary resection (procedure)",
+      "semantic_tag": null,
+      "score": 0.8987469011811118,
+      "llm_disambiguated": true,
+      "category": "lung_surgery",
+      "guideline_synonyms": [
+        "Bronchial sleeve resection with pulmonary resection",
+        "Bronchial sleeve resection with pulmonary resection (procedure)",
+        "sleeve lobectomy",
+        "bronchial sleeve lobectomy",
+        "sleeve pneumonectomy"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Bronchial sleeve resection with pulmonary resection (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Video assisted thoracoscopic surgery": {
+      "concept_id": 449201002,
+      "preferred_term": "VATS - video assisted thoracic surgery",
+      "semantic_tag": null,
+      "score": 0.9374899864196777,
+      "llm_disambiguated": true,
+      "category": "lung_surgery",
+      "guideline_synonyms": [
+        "VATS - video assisted thoracic surgery",
+        "Video assisted thoracoscopy",
+        "Video assisted thoracoscopy (procedure)",
+        "video-assisted thoracic surgery",
+        "thoracoscopic surgery",
+        "VATS procedure"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "VATS - video assisted thoracic surgery",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "VATS lobectomy": {
+      "concept_id": 75935006,
+      "preferred_term": "Thoracoscopic lobectomy of lung (procedure)",
+      "semantic_tag": null,
+      "score": 0.8731799125671387,
+      "llm_disambiguated": true,
+      "category": "lung_surgery",
+      "guideline_synonyms": [
+        "Thoracoscopic lobectomy of lung",
+        "Thoracoscopic lobectomy of lung (procedure)",
+        "VATS lung lobectomy",
+        "video-assisted lobectomy"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Thoracoscopic lobectomy of lung (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Thoracotomy": {
+      "concept_id": 177765008,
+      "preferred_term": "Opening of chest (procedure)",
+      "semantic_tag": null,
+      "score": 0.8910055160522461,
+      "llm_disambiguated": true,
+      "category": "lung_surgery",
+      "guideline_synonyms": [
+        "Opening of chest",
+        "Opening of chest (procedure)",
+        "Thoracotomy",
+        "chest opening",
+        "open thoracotomy"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Opening of chest (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Mediastinoscopy": {
+      "concept_id": 261479009,
+      "preferred_term": "Mediastinoscopy (procedure)",
+      "semantic_tag": null,
+      "score": 0.915700762297047,
+      "llm_disambiguated": true,
+      "category": "lung_surgery",
+      "guideline_synonyms": [
+        "Endoscopic exploration of mediastinum",
+        "Mediastinal endoscopy",
+        "Mediastinoscopy",
+        "Mediastinoscopy (procedure)",
+        "cervical mediastinoscopy",
+        "mediastinal scope"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Mediastinoscopy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Pleurectomy": {
+      "concept_id": 23979009,
+      "preferred_term": "Pleurectomy (procedure)",
+      "semantic_tag": null,
+      "score": 0.905787467956543,
+      "llm_disambiguated": true,
+      "category": "lung_surgery",
+      "guideline_synonyms": [
+        "Excision of pleura",
+        "Excision of pleura, NOS",
+        "Pleurectomy",
+        "Pleurectomy (procedure)",
+        "Pleurectomy, NOS",
+        "pleural stripping",
+        "pleural resection",
+        "partial pleurectomy",
+        "pleura removal",
+        "pleura excision",
+        "total pleurectomy"
+      ],
+      "guideline_synonym_count": 11,
+      "guideline_name": "Pleurectomy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Radical prostatectomy": {
+      "concept_id": 26294005,
+      "preferred_term": "Radical prostatectomy (procedure)",
+      "semantic_tag": null,
+      "score": 0.9432778358459473,
+      "llm_disambiguated": true,
+      "category": "prostate_treatment",
+      "guideline_synonyms": [
+        "Prostatovesiculectomy",
+        "Radical prostatectomy",
+        "Radical prostatectomy (procedure)",
+        "Radical prostatectomy, NOS",
+        "Total prostatectomy",
+        "robotic prostatectomy",
+        "laparoscopic radical prostatectomy"
+      ],
+      "guideline_synonym_count": 7,
+      "guideline_name": "Radical prostatectomy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Robotic prostatectomy": {
+      "concept_id": 708919000,
+      "preferred_term": "Laparoscopic radical prostatectomy using robotic assistance (procedure)",
+      "semantic_tag": null,
+      "score": 0.8946090025929417,
+      "llm_disambiguated": true,
+      "category": "prostate_treatment",
+      "guideline_synonyms": [
+        "Laparoscopic radical prostatectomy using robotic assistance",
+        "Laparoscopic radical prostatectomy using robotic assistance (procedure)",
+        "Radical prostatectomy, laparoscopic with robot assistance",
+        "Robot assisted laparoscopic radical prostatectomy",
+        "robotic radical prostatectomy",
+        "da Vinci prostatectomy"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Laparoscopic radical prostatectomy using robotic assistance (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Laparoscopic prostatectomy": {
+      "concept_id": 841661000000107,
+      "preferred_term": "Laparoscopic prostatectomy (procedure)",
+      "semantic_tag": null,
+      "score": 0.9364213943481445,
+      "llm_disambiguated": true,
+      "category": "prostate_treatment",
+      "guideline_synonyms": [
+        "Laparoscopic excision of prostate",
+        "Laparoscopic excision of prostate (procedure)",
+        "Laparoscopic prostatectomy",
+        "Laparoscopic prostatectomy (procedure)",
+        "lap prostatectomy",
+        "lap prostate excision",
+        "keyhole prostatectomy",
+        "lap prostate removal"
+      ],
+      "guideline_synonym_count": 8,
+      "guideline_name": "Laparoscopic prostatectomy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Transurethral resection of prostate": {
+      "concept_id": 90199006,
+      "preferred_term": "Transurethral prostatectomy (procedure)",
+      "semantic_tag": null,
+      "score": 0.8872354030609131,
+      "llm_disambiguated": true,
+      "category": "prostate_treatment",
+      "guideline_synonyms": [
+        "Endoscopic prostatectomy",
+        "Endoscopic resection of prostate",
+        "Loop prostatectomy",
+        "TUR of prostate",
+        "TUR of prostate, NOS",
+        "TURP - Transurethral resection of prostate",
+        "Transurethral prostatectomy",
+        "Transurethral prostatectomy (procedure)",
+        "Transurethral prostatectomy, NOS",
+        "Transurethral resection of prostate",
+        "transurethral prostate resection",
+        "transurethral prostate op"
+      ],
+      "guideline_synonym_count": 12,
+      "guideline_name": "Transurethral prostatectomy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "TURP": {
+      "concept_id": 287780008,
+      "preferred_term": "Prostatectomy NOS (procedure)",
+      "semantic_tag": null,
+      "score": 0.801762580871582,
+      "llm_disambiguated": true,
+      "category": "prostate_treatment",
+      "guideline_synonyms": [
+        "Prostatectomy NOS",
+        "Prostatectomy NOS (procedure)",
+        "prostatectomy",
+        "prostate resection"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Prostatectomy NOS (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Brachytherapy": {
+      "concept_id": 152198000,
+      "preferred_term": "Brachytherapy (procedure)",
+      "semantic_tag": null,
+      "score": 0.9283456802368164,
+      "llm_disambiguated": true,
+      "category": "radiotherapy",
+      "guideline_synonyms": [
+        "Brachytherapy",
+        "Brachytherapy (procedure)",
+        "internal radiotherapy"
+      ],
+      "guideline_synonym_count": 3,
+      "guideline_name": "Brachytherapy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Prostate brachytherapy": {
+      "concept_id": 1955931000000104,
+      "preferred_term": "Brachytherapy of prostate (procedure)",
+      "semantic_tag": null,
+      "score": 0.9534387588500977,
+      "llm_disambiguated": true,
+      "category": "prostate_treatment",
+      "guideline_synonyms": [
+        "Brachytherapy of prostate",
+        "Brachytherapy of prostate (procedure)",
+        "prostate seed implant",
+        "prostate seed therapy"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Brachytherapy of prostate (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Hormone therapy for prostate cancer": {
+      "concept_id": 802921000000105,
+      "preferred_term": "Androgen deprivation therapy (procedure)",
+      "semantic_tag": null,
+      "score": 0.8597702980041504,
+      "llm_disambiguated": true,
+      "category": "prostate_treatment",
+      "guideline_synonyms": [
+        "Androgen deprivation therapy",
+        "Androgen deprivation therapy (procedure)"
+      ],
+      "guideline_synonym_count": 2,
+      "guideline_name": "Androgen deprivation therapy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Androgen deprivation therapy": {
+      "concept_id": 802921000000105,
+      "preferred_term": "Androgen deprivation therapy (procedure)",
+      "semantic_tag": null,
+      "score": 0.9545140266418457,
+      "llm_disambiguated": true,
+      "category": "prostate_treatment",
+      "guideline_synonyms": [
+        "Androgen deprivation therapy",
+        "Androgen deprivation therapy (procedure)"
+      ],
+      "guideline_synonym_count": 2,
+      "guideline_name": "Androgen deprivation therapy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Orchidectomy": {
+      "concept_id": 61210004,
+      "preferred_term": "Orchidectomy (procedure)",
+      "semantic_tag": null,
+      "score": 0.9299452304840088,
+      "llm_disambiguated": true,
+      "category": "prostate_treatment",
+      "guideline_synonyms": [
+        "Male gonadectomy",
+        "Male gonadectomy, NOS",
+        "Orchidectomy",
+        "Orchidectomy (procedure)",
+        "Orchidectomy, NOS",
+        "Orchiectomy",
+        "Orchiectomy, NOS",
+        "testicular removal",
+        "orchidectomy op"
+      ],
+      "guideline_synonym_count": 9,
+      "guideline_name": "Orchidectomy (procedure)",
+      "guideline_labels": [
+        "Situation"
+      ]
+    },
+    "Active surveillance": {
+      "concept_id": 712837004,
+      "preferred_term": "Active surveillance of prostate cancer (regime/therapy)",
+      "semantic_tag": null,
+      "score": 0.8407138646703247,
+      "llm_disambiguated": true,
+      "category": "prostate_treatment",
+      "guideline_synonyms": [
+        "Active surveillance of prostate cancer",
+        "Active surveillance of prostate cancer (regime/therapy)"
+      ],
+      "guideline_synonym_count": 2,
+      "guideline_name": "Active surveillance of prostate cancer (regime/therapy)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Watchful waiting": {
+      "concept_id": 1403231000000102,
+      "preferred_term": "Watch, Wait and Wonder therapy (regime/therapy)",
+      "semantic_tag": null,
+      "score": 0.8731231689453125,
+      "llm_disambiguated": true,
+      "category": "prostate_treatment",
+      "guideline_synonyms": [
+        "WWW - Watch, Wait and Wonder therapy",
+        "Watch, Wait and Wonder therapy",
+        "Watch, Wait and Wonder therapy (regime/therapy)",
+        "WWW therapy"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Watch, Wait and Wonder therapy (regime/therapy)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Laryngectomy": {
+      "concept_id": 72791001,
+      "preferred_term": "Laryngectomy (procedure)",
+      "semantic_tag": null,
+      "score": 0.9237933158874512,
+      "llm_disambiguated": true,
+      "category": "head_neck_surgery",
+      "guideline_synonyms": [
+        "Excision of larynx",
+        "Laryngectomy",
+        "Laryngectomy (procedure)",
+        "Laryngectomy, NOS",
+        "Larynx excision",
+        "total laryngectomy",
+        "laryngeal resection",
+        "partial laryngectomy",
+        "larynx removal"
+      ],
+      "guideline_synonym_count": 9,
+      "guideline_name": "Laryngectomy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Total laryngectomy": {
+      "concept_id": 287440003,
+      "preferred_term": "Radical laryngectomy (procedure)",
+      "semantic_tag": null,
+      "score": 0.907658576965332,
+      "llm_disambiguated": true,
+      "category": "head_neck_surgery",
+      "guideline_synonyms": [
+        "Radical laryngectomy",
+        "Radical laryngectomy (procedure)",
+        "rad laryngectomy"
+      ],
+      "guideline_synonym_count": 3,
+      "guideline_name": "Radical laryngectomy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Partial laryngectomy": {
+      "concept_id": 80513001,
+      "preferred_term": "Partial laryngectomy (procedure)",
+      "semantic_tag": null,
+      "score": 0.948744535446167,
+      "llm_disambiguated": true,
+      "category": "head_neck_surgery",
+      "guideline_synonyms": [
+        "Partial laryngectomy",
+        "Partial laryngectomy (procedure)",
+        "Partial laryngectomy, NOS",
+        "partial laryngeal resection",
+        "partial laryngectomy op"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Partial laryngectomy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Glossectomy": {
+      "concept_id": 52151009,
+      "preferred_term": "Excision of tongue",
+      "semantic_tag": null,
+      "score": 0.8717575073242188,
+      "llm_disambiguated": true,
+      "category": "head_neck_surgery",
+      "guideline_synonyms": [
+        "Excision of tongue",
+        "Glossectomy",
+        "Glossectomy (procedure)",
+        "Glossectomy, NOS",
+        "Resection of tongue",
+        "Resection of tongue, NOS",
+        "Tongue excision",
+        "tongue resection",
+        "partial glossectomy",
+        "tongue removal"
+      ],
+      "guideline_synonym_count": 10,
+      "guideline_name": "Excision of tongue",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Neck dissection": {
+      "concept_id": 11347004,
+      "preferred_term": "Modified radical neck dissection (procedure)",
+      "semantic_tag": null,
+      "score": 0.9039748099330338,
+      "llm_disambiguated": true,
+      "category": "head_neck_surgery",
+      "guideline_synonyms": [
+        "Conservative neck dissection",
+        "FND - Functional neck dissection",
+        "Functional neck dissection",
+        "Modified radical neck dissection",
+        "Modified radical neck dissection (procedure)",
+        "Modified radical neck dissection of cervical lymph nodes",
+        "mod radical neck dissection",
+        "modified neck dissection",
+        "mod rad neck dissection"
+      ],
+      "guideline_synonym_count": 9,
+      "guideline_name": "Modified radical neck dissection (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Radical neck dissection": {
+      "concept_id": 45685007,
+      "preferred_term": "RND - radical neck dissection",
+      "semantic_tag": null,
+      "score": 0.9367349147796631,
+      "llm_disambiguated": true,
+      "category": "head_neck_surgery",
+      "guideline_synonyms": [
+        "RND - Radical neck dissection",
+        "RND - radical neck dissection",
+        "Radical block neck dissection",
+        "Radical neck dissection",
+        "Radical neck dissection (procedure)",
+        "Radical neck dissection, NOS",
+        "radical ND"
+      ],
+      "guideline_synonym_count": 7,
+      "guideline_name": "RND - radical neck dissection",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Modified radical neck dissection": {
+      "concept_id": 11347004,
+      "preferred_term": "Modified radical neck dissection (procedure)",
+      "semantic_tag": null,
+      "score": 0.9326043128967285,
+      "llm_disambiguated": true,
+      "category": "head_neck_surgery",
+      "guideline_synonyms": [
+        "Conservative neck dissection",
+        "FND - Functional neck dissection",
+        "Functional neck dissection",
+        "Modified radical neck dissection",
+        "Modified radical neck dissection (procedure)",
+        "Modified radical neck dissection of cervical lymph nodes",
+        "mod radical neck dissection",
+        "modified neck dissection",
+        "mod rad neck dissection"
+      ],
+      "guideline_synonym_count": 9,
+      "guideline_name": "Modified radical neck dissection (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Selective neck dissection": {
+      "concept_id": 234246002,
+      "preferred_term": "Selective neck dissection of cervical lymph nodes (procedure)",
+      "semantic_tag": null,
+      "score": 0.926584005355835,
+      "llm_disambiguated": true,
+      "category": "head_neck_surgery",
+      "guideline_synonyms": [
+        "Selective neck dissection",
+        "Selective neck dissection of cervical lymph nodes",
+        "Selective neck dissection of cervical lymph nodes (procedure)",
+        "selective neck node dissection",
+        "selective cervical node dissection",
+        "selective cervical dissection"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Selective neck dissection of cervical lymph nodes (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Parotidectomy": {
+      "concept_id": 81870009,
+      "preferred_term": "Parotidectomy (procedure)",
+      "semantic_tag": null,
+      "score": 0.9143590927124023,
+      "llm_disambiguated": true,
+      "category": "head_neck_surgery",
+      "guideline_synonyms": [
+        "Excision of parotid gland",
+        "Excision of parotid gland, NOS",
+        "Parotidectomy",
+        "Parotidectomy (procedure)",
+        "Parotidectomy, NOS",
+        "parotid excision",
+        "parotid gland excision",
+        "parotid gland removal",
+        "superficial parotidectomy",
+        "total parotidectomy"
+      ],
+      "guideline_synonym_count": 10,
+      "guideline_name": "Parotidectomy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Thyroidectomy": {
+      "concept_id": 13619001,
+      "preferred_term": "Thyroidectomy (procedure)",
+      "semantic_tag": null,
+      "score": 0.9132547378540039,
+      "llm_disambiguated": true,
+      "category": "head_neck_surgery",
+      "guideline_synonyms": [
+        "Excision of thyroid gland",
+        "Thyroid gland excision",
+        "Thyroidectomy",
+        "Thyroidectomy (procedure)",
+        "Thyroidectomy, NOS",
+        "total thyroidectomy",
+        "hemi-thyroidectomy",
+        "hemithyroidectomy",
+        "partial thyroidectomy",
+        "thyroid removal",
+        "completion thyroidectomy",
+        "thyroid gland removal"
+      ],
+      "guideline_synonym_count": 12,
+      "guideline_name": "Thyroidectomy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Total thyroidectomy": {
+      "concept_id": 24443003,
+      "preferred_term": "Total thyroidectomy (procedure)",
+      "semantic_tag": null,
+      "score": 0.9457826614379883,
+      "llm_disambiguated": true,
+      "category": "head_neck_surgery",
+      "guideline_synonyms": [
+        "Complete thyroidectomy",
+        "Total thyroidectomy",
+        "Total thyroidectomy (procedure)",
+        "Total thyroidectomy, NOS",
+        "total thyroid removal"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Total thyroidectomy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Hemithyroidectomy": {
+      "concept_id": 302338000,
+      "preferred_term": "Hemithyroidectomy",
+      "semantic_tag": null,
+      "score": 0.8791599273681641,
+      "llm_disambiguated": true,
+      "category": "head_neck_surgery",
+      "guideline_synonyms": [
+        "Hemithyroidectomy",
+        "Lobectomy of thyroid gland",
+        "Lobectomy of thyroid gland (procedure)",
+        "Thyroid lobectomy",
+        "Unilateral total thyroid lobectomy",
+        "hemi-thyroidectomy",
+        "hemi thyroidectomy",
+        "thyroid hemi-lobectomy",
+        "unilateral thyroidectomy"
+      ],
+      "guideline_synonym_count": 9,
+      "guideline_name": "Hemithyroidectomy",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Maxillectomy": {
+      "concept_id": 282435000,
+      "preferred_term": "Maxillectomy (procedure)",
+      "semantic_tag": null,
+      "score": 0.9288887977600098,
+      "llm_disambiguated": true,
+      "category": "head_neck_surgery",
+      "guideline_synonyms": [
+        "Excision of maxilla",
+        "Maxillectomy",
+        "Maxillectomy (procedure)",
+        "maxillary resection",
+        "partial maxillectomy",
+        "total maxillectomy"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Maxillectomy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Mandibulectomy": {
+      "concept_id": 367477001,
+      "preferred_term": "Excision of mandible (procedure)",
+      "semantic_tag": null,
+      "score": 0.8698666095733643,
+      "llm_disambiguated": true,
+      "category": "head_neck_surgery",
+      "guideline_synonyms": [
+        "Excision of mandible",
+        "Excision of mandible (procedure)",
+        "Mandibulectomy",
+        "segmental mandibulectomy",
+        "mandibular resection",
+        "mandible resection",
+        "mandible excision",
+        "partial mandibulectomy"
+      ],
+      "guideline_synonym_count": 8,
+      "guideline_name": "Excision of mandible (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Hysterectomy": {
+      "concept_id": 287922008,
+      "preferred_term": "Hysterectomy NOS (procedure)",
+      "semantic_tag": null,
+      "score": 0.9036316871643066,
+      "llm_disambiguated": true,
+      "category": "gynae_surgery",
+      "guideline_synonyms": [
+        "Hysterectomy NOS",
+        "Hysterectomy NOS (procedure)",
+        "Total abdominal hysterectomy",
+        "abdominal hysterectomy"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Hysterectomy NOS (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Total hysterectomy": {
+      "concept_id": 116140006,
+      "preferred_term": "Total hysterectomy (procedure)",
+      "semantic_tag": null,
+      "score": 0.9611818790435791,
+      "llm_disambiguated": true,
+      "category": "gynae_surgery",
+      "guideline_synonyms": [
+        "Total hysterectomy",
+        "Total hysterectomy (procedure)",
+        "total hyst",
+        "hysterectomy"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Total hysterectomy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Radical hysterectomy": {
+      "concept_id": 116142003,
+      "preferred_term": "Radical hysterectomy (procedure)",
+      "semantic_tag": null,
+      "score": 0.9590740203857422,
+      "llm_disambiguated": true,
+      "category": "gynae_surgery",
+      "guideline_synonyms": [
+        "Radical hysterectomy",
+        "Radical hysterectomy (procedure)",
+        "radical hyst",
+        "rad hyst"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Radical hysterectomy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Total abdominal hysterectomy": {
+      "concept_id": 116143008,
+      "preferred_term": "Total abdominal hysterectomy with conservation of ovaries",
+      "semantic_tag": null,
+      "score": 0.942467451095581,
+      "llm_disambiguated": true,
+      "category": "gynae_surgery",
+      "guideline_synonyms": [
+        "TAH - Total abdominal hysterectomy",
+        "Total abdominal hysterectomy",
+        "Total abdominal hysterectomy (procedure)",
+        "Total abdominal hysterectomy with conservation of ovaries",
+        "TAH with ovarian conservation"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Total abdominal hysterectomy with conservation of ovaries",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Vaginal hysterectomy": {
+      "concept_id": 265056007,
+      "preferred_term": "Colpohysterectomy",
+      "semantic_tag": null,
+      "score": 0.9232280254364014,
+      "llm_disambiguated": true,
+      "category": "gynae_surgery",
+      "guideline_synonyms": [
+        "Colpohysterectomy",
+        "VH - Vaginal hysterectomy",
+        "Vaginal excision of uterus",
+        "Vaginal hysterectomy",
+        "Vaginal hysterectomy (procedure)",
+        "vag hysterectomy",
+        "vag hyst"
+      ],
+      "guideline_synonym_count": 7,
+      "guideline_name": "Colpohysterectomy",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Laparoscopic hysterectomy": {
+      "concept_id": 236887006,
+      "preferred_term": "Laparoscopic hysterectomy (procedure)",
+      "semantic_tag": null,
+      "score": 0.9685449600219727,
+      "llm_disambiguated": true,
+      "category": "gynae_surgery",
+      "guideline_synonyms": [
+        "Laparoscopic hysterectomy",
+        "Laparoscopic hysterectomy (procedure)",
+        "lap hysterectomy",
+        "lap hyst",
+        "laparoscopic hyst"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Laparoscopic hysterectomy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Bilateral salpingo-oophorectomy": {
+      "concept_id": 609230000,
+      "preferred_term": "Laparoscopic bilateral salpingo-oophorectomy (procedure)",
+      "semantic_tag": null,
+      "score": 0.9041528701782227,
+      "llm_disambiguated": true,
+      "category": "gynae_surgery",
+      "guideline_synonyms": [
+        "Laparoscopic bilateral salpingo-oophorectomy",
+        "Laparoscopic bilateral salpingo-oophorectomy (procedure)",
+        "lap BSO",
+        "laparoscopic BSO"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Laparoscopic bilateral salpingo-oophorectomy (procedure)",
+      "guideline_labels": [
+        "Situation"
+      ]
+    },
+    "Oophorectomy": {
+      "concept_id": 83152002,
+      "preferred_term": "Oophorectomy (procedure)",
+      "semantic_tag": null,
+      "score": 0.9234645366668701,
+      "llm_disambiguated": true,
+      "category": "gynae_surgery",
+      "guideline_synonyms": [
+        "Excision of ovary",
+        "Oophorectomy",
+        "Oophorectomy (procedure)",
+        "Oophorectomy, NOS",
+        "bilateral salpingo-oophorectomy",
+        "salpingo-oophorectomy",
+        "unilateral oophorectomy",
+        "removal of ovary"
+      ],
+      "guideline_synonym_count": 8,
+      "guideline_name": "Oophorectomy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Ovarian cystectomy": {
+      "concept_id": 387740003,
+      "preferred_term": "Removal of ovarian cyst (procedure)",
+      "semantic_tag": null,
+      "score": 0.8952530171506019,
+      "llm_disambiguated": true,
+      "category": "gynae_surgery",
+      "guideline_synonyms": [
+        "Oophorocystectomy",
+        "Ovarian cystectomy",
+        "Removal of ovarian cyst",
+        "Removal of ovarian cyst (procedure)",
+        "ovarian cyst removal",
+        "excision of ovarian cyst",
+        "ovarian cyst excision",
+        "ovarian cyst op",
+        "ovarian cyst surgery"
+      ],
+      "guideline_synonym_count": 9,
+      "guideline_name": "Removal of ovarian cyst (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Pelvic exenteration": {
+      "concept_id": 52224004,
+      "preferred_term": "Pelvic exenteration (procedure)",
+      "semantic_tag": null,
+      "score": 0.9242739677429199,
+      "llm_disambiguated": true,
+      "category": "gynae_surgery",
+      "guideline_synonyms": [
+        "Exenteration of pelvis",
+        "Pelvic evisceration",
+        "Pelvic exenteration",
+        "Pelvic exenteration (procedure)",
+        "Pelvic exenteration, NOS",
+        "total pelvic exenteration",
+        "pelvic exent"
+      ],
+      "guideline_synonym_count": 7,
+      "guideline_name": "Pelvic exenteration (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Vulvectomy": {
+      "concept_id": 36901005,
+      "preferred_term": "Vulvectomy (procedure)",
+      "semantic_tag": null,
+      "score": 0.9096391201019287,
+      "llm_disambiguated": true,
+      "category": "gynae_surgery",
+      "guideline_synonyms": [
+        "Excision of vulva",
+        "Vulva excision",
+        "Vulvectomy",
+        "Vulvectomy (procedure)",
+        "Vulvectomy, NOS",
+        "vulval excision"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Vulvectomy (procedure)",
+      "guideline_labels": [
+        "Situation"
+      ]
+    },
+    "Cervical cone biopsy": {
+      "concept_id": 54535009,
+      "preferred_term": "Cone biopsy of cervix (procedure)",
+      "semantic_tag": null,
+      "score": 0.901015043258667,
+      "llm_disambiguated": true,
+      "category": "gynae_surgery",
+      "guideline_synonyms": [
+        "Cone biopsy of cervix",
+        "Cone biopsy of cervix (procedure)",
+        "Cone biopsy of cervix, NOS",
+        "Conisation of uterine cervix",
+        "Conization of uterine cervix",
+        "cervical conisation",
+        "cervical cone",
+        "cervical conization"
+      ],
+      "guideline_synonym_count": 8,
+      "guideline_name": "Cone biopsy of cervix (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "LLETZ procedure": {
+      "concept_id": 36899001,
+      "preferred_term": "Loop electrosurgical excision procedure (procedure)",
+      "semantic_tag": null,
+      "score": 0.8299722671508789,
+      "llm_disambiguated": true,
+      "category": "gynae_surgery",
+      "guideline_synonyms": [
+        "LEEP",
+        "Loop electrosurgical excision procedure",
+        "Loop electrosurgical excision procedure (procedure)",
+        "Loop electrosurgical excision procedure, NOS",
+        "loop diathermy excision",
+        "cervical loop excision"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Loop electrosurgical excision procedure (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Loop excision of cervix": {
+      "concept_id": 176761007,
+      "preferred_term": "Large loop excision of transformation zone (procedure)",
+      "semantic_tag": null,
+      "score": 0.8602883620549568,
+      "llm_disambiguated": true,
+      "category": "gynae_surgery",
+      "guideline_synonyms": [
+        "LLETZ - Large loop excision of transformation zone",
+        "Large loop excision of transformation zone",
+        "Large loop excision of transformation zone (procedure)",
+        "LLETZ procedure",
+        "cervical loop excision",
+        "loop LLETZ"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Large loop excision of transformation zone (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Trachelectomy": {
+      "concept_id": 52536006,
+      "preferred_term": "Mediastinal tracheostomy (procedure)",
+      "semantic_tag": null,
+      "score": 0.8982884883880615,
+      "llm_disambiguated": false,
+      "category": "gynae_surgery",
+      "guideline_synonyms": [
+        "Mediastinal tracheostomy",
+        "Mediastinal tracheostomy (procedure)",
+        "mediastinal trach"
+      ],
+      "guideline_synonym_count": 3,
+      "guideline_name": "Mediastinal tracheostomy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Nephrectomy": {
+      "concept_id": 85250002,
+      "preferred_term": "Nephrectomy (procedure)",
+      "semantic_tag": null,
+      "score": 0.9016597270965576,
+      "llm_disambiguated": true,
+      "category": "urological_surgery",
+      "guideline_synonyms": [
+        "Nephrectomy",
+        "Nephrectomy (procedure)",
+        "Nephrectomy, NOS",
+        "Nx - Nephrectomy",
+        "partial nephrectomy",
+        "total nephrectomy",
+        "kidney removal",
+        "kidney excision",
+        "renal excision"
+      ],
+      "guideline_synonym_count": 9,
+      "guideline_name": "Nephrectomy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Radical nephrectomy": {
+      "concept_id": 116033007,
+      "preferred_term": "Radical nephrectomy (procedure)",
+      "semantic_tag": null,
+      "score": 0.9433274269104004,
+      "llm_disambiguated": true,
+      "category": "urological_surgery",
+      "guideline_synonyms": [
+        "Radical nephrectomy",
+        "Radical nephrectomy (procedure)",
+        "rad nephrectomy",
+        "radical nephrectomy op"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Radical nephrectomy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Partial nephrectomy": {
+      "concept_id": 175920009,
+      "preferred_term": "Partial nephrectomy NOS (procedure)",
+      "semantic_tag": null,
+      "score": 0.929713249206543,
+      "llm_disambiguated": true,
+      "category": "urological_surgery",
+      "guideline_synonyms": [
+        "Partial nephrectomy NOS",
+        "Partial nephrectomy NOS (procedure)"
+      ],
+      "guideline_synonym_count": 2,
+      "guideline_name": "Partial nephrectomy NOS (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Nephron sparing surgery": {
+      "concept_id": 442919002,
+      "preferred_term": "Adrenal sparing radical nephrectomy (procedure)",
+      "semantic_tag": null,
+      "score": 0.8779265880584717,
+      "llm_disambiguated": false,
+      "category": "urological_surgery",
+      "guideline_synonyms": [
+        "Adrenal sparing radical nephrectomy",
+        "Adrenal sparing radical nephrectomy (procedure)",
+        "adrenal-sparing radical nephrectomy"
+      ],
+      "guideline_synonym_count": 3,
+      "guideline_name": "Adrenal sparing radical nephrectomy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Cystectomy": {
+      "concept_id": 53938006,
+      "preferred_term": "Urinary cystectomy (procedure)",
+      "semantic_tag": null,
+      "score": 0.9197747707366943,
+      "llm_disambiguated": true,
+      "category": "urological_surgery",
+      "guideline_synonyms": [
+        "Cystectomy",
+        "Cystectomy, NOS",
+        "Urinary cystectomy (procedure)",
+        "radical cystectomy",
+        "bladder cystectomy"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Urinary cystectomy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Radical cystectomy": {
+      "concept_id": 64063003,
+      "preferred_term": "Radical cystectomy (procedure)",
+      "semantic_tag": null,
+      "score": 0.9365200996398926,
+      "llm_disambiguated": true,
+      "category": "urological_surgery",
+      "guideline_synonyms": [
+        "Radical cystectomy",
+        "Radical cystectomy (procedure)",
+        "rad cystectomy",
+        "radical bladder removal"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Radical cystectomy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Transurethral resection of bladder tumour": {
+      "concept_id": 386792000,
+      "preferred_term": "Transurethral resection of neoplasm of bladder (procedure)",
+      "semantic_tag": null,
+      "score": 0.8582000732421875,
+      "llm_disambiguated": true,
+      "category": "urological_surgery",
+      "guideline_synonyms": [
+        "TURBT - Transurethral resection of bladder tumor",
+        "TURBT - Transurethral resection of bladder tumour",
+        "TURT - Transurethral resection of bladder tumor",
+        "TURT - Transurethral resection of bladder tumour",
+        "Transurethral excision of neoplasm of urinary bladder",
+        "Transurethral excision of neoplasm of urinary bladder (procedure)",
+        "Transurethral resection of bladder neoplasm",
+        "Transurethral resection of bladder neoplasm (procedure)",
+        "Transurethral resection of bladder tumor",
+        "Transurethral resection of bladder tumour",
+        "Transurethral resection of neoplasm of bladder",
+        "Transurethral resection of neoplasm of bladder (procedure)"
+      ],
+      "guideline_synonym_count": 12,
+      "guideline_name": "Transurethral resection of neoplasm of bladder (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "TURBT": {
+      "concept_id": 51302004,
+      "preferred_term": "Turbinectomy (procedure)",
+      "semantic_tag": null,
+      "score": 0.8050639629364014,
+      "llm_disambiguated": false,
+      "category": "urological_surgery",
+      "guideline_synonyms": [
+        "Complete excision of turbinate",
+        "Conchectomy",
+        "Turbinectomy",
+        "Turbinectomy (procedure)",
+        "turbinate removal",
+        "turbinate resection",
+        "nasal turbinate excision"
+      ],
+      "guideline_synonym_count": 7,
+      "guideline_name": "Turbinectomy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Urinary diversion": {
+      "concept_id": 119560006,
+      "preferred_term": "Urinary diversion procedure (procedure)",
+      "semantic_tag": null,
+      "score": 0.9255647659301758,
+      "llm_disambiguated": true,
+      "category": "urological_surgery",
+      "guideline_synonyms": [
+        "Urinary diversion",
+        "Urinary diversion procedure",
+        "Urinary diversion procedure (procedure)",
+        "urinary diversion op",
+        "urinary diversion surgery"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Urinary diversion procedure (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Ileal conduit": {
+      "concept_id": 243429009,
+      "preferred_term": "Construction of standard ileal conduit (procedure)",
+      "semantic_tag": null,
+      "score": 0.8903038501739502,
+      "llm_disambiguated": true,
+      "category": "urological_surgery",
+      "guideline_synonyms": [
+        "Construction of standard ileal conduit",
+        "Construction of standard ileal conduit (procedure)",
+        "ileal conduit formation",
+        "ileal conduit procedure"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Construction of standard ileal conduit (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Neobladder": {
+      "concept_id": 4895001,
+      "preferred_term": "Construction of sigmoid bladder (procedure)",
+      "semantic_tag": null,
+      "score": 0.8172192573547363,
+      "llm_disambiguated": true,
+      "category": "urological_surgery",
+      "guideline_synonyms": [
+        "Construction of sigmoid bladder",
+        "Construction of sigmoid bladder (procedure)",
+        "Construction of sigmoid urinary bladder",
+        "Construction of sigmoid urinary bladder (procedure)",
+        "Reconstruction of bladder with sigmoid",
+        "Replacement of bladder with sigmoid",
+        "sigmoid neobladder",
+        "sigmoid cystoplasty",
+        "sigmoid bladder reconstruction",
+        "sigmoid bladder creation"
+      ],
+      "guideline_synonym_count": 10,
+      "guideline_name": "Construction of sigmoid bladder (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Penectomy": {
+      "concept_id": 80855002,
+      "preferred_term": "Penectomy",
+      "semantic_tag": null,
+      "score": 0.858172805817272,
+      "llm_disambiguated": true,
+      "category": "urological_surgery",
+      "guideline_synonyms": [
+        "Amputation of penis",
+        "Amputation of penis (procedure)",
+        "Amputation of penis, NOS",
+        "Penectomy",
+        "Penectomy, NOS",
+        "Resection of penis",
+        "Resection of penis, NOS",
+        "penile amputation",
+        "penile resection",
+        "partial penectomy",
+        "total penectomy",
+        "radical penectomy"
+      ],
+      "guideline_synonym_count": 12,
+      "guideline_name": "Penectomy",
+      "guideline_labels": [
+        "Situation"
+      ]
+    },
+    "Inguinal lymph node dissection": {
+      "concept_id": 178286005,
+      "preferred_term": "Block dissection of inguinal lymph nodes (procedure)",
+      "semantic_tag": null,
+      "score": 0.9226984977722168,
+      "llm_disambiguated": true,
+      "category": "urological_surgery",
+      "guideline_synonyms": [
+        "Block dissection of inguinal lymph nodes",
+        "Block dissection of inguinal lymph nodes (procedure)",
+        "Groin dissection",
+        "inguinal lymphadenectomy"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Block dissection of inguinal lymph nodes (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Oesophagectomy": {
+      "concept_id": 45900003,
+      "preferred_term": "Esophagectomy (procedure)",
+      "semantic_tag": null,
+      "score": 0.8989973068237305,
+      "llm_disambiguated": true,
+      "category": "upper_gi_surgery",
+      "guideline_synonyms": [
+        "Esophagectomy",
+        "Esophagectomy (procedure)",
+        "Esophagectomy, NOS",
+        "Excision of esophagus",
+        "Excision of oesophagus",
+        "Oesophagectomy",
+        "Oesophagectomy, NOS",
+        "oesophageal resection"
+      ],
+      "guideline_synonym_count": 8,
+      "guideline_name": "Esophagectomy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Ivor Lewis oesophagectomy": {
+      "concept_id": 235161003,
+      "preferred_term": "Ivor Lewis subtotal esophagectomy (procedure)",
+      "semantic_tag": null,
+      "score": 0.9326606028572509,
+      "llm_disambiguated": true,
+      "category": "upper_gi_surgery",
+      "guideline_synonyms": [
+        "Ivor Lewis subtotal esophagectomy",
+        "Ivor Lewis subtotal esophagectomy (procedure)",
+        "Ivor Lewis subtotal oesophagectomy",
+        "Ivor Lewis op",
+        "IL oesophagectomy",
+        "Ivor Lewis resection",
+        "IL subtotal oesophagectomy"
+      ],
+      "guideline_synonym_count": 7,
+      "guideline_name": "Ivor Lewis subtotal esophagectomy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "McKeown oesophagectomy": {
+      "concept_id": 235160002,
+      "preferred_term": "Three stage oesophagectomy",
+      "semantic_tag": null,
+      "score": 0.8741683959960938,
+      "llm_disambiguated": true,
+      "category": "upper_gi_surgery",
+      "guideline_synonyms": [
+        "McKeown esophagectomy",
+        "McKeown esophagectomy (procedure)",
+        "McKeown oesophagectomy",
+        "Three stage esophagectomy",
+        "Three stage oesophagectomy",
+        "3-stage oesophagectomy",
+        "3-stage esophagectomy",
+        "McKeown procedure"
+      ],
+      "guideline_synonym_count": 8,
+      "guideline_name": "Three stage oesophagectomy",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Gastrectomy": {
+      "concept_id": 49209004,
+      "preferred_term": "Subtotal gastrectomy (procedure)",
+      "semantic_tag": null,
+      "score": 0.8901717662811279,
+      "llm_disambiguated": true,
+      "category": "upper_gi_surgery",
+      "guideline_synonyms": [
+        "Partial excision of stomach",
+        "Partial gastrectomy",
+        "Subtotal gastrectomy",
+        "Subtotal gastrectomy (procedure)",
+        "sub-total gastrectomy",
+        "subtotal gastric resection",
+        "partial stomach removal"
+      ],
+      "guideline_synonym_count": 7,
+      "guideline_name": "Subtotal gastrectomy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Total gastrectomy": {
+      "concept_id": 26452005,
+      "preferred_term": "Total gastrectomy (procedure)",
+      "semantic_tag": null,
+      "score": 0.9307401180267334,
+      "llm_disambiguated": true,
+      "category": "upper_gi_surgery",
+      "guideline_synonyms": [
+        "Complete gastrectomy",
+        "Schlatter operation, total gastrectomy",
+        "Total gastrectomy",
+        "Total gastrectomy (procedure)"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Total gastrectomy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Partial gastrectomy": {
+      "concept_id": 173724009,
+      "preferred_term": "Partial gastrectomy NOS",
+      "semantic_tag": null,
+      "score": 0.908725007137855,
+      "llm_disambiguated": true,
+      "category": "upper_gi_surgery",
+      "guideline_synonyms": [
+        "Partial excision of stomach NOS",
+        "Partial excision of stomach NOS (procedure)",
+        "Partial gastrectomy NOS",
+        "partial gastric resection",
+        "part gastrectomy"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Partial gastrectomy NOS",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Subtotal gastrectomy": {
+      "concept_id": 49209004,
+      "preferred_term": "Subtotal gastrectomy (procedure)",
+      "semantic_tag": null,
+      "score": 0.9304485321044922,
+      "llm_disambiguated": true,
+      "category": "upper_gi_surgery",
+      "guideline_synonyms": [
+        "Partial excision of stomach",
+        "Partial gastrectomy",
+        "Subtotal gastrectomy",
+        "Subtotal gastrectomy (procedure)",
+        "sub-total gastrectomy",
+        "subtotal gastric resection",
+        "partial stomach removal"
+      ],
+      "guideline_synonym_count": 7,
+      "guideline_name": "Subtotal gastrectomy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Distal gastrectomy": {
+      "concept_id": 342881000000108,
+      "preferred_term": "Distal partial gastrectomy (procedure)",
+      "semantic_tag": null,
+      "score": 0.9300141334533691,
+      "llm_disambiguated": true,
+      "category": "upper_gi_surgery",
+      "guideline_synonyms": [
+        "Distal partial gastrectomy",
+        "Distal partial gastrectomy (procedure)",
+        "distal gastric resection",
+        "distal stomach resection",
+        "partial distal gastrectomy"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Distal partial gastrectomy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Pancreatectomy": {
+      "concept_id": 33149006,
+      "preferred_term": "Pancreatectomy (procedure)",
+      "semantic_tag": null,
+      "score": 0.9195535182952881,
+      "llm_disambiguated": true,
+      "category": "upper_gi_surgery",
+      "guideline_synonyms": [
+        "Excision of pancreas",
+        "Pancreas excision",
+        "Pancreatectomy",
+        "Pancreatectomy (procedure)",
+        "Pancreatectomy, NOS",
+        "pancreatic resection",
+        "total pancreatectomy",
+        "partial pancreatectomy",
+        "pancreas removal"
+      ],
+      "guideline_synonym_count": 9,
+      "guideline_name": "Pancreatectomy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Pancreaticoduodenectomy": {
+      "concept_id": 116241004,
+      "preferred_term": "Pancreaticoduodenectomy (procedure)",
+      "semantic_tag": null,
+      "score": 0.89607834815979,
+      "llm_disambiguated": true,
+      "category": "upper_gi_surgery",
+      "guideline_synonyms": [
+        "Pancreaticoduodenectomy",
+        "Pancreaticoduodenectomy (procedure)",
+        "Whipple operation",
+        "Whipple operation, proximal pancreatectomy",
+        "Whipple procedure",
+        "Whipple's procedure",
+        "pancreaticoduodenal resection",
+        "proximal pancreatectomy"
+      ],
+      "guideline_synonym_count": 8,
+      "guideline_name": "Pancreaticoduodenectomy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Whipple procedure": {
+      "concept_id": 116241004,
+      "preferred_term": "Pancreaticoduodenectomy (procedure)",
+      "semantic_tag": null,
+      "score": 0.8886498625640582,
+      "llm_disambiguated": true,
+      "category": "upper_gi_surgery",
+      "guideline_synonyms": [
+        "Pancreaticoduodenectomy",
+        "Pancreaticoduodenectomy (procedure)",
+        "Whipple operation",
+        "Whipple operation, proximal pancreatectomy",
+        "Whipple procedure",
+        "Whipple's procedure",
+        "pancreaticoduodenal resection",
+        "proximal pancreatectomy"
+      ],
+      "guideline_synonym_count": 8,
+      "guideline_name": "Pancreaticoduodenectomy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Distal pancreatectomy": {
+      "concept_id": 401004,
+      "preferred_term": "Partial distal subtotal pancreatectomy",
+      "semantic_tag": null,
+      "score": 0.9285480976104736,
+      "llm_disambiguated": true,
+      "category": "upper_gi_surgery",
+      "guideline_synonyms": [
+        "DP - Distal pancreatectomy",
+        "Distal pancreatectomy",
+        "Distal subtotal pancreatectomy",
+        "Distal subtotal pancreatectomy (procedure)",
+        "Partial distal subtotal pancreatectomy",
+        "partial distal pancreatectomy",
+        "subtotal distal pancreatectomy"
+      ],
+      "guideline_synonym_count": 7,
+      "guideline_name": "Partial distal subtotal pancreatectomy",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Hepatectomy": {
+      "concept_id": 71273005,
+      "preferred_term": "Partial hepatectomy (procedure)",
+      "semantic_tag": null,
+      "score": 0.8685483932495117,
+      "llm_disambiguated": true,
+      "category": "upper_gi_surgery",
+      "guideline_synonyms": [
+        "PH - Partial hepatectomy",
+        "Partial excision of liver",
+        "Partial hepatectomy",
+        "Partial hepatectomy (procedure)",
+        "Subtotal hepatectomy",
+        "partial liver resection",
+        "liver segment resection"
+      ],
+      "guideline_synonym_count": 7,
+      "guideline_name": "Partial hepatectomy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Liver resection": {
+      "concept_id": 107963000,
+      "preferred_term": "Excision of liver (procedure)",
+      "semantic_tag": null,
+      "score": 0.8905313014984131,
+      "llm_disambiguated": true,
+      "category": "upper_gi_surgery",
+      "guideline_synonyms": [
+        "Excision of liver",
+        "Excision of liver (procedure)",
+        "Hepatectomy",
+        "Liver excision",
+        "Liver excision (procedure)",
+        "Resection of liver",
+        "hepatic resection",
+        "partial hepatectomy",
+        "hepatic lobectomy",
+        "segmental hepatectomy"
+      ],
+      "guideline_synonym_count": 10,
+      "guideline_name": "Excision of liver (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Cholecystectomy": {
+      "concept_id": 38102005,
+      "preferred_term": "Cholecystectomy",
+      "semantic_tag": null,
+      "score": 0.8902382311527859,
+      "llm_disambiguated": true,
+      "category": "upper_gi_surgery",
+      "guideline_synonyms": [
+        "Cholecystectomy",
+        "Cholecystectomy (procedure)",
+        "Excision of gallbladder",
+        "Gallbladder excision",
+        "Removal of gallbladder",
+        "lap chole",
+        "lap cholecystectomy",
+        "gallbladder removal",
+        "GB removal",
+        "open cholecystectomy"
+      ],
+      "guideline_synonym_count": 10,
+      "guideline_name": "Cholecystectomy",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Wide local excision of melanoma": {
+      "concept_id": 177302005,
+      "preferred_term": "Wide excision of skin lesion (procedure)",
+      "semantic_tag": null,
+      "score": 0.8836884498596191,
+      "llm_disambiguated": true,
+      "category": "skin_surgery",
+      "guideline_synonyms": [
+        "Wide excision of skin lesion",
+        "Wide excision of skin lesion (procedure)",
+        "Excision of skin lesion",
+        "WLE of skin lesion",
+        "wide excision of lesion",
+        "wide skin excision"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Wide excision of skin lesion (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Mohs surgery": {
+      "concept_id": 418024000,
+      "preferred_term": "Mohs' surgery",
+      "semantic_tag": null,
+      "score": 0.9385758304180557,
+      "llm_disambiguated": true,
+      "category": "skin_surgery",
+      "guideline_synonyms": [
+        "Mohs micrographic surgery",
+        "Mohs surgery",
+        "Mohs surgery (procedure)",
+        "Mohs' micrographic surgery",
+        "Mohs' surgery",
+        "Mohs excision"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Mohs' surgery",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Mohs micrographic surgery": {
+      "concept_id": 418024000,
+      "preferred_term": "Mohs' surgery",
+      "semantic_tag": null,
+      "score": 0.9386277087875191,
+      "llm_disambiguated": true,
+      "category": "skin_surgery",
+      "guideline_synonyms": [
+        "Mohs micrographic surgery",
+        "Mohs surgery",
+        "Mohs surgery (procedure)",
+        "Mohs' micrographic surgery",
+        "Mohs' surgery",
+        "Mohs excision"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Mohs' surgery",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Sentinel node biopsy for melanoma": {
+      "concept_id": 396487001,
+      "preferred_term": "Biopsy of sentinel lymph node",
+      "semantic_tag": null,
+      "score": 0.8976078033447266,
+      "llm_disambiguated": true,
+      "category": "skin_surgery",
+      "guideline_synonyms": [
+        "Biopsy of sentinel lymph node",
+        "Sentinel lymph node biopsy",
+        "Sentinel lymph node biopsy (procedure)",
+        "Sentinel node biopsy",
+        "SLN biopsy",
+        "sentinel LN biopsy",
+        "sentinel node bx",
+        "sentinel LN bx",
+        "sentinel biopsy"
+      ],
+      "guideline_synonym_count": 9,
+      "guideline_name": "Biopsy of sentinel lymph node",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Lymphadenectomy": {
+      "concept_id": 11971000224104,
+      "preferred_term": "Dissection of lymph node (procedure)",
+      "semantic_tag": null,
+      "score": 0.8795566558837891,
+      "llm_disambiguated": true,
+      "category": "skin_surgery",
+      "guideline_synonyms": [
+        "Dissection of lymph node",
+        "Dissection of lymph node (procedure)",
+        "lymph node dissection",
+        "lymph node clearance",
+        "node dissection",
+        "lymph node excision"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Dissection of lymph node (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Groin dissection": {
+      "concept_id": 5998008,
+      "preferred_term": "Radical lymph node dissection of groin (procedure)",
+      "semantic_tag": null,
+      "score": 0.8755608295728152,
+      "llm_disambiguated": true,
+      "category": "skin_surgery",
+      "guideline_synonyms": [
+        "Block dissection of groin",
+        "Radical dissection of groin",
+        "Radical lymph node dissection of groin",
+        "Radical lymph node dissection of groin (procedure)",
+        "radical lymph node dissection of groin (procedure)",
+        "inguinal lymph node dissection",
+        "radical inguinal dissection"
+      ],
+      "guideline_synonym_count": 7,
+      "guideline_name": "Radical lymph node dissection of groin (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Craniotomy": {
+      "concept_id": 25353009,
+      "preferred_term": "Craniotomy (procedure)",
+      "semantic_tag": null,
+      "score": 0.89591383934021,
+      "llm_disambiguated": true,
+      "category": "neuro_surgery",
+      "guideline_synonyms": [
+        "Craniotomy",
+        "Craniotomy (procedure)",
+        "Craniotomy, NOS",
+        "Incision of bone of skull",
+        "Incision of bone of skull, NOS",
+        "emergency craniotomy",
+        "frontoparietal craniotomy",
+        "decompressive craniotomy"
+      ],
+      "guideline_synonym_count": 8,
+      "guideline_name": "Craniotomy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Brain tumour resection": {
+      "concept_id": 447107001,
+      "preferred_term": "Craniotomy and excision of neoplasm of brain (procedure)",
+      "semantic_tag": null,
+      "score": 0.8547897338867188,
+      "llm_disambiguated": true,
+      "category": "neuro_surgery",
+      "guideline_synonyms": [
+        "Craniotomy and excision of neoplasm of brain",
+        "Craniotomy and excision of neoplasm of brain (procedure)",
+        "craniotomy tumour resection"
+      ],
+      "guideline_synonym_count": 3,
+      "guideline_name": "Craniotomy and excision of neoplasm of brain (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Stereotactic biopsy": {
+      "concept_id": 171491002,
+      "preferred_term": "Stereotactic biopsy of brain (procedure)",
+      "semantic_tag": null,
+      "score": 0.9335677623748779,
+      "llm_disambiguated": true,
+      "category": "neuro_surgery",
+      "guideline_synonyms": [
+        "Stereotactic biopsy of brain",
+        "Stereotactic biopsy of brain (procedure)",
+        "stereotactic brain biopsy",
+        "stereotactic cerebral biopsy",
+        "stereotactic Bx brain"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Stereotactic biopsy of brain (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Stereotactic radiosurgery": {
+      "concept_id": 115959002,
+      "preferred_term": "Stereotactic radiosurgery (procedure)",
+      "semantic_tag": null,
+      "score": 0.9629631042480469,
+      "llm_disambiguated": true,
+      "category": "neuro_surgery",
+      "guideline_synonyms": [
+        "Stereotactic radiosurgery",
+        "Stereotactic radiosurgery (procedure)",
+        "gamma knife"
+      ],
+      "guideline_synonym_count": 3,
+      "guideline_name": "Stereotactic radiosurgery (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Gamma knife surgery": {
+      "concept_id": 64134004,
+      "preferred_term": "Stereotactic focused gamma radiosurgery of cerebrum (procedure)",
+      "semantic_tag": null,
+      "score": 0.8169398307800293,
+      "llm_disambiguated": true,
+      "category": "neuro_surgery",
+      "guideline_synonyms": [
+        "Stereotactic focused gamma radiosurgery of cerebrum",
+        "Stereotactic focused gamma radiosurgery of cerebrum (procedure)",
+        "cerebral gamma knife"
+      ],
+      "guideline_synonym_count": 3,
+      "guideline_name": "Stereotactic focused gamma radiosurgery of cerebrum (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Cyberknife": {
+      "concept_id": 115959002,
+      "preferred_term": "Stereotactic radiosurgery (procedure)",
+      "semantic_tag": null,
+      "score": 0.818549394607544,
+      "llm_disambiguated": true,
+      "category": "neuro_surgery",
+      "guideline_synonyms": [
+        "Stereotactic radiosurgery",
+        "Stereotactic radiosurgery (procedure)",
+        "gamma knife"
+      ],
+      "guideline_synonym_count": 3,
+      "guideline_name": "Stereotactic radiosurgery (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Awake craniotomy": {
+      "concept_id": 25353009,
+      "preferred_term": "Craniotomy (procedure)",
+      "semantic_tag": null,
+      "score": 0.8638746738433838,
+      "llm_disambiguated": true,
+      "category": "neuro_surgery",
+      "guideline_synonyms": [
+        "Craniotomy",
+        "Craniotomy (procedure)",
+        "Craniotomy, NOS",
+        "Incision of bone of skull",
+        "Incision of bone of skull, NOS",
+        "emergency craniotomy",
+        "frontoparietal craniotomy",
+        "decompressive craniotomy"
+      ],
+      "guideline_synonym_count": 8,
+      "guideline_name": "Craniotomy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Spinal tumour resection": {
+      "concept_id": 446342001,
+      "preferred_term": "Excision of neoplasm from spinal extradural space (procedure)",
+      "semantic_tag": null,
+      "score": 0.8443684577941895,
+      "llm_disambiguated": true,
+      "category": "neuro_surgery",
+      "guideline_synonyms": [
+        "Excision of neoplasm from spinal extradural space",
+        "Excision of neoplasm from spinal extradural space (procedure)",
+        "spinal extradural tumour excision",
+        "extradural tumour excision",
+        "extradural spinal tumour removal"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Excision of neoplasm from spinal extradural space (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Laminectomy": {
+      "concept_id": 387731002,
+      "preferred_term": "Laminectomy (procedure)",
+      "semantic_tag": null,
+      "score": 0.904423713684082,
+      "llm_disambiguated": true,
+      "category": "neuro_surgery",
+      "guideline_synonyms": [
+        "Excision of lamina of vertebra",
+        "Excision of lamina of vertebra (procedure)",
+        "Laminectomy",
+        "Laminectomy (procedure)",
+        "Spinal laminectomy",
+        "lumbar laminectomy",
+        "cervical laminectomy",
+        "lamina excision"
+      ],
+      "guideline_synonym_count": 8,
+      "guideline_name": "Laminectomy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Bone marrow transplant": {
+      "concept_id": 58776007,
+      "preferred_term": "Autologous bone marrow transplant (procedure)",
+      "semantic_tag": null,
+      "score": 0.9216816425323486,
+      "llm_disambiguated": false,
+      "category": "haematology_treatment",
+      "guideline_synonyms": [
+        "ABMT - Autologous bone marrow transplant",
+        "Autologous bone marrow graft",
+        "Autologous bone marrow transplant",
+        "Autologous bone marrow transplant (procedure)",
+        "auto BMT",
+        "autologous BMT",
+        "auto marrow transplant",
+        "autograft BMT"
+      ],
+      "guideline_synonym_count": 8,
+      "guideline_name": "Autologous bone marrow transplant (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Stem cell transplant": {
+      "concept_id": 234336002,
+      "preferred_term": "Hemopoietic stem cell transplant (procedure)",
+      "semantic_tag": null,
+      "score": 0.8808205127716064,
+      "llm_disambiguated": true,
+      "category": "haematology_treatment",
+      "guideline_synonyms": [
+        "Haemopoietic stem cell transplant",
+        "Hemopoietic stem cell transplant",
+        "Hemopoietic stem cell transplant (procedure)",
+        "Transfusion of stem cells",
+        "haemopoietic SCT",
+        "bone marrow transplant"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Hemopoietic stem cell transplant (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Autologous stem cell transplant": {
+      "concept_id": 709115004,
+      "preferred_term": "Transplantation of autologous hematopoietic stem cell (procedure)",
+      "semantic_tag": null,
+      "score": 0.8830416202545166,
+      "llm_disambiguated": true,
+      "category": "haematology_treatment",
+      "guideline_synonyms": [
+        "Transplantation of autologous haematopoietic stem cell",
+        "Transplantation of autologous hematopoietic stem cell",
+        "Transplantation of autologous hematopoietic stem cell (procedure)",
+        "auto SCT",
+        "autologous HSCT",
+        "autologous SCT",
+        "auto HSCT",
+        "auto BMT",
+        "autologous bone marrow transplant"
+      ],
+      "guideline_synonym_count": 9,
+      "guideline_name": "Transplantation of autologous hematopoietic stem cell (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Allogeneic stem cell transplant": {
+      "concept_id": 174241000112100,
+      "preferred_term": "Transplantation of allogeneic hematopoietic stem cell (procedure)",
+      "semantic_tag": null,
+      "score": 0.9079844951629639,
+      "llm_disambiguated": true,
+      "category": "haematology_treatment",
+      "guideline_synonyms": [
+        "Transplantation of allogeneic haematopoietic stem cell",
+        "Transplantation of allogeneic hematopoietic stem cell",
+        "Transplantation of allogeneic hematopoietic stem cell (procedure)",
+        "allo SCT",
+        "allo HSCT",
+        "allogeneic HSCT",
+        "allo stem cell transplant",
+        "allogeneic transplant"
+      ],
+      "guideline_synonym_count": 8,
+      "guideline_name": "Transplantation of allogeneic hematopoietic stem cell (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Peripheral blood stem cell transplant": {
+      "concept_id": 284691000000103,
+      "preferred_term": "Allogeneic peripheral blood stem cell transplant (procedure)",
+      "semantic_tag": null,
+      "score": 0.9604215621948242,
+      "llm_disambiguated": false,
+      "category": "haematology_treatment",
+      "guideline_synonyms": [
+        "Allogeneic peripheral blood stem cell transplant",
+        "Allogeneic peripheral blood stem cell transplant (procedure)",
+        "allo PBSCT",
+        "allogeneic PBSCT",
+        "allo SCT",
+        "allo stem cell transplant",
+        "allo peripheral blood SCT"
+      ],
+      "guideline_synonym_count": 7,
+      "guideline_name": "Allogeneic peripheral blood stem cell transplant (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Splenectomy": {
+      "concept_id": 234319005,
+      "preferred_term": "Splenectomy (procedure)",
+      "semantic_tag": null,
+      "score": 0.8905733959368938,
+      "llm_disambiguated": true,
+      "category": "haematology_treatment",
+      "guideline_synonyms": [
+        "Excision of spleen tissue",
+        "Splenectomy",
+        "Splenectomy (procedure)",
+        "spleen removal",
+        "spleen excision",
+        "total splenectomy"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Splenectomy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "CAR-T cell therapy": {
+      "concept_id": 1156961008,
+      "preferred_term": "Chimeric antigen receptor T-cell immunotherapy (procedure)",
+      "semantic_tag": null,
+      "score": 0.8622579574584961,
+      "llm_disambiguated": true,
+      "category": "haematology_treatment",
+      "guideline_synonyms": [
+        "CAR-T (chimeric antigen receptor T-cell) therapy",
+        "Chimeric antigen receptor T-cell immunotherapy",
+        "Chimeric antigen receptor T-cell immunotherapy (procedure)",
+        "chimeric antigen receptor therapy"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Chimeric antigen receptor T-cell immunotherapy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Chemotherapy": {
+      "concept_id": 367336001,
+      "preferred_term": "Chemotherapy (procedure)",
+      "semantic_tag": null,
+      "score": 0.8962898033494737,
+      "llm_disambiguated": true,
+      "category": "systemic_treatment",
+      "guideline_synonyms": [
+        "CT - Chemotherapy",
+        "Chemotherapy",
+        "Chemotherapy (procedure)",
+        "adjuvant chemotherapy",
+        "neoadjuvant chemotherapy",
+        "R-CHOP chemotherapy",
+        "chemo",
+        "chemo tx",
+        "chemo cycle"
+      ],
+      "guideline_synonym_count": 9,
+      "guideline_name": "Chemotherapy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Adjuvant chemotherapy": {
+      "concept_id": 1259201000,
+      "preferred_term": "Adjuvant drug therapy (procedure)",
+      "semantic_tag": null,
+      "score": 0.8390460014343262,
+      "llm_disambiguated": true,
+      "category": "systemic_treatment",
+      "guideline_synonyms": [
+        "Adjuvant drug therapy",
+        "Adjuvant drug therapy (procedure)",
+        "adjuvant chemo",
+        "adjuvant Rx",
+        "adj chemo",
+        "adjuvant systemic therapy"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Adjuvant drug therapy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Neoadjuvant chemotherapy": {
+      "concept_id": 829591000000101,
+      "preferred_term": "Neoadjuvant chemotherapy (procedure)",
+      "semantic_tag": null,
+      "score": 0.9563267263694114,
+      "llm_disambiguated": true,
+      "category": "systemic_treatment",
+      "guideline_synonyms": [
+        "Neoadjuvant chemotherapy",
+        "Neoadjuvant chemotherapy (procedure)",
+        "neoadjuvant chemo",
+        "neo-adjuvant chemo",
+        "pre-surgical chemo",
+        "neo chemo"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Neoadjuvant chemotherapy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Palliative chemotherapy": {
+      "concept_id": 1255904006,
+      "preferred_term": "Administration of palliative antineoplastic agent (procedure)",
+      "semantic_tag": null,
+      "score": 0.8635649681091309,
+      "llm_disambiguated": true,
+      "category": "systemic_treatment",
+      "guideline_synonyms": [
+        "Administration of palliative antineoplastic agent",
+        "Administration of palliative antineoplastic agent (procedure)",
+        "Administration of palliative antineoplastic chemotherapy",
+        "Palliative antineoplastic chemotherapy",
+        "palliative chemo",
+        "palliative systemic therapy"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Administration of palliative antineoplastic agent (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Immunotherapy": {
+      "concept_id": 76334006,
+      "preferred_term": "Immunotherapy (procedure)",
+      "semantic_tag": null,
+      "score": 0.8383712114620374,
+      "llm_disambiguated": true,
+      "category": "systemic_treatment",
+      "guideline_synonyms": [
+        "Biological response modifier therapy",
+        "Immunological care",
+        "Immunological therapy",
+        "Immunotherapy",
+        "Immunotherapy (procedure)",
+        "Immunotherapy, NOS",
+        "immuno tx",
+        "immune therapy",
+        "immuno Rx",
+        "immuno treatment"
+      ],
+      "guideline_synonym_count": 10,
+      "guideline_name": "Immunotherapy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Targeted therapy": {
+      "concept_id": 413648008,
+      "preferred_term": "Biological treatment (regime/therapy)",
+      "semantic_tag": null,
+      "score": 0.7835168838500977,
+      "llm_disambiguated": true,
+      "category": "systemic_treatment",
+      "guideline_synonyms": [
+        "Biological treatment",
+        "Biological treatment (regime/therapy)",
+        "biologic therapy",
+        "biologics",
+        "biologic regime"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Biological treatment (regime/therapy)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Biological therapy": {
+      "concept_id": 373810000,
+      "preferred_term": "Biological agent therapy for malignant disease (procedure)",
+      "semantic_tag": null,
+      "score": 0.8349907398223877,
+      "llm_disambiguated": true,
+      "category": "systemic_treatment",
+      "guideline_synonyms": [
+        "Biological agent therapy for malignant disease",
+        "Biological agent therapy for malignant disease (procedure)"
+      ],
+      "guideline_synonym_count": 2,
+      "guideline_name": "Biological agent therapy for malignant disease (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Hormone therapy": {
+      "concept_id": 169413002,
+      "preferred_term": "Endocrine therapy",
+      "semantic_tag": null,
+      "score": 0.9329476356506348,
+      "llm_disambiguated": true,
+      "category": "systemic_treatment",
+      "guideline_synonyms": [
+        "Endocrine therapy",
+        "HT - Hormone therapy",
+        "Hormone therapy",
+        "Hormone therapy (procedure)",
+        "androgen deprivation therapy",
+        "hormonal therapy",
+        "hormone tx",
+        "endocrine treatment",
+        "endocrine tx"
+      ],
+      "guideline_synonym_count": 9,
+      "guideline_name": "Endocrine therapy",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Endocrine therapy": {
+      "concept_id": 309542002,
+      "preferred_term": "Endocrine therapy (procedure)",
+      "semantic_tag": null,
+      "score": 0.9222791806378069,
+      "llm_disambiguated": true,
+      "category": "systemic_treatment",
+      "guideline_synonyms": [
+        "Endocrine therapy",
+        "Endocrine therapy (procedure)",
+        "hormone therapy",
+        "hormonal therapy",
+        "endocrine treatment",
+        "hormonal treatment"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Endocrine therapy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Tamoxifen therapy": {
+      "concept_id": 724161009,
+      "preferred_term": "Tamoxifen therapy (procedure)",
+      "semantic_tag": null,
+      "score": 0.9420199394226074,
+      "llm_disambiguated": true,
+      "category": "systemic_treatment",
+      "guideline_synonyms": [
+        "Tamoxifen therapy",
+        "Tamoxifen therapy (procedure)",
+        "on tamoxifen",
+        "tamoxifen treatment",
+        "tamoxifen Rx",
+        "tamoxifen course"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Tamoxifen therapy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Aromatase inhibitor therapy": {
+      "concept_id": 1338030001,
+      "preferred_term": "Anastrozole therapy (procedure)",
+      "semantic_tag": null,
+      "score": 0.8445379734039307,
+      "llm_disambiguated": true,
+      "category": "systemic_treatment",
+      "guideline_synonyms": [
+        "Anastrozole therapy",
+        "Anastrozole therapy (procedure)",
+        "anastrozole treatment",
+        "Arimidex therapy",
+        "anastrozole Rx",
+        "AI therapy",
+        "anastrozole course"
+      ],
+      "guideline_synonym_count": 7,
+      "guideline_name": "Anastrozole therapy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Trastuzumab therapy": {
+      "concept_id": 1237262009,
+      "preferred_term": "Receptor tyrosine-protein kinase erbB-2 inhibitor therapy (procedure)",
+      "semantic_tag": null,
+      "score": 0.8109049797058105,
+      "llm_disambiguated": true,
+      "category": "systemic_treatment",
+      "guideline_synonyms": [
+        "HER2 (Human epidermal growth factor receptor 2) inhibitor therapy",
+        "Human epidermal growth factor receptor 2 inhibitor therapy",
+        "Human epidermal growth factor receptor 2 targeted therapy",
+        "Receptor tyrosine-protein kinase erbB-2 inhibitor therapy",
+        "Receptor tyrosine-protein kinase erbB-2 inhibitor therapy (procedure)",
+        "HER2 inhibitor therapy",
+        "anti-HER2 therapy",
+        "HER2 blockade",
+        "erbB2 inhibitor therapy"
+      ],
+      "guideline_synonym_count": 9,
+      "guideline_name": "Receptor tyrosine-protein kinase erbB-2 inhibitor therapy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Herceptin": {
+      "concept_id": 309841001,
+      "preferred_term": "Thyroxine treatment stopped (situation)",
+      "semantic_tag": null,
+      "score": 0.7127394676208496,
+      "llm_disambiguated": false,
+      "category": "systemic_treatment",
+      "guideline_synonyms": [
+        "Thyroxine Rx stopped",
+        "Thyroxine Rx stopped (procedure)",
+        "Thyroxine Rx stopped (regime/therapy)",
+        "Thyroxine treament stopped",
+        "Thyroxine treament stopped (regime/therapy)",
+        "Thyroxine treatment stopped",
+        "Thyroxine treatment stopped (regime/therapy)",
+        "Thyroxine treatment stopped (situation)",
+        "T4 stopped",
+        "levothyroxine stopped",
+        "thyroxine discontinued",
+        "stopped levothyroxine",
+        "stopped thyroxine"
+      ],
+      "guideline_synonym_count": 13,
+      "guideline_name": "Thyroxine treatment stopped (situation)",
+      "guideline_labels": [
+        "Situation"
+      ]
+    },
+    "Pembrolizumab": {
+      "concept_id": 870387009,
+      "preferred_term": "Immune checkpoint inhibitor therapy (procedure)",
+      "semantic_tag": null,
+      "score": 0.8121347427368164,
+      "llm_disambiguated": true,
+      "category": "systemic_treatment",
+      "guideline_synonyms": [
+        "ICI (immune checkpoint inhibitor) therapy",
+        "Immune checkpoint inhibitor therapy",
+        "Immune checkpoint inhibitor therapy (procedure)",
+        "ICI therapy",
+        "ICI treatment",
+        "checkpoint inhibitor therapy"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Immune checkpoint inhibitor therapy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Nivolumab": {
+      "concept_id": 870387009,
+      "preferred_term": "Immune checkpoint inhibitor therapy (procedure)",
+      "semantic_tag": null,
+      "score": 0.8436789512634277,
+      "llm_disambiguated": true,
+      "category": "systemic_treatment",
+      "guideline_synonyms": [
+        "ICI (immune checkpoint inhibitor) therapy",
+        "Immune checkpoint inhibitor therapy",
+        "Immune checkpoint inhibitor therapy (procedure)",
+        "ICI therapy",
+        "ICI treatment",
+        "checkpoint inhibitor therapy"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Immune checkpoint inhibitor therapy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Rituximab": {
+      "concept_id": 724159000,
+      "preferred_term": "Rituximab therapy (procedure)",
+      "semantic_tag": null,
+      "score": 0.9207603931427002,
+      "llm_disambiguated": true,
+      "category": "systemic_treatment",
+      "guideline_synonyms": [
+        "Rituximab therapy",
+        "Rituximab therapy (procedure)",
+        "rituximab infusion",
+        "RTX therapy",
+        "RTX infusion",
+        "MabThera infusion"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Rituximab therapy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Radiotherapy": {
+      "concept_id": 1287742003,
+      "preferred_term": "Radiotherapy (procedure)",
+      "semantic_tag": null,
+      "score": 0.9295555472871837,
+      "llm_disambiguated": true,
+      "category": "radiotherapy",
+      "guideline_synonyms": [
+        "RT - Radiotherapy",
+        "Radiation therapy",
+        "Radiotherapy",
+        "Radiotherapy (procedure)"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Radiotherapy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "External beam radiotherapy": {
+      "concept_id": 1156506007,
+      "preferred_term": "External beam radiation therapy using photons (procedure)",
+      "semantic_tag": null,
+      "score": 0.8891608715057373,
+      "llm_disambiguated": true,
+      "category": "radiotherapy",
+      "guideline_synonyms": [
+        "External beam radiation therapy using photons",
+        "External beam radiation therapy using photons (procedure)",
+        "External beam radiotherapy using photons",
+        "Teleradiotherapy using photons",
+        "photon EBRT",
+        "photon beam RT"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "External beam radiation therapy using photons (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Intensity modulated radiotherapy": {
+      "concept_id": 441799006,
+      "preferred_term": "Intensity modulated radiotherapy",
+      "semantic_tag": null,
+      "score": 0.9442713260650635,
+      "llm_disambiguated": true,
+      "category": "radiotherapy",
+      "guideline_synonyms": [
+        "IMRT - intensity modulated radiation therapy",
+        "Intensity modulated radiation therapy",
+        "Intensity modulated radiation therapy (procedure)",
+        "Intensity modulated radiotherapy",
+        "intensity modulated RT"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Intensity modulated radiotherapy",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "IMRT": {
+      "concept_id": 231711000000108,
+      "preferred_term": "Radiotherapy delivery (procedure)",
+      "semantic_tag": null,
+      "score": 0.8542177677154541,
+      "llm_disambiguated": true,
+      "category": "radiotherapy",
+      "guideline_synonyms": [
+        "Radiotherapy delivery",
+        "Radiotherapy delivery (procedure)",
+        "RT delivery",
+        "RT treatment",
+        "radiation therapy delivery",
+        "radiotherapy admin"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Radiotherapy delivery (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Stereotactic body radiotherapy": {
+      "concept_id": 395096001,
+      "preferred_term": "Stereotactic radiotherapy (procedure)",
+      "semantic_tag": null,
+      "score": 0.9462041854858398,
+      "llm_disambiguated": true,
+      "category": "radiotherapy",
+      "guideline_synonyms": [
+        "Stereotactic radiotherapy",
+        "Stereotactic radiotherapy (procedure)",
+        "stereotactic RT",
+        "stereotactic radiosurgery"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Stereotactic radiotherapy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "SBRT": {
+      "concept_id": 895121000000103,
+      "preferred_term": "Hypofractionated stereotactic radiotherapy using megavoltage radiation (procedure)",
+      "semantic_tag": null,
+      "score": 0.837432861328125,
+      "llm_disambiguated": true,
+      "category": "radiotherapy",
+      "guideline_synonyms": [
+        "Hypofractionated stereotactic radiotherapy using megavoltage radiation",
+        "Hypofractionated stereotactic radiotherapy using megavoltage radiation (procedure)",
+        "hypofractionated SBRT",
+        "hypofractionated SRT"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Hypofractionated stereotactic radiotherapy using megavoltage radiation (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Proton beam therapy": {
+      "concept_id": 169314007,
+      "preferred_term": "Proton therapy (procedure)",
+      "semantic_tag": null,
+      "score": 0.9202802752378223,
+      "llm_disambiguated": true,
+      "category": "radiotherapy",
+      "guideline_synonyms": [
+        "Proton therapy",
+        "Proton therapy (procedure)",
+        "proton radiotherapy",
+        "proton RT",
+        "proton beam RT",
+        "proton beam treatment"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Proton therapy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Radical radiotherapy": {
+      "concept_id": 108290001,
+      "preferred_term": "Radiotherapy",
+      "semantic_tag": null,
+      "score": 0.8736159801483154,
+      "llm_disambiguated": true,
+      "category": "radiotherapy",
+      "guideline_synonyms": [
+        "RT - Radiotherapy",
+        "Radiation oncology AND/OR radiotherapy",
+        "Radiation oncology AND/OR radiotherapy (procedure)",
+        "Radiotherapy",
+        "radiation therapy",
+        "rad therapy"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Radiotherapy",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Adjuvant radiotherapy": {
+      "concept_id": 1287742003,
+      "preferred_term": "Radiotherapy (procedure)",
+      "semantic_tag": null,
+      "score": 0.8789416969320354,
+      "llm_disambiguated": true,
+      "category": "radiotherapy",
+      "guideline_synonyms": [
+        "RT - Radiotherapy",
+        "Radiation therapy",
+        "Radiotherapy",
+        "Radiotherapy (procedure)"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Radiotherapy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Palliative radiotherapy": {
+      "concept_id": 168528006,
+      "preferred_term": "Palliative course of radiotherapy (procedure)",
+      "semantic_tag": null,
+      "score": 0.9014983177185059,
+      "llm_disambiguated": true,
+      "category": "radiotherapy",
+      "guideline_synonyms": [
+        "Palliative course of radiotherapy",
+        "Palliative course of radiotherapy (procedure)",
+        "Radiotherapy for tumor palliation",
+        "Radiotherapy for tumour palliation",
+        "palliative RT",
+        "RT for palliation",
+        "palliative XRT"
+      ],
+      "guideline_synonym_count": 7,
+      "guideline_name": "Palliative course of radiotherapy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Chemoradiotherapy": {
+      "concept_id": 703423002,
+      "preferred_term": "Chemoradiation",
+      "semantic_tag": null,
+      "score": 0.8585240840911865,
+      "llm_disambiguated": true,
+      "category": "radiotherapy",
+      "guideline_synonyms": [
+        "Chemoradiation",
+        "Chemoradiotherapy",
+        "Combined chemotherapy and radiation therapy",
+        "Combined chemotherapy and radiation therapy (procedure)",
+        "Radiochemotherapy",
+        "radical chemoradiotherapy"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Chemoradiation",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Concurrent chemoradiotherapy": {
+      "concept_id": 703423002,
+      "preferred_term": "Chemoradiation",
+      "semantic_tag": null,
+      "score": 0.861321210861206,
+      "llm_disambiguated": true,
+      "category": "radiotherapy",
+      "guideline_synonyms": [
+        "Chemoradiation",
+        "Chemoradiotherapy",
+        "Combined chemotherapy and radiation therapy",
+        "Combined chemotherapy and radiation therapy (procedure)",
+        "Radiochemotherapy"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Chemoradiation",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Stent insertion": {
+      "concept_id": 1296925008,
+      "preferred_term": "Insertion of stent (procedure)",
+      "semantic_tag": null,
+      "score": 0.9622254371643066,
+      "llm_disambiguated": true,
+      "category": "other_procedures",
+      "guideline_synonyms": [
+        "Insertion of stent",
+        "Insertion of stent (procedure)",
+        "stent placed",
+        "stent fitted"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Insertion of stent (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Oesophageal stent": {
+      "concept_id": 445972008,
+      "preferred_term": "Insertion of esophageal stent (procedure)",
+      "semantic_tag": null,
+      "score": 0.8732128143310547,
+      "llm_disambiguated": true,
+      "category": "other_procedures",
+      "guideline_synonyms": [
+        "Insertion of esophageal stent",
+        "Insertion of esophageal stent (procedure)",
+        "Insertion of oesophageal stent",
+        "oesophageal stent insertion"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Insertion of esophageal stent (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Biliary stent": {
+      "concept_id": 871680005,
+      "preferred_term": "Insertion of biliary stent (procedure)",
+      "semantic_tag": null,
+      "score": 0.9206581115722656,
+      "llm_disambiguated": true,
+      "category": "other_procedures",
+      "guideline_synonyms": [
+        "Insertion of biliary stent",
+        "Insertion of biliary stent (procedure)",
+        "bile duct stent insertion",
+        "biliary stent placement",
+        "CBD stent insertion",
+        "bile duct stent"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Insertion of biliary stent (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Colonic stent": {
+      "concept_id": 1260482004,
+      "preferred_term": "Insertion of stent into colon using colonoscope (procedure)",
+      "semantic_tag": null,
+      "score": 0.8634810447692871,
+      "llm_disambiguated": true,
+      "category": "other_procedures",
+      "guideline_synonyms": [
+        "Colonoscopic stent insertion",
+        "Colonoscopy with insertion of colonic stent",
+        "Endoscopic insertion of stent into colon using colonoscope",
+        "Insertion of stent into colon using colonoscope",
+        "Insertion of stent into colon using colonoscope (procedure)",
+        "colon stent insertion"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Insertion of stent into colon using colonoscope (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Laser ablation": {
+      "concept_id": 229565001,
+      "preferred_term": "Laser therapy",
+      "semantic_tag": null,
+      "score": 0.8682990074157715,
+      "llm_disambiguated": true,
+      "category": "other_procedures",
+      "guideline_synonyms": [
+        "Laser therapy",
+        "Low power laser therapy",
+        "Low power laser therapy (procedure)",
+        "laser treatment",
+        "laser tx",
+        "laser Rx",
+        "laser procedure"
+      ],
+      "guideline_synonym_count": 7,
+      "guideline_name": "Laser therapy",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Radiofrequency ablation": {
+      "concept_id": 879916008,
+      "preferred_term": "Radiofrequency ablation (procedure)",
+      "semantic_tag": null,
+      "score": 0.977741003036499,
+      "llm_disambiguated": true,
+      "category": "other_procedures",
+      "guideline_synonyms": [
+        "Radiofrequency ablation",
+        "Radiofrequency ablation (procedure)",
+        "RF ablation"
+      ],
+      "guideline_synonym_count": 3,
+      "guideline_name": "Radiofrequency ablation (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Microwave ablation": {
+      "concept_id": 1084311000000107,
+      "preferred_term": "Microwave ablation of verruca (procedure)",
+      "semantic_tag": null,
+      "score": 0.8869643211364746,
+      "llm_disambiguated": false,
+      "category": "other_procedures",
+      "guideline_synonyms": [
+        "Microwave ablation of verruca",
+        "Microwave ablation of verruca (procedure)",
+        "microwave verruca ablation",
+        "microwave wart ablation",
+        "microwave ablation wart"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Microwave ablation of verruca (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Cryotherapy": {
+      "concept_id": 26782000,
+      "preferred_term": "Cryotherapy (procedure)",
+      "semantic_tag": null,
+      "score": 0.8805878162384033,
+      "llm_disambiguated": true,
+      "category": "other_procedures",
+      "guideline_synonyms": [
+        "Cryotherapy",
+        "Cryotherapy (procedure)",
+        "Cryotherapy - physiotherapeutic",
+        "Cryotherapy, NOS",
+        "Therapeutic application of cold",
+        "cryo",
+        "cryo treatment",
+        "cryo therapy",
+        "cold therapy"
+      ],
+      "guideline_synonym_count": 9,
+      "guideline_name": "Cryotherapy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Cryoablation": {
+      "concept_id": 178923005,
+      "preferred_term": "Cryoablation of bone lesion (procedure)",
+      "semantic_tag": null,
+      "score": 0.8551689904344286,
+      "llm_disambiguated": false,
+      "category": "other_procedures",
+      "guideline_synonyms": [
+        "Cryoablation of bone lesion",
+        "Cryoablation of bone lesion (procedure)",
+        "bone lesion cryoablation",
+        "cryo of bone lesion",
+        "bone lesion cryo"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Cryoablation of bone lesion (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "TACE": {
+      "concept_id": 442132006,
+      "preferred_term": "Transcatheter arterial chemoembolization",
+      "semantic_tag": null,
+      "score": 0.790809154510498,
+      "llm_disambiguated": true,
+      "category": "other_procedures",
+      "guideline_synonyms": [
+        "Chemoembolisation of hepatic artery",
+        "Chemoembolization of hepatic artery",
+        "Chemoembolization of hepatic artery (procedure)",
+        "HACE - Hepatic artery chemoembolisation",
+        "HACE - Hepatic artery chemoembolization",
+        "TACE (transarterial chemoembolisation) of hepatic artery",
+        "TACE (transarterial chemoembolization) of hepatic artery",
+        "TACE - Transarterial chemoembolisation",
+        "TACE - Transarterial chemoembolization",
+        "Transarterial chemoembolisation of hepatic artery",
+        "Transarterial chemoembolization of hepatic artery",
+        "Transcatheter arterial chemoembolisation",
+        "Transcatheter arterial chemoembolization",
+        "TACE procedure",
+        "hepatic TACE",
+        "transcatheter chemoembolisation",
+        "transcatheter chemoembolization",
+        "arterial chemoembolisation",
+        "arterial chemoembolization"
+      ],
+      "guideline_synonym_count": 19,
+      "guideline_name": "Transcatheter arterial chemoembolization",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Transarterial chemoembolization": {
+      "concept_id": 442132006,
+      "preferred_term": "Transcatheter arterial chemoembolization",
+      "semantic_tag": null,
+      "score": 0.8550252914428711,
+      "llm_disambiguated": true,
+      "category": "other_procedures",
+      "guideline_synonyms": [
+        "Chemoembolisation of hepatic artery",
+        "Chemoembolization of hepatic artery",
+        "Chemoembolization of hepatic artery (procedure)",
+        "HACE - Hepatic artery chemoembolisation",
+        "HACE - Hepatic artery chemoembolization",
+        "TACE (transarterial chemoembolisation) of hepatic artery",
+        "TACE (transarterial chemoembolization) of hepatic artery",
+        "TACE - Transarterial chemoembolisation",
+        "TACE - Transarterial chemoembolization",
+        "Transarterial chemoembolisation of hepatic artery",
+        "Transarterial chemoembolization of hepatic artery",
+        "Transcatheter arterial chemoembolisation",
+        "Transcatheter arterial chemoembolization",
+        "TACE procedure",
+        "hepatic TACE",
+        "transcatheter chemoembolisation",
+        "transcatheter chemoembolization",
+        "arterial chemoembolisation",
+        "arterial chemoembolization"
+      ],
+      "guideline_synonym_count": 19,
+      "guideline_name": "Transcatheter arterial chemoembolization",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "SIRT": {
+      "concept_id": 1047871000000109,
+      "preferred_term": "I CAN Talk Boost intervention (regime/therapy)",
+      "semantic_tag": null,
+      "score": 0.7194960117340088,
+      "llm_disambiguated": false,
+      "category": "other_procedures",
+      "guideline_synonyms": [
+        "I CAN Talk Boost intervention (regime/therapy)",
+        "Talk Boost intervention",
+        "Talk Boost",
+        "I CAN Talk Boost",
+        "Talk Boost programme",
+        "Talk Boost therapy"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "I CAN Talk Boost intervention (regime/therapy)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Selective internal radiation therapy": {
+      "concept_id": 447957008,
+      "preferred_term": "Selective internal radiation using yttrium (procedure)",
+      "semantic_tag": null,
+      "score": 0.8826220035552979,
+      "llm_disambiguated": true,
+      "category": "other_procedures",
+      "guideline_synonyms": [
+        "Selective internal radiation using yttrium",
+        "Selective internal radiation using yttrium (procedure)",
+        "yttrium-90 SIRT",
+        "Y-90 radioembolisation"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Selective internal radiation using yttrium (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Photodynamic therapy": {
+      "concept_id": 257891001,
+      "preferred_term": "Photodynamic therapy (procedure)",
+      "semantic_tag": null,
+      "score": 0.9404075145721436,
+      "llm_disambiguated": true,
+      "category": "other_procedures",
+      "guideline_synonyms": [
+        "PDT - Photodynamic therapy",
+        "Photodynamic therapy",
+        "Photodynamic therapy (procedure)",
+        "PDT procedure"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Photodynamic therapy (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Embolization": {
+      "concept_id": 122463005,
+      "preferred_term": "Embolization procedure (procedure)",
+      "semantic_tag": null,
+      "score": 0.9021086692810059,
+      "llm_disambiguated": true,
+      "category": "other_procedures",
+      "guideline_synonyms": [
+        "Embolisation",
+        "Embolisation procedure",
+        "Embolization",
+        "Embolization procedure",
+        "Embolization procedure (procedure)",
+        "embolisation therapy",
+        "embolisation tx"
+      ],
+      "guideline_synonym_count": 7,
+      "guideline_name": "Embolization procedure (procedure)",
+      "guideline_labels": [
+        "Procedure"
+      ]
+    },
+    "Chemotherapy declined": {
+      "concept_id": 16634021000119105,
+      "preferred_term": "Chemotherapy declined (situation)",
+      "semantic_tag": null,
+      "score": 0.889960527420044,
+      "llm_disambiguated": true,
+      "category": "treatment_situations",
+      "guideline_synonyms": [
+        "chemo declined",
+        "declined chemo",
+        "refused chemotherapy",
+        "chemo refused",
+        "refused chemo"
+      ],
+      "guideline_synonym_count": 5
+    },
+    "Radiotherapy declined": {
+      "concept_id": 16633941000119101,
+      "preferred_term": "Radiotherapy declined by patient (situation)",
+      "semantic_tag": null,
+      "score": 0.8650100231170654,
+      "llm_disambiguated": true,
+      "category": "treatment_situations",
+      "guideline_synonyms": [
+        "patient declined RT",
+        "declined radiotherapy"
+      ],
+      "guideline_synonym_count": 2
+    },
+    "Surgery declined": {
+      "concept_id": 1296859006,
+      "preferred_term": "Procedure declined (situation)",
+      "semantic_tag": null,
+      "score": 0.8106603622436523,
+      "llm_disambiguated": true,
+      "category": "treatment_situations",
+      "guideline_synonyms": [
+        "Procedure declined",
+        "Procedure declined (situation)",
+        "Procedure refused",
+        "Procedure rejected"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Procedure declined (situation)",
+      "guideline_labels": [
+        "Situation"
+      ]
+    },
+    "Treatment declined": {
+      "concept_id": 703991004,
+      "preferred_term": "Raloxifene therapy declined (situation)",
+      "semantic_tag": null,
+      "score": 0.8747174739837646,
+      "llm_disambiguated": false,
+      "category": "treatment_situations",
+      "guideline_synonyms": [
+        "Raloxifene therapy declined",
+        "Raloxifene therapy declined (situation)",
+        "declined raloxifene",
+        "raloxifene refused",
+        "raloxifene not wanted"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Raloxifene therapy declined (situation)",
+      "guideline_labels": [
+        "Situation"
+      ]
+    },
+    "Palliative care": {
+      "concept_id": 395079002,
+      "preferred_term": "Palliative treatment (situation)",
+      "semantic_tag": null,
+      "score": 0.8373244040667691,
+      "llm_disambiguated": true,
+      "category": "treatment_situations",
+      "guideline_synonyms": [
+        "Palliative treatment",
+        "Palliative treatment (context-dependent category)",
+        "Palliative treatment (situation)",
+        "palliative tx",
+        "supportive care"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Palliative treatment (situation)",
+      "guideline_labels": [
+        "Situation"
+      ]
+    },
+    "Best supportive care": {
+      "concept_id": 385763009,
+      "preferred_term": "Hospice care (regime/therapy)",
+      "semantic_tag": null,
+      "score": 0.8100318908691406,
+      "llm_disambiguated": false,
+      "category": "treatment_situations",
+      "guideline_synonyms": [
+        "Hospice care",
+        "Hospice care (regime/therapy)",
+        "hospice",
+        "hospice support"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Hospice care (regime/therapy)",
+      "guideline_labels": [
+        "Situation"
+      ]
+    },
+    "End of life care": {
+      "concept_id": 718637005,
+      "preferred_term": "End of life care planning offered (situation)",
+      "semantic_tag": null,
+      "score": 0.9067165851593018,
+      "llm_disambiguated": false,
+      "category": "treatment_situations",
+      "guideline_synonyms": [
+        "End of life care planning offered",
+        "End of life care planning offered (situation)",
+        "EOLC planning offered",
+        "EOL care planning offered",
+        "end of life planning offered",
+        "EOL planning offered"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "End of life care planning offered (situation)",
+      "guideline_labels": [
+        "Situation"
+      ]
+    }
+  }
+}

@@ -176,26 +176,6 @@ export async function exportMedSpaCyTraining(body: {
   });
 }
 
-export async function enqueueConsensus(body: {
-  patient_ids: string[];
-  dry_run?: boolean;
-  clean?: boolean;
-}) {
-  const params = new URLSearchParams();
-  if (body.clean === false) params.set("clean", "false");
-  const qs = params.toString();
-  return fetchJson<{
-    run_id: string;
-    patients_enqueued: number;
-    queue: string;
-    clean_totals?: Record<string, number>;
-  }>(`${API_BASE}/pipeline/enqueue-consensus${qs ? `?${qs}` : ""}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ patient_ids: body.patient_ids, dry_run: body.dry_run ?? false }),
-  });
-}
-
 export async function cleanPatients(body: {
   patient_ids: string[];
 }) {

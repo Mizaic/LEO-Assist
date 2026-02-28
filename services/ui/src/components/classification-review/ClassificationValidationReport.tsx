@@ -566,7 +566,7 @@ export default function ClassificationValidationReport() {
               <Typography variant="caption" color="text.secondary">
                 <strong>Scope note:</strong> Performance metrics are calculated on disagreement cases only —
                 encounters where the two models produced different labels. Cases where both models agreed
-                (consensus cases) are not included in this analysis. Disagreement cases represent the
+                (agreement cases) are not included in this analysis. Disagreement cases represent the
                 hardest classification boundary and therefore form a conservative test set. Metrics should
                 be interpreted alongside the overall disagreement rate and total encounter volume when
                 preparing a risk management file under ISO 14971.

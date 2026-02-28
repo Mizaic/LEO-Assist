@@ -26,10 +26,10 @@ from embedding_utils import TextEmbedder, load_vector_settings
 LOGGER = logging.getLogger("prototype_clinical_coder")
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_INPUT = ROOT / "services" / "terminology" / "data" / "training" / "surface_forms_4202301609.jsonl"
-DEFAULT_OUTPUT = ROOT / "services" / "terminology" / "data" / "training" / "surface_forms_4202301609.prototype_coding.jsonl"
-DEFAULT_REPORT = ROOT / "services" / "terminology" / "data" / "training" / "surface_forms_4202301609.prototype_report.json"
-DEFAULT_LOW_CONF = ROOT / "services" / "terminology" / "data" / "training" / "surface_forms_4202301609.prototype_low_confidence.jsonl"
+DEFAULT_INPUT = ROOT / "services" / "terminology" / "data" / "training" / "surface_forms_9990000001.jsonl"
+DEFAULT_OUTPUT = ROOT / "services" / "terminology" / "data" / "training" / "surface_forms_9990000001.prototype_coding.jsonl"
+DEFAULT_REPORT = ROOT / "services" / "terminology" / "data" / "training" / "surface_forms_9990000001.prototype_report.json"
+DEFAULT_LOW_CONF = ROOT / "services" / "terminology" / "data" / "training" / "surface_forms_9990000001.prototype_low_confidence.jsonl"
 
 READ_CODE_RE = re.compile(r"\b[A-Za-z0-9.]{4,8}\b")
 PUNCT_RE = re.compile(r"[^a-z0-9 ]+")

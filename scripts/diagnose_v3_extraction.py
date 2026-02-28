@@ -4,7 +4,7 @@ Runs the V3 LLM extractor against real patient encounters and prints
 detailed extraction output for human review ("eyeball tuning").
 
 Usage:
-    python scripts/diagnose_v3_extraction.py --patient-id 4202301609 --max-encounters 15
+    python scripts/diagnose_v3_extraction.py --patient-id 9990000001 --max-encounters 15
 """
 
 from __future__ import annotations
@@ -44,11 +44,10 @@ except ImportError:
 os.environ.setdefault("SENTENCE_TRANSFORMERS_VERBOSITY", "warning")
 os.environ.setdefault("TRANSFORMERS_VERBOSITY", "warning")
 
-from app.db.neo4j_client import CodingGraphClient, PatientGraphClient
-from app.services.v3.coding_resolver import CodingResolver
-from app.services.v3.llm_extractor import ExtractionError, LLMExtractor
-from app.services.v3.llm_usage import LLMCostConfig, LLMUsage
-from app.services.v3.sentence_splitter import SentenceSplitter, deduplicate_lines
+from app.db.neo4j_client import PatientGraphClient
+from app.services.llm_usage import LLMCostConfig, LLMUsage
+from services.coding_worker.app.pipeline.llm_extractor import ExtractionError, LLMExtractor
+from services.coding_worker.app.pipeline.sentence_splitter import SentenceSplitter, deduplicate_lines
 
 log = logging.getLogger("diagnose_v3")
 
@@ -65,8 +64,8 @@ def _load_deidentify():
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--patient-id", default="4202301609",
-        help="Patient ID to diagnose (default: 4202301609).",
+        "--patient-id", default="9990000001",
+        help="Patient ID to diagnose. Use synthetic test IDs (999-prefix) in examples.",
     )
     parser.add_argument(
         "--max-encounters", type=int, default=15,
@@ -89,19 +88,9 @@ def main() -> int:
 
     log.info("Connecting to Neo4j...")
     patient_client = PatientGraphClient()
-    coding_client = CodingGraphClient() if not args.no_resolve else None
+    coding_client = None
 
-    embedder = None
-    if not args.no_resolve:
-        try:
-            from scripts.embedding_utils import TextEmbedder, load_vector_settings
-            settings = load_vector_settings()
-            embedder = TextEmbedder(settings)
-            log.info("Vector embedder loaded: model=%s", settings.model_name)
-        except Exception:
-            log.info("Vector embedder unavailable - using exact+fulltext only")
-
-    resolver = CodingResolver(embedder=embedder) if not args.no_resolve else None
+    resolver = None
 
     region = os.getenv("AWS_REGION") or os.getenv("AWS_DEFAULT_REGION") or "eu-west-2"
     model_id = os.getenv("AWS_SMALL_MODEL", "unconfigured")
@@ -119,7 +108,7 @@ def main() -> int:
     print(f"  Model ID:         {model_id}")
     print(f"  LLM enabled:      {extractor.enabled}")
     print(f"  Sentence splitter: {splitter.mode}")
-    print(f"  SNOMED resolution: {'yes' if resolver else 'skip'}")
+    print("  SNOMED resolution: disabled (canonical cutover mode)")
     print()
 
     log.info("Fetching encounters for patient %s...", args.patient_id)
@@ -200,18 +189,7 @@ def main() -> int:
             print("  *** EXTRACTION FAILED - see log above ***\n")
             continue
 
-        if resolver and coding_client and all_terms:
-            lookup_texts = [t.lookup_term for t in all_terms]
-            expected_tags = {t.lookup_term: t.semantic_tag for t in all_terms}
-            log.info("Sending %d terms for SNOMED resolution...", len(lookup_texts))
-            with coding_client.session() as coding_session:
-                candidates_map = resolver.resolve_candidates(
-                    lookup_texts, neo4j_session=coding_session,
-                    expected_tags=expected_tags,
-                )
-            log.info("SNOMED resolution complete")
-        else:
-            candidates_map = {}
+        candidates_map = {}
 
         for sentence in sentences:
             sentence_terms = [t for t in all_terms if t.sentence_id == sentence.sentence_id]

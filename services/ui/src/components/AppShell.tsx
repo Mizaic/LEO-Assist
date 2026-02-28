@@ -28,8 +28,8 @@ import BarChartOutlinedIcon from "@mui/icons-material/BarChartOutlined";
 import AssessmentOutlinedIcon from "@mui/icons-material/AssessmentOutlined";
 import GroupWorkOutlinedIcon from "@mui/icons-material/GroupWorkOutlined";
 import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
-import RateReviewOutlinedIcon from "@mui/icons-material/RateReviewOutlined";
 import LibraryBooksOutlinedIcon from "@mui/icons-material/LibraryBooksOutlined";
+import SportsEsportsOutlinedIcon from "@mui/icons-material/SportsEsportsOutlined";
 import LogoutIcon from "@mui/icons-material/Logout";
 import MenuIcon from "@mui/icons-material/Menu";
 import BusinessOutlinedIcon from "@mui/icons-material/BusinessOutlined";
@@ -37,10 +37,8 @@ import { useAuth } from "@/lib/authContext";
 import Avatar from "@mui/material/Avatar";
 import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
-import { usePipeline } from "@/context/PipelineContext";
 import { useOrg } from "@/context/OrgContext";
 import { api } from "@/lib/api";
-import PipelineModal from "./PipelineModal";
 
 const DRAWER_WIDTH = 240;
 const RAIL_WIDTH = 56;
@@ -48,14 +46,14 @@ const RAIL_WIDTH = 56;
 const NAV_ITEMS = [
   { label: "Overview", path: "/dashboard", icon: <DashboardOutlinedIcon /> },
   { label: "Patients", path: "/patients", icon: <PeopleOutlineIcon /> },
-  { label: "Referral Pathways", path: "/episodes", icon: <TimelineOutlinedIcon /> },
+  { label: "Referral Pathways", path: "/pathways", icon: <TimelineOutlinedIcon /> },
   { label: "Safety Netting", path: "/safety-netting", icon: <HealthAndSafetyOutlinedIcon /> },
   { label: "Reports", path: "/reports", icon: <DescriptionOutlinedIcon /> },
   { label: "Measures", path: "/measures", icon: <BarChartOutlinedIcon /> },
   { label: "Benchmarks", path: "/benchmarks", icon: <AssessmentOutlinedIcon /> },
   { label: "Cohorts", path: "/cohorts", icon: <GroupWorkOutlinedIcon /> },
-  { label: "Processing", path: "/pipeline", icon: <SettingsOutlinedIcon /> },
-  { label: "Review Queue", path: "/classification-review", icon: <RateReviewOutlinedIcon />, badgeKey: "reviewQueue" },
+  { label: "Operations", path: "/operations", icon: <SettingsOutlinedIcon />, badgeKey: "reviewQueue" },
+  { label: "Games", path: "/games", icon: <SportsEsportsOutlinedIcon /> },
   { label: "Gold Dataset", path: "/gold-dataset", icon: <LibraryBooksOutlinedIcon /> },
   { label: "Domain Config", path: "/settings", icon: <TuneOutlinedIcon /> },
 ];
@@ -67,7 +65,6 @@ function isEditorRoute(pathname: string): boolean {
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const pipeline = usePipeline();
   const { session, status, signOut } = useAuth();
   const { currentOrg, organizations, isPlatformAdmin, switchOrg, viewAll } = useOrg();
   const theme = useTheme();
@@ -101,28 +98,23 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const isEditor = isEditorRoute(pathname);
   const isProtected =
     pathname?.startsWith("/dashboard") ||
-    pathname?.startsWith("/episodes") ||
+    pathname?.startsWith("/pathways") ||
     pathname?.startsWith("/safety-netting") ||
     pathname?.startsWith("/reports") ||
     pathname?.startsWith("/patients") ||
+    pathname?.startsWith("/operations") ||
     pathname?.startsWith("/pipeline") ||
     pathname?.startsWith("/measures") ||
     pathname?.startsWith("/benchmarks") ||
     pathname?.startsWith("/cohorts") ||
-    pathname?.startsWith("/settings") ||
-    pathname?.startsWith("/classification-review");
+    pathname?.startsWith("/games") ||
+    pathname?.startsWith("/settings");
 
   useEffect(() => {
     if (status === "unauthenticated" && isProtected) {
       router.replace("/sign-in");
     }
   }, [status, isProtected, router]);
-
-  const hasPipelineState =
-    pipeline.running ||
-    (pipeline.result && !pipeline.running) ||
-    (pipeline.error && !pipeline.running);
-  const showIndicator = hasPipelineState && !pipeline.showModal;
 
   if (isPublicPage) {
     return (
@@ -153,7 +145,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <Divider sx={{ width: "80%", mb: 1 }} />
       <List sx={{ p: 0, width: "100%" }}>
         {NAV_ITEMS.map((item) => {
-          const isActive = pathname === item.path || pathname.startsWith(item.path + "/");
+          const isActive = item.activePrefix
+            ? item.activePrefix.some((p) => pathname === p || pathname.startsWith(p + "/"))
+            : pathname === item.path || pathname.startsWith(item.path + "/");
           const badgeCount = item.badgeKey ? (badgeCounts[item.badgeKey] ?? 0) : 0;
           return (
             <Tooltip key={item.path} title={item.label} placement="right">
@@ -258,8 +252,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
       <List sx={{ px: 1, pt: 1 }}>
         {NAV_ITEMS.map((item) => {
-          const isActive =
-            pathname === item.path || pathname.startsWith(item.path + "/");
+          const isActive = item.activePrefix
+            ? item.activePrefix.some((p) => pathname === p || pathname.startsWith(p + "/"))
+            : pathname === item.path || pathname.startsWith(item.path + "/");
           const badgeCount = item.badgeKey ? (badgeCounts[item.badgeKey] ?? 0) : 0;
           return (
             <ListItemButton
@@ -289,53 +284,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           );
         })}
       </List>
-
-      {showIndicator && (
-        <Box sx={{ p: 1.5 }}>
-          <Box
-            component="button"
-            onClick={() => pipeline.setShowModal(true)}
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              gap: 1,
-              width: "100%",
-              px: 1.5,
-              py: 1,
-              borderRadius: 2,
-              border: "1px solid",
-              borderColor: "primary.main",
-              bgcolor: "primary.main",
-              color: "primary.contrastText",
-              cursor: "pointer",
-              fontSize: "0.8rem",
-              fontWeight: 600,
-              textAlign: "left",
-              transition: "background-color 0.2s",
-              "&:hover": { bgcolor: "primary.dark" },
-            }}
-          >
-            <Box
-              sx={{
-                width: 8,
-                height: 8,
-                borderRadius: "50%",
-                bgcolor: pipeline.running ? "success.light" : "grey.400",
-                animation: pipeline.running ? "pulse 1.5s infinite" : "none",
-                "@keyframes pulse": {
-                  "0%, 100%": { opacity: 1 },
-                  "50%": { opacity: 0.4 },
-                },
-              }}
-            />
-            {pipeline.running
-              ? "View progress"
-              : pipeline.error
-                ? "View error"
-                : "View results"}
-          </Box>
-        </Box>
-      )}
 
       {session?.user && (
         <Box
@@ -422,28 +370,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         component="main"
         sx={{
           flexGrow: 1,
-          ml: isMobile ? 0 : `${currentWidth}px`,
+          minWidth: 0,
+          overflowX: "hidden",
           mt: isMobile ? "48px" : 0,
           minHeight: "100vh",
           bgcolor: "background.default",
-          transition: "margin-left 0.2s ease",
         }}
       >
         {children}
       </Box>
-
-      {pipeline.showModal && (
-        <PipelineModal
-          running={pipeline.running}
-          status={pipeline.status}
-          live={pipeline.live}
-          result={pipeline.result}
-          error={pipeline.error}
-          workerStates={pipeline.workerStates}
-          onClose={() => pipeline.setShowModal(false)}
-          onMinimize={() => pipeline.setShowModal(false)}
-        />
-      )}
     </Box>
   );
 }

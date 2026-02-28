@@ -18,27 +18,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 
-/** Fixed colors per semantic tag - same tag always same color */
-const SEMANTIC_TAG_COLORS: Record<string, string> = {
-  situation: "#e0e7ff",
-  clinicalfinding: "#d1fae5",
-  clinical_finding: "#d1fae5",
-  disease: "#fecaca",
-  disorder: "#fecaca",
-  observableentity: "#fef3c7",
-  observable_entity: "#fef3c7",
-  observable: "#fef3c7",
-  procedure: "#bfdbfe",
-  substance: "#ddd6fe",
-  medication: "#ddd6fe",
-  snomedconcept: "#dbeafe",
-  other: "#e2e8f0",
-};
-
-function colorForTag(tag: string | null | undefined): string {
-  const key = (tag ?? "snomedconcept").toLowerCase().replace(/[^a-z0-9]/g, "");
-  return SEMANTIC_TAG_COLORS[key] ?? SEMANTIC_TAG_COLORS.snomedconcept;
-}
+import { themeForTag, renderNerSpans, type AnnotatedSpan } from "@/lib/nerAnnotation";
 
 interface Props {
   patientId: string;
@@ -79,10 +59,10 @@ export default function EncounterCodedView({ patientId, encounterId }: Props) {
     }
   }
 
-  const highlightedText = useMemo(() => {
+  const annotatedSpans = useMemo((): AnnotatedSpan[] => {
     const text = encounter?.text ?? "";
-    if (!text || codedLinks.length === 0) return text;
-    const spans: { start: number; end: number; tag: string | null }[] = [];
+    if (!text || codedLinks.length === 0) return [];
+    const rawSpans: { start: number; end: number; tag: string | null }[] = [];
     const textLower = text.toLowerCase();
     for (const link of codedLinks) {
       const tag = link.semantic_tag ?? null;
@@ -98,7 +78,7 @@ export default function EncounterCodedView({ patientId, encounterId }: Props) {
         if (!needle || needle.length < 2) continue;
         let pos = 0;
         while ((pos = text.indexOf(needle, pos)) !== -1) {
-          spans.push({ start: pos, end: pos + needle.length, tag });
+          rawSpans.push({ start: pos, end: pos + needle.length, tag });
           pos += needle.length;
           found = true;
         }
@@ -106,66 +86,28 @@ export default function EncounterCodedView({ patientId, encounterId }: Props) {
         pos = 0;
         const needleLower = needle.toLowerCase();
         while ((pos = textLower.indexOf(needleLower, pos)) !== -1) {
-          spans.push({ start: pos, end: pos + needle.length, tag });
+          rawSpans.push({ start: pos, end: pos + needle.length, tag });
           pos += needle.length;
           found = true;
         }
         if (found) break;
       }
     }
-    spans.sort((a, b) => a.start - b.start);
-    const merged: { start: number; end: number; tag: string | null; count: number }[] = [];
-    for (const s of spans) {
+    rawSpans.sort((a, b) => a.start - b.start);
+    const merged: { start: number; end: number; tags: (string | null)[] }[] = [];
+    for (const s of rawSpans) {
       if (merged.length && s.start <= merged[merged.length - 1].end) {
         merged[merged.length - 1].end = Math.max(merged[merged.length - 1].end, s.end);
-        merged[merged.length - 1].count += 1;
+        merged[merged.length - 1].tags.push(s.tag);
       } else {
-        merged.push({ ...s, count: 1 });
+        merged.push({ start: s.start, end: s.end, tags: [s.tag] });
       }
     }
-    if (merged.length === 0) return text;
-    const parts: React.ReactNode[] = [];
-    let i = 0;
-    for (const { start, end, tag, count } of merged) {
-      if (i < start) parts.push(text.slice(i, start));
-      const bg = colorForTag(tag);
-      parts.push(
-        <Box
-          component="mark"
-          key={`${start}-${end}`}
-          sx={{ background: bg, borderRadius: "2px", px: "2px", position: "relative", display: "inline" }}
-        >
-          {text.slice(start, end)}
-          {count > 1 && (
-            <Box
-              component="span"
-              sx={{
-                position: "absolute",
-                top: -8,
-                right: -8,
-                bgcolor: "#4f46e5",
-                color: "#fff",
-                borderRadius: "50%",
-                width: 16,
-                height: 16,
-                fontSize: 10,
-                fontWeight: 700,
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                lineHeight: 1,
-                pointerEvents: "none",
-              }}
-            >
-              {count}
-            </Box>
-          )}
-        </Box>
-      );
-      i = end;
-    }
-    if (i < text.length) parts.push(text.slice(i));
-    return parts.length === 1 && typeof parts[0] === "string" ? parts[0] : parts;
+    return merged.map(({ start, end, tags }) => ({
+      start,
+      end,
+      chips: tags.map((t) => themeForTag(t)),
+    }));
   }, [encounter?.text, codedLinks]);
 
   useEffect(() => {
@@ -327,7 +269,7 @@ export default function EncounterCodedView({ patientId, encounterId }: Props) {
             sx={{
               p: 3,
               fontSize: 15,
-              lineHeight: 1.8,
+              lineHeight: 3,
               fontFamily: "var(--font-body)",
               whiteSpace: "pre-wrap",
               wordBreak: "break-word",
@@ -337,7 +279,7 @@ export default function EncounterCodedView({ patientId, encounterId }: Props) {
               borderRadius: 3,
             }}
           >
-            {highlightedText || "(No text)"}
+            {renderNerSpans(encounter?.text ?? "", annotatedSpans) ?? "(No text)"}
           </Paper>
 
           {selection && (

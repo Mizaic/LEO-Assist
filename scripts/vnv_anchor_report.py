@@ -11,7 +11,7 @@ exports/vnv_anchor_report_<timestamp>.csv
     with lower and upper 95 % Wilson CIs.  Suitable for QMS attachment.
 
 exports/vnv_anchor_report_<timestamp>_detail.json
-    Full per-patient breakdown, failure mode classification, tier
+    Full per-patient breakdown, failure mode classification, detection-path
     effectiveness table, and population characteristics.
 
 ISO 13485 evidence claims
@@ -41,7 +41,7 @@ Manual label values:
                     returned none
   NOT_APPLICABLE  — patient record is incomplete / outside scope
 
-Milestone rows that are ``found`` by the algorithm (tier 1/2/3 succeeded)
+Milestone rows that are ``found`` by the algorithm (concept-path detection succeeded)
 do not need manual labels — they are counted as provisional TPs.
 
 Usage
@@ -127,7 +127,7 @@ def classify_milestone(
     """Return the outcome classification for a single patient-milestone pair.
 
     Returns one of:
-      "algorithm_found"   — tier 1/2/3 detected the anchor (provisional TP)
+      "algorithm_found"   — concept-path detection found the anchor (provisional TP)
       "found_soft_TP"     — found_soft + manual_label == TRUE_POSITIVE
       "found_soft_FN"     — found_soft + manual_label == FALSE_NEGATIVE
       "found_soft_unlabelled"
@@ -213,9 +213,11 @@ def compute_milestone_metrics(
     sens_lo, sens_hi = wilson_ci(TP, n_positive) if n_positive else (None, None)
     spec_lo, spec_hi = wilson_ci(TN, n_negative) if n_negative else (None, None)
 
-    # Tier attribution for true positives
+    # Detection-method attribution for true positives
     tier_counts: dict[str, int] = {
-        "concept": 0, "hybrid": 0, "concept+hybrid": 0, "regex": 0, "other": 0
+        "concept": 0,
+        "none": 0,
+        "other": 0,
     }
     for r in rows:
         if r.get("anchors", {}).get(milestone):
@@ -310,7 +312,7 @@ def write_evidence_csv(
             "Sensitivity %", "Sens CI lo %", "Sens CI hi %",
             "Specificity %", "Spec CI lo %", "Spec CI hi %",
             "PPV %", "NPV %", "F1 %",
-            "Tier-1 (concept)", "Tier-2 (hybrid)", "Tier-3 (regex)",
+            "Concept path", "None/unknown path",
             "Found-soft (coding gap)", "Possibly missing", "Truly missing",
         ]
         w.writerow(header)
@@ -323,9 +325,8 @@ def write_evidence_csv(
                 m["sensitivity_pct"], m["sensitivity_ci_lo_pct"], m["sensitivity_ci_hi_pct"],
                 m["specificity_pct"], m["specificity_ci_lo_pct"], m["specificity_ci_hi_pct"],
                 m["ppv_pct"], m["npv_pct"], m["f1_pct"],
-                t.get("concept", 0) + t.get("concept+hybrid", 0),
-                t.get("hybrid", 0),
-                t.get("regex", 0),
+                t.get("concept", 0),
+                t.get("none", 0) + t.get("other", 0),
                 f.get("found_soft", 0),
                 f.get("possibly_missing", 0),
                 f.get("truly_missing", 0),

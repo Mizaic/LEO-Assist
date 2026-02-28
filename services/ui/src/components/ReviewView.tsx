@@ -18,6 +18,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import AddIcon from "@mui/icons-material/Add";
 import ReplayIcon from "@mui/icons-material/Replay";
 import { addCodedLink, fetchTaskDetail, fetchTasks, submitDecision } from "@/lib/api";
+import { themeForTag, tagFromSnomedTerm, renderNerSpans, type AnnotatedSpan } from "@/lib/nerAnnotation";
 import { usePipeline } from "@/context/PipelineContext";
 import ConfirmDialog from "./ConfirmDialog";
 import type {
@@ -32,7 +33,6 @@ import CodedLinksSection from "./CodedLinksSection";
 import EntityCard from "./EntityCard";
 import EntitySidebar from "./EntitySidebar";
 import TermSearch from "./TermSearch";
-import SpanAdjustBanner from "./SpanAdjustBanner";
 import ManualEntityBanner from "./ManualEntityBanner";
 import CorrectionsLog from "./CorrectionsLog";
 
@@ -51,6 +51,7 @@ export default function ReviewView({ taskId, patientId }: Props) {
   const [showTermSearch, setShowTermSearch] = useState(false);
   const [reassignTargetId, setReassignTargetId] = useState<string | null>(null);
   const [spanAdjustId, setSpanAdjustId] = useState<string | null>(null);
+  const [spanAdjustPreview, setSpanAdjustPreview] = useState<{ text: string; start: number; end: number } | null>(null);
   const [showManualAdd, setShowManualAdd] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [localCandidate, setLocalCandidate] = useState<EncounterCandidate | null>(null);
@@ -212,17 +213,23 @@ export default function ReviewView({ taskId, patientId }: Props) {
 
   const handleMouseUp = useCallback(() => {
     const sel = window.getSelection();
-    const text = sel?.toString().trim();
-    if (!text || text.length < 2) {
-      setSelection(null);
+    const selText = sel?.toString().trim();
+    if (!selText || selText.length < 2) {
+      if (!spanAdjustId) setSelection(null);
+      return;
+    }
+    if (spanAdjustId) {
+      // In span-adjust mode: capture drag selection as the new span position
+      const full = localCandidate?.deidentified_text ?? "";
+      let idx = full.indexOf(selText);
+      if (idx < 0) idx = full.toLowerCase().indexOf(selText.toLowerCase());
+      if (idx >= 0) setSpanAdjustPreview({ text: selText, start: idx, end: idx + selText.length });
       return;
     }
     const range = sel?.getRangeAt(0);
     const rect = range?.getBoundingClientRect();
-    if (rect) {
-      setSelection({ text, rect });
-    }
-  }, []);
+    if (rect) setSelection({ text: selText, rect });
+  }, [spanAdjustId, localCandidate?.deidentified_text]);
 
   function openCodeWithSelection() {
     const selText = selection?.text ?? "";
@@ -531,14 +538,14 @@ export default function ReviewView({ taskId, patientId }: Props) {
               borderColor: "divider",
               p: 3,
               fontSize: 15,
-              lineHeight: 1.8,
+              lineHeight: 3,
               fontFamily: "var(--font-body)",
               whiteSpace: "pre-wrap",
               wordBreak: "break-word",
               userSelect: "text",
             }}
           >
-            {renderHighlightedText(fullText, allTerms, selectedTermId, handleEntityClick)}
+            {renderNerSpans(fullText, buildAnnotatedSpans(fullText, allTerms, selectedTermId, handleEntityClick))}
           </Box>
 
           {selection && (
@@ -675,7 +682,7 @@ export default function ReviewView({ taskId, patientId }: Props) {
           onClose={closePopover}
           onContextChange={handleContextChange}
           onReassign={handleReassign}
-          onAdjustSpan={(id) => { setSpanAdjustId(id); closePopover(); }}
+          onAdjustSpan={(id) => { setSpanAdjustId(id); setSpanAdjustPreview(null); closePopover(); }}
           onRemove={handleRemoveTerm}
           onCorrection={addCorrection}
           onSelectGroupTerm={(id) => setSelectedTermId(id)}
@@ -701,13 +708,40 @@ export default function ReviewView({ taskId, patientId }: Props) {
         />
       )}
       {spanAdjustTerm && (
-        <SpanAdjustBanner
-          term={spanAdjustTerm}
-          fullText={fullText}
-          onSave={handleSpanSave}
-          onCancel={() => setSpanAdjustId(null)}
-          onCorrection={addCorrection}
-        />
+        <Paper
+          elevation={8}
+          sx={{ position: "fixed", bottom: 0, left: 0, right: 0, borderTop: "2px solid", borderColor: "primary.main", p: "12px 24px", zIndex: 900, bgcolor: "#eff6ff" }}
+        >
+          <Stack direction="row" alignItems="center" spacing={2} flexWrap="wrap">
+            <Typography sx={{ fontWeight: 600, fontSize: 14, color: "#1e40af" }}>
+              Drag over text to select new span for &ldquo;{spanAdjustTerm.text}&rdquo;
+            </Typography>
+            {spanAdjustPreview ? (
+              <>
+                <Box sx={{ fontFamily: "var(--font-mono)", fontSize: 13, bgcolor: "#fef9c3", px: 1.25, py: 0.5, borderRadius: 1, border: "1px solid #fde68a", maxWidth: 320, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  &ldquo;{spanAdjustPreview.text}&rdquo;
+                </Box>
+                <Button
+                  variant="contained"
+                  size="small"
+                  sx={{ textTransform: "none", fontWeight: 600 }}
+                  onClick={() => {
+                    handleSpanSave(spanAdjustId!, spanAdjustPreview.start, spanAdjustPreview.end, spanAdjustPreview.text);
+                    addCorrection({ type: "span", text: spanAdjustTerm.text, detail: `Span adjusted → "${spanAdjustPreview.text}" [${spanAdjustPreview.start}:${spanAdjustPreview.end}]`, time: new Date().toISOString() });
+                    setSpanAdjustPreview(null);
+                  }}
+                >
+                  Save span
+                </Button>
+              </>
+            ) : (
+              <Typography variant="caption" color="text.secondary">Select text above to preview new span</Typography>
+            )}
+            <Button variant="text" size="small" sx={{ ml: "auto", textTransform: "none" }} onClick={() => { setSpanAdjustId(null); setSpanAdjustPreview(null); }}>
+              Cancel
+            </Button>
+          </Stack>
+        </Paper>
       )}
       {showManualAdd && (
         <ManualEntityBanner
@@ -732,100 +766,48 @@ export default function ReviewView({ taskId, patientId }: Props) {
   );
 }
 
-function renderHighlightedText(
+/** Converts EncounterTerm[] into AnnotatedSpan[] for renderNerSpans, grouping overlapping terms. */
+function buildAnnotatedSpans(
   text: string,
   terms: EncounterTerm[],
   selectedId: string | null,
-  onClick: (term: EncounterTerm, e: React.MouseEvent) => void,
-) {
-  if (terms.length === 0) return text;
-
+  onClick: (term: EncounterTerm, e: React.MouseEvent<HTMLSpanElement>) => void,
+): AnnotatedSpan[] {
+  if (terms.length === 0) return [];
   const sorted = [...terms].sort((a, b) => a.span_start - b.span_start);
-
-  // Group overlapping/identical spans together
   const groups: EncounterTerm[][] = [];
   for (const term of sorted) {
-    if (term.span_start > text.length || term.span_end > text.length) continue;
+    if (term.span_start >= term.span_end || term.span_end > text.length) continue;
     const last = groups[groups.length - 1];
-    if (last) {
-      const lastEnd = Math.max(...last.map((t) => t.span_end));
-      if (term.span_start < lastEnd) {
-        last.push(term);
-        continue;
-      }
+    if (last && term.span_start < Math.max(...last.map((t) => t.span_end))) {
+      last.push(term);
+    } else {
+      groups.push([term]);
     }
-    groups.push([term]);
   }
-
-  const parts: React.ReactNode[] = [];
-  let cursor = 0;
-
-  for (const group of groups) {
+  return groups.map((group) => {
     const spanStart = Math.min(...group.map((t) => t.span_start));
     const spanEnd = Math.max(...group.map((t) => t.span_end));
-
-    if (spanStart > cursor) {
-      parts.push(<span key={`t-${cursor}`}>{text.slice(cursor, spanStart)}</span>);
-    }
-
     const anySelected = group.some((t) => t.term_id === selectedId);
-    const hasContext = group.some(
-      (t) => t.context.negated || t.context.uncertain || t.context.historical,
-    );
-    const bg = anySelected ? "#c7d2fe" : hasContext ? "#fef3c7" : "#dbeafe";
-    const border = anySelected ? "2px solid #4f46e5" : "none";
     const primary = group.find((t) => t.term_id === selectedId) ?? group[0];
-    const tooltip = group
-      .map((t) => `${t.text} — ${t.coding.snomed_concept_id || "unlinked"}`)
-      .join("\n");
-
-    parts.push(
-      <mark
-        key={`g-${spanStart}-${spanEnd}`}
-        onClick={(e) => { e.stopPropagation(); onClick(primary, e); }}
-        style={{
-          background: bg,
-          border,
-          borderRadius: 4,
-          padding: "1px 3px",
-          cursor: "pointer",
-          transition: "background 0.15s",
-          position: "relative",
-        }}
-        title={tooltip}
-      >
-        {text.slice(spanStart, spanEnd)}
-        {group.length > 1 && (
-          <span
-            style={{
-              position: "absolute",
-              top: -8,
-              right: -8,
-              background: "#4f46e5",
-              color: "#fff",
-              borderRadius: "50%",
-              width: 16,
-              height: 16,
-              fontSize: 10,
-              fontWeight: 700,
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              lineHeight: 1,
-              pointerEvents: "none",
-            }}
-          >
-            {group.length}
-          </span>
-        )}
-      </mark>,
-    );
-    cursor = spanEnd;
-  }
-
-  if (cursor < text.length) {
-    parts.push(<span key="t-end">{text.slice(cursor)}</span>);
-  }
-
-  return <>{parts}</>;
+    const chips = group.map((t) => {
+      // assertion field (new training schema) takes priority over context flags
+      if (t.assertion === "absent")   return { border: "#dc2626", bg: "#fee2e2", label: "NEGATED" };
+      if (t.assertion === "family")   return { border: "#06b6d4", bg: "#cffafe", label: "FAMILY" };
+      if (t.context.negated)          return { border: "#dc2626", bg: "#fee2e2", label: "NEGATED" };
+      if (t.context.uncertain)        return { border: "#d97706", bg: "#fef3c7", label: "UNCERTAIN" };
+      if (t.context.historical)       return { border: "#7c3aed", bg: "#ede9fe", label: "HISTORICAL" };
+      if (t.context.subject === "family") return { border: "#06b6d4", bg: "#cffafe", label: "FAMILY" };
+      // Use semantic_tag if available (new schema), otherwise parse from SNOMED FSN
+      return themeForTag(t.semantic_tag ?? tagFromSnomedTerm(t.coding.snomed_term));
+    });
+    return {
+      start: spanStart,
+      end: spanEnd,
+      chips,
+      isSelected: anySelected,
+      onClick: (e: React.MouseEvent<HTMLSpanElement>) => { e.stopPropagation(); onClick(primary, e); },
+      title: group.map((t) => `${t.text} — ${t.coding.snomed_concept_id || "unlinked"}`).join("\n"),
+    };
+  });
 }

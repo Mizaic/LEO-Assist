@@ -11,7 +11,7 @@ const ITEMS: Array<{
   color: string;
   bgColor: string;
 }> = [
-  { key: "breached", label: "Breached", color: "#dc2626", bgColor: "#fef2f2" },
+  { key: "breached", label: "Overdue", color: "#dc2626", bgColor: "#fef2f2" },
   { key: "atRisk", label: "At risk", color: "#d97706", bgColor: "#fffbeb" },
   { key: "onTrack", label: "On track", color: "#16a34a", bgColor: "#f0fdf4" },
   { key: "completed", label: "Completed", color: "#6b7280", bgColor: "#f9fafb" },

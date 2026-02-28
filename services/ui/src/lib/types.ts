@@ -105,6 +105,10 @@ export interface EncounterTerm {
   evidence_text: string;
   extraction_method: string;
   extraction_confidence?: number;
+  /** New training-schema: direct semantic tag (e.g. "procedure", "disorder") */
+  semantic_tag?: string;
+  /** New training-schema: "present" | "absent" | "family" — overrides individual context flags when present */
+  assertion?: string;
 }
 
 export interface EncounterSentence {

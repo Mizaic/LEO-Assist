@@ -6,7 +6,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from app.services.v3.bedrock_retry import (
+from libs.llm_client.bedrock_retry import (
     _get_error_code,
     _is_retryable,
     converse_with_retry,

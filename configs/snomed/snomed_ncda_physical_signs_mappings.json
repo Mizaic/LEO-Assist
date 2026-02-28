@@ -1,0 +1,708 @@
+{
+  "metadata": {
+    "total_terms": 42,
+    "successful_mappings": 42,
+    "failed_mappings": 0,
+    "llm_disambiguations": 33,
+    "generated_at": "2025-12-01T16:09:25.581724Z",
+    "updated_at": "2025-12-01T20:00:00.000000Z",
+    "notes": "Added bowel cancer screening concepts",
+    "enriched_with_synonyms": true,
+    "synonym_enrichment_date": "2025-12-06T08:06:01.890920",
+    "synonym_stats": {
+      "concepts_with_synonyms": 39,
+      "concepts_not_found": 0,
+      "average_synonyms_per_concept": 3.6
+    }
+  },
+  "mappings": {
+    "Ascites": {
+      "concept_id": 389026000,
+      "preferred_term": "Peritoneal dropsy (disorder)",
+      "semantic_tag": "Clinical_finding",
+      "score": 1.0,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Abdominal dropsy",
+        "Ascites",
+        "Ascites (disorder)",
+        "Hydroperitoneum",
+        "Hydroperitonia",
+        "Hydrops abdominis",
+        "Peritoneal dropsy",
+        "free fluid abdomen",
+        "peritoneal fluid"
+      ],
+      "guideline_synonym_count": 9,
+      "guideline_name": "Peritoneal dropsy"
+    },
+    "ascites": {
+      "concept_id": 389026000,
+      "preferred_term": "Peritoneal dropsy (disorder)",
+      "semantic_tag": "Clinical_finding",
+      "score": 1.0,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Abdominal dropsy",
+        "Ascites",
+        "Ascites (disorder)",
+        "Hydroperitoneum",
+        "Hydroperitonia",
+        "Hydrops abdominis",
+        "Peritoneal dropsy",
+        "free fluid abdomen",
+        "peritoneal fluid"
+      ],
+      "guideline_synonym_count": 9,
+      "guideline_name": "Peritoneal dropsy"
+    },
+    "Mass - pelvic": {
+      "concept_id": 589831000000107,
+      "preferred_term": "On examination - pelvic mass palpable NOS (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8584609470286824,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "O/E - pelvic mass palpable NOS",
+        "On examination - pelvic mass palpable NOS",
+        "On examination - pelvic mass palpable NOS (finding)",
+        "palpable pelvic mass",
+        "o/e pelvic mass",
+        "pelvic mass on exam"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "On examination - pelvic mass palpable NOS (finding)"
+    },
+    "Mass - rectal": {
+      "concept_id": 248523006,
+      "preferred_term": "Rectal mass (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8801754969676518,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Rectal lump",
+        "Rectal mass",
+        "Rectal mass (finding)",
+        "PR mass",
+        "rectal lesion",
+        "mass in rectum",
+        "rectal growth",
+        "rectal tumour"
+      ],
+      "guideline_synonym_count": 8,
+      "guideline_name": "Rectal mass (finding)"
+    },
+    "Mass - anal": {
+      "concept_id": 1812681000000102,
+      "preferred_term": "Mass of anal structure (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8353864660852501,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Anal mass",
+        "Mass of anal structure",
+        "Mass of anal structure (finding)",
+        "anal lump",
+        "perianal mass",
+        "anorectal mass",
+        "anal lesion",
+        "anal swelling"
+      ],
+      "guideline_synonym_count": 8,
+      "guideline_name": "Mass of anal structure (finding)"
+    },
+    "Mass - prostate": {
+      "concept_id": 309089006,
+      "preferred_term": "Prostate mass (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8698403835296631,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Prostate mass",
+        "Prostate mass (finding)",
+        "prostatic mass",
+        "prostate lump",
+        "prostatic lump"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Prostate mass (finding)"
+    },
+    "Mass - upper abdominal": {
+      "concept_id": 1236746005,
+      "preferred_term": "Mass fills upper half of abdomen (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9016625881195068,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Mass fills upper half of abdomen",
+        "Mass fills upper half of abdomen (finding)",
+        "upper abdominal mass",
+        "upper abdo mass"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Mass fills upper half of abdomen (finding)"
+    },
+    "Hepatomegaly": {
+      "concept_id": 80515008,
+      "preferred_term": "Large liver (disorder)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8950114250183105,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Hepatomegaly",
+        "Large liver",
+        "Large liver (disorder)",
+        "enlarged liver",
+        "liver enlarged"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Large liver (disorder)"
+    },
+    "Splenomegaly": {
+      "concept_id": 16294009,
+      "preferred_term": "Splenomegaly (disorder)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8596439361572266,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Enlargement of spleen",
+        "Enlargement of spleen, NOS",
+        "Large spleen",
+        "Splenomegaly",
+        "Splenomegaly (disorder)",
+        "Splenomegaly, NOS",
+        "Unspecified splenomegaly",
+        "enlarged spleen",
+        "splenic enlargement",
+        "spleen enlarged"
+      ],
+      "guideline_synonym_count": 10,
+      "guideline_name": "Splenomegaly (disorder)"
+    },
+    "Cervix abnormal on routine examination": {
+      "concept_id": 289794001,
+      "preferred_term": "Lesion of cervix (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9050607681274414,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Lesion of cervix",
+        "Lesion of cervix (disorder)",
+        "Lesion of cervix (finding)",
+        "cervical lesion",
+        "cx lesion",
+        "lesion on cervix",
+        "cervix lesion",
+        "cervical abnormality",
+        "abnormal cervix"
+      ],
+      "guideline_synonym_count": 9,
+      "guideline_name": "Lesion of cervix (finding)"
+    },
+    "Abnormal chest signs": {
+      "concept_id": 72471000119101,
+      "preferred_term": "Abnormal chest sounds (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9344588137475709,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Abnormal chest sounds",
+        "Abnormal chest sounds (finding)",
+        "abnormal breath sounds",
+        "abnormal lung sounds"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Abnormal chest sounds (finding)"
+    },
+    "Haematuria - microscopic": {
+      "concept_id": 197940006,
+      "preferred_term": "Microscopic hematuria (disorder)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8671501527555854,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Microscopic haematuria",
+        "Microscopic hematuria",
+        "Microscopic hematuria (disorder)",
+        "micro haematuria"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Microscopic hematuria (disorder)"
+    },
+    "Anaemia - iron deficiency": {
+      "concept_id": 191137004,
+      "preferred_term": "Iron deficiency anemia NOS (disorder)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9160525798797607,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Iron deficiency anaemia NOS",
+        "Iron deficiency anemia NOS",
+        "Iron deficiency anemia NOS (disorder)",
+        "iron def anaemia NOS",
+        "iron deficiency anaemia",
+        "iron def anaemia"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Iron deficiency anemia NOS (disorder)"
+    },
+    "Anaemia - not specified": {
+      "concept_id": 668381000000100,
+      "preferred_term": "Anemia unspecified (disorder)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9032387733459473,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Anaemia unspecified",
+        "Anemia unspecified (disorder)",
+        "anaemia NOS",
+        "unspecified anaemia"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Anemia unspecified (disorder)"
+    },
+    "Raised blood glucose": {
+      "concept_id": 166924009,
+      "preferred_term": "Blood glucose raised NOS (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9235432147979736,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Blood glucose raised NOS",
+        "Blood glucose raised NOS (finding)",
+        "high blood glucose",
+        "raised BG",
+        "glucose raised"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Blood glucose raised NOS (finding)"
+    },
+    "Hypercalcaemia": {
+      "concept_id": 66931009,
+      "preferred_term": "Hypercalcemia (disorder)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9134097099304199,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Hypercalcaemia",
+        "Hypercalcaemia syndrome",
+        "Hypercalcemia",
+        "Hypercalcemia (disorder)",
+        "Hypercalcemia syndrome",
+        "high calcium",
+        "raised calcium",
+        "elevated calcium",
+        "high serum calcium"
+      ],
+      "guideline_synonym_count": 9,
+      "guideline_name": "Hypercalcemia (disorder)"
+    },
+    "Leucopaenia": {
+      "concept_id": 84828003,
+      "preferred_term": "Leukopenia (disorder)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8585231304168701,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Leucocytopenia",
+        "Leucopenia",
+        "Leucopenia, NOS",
+        "Leukocytopenia",
+        "Leukopenia",
+        "Leukopenia (disorder)",
+        "Leukopenia, NOS",
+        "low WCC",
+        "low WBC",
+        "reduced white count",
+        "low white cells"
+      ],
+      "guideline_synonym_count": 11,
+      "guideline_name": "Leukopenia (disorder)"
+    },
+    "Plasma viscosity raised": {
+      "concept_id": 165461003,
+      "preferred_term": "Plasma viscosity above reference range (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.916558027267456,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Plasma viscosity above reference range",
+        "Plasma viscosity above reference range (finding)",
+        "Plasma viscosity raised",
+        "Plasma viscosity raised (finding)",
+        "PV raised",
+        "elevated plasma viscosity",
+        "high plasma viscosity",
+        "PV high"
+      ],
+      "guideline_synonym_count": 8,
+      "guideline_name": "Plasma viscosity above reference range (finding)"
+    },
+    "ESR raised": {
+      "concept_id": 165468009,
+      "preferred_term": "Erythrocyte sedimentation rate above reference range (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.861261624989972,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "ESR raised",
+        "ESR raised (finding)",
+        "Erythrocyte sedimentation rate (ESR) raised",
+        "Erythrocyte sedimentation rate (ESR) raised (finding)",
+        "Erythrocyte sedimentation rate above reference range",
+        "Erythrocyte sedimentation rate above reference range (finding)",
+        "Erythrocyte sedimentation rate raised",
+        "Erythrocyte sedimentation rate raised (finding)",
+        "raised ESR",
+        "ESR high",
+        "high ESR",
+        "ESR above normal",
+        "ESR elevated"
+      ],
+      "guideline_synonym_count": 13,
+      "guideline_name": "Erythrocyte sedimentation rate above reference range (finding)"
+    },
+    "Platelet count raised": {
+      "concept_id": 415115007,
+      "preferred_term": "Platelet count above reference range (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9071459431148121,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Platelet count above reference range",
+        "Platelet count above reference range (finding)",
+        "Thrombocytosis",
+        "raised platelets",
+        "elevated platelets",
+        "high platelets"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Platelet count above reference range (finding)"
+    },
+    "Prostate specific antigen raised": {
+      "concept_id": 396152005,
+      "preferred_term": "Raised prostate specific antigen (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8991425285527856,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Elevated PSA",
+        "Prostate specific antigen above reference range",
+        "Prostate specific antigen above reference range (finding)",
+        "Raised PSA",
+        "Raised prostate specific antigen",
+        "Raised prostate specific antigen (finding)",
+        "high PSA",
+        "PSA elevated",
+        "PSA raised",
+        "PSA high",
+        "PSA above normal"
+      ],
+      "guideline_synonym_count": 11,
+      "guideline_name": "Raised prostate specific antigen (finding)"
+    },
+    "Abnormal plasma electrophoresis": {
+      "concept_id": 166803003,
+      "preferred_term": "Protein electrophoresis outside reference range (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8661299932459569,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Protein electrophor. abnormal",
+        "Protein electrophoresis abnormal",
+        "Protein electrophoresis abnormal (finding)",
+        "Protein electrophoresis outside reference range",
+        "Protein electrophoresis outside reference range (finding)",
+        "abnormal protein electrophoresis",
+        "protein electrophoresis out of range",
+        "abnormal serum protein electrophoresis",
+        "protein electrophoresis deranged"
+      ],
+      "guideline_synonym_count": 9,
+      "guideline_name": "Protein electrophoresis outside reference range (finding)"
+    },
+    "CA 125 raised": {
+      "concept_id": 432519008,
+      "preferred_term": "Cancer antigen 125 above reference range (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8820745681293669,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Cancer antigen 125 above reference range",
+        "Cancer antigen 125 above reference range (finding)",
+        "Elevated cancer antigen 125",
+        "Increased cancer antigen 125",
+        "Increased cancer antigen 125 (finding)",
+        "Raised cancer antigen 125",
+        "CA125 elevated",
+        "high CA125",
+        "raised CA125",
+        "CA-125 raised",
+        "CA125 above range"
+      ],
+      "guideline_synonym_count": 11,
+      "guideline_name": "Cancer antigen 125 above reference range (finding)"
+    },
+    "White cell count raised": {
+      "concept_id": 111583006,
+      "preferred_term": "Leukocytosis (disorder)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8837871551513672,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Leucocytosis",
+        "Leucocytosis, NOS",
+        "Leukocytosis",
+        "Leukocytosis (disorder)",
+        "Leukocytosis, NOS",
+        "raised WCC",
+        "elevated WCC",
+        "raised white cells",
+        "high white cell count"
+      ],
+      "guideline_synonym_count": 9,
+      "guideline_name": "Leukocytosis (disorder)"
+    },
+    "FOBT positive": {
+      "concept_id": 375241000000109,
+      "preferred_term": "Bowel cancer screening programme faecal occult blood test abnormal (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8329503536224365,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Bowel cancer screening programme faecal occult blood test abnormal",
+        "Bowel cancer screening programme faecal occult blood test abnormal (finding)"
+      ],
+      "guideline_synonym_count": 2,
+      "guideline_name": "Bowel cancer screening programme faecal occult blood test abnormal (finding)"
+    },
+    "FOBT normal": {
+      "concept_id": 375211000000108,
+      "preferred_term": "Bowel cancer screening programme faecal occult blood test normal (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.85,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Bowel cancer screening programme faecal occult blood test normal",
+        "Bowel cancer screening programme faecal occult blood test normal (finding)",
+        "BCS FOB normal",
+        "BCSP FOBT normal"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Bowel cancer screening programme faecal occult blood test normal (finding)"
+    },
+    "Bowel screening non-response": {
+      "concept_id": 373251000000108,
+      "preferred_term": "No response to bowel cancer screening programme invitation (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.85,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "No response to bowel cancer screening programme invitation",
+        "No response to bowel cancer screening programme invitation (finding)",
+        "no response to BCSP invite"
+      ],
+      "guideline_synonym_count": 3,
+      "guideline_name": "No response to bowel cancer screening programme invitation (finding)"
+    },
+    "Bowel screening invitation sent": {
+      "concept_id": 862031000000107,
+      "preferred_term": "Bowel cancer screening programme invitation letter sent (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.85,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Bowel cancer screening programme invitation letter sent",
+        "Bowel cancer screening programme invitation letter sent (finding)",
+        "bowel screening invite sent",
+        "BCSP invite letter sent",
+        "BCSP invitation sent",
+        "bowel screening letter sent",
+        "BCSP letter sent"
+      ],
+      "guideline_synonym_count": 7,
+      "guideline_name": "Bowel cancer screening programme invitation letter sent (finding)"
+    },
+    "Did not attend bowel screening": {
+      "concept_id": 294261000000108,
+      "preferred_term": "Did not attend bowel cancer screening (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.85,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Did not attend bowel cancer screening",
+        "Did not attend bowel cancer screening (finding)",
+        "DNA bowel screening"
+      ],
+      "guideline_synonym_count": 3,
+      "guideline_name": "Did not attend bowel cancer screening (finding)"
+    },
+    "Bowel screening incomplete participation": {
+      "concept_id": 384241000000100,
+      "preferred_term": "Bowel cancer screening programme faecal occult blood testing incomplete participation (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.85,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Bowel cancer screening programme faecal occult blood testing incomplete participation",
+        "Bowel cancer screening programme faecal occult blood testing incomplete participation (finding)",
+        "bowel screening FOB incomplete"
+      ],
+      "guideline_synonym_count": 3,
+      "guideline_name": "Bowel cancer screening programme faecal occult blood testing incomplete participation (finding)"
+    },
+    "Bowel screening technical failure": {
+      "concept_id": 375151000000101,
+      "preferred_term": "Bowel cancer screening programme faecal occult blood test technical failure (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.85,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Bowel cancer screening programme faecal occult blood test technical failure",
+        "Bowel cancer screening programme faecal occult blood test technical failure (finding)"
+      ],
+      "guideline_synonym_count": 2,
+      "guideline_name": "Bowel cancer screening programme faecal occult blood test technical failure (finding)"
+    },
+    "Not eligible for bowel screening": {
+      "concept_id": 758851000000101,
+      "preferred_term": "Not eligible for bowel cancer screening programme (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.85,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Not eligible for bowel cancer screening programme",
+        "Not eligible for bowel cancer screening programme (finding)",
+        "ineligible BCSP",
+        "not eligible BCSP",
+        "not for bowel screening"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Not eligible for bowel cancer screening programme (finding)"
+    },
+    "Chest X ray abnormal": {
+      "concept_id": 168734001,
+      "preferred_term": "Standard chest X-ray abnormal (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9637155532836914,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Standard chest X-ray abnormal",
+        "Standard chest X-ray abnormal (finding)",
+        "CXR abnormal",
+        "abnormal CXR",
+        "abnormal chest X-ray",
+        "chest Xray abnormal"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Standard chest X-ray abnormal (finding)"
+    },
+    "Ultrasound scan abnormal": {
+      "concept_id": 169255008,
+      "preferred_term": "Ultrasound scan abnormal (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.953826904296875,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Ultrasound scan abnormal",
+        "Ultrasound scan abnormal (finding)",
+        "USS abnormal",
+        "abnormal USS",
+        "abnormal ultrasound",
+        "US abnormal"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Ultrasound scan abnormal (finding)"
+    },
+    "Skeletal X ray abnormal": {
+      "concept_id": 1295435000,
+      "preferred_term": "Plain X-ray survey of entire skeleton abnormal (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9203755855560303,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Plain X-ray skeletal survey abnormal",
+        "Plain X-ray survey of entire skeleton abnormal",
+        "Plain X-ray survey of entire skeleton abnormal (finding)",
+        "skeletal survey abnormal",
+        "abnormal skeletal survey"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Plain X-ray survey of entire skeleton abnormal (finding)"
+    },
+    "CT scan abnormal": {
+      "concept_id": 129679001,
+      "preferred_term": "Computed tomography result abnormal (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9278917059411962,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Abnormal CT scan",
+        "Abnormal CT scan (finding)",
+        "CAT scan abnormal",
+        "Computed tomography result abnormal",
+        "Computed tomography result abnormal (finding)",
+        "abnormal CT",
+        "CT abnormal",
+        "abnormal CT findings",
+        "CT result abnormal"
+      ],
+      "guideline_synonym_count": 9,
+      "guideline_name": "Computed tomography result abnormal (finding)"
+    },
+    "MRI abnormal": {
+      "concept_id": 408574004,
+      "preferred_term": "Abnormal imaging",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8542819023132324,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Abnormal imaging",
+        "Imaging result abnormal",
+        "Imaging result abnormal (finding)",
+        "abnormal scan",
+        "scan abnormal",
+        "abnormal radiology",
+        "radiology abnormal"
+      ],
+      "guideline_synonym_count": 7,
+      "guideline_name": "Abnormal imaging"
+    },
+    "Bence Jones protein present": {
+      "concept_id": 315333006,
+      "preferred_term": "Bence Jones protein detected (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9099619662508598,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Bence Jones protein detected",
+        "Bence Jones protein detected (finding)",
+        "BJP positive",
+        "BJP detected",
+        "Bence Jones +ve"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Bence Jones protein detected (finding)"
+    },
+    "Liver function tests abnormal": {
+      "concept_id": 166603001,
+      "preferred_term": "Liver function tests abnormal (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9242198467254639,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Abnormal results of liver function studies",
+        "Liver function tests abnormal",
+        "Liver function tests abnormal (finding)",
+        "Liver function tests outside reference range",
+        "Liver function tests outside reference range (finding)",
+        "abnormal LFTs",
+        "LFTs abnormal",
+        "deranged LFTs",
+        "raised LFTs"
+      ],
+      "guideline_synonym_count": 9,
+      "guideline_name": "Liver function tests abnormal (finding)"
+    }
+  }
+}

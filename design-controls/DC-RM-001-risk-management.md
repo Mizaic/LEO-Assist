@@ -126,7 +126,7 @@ All outputs are proposals subject to mandatory human review. The system cannot d
 | Human review required (FR-HR-005)                               | approval_status workflow enforced; sync only processes 'approved'        | Verified          |
 | No patient data in Coding graph (FR-DG-001)                     | Schema split; unit tests; VERIFICATION-REPORT.md Section 2               | Verified          |
 | Validation checks (FR-TP-006)                                   | Unit tests for validator; hard_fail/warning gates                        | Verified          |
-| LLM hard fail (FR-TP-008)                                       | ExtractionError raised; no regex fallback                                | Verified          |
+| LLM hard fail (FR-TP-008)                                       | ExtractionError raised; canonical pipeline has no fallback path           | Verified          |
 | F1 threshold for MedSpaCy                                       | Documented in V&V procedures (05-*.md Section 5.5)                       | Procedure defined |
 | SOUP version pinning                                            | requirements.txt, package-lock.json                                      | Verified          |
 | Automation bias mitigation (R-CL-006)                           | Sampling audit procedure defined; discordance analysis method documented | Procedure defined |

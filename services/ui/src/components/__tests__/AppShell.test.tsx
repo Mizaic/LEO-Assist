@@ -61,12 +61,8 @@ jest.mock("@/context/PipelineContext", () => ({
     workerStates: {},
     start: jest.fn(),
     cancel: jest.fn(),
-    showModal: false,
-    setShowModal: jest.fn(),
   }),
 }));
-
-jest.mock("../PipelineModal", () => () => null);
 
 import AppShell from "../AppShell";
 

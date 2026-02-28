@@ -27,6 +27,9 @@ langchain-openai>=0.3
 # --- Azure Service Bus (production queue; in-memory adapter used locally) ---
 azure-servicebus>=7.13
 
+# --- Azure Blob Storage (NER model artifact store) ---
+azure-storage-blob>=12.20
+
 # --- Terminology loader utilities ---
 jsonschema>=4.23
 scikit-learn>=1.6

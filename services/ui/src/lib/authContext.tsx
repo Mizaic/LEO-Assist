@@ -14,10 +14,32 @@ import {
   type ReactNode,
 } from "react";
 
-const API_BASE =
-  typeof process !== "undefined" && process.env?.NEXT_PUBLIC_API_BASE
-    ? process.env.NEXT_PUBLIC_API_BASE
-    : "http://localhost:8000";
+function resolveApiBase(): string {
+  const envBase =
+    typeof process !== "undefined" && process.env?.NEXT_PUBLIC_API_BASE
+      ? process.env.NEXT_PUBLIC_API_BASE.replace(/\/+$/, "")
+      : "http://localhost:8000";
+
+  if (typeof window === "undefined") return envBase;
+
+  try {
+    const parsed = new URL(envBase);
+    const uiHost = window.location.hostname;
+    const loopbackHosts = new Set(["localhost", "127.0.0.1"]);
+
+    // Align loopback host with the current UI host to avoid SameSite cookie issues.
+    if (loopbackHosts.has(parsed.hostname) && loopbackHosts.has(uiHost) && parsed.hostname !== uiHost) {
+      parsed.hostname = uiHost;
+      return parsed.toString().replace(/\/+$/, "");
+    }
+  } catch {
+    // Keep env value if parsing fails.
+  }
+
+  return envBase;
+}
+
+const API_BASE = resolveApiBase();
 
 export interface OrgInfo {
   id: string;

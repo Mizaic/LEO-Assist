@@ -1,0 +1,1941 @@
+{
+  "metadata": {
+    "total_keywords": 98,
+    "successful_mappings": 69,
+    "failed_mappings": 18,
+    "llm_disambiguations": 69,
+    "generated_at": "2025-01-01T00:00:00Z",
+    "retry_attempted": 18,
+    "retry_successful": 18,
+    "final_successful_mappings": 98,
+    "final_failed_mappings": 0,
+    "enriched_with_synonyms": true,
+    "synonym_enrichment_date": "2025-12-06T08:05:59.553243",
+    "synonym_stats": {
+      "concepts_with_synonyms": 105,
+      "concepts_not_found": 0,
+      "average_synonyms_per_concept": 4.0
+    },
+    "pigmented_lesions_added": "2025-12-07",
+    "pigmented_lesions_note": "Added 7 specific melanoma warning signs (ABCDE criteria) + 1 general suspected skin cancer",
+    "neurological_symptoms_added": "2025-12-07",
+    "neurological_symptoms_note": "Added 3 neurological/cerebellar symptoms for brain cancer pathway"
+  },
+  "mappings": {
+    "Abdominal pain – NOS": {
+      "keyword": "Abdominal pain – NOS",
+      "concept_id": 21522001,
+      "preferred_term": "Abdominal pain (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9423935413360596,
+      "llm_disambiguated": true,
+      "retry_success": true,
+      "retry_term_used": "Abdominal pain (finding)",
+      "original_error": "LLM rejected: REJECT_SUGGEST_TERM",
+      "guideline_synonyms": [
+        "AP - Abdominal pain",
+        "Abdominal pain",
+        "Abdominal pain (finding)",
+        "abd pain",
+        "abdo pain",
+        "stomach pain",
+        "stomach ache",
+        "tummy pain"
+      ],
+      "guideline_synonym_count": 8,
+      "guideline_name": "Abdominal pain (finding)"
+    },
+    "Anal mass": {
+      "concept_id": 1812681000000102,
+      "preferred_term": "Mass of anal structure (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8452798834436486,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Anal mass",
+        "Mass of anal structure",
+        "Mass of anal structure (finding)",
+        "anal lump",
+        "perianal mass",
+        "anorectal mass",
+        "anal lesion",
+        "anal swelling"
+      ],
+      "guideline_synonym_count": 8,
+      "guideline_name": "Mass of anal structure (finding)"
+    },
+    "Axillary lump": {
+      "keyword": "Axillary lump",
+      "concept_id": 792890006,
+      "preferred_term": "Lump of axillary tail of breast (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9246401786804199,
+      "llm_disambiguated": true,
+      "retry_success": true,
+      "retry_term_used": "Axillary lump (finding)",
+      "original_error": "LLM rejected: REJECT_SUGGEST_TERM",
+      "guideline_synonyms": [
+        "Lump of axillary tail of breast",
+        "Lump of axillary tail of breast (finding)",
+        "axillary tail lump",
+        "lump in axillary tail",
+        "tail of Spence lump",
+        "axillary tail mass",
+        "breast axillary tail lump"
+      ],
+      "guideline_synonym_count": 7,
+      "guideline_name": "Lump of axillary tail of breast (finding)"
+    },
+    "Back pain": {
+      "concept_id": 399079008,
+      "preferred_term": "Back pain (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9335527420043945,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Back pain",
+        "Back pain (disorder)",
+        "Back pain (finding)",
+        "Backache",
+        "Pain in back"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Back pain (finding)"
+    },
+    "Bone pain": {
+      "concept_id": 12584003,
+      "preferred_term": "Bone pain (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9115495681762695,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Bone pain",
+        "Bone pain (finding)",
+        "Ostealgia",
+        "Osteodynia",
+        "focal bone pain",
+        "bony pain",
+        "skeletal pain",
+        "diffuse bone pain",
+        "bone ache",
+        "bone tenderness"
+      ],
+      "guideline_synonym_count": 10,
+      "guideline_name": "Bone pain (finding)"
+    },
+    "Breast lump": {
+      "concept_id": 89164003,
+      "preferred_term": "Breast lump (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9186694622039795,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Breast irregular nodularity",
+        "Breast lump",
+        "Breast lump (finding)",
+        "Breast mass",
+        "Lump in breast",
+        "Lumpy breast",
+        "Lumpy breasts",
+        "Mass in breast",
+        "breast nodule",
+        "palpable breast mass"
+      ],
+      "guideline_synonym_count": 10,
+      "guideline_name": "Breast lump (finding)"
+    },
+    "Breast pain": {
+      "concept_id": 53430007,
+      "preferred_term": "Mastodynia",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9058642387390137,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Breast pain",
+        "Breast painful",
+        "Mastalgia",
+        "Mastodynia",
+        "Pain in the breast",
+        "Pain of breast",
+        "Pain of breast (finding)",
+        "Painful breasts",
+        "breast tenderness",
+        "sore breasts",
+        "breast soreness",
+        "tender breasts"
+      ],
+      "guideline_synonym_count": 12,
+      "guideline_name": "Mastodynia"
+    },
+    "Bruising or petechiae": {
+      "concept_id": 423306009,
+      "preferred_term": "Purpura and/or petechiae (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8875287859713034,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Purpura and/or petechiae",
+        "Purpura and/or petechiae (finding)",
+        "purpura/petechiae",
+        "petechiae/purpura",
+        "purpura or petechiae"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Purpura and/or petechiae (finding)"
+    },
+    "Bruising, bleeding or petechiae": {
+      "concept_id": 423306009,
+      "preferred_term": "Purpura and/or petechiae (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8846641092573598,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Purpura and/or petechiae",
+        "Purpura and/or petechiae (finding)",
+        "purpura/petechiae",
+        "petechiae/purpura",
+        "purpura or petechiae"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Purpura and/or petechiae (finding)"
+    },
+    "Change in bowel habit": {
+      "concept_id": 88111009,
+      "preferred_term": "Change in bowel pattern",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8722038269042969,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Abnormal bowel habits",
+        "Altered bowel function",
+        "Altered bowel function (finding)",
+        "Altered bowel habit",
+        "Altered bowel habits",
+        "Change in bowel habit",
+        "Change in bowel pattern",
+        "bowel habit change",
+        "altered bowel pattern",
+        "bowel pattern change"
+      ],
+      "guideline_synonym_count": 10,
+      "guideline_name": "Change in bowel pattern"
+    },
+    "Chest infection": {
+      "concept_id": 419502003,
+      "preferred_term": "Chest infection (disorder)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9470908641815186,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Chest infection",
+        "Chest infection (disorder)",
+        "chest inf"
+      ],
+      "guideline_synonym_count": 3,
+      "guideline_name": "Chest infection (disorder)"
+    },
+    "Chest pain": {
+      "concept_id": 29857009,
+      "preferred_term": "Chest pain (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9488999843597412,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Chest pain",
+        "Chest pain (finding)",
+        "Chest pain, NOS",
+        "atypical chest pain",
+        "chest discomfort",
+        "central chest pain",
+        "chest tightness",
+        "non-cardiac chest pain"
+      ],
+      "guideline_synonym_count": 8,
+      "guideline_name": "Chest pain (finding)"
+    },
+    "Clubbing": {
+      "concept_id": 30760008,
+      "preferred_term": "Finger clubbing (disorder)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8569505072619898,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Clubbed fingers",
+        "Clubbing of fingers",
+        "Drumstick fingers",
+        "FC - Finger clubbing",
+        "Finger clubbing",
+        "Finger clubbing (disorder)",
+        "digital clubbing",
+        "nail clubbing",
+        "clubbing of digits"
+      ],
+      "guideline_synonym_count": 9,
+      "guideline_name": "Finger clubbing (disorder)"
+    },
+    "Constipation": {
+      "concept_id": 363693003,
+      "preferred_term": "Constipation (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8983700275421143,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "CN - Constipation",
+        "Constipated",
+        "Constipation",
+        "Constipation (finding)",
+        "Difficult passing motion",
+        "Difficulty defaecating",
+        "Difficulty defecating",
+        "Difficulty opening bowels",
+        "Difficulty passing stool",
+        "hard stools"
+      ],
+      "guideline_synonym_count": 10,
+      "guideline_name": "Constipation (finding)"
+    },
+    "Cough": {
+      "concept_id": 289114008,
+      "preferred_term": "Does cough (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9082162380218506,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Does cough",
+        "Does cough (finding)",
+        "has cough",
+        "c/o cough"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Does cough (finding)"
+    },
+    "Deep vein thrombosis": {
+      "concept_id": 128053003,
+      "preferred_term": "Deep venous thrombosis (disorder)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9461867809295654,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "DVT",
+        "DVT - Deep vein thrombosis",
+        "Deep vein thrombosis",
+        "Deep venous thrombosis",
+        "Deep venous thrombosis (disorder)",
+        "DVT risk",
+        "suspected DVT",
+        "leg DVT"
+      ],
+      "guideline_synonym_count": 8,
+      "guideline_name": "Deep venous thrombosis (disorder)"
+    },
+    "Diarrhoea": {
+      "concept_id": 409966000,
+      "preferred_term": "Acute diarrhea (disorder)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8589231967926025,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Acute diarrhea",
+        "Acute diarrhea (disorder)",
+        "Acute diarrhoea"
+      ],
+      "guideline_synonym_count": 3,
+      "guideline_name": "Acute diarrhea (disorder)"
+    },
+    "Distension": {
+      "concept_id": 41931001,
+      "preferred_term": "Abdominal distension (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.835963249206543,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Abdominal distension",
+        "Abdominal distension (finding)",
+        "Abdominal distention",
+        "abdo distension",
+        "abdominal bloating",
+        "gaseous distension",
+        "distended abdomen",
+        "abdo bloating",
+        "abdominal swelling"
+      ],
+      "guideline_synonym_count": 9,
+      "guideline_name": "Abdominal distension (finding)"
+    },
+    "Dyspepsia": {
+      "concept_id": 203661000000105,
+      "preferred_term": "Undiagnosed dyspepsia (disorder)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8877221289667361,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Undiagnosed dyspepsia",
+        "Undiagnosed dyspepsia (disorder)",
+        "indigestion",
+        "dyspeptic symptoms"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Undiagnosed dyspepsia (disorder)"
+    },
+    "Dysphagia": {
+      "concept_id": 21101000119105,
+      "preferred_term": "Pharyngeal dysphagia (disorder)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9168293476104736,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Pharyngeal dysphagia",
+        "Pharyngeal dysphagia (disorder)",
+        "oropharyngeal dysphagia"
+      ],
+      "guideline_synonym_count": 3,
+      "guideline_name": "Pharyngeal dysphagia (disorder)"
+    },
+    "Dyspnoea": {
+      "keyword": "Dyspnoea",
+      "concept_id": 267036007,
+      "preferred_term": "Dyspnea",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9038128852844238,
+      "llm_disambiguated": true,
+      "retry_success": true,
+      "retry_term_used": "Dyspnea (finding)",
+      "original_error": "LLM rejected: REJECT_SUGGEST_TERM",
+      "guideline_synonyms": [
+        "Breathless",
+        "Breathlessness",
+        "Dyspnea",
+        "Dyspnea (finding)",
+        "Dyspnoea",
+        "SOB - Shortness of breath",
+        "Shortness of breath",
+        "short of breath",
+        "difficulty breathing",
+        "breathing difficulty"
+      ],
+      "guideline_synonym_count": 10,
+      "guideline_name": "Dyspnea"
+    },
+    "Breathlessness": {
+      "keyword": "Breathlessness",
+      "concept_id": 267036007,
+      "preferred_term": "Dyspnea",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Breathless",
+        "Breathlessness",
+        "Dyspnea",
+        "Dyspnea (finding)",
+        "Dyspnoea",
+        "SOB - Shortness of breath",
+        "Shortness of breath",
+        "short of breath",
+        "difficulty breathing",
+        "breathing difficulty"
+      ],
+      "guideline_synonym_count": 10,
+      "guideline_name": "Dyspnea"
+    },
+    "Shortness of breath": {
+      "keyword": "Shortness of breath",
+      "concept_id": 267036007,
+      "preferred_term": "Dyspnea",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Breathless",
+        "Breathlessness",
+        "Dyspnea",
+        "Dyspnea (finding)",
+        "Dyspnoea",
+        "SOB - Shortness of breath",
+        "Shortness of breath",
+        "short of breath",
+        "difficulty breathing",
+        "breathing difficulty"
+      ],
+      "guideline_synonym_count": 10,
+      "guideline_name": "Dyspnea"
+    },
+    "Dysuria": {
+      "concept_id": 16844001,
+      "preferred_term": "Painful urging to urinate",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8806486129760742,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Painful urging to urinate",
+        "Painful urging to urinate (finding)",
+        "Spastic dysuria",
+        "Stranguria",
+        "Strangury"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Painful urging to urinate"
+    },
+    "Early satiety": {
+      "concept_id": 442076002,
+      "preferred_term": "Early satiety (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9343433380126953,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Early satiety",
+        "Early satiety (finding)",
+        "Early satiety (fullness)",
+        "early fullness"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Early satiety (finding)"
+    },
+    "Epistaxis": {
+      "concept_id": 12441001,
+      "preferred_term": "Epistaxis (disorder)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.902132511138916,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Epistaxis",
+        "Epistaxis (disorder)",
+        "Nasal haemorrhage",
+        "Nasal hemorrhage",
+        "Nose bleed",
+        "Nosebleed",
+        "nasal bleeding",
+        "nose bleeds"
+      ],
+      "guideline_synonym_count": 8,
+      "guideline_name": "Epistaxis (disorder)"
+    },
+    "Erectile dysfunction": {
+      "concept_id": 33967003,
+      "preferred_term": "Male erectile disorder (disorder)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9150905609130859,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Erectile dysfunction",
+        "Failure of erection",
+        "Impotence",
+        "Male erectile disorder",
+        "Male erectile disorder (disorder)",
+        "erection problems",
+        "erectile problems",
+        "erection failure"
+      ],
+      "guideline_synonym_count": 8,
+      "guideline_name": "Male erectile disorder (disorder)"
+    },
+    "Fatigue": {
+      "concept_id": 272060000,
+      "preferred_term": "Fatigue - symptom (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8634374803953595,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Fatigue - symptom",
+        "Fatigue - symptom (finding)",
+        "tiredness",
+        "exhaustion"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Fatigue - symptom (finding)"
+    },
+    "Fever": {
+      "concept_id": 386661006,
+      "preferred_term": "Fever (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8807387351989746,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Febrile",
+        "Fever",
+        "Fever (finding)",
+        "Pyrexia",
+        "Pyrexial",
+        "high temp",
+        "raised temperature",
+        "feverish",
+        "temperature"
+      ],
+      "guideline_synonym_count": 9,
+      "guideline_name": "Fever (finding)"
+    },
+    "Fit / seizure": {
+      "concept_id": 91175000,
+      "preferred_term": "Seizure (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8634727001190186,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Convulsion",
+        "Convulsion, NOS",
+        "Convulsions",
+        "Fit",
+        "Fit - convulsion",
+        "Fit, NOS",
+        "Fits - convulsions",
+        "Fitting",
+        "Seizure",
+        "Seizure (finding)",
+        "Seizure, NOS",
+        "FIT negative",
+        "fit normal",
+        "fits",
+        "seizure episode",
+        "epileptic fit"
+      ],
+      "guideline_synonym_count": 16,
+      "guideline_name": "Seizure (finding)"
+    },
+    "Fracture": {
+      "concept_id": 243411000000102,
+      "preferred_term": "Closed fracture of bone (disorder)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8750283718109131,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Closed fracture of bone",
+        "Closed fracture of bone (disorder)",
+        "closed fracture",
+        "closed fx",
+        "simple fracture",
+        "closed #"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Closed fracture of bone (disorder)"
+    },
+    "Gastroesophageal reflux": {
+      "concept_id": 102620007,
+      "preferred_term": "Gastroesophageal reflux (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8943445682525635,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Gastresophageal reflux",
+        "Gastroesophageal reflux",
+        "Gastroesophageal reflux (finding)",
+        "acid reflux",
+        "oesophageal reflux",
+        "gastric reflux"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Gastroesophageal reflux (finding)"
+    },
+    "Haematemesis": {
+      "concept_id": 8765009,
+      "preferred_term": "Hematemesis",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8655695067475282,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Haematemesis",
+        "Hematemesis",
+        "Hematemesis (disorder)",
+        "Vomiting blood",
+        "Vomiting of blood",
+        "blood in vomit"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Hematemesis"
+    },
+    "Haematuria": {
+      "concept_id": 702231000000104,
+      "preferred_term": "Hematuria NOS (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8780100345611572,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Haematuria NOS",
+        "Hematuria NOS (finding)"
+      ],
+      "guideline_synonym_count": 2,
+      "guideline_name": "Hematuria NOS (finding)"
+    },
+    "Haemoptysis": {
+      "concept_id": 66857006,
+      "preferred_term": "Hemoptysis (disorder)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8728229999542236,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Coughing up blood",
+        "Haemoptysis",
+        "Hemoptysis",
+        "Hemoptysis (disorder)",
+        "Hemoptysis (finding)",
+        "Haemoptysis ongoing",
+        "frank haemoptysis",
+        "blood in sputum",
+        "coughing blood",
+        "blood-stained sputum"
+      ],
+      "guideline_synonym_count": 10,
+      "guideline_name": "Hemoptysis (disorder)"
+    },
+    "Headache": {
+      "concept_id": 25064002,
+      "preferred_term": "Headache",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9072349071502686,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Cephalalgia",
+        "Cephalgia",
+        "Cephalodynia",
+        "HA - Headache",
+        "Head pain",
+        "Headache",
+        "Headache (finding)",
+        "Headache, NOS",
+        "Pain in head",
+        "throbbing head"
+      ],
+      "guideline_synonym_count": 10,
+      "guideline_name": "Headache"
+    },
+    "Hoarseness": {
+      "concept_id": 50219008,
+      "preferred_term": "Hoarseness symptom",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8933498859405518,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Croaky voice",
+        "Hoarse",
+        "Hoarse (finding)",
+        "Hoarse voice quality",
+        "Hoarseness",
+        "Hoarseness - throat symptom",
+        "Hoarseness symptom",
+        "Husky voice",
+        "Voice hoarseness",
+        "hoarse voice",
+        "voice hoarse"
+      ],
+      "guideline_synonym_count": 11,
+      "guideline_name": "Hoarseness symptom"
+    },
+    "Infection": {
+      "keyword": "Infection",
+      "concept_id": 10001005,
+      "preferred_term": "Bacterial sepsis (disorder)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9000725746154785,
+      "llm_disambiguated": true,
+      "retry_success": true,
+      "retry_term_used": "Sepsis / Septicemia",
+      "original_error": "LLM rejected: REJECT_SUGGEST_TERM",
+      "guideline_synonyms": [
+        "Bacteremia, NOS",
+        "Bacterial sepsis",
+        "Bacterial sepsis (disorder)",
+        "Bacterial sepsis, NOS",
+        "Bacterial septicaemia",
+        "Bacterial septicemia",
+        "Bacterial septicemia (disorder)",
+        "Bacterial septicemia, NOS",
+        "bact septicaemia",
+        "bact sepsis"
+      ],
+      "guideline_synonym_count": 10,
+      "guideline_name": "Bacterial sepsis (disorder)"
+    },
+    "Jaundice": {
+      "concept_id": 18165001,
+      "preferred_term": "Jaundice (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8852736401249226,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Icteric",
+        "Icterus",
+        "Icterus, NOS",
+        "Jaundice",
+        "Jaundice (finding)",
+        "Jaundice, NOS",
+        "Jaundiced",
+        "yellow discolouration",
+        "scleral icterus",
+        "yellow tinge"
+      ],
+      "guideline_synonym_count": 10,
+      "guideline_name": "Jaundice (finding)"
+    },
+    "Lesions suspicious of Basal Cell Carcinoma": {
+      "keyword": "Lesions suspicious of Basal Cell Carcinoma",
+      "concept_id": 734936000,
+      "preferred_term": "Suspected malignant pigmented skin lesion (situation)",
+      "semantic_tag": "Situation",
+      "score": 0.8780992031097412,
+      "llm_disambiguated": false,
+      "retry_success": true,
+      "retry_type_used": "Situation",
+      "original_error": "LLM rejected: REJECT_SUGGEST_TYPE",
+      "guideline_synonyms": [
+        "Suspected malignant pigmented skin lesion",
+        "Suspected malignant pigmented skin lesion (situation)",
+        "suspicious pigmented lesion",
+        "pigmented lesion ?malignant",
+        "suspected malignant mole"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Suspected malignant pigmented skin lesion (situation)"
+    },
+    "Leukoplakia": {
+      "concept_id": 274134003,
+      "preferred_term": "Leukoplakia (disorder)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9187672138214111,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Leucoplakia",
+        "Leukoplakia",
+        "Leukoplakia (disorder)"
+      ],
+      "guideline_synonym_count": 3,
+      "guideline_name": "Leukoplakia (disorder)"
+    },
+    "Lip / oral cavity / tongue lump": {
+      "keyword": "Lip / oral cavity / tongue lump",
+      "concept_id": 441975003,
+      "preferred_term": "Mass of tongue (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9261570655959428,
+      "llm_disambiguated": true,
+      "retry_success": true,
+      "retry_term_used": "Mass of tongue (finding)",
+      "original_error": "LLM rejected: REJECT_SUGGEST_TERM",
+      "guideline_synonyms": [
+        "Mass of tongue",
+        "Mass of tongue (finding)",
+        "tongue lump",
+        "lump on tongue",
+        "tongue swelling",
+        "tongue lesion",
+        "oral tongue mass"
+      ],
+      "guideline_synonym_count": 7,
+      "guideline_name": "Mass of tongue (finding)"
+    },
+    "Lip / oral cavity / tongue ulcer": {
+      "keyword": "Lip / oral cavity / tongue ulcer",
+      "concept_id": 64143008,
+      "preferred_term": "Lip ulcer (disorder)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9351712448140714,
+      "llm_disambiguated": true,
+      "retry_success": true,
+      "retry_term_used": "Ulcer of lip",
+      "original_error": "LLM rejected: REJECT_SPLIT_TERM",
+      "was_split_term": true,
+      "guideline_synonyms": [
+        "Lip ulcer",
+        "Lip ulcer (disorder)",
+        "Ulcer of lip",
+        "labial ulcer",
+        "lip sore"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Lip ulcer (disorder)"
+    },
+    "Loin pain": {
+      "concept_id": 271857006,
+      "preferred_term": "Loin pain (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9382359981536865,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Loin pain",
+        "Loin pain (finding)",
+        "L loin pain",
+        "flank pain",
+        "R loin pain"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Loin pain (finding)"
+    },
+    "Loss of appetite": {
+      "concept_id": 79890006,
+      "preferred_term": "Loss of appetite",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8887121677398682,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Anorexia",
+        "Anorexic",
+        "Lack of appetite",
+        "Loss of appetite",
+        "Loss of appetite (finding)",
+        "No appetite",
+        "Off food",
+        "poor appetite",
+        "reduced appetite",
+        "decreased appetite",
+        "appetite reduced"
+      ],
+      "guideline_synonym_count": 11,
+      "guideline_name": "Loss of appetite"
+    },
+    "Lower abdominal pain": {
+      "concept_id": 54586004,
+      "preferred_term": "Lower abdominal pain (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9521019458770752,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Lower abdominal pain",
+        "Lower abdominal pain (finding)",
+        "lower abdo pain",
+        "low abdo pain",
+        "lower tummy pain"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Lower abdominal pain (finding)"
+    },
+    "LUTS (nocturia, frequency, hesitancy, urgency, retention)": {
+      "concept_id": 307541003,
+      "preferred_term": "LUTS - lower urinary tract symptoms",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8663844027951519,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "LUTS - Lower urinary tract symptoms",
+        "LUTS - lower urinary tract symptoms",
+        "Lower urinary tract symptoms",
+        "Lower urinary tract symptoms (finding)",
+        "urinary symptoms"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "LUTS - lower urinary tract symptoms"
+    },
+    "Lymph node pain with alcohol": {
+      "concept_id": 315226008,
+      "preferred_term": "Pain in lymph nodes after alcohol consumption (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.928374889965859,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Pain in lymph nodes after alcohol consumption",
+        "Pain in lymph nodes after alcohol consumption (finding)",
+        "LN pain with alcohol"
+      ],
+      "guideline_synonym_count": 3,
+      "guideline_name": "Pain in lymph nodes after alcohol consumption (finding)"
+    },
+    "Lymphadenopathy – generalised": {
+      "keyword": "Lymphadenopathy – generalised",
+      "concept_id": 274741002,
+      "preferred_term": "Generalized enlarged lymph nodes (disorder)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9116513729095459,
+      "llm_disambiguated": true,
+      "retry_success": true,
+      "retry_term_used": "Generalized lymph node enlargement",
+      "original_error": "LLM rejected: REJECT_SUGGEST_TERM",
+      "guideline_synonyms": [
+        "Generalised enlarged lymph nodes",
+        "Generalised lymph node enlargement",
+        "Generalised lymphadenopathy",
+        "Generalized enlarged lymph nodes",
+        "Generalized enlarged lymph nodes (disorder)",
+        "Generalized lymph node enlargement",
+        "Generalized lymphadenopathy",
+        "widespread lymphadenopathy"
+      ],
+      "guideline_synonym_count": 8,
+      "guideline_name": "Generalized enlarged lymph nodes (disorder)"
+    },
+    "Lymphadenopathy – localised": {
+      "keyword": "Lymphadenopathy – localised",
+      "concept_id": 127086001,
+      "preferred_term": "Cervical lymphadenopathy (disorder)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8860387802124023,
+      "llm_disambiguated": true,
+      "retry_success": true,
+      "retry_term_used": "Cervical lymphadenopathy (finding)",
+      "original_error": "LLM rejected: REJECT_SUGGEST_TERM",
+      "guideline_synonyms": [
+        "Cervical lymphadenopathy",
+        "Cervical lymphadenopathy (disorder)",
+        "enlarged cervical nodes"
+      ],
+      "guideline_synonym_count": 3,
+      "guideline_name": "Cervical lymphadenopathy (disorder)"
+    },
+    "Nausea and / or vomiting": {
+      "concept_id": 16932000,
+      "preferred_term": "Nausea and vomiting (disorder)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9205470085144043,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "N&V - Nausea and vomiting",
+        "N+V - Nausea and vomiting",
+        "Nausea and vomiting",
+        "Nausea and vomiting (disorder)",
+        "N&V",
+        "nausea/vomiting",
+        "nausea & vomiting",
+        "vomiting and nausea"
+      ],
+      "guideline_synonym_count": 8,
+      "guideline_name": "Nausea and vomiting (disorder)"
+    },
+    "Neck lump": {
+      "concept_id": 274747003,
+      "preferred_term": "Localized swelling, mass and lump, neck (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9126808643341064,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Localised swelling, mass and lump, neck",
+        "Localized swelling, mass and lump, neck",
+        "Localized swelling, mass and lump, neck (finding)",
+        "neck swelling",
+        "lump in neck",
+        "neck mass",
+        "cervical lump"
+      ],
+      "guideline_synonym_count": 7,
+      "guideline_name": "Localized swelling, mass and lump, neck (finding)"
+    },
+    "New onset Diabetes": {
+      "keyword": "New onset Diabetes",
+      "concept_id": 405749004,
+      "preferred_term": "Newly diagnosed diabetes (disorder)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9380321502685547,
+      "llm_disambiguated": true,
+      "retry_success": true,
+      "retry_term_used": "Newly diagnosed diabetes mellitus",
+      "original_error": "LLM rejected: REJECT_SUGGEST_TERM",
+      "guideline_synonyms": [
+        "Newly diagnosed diabetes",
+        "Newly diagnosed diabetes (disorder)",
+        "Newly diagnosed diabetes (finding)",
+        "newly dx diabetes"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Newly diagnosed diabetes (disorder)"
+    },
+    "Night sweats": {
+      "concept_id": 42984000,
+      "preferred_term": "Night sweats (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9473927021026611,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Night sweats",
+        "Night sweats (finding)",
+        "nocturnal sweating",
+        "night sweating",
+        "sweats at night"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Night sweats (finding)"
+    },
+    "Nipple change": {
+      "concept_id": 115941000119108,
+      "preferred_term": "Breast symptom of change in nipple (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9115586280822754,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Breast symptom of change in nipple",
+        "Breast symptom of change in nipple (finding)",
+        "Change in nipple",
+        "nipple changes"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Breast symptom of change in nipple (finding)"
+    },
+    "Nipple changes": {
+      "concept_id": 248819006,
+      "preferred_term": "Nipple finding (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.855307754690225,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Nipple finding",
+        "Nipple finding (finding)",
+        "Nipple observation",
+        "nipple abnormality",
+        "nipple change"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Nipple finding (finding)"
+    },
+    "Nipple discharge": {
+      "concept_id": 162167000,
+      "preferred_term": "Nipple discharge NOS (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9057319164276123,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Nipple discharge NOS",
+        "Nipple discharge NOS (finding)",
+        "nipple d/c",
+        "discharge from nipple"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Nipple discharge NOS (finding)"
+    },
+    "Non-pigmented lesions suspicious of melanoma": {
+      "keyword": "Non-pigmented lesions suspicious of melanoma",
+      "concept_id": 734931005,
+      "preferred_term": "Suspected benign pigmented skin lesion (situation)",
+      "semantic_tag": "Situation",
+      "score": 0.889823814657136,
+      "llm_disambiguated": false,
+      "retry_success": true,
+      "retry_type_used": "Situation",
+      "original_error": "LLM rejected: REJECT_SUGGEST_TYPE",
+      "guideline_synonyms": [
+        "Suspected benign pigmented skin lesion",
+        "Suspected benign pigmented skin lesion (situation)",
+        "suspected benign pigmented lesion",
+        "query benign pigmented lesion",
+        "benign pigmented lesion"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Suspected benign pigmented skin lesion (situation)"
+    },
+    "Other vaginal bleeding": {
+      "concept_id": 652431000000100,
+      "preferred_term": "Bleeding - vaginal NOS (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9168264865875244,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Bleeding - vaginal NOS",
+        "Bleeding - vaginal NOS (finding)",
+        "unspecified vaginal bleeding"
+      ],
+      "guideline_synonym_count": 3,
+      "guideline_name": "Bleeding - vaginal NOS (finding)"
+    },
+    "Pallor": {
+      "concept_id": 398979000,
+      "preferred_term": "Pallor",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8658452661810635,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Pale complexion",
+        "Pale complexion (finding)",
+        "Pallor",
+        "pale",
+        "pale appearance",
+        "pale skin"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Pallor"
+    },
+    "Pelvic pain": {
+      "concept_id": 30473006,
+      "preferred_term": "Pain in pelvis (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9070308208465576,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Pain in pelvis",
+        "Pain in pelvis (finding)",
+        "Pelvic pain",
+        "Pelvic pain, NOS",
+        "pain in the pelvis",
+        "pelvic ache",
+        "pelvic discomfort"
+      ],
+      "guideline_synonym_count": 7,
+      "guideline_name": "Pain in pelvis (finding)"
+    },
+    "Penile ulceration": {
+      "concept_id": 76046001,
+      "preferred_term": "Ulcer of penis (disorder)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8985545635223389,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Penile ulceration",
+        "Penile ulceration, NOS",
+        "Ulcer of penis",
+        "Ulcer of penis (disorder)",
+        "Ulcer of penis, NOS",
+        "penile ulcer",
+        "ulcer on penis",
+        "genital ulcer"
+      ],
+      "guideline_synonym_count": 8,
+      "guideline_name": "Ulcer of penis (disorder)"
+    },
+    "Pigmented lesions suspicious of melanoma": {
+      "keyword": "Pigmented lesions suspicious of melanoma",
+      "concept_id": 734931005,
+      "preferred_term": "Suspected benign pigmented skin lesion (situation)",
+      "semantic_tag": "Situation",
+      "score": 0.9051563585070811,
+      "llm_disambiguated": false,
+      "retry_success": true,
+      "retry_type_used": "Situation",
+      "original_error": "LLM rejected: REJECT_SUGGEST_TYPE",
+      "guideline_synonyms": [
+        "Suspected benign pigmented skin lesion",
+        "Suspected benign pigmented skin lesion (situation)",
+        "suspected benign pigmented lesion",
+        "query benign pigmented lesion",
+        "benign pigmented lesion"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Suspected benign pigmented skin lesion (situation)"
+    },
+    "Post-menopausal bleeding": {
+      "concept_id": 76742009,
+      "preferred_term": "Postmenopausal bleeding (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8603425025939941,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Bleeding after menopause",
+        "PMB - Postmenopausal bleeding",
+        "Postmenopausal bleeding",
+        "Postmenopausal bleeding (finding)",
+        "bleeding post menopause"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Postmenopausal bleeding (finding)"
+    },
+    "Progressive or sub-acute loss of central neurological function": {
+      "concept_id": 931031000000104,
+      "preferred_term": "Progressive intellectual and neurological deterioration (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8697133811033608,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "PIND - progressive intellectual and neurological deterioration",
+        "Progressive intellectual and neurological deterioration",
+        "Progressive intellectual and neurological deterioration (finding)"
+      ],
+      "guideline_synonym_count": 3,
+      "guideline_name": "Progressive intellectual and neurological deterioration (finding)"
+    },
+    "Pruritus": {
+      "concept_id": 424492005,
+      "preferred_term": "Itch of skin (observable entity)",
+      "semantic_tag": "Observable_entity",
+      "score": 0.803809642791748,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Itch of skin",
+        "Itch of skin (observable entity)",
+        "itching",
+        "itchy skin",
+        "itch"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Itch of skin (observable entity)"
+    },
+    "Rectal bleeding": {
+      "concept_id": 12063002,
+      "preferred_term": "Bleeding PR",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.903571605682373,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Bleeding PR",
+        "Bleeding per rectum",
+        "Blood per rectum",
+        "Hemorrhage of rectum",
+        "PR - Bleeding per rectum",
+        "PR - Blood per rectum",
+        "PRB - Rectal bleeding",
+        "Proctorrhagia",
+        "RB - Rectal bleeding",
+        "Rectal bleeding",
+        "Rectal haemorrhage",
+        "Rectal hemorrhage",
+        "Rectal hemorrhage (disorder)",
+        "Rectorrhagia",
+        "PR bleed",
+        "PR bleeding",
+        "rectal bleed",
+        "blood PR"
+      ],
+      "guideline_synonym_count": 18,
+      "guideline_name": "Bleeding PR"
+    },
+    "Renal colic": {
+      "concept_id": 7093002,
+      "preferred_term": "Renal colic (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9295291900634766,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Renal colic",
+        "Renal colic (finding)",
+        "ureteric colic",
+        "suspected renal colic"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Renal colic (finding)"
+    },
+    "Sore throat": {
+      "concept_id": 164261009,
+      "preferred_term": "Inflamed throat (disorder)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.915783166885376,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Inflamed throat",
+        "Inflamed throat (disorder)",
+        "pharyngitis",
+        "throat inflammation"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Inflamed throat (disorder)"
+    },
+    "Stridor": {
+      "concept_id": 70407001,
+      "preferred_term": "Stridor (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9021384404235302,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Stridor",
+        "Stridor (finding)",
+        "Stridulous breathing"
+      ],
+      "guideline_synonym_count": 3,
+      "guideline_name": "Stridor (finding)"
+    },
+    "Testicular lump": {
+      "concept_id": 276377005,
+      "preferred_term": "Testicular mass (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.913027286529541,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Lump in testis",
+        "Mass of testis",
+        "Testicular lump",
+        "Testicular lump (finding)",
+        "Testicular mass",
+        "Testicular mass (finding)",
+        "testis lump",
+        "scrotal lump"
+      ],
+      "guideline_synonym_count": 8,
+      "guideline_name": "Testicular mass (finding)"
+    },
+    "Testicular pain": {
+      "concept_id": 63901009,
+      "preferred_term": "Pain in testicle (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9211370933748502,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Orchialgia",
+        "Orchialgia, NOS",
+        "Orchidalgia",
+        "Orchidalgia, NOS",
+        "Orchidodynia",
+        "Orchidodynia, NOS",
+        "Pain in testicle",
+        "Pain in testicle (finding)",
+        "Pain in testis",
+        "Pain of testes",
+        "Testicular pain",
+        "Testicular pain, NOS",
+        "testis pain",
+        "pain in testes",
+        "scrotal pain"
+      ],
+      "guideline_synonym_count": 15,
+      "guideline_name": "Pain in testicle (finding)"
+    },
+    "Thyroid lump": {
+      "concept_id": 237557003,
+      "preferred_term": "Thyroid mass",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9013092517852783,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Mass of thyroid gland",
+        "Mass of thyroid gland (finding)",
+        "Thyroid lump",
+        "Thyroid lump (disorder)",
+        "Thyroid mass",
+        "thyroid nodule",
+        "thyroid swelling",
+        "thyroid lesion"
+      ],
+      "guideline_synonym_count": 8,
+      "guideline_name": "Thyroid mass"
+    },
+    "Ulceration": {
+      "keyword": "Ulceration",
+      "concept_id": 238790003,
+      "preferred_term": "Leg ulcer NOS (disorder)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8951334953308105,
+      "llm_disambiguated": true,
+      "retry_success": true,
+      "retry_term_used": "Skin ulceration / Leg ulcer",
+      "original_error": "LLM rejected: REJECT_SUGGEST_TERM",
+      "guideline_synonyms": [
+        "Leg ulcer NOS",
+        "Leg ulcer NOS (disorder)",
+        "leg ulcer",
+        "lower limb ulcer"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Leg ulcer NOS (disorder)"
+    },
+    "Unexplained lump suspicious of sarcoma": {
+      "keyword": "Unexplained lump suspicious of sarcoma",
+      "concept_id": 734931005,
+      "preferred_term": "Suspected benign pigmented skin lesion (situation)",
+      "semantic_tag": "Situation",
+      "score": 0.8236393928527832,
+      "llm_disambiguated": false,
+      "retry_success": true,
+      "retry_type_used": "Situation",
+      "original_error": "LLM rejected: REJECT_SUGGEST_TYPE",
+      "guideline_synonyms": [
+        "Suspected benign pigmented skin lesion",
+        "Suspected benign pigmented skin lesion (situation)",
+        "suspected benign pigmented lesion",
+        "query benign pigmented lesion",
+        "benign pigmented lesion"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Suspected benign pigmented skin lesion (situation)"
+    },
+    "Upper abdominal pain": {
+      "concept_id": 83132003,
+      "preferred_term": "Upper abdominal pain (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.95039963722229,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Upper abdominal pain",
+        "Upper abdominal pain (finding)",
+        "upper abdo pain",
+        "epigastric pain",
+        "upper abdo discomfort"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Upper abdominal pain (finding)"
+    },
+    "Urinary tract infection": {
+      "concept_id": 1090711000000102,
+      "preferred_term": "Uncomplicated urinary tract infection (disorder)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9310486316680908,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Uncomplicated UTI (urinary tract infection)",
+        "Uncomplicated urinary tract infection",
+        "Uncomplicated urinary tract infection (disorder)",
+        "uncomplicated UTI",
+        "simple UTI",
+        "lower UTI"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Uncomplicated urinary tract infection (disorder)"
+    },
+    "Vaginal discharge": {
+      "concept_id": 563461000000103,
+      "preferred_term": "Vaginal discharge NOS (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9127371311187744,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Vaginal discharge NOS",
+        "Vaginal discharge NOS (finding)",
+        "PV discharge",
+        "vag discharge",
+        "vag d/c",
+        "vaginal d/c",
+        "PV d/c"
+      ],
+      "guideline_synonym_count": 7,
+      "guideline_name": "Vaginal discharge NOS (finding)"
+    },
+    "Vaginal lump": {
+      "concept_id": 289522005,
+      "preferred_term": "Vaginal lump (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9415054321289062,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Vaginal lump",
+        "Vaginal lump (finding)",
+        "vaginal mass",
+        "lump in vagina",
+        "vaginal swelling",
+        "vaginal lesion"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Vaginal lump (finding)"
+    },
+    "Vaginal mass": {
+      "concept_id": 289521003,
+      "preferred_term": "Vaginal mass (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9575302600860596,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Vaginal mass",
+        "Vaginal mass (finding)",
+        "vaginal lump",
+        "lump in vagina",
+        "mass in vagina",
+        "vaginal swelling",
+        "vag mass",
+        "vaginal lesion",
+        "vaginal growth"
+      ],
+      "guideline_synonym_count": 9,
+      "guideline_name": "Vaginal mass (finding)"
+    },
+    "Visual disturbance or loss": {
+      "concept_id": 63102001,
+      "preferred_term": "Visual disturbance (disorder)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9198442708065748,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Visual disturbance",
+        "Visual disturbance (disorder)",
+        "Visual disturbance, NOS",
+        "vision disturbance",
+        "visual symptoms",
+        "visual changes",
+        "disturbed vision"
+      ],
+      "guideline_synonym_count": 7,
+      "guideline_name": "Visual disturbance (disorder)"
+    },
+    "Vulval bleeding": {
+      "keyword": "Vulval bleeding",
+      "concept_id": 289540009,
+      "preferred_term": "Profuse vaginal bleeding (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8934316635131836,
+      "llm_disambiguated": false,
+      "retry_success": true,
+      "general_search": true,
+      "original_error": "LLM rejected: REJECT_SUGGEST_TERM",
+      "guideline_synonyms": [
+        "Profuse vaginal bleeding",
+        "Profuse vaginal bleeding (finding)",
+        "heavy vaginal bleeding",
+        "flooding PV"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Profuse vaginal bleeding (finding)"
+    },
+    "Vulval lump": {
+      "concept_id": 289478009,
+      "preferred_term": "Lump of vulva (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9084880352020264,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Lump of vulva",
+        "Lump of vulva (finding)",
+        "lump on vulva",
+        "vulval mass",
+        "vulval swelling"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Lump of vulva (finding)"
+    },
+    "Vulval mass": {
+      "concept_id": 289477004,
+      "preferred_term": "Mass of vulva (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9061164855957031,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Lump of vulva",
+        "Mass of vulva",
+        "Mass of vulva (finding)",
+        "vulval lump",
+        "vulvar mass",
+        "vulvar lump",
+        "lump on vulva",
+        "vulval swelling"
+      ],
+      "guideline_synonym_count": 8,
+      "guideline_name": "Mass of vulva (finding)"
+    },
+    "Vulval ulceration": {
+      "concept_id": 68640004,
+      "preferred_term": "Vulvar ulceration",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9100322723388672,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Ulceration of vulva",
+        "Ulceration of vulva (disorder)",
+        "Ulceration of vulva, NOS",
+        "Vulvar ulceration",
+        "vulval ulcer",
+        "vulvar ulcer"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Vulvar ulceration"
+    },
+    "Weight loss": {
+      "concept_id": 240261000000105,
+      "preferred_term": "Recent weight loss (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9283266067504883,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Recent weight loss",
+        "Recent weight loss (finding)",
+        "recent wt loss",
+        "unintentional weight loss"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Recent weight loss (finding)"
+    },
+    "DVT": {
+      "concept_id": 128053003,
+      "preferred_term": "Deep venous thrombosis (disorder)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.95,
+      "llm_disambiguated": false,
+      "note": "Synonym for Deep vein thrombosis - CSS trigger",
+      "guideline_synonyms": [
+        "DVT",
+        "DVT - Deep vein thrombosis",
+        "Deep vein thrombosis",
+        "Deep venous thrombosis",
+        "Deep venous thrombosis (disorder)",
+        "suspected DVT",
+        "leg DVT"
+      ],
+      "guideline_synonym_count": 7,
+      "guideline_name": "Deep venous thrombosis (disorder)"
+    },
+    "Tiredness": {
+      "concept_id": 267031002,
+      "preferred_term": "Tiredness symptom (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.95,
+      "llm_disambiguated": false,
+      "note": "CSS constitutional symptom - synonym for Fatigue",
+      "guideline_synonyms": [
+        "Tiredness symptom",
+        "Tiredness symptom (finding)",
+        "feels tired",
+        "very tired",
+        "tired all the time"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Tiredness symptom (finding)"
+    },
+    "Tired": {
+      "concept_id": 267031002,
+      "preferred_term": "Tiredness symptom (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9,
+      "llm_disambiguated": false,
+      "note": "Colloquial for tiredness",
+      "guideline_synonyms": [
+        "Tiredness symptom",
+        "Tiredness symptom (finding)",
+        "feels tired",
+        "very tired",
+        "tired all the time"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Tiredness symptom (finding)"
+    },
+    "Lethargy": {
+      "concept_id": 214264003,
+      "preferred_term": "Lethargy (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.95,
+      "llm_disambiguated": false,
+      "note": "CSS constitutional symptom",
+      "guideline_synonyms": [
+        "Lack of vitality",
+        "Lethargic",
+        "Lethargy",
+        "Lethargy (finding)",
+        "washed out",
+        "low energy"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Lethargy (finding)"
+    },
+    "Lethargic": {
+      "concept_id": 214264003,
+      "preferred_term": "Lethargy (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9,
+      "llm_disambiguated": false,
+      "note": "Colloquial for lethargy",
+      "guideline_synonyms": [
+        "Lack of vitality",
+        "Lethargic",
+        "Lethargy",
+        "Lethargy (finding)",
+        "washed out",
+        "low energy"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Lethargy (finding)"
+    },
+    "Bloating": {
+      "concept_id": 248490000,
+      "preferred_term": "Abdomen feels bloated (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.95,
+      "llm_disambiguated": false,
+      "note": "CSS constitutional symptom",
+      "guideline_synonyms": [
+        "Abdomen feels bloated",
+        "Bloating symptom",
+        "Bloating symptom (finding)",
+        "abdominal bloating",
+        "abdo bloating",
+        "abd bloating",
+        "bloated abdomen",
+        "tummy bloating"
+      ],
+      "guideline_synonym_count": 8,
+      "guideline_name": "Abdomen feels bloated"
+    },
+    "Bloated": {
+      "concept_id": 248490000,
+      "preferred_term": "Abdomen feels bloated (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9,
+      "llm_disambiguated": false,
+      "note": "Colloquial for bloating",
+      "guideline_synonyms": [
+        "Abdomen feels bloated",
+        "Bloating symptom",
+        "Bloating symptom (finding)",
+        "abdominal bloating",
+        "abdo bloating",
+        "abd bloating",
+        "bloated abdomen",
+        "tummy bloating"
+      ],
+      "guideline_synonym_count": 8,
+      "guideline_name": "Abdomen feels bloated"
+    },
+    "Malaise": {
+      "concept_id": 267033004,
+      "preferred_term": "Malaise/lethargy (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.95,
+      "llm_disambiguated": false,
+      "note": "CSS constitutional symptom",
+      "guideline_synonyms": [
+        "Malaise/lethargy",
+        "Malaise/lethargy (finding)",
+        "feeling unwell",
+        "low energy"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Malaise/lethargy (finding)"
+    },
+    "Changing shape of pigmented skin lesion": {
+      "concept_id": 315252002,
+      "preferred_term": "Changing shape of pigmented skin lesion (disorder)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.95,
+      "llm_disambiguated": false,
+      "note": "Melanoma warning sign - ABCDE criteria",
+      "guideline_synonyms": [
+        "Changing shape of pigmented skin lesion",
+        "Changing shape of pigmented skin lesion (disorder)",
+        "mole changing shape",
+        "changing mole shape",
+        "pigmented lesion shape change"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Changing shape of pigmented skin lesion (disorder)"
+    },
+    "Itching of pigmented skin lesion": {
+      "concept_id": 315256004,
+      "preferred_term": "Itching of pigmented skin lesion (disorder)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.95,
+      "llm_disambiguated": false,
+      "note": "Melanoma warning sign",
+      "guideline_synonyms": [
+        "Itching of pigmented skin lesion",
+        "Itching of pigmented skin lesion (disorder)",
+        "itchy pigmented lesion",
+        "itching pigmented lesion",
+        "pruritic pigmented lesion",
+        "itchy pigmented mole"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Itching of pigmented skin lesion (disorder)"
+    },
+    "Mixed color of pigmented skin lesion": {
+      "concept_id": 315255000,
+      "preferred_term": "Mixed color of pigmented skin lesion (disorder)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.95,
+      "llm_disambiguated": false,
+      "note": "Melanoma warning sign - ABCDE criteria (Color)",
+      "guideline_synonyms": [
+        "Mixed color of pigmented skin lesion",
+        "Mixed color of pigmented skin lesion (disorder)",
+        "Mixed colour of pigmented skin lesion"
+      ],
+      "guideline_synonym_count": 3,
+      "guideline_name": "Mixed color of pigmented skin lesion (disorder)"
+    },
+    "Irregular outline of pigmented skin lesion": {
+      "concept_id": 315253007,
+      "preferred_term": "Irregular outline of pigmented skin lesion (disorder)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.95,
+      "llm_disambiguated": false,
+      "note": "Melanoma warning sign - ABCDE criteria (Border)",
+      "guideline_synonyms": [
+        "Irregular outline of pigmented skin lesion",
+        "Irregular outline of pigmented skin lesion (disorder)"
+      ],
+      "guideline_synonym_count": 2,
+      "guideline_name": "Irregular outline of pigmented skin lesion (disorder)"
+    },
+    "Oozing of pigmented skin lesion": {
+      "concept_id": 315257008,
+      "preferred_term": "Oozing of pigmented skin lesion (disorder)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.95,
+      "llm_disambiguated": false,
+      "note": "Melanoma warning sign - bleeding/oozing",
+      "guideline_synonyms": [
+        "Oozing of pigmented skin lesion",
+        "Oozing of pigmented skin lesion (disorder)",
+        "pigmented lesion oozing",
+        "oozing pigmented lesion",
+        "oozing mole"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Oozing of pigmented skin lesion (disorder)"
+    },
+    "Non-healing pigmented skin lesion": {
+      "concept_id": 315259006,
+      "preferred_term": "Non-healing pigmented skin lesion (disorder)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.95,
+      "llm_disambiguated": false,
+      "note": "Melanoma warning sign - slow healing",
+      "guideline_synonyms": [
+        "Non-healing pigmented skin lesion",
+        "Non-healing pigmented skin lesion (disorder)",
+        "non-healing pigmented lesion",
+        "non-healing pigmented mole"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Non-healing pigmented skin lesion (disorder)"
+    },
+    "Suspected malignant pigmented skin lesion": {
+      "concept_id": 734936000,
+      "preferred_term": "Suspected malignant pigmented skin lesion (situation)",
+      "semantic_tag": "Situation",
+      "score": 0.95,
+      "llm_disambiguated": false,
+      "note": "General suspicious pigmented lesion",
+      "guideline_synonyms": [
+        "Suspected malignant pigmented skin lesion",
+        "Suspected malignant pigmented skin lesion (situation)",
+        "suspicious pigmented lesion",
+        "pigmented lesion ?malignant",
+        "suspected malignant mole"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Suspected malignant pigmented skin lesion (situation)"
+    },
+    "Suspected skin cancer": {
+      "concept_id": 315276005,
+      "preferred_term": "Suspected skin cancer (situation)",
+      "semantic_tag": "Situation",
+      "score": 0.95,
+      "llm_disambiguated": false,
+      "note": "General suspected skin cancer - broader than pigmented lesions",
+      "guideline_synonyms": [
+        "Suspected skin cancer",
+        "Suspected skin cancer (situation)",
+        "Suspected skin cancer (context-dependent category)",
+        "suspected skin Ca",
+        "query skin cancer",
+        "suspected skin malignancy"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Suspected skin cancer (situation)"
+    },
+    "Cerebellar disorder": {
+      "concept_id": 223176004,
+      "preferred_term": "Cerebellar disorder (disorder)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.95,
+      "llm_disambiguated": false,
+      "note": "Brain cancer warning sign - neurological symptom",
+      "guideline_synonyms": [
+        "Cerebellar disorder",
+        "Cerebellar disorder (disorder)",
+        "cerebellar dysfunction",
+        "cerebellar disease",
+        "cerebellar syndrome",
+        "cerebellar pathology"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Cerebellar disorder (disorder)"
+    },
+    "Cerebellar ataxia": {
+      "concept_id": 85102008,
+      "preferred_term": "Cerebellar ataxia (disorder)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.95,
+      "llm_disambiguated": false,
+      "note": "Brain cancer warning sign - loss of muscle coordination",
+      "guideline_synonyms": [
+        "Cerebellar ataxia",
+        "Cerebellar ataxia (disorder)",
+        "Cerebellar ataxia (loss of muscle coordination)",
+        "Cerebellar ataxia, NOS",
+        "cerebellar gait ataxia"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Cerebellar ataxia (disorder)"
+    },
+    "Abnormal nervous system function": {
+      "concept_id": 13028004,
+      "preferred_term": "Abnormal nervous system function (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.95,
+      "llm_disambiguated": false,
+      "note": "Brain cancer warning sign - general neurological dysfunction",
+      "guideline_synonyms": [
+        "Abnormal nervous system function",
+        "Abnormal nervous system function (finding)",
+        "Abnormal neurological function",
+        "abnormal neuro function",
+        "neurological dysfunction",
+        "neuro dysfunction"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Abnormal nervous system function (finding)"
+    }
+  }
+}

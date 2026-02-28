@@ -1,22 +1,26 @@
 """Two-phase coding pipeline adapted from PCA V3PipelineService.
 
-Phase 1: LLM-based term extraction from de-identified encounter text.
+Phase 1: Clinical term extraction via the configured ExtractorProvider
+         (LLM-backed or model-backed, selected by CODING_EXTRACTOR_BACKEND).
 Phase 2: Terminology resolution via the Terminology API (hybrid search).
 
-Key differences from the original:
-- Calls Terminology API HTTP endpoint for resolution instead of direct Neo4j
-- Uses libs/llm-client for LLM invocation with cache + fallback
-- Publishes progress via a callback hook (Redis pub/sub in production)
-- Async-first design for Service Bus consumer context
+Key design properties:
+- ExtractorProvider abstraction: no inline backend branching here.
+- Queue payload contract preserved: patient_id/encounter_id/mode/run_id only.
+- Encounter text is always fetched from Neo4j at runtime.
+- Idempotent writes: MERGE semantics on EncounterCandidate + DOCUMENTS.
+- Provenance stamped on every persisted output:
+    source / model_name / model_version / contract_version / run_id.
+- Structured progress events emitted per encounter for Redis pub/sub.
 """
 
 from __future__ import annotations
-
 import hashlib
 import json
 import logging
 import os
 import re
+import time
 import uuid
 from dataclasses import dataclass, field
 from typing import Any, Callable, Optional
@@ -24,15 +28,16 @@ from typing import Any, Callable, Optional
 import httpx
 
 from libs.cypher.candidate_queries import (
-    UPSERT_CANDIDATE,
     CREATE_REVIEW_TASK,
+    UPSERT_CANDIDATE,
 )
 from libs.cypher.documents_queries import write_documents_from_sentences_payload
-from services.coding_worker.app.pipeline.llm_extractor import (
-    ExtractionError,
-    ExtractedTerm,
-    LLMExtractor,
+from services.coding_worker.app.pipeline.extractor_contract import (
+    CONTRACT_VERSION,
+    ExtractionItem,
+    ExtractorProvider,
 )
+from services.coding_worker.app.pipeline.extractor_registry import build_extractor
 from services.coding_worker.app.pipeline.sentence_splitter import (
     SentenceChunk,
     SentenceSplitter,
@@ -71,33 +76,62 @@ class PipelineStats:
 
 
 class CodingPipeline:
-    """Async coding pipeline for the Coding Worker."""
+    """Async coding pipeline for the Coding Worker.
+
+    The active extraction backend is selected at construction time via
+    ``build_extractor()``.  No inline backend branching occurs inside the
+    pipeline logic itself.
+    """
 
     def __init__(self, patient_client, knowledge_client) -> None:
         self.patient_client = patient_client
         self.knowledge_client = knowledge_client
-        model_id = os.getenv("AWS_BEDROCK_MODEL", "")
-        region = os.getenv("AWS_DEFAULT_REGION", "eu-west-2")
         self.splitter = SentenceSplitter()
-        self.extractor = LLMExtractor(model_id=model_id, region=region)
+        # Provider is lazily initialised on first run so the progress_hook
+        # can be forwarded for fallback events.
+        self._extractor: Optional[ExtractorProvider] = None
+
+    def _get_extractor(
+        self,
+        progress_hook: Optional[Callable[[dict[str, Any]], None]] = None,
+    ) -> ExtractorProvider:
+        if self._extractor is None:
+            self._extractor = build_extractor(progress_hook=progress_hook)
+            logger.info(
+                "CodingPipeline: extractor=%s model=%s v%s contract=%s",
+                self._extractor.source,
+                self._extractor.model_name,
+                self._extractor.model_version,
+                CONTRACT_VERSION,
+            )
+        return self._extractor
 
     async def run(
         self,
         patient_ids: list[str],
         dry_run: bool = False,
         progress_hook: Optional[Callable[[dict[str, Any]], None]] = None,
+        run_id: Optional[str] = None,
     ) -> PipelineStats:
+        run_id = run_id or str(uuid.uuid4())
         stats = PipelineStats()
+        extractor = self._get_extractor(progress_hook)
         for patient_id in patient_ids:
-            encounters = self._fetch_encounters(patient_id)
+            encounters = self._fetch_encounters(
+                patient_id=patient_id,
+                run_id=run_id,
+                progress_hook=progress_hook,
+            )
             self._emit(progress_hook, {
                 "type": "patient_started",
                 "patient_id": patient_id,
                 "encounter_count": len(encounters),
             })
             for enc in encounters:
-                await self._process_encounter(patient_id, enc, dry_run, stats, progress_hook)
-        self._emit(progress_hook, {"type": "run_completed", **stats.snapshot()})
+                await self._process_encounter(
+                    patient_id, enc, dry_run, stats, progress_hook, run_id, extractor
+                )
+        self._emit(progress_hook, {"type": "run_completed", "run_id": run_id, **stats.snapshot()})
         return stats
 
     async def run_unprocessed(
@@ -105,18 +139,27 @@ class CodingPipeline:
         patient_ids: list[str],
         dry_run: bool = False,
         progress_hook: Optional[Callable[[dict[str, Any]], None]] = None,
+        run_id: Optional[str] = None,
     ) -> PipelineStats:
+        run_id = run_id or str(uuid.uuid4())
         stats = PipelineStats()
+        extractor = self._get_extractor(progress_hook)
         for patient_id in patient_ids:
-            encounters = self._fetch_unprocessed_encounters(patient_id)
+            encounters = self._fetch_unprocessed_encounters(
+                patient_id=patient_id,
+                run_id=run_id,
+                progress_hook=progress_hook,
+            )
             self._emit(progress_hook, {
                 "type": "patient_started",
                 "patient_id": patient_id,
                 "encounter_count": len(encounters),
             })
             for enc in encounters:
-                await self._process_encounter(patient_id, enc, dry_run, stats, progress_hook)
-        self._emit(progress_hook, {"type": "run_completed", **stats.snapshot()})
+                await self._process_encounter(
+                    patient_id, enc, dry_run, stats, progress_hook, run_id, extractor
+                )
+        self._emit(progress_hook, {"type": "run_completed", "run_id": run_id, **stats.snapshot()})
         return stats
 
     async def run_single_encounter(
@@ -125,8 +168,11 @@ class CodingPipeline:
         encounter_id: str,
         dry_run: bool = False,
         progress_hook: Optional[Callable[[dict[str, Any]], None]] = None,
+        run_id: Optional[str] = None,
     ) -> PipelineStats:
+        run_id = run_id or str(uuid.uuid4())
         stats = PipelineStats()
+        extractor = self._get_extractor(progress_hook)
         rows = self.patient_client.run(
             "MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter) "
             "WHERE toString(p.id) = $pid AND toString(e.id) = $eid "
@@ -135,9 +181,15 @@ class CodingPipeline:
             eid=encounter_id,
         )
         if rows:
-            await self._process_encounter(patient_id, rows[0], dry_run, stats, progress_hook)
-        self._emit(progress_hook, {"type": "run_completed", **stats.snapshot()})
+            await self._process_encounter(
+                patient_id, rows[0], dry_run, stats, progress_hook, run_id, extractor
+            )
+        self._emit(progress_hook, {"type": "run_completed", "run_id": run_id, **stats.snapshot()})
         return stats
+
+    # ------------------------------------------------------------------
+    # Core encounter processing
+    # ------------------------------------------------------------------
 
     async def _process_encounter(
         self,
@@ -146,6 +198,8 @@ class CodingPipeline:
         dry_run: bool,
         stats: PipelineStats,
         progress_hook: Optional[Callable[[dict[str, Any]], None]],
+        run_id: str,
+        extractor: ExtractorProvider,
     ) -> None:
         encounter_id = str(encounter.get("encounter_id", ""))
         encounter_text = str(encounter.get("text") or "")
@@ -154,54 +208,134 @@ class CodingPipeline:
             "type": "encounter_started",
             "patient_id": patient_id,
             "encounter_id": encounter_id,
+            "run_id": run_id,
         })
 
+        t_fetch = time.monotonic()
         deidentified = deduplicate_lines(encounter_text)
         sentences = self.splitter.split(deidentified)
+
         self._emit(progress_hook, {
-            "type": "sentence_split_completed",
+            "type": "fetched",
+            "patient_id": patient_id,
+            "encounter_id": encounter_id,
+            "run_id": run_id,
             "sentence_count": len(sentences),
+            "fetch_latency_ms": round((time.monotonic() - t_fetch) * 1000),
         })
 
+        # Phase 1: extraction
+        t_extract = time.monotonic()
         try:
-            extracted = self._extract_terms(deidentified, sentences)
-        except ExtractionError as exc:
-            logger.error("Extraction failed for %s: %s", encounter_id, exc)
+            extracted = self._extract_terms(deidentified, sentences, extractor)
+        except Exception as exc:
+            logger.error(
+                "Extraction failed for encounter %s (%s backend): %s",
+                encounter_id, extractor.source, exc,
+            )
             stats.record(True, False)
-            self._emit(progress_hook, {"type": "encounter_processed", **stats.snapshot()})
+            self._emit(progress_hook, {
+                "type": "failed",
+                "stage": "extraction",
+                "encounter_id": encounter_id,
+                "run_id": run_id,
+                "backend": extractor.source,
+                "failure_taxonomy": "backend_unavailable" if "unavailable" in str(exc).lower()
+                                    else "timeout" if "timed out" in str(exc).lower()
+                                    else "extraction_error",
+                **stats.snapshot(),
+            })
             return
 
-        all_terms = [t for terms in extracted.values() for t in terms]
+        all_items = [item for items in extracted.values() for item in items]
+        extract_latency_ms = round((time.monotonic() - t_extract) * 1000)
+
         self._emit(progress_hook, {
-            "type": "term_extraction_completed",
-            "term_count": len(all_terms),
+            "type": "extracted",
+            "encounter_id": encounter_id,
+            "run_id": run_id,
+            "backend_used": extractor.source,
+            "model_name": extractor.model_name,
+            "model_version": extractor.model_version,
+            "entity_count": len(all_items),
+            "extract_latency_ms": extract_latency_ms,
         })
 
-        resolved = await self._resolve_via_api([t.lookup_term for t in all_terms])
-        self._emit(progress_hook, {"type": "coding_resolve_completed"})
+        # Phase 2: terminology resolution
+        t_resolve = time.monotonic()
+        resolved = await self._resolve_via_api([item.normalized for item in all_items])
+        resolve_latency_ms = round((time.monotonic() - t_resolve) * 1000)
 
-        sentences_payload = self._build_sentences_payload(sentences, extracted, resolved)
+        coded_count = sum(1 for k in resolved if resolved[k])
+        reject_count = len(all_items) - coded_count
 
+        self._emit(progress_hook, {
+            "type": "resolved",
+            "encounter_id": encounter_id,
+            "run_id": run_id,
+            "coded_count": coded_count,
+            "reject_count": reject_count,
+            "resolve_latency_ms": resolve_latency_ms,
+        })
+
+        sentences_payload = self._build_sentences_payload(
+            sentences, extracted, resolved, extractor
+        )
+
+        # Persistence
+        t_persist = time.monotonic()
         if not dry_run:
-            candidate_id = str(uuid.uuid5(uuid.NAMESPACE_URL, f"candidate:{patient_id}:{encounter_id}"))
-            self._persist_candidate(patient_id, encounter_id, encounter, deidentified, candidate_id, sentences_payload)
+            candidate_id = str(
+                uuid.uuid5(uuid.NAMESPACE_URL, f"candidate:{patient_id}:{encounter_id}")
+            )
+            self._persist_candidate(
+                patient_id,
+                encounter_id,
+                encounter,
+                deidentified,
+                candidate_id,
+                sentences_payload,
+                extractor=extractor,
+                run_id=run_id,
+            )
+
+        persist_latency_ms = round((time.monotonic() - t_persist) * 1000)
 
         stats.record(False, False)
-        self._emit(progress_hook, {"type": "encounter_processed", **stats.snapshot()})
+        self._emit(progress_hook, {
+            "type": "persisted",
+            "encounter_id": encounter_id,
+            "run_id": run_id,
+            "dry_run": dry_run,
+            "persist_latency_ms": persist_latency_ms,
+            **stats.snapshot(),
+        })
+
+    # ------------------------------------------------------------------
+    # Extraction
+    # ------------------------------------------------------------------
 
     def _extract_terms(
-        self, deidentified: str, sentences: list[SentenceChunk]
-    ) -> dict[str, list[ExtractedTerm]]:
-        by_sentence: dict[str, list[ExtractedTerm]] = {s.sentence_id: [] for s in sentences}
+        self,
+        deidentified: str,
+        sentences: list[SentenceChunk],
+        extractor: ExtractorProvider,
+    ) -> dict[str, list[ExtractionItem]]:
+        by_sentence: dict[str, list[ExtractionItem]] = {
+            s.sentence_id: [] for s in sentences
+        }
         for idx in range(0, len(sentences), _BATCH_SIZE):
             batch = sentences[idx : idx + _BATCH_SIZE]
-            extracted = self.extractor.extract_batch(deidentified, batch)
-            for term in extracted:
-                by_sentence.setdefault(term.sentence_id, []).append(term)
+            items = extractor.extract_batch(deidentified, batch)
+            for item in items:
+                by_sentence.setdefault(item.sentence_id, []).append(item)
         return by_sentence
 
+    # ------------------------------------------------------------------
+    # Terminology resolution
+    # ------------------------------------------------------------------
+
     async def _resolve_via_api(self, terms: list[str]) -> dict[str, list[dict[str, Any]]]:
-        """Call the Terminology API /resolve endpoint."""
         if not terms:
             return {}
         unique = list(dict.fromkeys(terms))
@@ -215,36 +349,53 @@ class CodingPipeline:
                 data = resp.json()
                 return data.get("results", {})
         except Exception:
-            logger.warning("Terminology API call failed — returning empty results", exc_info=True)
+            logger.warning(
+                "Terminology API call failed — returning empty results", exc_info=True
+            )
             return {}
+
+    # ------------------------------------------------------------------
+    # Payload building
+    # ------------------------------------------------------------------
 
     def _build_sentences_payload(
         self,
         sentences: list[SentenceChunk],
-        extracted: dict[str, list[ExtractedTerm]],
+        extracted: dict[str, list[ExtractionItem]],
         resolved: dict[str, list[dict[str, Any]]],
+        extractor: ExtractorProvider,
     ) -> list[dict[str, Any]]:
         payload: list[dict[str, Any]] = []
         term_counter = 0
         for sentence in sentences:
             terms_data: list[dict[str, Any]] = []
-            for term in extracted.get(sentence.sentence_id, []):
-                candidates = resolved.get(term.lookup_term, [])
+            for item in extracted.get(sentence.sentence_id, []):
+                candidates = resolved.get(item.normalized, [])
                 best = candidates[0] if candidates else {}
+                # Extract modifiers from source_meta (populated by LLM provider)
+                source_meta = item.source_meta or {}
+                modifiers = source_meta.get("modifiers", {})
                 terms_data.append({
                     "term_id": f"{sentence.sentence_id}_t{term_counter}",
-                    "text": term.text,
-                    "span_start": sentence.start,
-                    "span_end": sentence.end,
+                    "text": item.text,
+                    "span_start": item.span_start,
+                    "span_end": item.span_end,
                     "coding": {
                         "snomed_concept_id": best.get("snomed_concept_id"),
                         "read_code": best.get("read_code"),
                         "snomed_term": best.get("snomed_term"),
                         "score": best.get("score", 0.0),
-                        "source": best.get("source", "terminology_api"),
+                        "source": "terminology_api",
                     },
-                    "semantic_tag": term.semantic_tag,
-                    "modifiers": term.modifiers,
+                    "semantic_tag": item.semantic_tag,
+                    "assertion": item.assertion,
+                    "confidence": item.confidence,
+                    "modifiers": modifiers,
+                    # Provenance from the extractor
+                    "extraction_source": item.source,
+                    "extraction_model_name": item.model_name,
+                    "extraction_model_version": item.model_version,
+                    "contract_version": item.contract_version,
                 })
                 term_counter += 1
             payload.append({
@@ -255,6 +406,10 @@ class CodingPipeline:
                 "terms": terms_data,
             })
         return payload
+
+    # ------------------------------------------------------------------
+    # Persistence
+    # ------------------------------------------------------------------
 
     @staticmethod
     def _stable_hash(text: str) -> str:
@@ -268,6 +423,8 @@ class CodingPipeline:
         deidentified: str,
         candidate_id: str,
         sentences_payload: list[dict[str, Any]],
+        extractor: ExtractorProvider,
+        run_id: str,
     ) -> None:
         source_hash = self._stable_hash(str(encounter.get("text") or ""))
         deidentified_hash = self._stable_hash(deidentified)
@@ -275,7 +432,6 @@ class CodingPipeline:
         task_id = str(uuid.uuid5(uuid.NAMESPACE_URL, f"review-task:{candidate_id}"))
 
         with self.patient_client.session() as session:
-            # Write the full candidate (all fields required by the review queue)
             session.run(
                 UPSERT_CANDIDATE,
                 candidate_id=candidate_id,
@@ -290,9 +446,13 @@ class CodingPipeline:
                 warning_reasons=[],
                 sentences_json=sentences_json,
                 llm_usage_json=None,
+                # Provenance
+                extraction_source=extractor.source,
+                extraction_model_name=extractor.model_name,
+                extraction_model_version=extractor.model_version,
+                contract_version=CONTRACT_VERSION,
+                run_id=run_id,
             )
-            # Create the ReviewTask so this candidate appears in the review queue
-            # and _fetch_unprocessed_encounters treats the encounter as processed.
             session.run(
                 CREATE_REVIEW_TASK,
                 candidate_id=candidate_id,
@@ -303,44 +463,185 @@ class CodingPipeline:
                 warning_count=0,
             )
 
-            # Write provisional DOCUMENTS + HAS_<tag> links immediately so
-            # downstream workers (episode builder, analytics) can query them
-            # before a human reviewer has approved the candidate.
             written = write_documents_from_sentences_payload(
                 encounter_id,
                 sentences_payload,
                 session,
                 source="provisional",
+                model_name=extractor.model_name,
+                model_version=extractor.model_version,
+                contract_version=CONTRACT_VERSION,
+                run_id=run_id,
             )
             logger.debug(
-                "_persist_candidate: wrote %d provisional DOCUMENTS links for encounter %s",
+                "_persist_candidate: wrote %d provisional DOCUMENTS links for encounter %s "
+                "(backend=%s model=%s v%s)",
                 written,
                 encounter_id,
+                extractor.source,
+                extractor.model_name,
+                extractor.model_version,
             )
 
-    def _fetch_encounters(self, patient_id: str) -> list[dict[str, Any]]:
-        return self.patient_client.run(
+    # ------------------------------------------------------------------
+    # Neo4j fetches
+    # ------------------------------------------------------------------
+
+    def _fetch_encounters(
+        self,
+        patient_id: str,
+        run_id: str,
+        progress_hook: Optional[Callable[[dict[str, Any]], None]] = None,
+    ) -> list[dict[str, Any]]:
+        encounters = self.patient_client.run(
             "MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter) "
             "WHERE toString(p.id) = $pid "
-            "RETURN e.id AS encounter_id, toString(e.date) AS date, e.text AS text "
+            "RETURN e.id AS encounter_id, toString(e.date) AS date, e.text AS text, "
+            "e.classification_content_type AS classification_content_type "
             "ORDER BY e.date",
             pid=patient_id,
         )
+        return self._classify_and_filter_clinical(
+            patient_id=patient_id,
+            run_id=run_id,
+            encounters=encounters,
+            progress_hook=progress_hook,
+        )
 
-    def _fetch_unprocessed_encounters(self, patient_id: str) -> list[dict[str, Any]]:
-        return self.patient_client.run(
+    def _fetch_unprocessed_encounters(
+        self,
+        patient_id: str,
+        run_id: str,
+        progress_hook: Optional[Callable[[dict[str, Any]], None]] = None,
+    ) -> list[dict[str, Any]]:
+        encounters = self.patient_client.run(
             "MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter) "
             "WHERE toString(p.id) = $pid "
             "AND NOT EXISTS { "
             "  MATCH (c:EncounterCandidate)-[:HAS_TASK]->(:ReviewTask) "
             "  WHERE c.patient_id = $pid AND c.encounter_id = toString(e.id) "
             "} "
-            "RETURN e.id AS encounter_id, toString(e.date) AS date, e.text AS text "
+            "RETURN e.id AS encounter_id, toString(e.date) AS date, e.text AS text, "
+            "e.classification_content_type AS classification_content_type "
             "ORDER BY e.date",
             pid=patient_id,
         )
+        return self._classify_and_filter_clinical(
+            patient_id=patient_id,
+            run_id=run_id,
+            encounters=encounters,
+            progress_hook=progress_hook,
+        )
+
+    def _classify_and_filter_clinical(
+        self,
+        patient_id: str,
+        run_id: str,
+        encounters: list[dict[str, Any]],
+        progress_hook: Optional[Callable[[dict[str, Any]], None]] = None,
+    ) -> list[dict[str, Any]]:
+        """Ensure encounter classifications exist and return only clinical rows."""
+        if not encounters:
+            return []
+
+        if self._classification_complete(encounters):
+            clinical = [
+                enc for enc in encounters
+                if str(enc.get("classification_content_type") or "") == "clinical"
+            ]
+            self._emit(progress_hook, {
+                "type": "classification_completed",
+                "patient_id": patient_id,
+                "run_id": run_id,
+                "source": "existing",
+                "total_count": len(encounters),
+                "clinical_count": len(clinical),
+                "admin_count": sum(
+                    1 for enc in encounters
+                    if str(enc.get("classification_content_type") or "") == "admin_only"
+                ),
+                "document_transfer_count": sum(
+                    1 for enc in encounters
+                    if str(enc.get("classification_content_type") or "") == "document_transfer"
+                ),
+            })
+            return clinical
+
+        self._emit(progress_hook, {
+            "type": "classification_started",
+            "patient_id": patient_id,
+            "run_id": run_id,
+            "encounter_count": len(encounters),
+        })
+        t0 = time.monotonic()
+        try:
+            from services.api.app.services.encounter_classifier import (
+                build_patient_encounter_index,
+                persist_patient_encounter_classification,
+            )
+            index = build_patient_encounter_index(
+                patient_id=patient_id,
+                encounters=encounters,
+                run_id=run_id,
+            )
+            persist_patient_encounter_classification(
+                patient_client=self.patient_client,
+                patient_id=patient_id,
+                run_id=run_id,
+                index=index,
+            )
+            cls_by_encounter = {
+                str(enc_id): result.content_type
+                for enc_id, result in index.classifications.items()
+            }
+            for enc in encounters:
+                enc["classification_content_type"] = cls_by_encounter.get(
+                    str(enc.get("encounter_id", "")),
+                    str(enc.get("classification_content_type") or ""),
+                )
+            clinical = [
+                enc for enc in encounters
+                if str(enc.get("classification_content_type") or "") == "clinical"
+            ]
+            self._emit(progress_hook, {
+                "type": "classification_completed",
+                "patient_id": patient_id,
+                "run_id": run_id,
+                "source": "new",
+                "total_count": len(encounters),
+                "clinical_count": index.clinical_count,
+                "admin_count": index.admin_count,
+                "document_transfer_count": index.document_transfer_count,
+                "classification_latency_ms": round((time.monotonic() - t0) * 1000),
+            })
+            return clinical
+        except Exception as exc:
+            logger.warning(
+                "Classification failed for patient %s. Falling back to all encounters. err=%s",
+                patient_id,
+                exc,
+                exc_info=True,
+            )
+            self._emit(progress_hook, {
+                "type": "classification_failed",
+                "patient_id": patient_id,
+                "run_id": run_id,
+                "error": str(exc),
+            })
+            return encounters
 
     @staticmethod
-    def _emit(hook: Optional[Callable[[dict[str, Any]], None]], payload: dict[str, Any]) -> None:
+    def _classification_complete(encounters: list[dict[str, Any]]) -> bool:
+        return all(
+            str(enc.get("classification_content_type") or "")
+            in {"clinical", "admin_only", "document_transfer"}
+            for enc in encounters
+        )
+
+    @staticmethod
+    def _emit(
+        hook: Optional[Callable[[dict[str, Any]], None]],
+        payload: dict[str, Any],
+    ) -> None:
         if hook:
             hook(payload)

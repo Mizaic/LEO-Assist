@@ -1,17 +1,38 @@
-"""Run the gold consensus pipeline end-to-end.
+"""Run the gold pipeline end-to-end for one or more patients.
 
-1. Clean specified patients (remove old artefacts).
-2. Run pre-classification + consensus extraction via the V3 pipeline.
-3. Report stats (auto-approved vs review-queue vs low-confidence).
+Steps
+-----
+1. Clean  — delete all derived artefacts (DOCUMENTS, episodes, safety alerts,
+             EncounterCandidates, ReviewTasks, Approvals)
+2. Classify — pre-classify every encounter as admin / document / clinical
+3. Extract  — run V3 LLM extraction + SNOMED coding for clinical encounters
+4. Sync     — write DOCUMENTS relationships for auto-approved candidates
+5. Anchors  — detect milestone anchors (referral, diagnosis, treatment start,
+               specialist visit) from DOCUMENTS
+6. Episodes — build EpisodeOfCare nodes from anchor combinations
+7. Safety   — detect safety-net signals and calculate NCDA KPI metrics
 
-Usage:
-    python scripts/run_gold_patients.py --patients P1,P2,...
-    python scripts/run_gold_patients.py --limit 50
-    python scripts/run_gold_patients.py --limit 50 --dry-run
+Flags
+-----
+--skip-clean      skip step 1 (useful when re-running after a crash)
+--skip-extract    skip steps 2-3 (useful to re-run analysis only)
+--analysis-only   run steps 4-7 only (alias for --skip-clean --skip-extract)
+
+Usage examples
+--------------
+  # Full end-to-end for one patient
+  python scripts/run_gold_patients.py --patients 9990000002
+
+  # 50 patients (sorted by encounter count)
+  python scripts/run_gold_patients.py --limit 50
+
+  # Only run analysis (after extraction already done)
+  python scripts/run_gold_patients.py --patients 9990000002 --analysis-only
 """
 from __future__ import annotations
 
 import argparse
+import asyncio
 import json
 import logging
 import os
@@ -33,6 +54,14 @@ logging.basicConfig(
 )
 logger = logging.getLogger("run_gold")
 
+# Silence noisy sub-loggers
+for _noisy in ("httpx", "httpcore", "botocore", "urllib3", "sentence_transformers"):
+    logging.getLogger(_noisy).setLevel(logging.WARNING)
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
 
 def get_patient_ids(driver, limit: int) -> list[str]:
     """Fetch patients ordered by encounter count (most encounters first)."""
@@ -47,79 +76,71 @@ def get_patient_ids(driver, limit: int) -> list[str]:
         return [row["patient_id"] for row in result]
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Run gold consensus pipeline")
-    parser.add_argument("--patients", type=str, help="Comma-separated patient IDs")
-    parser.add_argument("--limit", type=int, default=50, help="Number of patients (if --patients not given)")
-    parser.add_argument("--dry-run", action="store_true", help="Skip persistence")
-    parser.add_argument("--skip-clean", action="store_true", help="Skip cleanup step")
-    parser.add_argument("--workers", type=int, default=4, help="Pipeline parallelism")
-    args = parser.parse_args()
-
+def _make_driver():
     from neo4j import GraphDatabase
-    neo4j_uri = os.getenv("NEO4J_URI", "bolt://localhost:7687")
-    neo4j_user = os.getenv("NEO4J_USER", "neo4j")
-    neo4j_password = os.getenv("NEO4J_PASSWORD", "")
-    driver = GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password))
+    return GraphDatabase.driver(
+        os.getenv("NEO4J_URI", "bolt://localhost:7687"),
+        auth=(
+            os.getenv("NEO4J_USER", "neo4j"),
+            os.getenv("NEO4J_PASSWORD", ""),
+        ),
+    )
 
-    if args.patients:
-        patient_ids = [p.strip() for p in args.patients.split(",")]
-    else:
-        patient_ids = get_patient_ids(driver, limit=args.limit)
 
-    logger.info("Gold pipeline: %d patients", len(patient_ids))
+# ---------------------------------------------------------------------------
+# Step 1 — Clean
+# ---------------------------------------------------------------------------
 
-    # Step 1: Clean
-    if not args.skip_clean:
-        logger.info("Step 1: Cleaning patient data...")
-        from scripts.clean_patients import clean_patient
-        t0 = time.time()
-        with driver.session() as session:
-            for pid in patient_ids:
-                clean_patient(session, pid)
-        logger.info("  Cleaned in %.1fs", time.time() - t0)
-    else:
-        logger.info("Step 1: Skipped (--skip-clean)")
+def step_clean(driver, patient_ids: list[str]) -> None:
+    logger.info("Step 1: Cleaning %d patient(s)...", len(patient_ids))
+    from scripts.clean_patients import clean_patient
+    t0 = time.time()
+    with driver.session() as session:
+        for pid in patient_ids:
+            clean_patient(session, pid)
+            logger.info("  Cleaned patient %s", pid)
+    logger.info("  Step 1 complete in %.1fs", time.time() - t0)
 
-    # Step 2: Run classification + clinical-only extraction
-    logger.info("Step 2: Running encounter classification + V3 extraction...")
+
+# ---------------------------------------------------------------------------
+# Steps 2-3 — Classify + Extract
+# ---------------------------------------------------------------------------
+
+def step_extract(
+    patient_ids: list[str],
+    *,
+    dry_run: bool = False,
+    workers: int = 4,
+) -> dict:
+    """Classify encounters and run V3 extraction for clinical ones."""
+    logger.info("Step 2-3: Encounter classification + V3 extraction (%d patient(s))...", len(patient_ids))
+
     from app.db.neo4j_client import PatientGraphClient, CodingGraphClient
-    from app.services.v3.encounter_classifier import (
+    from app.services.encounter_classifier import (
         build_patient_encounter_index,
         persist_patient_encounter_classification,
     )
-    from app.services.v3.pipeline_service import V3PipelineService
+    from app.services.pipeline_service import PipelineService
 
     patient_client = PatientGraphClient()
     patient_client.initialize_schema()
     coding_client = CodingGraphClient()
     coding_client.initialize_schema()
 
-    service = V3PipelineService(
+    service = PipelineService(
         patient_client=patient_client,
         coding_client=coding_client,
     )
 
-    events = []
-
-    def progress_hook(event):
-        events.append(event)
-        etype = event.get("type", "")
-        if etype in ("patient_started", "run_completed", "pipeline_error", "persist_completed"):
-            logger.info("  %s", json.dumps(event, default=str))
-
     orchestration_run_id = str(uuid.uuid4())
-    extraction_run_ids: list[str] = []
     total_encounters = 0
-    total_classified = 0
-    clinical_total = 0
-    non_clinical_total = 0
+    total_clinical = 0
     processed_encounters = 0
     queued_for_review = 0
     rejected_hard_fail = 0
-    warnings_only = 0
-
+    auto_approved = 0
     t0 = time.time()
+
     for patient_id in patient_ids:
         encounters = patient_client.run(
             "MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter) "
@@ -129,10 +150,10 @@ def main():
             pid=patient_id,
         )
         total_encounters += len(encounters)
-        index = build_patient_encounter_index(patient_id, encounters, orchestration_run_id)
-        total_classified += len(index.classifications)
+        logger.info("  Patient %s: %d total encounters", patient_id, len(encounters))
 
-        if not args.dry_run:
+        index = build_patient_encounter_index(patient_id, encounters, orchestration_run_id)
+        if not dry_run:
             persist_patient_encounter_classification(
                 patient_client=patient_client,
                 patient_id=patient_id,
@@ -141,91 +162,301 @@ def main():
             )
 
         clinical_ids = [
-            encounter_id
-            for encounter_id, result in index.classifications.items()
+            enc_id
+            for enc_id, result in index.classifications.items()
             if result.content_type == "clinical"
         ]
-        clinical_total += len(clinical_ids)
-        non_clinical_total += (len(encounters) - len(clinical_ids))
-
+        total_clinical += len(clinical_ids)
         logger.info(
-            "  Patient %s classified: total=%d admin=%d doc=%d clinical=%d skipped_non_clinical=%d",
+            "  Patient %s classified: admin=%d doc=%d clinical=%d",
             patient_id,
-            len(encounters),
             index.admin_count,
             index.document_transfer_count,
             len(clinical_ids),
-            len(encounters) - len(clinical_ids),
         )
 
-        for encounter_id in clinical_ids:
-            encounter_run_id, encounter_stats = service.run_single_encounter(
-                patient_id=patient_id,
-                encounter_id=str(encounter_id),
-                dry_run=args.dry_run,
-                progress_hook=progress_hook,
+        events = []
+        for i, encounter_id in enumerate(clinical_ids, 1):
+            logger.info(
+                "  Patient %s: extracting encounter %d/%d (%s)",
+                patient_id, i, len(clinical_ids), encounter_id,
             )
-            extraction_run_ids.append(encounter_run_id)
-            processed_encounters += encounter_stats.processed_encounters
-            queued_for_review += encounter_stats.queued_for_review
-            rejected_hard_fail += encounter_stats.rejected_hard_fail
-            warnings_only += encounter_stats.warnings_only
+            try:
+                _run_id, stats = service.run_single_encounter(
+                    patient_id=patient_id,
+                    encounter_id=str(encounter_id),
+                    dry_run=dry_run,
+                    progress_hook=lambda e: events.append(e),
+                )
+                processed_encounters += stats.processed_encounters
+                queued_for_review += stats.queued_for_review
+                rejected_hard_fail += stats.rejected_hard_fail
+                auto_approved += sum(
+                    1 for ev in events
+                    if ev.get("type") == "persist_completed" and ev.get("auto_approved")
+                )
+                events.clear()
+                if stats.processed_encounters:
+                    logger.info(
+                        "  Encounter %s: coded %d terms (queued=%d hard_fail=%d)",
+                        encounter_id,
+                        stats.processed_encounters,
+                        stats.queued_for_review,
+                        stats.rejected_hard_fail,
+                    )
+            except Exception:
+                logger.exception("  Failed to process encounter %s", encounter_id)
 
     elapsed = time.time() - t0
+    patient_client.close()
+    coding_client.close()
 
-    # Step 3: Report
-    unique_extraction_run_ids = sorted(set(extraction_run_ids))
-    logger.info("=" * 60)
-    logger.info("GOLD PIPELINE COMPLETE")
-    logger.info("=" * 60)
-    logger.info("  Orchestration run ID: %s", orchestration_run_id)
-    logger.info("  Extraction run IDs:   %d unique", len(unique_extraction_run_ids))
-    logger.info("  Patients:             %d", len(patient_ids))
-    logger.info("  Total encounters:     %d", total_encounters)
-    logger.info("  Classified:           %d", total_classified)
-    logger.info("  Clinical processed:   %d", clinical_total)
-    logger.info("  Skipped non-clinical: %d", non_clinical_total)
-    logger.info("  Processed encounters: %d", processed_encounters)
-    logger.info("  Queued for review:    %d", queued_for_review)
-    logger.info("  Hard fail:            %d", rejected_hard_fail)
-    logger.info("  Warnings only:        %d", warnings_only)
-    logger.info("  Elapsed:              %.1fs", elapsed)
-
-    auto_approved = sum(
-        1 for e in events if e.get("type") == "persist_completed" and e.get("auto_approved")
+    summary = {
+        "total_encounters": total_encounters,
+        "total_clinical": total_clinical,
+        "processed_encounters": processed_encounters,
+        "queued_for_review": queued_for_review,
+        "rejected_hard_fail": rejected_hard_fail,
+        "auto_approved": auto_approved,
+        "elapsed_s": round(elapsed, 1),
+    }
+    logger.info(
+        "Step 2-3 complete in %.1fs: total=%d clinical=%d processed=%d "
+        "auto_approved=%d review=%d hardfail=%d",
+        elapsed,
+        total_encounters,
+        total_clinical,
+        processed_encounters,
+        auto_approved,
+        queued_for_review,
+        rejected_hard_fail,
     )
-    logger.info("  Auto-approved:        %d", auto_approved)
+    return summary
 
-    # Encounter-level validation
-    logger.info("\nStep 3: Validating data chain...")
+
+# ---------------------------------------------------------------------------
+# Step 4 — Sync gold → DOCUMENTS
+# ---------------------------------------------------------------------------
+
+def step_sync_gold(patient_ids: list[str]) -> dict:
+    """Write DOCUMENTS relationships for all approved EncounterCandidates."""
+    logger.info("Step 4: Syncing gold (writing DOCUMENTS) for %d patient(s)...", len(patient_ids))
+    from app.db.neo4j_client import PatientGraphClient
+    from app.services.sync_service import sync_gold_to_patient
+
+    client = PatientGraphClient()
+    total_synced = 0
+    total_links = 0
+    t0 = time.time()
+
+    try:
+        with client.session() as session:
+            for patient_id in patient_ids:
+                result = sync_gold_to_patient(patient_id, patient_session=session)
+                enc_synced = result.get("encounters_synced", 0)
+                links = result.get("links_created", 0)
+                total_synced += enc_synced
+                total_links += links
+                if result.get("error"):
+                    logger.warning(
+                        "  Patient %s sync: %s", patient_id, result["error"]
+                    )
+                else:
+                    logger.info(
+                        "  Patient %s synced: %d encounters → %d DOCUMENTS links",
+                        patient_id, enc_synced, links,
+                    )
+    finally:
+        client.close()
+
+    logger.info(
+        "Step 4 complete in %.1fs: %d encounters synced, %d DOCUMENTS links written",
+        time.time() - t0, total_synced, total_links,
+    )
+    return {"encounters_synced": total_synced, "links_created": total_links}
+
+
+# ---------------------------------------------------------------------------
+# Steps 5-7 — Anchors + Episodes + Safety-net + KPIs
+# ---------------------------------------------------------------------------
+
+async def _run_analysis_async(patient_id: str, start_date: str, end_date: str) -> None:
+    """Run the full analysis pipeline for a single patient (async)."""
+    from libs.message_bus.base import Message
+    from services.analysis_worker.app.services.job_handler import handle_analysis_job
+
+    msg = Message(body={
+        "patient_id": patient_id,
+        "start_date": start_date,
+        "end_date": end_date,
+    })
+    await handle_analysis_job(msg)
+
+
+def step_analyse(
+    patient_ids: list[str],
+    *,
+    start_date: str = "2000-01-01",
+    end_date: str = "2030-12-31",
+) -> None:
+    """Run anchors (5), episodes (6), safety-net + KPIs (7) for each patient."""
+    logger.info("Steps 5-7: Full analysis for %d patient(s)...", len(patient_ids))
+    t0 = time.time()
+
+    for patient_id in patient_ids:
+        logger.info("  Analysing patient %s (anchors → episodes → safety-net → KPIs)...", patient_id)
+        try:
+            asyncio.run(_run_analysis_async(patient_id, start_date, end_date))
+            logger.info("  Patient %s analysis complete", patient_id)
+        except Exception:
+            logger.exception("  Analysis failed for patient %s", patient_id)
+
+    logger.info("Steps 5-7 complete in %.1fs", time.time() - t0)
+
+
+# ---------------------------------------------------------------------------
+# Validation summary
+# ---------------------------------------------------------------------------
+
+def step_validate(driver, patient_ids: list[str]) -> None:
+    """Print a final summary of what was written to Neo4j."""
+    logger.info("Validation summary:")
     with driver.session() as session:
-        for pid in patient_ids[:5]:
-            r = session.run(
+        for pid in patient_ids:
+            docs = session.run(
                 "MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter)-[d:DOCUMENTS]->() "
-                "WHERE toString(p.id) = $pid "
-                "RETURN count(d) AS doc_count",
+                "WHERE toString(p.id) = $pid RETURN count(d) AS n",
                 pid=pid,
             ).single()
-            doc_count = r["doc_count"] if r else 0
-
-            r2 = session.run(
+            episodes = session.run(
+                "MATCH (p:Patient)-[:HAS_EPISODE]->(ep) "
+                "WHERE toString(p.id) = $pid RETURN count(ep) AS n",
+                pid=pid,
+            ).single()
+            alerts = session.run(
+                "MATCH (p:Patient)-[:HAS_SAFETY_NET_ALERT]->(a) "
+                "WHERE toString(p.id) = $pid RETURN count(a) AS n",
+                pid=pid,
+            ).single()
+            # Legacy CSS alerts (pre-rename)
+            css = session.run(
+                "MATCH (p:Patient)-[:HAS_CSS_ALERT]->(a) "
+                "WHERE toString(p.id) = $pid RETURN count(a) AS n",
+                pid=pid,
+            ).single()
+            candidates = session.run(
                 "MATCH (c:EncounterCandidate) WHERE c.patient_id = $pid "
-                "RETURN count(c) AS cand_count, "
+                "RETURN count(c) AS n, "
                 "       sum(CASE WHEN c.approval_status = 'approved' THEN 1 ELSE 0 END) AS approved",
                 pid=pid,
             ).single()
-            cand_count = r2["cand_count"] if r2 else 0
-            approved = r2["approved"] if r2 else 0
-
             logger.info(
-                "  Patient %s: %d DOCUMENTS, %d candidates (%d approved)",
-                pid, doc_count, cand_count, approved,
+                "  Patient %s: DOCUMENTS=%d | candidates=%d (approved=%d) | "
+                "episodes=%d | safety_alerts=%d",
+                pid,
+                docs["n"] if docs else 0,
+                candidates["n"] if candidates else 0,
+                candidates["approved"] if candidates else 0,
+                episodes["n"] if episodes else 0,
+                (alerts["n"] if alerts else 0) + (css["n"] if css else 0),
             )
 
-    logger.info("=" * 60)
-    patient_client.close()
-    coding_client.close()
+
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+
+def main():
+    parser = argparse.ArgumentParser(description="Run gold pipeline (7 steps)")
+    parser.add_argument("--patients", type=str, help="Comma-separated patient IDs")
+    parser.add_argument("--limit", type=int, default=50, help="Number of patients if --patients not given")
+    parser.add_argument("--dry-run", action="store_true", help="Skip all persistence (extraction only)")
+    parser.add_argument("--skip-clean", action="store_true", help="Skip step 1 (cleanup)")
+    parser.add_argument("--skip-extract", action="store_true", help="Skip steps 2-3 (classification + extraction)")
+    parser.add_argument("--analysis-only", action="store_true", help="Run steps 4-7 only")
+    parser.add_argument("--skip-analysis", action="store_true", help="Skip steps 5-7 (anchors, episodes, safety-net)")
+    parser.add_argument("--workers", type=int, default=4, help="Extraction parallelism")
+    parser.add_argument("--start-date", type=str, default="2000-01-01", help="Analysis window start")
+    parser.add_argument("--end-date", type=str, default="2030-12-31", help="Analysis window end")
+    args = parser.parse_args()
+
+    if args.analysis_only:
+        args.skip_clean = True
+        args.skip_extract = True
+
+    driver = _make_driver()
+
+    if args.patients:
+        patient_ids = [p.strip() for p in args.patients.split(",")]
+    else:
+        patient_ids = get_patient_ids(driver, limit=args.limit)
+
+    logger.info("Gold pipeline: %d patient(s) — %s", len(patient_ids), patient_ids)
+
+    t_total = time.time()
+
+    # ------------------------------------------------------------------
+    # Step 1: Clean
+    # ------------------------------------------------------------------
+    if not args.skip_clean:
+        step_clean(driver, patient_ids)
+    else:
+        logger.info("Step 1: Skipped (--skip-clean)")
+
+    # ------------------------------------------------------------------
+    # Steps 2-3: Classify + Extract
+    # ------------------------------------------------------------------
+    if not args.skip_extract:
+        extract_summary = step_extract(
+            patient_ids,
+            dry_run=args.dry_run,
+            workers=args.workers,
+        )
+    else:
+        logger.info("Steps 2-3: Skipped (--skip-extract)")
+        extract_summary = {}
+
+    # ------------------------------------------------------------------
+    # Step 4: Sync gold
+    # ------------------------------------------------------------------
+    if not args.dry_run and not args.skip_analysis:
+        sync_summary = step_sync_gold(patient_ids)
+    else:
+        logger.info("Step 4: Skipped (dry-run or --skip-analysis)")
+        sync_summary = {}
+
+    # ------------------------------------------------------------------
+    # Steps 5-7: Anchors + Episodes + Safety-net + KPIs
+    # ------------------------------------------------------------------
+    if not args.skip_analysis and not args.dry_run:
+        step_analyse(patient_ids, start_date=args.start_date, end_date=args.end_date)
+    else:
+        logger.info("Steps 5-7: Skipped (dry-run or --skip-analysis)")
+
+    # ------------------------------------------------------------------
+    # Validation summary
+    # ------------------------------------------------------------------
+    step_validate(driver, patient_ids)
+
     driver.close()
+
+    elapsed = time.time() - t_total
+    logger.info("=" * 60)
+    logger.info("GOLD PIPELINE COMPLETE in %.1fs (%.1f min)", elapsed, elapsed / 60)
+    logger.info("=" * 60)
+    if extract_summary:
+        logger.info("  Extraction:   total=%d clinical=%d processed=%d auto_approved=%d review=%d",
+            extract_summary.get("total_encounters", 0),
+            extract_summary.get("total_clinical", 0),
+            extract_summary.get("processed_encounters", 0),
+            extract_summary.get("auto_approved", 0),
+            extract_summary.get("queued_for_review", 0),
+        )
+    if sync_summary:
+        logger.info("  Sync gold:    %d encounters → %d DOCUMENTS",
+            sync_summary.get("encounters_synced", 0),
+            sync_summary.get("links_created", 0),
+        )
 
 
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-"""M3d: Validate 5 patients through the gold consensus pipeline.
+"""M3d: Validate 5 patients through the gold pipeline.
 
 Runs encounter pre-classification and extraction with confidence scoring.
 Reports calibration stats for tuning auto-approve thresholds.
@@ -22,11 +22,11 @@ sys.path.insert(0, str(ROOT / "services" / "api"))
 from dotenv import load_dotenv
 load_dotenv(ROOT / "secrets" / ".env")
 
-from services.api.app.services.v3.encounter_classifier import (
+from services.api.app.services.encounter_classifier import (
     ClassificationResult,
     build_patient_encounter_index,
 )
-from services.api.app.services.v3.entity_alignment import (
+from services.api.app.services.entity_alignment import (
     AlignedEntity,
     ConsensusResult,
     align_extractions,

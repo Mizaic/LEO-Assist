@@ -1,7 +1,5 @@
-"use client";
-
-import PipelinePanel from "@/components/PipelinePanel";
+import { redirect } from "next/navigation";
 
 export default function PipelinePage() {
-  return <PipelinePanel />;
+  redirect("/operations");
 }

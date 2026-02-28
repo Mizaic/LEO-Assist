@@ -13,7 +13,7 @@ const RISK_CONFIG: Record<
   RiskLevel,
   { label: string; chipColor: "error" | "warning" | "success" | "default" }
 > = {
-  breached: { label: "Breached", chipColor: "error" },
+  breached: { label: "Overdue", chipColor: "error" },
   "at-risk": { label: "At risk", chipColor: "warning" },
   "on-track": { label: "On track", chipColor: "success" },
   completed: { label: "Completed", chipColor: "default" },
@@ -49,7 +49,7 @@ function BreachCountdown({ risk }: { risk: PathwayRisk }) {
         variant="caption"
         sx={{ color: "error.main", fontWeight: 600 }}
       >
-        {worst.target.label}: {Math.abs(remaining)}d overdue
+        {worst.target.label}: {Math.abs(remaining)} days overdue
       </Typography>
     );
   }
@@ -62,7 +62,7 @@ function BreachCountdown({ risk }: { risk: PathwayRisk }) {
         fontWeight: 600,
       }}
     >
-      {worst.target.label}: {remaining}d remaining
+      {worst.target.label}: {remaining} days left
     </Typography>
   );
 }

@@ -10,26 +10,134 @@ import threading
 import time
 import uuid
 from datetime import datetime, timezone
+from typing import Literal
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
 
 from app.db.neo4j_client import CodingGraphClient, PatientGraphClient, run_with_retry
 from app.models.contracts import LLMUsageResponse, PipelineRunRequest, PipelineRunResponse
 from app.models.neo4j_schema import DELETE_ENCOUNTER_DOCUMENTS, RESET_ENCOUNTER_REVIEW_QUEUE
-from app.services.v3.pipeline_service import V3PipelineService
+from app.services.pipeline_service import PipelineService
+from libs.auth.org_scope import CallerScope, get_caller_scope, require_patient_in_scope
 
 CODING_QUEUE = os.getenv("CODING_QUEUE_NAME", "coding-jobs")
+ANALYSIS_QUEUE = os.getenv("ANALYSIS_QUEUE_NAME", "analysis-jobs")
+REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
+_PROGRESS_IDLE_TIMEOUT_S = 300  # close relay after 5 min of silence
 
 router = APIRouter(prefix="/pipeline", tags=["pipeline"])
 
 
-def get_creator() -> V3PipelineService:
+class RunPatientRequest(BaseModel):
+    patient_id: str
+    action: Literal["code_new", "recode_all", "run_analysis", "full_pipeline"]
+    preview: bool = False
+
+
+class RunCohortRequest(BaseModel):
+    patient_ids: list[str]
+    action: Literal["code_new", "recode_all", "full_pipeline", "run_analysis"]
+    preview: bool = False
+
+
+async def _publish_coding_jobs(
+    patient_ids: list[str],
+    *,
+    run_id: str,
+    mode: str,
+    preview: bool,
+    trigger_analysis: bool,
+) -> None:
+    from libs.message_bus.base import Message
+    from libs.message_bus.factory import create_message_bus
+
+    bus = create_message_bus()
+    try:
+        for pid in patient_ids:
+            await bus.send(
+                CODING_QUEUE,
+                Message(
+                    body={
+                        "patient_id": pid,
+                        "dry_run": preview,
+                        "mode": mode,
+                        "trigger_analysis": trigger_analysis,
+                    },
+                    correlation_id=run_id,
+                ),
+            )
+    finally:
+        await bus.close()
+
+
+async def _publish_analysis_jobs(patient_ids: list[str], *, run_id: str) -> None:
+    from libs.message_bus.base import Message
+    from libs.message_bus.factory import create_message_bus
+
+    bus = create_message_bus()
+    try:
+        for pid in patient_ids:
+            await bus.send(
+                ANALYSIS_QUEUE,
+                Message(
+                    body={"patient_id": pid, "trigger": "manual_run_analysis"},
+                    correlation_id=run_id,
+                ),
+            )
+    finally:
+        await bus.close()
+
+
+def _require_patients_in_scope(scope: CallerScope, patient_ids: list[str]) -> None:
+    """Validate that all patients in the batch are visible to the caller."""
+    if scope.is_admin:
+        return
+    from libs.neo4j_client.client import PatientGraphClient as LibPGClient
+    client = LibPGClient()
+    try:
+        rows = client.run(
+            "UNWIND $pids AS pid "
+            "MATCH (p:Patient) WHERE toString(p.id) = pid "
+            "OPTIONAL MATCH (p)-[:HAS_GENERAL_PRACTITIONER]->(gp) "
+            "RETURN pid, gp.id AS gp_id",
+            pids=patient_ids,
+        )
+        for row in rows:
+            if row.get("gp_id") not in scope.org_ids:
+                raise HTTPException(
+                    status_code=403,
+                    detail=f"Not authorized for patient {row['pid']}",
+                )
+    finally:
+        client.close()
+
+
+@router.get("/extractor-status")
+def get_extractor_status() -> dict[str, object]:
+    """Return the active extractor backend configuration for UI display."""
+    backend = os.getenv("CODING_EXTRACTOR_BACKEND", "llm")
+    strict = os.getenv("CODING_EXTRACTOR_STRICT", "false").lower() == "true"
+    model_name = os.getenv("CODING_MODEL_NAME", "")
+    model_version = os.getenv("CODING_MODEL_VERSION", "")
+    endpoint = os.getenv("CODING_MODEL_ENDPOINT", "http://localhost:8004")
+    return {
+        "backend": backend,
+        "strict": strict,
+        "model_name": model_name,
+        "model_version": model_version,
+        "model_endpoint": endpoint,
+        "fallback_enabled": backend == "auto" or (backend == "model" and not strict),
+    }
+
+
+def get_creator() -> PipelineService:
     patient_client = PatientGraphClient()
     patient_client.initialize_schema()
     coding_client = CodingGraphClient()
     coding_client.initialize_schema()
-    return V3PipelineService(
+    return PipelineService(
         patient_client=patient_client, coding_client=coding_client
     )
 
@@ -41,6 +149,7 @@ def _format_sse(event_type: str, payload: dict[str, object]) -> str:
 @router.post("/run", response_model=PipelineRunResponse)
 def run_pipeline(
     payload: PipelineRunRequest,
+    scope: CallerScope = Depends(get_caller_scope),
     service: V3PipelineService = Depends(get_creator),
 ):
     patient_ids = payload.patient_ids
@@ -49,8 +158,8 @@ def run_pipeline(
     if not patient_ids and payload.org_id:
         patient_ids = _resolve_org_patients(payload.org_id)
     if not patient_ids:
-        from fastapi import HTTPException
         raise HTTPException(400, "Provide patient_ids, cohort_id, or org_id")
+    _require_patients_in_scope(scope, patient_ids)
 
     run_id, stats = service.run(
         patient_ids=patient_ids,
@@ -119,11 +228,13 @@ def stream_unprocessed(
     patient_ids: str = Query(min_length=1),
     dry_run: bool = Query(default=False),
     workers: int = Query(default=4, ge=1, le=8),
+    scope: CallerScope = Depends(get_caller_scope),
 ):
     """Run pipeline only for encounters that don't yet have a ReviewTask."""
     ids = [pid.strip() for pid in patient_ids.split(",") if pid.strip()]
     if not ids:
         ids = [patient_ids.strip()]
+    _require_patients_in_scope(scope, ids)
 
     service = get_creator()
     events: queue.Queue[dict[str, object] | None] = queue.Queue()
@@ -180,8 +291,10 @@ def stream_encounter(
     patient_id: str = Query(min_length=1),
     encounter_id: str = Query(min_length=1),
     dry_run: bool = Query(default=False),
+    scope: CallerScope = Depends(get_caller_scope),
 ):
     """Reset a single encounter (DOCUMENTS + review queue) then re-run the pipeline on it."""
+    _require_patients_in_scope(scope, [patient_id])
     service = get_creator()
     events: queue.Queue[dict[str, object] | None] = queue.Queue()
 
@@ -246,16 +359,94 @@ def stream_encounter(
     )
 
 
+@router.get("/progress/{run_id}")
+def stream_progress(run_id: str):
+    """Relay coding-worker progress events for *run_id* to the browser via SSE.
+
+    The coding worker publishes events to Redis pub/sub channel
+    ``pipeline:{run_id}`` as each encounter is processed.  This endpoint
+    subscribes to that channel and relays the events as SSE, so the browser
+    gets the same live feedback regardless of whether the job was dispatched
+    via Service Bus or the in-process stream endpoint.
+
+    The connection is automatically closed when:
+    - A ``run_completed``, ``pipeline_error``, or ``run_error`` event is received.
+    - No events arrive for ``PROGRESS_IDLE_TIMEOUT_S`` seconds (default 5 min).
+    """
+    events: queue.Queue[dict | None] = queue.Queue()
+
+    def _redis_listener() -> None:
+        try:
+            import redis as _redis  # lazy import — redis may not be installed in all envs
+
+            r = _redis.from_url(REDIS_URL)
+            ps = r.pubsub(ignore_subscribe_messages=True)
+            channel = f"pipeline:{run_id}"
+            ps.subscribe(channel)
+            idle_s = 0.0
+            while idle_s < _PROGRESS_IDLE_TIMEOUT_S:
+                msg = ps.get_message(timeout=1.0)
+                if msg is None:
+                    idle_s += 1.0
+                    continue
+                idle_s = 0.0
+                if msg.get("type") != "message":
+                    continue
+                try:
+                    data: dict = json.loads(msg["data"])
+                except (json.JSONDecodeError, TypeError):
+                    continue
+                events.put(data)
+                if data.get("type") in {"run_completed", "pipeline_error", "run_error",
+                                        "extraction_done"}:
+                    break
+        except Exception as exc:
+            events.put({"type": "pipeline_error", "message": str(exc), "run_id": run_id})
+        finally:
+            events.put(None)
+
+    threading.Thread(target=_redis_listener, daemon=True).start()
+
+    def _event_generator():
+        idle_ticks = 0
+        while True:
+            try:
+                event = events.get(timeout=2.0)
+            except queue.Empty:
+                idle_ticks += 1
+                yield _format_sse("heartbeat", {"type": "heartbeat", "ts": time.time(),
+                                                "run_id": run_id})
+                if idle_ticks > (_PROGRESS_IDLE_TIMEOUT_S // 2):
+                    break
+                continue
+            if event is None:
+                break
+            idle_ticks = 0
+            yield _format_sse(str(event.get("type", "message")), event)
+
+    return StreamingResponse(
+        _event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
 @router.get("/stream")
 def stream_pipeline(
     patient_ids: str = Query(min_length=1),
     max_encounters_per_patient: int | None = Query(default=None, gt=0),
     dry_run: bool = Query(default=False),
     workers: int = Query(default=4, ge=1, le=8),
+    scope: CallerScope = Depends(get_caller_scope),
 ):
     ids = [pid.strip() for pid in patient_ids.split(",") if pid.strip()]
     if not ids:
         ids = [patient_ids.strip()]
+    _require_patients_in_scope(scope, ids)
 
     service = get_creator()
     events: queue.Queue[dict[str, object] | None] = queue.Queue()
@@ -366,8 +557,123 @@ def _clean_patients(patient_ids: list[str]) -> dict:
     return totals
 
 
+@router.post("/run-patient")
+async def run_patient(
+    payload: RunPatientRequest,
+    scope: CallerScope = Depends(get_caller_scope),
+):
+    patient_id = payload.patient_id.strip()
+    if not patient_id:
+        raise HTTPException(status_code=400, detail="patient_id is required")
+    _require_patients_in_scope(scope, [patient_id])
+
+    run_id = str(uuid.uuid4())
+    cleaned_totals: dict[str, int] | None = None
+
+    if payload.action == "recode_all":
+        cleaned_totals = _clean_patients([patient_id])
+        await _publish_coding_jobs(
+            [patient_id],
+            run_id=run_id,
+            mode="all",
+            preview=payload.preview,
+            trigger_analysis=False,
+        )
+    elif payload.action == "code_new":
+        await _publish_coding_jobs(
+            [patient_id],
+            run_id=run_id,
+            mode="unprocessed",
+            preview=payload.preview,
+            trigger_analysis=False,
+        )
+    elif payload.action == "run_analysis":
+        await _publish_analysis_jobs([patient_id], run_id=run_id)
+    elif payload.action == "full_pipeline":
+        await _publish_coding_jobs(
+            [patient_id],
+            run_id=run_id,
+            mode="all",
+            preview=payload.preview,
+            trigger_analysis=True,
+        )
+    else:  # pragma: no cover - Literal keeps this unreachable
+        from fastapi import HTTPException
+
+        raise HTTPException(status_code=400, detail=f"Unsupported action: {payload.action}")
+
+    return {
+        "run_id": run_id,
+        "queued": 1,
+        "patient_ids": [patient_id],
+        "action": payload.action,
+        "preview": payload.preview,
+        "stream_path": f"/api/pipeline/stream?patient_ids={patient_id}&dry_run={str(payload.preview).lower()}",
+        "cleaned_totals": cleaned_totals,
+    }
+
+
+@router.post("/run-cohort")
+async def run_cohort(
+    payload: RunCohortRequest,
+    scope: CallerScope = Depends(get_caller_scope),
+):
+    patient_ids = [pid.strip() for pid in payload.patient_ids if pid and pid.strip()]
+    if not patient_ids:
+        raise HTTPException(status_code=400, detail="At least one patient_id is required")
+    _require_patients_in_scope(scope, patient_ids)
+
+    run_id = str(uuid.uuid4())
+    cleaned_totals: dict[str, int] | None = None
+    if payload.action == "recode_all":
+        cleaned_totals = _clean_patients(patient_ids)
+        await _publish_coding_jobs(
+            patient_ids,
+            run_id=run_id,
+            mode="all",
+            preview=payload.preview,
+            trigger_analysis=False,
+        )
+    elif payload.action == "code_new":
+        await _publish_coding_jobs(
+            patient_ids,
+            run_id=run_id,
+            mode="unprocessed",
+            preview=payload.preview,
+            trigger_analysis=False,
+        )
+    elif payload.action == "full_pipeline":
+        await _publish_coding_jobs(
+            patient_ids,
+            run_id=run_id,
+            mode="all",
+            preview=payload.preview,
+            trigger_analysis=True,
+        )
+    elif payload.action == "run_analysis":
+        await _publish_analysis_jobs(patient_ids, run_id=run_id)
+    else:  # pragma: no cover
+        from fastapi import HTTPException
+
+        raise HTTPException(status_code=400, detail=f"Unsupported action: {payload.action}")
+
+    joined_ids = ",".join(patient_ids)
+    return {
+        "run_id": run_id,
+        "queued": len(patient_ids),
+        "patient_ids": patient_ids,
+        "action": payload.action,
+        "preview": payload.preview,
+        "stream_path": f"/api/pipeline/progress/{run_id}",
+        "cleaned_totals": cleaned_totals,
+    }
+
+
 @router.post("/clean-patients")
-def clean_patients_endpoint(payload: PipelineRunRequest):
+def clean_patients_endpoint(
+    payload: PipelineRunRequest,
+    scope: CallerScope = Depends(get_caller_scope),
+):
     """Clean all pipeline artefacts for the specified patients.
 
     Removes EncounterCandidates, ReviewTasks, Approvals, Changes,
@@ -380,8 +686,8 @@ def clean_patients_endpoint(payload: PipelineRunRequest):
     if not patient_ids and payload.org_id:
         patient_ids = _resolve_org_patients(payload.org_id)
     if not patient_ids:
-        from fastapi import HTTPException
         raise HTTPException(400, "Provide patient_ids, cohort_id, or org_id")
+    _require_patients_in_scope(scope, patient_ids)
 
     totals = _clean_patients(patient_ids)
     return {
@@ -390,72 +696,9 @@ def clean_patients_endpoint(payload: PipelineRunRequest):
     }
 
 
-# ── Worker-based consensus pipeline ──────────────────────────
-
-@router.post("/enqueue-consensus")
-async def enqueue_consensus(
-    payload: PipelineRunRequest,
-    clean: bool = Query(default=True),
-    mode: str = Query(default="consensus_fanout"),
-):
-    """Publish coding jobs to the message bus for worker-based consensus processing.
-
-    Default mode is ``consensus_fanout``: the first worker to pick up the
-    message acts as coordinator — it splits encounters into chunks and
-    re-publishes them so multiple worker replicas can classify in parallel.
-
-    Set ``mode=consensus`` for a single-worker run (useful for debugging).
-    """
-    from libs.message_bus.base import Message
-    from libs.message_bus.factory import create_message_bus
-
-    patient_ids = payload.patient_ids
-    if not patient_ids and payload.cohort_id:
-        patient_ids = _resolve_cohort_patients(payload.cohort_id)
-    if not patient_ids and payload.org_id:
-        patient_ids = _resolve_org_patients(payload.org_id)
-    if not patient_ids:
-        from fastapi import HTTPException
-        raise HTTPException(400, "Provide patient_ids, cohort_id, or org_id")
-
-    clean_totals = None
-    if clean:
-        clean_totals = _clean_patients(patient_ids)
-
-    run_id = str(uuid.uuid4())
-    bus = create_message_bus()
-    try:
-        for pid in patient_ids:
-            msg = Message(
-                body={
-                    "patient_id": pid,
-                    "dry_run": payload.dry_run,
-                    "mode": mode,
-                    "trigger_analysis": True,
-                },
-                correlation_id=run_id,
-            )
-            await bus.send(CODING_QUEUE, msg)
-    finally:
-        await bus.close()
-
-    result = {
-        "run_id": run_id,
-        "patients_enqueued": len(patient_ids),
-        "mode": mode,
-        "queue": CODING_QUEUE,
-    }
-    if clean_totals is not None:
-        result["clean_totals"] = clean_totals
-    return result
-
-
 # ── HITL Classification Review ─────────────────────────────────────────────
 
-from pydantic import BaseModel as _BaseModel  # noqa: E402
-
-
-class ClassificationVoteRequest(_BaseModel):
+class ClassificationVoteRequest(BaseModel):
     encounter_id: str
     correct_type: str          # "clinical" | "admin_only" | "document_transfer"
     model_a_type: str          # what model A originally said
@@ -466,6 +709,7 @@ class ClassificationVoteRequest(_BaseModel):
 
 @router.get("/classification-disagreements")
 async def get_classification_disagreements(
+    scope: CallerScope = Depends(get_caller_scope),
     patient_id: str | None = Query(default=None),
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=50, le=200),
@@ -481,6 +725,9 @@ async def get_classification_disagreements(
         GET_ALL_DISAGREEMENTS,
         COUNT_DISAGREEMENTS_PENDING_REVIEW,
     )
+
+    if patient_id and not scope.is_admin:
+        _require_patients_in_scope(scope, [patient_id])
 
     client = PatientGraphClient()
     try:
@@ -505,7 +752,10 @@ async def get_classification_disagreements(
 
 
 @router.post("/classification-vote")
-async def submit_classification_vote(payload: ClassificationVoteRequest):
+async def submit_classification_vote(
+    payload: ClassificationVoteRequest,
+    scope: CallerScope = Depends(get_caller_scope),
+):
     """Record a human reviewer's verdict on a classification disagreement.
 
     Writes a ``ClassificationVote`` node linked to the ``Encounter`` and
@@ -552,7 +802,9 @@ async def submit_classification_vote(payload: ClassificationVoteRequest):
 
 
 @router.get("/classification-scorecard")
-async def get_classification_scorecard():
+async def get_classification_scorecard(
+    scope: CallerScope = Depends(get_caller_scope),
+):
     """Return aggregate accuracy stats for Model A (Haiku) vs Model B (GPT-5-mini)."""
     from libs.cypher.classification_vote_queries import GET_MODEL_SCORECARD
 
@@ -579,15 +831,15 @@ async def get_classification_scorecard():
 
 
 @router.post("/enqueue-recode")
-async def enqueue_recode(payload: PipelineRunRequest):
-    """Re-run extraction/coding only — skip classification.
+async def enqueue_recode(
+    payload: PipelineRunRequest,
+    scope: CallerScope = Depends(get_caller_scope),
+):
+    """Re-run canonical extraction/coding path only.
 
     Reads ``classification_content_type = 'clinical'`` directly from Neo4j
     for each patient (classification must have already been run) and fans out
     one ``extract_encounter`` job per clinical encounter.
-
-    Use this after fixing the persist bug to recode already-classified patients
-    without paying the cost of re-running the two-model classification.
     """
     from libs.message_bus.base import Message
     from libs.message_bus.factory import create_message_bus
@@ -598,8 +850,8 @@ async def enqueue_recode(payload: PipelineRunRequest):
     if not patient_ids and payload.org_id:
         patient_ids = _resolve_org_patients(payload.org_id)
     if not patient_ids:
-        from fastapi import HTTPException
         raise HTTPException(400, "Provide patient_ids, cohort_id, or org_id")
+    _require_patients_in_scope(scope, patient_ids)
 
     run_id = str(uuid.uuid4())
     bus = create_message_bus()
@@ -628,7 +880,9 @@ async def enqueue_recode(payload: PipelineRunRequest):
 
 
 @router.get("/gold-dataset-stats")
-async def get_gold_dataset_stats():
+async def get_gold_dataset_stats(
+    scope: CallerScope = Depends(get_caller_scope),
+):
     """Return gold dataset health and extraction model quality signals.
 
     Parses ``sentences_json`` from all reviewed candidates to produce:
@@ -756,14 +1010,17 @@ async def get_gold_dataset_stats():
 
 
 @router.post("/backfill-documents")
-async def backfill_documents(payload: dict | None = None):
+async def backfill_documents(
+    payload: dict | None = None,
+    scope: CallerScope = Depends(get_caller_scope),
+):
     """Re-materialise :DOCUMENTS and :HAS_<tag> links from existing EncounterCandidate nodes.
 
     Useful when candidates were created before the coding worker was updated to
     write DOCUMENTS links automatically.  Safe to run multiple times — the
     underlying MERGE queries are idempotent.
 
-    Optional body: ``{"patient_id": "4203796334"}`` to restrict to one patient.
+    Optional body: ``{"patient_id": "9990000002"}`` to restrict to one patient.
     Omit body (or pass ``{}``) to process all candidates.
     """
     from libs.cypher.documents_queries import write_documents_from_sentences_payload
@@ -823,7 +1080,9 @@ async def backfill_documents(payload: dict | None = None):
 
 
 @router.get("/classification-prompt-preview")
-async def get_classification_prompt_preview():
+async def get_classification_prompt_preview(
+    scope: CallerScope = Depends(get_caller_scope),
+):
     """Return the current effective classification prompt including any few-shot examples.
 
     Shows the base (v1) prompt, the dynamically generated few-shot section built
@@ -855,7 +1114,9 @@ async def get_classification_prompt_preview():
 
 
 @router.get("/classification-report")
-async def get_classification_report():
+async def get_classification_report(
+    scope: CallerScope = Depends(get_caller_scope),
+):
     """Return full validation evidence report for ISO 13485 / ISO 14971.
 
     Includes: overall accuracy, per-class precision/recall/F1 for each model,

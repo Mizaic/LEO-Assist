@@ -70,7 +70,7 @@ describe("Analytics API — episodes", () => {
     mockFetchOk([]);
     await fetchSafetyNetAlerts("ORG1");
     expect(global.fetch).toHaveBeenCalledWith(
-      `${ANALYTICS}/analytics/css/alerts?org_id=ORG1`,
+      `${ANALYTICS}/analytics/safety-netting/alerts?org_id=ORG1`,
       CREDENTIALS,
     );
   });

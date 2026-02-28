@@ -80,37 +80,37 @@ export function isStaleEpisode(episode: Episode, today: string = todayISO()): bo
 /** Format breach label for display; caps very large overdue counts as "stale". */
 export function formatBreachLabel(b: BreachStatus, capStale = true): string {
   if (b.achieved && b.breached) {
-    return `${b.target.label}: ${b.daysElapsed}d (breached)`;
+    return `${b.target.label}: took ${b.daysElapsed} days (overdue)`;
   }
   if (b.achieved) {
-    return `${b.target.label}: ${b.daysElapsed}d of ${b.target.standardDays}d`;
+    return `${b.target.label}: ${b.daysElapsed} of ${b.target.standardDays} days`;
   }
   const remaining = b.daysRemaining ?? 0;
   const overdue = remaining < 0;
   if (overdue && capStale && Math.abs(remaining) > STALE_DAYS_THRESHOLD) {
-    return `${b.target.label}: Likely stale - needs review`;
+    return `${b.target.label}: likely stale`;
   }
   if (overdue) {
-    return `${b.target.label}: ${Math.abs(remaining)}d overdue`;
+    return `${b.target.label}: ${Math.abs(remaining)} days overdue`;
   }
-  return `${b.target.label}: ${remaining}d left`;
+  return `${b.target.label}: ${remaining} days left`;
 }
 
 export const BREACH_TARGETS: BreachTarget[] = [
   {
-    label: "2WW",
+    label: "2-week wait",
     standardDays: 14,
     startMilestone: "referral",
     endMilestone: "first_clinic",
   },
   {
-    label: "28-day FDS",
+    label: "Faster diagnosis",
     standardDays: 28,
     startMilestone: "referral",
     endMilestone: "diagnosis",
   },
   {
-    label: "62-day RTT",
+    label: "Treatment target",
     standardDays: 62,
     startMilestone: "referral",
     endMilestone: "first_treatment",

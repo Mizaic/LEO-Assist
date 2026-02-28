@@ -13,8 +13,6 @@ const mockPipeline = {
   workerStates: {},
   start: mockStart,
   cancel: jest.fn(),
-  showModal: false,
-  setShowModal: jest.fn(),
 };
 
 jest.mock("@/context/PipelineContext", () => ({

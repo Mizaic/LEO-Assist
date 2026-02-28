@@ -55,6 +55,10 @@ def _build_upsert_query(label: str, rel_type: str) -> str:
     1. MERGEs the concept node with the given label.
     2. MERGEs (Encounter)-[:DOCUMENTS]->(concept).
     3. MERGEs (Patient)-[:<rel_type>]->(concept) as a patient-level shortcut.
+
+    Provenance fields (model_name, model_version, contract_version, run_id) are
+    stamped on the :DOCUMENTS relationship so every persisted link can be traced
+    back to the extractor that produced it.
     """
     return f"""
 MATCH (e:Encounter {{id: $encounter_id}})<-[:HAS_ENCOUNTER]-(p:Patient)
@@ -66,13 +70,17 @@ SET s.semanticTag  = $semantic_tag,
     s.updated_at   = datetime(),
     s.created_at   = coalesce(s.created_at, datetime())
 MERGE (e)-[r:DOCUMENTS {{conceptId: $concept_id}}]->(s)
-SET r.coded_at  = datetime(),
-    r.evidence  = $evidence,
-    r.confidence = $confidence,
-    r.domain    = $domain,
-    r.context   = $context,
-    r.modifiers = $modifiers,
-    r.source    = $source
+SET r.coded_at        = datetime(),
+    r.evidence        = $evidence,
+    r.confidence      = $confidence,
+    r.domain          = $domain,
+    r.context         = $context,
+    r.modifiers       = $modifiers,
+    r.source          = $source,
+    r.model_name      = $model_name,
+    r.model_version   = $model_version,
+    r.contract_version = $contract_version,
+    r.run_id          = $run_id
 MERGE (p)-[:{rel_type}]->(s)
 """
 
@@ -83,6 +91,10 @@ def write_documents_from_sentences_payload(
     session,
     *,
     source: str = "provisional",
+    model_name: str = "",
+    model_version: str = "",
+    contract_version: str = "",
+    run_id: str = "",
 ) -> int:
     """Write :DOCUMENTS and :HAS_<tag> links from a sentences_payload list.
 
@@ -135,6 +147,10 @@ def write_documents_from_sentences_payload(
                     context="{}",
                     modifiers=json.dumps(modifiers),
                     source=source,
+                    model_name=model_name or term.get("extraction_model_name", ""),
+                    model_version=model_version or term.get("extraction_model_version", ""),
+                    contract_version=contract_version or term.get("contract_version", ""),
+                    run_id=run_id,
                 )
                 written += 1
             except Exception:

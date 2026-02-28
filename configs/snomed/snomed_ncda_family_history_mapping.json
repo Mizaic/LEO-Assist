@@ -1,0 +1,310 @@
+{
+  "metadata": {
+    "domain": "family_history",
+    "total_terms": 18,
+    "successful_mappings": 18,
+    "failed_mappings": 0,
+    "llm_disambiguations": 0,
+    "generated_at": "2025-01-27T00:00:00.000000Z",
+    "notes": "Family history of cancer situations - important for cancer risk assessment",
+    "enriched_with_synonyms": true,
+    "synonym_enrichment_date": "2025-12-06T08:06:45.167035",
+    "synonym_stats": {
+      "concepts_with_synonyms": 18,
+      "concepts_not_found": 0,
+      "average_synonyms_per_concept": 2.9
+    }
+  },
+  "mappings": {
+    "Family history of malignant epithelial neoplasm": {
+      "concept_id": 1149514007,
+      "preferred_term": "Family history of malignant epithelial neoplasm (situation)",
+      "semantic_tag": "Situation",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Family history of malignant epithelial neoplasm",
+        "Family history of malignant epithelial neoplasm (situation)"
+      ],
+      "guideline_synonym_count": 2,
+      "guideline_name": "Family history of malignant epithelial neoplasm (situation)"
+    },
+    "Family history of malignant hematopoietic neoplasm": {
+      "concept_id": 71241000119100,
+      "preferred_term": "Family history of malignant hematopoietic neoplasm (situation)",
+      "semantic_tag": "Situation",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Family history of cancer of the haematopoietic system",
+        "Family history of cancer of the hematopoietic system",
+        "Family history of malignant haematopoietic neoplasm",
+        "Family history of malignant hematopoietic neoplasm",
+        "Family history of malignant hematopoietic neoplasm (situation)",
+        "family history blood cancer"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Family history of malignant hematopoietic neoplasm (situation)"
+    },
+    "Family history of malignant melanoma": {
+      "concept_id": 427858005,
+      "preferred_term": "Family history of malignant melanoma (situation)",
+      "semantic_tag": "Situation",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Family history of malignant melanoma",
+        "Family history of malignant melanoma (situation)",
+        "FH malignant melanoma",
+        "FH of melanoma",
+        "FH melanoma",
+        "family hx melanoma",
+        "FHx malignant melanoma",
+        "FHx melanoma"
+      ],
+      "guideline_synonym_count": 8,
+      "guideline_name": "Family history of malignant melanoma (situation)"
+    },
+    "Family history of malignant neoplasm of bone": {
+      "concept_id": 429252007,
+      "preferred_term": "Family history of malignant neoplasm of bone (situation)",
+      "semantic_tag": "Situation",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Family history of cancer of the bone",
+        "Family history of malignant neoplasm of bone",
+        "Family history of malignant neoplasm of bone (situation)",
+        "FH bone cancer",
+        "FHx bone cancer",
+        "family Hx bone cancer"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Family history of malignant neoplasm of bone (situation)"
+    },
+    "Family history of malignant neoplasm of brain": {
+      "concept_id": 429251000,
+      "preferred_term": "Family history of malignant neoplasm of brain (situation)",
+      "semantic_tag": "Situation",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Family history of cancer of the brain",
+        "Family history of malignant neoplasm of brain",
+        "Family history of malignant neoplasm of brain (situation)",
+        "FH brain cancer",
+        "FH brain tumour",
+        "FH malignant brain tumour",
+        "family history brain tumour"
+      ],
+      "guideline_synonym_count": 7,
+      "guideline_name": "Family history of malignant neoplasm of brain (situation)"
+    },
+    "Family history of malignant neoplasm of breast": {
+      "concept_id": 429740004,
+      "preferred_term": "Family history of malignant neoplasm of breast (situation)",
+      "semantic_tag": "Situation",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Family history of breast cancer",
+        "Family history of malignant neoplasm of breast",
+        "Family history of malignant neoplasm of breast (situation)",
+        "FH of breast cancer",
+        "FHx breast cancer",
+        "FH breast Ca"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Family history of breast cancer"
+    },
+    "Family history of malignant neoplasm of digestive organ": {
+      "concept_id": 430813008,
+      "preferred_term": "Family history of malignant neoplasm of digestive organ (situation)",
+      "semantic_tag": "Situation",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Family history of malignant neoplasm of digestive organ",
+        "Family history of malignant neoplasm of digestive organ (situation)"
+      ],
+      "guideline_synonym_count": 2,
+      "guideline_name": "Family history of malignant neoplasm of digestive organ (situation)"
+    },
+    "Family history of malignant neoplasm of eye proper": {
+      "concept_id": 428935009,
+      "preferred_term": "Family history of malignant neoplasm of eye proper (situation)",
+      "semantic_tag": "Situation",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Family history of malignant neoplasm of eye",
+        "Family history of malignant neoplasm of eye proper",
+        "Family history of malignant neoplasm of eye proper (situation)",
+        "FH eye cancer",
+        "family Hx eye cancer"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Family history of malignant neoplasm of eye proper (situation)"
+    },
+    "Family history of malignant neoplasm of gastrointestinal tract": {
+      "concept_id": 429006005,
+      "preferred_term": "Family history of malignant neoplasm of gastrointestinal tract (situation)",
+      "semantic_tag": "Situation",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Family history of malignant neoplasm of gastrointestinal tract",
+        "Family history of malignant neoplasm of gastrointestinal tract (situation)",
+        "family history GI cancer",
+        "FH GI tract cancer"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Family history of malignant neoplasm of gastrointestinal tract (situation)"
+    },
+    "Family history of malignant neoplasm of genital structure": {
+      "concept_id": 430954001,
+      "preferred_term": "Family history of malignant neoplasm of genital structure (situation)",
+      "semantic_tag": "Situation",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Family history of cancer of genital system",
+        "Family history of malignant neoplasm of genital structure",
+        "Family history of malignant neoplasm of genital structure (situation)",
+        "FH genital cancer",
+        "family hx genital cancer"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Family history of malignant neoplasm of genital structure (situation)"
+    },
+    "Family history of malignant neoplasm of kidney": {
+      "concept_id": 430703009,
+      "preferred_term": "Family history of malignant neoplasm of kidney (situation)",
+      "semantic_tag": "Situation",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Family history of cancer of kidney",
+        "Family history of malignant neoplasm of kidney",
+        "Family history of malignant neoplasm of kidney (situation)",
+        "FH renal cancer",
+        "FH kidney cancer",
+        "family Hx renal cancer",
+        "family history renal Ca"
+      ],
+      "guideline_synonym_count": 7,
+      "guideline_name": "Family history of malignant neoplasm of kidney (situation)"
+    },
+    "Family history of malignant neoplasm of lung": {
+      "concept_id": 429011007,
+      "preferred_term": "Family history of malignant neoplasm of lung (situation)",
+      "semantic_tag": "Situation",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Family history of lung cancer",
+        "Family history of malignant neoplasm of lung",
+        "Family history of malignant neoplasm of lung (situation)",
+        "FH lung cancer",
+        "FH lung Ca"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Family history of malignant neoplasm of lung (situation)"
+    },
+    "Family history of malignant neoplasm of skin": {
+      "concept_id": 429405004,
+      "preferred_term": "Family history of malignant neoplasm of skin (situation)",
+      "semantic_tag": "Situation",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Family history of malignant neoplasm of skin",
+        "Family history of malignant neoplasm of skin (situation)",
+        "Family history of skin cancer",
+        "FH skin cancer",
+        "family Hx skin cancer",
+        "Fam Hx skin cancer",
+        "FH skin ca"
+      ],
+      "guideline_synonym_count": 7,
+      "guideline_name": "Family history of malignant neoplasm of skin (situation)"
+    },
+    "Family history of malignant neoplasm of thoracic cavity structure": {
+      "concept_id": 430677003,
+      "preferred_term": "Family history of malignant neoplasm of thoracic cavity structure (situation)",
+      "semantic_tag": "Situation",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Family history of malignant neoplasm of intrathoracic organ",
+        "Family history of malignant neoplasm of thoracic cavity structure",
+        "Family history of malignant neoplasm of thoracic cavity structure (situation)"
+      ],
+      "guideline_synonym_count": 3,
+      "guideline_name": "Family history of malignant neoplasm of thoracic cavity structure (situation)"
+    },
+    "Family history of malignant neoplasm of thyroid": {
+      "concept_id": 430534005,
+      "preferred_term": "Family history of malignant neoplasm of thyroid (situation)",
+      "semantic_tag": "Situation",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Family history of malignant neoplasm of thyroid",
+        "Family history of malignant neoplasm of thyroid (situation)",
+        "FH thyroid cancer",
+        "FHx thyroid cancer",
+        "family Hx thyroid cancer",
+        "FH thyroid Ca"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Family history of malignant neoplasm of thyroid (situation)"
+    },
+    "Family history of malignant neoplasm of trachea": {
+      "concept_id": 428269004,
+      "preferred_term": "Family history of malignant neoplasm of trachea (situation)",
+      "semantic_tag": "Situation",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Family history of malignant neoplasm of trachea",
+        "Family history of malignant neoplasm of trachea (situation)",
+        "Family history of tracheal cancer",
+        "FHx tracheal cancer"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Family history of malignant neoplasm of trachea (situation)"
+    },
+    "Family history of malignant neoplasm of urinary tract": {
+      "concept_id": 788921007,
+      "preferred_term": "Family history of malignant neoplasm of urinary tract (situation)",
+      "semantic_tag": "Situation",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Family history of malignant neoplasm of urinary tract",
+        "Family history of malignant neoplasm of urinary tract (situation)"
+      ],
+      "guideline_synonym_count": 2,
+      "guideline_name": "Family history of malignant neoplasm of urinary tract (situation)"
+    },
+    "Family history: Bronchus cancer": {
+      "concept_id": 275110002,
+      "preferred_term": "Family history: Bronchus cancer (situation)",
+      "semantic_tag": "Situation",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "FH: Bronchus cancer",
+        "Family history of bronchial cancer",
+        "Family history: Bronchus cancer",
+        "Family history: Bronchus cancer (context-dependent category)",
+        "Family history: Bronchus cancer (situation)",
+        "FH bronchus Ca",
+        "FH bronchial Ca"
+      ],
+      "guideline_synonym_count": 7,
+      "guideline_name": "Family history of bronchial cancer"
+    }
+  }
+}

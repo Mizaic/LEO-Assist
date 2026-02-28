@@ -8,8 +8,14 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 
+from libs.auth.org_scope import (
+    CallerScope,
+    ORG_PATIENT_FILTER,
+    get_caller_scope,
+    require_patient_in_scope,
+)
 from libs.neo4j_client.client import PatientGraphClient
 
 router = APIRouter()
@@ -36,10 +42,14 @@ CCI_WEIGHTS: Dict[str, int] = {
 
 
 @router.get("/cci/{patient_id}")
-def calculate_cci(patient_id: str):
+def calculate_cci(
+    patient_id: str,
+    scope: CallerScope = Depends(get_caller_scope),
+):
     """Calculate CCI score for a patient from coded encounter data."""
     client = PatientGraphClient()
     try:
+        require_patient_in_scope(client, scope, patient_id)
         rows = client.run(
             "MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter)-[:DOCUMENTS]->(c) "
             "WHERE toString(p.id) = $pid "
@@ -79,15 +89,25 @@ def calculate_cci(patient_id: str):
 
 
 @router.get("/cci/batch")
-def batch_cci(org_id: str = Query(default=None)):
+def batch_cci(
+    scope: CallerScope = Depends(get_caller_scope),
+    org_id: str = Query(default=None),
+):
     """Get CCI distribution for an organization."""
     client = PatientGraphClient()
     try:
+        if scope.is_admin and not org_id:
+            return client.run(
+                "MATCH (p:Patient) "
+                "RETURN p.cci_score AS cci_score, count(p) AS patient_count "
+                "ORDER BY cci_score",
+            )
         return client.run(
-            "MATCH (p:Patient) WHERE $org IS NULL OR p.tenantId = $org "
+            "MATCH (p:Patient) "
+            f"WHERE {ORG_PATIENT_FILTER} "
             "RETURN p.cci_score AS cci_score, count(p) AS patient_count "
             "ORDER BY cci_score",
-            org=org_id,
+            scope_org_ids=scope.org_ids if not org_id else [org_id],
         )
     finally:
         client.close()

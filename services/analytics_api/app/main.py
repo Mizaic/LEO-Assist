@@ -14,7 +14,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from services.analytics_api.app.routers.cohorts import router as cohort_router
+from services.analytics_api.app.routers.cohorts import router as cohort_router, seed_nhs_cohorts
 from services.analytics_api.app.routers.dashboards import router as dashboard_router
 from services.analytics_api.app.routers.domains import router as domain_router
 from services.analytics_api.app.routers.imd import router as imd_router
@@ -29,6 +29,12 @@ logger = logging.getLogger("analytics-api")
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     logger.info("Analytics API starting")
+    try:
+        n = seed_nhs_cohorts()
+        logger.info("NHS screening cohorts seeded: %d presets", n)
+    except Exception as exc:
+        # Non-fatal — graph may not be reachable at cold-start in some envs
+        logger.warning("NHS cohort seeding skipped (graph unavailable?): %s", exc)
     yield
     logger.info("Analytics API shutting down")
 

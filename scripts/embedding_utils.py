@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import logging
 import os
+
+import numpy as np
 from dataclasses import dataclass
 from typing import Sequence
 
@@ -24,12 +26,14 @@ def _resolve_device(requested: str) -> str:
         return "cpu"
     try:
         import torch
-        if torch.cuda.is_available():
+        cuda_ok = torch.cuda.is_available()
+        if cuda_ok:
             name = torch.cuda.get_device_name(0)
             log.info("CUDA available - using GPU: %s", name)
             return "cuda"
-    except Exception:
-        pass
+        log.info("torch.cuda.is_available() = False (CUDA_VISIBLE_DEVICES=%s)", os.environ.get("CUDA_VISIBLE_DEVICES", "not set"))
+    except Exception as e:
+        log.warning("CUDA check failed: %s: %s", type(e).__name__, e)
     if requested == "cuda":
         log.warning("CUDA was explicitly requested but is not available - falling back to CPU")
     else:
@@ -73,7 +77,7 @@ class TextEmbedder:
             show_progress_bar=False,
             convert_to_numpy=True,
         )
-        return [v.astype("float32").tolist() for v in vectors]
+        return [np.asarray(v, dtype=np.float32, copy=True).tolist() for v in vectors]
 
 
 def load_vector_settings() -> VectorSettings:

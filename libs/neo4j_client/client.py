@@ -86,7 +86,7 @@ class _BaseClient:
         # long-running operations (e.g. LLM disambiguation batches).
         # max_connection_lifetime: retire connections older than 5 min regardless.
         _pool_kwargs: dict = {
-            "liveness_check_timeout": 10,
+            "liveness_check_timeout": 5,   # Aura closes idle TCP in ~7-10s; check at 5s
             "max_connection_lifetime": 300,
         }
         try:

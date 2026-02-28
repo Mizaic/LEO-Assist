@@ -17,5 +17,6 @@ export const test = base.extend<{
 
 export { expect };
 
-export const TEST_PATIENT_ID = "4202301609";
+// Synthetic NHS test number — 999-prefix range is reserved by NHS for testing
+export const TEST_PATIENT_ID = "9990000001";
 export const TEST_ENCOUNTER_ID = "E001";

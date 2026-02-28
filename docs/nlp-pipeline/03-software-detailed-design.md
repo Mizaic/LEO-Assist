@@ -155,7 +155,7 @@ SurfaceForm
 **Request (POST /pipeline/run):**
 ```json
 {
-  "patient_ids": ["4202301609"],
+  "patient_ids": ["9990000001"],
   "max_encounters_per_patient": 10,
   "dry_run": false
 }

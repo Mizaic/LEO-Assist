@@ -94,6 +94,31 @@ STRAY_CAPS_PREFIX_RE = re.compile(r"\b[A-Z]{2,5}\s+(?=\[PERSON\])")
 # NHS number: 10 digits optionally split by spaces
 NHS_RE = re.compile(r"\b\d{3}\s?\d{3}\s?\d{4}\b")
 
+# Named healthcare facility — e.g. "City Hospital", "Royal Infirmary",
+# "Queen's Medical Centre", "Leicester General Hospital".
+#
+# Matches: 1-4 title-case name words (including connectors like "of/the")
+#          followed by a facility-type keyword.
+# Replaces the name prefix with [LOCATION] and keeps the facility-type word
+# so clinical context is preserved.
+#   "City Hospital"         →  "[LOCATION] Hospital"
+#   "Royal Infirmary"       →  "[LOCATION] Infirmary"
+#   "Queen's Medical Centre" → "[LOCATION] Medical Centre"
+#   "Leicester Royal"       →  NOT matched (no facility-type suffix)
+#
+# Does NOT fire on bare "hospital" / "clinic" alone (no preceding proper name).
+FACILITY_NAME_RE = re.compile(
+    r"\b"
+    # One or more title-case name tokens each followed by a space.
+    # Covers: "City ", "Royal ", "St Mary's ", "Leicester General ", "Queen's "
+    r"(?:[A-Z][a-zA-Z'\-]+\s+)+"
+    # Facility-type keyword (named group so replacement can preserve it).
+    r"(?P<ftype>Hospital|Infirmary|Hospice|Clinic|Sanatorium"
+    r"|Medical\s+Centre|Health\s+Centre|Healthcare\s+Centre"
+    r"|NHS\s+(?:Foundation\s+)?Trust)"
+    r"\b",
+)
+
 # UK street address — e.g. "44 Carnation Road, Loughborough"
 # Matches house-number + at least one street-name word + road type.
 ADDRESS_RE = re.compile(
@@ -132,6 +157,7 @@ def deidentify_text(text: str) -> str:
     out = text
     # Order matters: most-specific patterns first
     out = LOCAL_ORG_RE.sub("[ORGANISATION]", out) # deployment-specific orgs first
+    out = FACILITY_NAME_RE.sub(r"[LOCATION] \g<ftype>", out)  # City Hospital → [LOCATION] Hospital
     out = NAME_ROLE_RE.sub("[PERSON]", out)       # SURNAME, Firstname (SystmOne Role)
     out = NAME_STYLE_RE.sub("[PERSON]", out)      # SURNAME, Firstname (Mr/Mrs/Dr)
     out = HONORIFIC_NAME_RE.sub("[PERSON]", out)  # Dr/Mr Surname
@@ -156,6 +182,8 @@ def detect_phi(text: str) -> list[str]:
     found: list[str] = []
     if LOCAL_ORG_RE.search(text):
         found.append("organisation")
+    if FACILITY_NAME_RE.search(text):
+        found.append("facility_name")
     if (
         NAME_ROLE_RE.search(text)
         or NAME_STYLE_RE.search(text)

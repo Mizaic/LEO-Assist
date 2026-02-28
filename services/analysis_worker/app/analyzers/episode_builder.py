@@ -38,6 +38,11 @@ from services.analysis_worker.app.queries.episode_queries import (
     link_encounter_to_episode,
     set_episode_ncda_fields,
 )
+from libs.cypher.exclusion_queries import (
+    CREATE_ENCOUNTER_EXCLUSION_AUDIT,
+    CREATE_EXCLUSION_HITL_TASK,
+    UPSERT_EPISODE_EXCLUSION_RESULT,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -271,6 +276,22 @@ async def _build_single_episode(
     complete_episode(episode_id, status, confidence, reasoning,
                      milestones or None, client=client)
 
+    # Exclusion detector fail-safe: when the coded anchor path produces
+    # "inconclusive" and no diagnosis anchors exist, attempt to resolve the
+    # episode outcome from raw encounter text in the post-referral window.
+    if status == "inconclusive" and not anchors.diagnosis_anchors:
+        status, confidence = await _apply_exclusion_failsafe(
+            patient_id=patient_id,
+            episode_id=episode_id,
+            referral=referral,
+            ref_date=ref_date,
+            client=client,
+        )
+        if status != "inconclusive":
+            # Re-persist updated status from exclusion detector
+            complete_episode(episode_id, status, confidence,
+                             "Exclusion detector fail-safe", None, client=client)
+
     _persist_ncda_fields(episode_id, anchor_type, client=client)
     tp_counts = _persist_timepoints(episode_id, client=client)
 
@@ -488,9 +509,140 @@ def _persist_timepoints(episode_id: str, client=None) -> int:
         tp_result = identify_timepoints_from_episode(episode_id, client=client)
         counts = persist_episode_timepoints(episode_id, tp_result, client=client)
         return counts.get("timepoints_created", 0)
-    except Exception as exc:
-        logger.warning("Timepoint persistence failed for %s: %s", episode_id, exc)
+    except Exception:
+        logger.warning("Timepoint persistence failed for %s", episode_id, exc_info=True)
         return 0
+
+
+# ── Exclusion detector fail-safe ─────────────────────────────────────────
+
+
+async def _apply_exclusion_failsafe(
+    patient_id: str,
+    episode_id: str,
+    referral: Dict[str, Any],
+    ref_date: str,
+    client=None,
+) -> tuple[str, float]:
+    """Run the exclusion detector when the coded anchor path returns inconclusive.
+
+    Fetches post-referral encounters, applies rule triage + 2-model LLM
+    consensus, persists per-encounter audit nodes, and returns the resolved
+    (status, confidence) pair.
+
+    Disagreement policy:
+    - outcome == "conflicting" → mark ``conflicting_review``, create HITL task.
+    - Any other resolved outcome → return it as the new episode status.
+    - Detector fails or returns inconclusive → return original inconclusive.
+    """
+    from libs.exclusion_detector.detector import detect_exclusion, ExclusionResult
+    from libs.neo4j_client.client import PatientGraphClient
+
+    referral_cancer_type = referral.get("concept_name", "unknown cancer type")
+
+    try:
+        patient_client = client or PatientGraphClient()
+        result: ExclusionResult = detect_exclusion(
+            patient_id=patient_id,
+            referral_date=ref_date,
+            referral_cancer_type=referral_cancer_type,
+            patient_client=patient_client,
+        )
+    except Exception:
+        logger.warning(
+            "Exclusion fail-safe: detector failed for patient=%s episode=%s",
+            patient_id, episode_id,
+            exc_info=True,
+        )
+        return "inconclusive", 0.0
+
+    # Persist result on episode
+    _persist_exclusion_result(episode_id, result, patient_id, client=client)
+
+    # Map detector outcome to episode status
+    outcome_map = {
+        "cancer_excluded": "excluded",
+        "cancer_confirmed": "confirmed",
+        "still_investigating": "inconclusive",
+        "pending_letter": "inconclusive",
+        "conflicting": "conflicting_review",
+        "inconclusive": "inconclusive",
+    }
+    new_status = outcome_map.get(result.outcome, "inconclusive")
+
+    logger.info(
+        "Exclusion fail-safe: patient=%s episode=%s detector_outcome=%s → episode_status=%s",
+        patient_id, episode_id, result.outcome, new_status,
+    )
+    return new_status, result.confidence
+
+
+def _persist_exclusion_result(
+    episode_id: str,
+    result,
+    patient_id: str,
+    client=None,
+) -> None:
+    """Write ExclusionResult to Neo4j and create HITL task for conflicts."""
+    from libs.neo4j_client.client import PatientGraphClient
+    import uuid as _uuid
+
+    patient_client = client or PatientGraphClient()
+
+    try:
+        with patient_client.session() as session:
+            session.run(
+                UPSERT_EPISODE_EXCLUSION_RESULT,
+                episode_id=episode_id,
+                outcome=result.outcome,
+                confidence=result.confidence,
+                detection_method="exclusion_detector",
+                referral_date=result.referral_date,
+                window_end=result.window_end,
+                encounters_scanned=result.encounters_scanned,
+                encounters_skipped=result.encounters_skipped,
+            )
+
+            for enc_outcome in result.encounter_outcomes:
+                session.run(
+                    CREATE_ENCOUNTER_EXCLUSION_AUDIT,
+                    episode_id=episode_id,
+                    encounter_id=enc_outcome.encounter_id,
+                    outcome=enc_outcome.outcome,
+                    confidence=enc_outcome.confidence,
+                    detection_method=enc_outcome.detection_method,
+                    model_a_outcome=enc_outcome.model_a_outcome,
+                    model_b_outcome=enc_outcome.model_b_outcome,
+                    evidence_text=enc_outcome.evidence_text[:500],
+                    reasoning=enc_outcome.reasoning[:500],
+                    encounter_date=enc_outcome.encounter_date,
+                )
+
+            if result.outcome == "conflicting":
+                task_id = str(_uuid.uuid5(
+                    _uuid.NAMESPACE_URL,
+                    f"exclusion-conflict:{episode_id}",
+                ))
+                session.run(
+                    CREATE_EXCLUSION_HITL_TASK,
+                    episode_id=episode_id,
+                    patient_id=patient_id,
+                    task_id=task_id,
+                    reason=(
+                        f"Exclusion detector found conflicting signals "
+                        f"(scanned {result.encounters_scanned} encounters)"
+                    ),
+                )
+                logger.info(
+                    "Exclusion fail-safe: HITL task created for conflicting "
+                    "episode=%s patient=%s", episode_id, patient_id,
+                )
+    except Exception:
+        logger.warning(
+            "Exclusion fail-safe: failed to persist audit for episode=%s",
+            episode_id,
+            exc_info=True,
+        )
 
 
 # ── LLM classification ───────────────────────────────────────────────────

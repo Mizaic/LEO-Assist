@@ -3,10 +3,32 @@
  * Uses backend proxy (session cookie auth). Token stays server-side.
  */
 
-const API_BASE =
-  typeof process !== "undefined" && process.env?.NEXT_PUBLIC_API_BASE
-    ? process.env.NEXT_PUBLIC_API_BASE.replace(/\/+$/, "")
-    : "http://localhost:8000";
+function resolveApiBase(): string {
+  const envBase =
+    typeof process !== "undefined" && process.env?.NEXT_PUBLIC_API_BASE
+      ? process.env.NEXT_PUBLIC_API_BASE.replace(/\/+$/, "")
+      : "http://localhost:8000";
+
+  if (typeof window === "undefined") return envBase;
+
+  try {
+    const parsed = new URL(envBase);
+    const uiHost = window.location.hostname;
+    const loopbackHosts = new Set(["localhost", "127.0.0.1"]);
+
+    // Align loopback host with the UI origin to keep auth cookies first-party.
+    if (loopbackHosts.has(parsed.hostname) && loopbackHosts.has(uiHost) && parsed.hostname !== uiHost) {
+      parsed.hostname = uiHost;
+      return parsed.toString().replace(/\/+$/, "");
+    }
+  } catch {
+    // Keep env value if parsing fails.
+  }
+
+  return envBase;
+}
+
+const API_BASE = resolveApiBase();
 
 const PROXY_BASE = `${API_BASE}/api/proxy`;
 const ANALYTICS_BASE = PROXY_BASE;
@@ -23,11 +45,26 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
 
 // ── Analytics: Dashboards ──
 
-export async function fetchEpisodeSummary(orgId?: string) {
-  const params = orgId ? `?org_id=${orgId}` : "";
+export async function fetchEpisodeSummary(orgId?: string, dateFrom?: string, dateTo?: string) {
+  const p = new URLSearchParams();
+  if (orgId) p.set("org_id", orgId);
+  if (dateFrom) p.set("date_from", dateFrom);
+  if (dateTo) p.set("date_to", dateTo);
+  const qs = p.size ? `?${p}` : "";
   return fetchJson<
     Array<{ condition_type: string; status: string; count: number }>
-  >(`${ANALYTICS_BASE}/analytics/episodes/summary${params}`);
+  >(`${ANALYTICS_BASE}/analytics/episodes/summary${qs}`);
+}
+
+export async function fetchDiagnosedSummary(orgId?: string, dateFrom?: string, dateTo?: string) {
+  const p = new URLSearchParams();
+  if (orgId) p.set("org_id", orgId);
+  if (dateFrom) p.set("date_from", dateFrom);
+  if (dateTo) p.set("date_to", dateTo);
+  const qs = p.size ? `?${p}` : "";
+  return fetchJson<
+    Array<{ cancer_type: string; count: number }>
+  >(`${ANALYTICS_BASE}/analytics/episodes/diagnosed${qs}`);
 }
 
 export async function fetchEpisodeTimeline(patientId?: string, orgId?: string, includeMerged?: boolean) {
@@ -143,10 +180,41 @@ export interface SafetyNetAlert {
   patient_id?: string;
 }
 
+export interface SafetyNetWorklistMilestone {
+  encounter_id: string;
+  date: string;
+  milestone_type: string;
+}
+
+export interface SafetyNetWorklistItem {
+  patient_id: string;
+  gender?: string;
+  birth_date?: string;
+  episode_id: string;
+  condition_type?: string;
+  status?: string;
+  referral_date?: string;
+  referral_route?: string;
+  safety_netting_recorded?: boolean;
+  needs_review?: boolean;
+  confidence?: number;
+  agent_reasoning?: string;
+  last_encounter_date?: string;
+  milestones: SafetyNetWorklistMilestone[];
+  alerts: SafetyNetAlert[];
+}
+
 export async function fetchSafetyNetAlerts(orgId?: string): Promise<SafetyNetAlert[]> {
   const params = orgId ? `?org_id=${orgId}` : "";
   return fetchJson<SafetyNetAlert[]>(
-    `${ANALYTICS_BASE}/analytics/css/alerts${params}`,
+    `${ANALYTICS_BASE}/analytics/safety-netting/alerts${params}`,
+  );
+}
+
+export async function fetchSafetyNetWorklist(orgId?: string): Promise<SafetyNetWorklistItem[]> {
+  const params = orgId ? `?org_id=${orgId}` : "";
+  return fetchJson<SafetyNetWorklistItem[]>(
+    `${ANALYTICS_BASE}/analytics/safety-netting/worklist${params}`,
   );
 }
 
@@ -155,7 +223,7 @@ export async function actionSafetyNetAlert(
   actioned: boolean,
 ): Promise<{ success: boolean }> {
   return fetchJson<{ success: boolean }>(
-    `${ANALYTICS_BASE}/analytics/css/alerts/${alertId}/action`,
+    `${ANALYTICS_BASE}/analytics/safety-netting/alerts/${alertId}/action`,
     {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },

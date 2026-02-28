@@ -26,13 +26,19 @@ except ImportError:
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from libs.auth.org_scope import get_caller_scope
 
 from app import config  # noqa: F401 - loads secrets/.env
+from app.deps import get_caller_scope_from_request
 from app.routers.agent import router as agent_router
+from app.routers.anchor_review import router as anchor_review_router
 from app.routers.audit import router as audit_router
 from app.routers.auth import router as auth_router
 from app.routers.exports import router as exports_router
 from app.routers.games import router as games_router
+from app.routers.operations import router as operations_router
+from app.routers.model_registry import router as model_registry_router
+from app.routers.training import router as training_router
 from app.routers.patients import router as patients_router
 from app.routers.pipeline import router as pipeline_router
 from app.routers.proxy import router as proxy_router
@@ -43,10 +49,10 @@ from app.routers.terminology import router as terminology_router
 @asynccontextmanager
 async def lifespan(app: object):
     import threading
-    from app.services.v3.pipeline_service import V3PipelineService
+    from app.services.pipeline_service import PipelineService
 
     def _preload():
-        V3PipelineService.preload_embedder()
+        PipelineService.preload_embedder()
 
     t = threading.Thread(target=_preload, daemon=True)
     t.start()
@@ -61,6 +67,10 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# In this API service, allow org-scope identity to come from session cookie as
+# a fallback for direct browser routes that do not inject X-User-Email.
+app.dependency_overrides[get_caller_scope] = get_caller_scope_from_request
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
@@ -70,6 +80,7 @@ app.add_middleware(
 )
 
 app.include_router(agent_router)
+app.include_router(anchor_review_router)
 app.include_router(auth_router)
 app.include_router(proxy_router)
 app.include_router(patients_router)
@@ -79,6 +90,9 @@ app.include_router(audit_router)
 app.include_router(exports_router)
 app.include_router(terminology_router)
 app.include_router(games_router)
+app.include_router(operations_router)
+app.include_router(model_registry_router)
+app.include_router(training_router)
 
 
 @app.get("/health")

@@ -3,47 +3,81 @@
 Provides organization-level benchmarks and peer comparisons
 for KPI metrics from cancer episodes.
 
-Org filtering uses (Patient)-[:REGISTERED_AT]->(Organization) traversal.
+Org filtering traverses (Patient)-[:HAS_GENERAL_PRACTITIONER]->(GP)
+and supports GP / ICB / CancerAlliance scope levels via COMMISSIONED_BY
+and PART_OF_ALLIANCE relationships.
+
+KPI metrics are computed inline from IS_PART_OF milestone relationships
+(referral_date and first_presentation_date on EpisodeOfCare, plus
+diagnosis/treatment encounter dates from milestones).
 """
 
 from __future__ import annotations
 
 from typing import Optional
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 
+from libs.auth.org_scope import CallerScope, ORG_PATIENT_FILTER, get_caller_scope
 from libs.neo4j_client.client import PatientGraphClient
 
 router = APIRouter()
 
+# Cypher fragment that scopes patients to an org at any hierarchy level.
+# Variables introduced: _scope, gp  (p must already be in scope or follow).
+_ORG_PATIENT_MATCH = (
+    "MATCH (_scope:Organization {{id: ${p}}}) "
+    "MATCH (p:Patient)-[:HAS_GENERAL_PRACTITIONER]->(gp) "
+    "WHERE (gp.id = ${p}) OR (gp)-[:COMMISSIONED_BY]->(_scope) "
+    "   OR (gp)-[:COMMISSIONED_BY]->(:ICB)-[:PART_OF_ALLIANCE]->(_scope) "
+    "MATCH (p)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
+)
+
+
+def _episode_base(org_id: Optional[str], scope: CallerScope) -> tuple[str, dict]:
+    """Return (cypher_prefix, params) for scoped or unscoped episode matching."""
+    effective_org = org_id if scope.is_admin else (org_id or scope.primary_org_id)
+    if effective_org:
+        return _ORG_PATIENT_MATCH.format(p="org"), {"org": effective_org}
+    if scope.is_admin:
+        return "MATCH (ep:EpisodeOfCare) ", {}
+    return (
+        "MATCH (p:Patient)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
+        f"WHERE {ORG_PATIENT_FILTER} ",
+        scope.to_query_params(),
+    )
+
 
 @router.get("/benchmarks/kpis")
-def kpi_benchmarks(org_id: Optional[str] = Query(default=None)):
-    """Aggregate KPI metrics across episodes for benchmarking."""
+def kpi_benchmarks(
+    scope: CallerScope = Depends(get_caller_scope),
+    org_id: Optional[str] = Query(default=None),
+):
+    """Aggregate KPI metrics across episodes, computed from IS_PART_OF milestones."""
     client = PatientGraphClient()
+    base, params = _episode_base(org_id, scope)
     try:
-        if org_id:
-            return client.run(
-                "MATCH (p:Patient)-[:REGISTERED_AT]->(o:Organization {id: $org}) "
-                "MATCH (p)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
-                "WITH ep WHERE ep.kpi_days_referral_to_diagnosis IS NOT NULL "
-                "RETURN "
-                "  avg(ep.kpi_days_presentation_to_referral) AS avg_days_to_referral, "
-                "  avg(ep.kpi_days_referral_to_diagnosis) AS avg_days_to_diagnosis, "
-                "  avg(ep.kpi_days_diagnosis_to_treatment) AS avg_days_to_treatment, "
-                "  avg(ep.kpi_consultations_before_referral) AS avg_consultations, "
-                "  count(ep) AS episode_count",
-                org=org_id,
-            )
         return client.run(
-            "MATCH (ep:EpisodeOfCare) "
-            "WITH ep WHERE ep.kpi_days_referral_to_diagnosis IS NOT NULL "
+            f"{base}"
+            "WHERE ep.referral_date IS NOT NULL "
+            "OPTIONAL MATCH (diag_enc:Encounter)-[dr:IS_PART_OF]->(ep) "
+            "  WHERE dr.milestone_type IN ['diagnosis', 'diagnosis_confirmed'] "
+            "OPTIONAL MATCH (treat_enc:Encounter)-[tr:IS_PART_OF]->(ep) "
+            "  WHERE tr.milestone_type IN ['treatment', 'treatment_started', 'first_treatment'] "
+            "WITH ep, min(toString(diag_enc.date)) AS diag_date, min(toString(treat_enc.date)) AS treat_date "
             "RETURN "
-            "  avg(ep.kpi_days_presentation_to_referral) AS avg_days_to_referral, "
-            "  avg(ep.kpi_days_referral_to_diagnosis) AS avg_days_to_diagnosis, "
-            "  avg(ep.kpi_days_diagnosis_to_treatment) AS avg_days_to_treatment, "
-            "  avg(ep.kpi_consultations_before_referral) AS avg_consultations, "
+            "  avg(CASE WHEN ep.first_presentation_date IS NOT NULL "
+            "      THEN duration.inDays(date(ep.first_presentation_date), date(toString(ep.referral_date))).days "
+            "      ELSE null END) AS avg_days_to_referral, "
+            "  avg(CASE WHEN diag_date IS NOT NULL "
+            "      THEN duration.inDays(date(toString(ep.referral_date)), date(diag_date)).days "
+            "      ELSE null END) AS avg_days_to_diagnosis, "
+            "  avg(CASE WHEN diag_date IS NOT NULL AND treat_date IS NOT NULL "
+            "      THEN duration.inDays(date(diag_date), date(treat_date)).days "
+            "      ELSE null END) AS avg_days_to_treatment, "
+            "  null AS avg_consultations, "
             "  count(ep) AS episode_count",
+            **params,
         )
     finally:
         client.close()
@@ -51,18 +85,55 @@ def kpi_benchmarks(org_id: Optional[str] = Query(default=None)):
 
 @router.get("/benchmarks/comparison")
 def peer_comparison(
+    scope: CallerScope = Depends(get_caller_scope),
     org_id: str = Query(...),
-    metric: str = Query(default="kpi_days_referral_to_diagnosis"),
+    metric: str = Query(default="avg_days_to_diagnosis"),
 ):
-    """Compare an organization's metric against all organizations."""
+    """Compare an organization's KPI against all organizations.
+
+    metric must be one of: avg_days_to_referral | avg_days_to_diagnosis |
+    avg_days_to_treatment.
+    """
+    _ALLOWED = {"avg_days_to_referral", "avg_days_to_diagnosis", "avg_days_to_treatment"}
+    if metric not in _ALLOWED:
+        metric = "avg_days_to_diagnosis"
+
+    if not scope.is_admin and org_id not in scope.org_ids:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=403, detail="Not authorized for this organization")
+
     client = PatientGraphClient()
     try:
         return client.run(
-            "MATCH (p:Patient)-[:REGISTERED_AT]->(o:Organization) "
+            "MATCH (p:Patient)-[:HAS_GENERAL_PRACTITIONER]->(gp:GPPractice) "
             "MATCH (p)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
-            "WHERE ep[$metric] IS NOT NULL "
-            "WITH o.id AS org, o.name AS org_name, avg(ep[$metric]) AS avg_val, count(ep) AS cnt "
-            "RETURN org, org_name, avg_val, cnt, "
+            "WHERE ep.referral_date IS NOT NULL "
+            "OPTIONAL MATCH (diag_enc:Encounter)-[dr:IS_PART_OF]->(ep) "
+            "  WHERE dr.milestone_type IN ['diagnosis', 'diagnosis_confirmed'] "
+            "OPTIONAL MATCH (treat_enc:Encounter)-[tr:IS_PART_OF]->(ep) "
+            "  WHERE tr.milestone_type IN ['treatment', 'treatment_started', 'first_treatment'] "
+            "WITH gp, ep, min(toString(diag_enc.date)) AS diag_date, min(toString(treat_enc.date)) AS treat_date "
+            "WITH gp, "
+            "  CASE WHEN ep.first_presentation_date IS NOT NULL "
+            "       THEN duration.inDays(date(ep.first_presentation_date), date(toString(ep.referral_date))).days "
+            "       ELSE null END AS days_to_referral, "
+            "  CASE WHEN diag_date IS NOT NULL "
+            "       THEN duration.inDays(date(toString(ep.referral_date)), date(diag_date)).days "
+            "       ELSE null END AS days_to_diagnosis, "
+            "  CASE WHEN diag_date IS NOT NULL AND treat_date IS NOT NULL "
+            "       THEN duration.inDays(date(diag_date), date(treat_date)).days "
+            "       ELSE null END AS days_to_treatment "
+            "WITH gp.id AS org, gp.name AS org_name, "
+            "  avg(days_to_referral) AS avg_days_to_referral, "
+            "  avg(days_to_diagnosis) AS avg_days_to_diagnosis, "
+            "  avg(days_to_treatment) AS avg_days_to_treatment, "
+            "  count(*) AS cnt "
+            "RETURN org, org_name, "
+            "  CASE $metric "
+            "    WHEN 'avg_days_to_referral' THEN avg_days_to_referral "
+            "    WHEN 'avg_days_to_treatment' THEN avg_days_to_treatment "
+            "    ELSE avg_days_to_diagnosis END AS avg_val, "
+            "  cnt, "
             "  CASE WHEN org = $org_id THEN true ELSE false END AS is_self "
             "ORDER BY avg_val",
             metric=metric, org_id=org_id,
@@ -73,29 +144,47 @@ def peer_comparison(
 
 @router.get("/benchmarks/trends")
 def kpi_trends(
+    scope: CallerScope = Depends(get_caller_scope),
     org_id: Optional[str] = Query(default=None),
-    metric: str = Query(default="kpi_days_referral_to_diagnosis"),
+    metric: str = Query(default="avg_days_to_diagnosis"),
 ):
     """Monthly trend data for a KPI metric."""
+    _ALLOWED = {"avg_days_to_referral", "avg_days_to_diagnosis", "avg_days_to_treatment"}
+    if metric not in _ALLOWED:
+        metric = "avg_days_to_diagnosis"
+
     client = PatientGraphClient()
+    base, params = _episode_base(org_id, scope)
+    params["metric"] = metric
     try:
-        if org_id:
-            return client.run(
-                "MATCH (p:Patient)-[:REGISTERED_AT]->(o:Organization {id: $org}) "
-                "MATCH (p)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
-                "WHERE ep[$metric] IS NOT NULL AND ep.referral_date IS NOT NULL "
-                "WITH substring(ep.referral_date, 0, 7) AS month, "
-                "     avg(ep[$metric]) AS avg_val, count(ep) AS cnt "
-                "RETURN month, avg_val, cnt ORDER BY month",
-                org=org_id, metric=metric,
-            )
         return client.run(
-            "MATCH (ep:EpisodeOfCare) "
-            "WHERE ep[$metric] IS NOT NULL AND ep.referral_date IS NOT NULL "
-            "WITH substring(ep.referral_date, 0, 7) AS month, "
-            "     avg(ep[$metric]) AS avg_val, count(ep) AS cnt "
-            "RETURN month, avg_val, cnt ORDER BY month",
-            metric=metric,
+            f"{base}"
+            "WHERE ep.referral_date IS NOT NULL "
+            "OPTIONAL MATCH (diag_enc:Encounter)-[dr:IS_PART_OF]->(ep) "
+            "  WHERE dr.milestone_type IN ['diagnosis', 'diagnosis_confirmed'] "
+            "OPTIONAL MATCH (treat_enc:Encounter)-[tr:IS_PART_OF]->(ep) "
+            "  WHERE tr.milestone_type IN ['treatment', 'treatment_started', 'first_treatment'] "
+            "WITH ep, min(toString(diag_enc.date)) AS diag_date, min(toString(treat_enc.date)) AS treat_date, "
+            "     substring(toString(ep.referral_date), 0, 7) AS month "
+            "WITH month, "
+            "  avg(CASE WHEN ep.first_presentation_date IS NOT NULL "
+            "      THEN duration.inDays(date(ep.first_presentation_date), date(toString(ep.referral_date))).days "
+            "      ELSE null END) AS avg_days_to_referral, "
+            "  avg(CASE WHEN diag_date IS NOT NULL "
+            "      THEN duration.inDays(date(toString(ep.referral_date)), date(diag_date)).days "
+            "      ELSE null END) AS avg_days_to_diagnosis, "
+            "  avg(CASE WHEN diag_date IS NOT NULL AND treat_date IS NOT NULL "
+            "      THEN duration.inDays(date(diag_date), date(treat_date)).days "
+            "      ELSE null END) AS avg_days_to_treatment, "
+            "  count(*) AS cnt "
+            "RETURN month, "
+            "  CASE $metric "
+            "    WHEN 'avg_days_to_referral' THEN avg_days_to_referral "
+            "    WHEN 'avg_days_to_treatment' THEN avg_days_to_treatment "
+            "    ELSE avg_days_to_diagnosis END AS avg_val, "
+            "  cnt "
+            "ORDER BY month",
+            **params,
         )
     finally:
         client.close()

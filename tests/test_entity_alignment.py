@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import pytest
-from services.api.app.services.v3.entity_alignment import (
+from services.api.app.services.entity_alignment import (
     AlignedEntity,
     ConsensusResult,
     _compute_entity_confidence,

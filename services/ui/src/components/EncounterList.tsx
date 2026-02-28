@@ -372,7 +372,7 @@ export default function EncounterList({ patientId }: Props) {
       setSuccessMsg(
         `Rebuilt pathways: ${result.episodes_created} created, ${result.encounters_linked} encounters linked`,
       );
-      router.push(`/episodes?patient_id=${encodeURIComponent(patientId)}`);
+      router.push(`/pathways?patient_id=${encodeURIComponent(patientId)}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Rebuild failed. Pathways were not updated.");
     } finally {
@@ -500,9 +500,9 @@ export default function EncounterList({ patientId }: Props) {
   return (
     <Box sx={{ maxWidth: 1100, mx: "auto", p: 3 }}>
       <Breadcrumbs sx={{ mb: 2 }}>
-        {searchParams.get("from") === "episodes"
+        {searchParams.get("from") === "pathways"
           ? [
-              <Link key="episodes" component="button" underline="hover" onClick={() => router.push("/episodes")} sx={{ fontSize: 14 }}>
+              <Link key="pathways" component="button" underline="hover" onClick={() => router.push("/pathways")} sx={{ fontSize: 14 }}>
                 Referral Pathways
               </Link>,
               <Typography key="patient" sx={{ fontSize: 14 }} color="text.primary">Patient {patientId}</Typography>,

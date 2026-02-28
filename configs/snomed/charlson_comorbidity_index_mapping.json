@@ -1,0 +1,599 @@
+{
+  "metadata": {
+    "domain": "charlson_comorbidity_index",
+    "description": "Charlson Comorbidity Index (CCI) conditions with weights for mortality prediction",
+    "version": "charlson_1987_with_deyo_romano_adaptations",
+    "reference": "Charlson ME et al. J Chronic Dis 1987;40(5):373-83",
+    "total_conditions": 17,
+    "weight_range": "1-6",
+    "max_score_without_age": 37,
+    "age_adjustment": "Add 1 point per decade over age 40",
+    "generated_at": "2025-12-09T00:00:00.000000Z",
+    "notes": "Includes both 'History of' situation codes and disorder codes for comprehensive EHR searching",
+    "leo_existing_coverage": {
+      "fully_covered": ["Cerebrovascular disease", "Diabetes", "COPD", "Previous cancer"],
+      "partially_covered": ["Cardiovascular disease (needs splitting to MI/CHF/PVD)"],
+      "new_additions_required": ["Renal disease", "Liver disease", "Peptic ulcer", "Connective tissue disease", "Hemiplegia", "AIDS", "Metastatic cancer"]
+    }
+  },
+  "scoring": {
+    "interpretation": {
+      "0": "No comorbidity burden",
+      "1-2": "Low comorbidity burden", 
+      "3-4": "Moderate comorbidity burden",
+      "5+": "High comorbidity burden"
+    },
+    "one_year_mortality_by_score": {
+      "0": "12%",
+      "1-2": "26%",
+      "3-4": "52%",
+      "5+": "85%"
+    }
+  },
+  "mappings": {
+    "myocardial_infarction": {
+      "charlson_category": "Myocardial infarction",
+      "weight": 1,
+      "description": "History of definite or probable MI (excludes ECG changes only)",
+      "concepts": {
+        "history": {
+          "concept_id": 399211009,
+          "preferred_term": "History of myocardial infarction (situation)",
+          "semantic_tag": "Situation"
+        },
+        "disorder": {
+          "concept_id": 22298006,
+          "preferred_term": "Myocardial infarction (disorder)",
+          "semantic_tag": "Clinical_finding"
+        },
+        "old_mi": {
+          "concept_id": 1755008,
+          "preferred_term": "Old myocardial infarction (disorder)",
+          "semantic_tag": "Clinical_finding"
+        }
+      },
+      "leo_current_mapping": null,
+      "action": "ADD"
+    },
+    "congestive_heart_failure": {
+      "charlson_category": "Congestive heart failure",
+      "weight": 1,
+      "description": "Exertional or paroxysmal nocturnal dyspnoea responsive to treatment",
+      "concepts": {
+        "history": {
+          "concept_id": 161505005,
+          "preferred_term": "History of heart failure (situation)",
+          "semantic_tag": "Situation"
+        },
+        "disorder": {
+          "concept_id": 42343007,
+          "preferred_term": "Congestive heart failure (disorder)",
+          "semantic_tag": "Clinical_finding"
+        },
+        "chronic_hf": {
+          "concept_id": 48447003,
+          "preferred_term": "Chronic heart failure (disorder)",
+          "semantic_tag": "Clinical_finding"
+        }
+      },
+      "leo_current_mapping": "Partially covered by 'History of cardiovascular disease'",
+      "action": "SPLIT_FROM_EXISTING"
+    },
+    "peripheral_vascular_disease": {
+      "charlson_category": "Peripheral vascular disease",
+      "weight": 1,
+      "description": "Intermittent claudication, bypass, gangrene, acute arterial insufficiency, untreated aneurysm ≥6cm",
+      "concepts": {
+        "history": {
+          "concept_id": 275523003,
+          "preferred_term": "History of peripheral vascular disease (situation)",
+          "semantic_tag": "Situation"
+        },
+        "disorder": {
+          "concept_id": 400047006,
+          "preferred_term": "Peripheral vascular disease (disorder)",
+          "semantic_tag": "Clinical_finding"
+        },
+        "claudication": {
+          "concept_id": 63491006,
+          "preferred_term": "Intermittent claudication (finding)",
+          "semantic_tag": "Clinical_finding"
+        },
+        "aortic_aneurysm": {
+          "concept_id": 233985008,
+          "preferred_term": "Abdominal aortic aneurysm (disorder)",
+          "semantic_tag": "Clinical_finding"
+        }
+      },
+      "leo_current_mapping": "Partially covered by 'History of cardiovascular disease'",
+      "action": "SPLIT_FROM_EXISTING"
+    },
+    "cerebrovascular_disease": {
+      "charlson_category": "Cerebrovascular disease",
+      "weight": 1,
+      "description": "CVA with minor or no residual; TIA",
+      "concepts": {
+        "history": {
+          "concept_id": 308064009,
+          "preferred_term": "History of cerebrovascular disease (situation)",
+          "semantic_tag": "Situation"
+        },
+        "stroke": {
+          "concept_id": 230690007,
+          "preferred_term": "Cerebrovascular accident (disorder)",
+          "semantic_tag": "Clinical_finding"
+        },
+        "tia": {
+          "concept_id": 266257000,
+          "preferred_term": "Transient ischemic attack (disorder)",
+          "semantic_tag": "Clinical_finding"
+        }
+      },
+      "leo_current_mapping": "308064009 - History of cerebrovascular disease (situation)",
+      "action": "ALREADY_COVERED"
+    },
+    "dementia": {
+      "charlson_category": "Dementia",
+      "weight": 1,
+      "description": "Chronic cognitive deficit",
+      "concepts": {
+        "history": {
+          "concept_id": 161465002,
+          "preferred_term": "History of dementia (situation)",
+          "semantic_tag": "Situation"
+        },
+        "disorder": {
+          "concept_id": 52448006,
+          "preferred_term": "Dementia (disorder)",
+          "semantic_tag": "Clinical_finding"
+        },
+        "alzheimers": {
+          "concept_id": 26929004,
+          "preferred_term": "Alzheimer's disease (disorder)",
+          "semantic_tag": "Clinical_finding"
+        },
+        "vascular_dementia": {
+          "concept_id": 429998004,
+          "preferred_term": "Vascular dementia (disorder)",
+          "semantic_tag": "Clinical_finding"
+        }
+      },
+      "leo_current_mapping": "275540007 - History of brain disorder (situation) - broader category",
+      "action": "ADD_SPECIFIC"
+    },
+    "chronic_pulmonary_disease": {
+      "charlson_category": "Chronic pulmonary disease",
+      "weight": 1,
+      "description": "COPD, asthma requiring treatment",
+      "concepts": {
+        "history": {
+          "concept_id": 161527003,
+          "preferred_term": "History of chronic obstructive airways disease (situation)",
+          "semantic_tag": "Situation"
+        },
+        "history_respiratory": {
+          "concept_id": 161523006,
+          "preferred_term": "History of respiratory disease (situation)",
+          "semantic_tag": "Situation"
+        },
+        "copd": {
+          "concept_id": 13645005,
+          "preferred_term": "Chronic obstructive lung disease (disorder)",
+          "semantic_tag": "Clinical_finding"
+        },
+        "chronic_asthma": {
+          "concept_id": 195967001,
+          "preferred_term": "Asthma (disorder)",
+          "semantic_tag": "Clinical_finding"
+        },
+        "emphysema": {
+          "concept_id": 87433001,
+          "preferred_term": "Pulmonary emphysema (disorder)",
+          "semantic_tag": "Clinical_finding"
+        }
+      },
+      "leo_current_mapping": "161523006 - History of respiratory disease (situation)",
+      "action": "ALREADY_COVERED"
+    },
+    "connective_tissue_disease": {
+      "charlson_category": "Connective tissue disease",
+      "weight": 1,
+      "description": "SLE, polymyositis, mixed CTD, polymyalgia rheumatica, moderate-severe RA",
+      "concepts": {
+        "history": {
+          "concept_id": 429192004,
+          "preferred_term": "History of connective tissue disorder (situation)",
+          "semantic_tag": "Situation"
+        },
+        "sle": {
+          "concept_id": 55464009,
+          "preferred_term": "Systemic lupus erythematosus (disorder)",
+          "semantic_tag": "Clinical_finding"
+        },
+        "rheumatoid_arthritis": {
+          "concept_id": 69896004,
+          "preferred_term": "Rheumatoid arthritis (disorder)",
+          "semantic_tag": "Clinical_finding"
+        },
+        "polymyositis": {
+          "concept_id": 31384009,
+          "preferred_term": "Polymyositis (disorder)",
+          "semantic_tag": "Clinical_finding"
+        },
+        "scleroderma": {
+          "concept_id": 89155008,
+          "preferred_term": "Systemic sclerosis (disorder)",
+          "semantic_tag": "Clinical_finding"
+        },
+        "polymyalgia": {
+          "concept_id": 52042003,
+          "preferred_term": "Polymyalgia rheumatica (disorder)",
+          "semantic_tag": "Clinical_finding"
+        }
+      },
+      "leo_current_mapping": "267004000 - History of musculoskeletal disease (situation) - broader, less specific",
+      "action": "ADD_SPECIFIC"
+    },
+    "peptic_ulcer_disease": {
+      "charlson_category": "Peptic ulcer disease",
+      "weight": 1,
+      "description": "Any treatment for ulcer disease or history of ulcer bleeding",
+      "concepts": {
+        "history": {
+          "concept_id": 161479002,
+          "preferred_term": "History of peptic ulcer (situation)",
+          "semantic_tag": "Situation"
+        },
+        "disorder": {
+          "concept_id": 13200003,
+          "preferred_term": "Peptic ulcer (disorder)",
+          "semantic_tag": "Clinical_finding"
+        },
+        "gastric_ulcer": {
+          "concept_id": 397825006,
+          "preferred_term": "Gastric ulcer (disorder)",
+          "semantic_tag": "Clinical_finding"
+        },
+        "duodenal_ulcer": {
+          "concept_id": 51868009,
+          "preferred_term": "Duodenal ulcer (disorder)",
+          "semantic_tag": "Clinical_finding"
+        }
+      },
+      "leo_current_mapping": null,
+      "action": "ADD"
+    },
+    "mild_liver_disease": {
+      "charlson_category": "Mild liver disease",
+      "weight": 1,
+      "description": "Chronic hepatitis, cirrhosis without portal hypertension",
+      "concepts": {
+        "history": {
+          "concept_id": 161511008,
+          "preferred_term": "History of liver disorder (situation)",
+          "semantic_tag": "Situation"
+        },
+        "chronic_hepatitis": {
+          "concept_id": 76783007,
+          "preferred_term": "Chronic hepatitis (disorder)",
+          "semantic_tag": "Clinical_finding"
+        },
+        "fatty_liver": {
+          "concept_id": 197321007,
+          "preferred_term": "Steatosis of liver (disorder)",
+          "semantic_tag": "Clinical_finding"
+        },
+        "nafld": {
+          "concept_id": 442685003,
+          "preferred_term": "Nonalcoholic fatty liver disease (disorder)",
+          "semantic_tag": "Clinical_finding"
+        }
+      },
+      "leo_current_mapping": null,
+      "action": "ADD",
+      "note": "Must exclude if moderate/severe liver disease is present"
+    },
+    "diabetes_uncomplicated": {
+      "charlson_category": "Diabetes without end-organ damage",
+      "weight": 1,
+      "description": "Diet controlled or oral agents, no complications",
+      "concepts": {
+        "history": {
+          "concept_id": 161445009,
+          "preferred_term": "History of diabetes mellitus (situation)",
+          "semantic_tag": "Situation"
+        },
+        "type2_dm": {
+          "concept_id": 44054006,
+          "preferred_term": "Diabetes mellitus type 2 (disorder)",
+          "semantic_tag": "Clinical_finding"
+        },
+        "type1_dm": {
+          "concept_id": 46635009,
+          "preferred_term": "Diabetes mellitus type 1 (disorder)",
+          "semantic_tag": "Clinical_finding"
+        }
+      },
+      "leo_current_mapping": "161445009 - History of diabetes mellitus (situation)",
+      "action": "ALREADY_COVERED",
+      "note": "Score 1 only if no complications; score 2 if complications present"
+    },
+    "hemiplegia_paraplegia": {
+      "charlson_category": "Hemiplegia or paraplegia",
+      "weight": 2,
+      "description": "Hemiplegia, paraplegia, or quadriplegia from any cause",
+      "concepts": {
+        "hemiplegia": {
+          "concept_id": 50582007,
+          "preferred_term": "Hemiplegia (disorder)",
+          "semantic_tag": "Clinical_finding"
+        },
+        "paraplegia": {
+          "concept_id": 60389000,
+          "preferred_term": "Paraplegia (disorder)",
+          "semantic_tag": "Clinical_finding"
+        },
+        "quadriplegia": {
+          "concept_id": 11538006,
+          "preferred_term": "Quadriplegia (disorder)",
+          "semantic_tag": "Clinical_finding"
+        },
+        "history_paralysis": {
+          "concept_id": 161500008,
+          "preferred_term": "History of nervous system disorder (situation)",
+          "semantic_tag": "Situation"
+        }
+      },
+      "leo_current_mapping": "161504009 - History of physical disability (situation) - broader",
+      "action": "ADD_SPECIFIC"
+    },
+    "moderate_severe_renal_disease": {
+      "charlson_category": "Moderate or severe renal disease",
+      "weight": 2,
+      "description": "Creatinine >3mg/dL (265µmol/L), dialysis, transplant, uraemic syndrome",
+      "concepts": {
+        "history": {
+          "concept_id": 161519005,
+          "preferred_term": "History of renal disease (situation)",
+          "semantic_tag": "Situation"
+        },
+        "ckd": {
+          "concept_id": 709044004,
+          "preferred_term": "Chronic kidney disease (disorder)",
+          "semantic_tag": "Clinical_finding"
+        },
+        "ckd_stage_3": {
+          "concept_id": 433144002,
+          "preferred_term": "Chronic kidney disease stage 3 (disorder)",
+          "semantic_tag": "Clinical_finding"
+        },
+        "ckd_stage_4": {
+          "concept_id": 431857002,
+          "preferred_term": "Chronic kidney disease stage 4 (disorder)",
+          "semantic_tag": "Clinical_finding"
+        },
+        "ckd_stage_5": {
+          "concept_id": 433146000,
+          "preferred_term": "Chronic kidney disease stage 5 (disorder)",
+          "semantic_tag": "Clinical_finding"
+        },
+        "esrd": {
+          "concept_id": 46177005,
+          "preferred_term": "End stage renal disease (disorder)",
+          "semantic_tag": "Clinical_finding"
+        },
+        "dialysis": {
+          "concept_id": 265764009,
+          "preferred_term": "Renal dialysis (procedure)",
+          "semantic_tag": "Procedure"
+        },
+        "renal_transplant": {
+          "concept_id": 313030004,
+          "preferred_term": "Donor renal transplantation (procedure)",
+          "semantic_tag": "Procedure"
+        }
+      },
+      "leo_current_mapping": null,
+      "action": "ADD"
+    },
+    "diabetes_with_complications": {
+      "charlson_category": "Diabetes with end-organ damage",
+      "weight": 2,
+      "description": "Retinopathy, nephropathy, neuropathy, or poorly controlled diabetes",
+      "concepts": {
+        "dm_complications": {
+          "concept_id": 420756003,
+          "preferred_term": "Diabetic complication (disorder)",
+          "semantic_tag": "Clinical_finding"
+        },
+        "diabetic_retinopathy": {
+          "concept_id": 4855003,
+          "preferred_term": "Diabetic retinopathy (disorder)",
+          "semantic_tag": "Clinical_finding"
+        },
+        "diabetic_nephropathy": {
+          "concept_id": 127013003,
+          "preferred_term": "Diabetic kidney disease (disorder)",
+          "semantic_tag": "Clinical_finding"
+        },
+        "diabetic_neuropathy": {
+          "concept_id": 230572002,
+          "preferred_term": "Diabetic neuropathy (disorder)",
+          "semantic_tag": "Clinical_finding"
+        },
+        "diabetic_foot": {
+          "concept_id": 280137006,
+          "preferred_term": "Diabetic foot (disorder)",
+          "semantic_tag": "Clinical_finding"
+        }
+      },
+      "leo_current_mapping": null,
+      "action": "ADD",
+      "note": "If present, score 2 (not 1 for uncomplicated diabetes)"
+    },
+    "any_malignancy": {
+      "charlson_category": "Any malignancy",
+      "weight": 2,
+      "description": "Solid tumour, leukaemia, lymphoma within last 5 years (excluding non-melanoma skin cancer)",
+      "concepts": {
+        "history": {
+          "concept_id": 266987004,
+          "preferred_term": "History of malignant neoplasm (situation)",
+          "semantic_tag": "Situation"
+        },
+        "malignancy": {
+          "concept_id": 363346000,
+          "preferred_term": "Malignant neoplastic disease (disorder)",
+          "semantic_tag": "Clinical_finding"
+        },
+        "leukaemia": {
+          "concept_id": 93143009,
+          "preferred_term": "Leukemia (disorder)",
+          "semantic_tag": "Clinical_finding"
+        },
+        "lymphoma": {
+          "concept_id": 118600007,
+          "preferred_term": "Malignant lymphoma (disorder)",
+          "semantic_tag": "Clinical_finding"
+        }
+      },
+      "leo_current_mapping": "266987004 - History of malignant neoplasm (situation)",
+      "action": "ALREADY_COVERED",
+      "note": "Must exclude metastatic tumour (scored separately at weight 6)"
+    },
+    "moderate_severe_liver_disease": {
+      "charlson_category": "Moderate or severe liver disease",
+      "weight": 3,
+      "description": "Cirrhosis with portal hypertension +/- variceal bleeding, encephalopathy",
+      "concepts": {
+        "cirrhosis": {
+          "concept_id": 19943007,
+          "preferred_term": "Cirrhosis of liver (disorder)",
+          "semantic_tag": "Clinical_finding"
+        },
+        "portal_hypertension": {
+          "concept_id": 34742003,
+          "preferred_term": "Portal hypertension (disorder)",
+          "semantic_tag": "Clinical_finding"
+        },
+        "oesophageal_varices": {
+          "concept_id": 28670008,
+          "preferred_term": "Esophageal varices (disorder)",
+          "semantic_tag": "Clinical_finding"
+        },
+        "hepatic_encephalopathy": {
+          "concept_id": 13920009,
+          "preferred_term": "Hepatic encephalopathy (disorder)",
+          "semantic_tag": "Clinical_finding"
+        },
+        "liver_failure": {
+          "concept_id": 59927004,
+          "preferred_term": "Hepatic failure (disorder)",
+          "semantic_tag": "Clinical_finding"
+        },
+        "ascites_hepatic": {
+          "concept_id": 389026000,
+          "preferred_term": "Ascites (disorder)",
+          "semantic_tag": "Clinical_finding"
+        }
+      },
+      "leo_current_mapping": "19943007 - Cirrhosis of liver (in risk_factors)",
+      "action": "ADD_TO_COMORBIDITIES",
+      "note": "If moderate/severe, score 3 (not 1 for mild liver disease)"
+    },
+    "metastatic_solid_tumour": {
+      "charlson_category": "Metastatic solid tumour",
+      "weight": 6,
+      "description": "Metastatic carcinoma",
+      "concepts": {
+        "history": {
+          "concept_id": 405843009,
+          "preferred_term": "History of metastatic malignant neoplasm (situation)",
+          "semantic_tag": "Situation"
+        },
+        "metastatic_cancer": {
+          "concept_id": 128462008,
+          "preferred_term": "Secondary malignant neoplasm (disorder)",
+          "semantic_tag": "Clinical_finding"
+        },
+        "metastatic_disease": {
+          "concept_id": 315004001,
+          "preferred_term": "Metastasis (finding)",
+          "semantic_tag": "Clinical_finding"
+        }
+      },
+      "leo_current_mapping": null,
+      "action": "ADD",
+      "note": "If metastatic, score 6 (not 2 for any malignancy)"
+    },
+    "aids": {
+      "charlson_category": "AIDS",
+      "weight": 6,
+      "description": "Definite AIDS, not just HIV positive",
+      "concepts": {
+        "history": {
+          "concept_id": 161482009,
+          "preferred_term": "History of acquired immunodeficiency syndrome (situation)",
+          "semantic_tag": "Situation"
+        },
+        "aids": {
+          "concept_id": 62479008,
+          "preferred_term": "Acquired immunodeficiency syndrome (disorder)",
+          "semantic_tag": "Clinical_finding"
+        },
+        "hiv_aids": {
+          "concept_id": 86406008,
+          "preferred_term": "Human immunodeficiency virus infection (disorder)",
+          "semantic_tag": "Clinical_finding"
+        }
+      },
+      "leo_current_mapping": null,
+      "action": "ADD",
+      "note": "HIV without AIDS-defining illness scores 0"
+    }
+  },
+  "age_adjustment": {
+    "description": "Age-adjusted Charlson Comorbidity Index adds points based on age",
+    "scoring": {
+      "under_50": 0,
+      "50-59": 1,
+      "60-69": 2,
+      "70-79": 3,
+      "80_plus": 4
+    }
+  },
+  "calculation_rules": {
+    "general": "Sum weights for all present conditions",
+    "exclusions": [
+      "If diabetes with complications is present, do not also count uncomplicated diabetes",
+      "If moderate/severe liver disease is present, do not also count mild liver disease",
+      "If metastatic tumour is present, do not also count 'any malignancy'",
+      "Non-melanoma skin cancer should not be counted"
+    ],
+    "timeframe": "Conditions present at baseline or within lookback period (typically 1-2 years)"
+  },
+  "leo_implementation_summary": {
+    "already_covered": [
+      "Cerebrovascular disease (weight 1)",
+      "Chronic pulmonary disease (weight 1)",
+      "Diabetes uncomplicated (weight 1)",
+      "Any malignancy (weight 2)"
+    ],
+    "needs_splitting": [
+      "Cardiovascular disease → MI, CHF, PVD (3 separate weight-1 conditions)"
+    ],
+    "new_additions_required": [
+      "Dementia (weight 1)",
+      "Connective tissue disease (weight 1)",
+      "Peptic ulcer disease (weight 1)",
+      "Mild liver disease (weight 1)",
+      "Hemiplegia/paraplegia (weight 2)",
+      "Moderate/severe renal disease (weight 2)",
+      "Diabetes with complications (weight 2)",
+      "Moderate/severe liver disease (weight 3)",
+      "Metastatic solid tumour (weight 6)",
+      "AIDS (weight 6)"
+    ],
+    "total_new_concepts_to_add": 10
+  }
+}

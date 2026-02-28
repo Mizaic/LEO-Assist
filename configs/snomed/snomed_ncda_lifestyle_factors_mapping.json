@@ -1,0 +1,370 @@
+{
+  "metadata": {
+    "domain": "lifestyle_factors",
+    "total_terms": 34,
+    "successful_mappings": 34,
+    "failed_mappings": 0,
+    "llm_disambiguations": 29,
+    "generated_at": "2025-12-01T17:23:15.055814Z",
+    "enriched_with_synonyms": true,
+    "synonym_enrichment_date": "2025-12-06T08:05:52.924256",
+    "synonym_stats": {
+      "concepts_with_synonyms": 20,
+      "concepts_not_found": 0,
+      "average_synonyms_per_concept": 3.2
+    }
+  },
+  "mappings": {
+    "Never smoked": {
+      "concept_id": 266919005,
+      "preferred_term": "Never smoked tobacco (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8980724811553955,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Never smoked",
+        "Never smoked tobacco",
+        "Never smoked tobacco (finding)",
+        "Never smoked tobacco (life style)",
+        "non-smoker",
+        "lifelong non-smoker",
+        "never a smoker",
+        "never used tobacco"
+      ],
+      "guideline_synonym_count": 8,
+      "guideline_name": "Never smoked tobacco (finding)"
+    },
+    "Ex-smoker": {
+      "concept_id": 281018007,
+      "preferred_term": "Ex-cigarette smoker (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.85,
+      "llm_disambiguated": false,
+      "manually_corrected": true,
+      "guideline_synonyms": [
+        "Ex-cigarette smoker",
+        "Ex-cigarette smoker (finding)",
+        "Ex-cigarette smoker (life style)",
+        "ex smoker",
+        "former smoker",
+        "previous smoker",
+        "ex cig smoker",
+        "stopped smoking"
+      ],
+      "guideline_synonym_count": 8,
+      "guideline_name": "Ex-cigarette smoker (finding)"
+    },
+    "Current smoker": {
+      "concept_id": 77176002,
+      "preferred_term": "Smoking (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.85,
+      "llm_disambiguated": false,
+      "manually_corrected": true,
+      "guideline_synonyms": [
+        "Current smoker",
+        "Smoker",
+        "Smoker (finding)",
+        "Smoker (life style)",
+        "Smoker, NOS",
+        "Smoking",
+        "cigarette smoker",
+        "active smoker",
+        "tobacco smoker",
+        "smokes cigarettes"
+      ],
+      "guideline_synonym_count": 10,
+      "guideline_name": "Smoking"
+    },
+    "Smoking status not known": {
+      "concept_id": 382911000000101,
+      "preferred_term": "Declined to give smoking status (situation)",
+      "semantic_tag": "Situation",
+      "score": 0.8691246509552002,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Refusal to give smoking status",
+        "Refusal to give smoking status (finding)",
+        "declined smoking status",
+        "smoking status declined",
+        "refused smoking status"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Refusal to give smoking status (finding)",
+      "guideline_labels": [
+        "Clinical_finding"
+      ]
+    },
+    "Non-drinker": {
+      "concept_id": 288856003,
+      "preferred_term": "Does not drink (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8745465249808959,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Does not drink",
+        "Does not drink (finding)",
+        "teetotal",
+        "teetotaller",
+        "no alcohol",
+        "abstains from alcohol",
+        "never drinks alcohol"
+      ],
+      "guideline_synonym_count": 7,
+      "guideline_name": "Does not drink (finding)"
+    },
+    "Occasional drinker": {
+      "concept_id": 228276006,
+      "preferred_term": "Occasional drinker (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9099550247192383,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Drinks on special occasions",
+        "Occasional drinker",
+        "Occasional drinker (finding)",
+        "Occasional drinker (life style)",
+        "drinks occasionally",
+        "social drinker",
+        "drinks socially",
+        "infrequent drinker"
+      ],
+      "guideline_synonym_count": 8,
+      "guideline_name": "Occasional drinker (finding)"
+    },
+    "Moderate drinker": {
+      "concept_id": 43783005,
+      "preferred_term": "Moderate drinker (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.926213264465332,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Alcoholic beverage moderate drinker",
+        "Moderate drinker",
+        "Moderate drinker (finding)",
+        "Moderate drinker (life style)",
+        "moderate alcohol use",
+        "moderate alcohol intake",
+        "moderate EtOH use"
+      ],
+      "guideline_synonym_count": 7,
+      "guideline_name": "Moderate drinker (finding)"
+    },
+    "Heavy drinker": {
+      "concept_id": 86933000,
+      "preferred_term": "Heavy drinker (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9257419109344482,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Alcoholic beverage heavy drinker",
+        "Drinks heavily",
+        "Drunk",
+        "Heavy drinker",
+        "Heavy drinker (finding)",
+        "Heavy drinker (life style)",
+        "heavy alcohol use",
+        "high alcohol intake",
+        "hazardous drinker"
+      ],
+      "guideline_synonym_count": 9,
+      "guideline_name": "Heavy drinker (finding)"
+    },
+    "Sedentary lifestyle": {
+      "concept_id": 415510005,
+      "preferred_term": "Sedentary lifestyle (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9290885925292969,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Sedentary life style",
+        "Sedentary lifestyle",
+        "Sedentary lifestyle (finding)",
+        "sedentary",
+        "inactive lifestyle",
+        "physically inactive"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Sedentary lifestyle (finding)"
+    },
+    "Moderate physical activity": {
+      "concept_id": 859981000000107,
+      "preferred_term": "Level of physical activity (observable entity)",
+      "semantic_tag": "Observable_entity",
+      "score": 0.8652427196502686,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Level of physical activity",
+        "Level of physical activity (observable entity)",
+        "physical activity level",
+        "activity level",
+        "activity status",
+        "exercise level",
+        "exercise status"
+      ],
+      "guideline_synonym_count": 7,
+      "guideline_name": "Level of physical activity (observable entity)"
+    },
+    "Underweight": {
+      "concept_id": 248342006,
+      "preferred_term": "Low body weight",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8856468200683594,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Low body weight",
+        "Patient underweight",
+        "Underweight",
+        "Underweight (finding)",
+        "low weight"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Low body weight"
+    },
+    "Normal weight": {
+      "concept_id": 43664005,
+      "preferred_term": "Normal weight (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9062395095825195,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Normal weight",
+        "Normal weight (finding)",
+        "wt normal",
+        "normal wt",
+        "weight normal",
+        "healthy weight"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Normal weight (finding)"
+    },
+    "Overweight": {
+      "concept_id": 238131007,
+      "preferred_term": "Overweight",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8885085582733154,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Overweight",
+        "Overweight (finding)",
+        "Patient overweight"
+      ],
+      "guideline_synonym_count": 3,
+      "guideline_name": "Overweight"
+    },
+    "Obese": {
+      "concept_id": 414915002,
+      "preferred_term": "Obese (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8858828544616699,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Obese",
+        "Obese (finding)",
+        "obesity",
+        "clinically obese"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Obese (finding)"
+    },
+    "Healthy diet": {
+      "concept_id": 226234005,
+      "preferred_term": "Healthy diet (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.889244556427002,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Healthy diet",
+        "Healthy diet (finding)",
+        "healthy eating",
+        "balanced diet",
+        "good diet",
+        "eats healthily"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Healthy diet (finding)"
+    },
+    "Vegetarian": {
+      "concept_id": 300928006,
+      "preferred_term": "Vegetarian (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8893499223147093,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Vegetarian",
+        "Vegetarian (finding)",
+        "vegetarian diet",
+        "veg diet",
+        "veggie"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Vegetarian (finding)"
+    },
+    "Vegan": {
+      "concept_id": 24930006,
+      "preferred_term": "Vegan (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8171783485695565,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Strict vegetarian diet",
+        "Vegan",
+        "Vegan (finding)",
+        "Vegan diet",
+        "Vegan diet - no dairy produce",
+        "plant-based diet",
+        "strict vegan"
+      ],
+      "guideline_synonym_count": 7,
+      "guideline_name": "Vegan (finding)"
+    },
+    "High sun exposure": {
+      "concept_id": 218201004,
+      "preferred_term": "Exposure to excess sunlight",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8762602806091309,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Exposure to excess sunlight",
+        "Overexposure to sun rays",
+        "Overexposure to sun rays (event)",
+        "Overexposure to sun rays (finding)",
+        "sun overexposure",
+        "excess UV exposure",
+        "too much sun"
+      ],
+      "guideline_synonym_count": 7,
+      "guideline_name": "Exposure to excess sunlight"
+    },
+    "Low sun exposure": {
+      "concept_id": 440381005,
+      "preferred_term": "Behavior to prevent sun exposure (observable entity)",
+      "semantic_tag": "Observable_entity",
+      "score": 0.8273410860395431,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Behavior to prevent sun exposure",
+        "Behavior to prevent sun exposure (observable entity)",
+        "Behaviour to prevent sun exposure",
+        "sun avoidance behaviour",
+        "sun avoidance"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Behavior to prevent sun exposure (observable entity)"
+    },
+    "Occupational exposure to carcinogens": {
+      "concept_id": 525831000000103,
+      "preferred_term": "Exposure to occupational risk factor (situation)",
+      "semantic_tag": "Situation",
+      "score": 0.8399477005004883,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Exposure to occupational risk factor",
+        "Exposure to occupational risk factor (situation)",
+        "occupational hazard exposure"
+      ],
+      "guideline_synonym_count": 3,
+      "guideline_name": "Exposure to occupational risk factor (situation)"
+    }
+  }
+}

@@ -1,5 +1,11 @@
 """Build a few-shot example section from human-reviewed classification votes.
 
+**LLM stages only** — This module injects examples into LLM prompts.
+It must NOT be imported from deterministic or model-only (spaCy) stages.
+For the spaCy retraining corpus use ``libs.prompts.model_training_labels``
+instead.  The two stores are intentionally separate — conflating them
+corrupts both.
+
 Called at classify time to inject verified examples into the encounter
 classification system prompt.  Examples are drawn from disagreement cases
 where at least one model was incorrect — the hardest decision-boundary cases

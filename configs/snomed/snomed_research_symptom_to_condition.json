@@ -1,0 +1,689 @@
+{
+  "metadata": {
+    "total_diseases": 394,
+    "total_symptoms": 34,
+    "total_edges": 82
+  },
+  "nodes": {
+    "Hypothyroidism": {
+      "concept_id": 40930008,
+      "preferred_term": "Hypothyroidism (disorder)",
+      "semantic_tag": "Disease",
+      "source": "disease_nodes.json"
+    },
+    "hyperthyroidism": {
+      "concept_id": 34486009,
+      "preferred_term": "Hyperthyroidism (disorder)",
+      "semantic_tag": "Disease",
+      "source": "disease_nodes.json"
+    },
+    "Hashimoto thyroiditis": {
+      "concept_id": 66944004,
+      "preferred_term": "Autoimmune thyroiditis (disorder)",
+      "semantic_tag": "Disease",
+      "source": "disease_nodes.json"
+    },
+    "Hashimoto’s thyroiditis": {
+      "concept_id": 66944004,
+      "preferred_term": "Autoimmune thyroiditis (disorder)",
+      "semantic_tag": "Disease",
+      "source": "disease_nodes.json"
+    },
+    "Graves’ disease": {
+      "concept_id": 237499004,
+      "preferred_term": "Autoimmune thyrotoxicosis (disorder)",
+      "semantic_tag": "Disease",
+      "source": "disease_nodes.json"
+    },
+    "Addison's disease": {
+      "concept_id": 363732003,
+      "preferred_term": "Addison disease",
+      "semantic_tag": "Disease",
+      "source": "disease_nodes.json"
+    },
+    "Addison disease": {
+      "concept_id": 363732003,
+      "preferred_term": "Addison disease",
+      "semantic_tag": "Disease",
+      "source": "disease_nodes.json"
+    },
+    "Adrenal insufficiency (Addison disease)": {
+      "concept_id": 612451000000100,
+      "preferred_term": "Adrenal insufficiency NEC (disorder)",
+      "semantic_tag": "Disease",
+      "source": "disease_nodes.json"
+    },
+    "Cushing syndrome": {
+      "concept_id": 237735008,
+      "preferred_term": "Cushing syndrome",
+      "semantic_tag": "Disease",
+      "source": "disease_nodes.json"
+    },
+    "Cushing’s syndrome": {
+      "concept_id": 237735008,
+      "preferred_term": "Cushing syndrome",
+      "semantic_tag": "Disease",
+      "source": "disease_nodes.json"
+    },
+    "Cushing's syndrome": {
+      "concept_id": 237735008,
+      "preferred_term": "Cushing syndrome",
+      "semantic_tag": "Disease",
+      "source": "disease_nodes.json"
+    },
+    "Insulin resistance": {
+      "concept_id": 763325000,
+      "preferred_term": "Insulin resistance (disorder)",
+      "semantic_tag": "Disease",
+      "source": "disease_nodes.json"
+    },
+    "type 1 diabetes": {
+      "concept_id": 46635009,
+      "preferred_term": "T1DM - type 1 diabetes mellitus",
+      "semantic_tag": "Disease",
+      "source": "disease_nodes.json"
+    },
+    "type 1 diabetes mellitus": {
+      "concept_id": 46635009,
+      "preferred_term": "T1DM - type 1 diabetes mellitus",
+      "semantic_tag": "Disease",
+      "source": "disease_nodes.json"
+    },
+    "Type 1 diabetes": {
+      "concept_id": 1290118005,
+      "preferred_term": "Presymptomatic diabetes mellitus type 1 (disorder)",
+      "semantic_tag": "Disease",
+      "source": "disease_nodes.json"
+    },
+    "diabetes": {
+      "concept_id": 73211009,
+      "preferred_term": "Diabetes mellitus (disorder)",
+      "semantic_tag": "Disease",
+      "source": "disease_nodes.json"
+    },
+    "Diabetes": {
+      "concept_id": 73211009,
+      "preferred_term": "Diabetes mellitus (disorder)",
+      "semantic_tag": "Disease",
+      "source": "disease_nodes.json"
+    },
+    "Diabetes Mellitus": {
+      "concept_id": 73211009,
+      "preferred_term": "Diabetes mellitus (disorder)",
+      "semantic_tag": "Disease",
+      "source": "disease_nodes.json"
+    },
+    "Fatigue": {
+      "concept_id": 84229001,
+      "preferred_term": "Fatigue (finding)",
+      "semantic_tag": "Clinical_finding",
+      "source": "research"
+    },
+    "Weight gain": {
+      "concept_id": 161833006,
+      "preferred_term": "Weight gain (finding)",
+      "semantic_tag": "Clinical_finding",
+      "source": "research"
+    },
+    "Weight loss": {
+      "concept_id": 267024001,
+      "preferred_term": "Unintentional weight loss (finding)",
+      "semantic_tag": "Clinical_finding",
+      "source": "research"
+    },
+    "Cold intolerance": {
+      "concept_id": 267102003,
+      "preferred_term": "Intolerance of cold (finding)",
+      "semantic_tag": "Clinical_finding",
+      "source": "research"
+    },
+    "Heat intolerance": {
+      "concept_id": 267100006,
+      "preferred_term": "Intolerance of heat (finding)",
+      "semantic_tag": "Clinical_finding",
+      "source": "research"
+    },
+    "Bradycardia": {
+      "concept_id": 49710005,
+      "preferred_term": "Bradycardia (disorder)",
+      "semantic_tag": "Clinical_finding",
+      "source": "research"
+    },
+    "Tachycardia": {
+      "concept_id": 3424008,
+      "preferred_term": "Tachycardia (finding)",
+      "semantic_tag": "Clinical_finding",
+      "source": "research"
+    },
+    "Depressed mood": {
+      "concept_id": 366979004,
+      "preferred_term": "Depressed mood (finding)",
+      "semantic_tag": "Clinical_finding",
+      "source": "research"
+    },
+    "Constipation": {
+      "concept_id": 14760008,
+      "preferred_term": "Constipation (disorder)",
+      "semantic_tag": "Clinical_finding",
+      "source": "research"
+    },
+    "Diarrhea": {
+      "concept_id": 62315008,
+      "preferred_term": "Diarrhea (disorder)",
+      "semantic_tag": "Clinical_finding",
+      "source": "research"
+    },
+    "Dry skin": {
+      "concept_id": 399430008,
+      "preferred_term": "Skin dryness (finding)",
+      "semantic_tag": "Clinical_finding",
+      "source": "research"
+    },
+    "Hair loss": {
+      "concept_id": 40496002,
+      "preferred_term": "Alopecia (disorder)",
+      "semantic_tag": "Clinical_finding",
+      "source": "research"
+    },
+    "Goiter": {
+      "concept_id": 3716002,
+      "preferred_term": "Goiter (disorder)",
+      "semantic_tag": "Clinical_finding",
+      "source": "research"
+    },
+    "Exophthalmos": {
+      "concept_id": 17440002,
+      "preferred_term": "Exophthalmos (disorder)",
+      "semantic_tag": "Clinical_finding",
+      "source": "research"
+    },
+    "Palpitations": {
+      "concept_id": 80313002,
+      "preferred_term": "Palpitations (finding)",
+      "semantic_tag": "Clinical_finding",
+      "source": "research"
+    },
+    "Tremor": {
+      "concept_id": 26079004,
+      "preferred_term": "Tremor (finding)",
+      "semantic_tag": "Clinical_finding",
+      "source": "research"
+    },
+    "Hyperpigmentation": {
+      "concept_id": 238702007,
+      "preferred_term": "Hyperpigmentation of skin (finding)",
+      "semantic_tag": "Clinical_finding",
+      "source": "research"
+    },
+    "Postural dizziness": {
+      "concept_id": 271789005,
+      "preferred_term": "Postural dizziness (finding)",
+      "semantic_tag": "Clinical_finding",
+      "source": "research"
+    },
+    "Hypotension": {
+      "concept_id": 45007003,
+      "preferred_term": "Hypotension (disorder)",
+      "semantic_tag": "Clinical_finding",
+      "source": "research"
+    },
+    "Hypoglycemia": {
+      "concept_id": 302866003,
+      "preferred_term": "Hypoglycemia (disorder)",
+      "semantic_tag": "Clinical_finding",
+      "source": "research"
+    },
+    "Hyperglycemia": {
+      "concept_id": 80394007,
+      "preferred_term": "Hyperglycemia (disorder)",
+      "semantic_tag": "Clinical_finding",
+      "source": "research"
+    },
+    "Polyuria": {
+      "concept_id": 28442001,
+      "preferred_term": "Polyuria (disorder)",
+      "semantic_tag": "Clinical_finding",
+      "source": "research"
+    },
+    "Polydipsia": {
+      "concept_id": 267064002,
+      "preferred_term": "Polydipsia (finding)",
+      "semantic_tag": "Clinical_finding",
+      "source": "research"
+    },
+    "Polyphagia": {
+      "concept_id": 267023003,
+      "preferred_term": "Polyphagia (finding)",
+      "semantic_tag": "Clinical_finding",
+      "source": "research"
+    },
+    "Blurred vision": {
+      "concept_id": 246636008,
+      "preferred_term": "Blurring of visual image (finding)",
+      "semantic_tag": "Clinical_finding",
+      "source": "research"
+    },
+    "Recurrent infections": {
+      "concept_id": 443883004,
+      "preferred_term": "Recurrent infection (disorder)",
+      "semantic_tag": "Clinical_finding",
+      "source": "research"
+    },
+    "Neuropathy": {
+      "concept_id": 386033004,
+      "preferred_term": "Peripheral neuropathy (disorder)",
+      "semantic_tag": "Clinical_finding",
+      "source": "research"
+    }
+  },
+  "edges": [
+    {
+      "source": "Hypothyroidism",
+      "target": "Fatigue",
+      "relationship": "MAY_PRESENT_WITH",
+      "confidence": 0.9,
+      "frequency": "common",
+      "source_research": "NICE clinical knowledge summaries – hypothyroidism; UpToDate: Clinical manifestations of hypothyroidism"
+    },
+    {
+      "source": "Hypothyroidism",
+      "target": "Weight gain",
+      "relationship": "MAY_PRESENT_WITH",
+      "confidence": 0.85,
+      "frequency": "common",
+      "source_research": "NICE CKS hypothyroidism; American Thyroid Association patient information"
+    },
+    {
+      "source": "Hypothyroidism",
+      "target": "Cold intolerance",
+      "relationship": "MAY_PRESENT_WITH",
+      "confidence": 0.9,
+      "frequency": "common",
+      "source_research": "Endotext: Hypothyroidism – clinical features"
+    },
+    {
+      "source": "Hypothyroidism",
+      "target": "Bradycardia",
+      "relationship": "MAY_PRESENT_WITH",
+      "confidence": 0.8,
+      "frequency": "uncommon",
+      "source_research": "UpToDate: Clinical manifestations of hypothyroidism"
+    },
+    {
+      "source": "Hypothyroidism",
+      "target": "Constipation",
+      "relationship": "MAY_PRESENT_WITH",
+      "confidence": 0.8,
+      "frequency": "common",
+      "source_research": "NICE CKS hypothyroidism – symptoms"
+    },
+    {
+      "source": "Hypothyroidism",
+      "target": "Dry skin",
+      "relationship": "MAY_PRESENT_WITH",
+      "confidence": 0.8,
+      "frequency": "common",
+      "source_research": "American Thyroid Association: Signs and symptoms of hypothyroidism"
+    },
+    {
+      "source": "Hypothyroidism",
+      "target": "Hair loss",
+      "relationship": "MAY_PRESENT_WITH",
+      "confidence": 0.75,
+      "frequency": "common",
+      "source_research": "ATA patient information – hypothyroidism"
+    },
+    {
+      "source": "Hypothyroidism",
+      "target": "Depressed mood",
+      "relationship": "MAY_PRESENT_WITH",
+      "confidence": 0.75,
+      "frequency": "common",
+      "source_research": "NICE CKS hypothyroidism – neuropsychiatric features"
+    },
+    {
+      "source": "Hypothyroidism",
+      "target": "Goiter",
+      "relationship": "MAY_PRESENT_WITH",
+      "confidence": 0.7,
+      "frequency": "uncommon",
+      "source_research": "Endotext: Primary hypothyroidism"
+    },
+    {
+      "source": "hyperthyroidism",
+      "target": "Weight loss",
+      "relationship": "MAY_PRESENT_WITH",
+      "confidence": 0.9,
+      "frequency": "common",
+      "source_research": "NICE CKS hyperthyroidism; Endocrine Society guidelines"
+    },
+    {
+      "source": "hyperthyroidism",
+      "target": "Heat intolerance",
+      "relationship": "MAY_PRESENT_WITH",
+      "confidence": 0.9,
+      "frequency": "common",
+      "source_research": "UpToDate: Clinical manifestations of hyperthyroidism"
+    },
+    {
+      "source": "hyperthyroidism",
+      "target": "Tachycardia",
+      "relationship": "MAY_PRESENT_WITH",
+      "confidence": 0.95,
+      "frequency": "very_common",
+      "source_research": "Endocrine Society guidelines – thyrotoxicosis"
+    },
+    {
+      "source": "hyperthyroidism",
+      "target": "Palpitations",
+      "relationship": "MAY_PRESENT_WITH",
+      "confidence": 0.9,
+      "frequency": "common",
+      "source_research": "NICE CKS hyperthyroidism – symptoms and signs"
+    },
+    {
+      "source": "hyperthyroidism",
+      "target": "Tremor",
+      "relationship": "MAY_PRESENT_WITH",
+      "confidence": 0.9,
+      "frequency": "common",
+      "source_research": "UpToDate: Clinical manifestations of hyperthyroidism"
+    },
+    {
+      "source": "hyperthyroidism",
+      "target": "Diarrhea",
+      "relationship": "MAY_PRESENT_WITH",
+      "confidence": 0.7,
+      "frequency": "uncommon",
+      "source_research": "NICE CKS hyperthyroidism – gastrointestinal features"
+    },
+    {
+      "source": "hyperthyroidism",
+      "target": "Goiter",
+      "relationship": "MAY_PRESENT_WITH",
+      "confidence": 0.8,
+      "frequency": "common",
+      "source_research": "ATA hyperthyroidism patient information"
+    },
+    {
+      "source": "Graves’ disease",
+      "target": "Exophthalmos",
+      "relationship": "MAY_PRESENT_WITH",
+      "confidence": 0.95,
+      "frequency": "common",
+      "source_research": "EUGOGO guidelines for Graves’ orbitopathy"
+    },
+    {
+      "source": "Graves’ disease",
+      "target": "Tachycardia",
+      "relationship": "MAY_PRESENT_WITH",
+      "confidence": 0.9,
+      "frequency": "common",
+      "source_research": "NICE CKS hyperthyroidism – Graves’ disease"
+    },
+    {
+      "source": "Graves’ disease",
+      "target": "Weight loss",
+      "relationship": "MAY_PRESENT_WITH",
+      "confidence": 0.9,
+      "frequency": "common",
+      "source_research": "ATA: Graves’ disease overview"
+    },
+    {
+      "source": "Hashimoto thyroiditis",
+      "target": "Hypothyroidism",
+      "relationship": "MAY_PRESENT_WITH",
+      "confidence": 0.95,
+      "frequency": "very_common",
+      "source_research": "Endotext: Hashimoto’s thyroiditis and autoimmune thyroiditis"
+    },
+    {
+      "source": "Hashimoto thyroiditis",
+      "target": "Goiter",
+      "relationship": "MAY_PRESENT_WITH",
+      "confidence": 0.8,
+      "frequency": "common",
+      "source_research": "NICE CKS hypothyroidism – autoimmune thyroid disease"
+    },
+    {
+      "source": "Hashimoto’s thyroiditis",
+      "target": "Fatigue",
+      "relationship": "MAY_PRESENT_WITH",
+      "confidence": 0.85,
+      "frequency": "common",
+      "source_research": "ATA patient information: Hashimoto’s thyroiditis"
+    },
+    {
+      "source": "Addison's disease",
+      "target": "Fatigue",
+      "relationship": "MAY_PRESENT_WITH",
+      "confidence": 0.95,
+      "frequency": "very_common",
+      "source_research": "Endocrine Society guideline: Primary adrenal insufficiency"
+    },
+    {
+      "source": "Addison's disease",
+      "target": "Hyperpigmentation",
+      "relationship": "MAY_PRESENT_WITH",
+      "confidence": 0.9,
+      "frequency": "common",
+      "source_research": "Endotext: Clinical manifestations of Addison disease"
+    },
+    {
+      "source": "Addison's disease",
+      "target": "Postural dizziness",
+      "relationship": "MAY_PRESENT_WITH",
+      "confidence": 0.85,
+      "frequency": "common",
+      "source_research": "UpToDate: Clinical manifestations of primary adrenal insufficiency"
+    },
+    {
+      "source": "Addison's disease",
+      "target": "Hypotension",
+      "relationship": "MAY_PRESENT_WITH",
+      "confidence": 0.9,
+      "frequency": "common",
+      "source_research": "Endocrine Society guideline: Primary adrenal insufficiency"
+    },
+    {
+      "source": "Addison disease",
+      "target": "Weight loss",
+      "relationship": "MAY_PRESENT_WITH",
+      "confidence": 0.85,
+      "frequency": "common",
+      "source_research": "NICE CKS Addison's disease"
+    },
+    {
+      "source": "Adrenal insufficiency (Addison disease)",
+      "target": "Hypoglycemia",
+      "relationship": "MAY_PRESENT_WITH",
+      "confidence": 0.8,
+      "frequency": "uncommon",
+      "source_research": "UpToDate: Clinical manifestations of adrenal insufficiency"
+    },
+    {
+      "source": "Cushing syndrome",
+      "target": "Weight gain",
+      "relationship": "MAY_PRESENT_WITH",
+      "confidence": 0.95,
+      "frequency": "very_common",
+      "source_research": "Endocrine Society guideline: Cushing syndrome"
+    },
+    {
+      "source": "Cushing syndrome",
+      "target": "Hypertension",
+      "relationship": "MAY_PRESENT_WITH",
+      "confidence": 0.9,
+      "frequency": "common",
+      "source_research": "Endotext: Cushing syndrome – clinical features"
+    },
+    {
+      "source": "Cushing syndrome",
+      "target": "Hyperglycemia",
+      "relationship": "MAY_PRESENT_WITH",
+      "confidence": 0.85,
+      "frequency": "common",
+      "source_research": "Endocrine Society: Diagnosis of Cushing syndrome"
+    },
+    {
+      "source": "Cushing syndrome",
+      "target": "Fatigue",
+      "relationship": "MAY_PRESENT_WITH",
+      "confidence": 0.8,
+      "frequency": "common",
+      "source_research": "UpToDate: Clinical manifestations of Cushing syndrome"
+    },
+    {
+      "source": "Cushing’s syndrome",
+      "target": "Weight gain",
+      "relationship": "MAY_PRESENT_WITH",
+      "confidence": 0.95,
+      "frequency": "very_common",
+      "source_research": "Endocrine Society guideline: Cushing syndrome"
+    },
+    {
+      "source": "Cushing's syndrome",
+      "target": "Hyperglycemia",
+      "relationship": "MAY_PRESENT_WITH",
+      "confidence": 0.85,
+      "frequency": "common",
+      "source_research": "Endocrine Society: Diagnosis of Cushing syndrome"
+    },
+    {
+      "source": "Insulin resistance",
+      "target": "Hyperglycemia",
+      "relationship": "MAY_PRESENT_WITH",
+      "confidence": 0.9,
+      "frequency": "common",
+      "source_research": "ADA Standards of Care – Prediabetes and insulin resistance"
+    },
+    {
+      "source": "Insulin resistance",
+      "target": "Fatigue",
+      "relationship": "MAY_PRESENT_WITH",
+      "confidence": 0.7,
+      "frequency": "uncommon",
+      "source_research": "ADA patient information on insulin resistance"
+    },
+    {
+      "source": "Insulin resistance",
+      "target": "Weight gain",
+      "relationship": "MAY_PRESENT_WITH",
+      "confidence": 0.8,
+      "frequency": "common",
+      "source_research": "ADA and Endocrine Society statements on metabolic syndrome"
+    },
+    {
+      "source": "type 1 diabetes",
+      "target": "Hyperglycemia",
+      "relationship": "MAY_PRESENT_WITH",
+      "confidence": 0.99,
+      "frequency": "very_common",
+      "source_research": "ADA Standards of Care – Type 1 diabetes"
+    },
+    {
+      "source": "type 1 diabetes",
+      "target": "Polyuria",
+      "relationship": "MAY_PRESENT_WITH",
+      "confidence": 0.95,
+      "frequency": "very_common",
+      "source_research": "ADA: Symptoms of type 1 diabetes"
+    },
+    {
+      "source": "type 1 diabetes",
+      "target": "Polydipsia",
+      "relationship": "MAY_PRESENT_WITH",
+      "confidence": 0.95,
+      "frequency": "very_common",
+      "source_research": "ADA: Symptoms of type 1 diabetes"
+    },
+    {
+      "source": "type 1 diabetes",
+      "target": "Polyphagia",
+      "relationship": "MAY_PRESENT_WITH",
+      "confidence": 0.9,
+      "frequency": "common",
+      "source_research": "UpToDate: Clinical presentation of type 1 diabetes"
+    },
+    {
+      "source": "type 1 diabetes",
+      "target": "Weight loss",
+      "relationship": "MAY_PRESENT_WITH",
+      "confidence": 0.9,
+      "frequency": "common",
+      "source_research": "ADA: Symptoms of type 1 diabetes"
+    },
+    {
+      "source": "type 1 diabetes mellitus",
+      "target": "Blurred vision",
+      "relationship": "MAY_PRESENT_WITH",
+      "confidence": 0.8,
+      "frequency": "common",
+      "source_research": "NICE guideline NG17 – Type 1 diabetes in adults"
+    },
+    {
+      "source": "Type 1 diabetes",
+      "target": "Recurrent infections",
+      "relationship": "MAY_PRESENT_WITH",
+      "confidence": 0.8,
+      "frequency": "common",
+      "source_research": "ADA: Recognizing type 1 diabetes symptoms"
+    },
+    {
+      "source": "diabetes",
+      "target": "Hyperglycemia",
+      "relationship": "MAY_PRESENT_WITH",
+      "confidence": 0.99,
+      "frequency": "very_common",
+      "source_research": "ADA Standards of Care – Diagnosis of diabetes"
+    },
+    {
+      "source": "diabetes",
+      "target": "Polyuria",
+      "relationship": "MAY_PRESENT_WITH",
+      "confidence": 0.95,
+      "frequency": "common",
+      "source_research": "WHO fact sheet – Diabetes"
+    },
+    {
+      "source": "diabetes",
+      "target": "Polydipsia",
+      "relationship": "MAY_PRESENT_WITH",
+      "confidence": 0.95,
+      "frequency": "common",
+      "source_research": "WHO fact sheet – Diabetes"
+    },
+    {
+      "source": "diabetes",
+      "target": "Fatigue",
+      "relationship": "MAY_PRESENT_WITH",
+      "confidence": 0.85,
+      "frequency": "common",
+      "source_research": "NICE guideline NG28 – Type 2 diabetes in adults"
+    },
+    {
+      "source": "Diabetes",
+      "target": "Blurred vision",
+      "relationship": "MAY_PRESENT_WITH",
+      "confidence": 0.8,
+      "frequency": "common",
+      "source_research": "ADA: Symptoms of diabetes"
+    },
+    {
+      "source": "Diabetes Mellitus",
+      "target": "Neuropathy",
+      "relationship": "MAY_PRESENT_WITH",
+      "confidence": 0.9,
+      "frequency": "common",
+      "source_research": "NICE NG28 – Diabetic neuropathy; ADA neuropathy position statement"
+    },
+    {
+      "source": "Diabetes Mellitus",
+      "target": "Recurrent infections",
+      "relationship": "MAY_PRESENT_WITH",
+      "confidence": 0.8,
+      "frequency": "uncommon",
+      "source_research": "WHO fact sheet – Diabetes complications"
+    }
+  ]
+}

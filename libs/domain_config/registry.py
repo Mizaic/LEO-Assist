@@ -120,7 +120,7 @@ NCDA_DOMAIN_CONFIGS: Dict[str, NCDADomain] = {
     "place_of_presentation": NCDADomain(name="place_of_presentation", file="snomed_ncda_place_of_first_presentation_mapping.json", description="Place of first presentation", semantic_tags=["Environment"]),
     "seen_by_specialist": NCDADomain(name="seen_by_specialist", file="snomed_ncda_seen_by_specialist_mapping.json", description="Seen by specialist encounters", semantic_tags=["Procedure"], milestone_type="specialist_visit"),
     "referral_outcomes": NCDADomain(name="referral_outcomes", file="snomed_ncda_referral_outcomes_mapping.json", description="Referral outcome codes", semantic_tags=["Situation"]),
-    "screening": NCDADomain(name="screening", file="snomed_ncda_screening_mapping.json", description="Cancer screening", semantic_tags=["Procedure"]),
+    "screening": NCDADomain(name="screening", file="snomed_ncda_screening_mapping.json", description="NHS cancer screening programmes — offered/declined/completed situations, FIT/FOB/sigmoidoscopy results, lung/bowel/breast/cervical programme findings, DNA events, eligibility", semantic_tags=["Procedure", "Situation", "Clinical_finding"]),
     "observable_entities": NCDADomain(name="observable_entities", file="snomed_ncda_observable_entities_mapping.json", description="Observable entity measurements", semantic_tags=["Observable_entity"]),
     "ethnicity": NCDADomain(name="ethnicity", file="snomed_ncda_ethnicity_mapping.json", description="Ethnicity codes", semantic_tags=["Ethnic_group"]),
     "housebound_status": NCDADomain(name="housebound_status", file="snomed_ncda_housebound_status_mapping.json", description="Housebound status", semantic_tags=["Situation"]),

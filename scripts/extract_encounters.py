@@ -12,11 +12,13 @@ load_dotenv(Path("secrets/.env"))
 uri = os.getenv("NEO4J_URI")
 user = os.getenv("NEO4J_USER")
 pwd = os.getenv("NEO4J_PASSWORD")
+# Synthetic NHS test numbers — 999-prefix range is reserved by NHS for testing/development.
+# Replace with actual patient IDs from your environment before running.
 patient_ids = [
-    "4203796334",
-    "7321643565",
-    "4802235577",
-    "4622879921",
+    "9990000002",
+    "9990000003",
+    "9990000004",
+    "9990000005",
 ]
 
 print(f"Connecting to {uri} ...")
