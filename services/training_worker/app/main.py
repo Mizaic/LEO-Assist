@@ -105,7 +105,7 @@ def start_training_job(body: StartJobRequest) -> dict[str, Any]:
 def list_jobs() -> dict[str, Any]:
     """List all training jobs (most recent first)."""
     store = get_store()
-    return {"jobs": store.list_all()}
+    return {"jobs": store.list_all(log_tail=25)}
 
 
 # ------------------------------------------------------------------
@@ -120,7 +120,7 @@ def get_job(job_id: str) -> dict[str, Any]:
     job = store.get(job_id)
     if not job:
         raise HTTPException(status_code=404, detail=f"Job {job_id!r} not found")
-    return job.to_dict()
+    return job.to_dict(log_tail=500)
 
 
 # ------------------------------------------------------------------
@@ -223,7 +223,7 @@ def stream_training_progress(job_id: str):
 @app.get("/health")
 def health() -> dict[str, Any]:
     store = get_store()
-    jobs = store.list_all()
+    jobs = store.list_all(log_tail=0)
     running = sum(1 for j in jobs if j["status"] == "running")
     return {
         "status": "ok",

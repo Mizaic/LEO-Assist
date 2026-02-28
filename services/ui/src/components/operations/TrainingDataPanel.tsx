@@ -174,6 +174,7 @@ export default function TrainingDataPanel() {
   const [pollingPaused, setPollingPaused] = useState(false);
   const pollingPausedRef = useRef(false);
   const jobsRef = useRef<TrainingJob[]>([]);
+  const lastJobsRefreshAtRef = useRef(0);
 
   // Auto-scroll both log boxes to bottom whenever log lines change
   useEffect(() => {
@@ -216,6 +217,13 @@ export default function TrainingDataPanel() {
     } catch { /* training worker may be offline */ }
   }, []);
 
+  const refreshJobsThrottled = useCallback((minIntervalMs = 2000) => {
+    const now = Date.now();
+    if (now - lastJobsRefreshAtRef.current < minIntervalMs) return;
+    lastJobsRefreshAtRef.current = now;
+    fetchJobs();
+  }, [fetchJobs]);
+
   const fetchPreview = useCallback(async () => {
     try {
       const data = await jsonFetch<ExportPreview>("/api/training/export-preview", { method: "POST" });
@@ -230,7 +238,7 @@ export default function TrainingDataPanel() {
   useEffect(() => { jobsRef.current = jobs; }, [jobs]);
   useEffect(() => { pollingPausedRef.current = pollingPaused; }, [pollingPaused]);
 
-  // Single stable interval (8 s). Each tick checks refs before firing.
+  // Single stable interval (12 s). Each tick checks refs before firing.
   // Stops itself when no active job and jobs exist (all finished).
   useEffect(() => {
     const id = setInterval(() => {
@@ -241,7 +249,7 @@ export default function TrainingDataPanel() {
       if (current.length > 0 && !hasActive) return;
       fetchJobs();
       fetchStats();
-    }, 8000);
+    }, 12000);
     return () => clearInterval(id);
   }, [fetchJobs, fetchStats]); // stable — never recreated
 
@@ -288,7 +296,7 @@ export default function TrainingDataPanel() {
       const es = new EventSource(`${window.location.origin}/api/training-worker/progress/${res.job_id}`);
       esRef.current?.close();
       esRef.current = es;
-      es.addEventListener("training_log", () => fetchJobs());
+      es.addEventListener("training_log", () => refreshJobsThrottled(2000));
       es.addEventListener("training_done", () => { fetchJobs(); es.close(); });
       es.addEventListener("training_failed", () => { fetchJobs(); es.close(); });
       fetchJobs();

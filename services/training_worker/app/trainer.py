@@ -166,6 +166,10 @@ def _write_filled_config(
 
     frozen_list = [c.strip() for c in _FROZEN.split(",") if c.strip()]
     frozen_str = json_list(frozen_list)
+    # If transformer is frozen, it still needs to run forward passes so
+    # TransformerListener layers can infer dimensions from upstream outputs.
+    annotating_list = ["transformer"] if "transformer" in frozen_list else []
+    annotating_str = json_list(annotating_list)
 
     import re
     config_text = re.sub(
@@ -177,6 +181,11 @@ def _write_filled_config(
     config_text = re.sub(
         r'frozen_components\s*=\s*\[.*?\]',
         f'frozen_components = {frozen_str}',
+        config_text,
+    )
+    config_text = re.sub(
+        r'annotating_components\s*=\s*\[.*?\]',
+        f'annotating_components = {annotating_str}',
         config_text,
     )
 

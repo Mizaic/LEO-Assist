@@ -45,7 +45,7 @@ class TrainingJob:
         self.started_at: Optional[float] = None
         self.finished_at: Optional[float] = None
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self, *, log_tail: int = 25) -> dict[str, Any]:
         return {
             "job_id": self.job_id,
             "base_model_version": self.base_model_version,
@@ -54,7 +54,9 @@ class TrainingJob:
             "triggered_by": self.triggered_by,
             "status": self.status,
             "phase": self.phase,
-            "log_lines": self.log_lines[-100:],
+            # Keep list payloads light; UI only needs recent tail.
+            "log_lines": self.log_lines[-max(0, log_tail):],
+            "log_line_count": len(self.log_lines),
             "metrics": self.metrics,
             "artifact_uri": self.artifact_uri,
             "model_version": self.model_version,
@@ -96,9 +98,9 @@ class TrainingJobStore:
         with self._lock:
             return self._jobs.get(job_id)
 
-    def list_all(self) -> list[dict[str, Any]]:
+    def list_all(self, *, log_tail: int = 25) -> list[dict[str, Any]]:
         with self._lock:
-            return [j.to_dict() for j in sorted(
+            return [j.to_dict(log_tail=log_tail) for j in sorted(
                 self._jobs.values(), key=lambda j: j.created_at, reverse=True
             )]
 
