@@ -19,6 +19,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends libgomp1 && \
 COPY --from=build-venv /venv /venv
 COPY libs/ /app/libs/
 COPY services/api/ /app/services/api/
+COPY services/coding_worker/ /app/services/coding_worker/
 WORKDIR /app
 ENV PYTHONPATH=/app:/app/services/api
 USER appuser

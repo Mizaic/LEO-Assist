@@ -28,6 +28,7 @@ from typing import Any
 from libs.message_bus.base import Message
 from libs.neo4j_client.client import PatientGraphClient, KnowledgeGraphClient
 from libs.redis_client.checkpoint import CheckpointStore
+from libs.utils.logging import logging_context
 from services.coding_worker.app.services.progress_publisher import publish_progress
 from services.coding_worker.app.pipeline.pipeline_service import CodingPipeline
 
@@ -44,7 +45,26 @@ async def handle_coding_job(msg: Message) -> None:
     run_id = msg.correlation_id or msg.message_id
     dry_run = body.get("dry_run", False)
     mode = body.get("mode", "all")
+    with logging_context(correlation_id=run_id):
+        await _handle_coding_job_inner(
+            body=body,
+            patient_id=patient_id,
+            encounter_id=encounter_id,
+            run_id=run_id,
+            dry_run=dry_run,
+            mode=mode,
+        )
 
+
+async def _handle_coding_job_inner(
+    *,
+    body: dict[str, Any],
+    patient_id: str,
+    encounter_id: str | None,
+    run_id: str,
+    dry_run: bool,
+    mode: str,
+) -> None:
     logger.info(
         "Received coding job: patient=%s encounter=%s run=%s mode=%s",
         patient_id, encounter_id, run_id, mode,

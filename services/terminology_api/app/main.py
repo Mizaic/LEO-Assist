@@ -12,6 +12,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from libs.utils.logging import configure_logging
 
 from services.terminology_api.app.routers import (
     search_router,
@@ -22,7 +23,7 @@ from services.terminology_api.app.routers import (
     concepts_router,
 )
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
+configure_logging(service_name="terminology-api")
 logger = logging.getLogger("terminology-api")
 
 

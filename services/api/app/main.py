@@ -3,18 +3,12 @@
 from __future__ import annotations
 
 import logging
+import uuid
 from contextlib import asynccontextmanager
 
-# Operational logging: app at INFO, third-party noise suppressed
-logging.getLogger("app").setLevel(logging.INFO)
-logging.getLogger("PyRuSH").setLevel(logging.WARNING)
-logging.getLogger("botocore").setLevel(logging.WARNING)
-logging.getLogger("urllib3").setLevel(logging.WARNING)
-logging.getLogger("httpx").setLevel(logging.WARNING)
-logging.getLogger("sentence_transformers").setLevel(logging.WARNING)
-logging.getLogger("transformers").setLevel(logging.WARNING)
-logging.getLogger("neo4j").setLevel(logging.ERROR)  # Neo4j schema notifications (SurfaceForm, etc.)
-logging.getLogger("neo4j.notifications").setLevel(logging.CRITICAL)
+from libs.utils.logging import configure_logging, logging_context
+
+configure_logging(service_name="core-api")
 
 # PyRuSH uses loguru, not stdlib logging — disable its DEBUG spam
 try:
@@ -94,6 +88,17 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def bind_request_logging_context(request: Request, call_next):
+    """Bind request-level IDs into log context and echo request ID to client."""
+    request_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())
+    correlation_id = request.headers.get("X-Correlation-ID") or request_id
+    with logging_context(request_id=request_id, correlation_id=correlation_id):
+        response = await call_next(request)
+    response.headers["X-Request-ID"] = request_id
+    return response
 
 
 @app.middleware("http")

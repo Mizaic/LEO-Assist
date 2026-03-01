@@ -13,9 +13,10 @@ import os
 
 from libs.message_bus.factory import create_message_bus
 from libs.message_bus.base import Message
+from libs.utils.logging import configure_logging
 from services.coding_worker.app.services.job_handler import handle_coding_job
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
+configure_logging(service_name="coding-worker")
 
 # Suppress noisy Azure SDK internals — we only care about errors
 for _ns in (

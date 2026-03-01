@@ -151,6 +151,10 @@ export default function CodingReviewPanel() {
     rechecked: number;
     auto_resolved: number;
     ignored_by_rule: number;
+    resolved_direct?: number;
+    resolved_llm?: number;
+    writeback_llm_success?: number;
+    writeback_llm_failed?: number;
   } | null>(null);
 
   const fetchQueue = useCallback(async () => {
@@ -210,6 +214,11 @@ export default function CodingReviewPanel() {
           status: string;
           rechecked?: number;
           auto_resolved?: number;
+          ignored_by_rule?: number;
+          resolved_direct?: number;
+          resolved_llm?: number;
+          writeback_llm_success?: number;
+          writeback_llm_failed?: number;
         }>("/api/training/coding-review/recheck/status");
 
         consecutiveErrors = 0;
@@ -222,7 +231,11 @@ export default function CodingReviewPanel() {
           setRecheckResult({
             rechecked: state.rechecked ?? 0,
             auto_resolved: state.auto_resolved ?? 0,
-            ignored_by_rule: 0,
+            ignored_by_rule: state.ignored_by_rule ?? 0,
+            resolved_direct: state.resolved_direct ?? 0,
+            resolved_llm: state.resolved_llm ?? 0,
+            writeback_llm_success: state.writeback_llm_success ?? 0,
+            writeback_llm_failed: state.writeback_llm_failed ?? 0,
           });
           setPage(1);
           fetchQueue();
@@ -437,7 +450,15 @@ export default function CodingReviewPanel() {
           sx={{ mb: 2 }}
         >
           {(() => {
-            const { rechecked, auto_resolved, ignored_by_rule = 0 } = recheckResult;
+            const {
+              rechecked,
+              auto_resolved,
+              ignored_by_rule = 0,
+              resolved_direct = 0,
+              resolved_llm = 0,
+              writeback_llm_success = 0,
+              writeback_llm_failed = 0,
+            } = recheckResult;
             const stillPending = rechecked - auto_resolved;
             if (auto_resolved === 0 && ignored_by_rule === 0) {
               return `Checked ${rechecked} item${rechecked !== 1 ? "s" : ""}. None resolved automatically - the list is up to date.`;
@@ -445,6 +466,16 @@ export default function CodingReviewPanel() {
             const parts: string[] = [];
             if (auto_resolved > 0) parts.push(`${auto_resolved} coded automatically`);
             if (ignored_by_rule > 0) parts.push(`${ignored_by_rule} suppressed by ignore rule`);
+            if (resolved_direct > 0) parts.push(`${resolved_direct} direct`);
+            if (resolved_llm > 0) {
+              parts.push(`${resolved_llm} via LLM`);
+              if (writeback_llm_success > 0) {
+                parts.push(`${writeback_llm_success} LLM writebacks`);
+              }
+              if (writeback_llm_failed > 0) {
+                parts.push(`${writeback_llm_failed} writebacks failed`);
+              }
+            }
             return `${parts.join(", ")}. ${stillPending} still need review.`;
           })()}
         </Alert>

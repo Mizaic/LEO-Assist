@@ -715,7 +715,7 @@ class CodingPipeline:
         })
         t0 = time.monotonic()
         try:
-            from services.api.app.services.encounter_classifier import (
+            from libs.classifiers.encounter_classifier import (
                 build_patient_encounter_index,
                 persist_patient_encounter_classification,
             )
