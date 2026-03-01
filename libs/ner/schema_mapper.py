@@ -50,8 +50,6 @@ VALID_LABELS: frozenset[str] = frozenset(
         "attribute",
         "environment",
         "product",
-        # Pathway milestones
-        "X_PATHWAY_MILESTONE",
         # Modifier / context labels
         "X_TEMPORAL",
         "X_DOSAGE",

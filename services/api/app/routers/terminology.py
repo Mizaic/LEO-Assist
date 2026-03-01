@@ -16,6 +16,9 @@ from app.models.neo4j_schema import (
     DESCENDANTS_TEMPLATE,
     LIST_SURFACE_FORMS,
     COUNT_SURFACE_FORMS,
+    GROUPED_SURFACE_FORMS,
+    COUNT_GROUPED_SURFACE_FORMS,
+    GET_CONCEPT_FOR_SUGGESTION,
     DELETE_SURFACE_FORM,
     DELETE_SURFACE_FORM_MAPPING,
     KEEP_SURFACE_FORM_MAPPING,
@@ -170,6 +173,23 @@ def upsert_surface_form_mapping(body: UpsertMappingRequest):
         client.close()
 
 
+@router.get("/surface-forms/grouped")
+def list_grouped_surface_forms(
+    q: Optional[str] = Query(default=None, description="Filter by surface form text or concept name"),
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+):
+    """Return surface forms grouped by SNOMED concept."""
+    client = CodingGraphClient()
+    try:
+        rows = client.run(GROUPED_SURFACE_FORMS, q=q, offset=offset, limit=limit)
+        count_rows = client.run(COUNT_GROUPED_SURFACE_FORMS, q=q)
+        total = count_rows[0]["total"] if count_rows else 0
+        return {"items": rows, "total": total, "offset": offset, "limit": limit}
+    finally:
+        client.close()
+
+
 @router.delete("/surface-forms/{normalized:path}")
 def delete_surface_form(
     normalized: str,
@@ -234,3 +254,72 @@ def get_descendants(
         return client.run(query, concept_id=concept_id, semantic_tag=semantic_tag, limit=limit)
     finally:
         client.close()
+
+
+@router.post("/concepts/{concept_id}/suggest-aliases")
+def suggest_aliases_for_concept(concept_id: str):
+    """Use a small LLM (Claude Haiku via Bedrock) to suggest additional surface form aliases."""
+    import json
+    import re
+
+    from libs.llm_client.factory import create_llm
+
+    coding_client = CodingGraphClient()
+    try:
+        rows = coding_client.run(GET_CONCEPT_FOR_SUGGESTION, concept_id=concept_id)
+    finally:
+        coding_client.close()
+
+    if not rows:
+        from fastapi import HTTPException
+        raise HTTPException(404, f"Concept {concept_id} not found or inactive")
+
+    row = rows[0]
+    concept_fsn: str = row["concept_fsn"]
+    semantic_tag: str = row.get("semantic_tag") or "clinical finding"
+    existing: list[str] = row.get("existing_aliases") or []
+    existing_lower = {e.lower() for e in existing}
+
+    existing_list = (
+        ", ".join(f'"{e}"' for e in existing) if existing else "none yet"
+    )
+
+    system_prompt = (
+        "You are a UK primary care clinical terminology assistant. "
+        "You suggest short text strings that UK GPs write in free-text consultation notes. "
+        "Focus on NHS-specific abbreviations, clinical shorthand, and common spelling variants. "
+        "Respond ONLY with a valid JSON array of strings — no explanation, no markdown fences."
+    )
+    user_prompt = (
+        f'Concept: "{concept_fsn}" (SNOMED {concept_id}, type: {semantic_tag})\n'
+        f"Existing aliases: {existing_list}\n\n"
+        "Suggest up to 10 additional short phrases (1–6 words each) a UK GP might write "
+        "in a free-text consultation note to mean this concept. "
+        "Include abbreviations, misspellings, acronyms, and NHS shorthand. "
+        "Do NOT repeat the existing aliases.\n"
+        'Output format: ["alias1", "alias2", ...]'
+    )
+
+    try:
+        llm = create_llm(tier="small")
+        response = llm.converse(
+            system=system_prompt,
+            messages=[{"role": "user", "content": user_prompt}],
+            max_tokens=512,
+            temperature=0.3,
+        )
+        text = response.text.strip()
+        match = re.search(r"\[.*\]", text, re.DOTALL)
+        if not match:
+            return {"suggestions": [], "concept_id": concept_id}
+        raw = json.loads(match.group())
+        suggestions = [
+            s.strip()
+            for s in raw
+            if isinstance(s, str) and s.strip() and s.strip().lower() not in existing_lower
+        ]
+        return {"suggestions": suggestions[:10], "concept_id": concept_id}
+    except Exception as exc:  # noqa: BLE001
+        import logging
+        logging.getLogger(__name__).warning("suggest-aliases LLM error: %s", exc)
+        return {"suggestions": [], "concept_id": concept_id}

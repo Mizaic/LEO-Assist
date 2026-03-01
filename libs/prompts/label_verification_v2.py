@@ -58,7 +58,6 @@ Allowed labels:
 - attribute
 - environment
 - product
-- X_PATHWAY_MILESTONE
 - X_TEMPORAL
 - X_DOSAGE
 - X_FREQUENCY
@@ -67,8 +66,7 @@ Allowed labels:
 Decision ladder (apply in order):
 1) Document/admin artifact or correspondence phrase -> record_artifact or event
 2) Risk/pending/negated/excluded status statement -> situation
-3) Pathway checkpoint phrase (2WW referral, discharged from pathway, clock start) -> X_PATHWAY_MILESTONE
-4) Treatment action phrase (administered/commenced/performed) -> procedure
+3) Treatment action phrase (administered/commenced/performed) -> procedure
 5) Bare drug ingredient name -> substance
 6) Product/formulation/brand drug phrasing -> medicinal_product or clinical_drug or product
 7) Measured clinical parameter with value/unit -> observable_entity (test name only) + qualifier_value (value/unit token)
@@ -117,14 +115,16 @@ Boundary rules:
   - "DVT" as diagnosed condition -> disorder
 - substance vs procedure:
   - "Degarelix" -> substance
-  - "Degarelix 240 mg SC injection administered today" -> procedure or X_PATHWAY_MILESTONE (prefer milestone if clearly a pathway event phrase)
+  - "Degarelix 240 mg SC injection administered today" -> procedure (treatment action performed)
 - procedure vs situation for planned/pending procedures:
   - procedure = PERFORMED or BEING PERFORMED ("Colonoscopy performed today")
   - situation = PLANNED / PENDING / NOT YET DONE ("Patient on waiting list for op", "colonoscopy planned", "referred for MRI", "booked for surgery")
   - SNOMED confirms: 405613005 | Planned procedure (situation) | — planned procedures are situations, not procedures
-- situation vs X_PATHWAY_MILESTONE:
-  - "Cancer ruled out" -> situation
-  - "Discharged from 2WW pathway" -> X_PATHWAY_MILESTONE
+- Pathway events use standard clinical labels — pathway significance is determined by the analytics pipeline:
+  - "Discharged from 2WW pathway" -> situation (clinical status change)
+  - "First cycle CHOP chemotherapy" -> procedure (treatment administered)
+  - "Cancer ruled out" -> situation (diagnostic conclusion)
+  - "2WW referral" -> situation (pending referral)
 - finding vs attribute:
   - "Smoking status: current smoker" -> finding (clinical status statement)
   - Lifestyle factors (diet, alcohol, exercise, weight, drives) -> finding (not attribute)
@@ -215,10 +215,11 @@ Span: Abnormal
 Label: qualifier_value
 Why not finding: describes the measurement status, not a clinical symptom.
 
-8) X_PATHWAY_MILESTONE
+8) procedure — treatment event (NOT a separate pathway label)
 Text: First cycle CHOP chemotherapy administered today for DLBCL.
 Span: First cycle CHOP chemotherapy
-Label: X_PATHWAY_MILESTONE
+Label: procedure
+Why: pathway significance is determined by the analytics pipeline, not the NER label.
 
 9) X_TEMPORAL
 Text: Next dose in 28 days.

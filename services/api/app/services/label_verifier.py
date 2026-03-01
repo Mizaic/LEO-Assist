@@ -27,6 +27,7 @@ import time
 from typing import Any
 
 import httpx
+from libs.cypher.coding_review_queries import UPSERT_CODING_REVIEW
 from libs.cypher.label_verification_queries import (
     GET_HITL_REVIEWED_LABEL_IDS,
     RESOLVE_LABEL_VERIFICATION_REVIEW,
@@ -103,7 +104,6 @@ VALID_ENTITY_LABELS = {
     "attribute",
     "environment",
     "product",
-    "X_PATHWAY_MILESTONE",
     "X_TEMPORAL",
     "X_DOSAGE",
     "X_FREQUENCY",
@@ -617,6 +617,10 @@ def _normalise_entity_types(updated_entities: list[dict[str, Any]]) -> None:
         if label in {"X_TEMPORAL", "X_PATHWAY_MILESTONE"} and lowered in _EPISODE_MARKER_TEXTS:
             ent["label"] = "qualifier_value"
 
+        # 5b) Remaining X_PATHWAY_MILESTONE → procedure (pathway analytics handled downstream).
+        if label == "X_PATHWAY_MILESTONE" and ent.get("label") == "X_PATHWAY_MILESTONE":
+            ent["label"] = "procedure"
+
         # 6) Lifestyle factors as attribute → finding.
         if label == "attribute" and lowered in _LIFESTYLE_FACTOR_TEXTS:
             ent["label"] = "finding"
@@ -923,6 +927,79 @@ def _auto_triage_disagreement(
     return None
 
 
+_CODEABLE_LABELS = frozenset({
+    "disorder", "finding", "procedure", "observable_entity", "substance",
+    "medicinal_product", "clinical_drug", "situation", "body_structure",
+    "morphologic_abnormality", "regime_therapy", "assessment_scale",
+    "tumor_staging", "organism", "occupation", "physical_object",
+})
+
+_CODING_SCORE_THRESHOLD = float(os.getenv("CODING_REVIEW_SCORE_THRESHOLD", "0.70"))
+
+
+def _check_terminology_coding(
+    label_id: str,
+    entities: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Check each codeable entity against the terminology API.
+
+    Returns a list of coding review items for entities that are uncoded
+    or have low-confidence matches.
+    """
+    codeable = [
+        (i, e) for i, e in enumerate(entities)
+        if str(e.get("label", "")) in _CODEABLE_LABELS
+        and str(e.get("text", "")).strip()
+    ]
+    if not codeable:
+        return []
+
+    terms = list({str(e.get("text", "")).strip() for _, e in codeable})
+    try:
+        with httpx.Client(timeout=10) as client:
+            response = client.post(
+                f"{_TERMINOLOGY_API_URL}/terminology/resolve",
+                json={"terms": terms},
+            )
+            response.raise_for_status()
+            payload = response.json() if response.content else {}
+    except Exception:
+        logger.debug("Coding check: terminology API call failed", exc_info=True)
+        return []
+
+    results_map = (payload or {}).get("results") or {}
+    reviews: list[dict[str, Any]] = []
+
+    for idx, ent in codeable:
+        entity_text = str(ent.get("text", "")).strip()
+        entity_label = str(ent.get("label", ""))
+        candidates = results_map.get(entity_text) or []
+        top = candidates[0] if candidates and isinstance(candidates[0], dict) else {}
+        concept_id = str(top.get("snomed_concept_id") or "")
+        snomed_term = str(top.get("snomed_term") or "")
+        score = _safe_float(top.get("score"))
+        semantic_tag = str(top.get("semantic_tag") or "")
+
+        coded = bool(concept_id)
+        if coded and score >= _CODING_SCORE_THRESHOLD:
+            continue
+
+        reviews.append({
+            "review_id": f"coding:{label_id}:{idx}",
+            "label_id": label_id,
+            "entity_index": idx,
+            "entity_text": entity_text,
+            "entity_label": entity_label,
+            "coded": coded,
+            "snomed_concept_id": concept_id if coded else None,
+            "snomed_term": snomed_term if coded else None,
+            "score": score if coded else None,
+            "semantic_tag": semantic_tag if coded else None,
+        })
+
+    return reviews
+
+
 # ---------------------------------------------------------------------------
 # Per-label processing (runs inside the outer ThreadPoolExecutor)
 # ---------------------------------------------------------------------------
@@ -933,6 +1010,7 @@ class _LabelResult:
         "label_id", "updated_entities", "quality_score", "agreement",
         "n_disagreements", "review_items", "first_aws_label", "first_azure_label",
         "auto_resolved", "auto_resolve_method",
+        "coding_reviews",
         "error",
     )
 
@@ -947,6 +1025,7 @@ class _LabelResult:
         self.first_azure_label: str = ""
         self.auto_resolved: int = 0
         self.auto_resolve_method: str = ""
+        self.coding_reviews: list[dict] = []
         self.error: bool = error
 
 
@@ -1124,6 +1203,8 @@ def _process_label(label_row: dict, rules: list[PostProcessorRule]) -> _LabelRes
         _link_observable_value_units(updated_entities)
         apply_context_detection(text, updated_entities)
 
+        result.coding_reviews = _check_terminology_coding(label_id, updated_entities)
+
         total_entities = max(len(entities), 1)
         result.updated_entities = updated_entities
         result.n_disagreements = n_disagreements
@@ -1244,6 +1325,22 @@ def run_verification() -> None:
                                 model_a_was_correct=(item["model_a_label"] == resolved_label),
                                 model_b_was_correct=(item["model_b_label"] == resolved_label),
                             )
+
+                    # Write coding review items (uncoded / low-confidence entities)
+                    for cr in result.coding_reviews:
+                        session.run(
+                            UPSERT_CODING_REVIEW,
+                            review_id=cr["review_id"],
+                            label_id=result.label_id,
+                            entity_index=cr["entity_index"],
+                            entity_text=cr["entity_text"],
+                            entity_label=cr["entity_label"],
+                            coded=cr["coded"],
+                            snomed_concept_id=cr.get("snomed_concept_id"),
+                            snomed_term=cr.get("snomed_term"),
+                            score=cr.get("score"),
+                            semantic_tag=cr.get("semantic_tag"),
+                        )
 
                     session.run(
                         UPDATE_TRAINING_LABEL_ENTITIES,

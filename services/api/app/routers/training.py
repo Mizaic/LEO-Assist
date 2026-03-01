@@ -41,6 +41,12 @@ from libs.cypher.training_label_queries import (
     LABEL_ENTITY_TYPE_BREAKDOWN,
     UPDATE_TRAINING_LABEL_ENTITIES,
 )
+from libs.cypher.coding_review_queries import (
+    COUNT_CODING_REVIEW_PENDING,
+    GET_CODING_REVIEW_QUEUE,
+    GET_CODING_REVIEW_STATS,
+    RESOLVE_CODING_REVIEW,
+)
 from libs.cypher.label_verification_queries import (
     COUNT_VERIFICATION_QUEUE_PENDING,
     DELETE_ALL_VERIFICATION_REVIEWS_FOR_INCLUDED,
@@ -263,7 +269,6 @@ _VALID_ENTITY_LABELS: frozenset[str] = frozenset(
         "assessment_scale", "staging_scale", "regime_therapy", "record_artifact",
         "physical_object", "organism", "morphologic_abnormality", "occupation",
         "attribute", "environment", "product",
-        "X_PATHWAY_MILESTONE",
         "X_TEMPORAL", "X_DOSAGE", "X_FREQUENCY", "X_ROUTE",
     }
 )
@@ -894,6 +899,132 @@ def export_preview(scope: CallerScope = Depends(get_caller_scope)) -> dict[str, 
             "ready_to_train": total >= int(__import__("os").getenv("TRAINING_MIN_LABEL_COUNT", "50")),
             "min_required": int(__import__("os").getenv("TRAINING_MIN_LABEL_COUNT", "50")),
             "by_label_type": by_label,
+        }
+    finally:
+        client.close()
+
+
+# ------------------------------------------------------------------
+# Coding Review endpoints
+# ------------------------------------------------------------------
+
+
+@router.get("/coding-review/queue")
+def coding_review_queue(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(25, ge=1, le=500),
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    """Paginated queue of entities with missing or low-confidence SNOMED coding."""
+    client = PatientGraphClient()
+    try:
+        with client.session() as session:
+            skip = (page - 1) * page_size
+            rows = session.run(GET_CODING_REVIEW_QUEUE, skip=skip, limit=page_size)
+            items = [dict(r) for r in rows]
+
+            pending_row = session.run(COUNT_CODING_REVIEW_PENDING).single()
+            pending = pending_row["pending"] if pending_row else 0
+
+            stats_row = session.run(GET_CODING_REVIEW_STATS).single()
+            stats = dict(stats_row) if stats_row else {}
+
+        total_pages = max(1, (pending + page_size - 1) // page_size)
+        return {
+            "items": items,
+            "page": page,
+            "page_size": page_size,
+            "total_pages": total_pages,
+            "pending": pending,
+            "stats": stats,
+        }
+    finally:
+        client.close()
+
+
+class ResolveCodingReviewRequest(BaseModel):
+    resolved_concept_id: str
+    resolved_term: str
+    reviewer: str = "operations_ui"
+
+
+@router.post("/coding-review/{review_id}/resolve")
+def resolve_coding_review(
+    review_id: str,
+    body: ResolveCodingReviewRequest,
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    """Manually assign a SNOMED concept to an uncoded entity.
+
+    Also upserts a SurfaceForm mapping in the knowledge graph so the
+    terminology API can resolve this surface form in future.
+    """
+    from services.api.app.db.neo4j_client import CodingGraphClient
+    from services.api.app.models.neo4j_schema import UPSERT_SURFACE_FORM_MAPPING
+
+    client = PatientGraphClient()
+    try:
+        with client.session() as session:
+            # Fetch the entity text before resolving so we can create the surface form.
+            cr_row = session.run(
+                "MATCH (cr:CodingReview {review_id: $review_id}) "
+                "RETURN cr.entity_text AS entity_text",
+                review_id=review_id,
+            ).single()
+            entity_text = str(cr_row["entity_text"]) if cr_row else ""
+
+            result = session.run(
+                RESOLVE_CODING_REVIEW,
+                review_id=review_id,
+                resolved_concept_id=body.resolved_concept_id,
+                resolved_term=body.resolved_term,
+                reviewer=body.reviewer,
+            ).single()
+        if not result:
+            raise HTTPException(status_code=404, detail="Coding review not found")
+    finally:
+        client.close()
+
+    if entity_text:
+        normalized = re.sub(r"\s+", " ", entity_text.strip().lower())
+        try:
+            coding_client = CodingGraphClient()
+            coding_client.run(
+                UPSERT_SURFACE_FORM_MAPPING,
+                normalized=normalized,
+                form=entity_text.strip(),
+                concept_id=body.resolved_concept_id,
+                confidence=1.0,
+                source="coding_review",
+                provenance="coding_review_resolution",
+                created_by=body.reviewer,
+            )
+            coding_client.close()
+            logger.info(
+                "Created surface form mapping: %r -> %s (%s)",
+                entity_text, body.resolved_concept_id, body.resolved_term,
+            )
+        except Exception:
+            logger.warning(
+                "Failed to create surface form mapping for %r", entity_text,
+                exc_info=True,
+            )
+
+    return {"review_id": result["review_id"], "status": "resolved", "surface_form_created": bool(entity_text)}
+
+
+@router.get("/coding-review/stats")
+def coding_review_stats(
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    """Summary statistics for coding review."""
+    client = PatientGraphClient()
+    try:
+        with client.session() as session:
+            row = session.run(GET_CODING_REVIEW_STATS).single()
+        return dict(row) if row else {
+            "total": 0, "coded": 0, "uncoded": 0,
+            "resolved": 0, "pending": 0, "low_confidence": 0,
         }
     finally:
         client.close()

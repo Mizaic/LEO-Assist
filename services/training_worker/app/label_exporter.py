@@ -48,7 +48,6 @@ _LABEL_MAP: dict[str, str] = {
     "attribute": "ATTRIBUTE",
     "environment": "ENVIRONMENT",
     "product": "PRODUCT",
-    "X_PATHWAY_MILESTONE": "PATHWAY_MILESTONE",
     "X_TEMPORAL": "TEMPORAL",
     "X_DOSAGE": "DOSAGE",
     "X_FREQUENCY": "FREQUENCY",

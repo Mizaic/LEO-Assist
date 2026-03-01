@@ -41,7 +41,6 @@ _CLINICAL_ENTITY_LABELS: frozenset[str] = frozenset(
         "observable_entity",
         "substance",
         "situation",
-        "X_PATHWAY_MILESTONE",
     }
 )
 

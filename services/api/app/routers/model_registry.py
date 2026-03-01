@@ -247,7 +247,7 @@ def _run_canary_gold_job(version: str, job_id: str) -> None:
             "substance": "SUBSTANCE", "medicinal_product": "MEDICINAL_PRODUCT",
             "clinical_drug": "CLINICAL_DRUG", "situation": "SITUATION",
             "event": "EVENT", "body_structure": "BODY_STRUCTURE",
-            "tumor_staging": "TUMOR_STAGING", "X_PATHWAY_MILESTONE": "PATHWAY_MILESTONE",
+            "tumor_staging": "TUMOR_STAGING",
             "X_TEMPORAL": "TEMPORAL",
             "X_DOSAGE": "DOSAGE", "X_FREQUENCY": "FREQUENCY", "X_ROUTE": "ROUTE",
         }

@@ -14,8 +14,7 @@ Choose one final label from the allowed labels list.
 Apply this order:
 1) document/admin artifacts -> record_artifact/event
 2) risk/pending/negated status -> situation
-3) pathway checkpoint -> X_PATHWAY_MILESTONE
-4) treatment action phrase -> procedure
+3) treatment action phrase -> procedure
 5) bare ingredient -> substance
 6) measurable value+unit -> observable_entity
 7) confirmed diagnosis -> disorder
@@ -31,7 +30,7 @@ Boundary reminders:
 - DVT risk = situation
 - PSA 12.4 ng/mL = observable_entity (test name only) + qualifier_value (value+unit)
 - Cancer ruled out = situation
-- Discharged from 2WW pathway = X_PATHWAY_MILESTONE
+- Discharged from 2WW pathway = situation (clinical status change)
 - Smoking status, current smoker = finding (not attribute)
 - Lifestyle factors (diet, alcohol, exercise, weight, drives) = finding (not attribute)
 - Lab result values (142 mmol/L, 43 mL/min, 0.399, 28.8 pg) = qualifier_value (NEVER X_DOSAGE)
@@ -39,7 +38,7 @@ Boundary reminders:
 - Smoking consumption (1-9 cigs/day) = qualifier_value (NOT X_DOSAGE)
 - Abnormal, Outside reference range, Satisfactory, NAD, weight stable = qualifier_value (not finding)
 - Bare analyte names (creatinine, albumin, folate, urea) near a lab test = suppress
-- New Episode, Ongoing Episode = qualifier_value (not X_TEMPORAL or X_PATHWAY_MILESTONE)
+- New Episode, Ongoing Episode = qualifier_value (not X_TEMPORAL)
 - MDT = procedure (clinical governance activity)
 - MDT outcome heading/document phrase = record_artifact
 - Severe, mild, worsened, pale, urgent = qualifier_value (severity/modifier)

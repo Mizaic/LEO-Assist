@@ -170,7 +170,6 @@ const VALID_ENTITY_LABELS = [
   "attribute",
   "environment",
   "product",
-  "X_PATHWAY_MILESTONE",
   "X_TEMPORAL",
   "X_DOSAGE",
   "X_FREQUENCY",

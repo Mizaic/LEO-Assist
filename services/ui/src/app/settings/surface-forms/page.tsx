@@ -5,13 +5,6 @@ import { useRouter } from "next/navigation";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import TextField from "@mui/material/TextField";
-import Table from "@mui/material/Table";
-import TableBody from "@mui/material/TableBody";
-import TableCell from "@mui/material/TableCell";
-import TableContainer from "@mui/material/TableContainer";
-import TableHead from "@mui/material/TableHead";
-import TableRow from "@mui/material/TableRow";
-import TablePagination from "@mui/material/TablePagination";
 import Paper from "@mui/material/Paper";
 import IconButton from "@mui/material/IconButton";
 import Breadcrumbs from "@mui/material/Breadcrumbs";
@@ -29,73 +22,120 @@ import Button from "@mui/material/Button";
 import Collapse from "@mui/material/Collapse";
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
-import ListItemText from "@mui/material/ListItemText";
 import ListItemButton from "@mui/material/ListItemButton";
+import ListItemText from "@mui/material/ListItemText";
 import Divider from "@mui/material/Divider";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import TablePagination from "@mui/material/TablePagination";
 import SearchIcon from "@mui/icons-material/Search";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
+import CheckIcon from "@mui/icons-material/Check";
+import CloseIcon from "@mui/icons-material/Close";
 import InputAdornment from "@mui/material/InputAdornment";
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import {
+  fetchGroupedSurfaceForms,
   fetchSurfaceForms,
-  deleteSurfaceForm,
   fetchSurfaceFormDuplicates,
   deduplicateSurfaceForms,
+  deleteSurfaceForm,
   deleteSurfaceFormMapping,
   keepSurfaceFormMapping,
   upsertSurfaceFormMapping,
+  suggestAliases,
   searchTerms,
-  type SurfaceFormItem,
+  type ConceptGroup,
+  type GroupedSurfaceForm,
   type SurfaceFormDuplicate,
 } from "@/lib/api";
 
 const PAGE_SIZE_OPTIONS = [25, 50, 100];
 
+/** Client-side normalisation matching the server's _normalize() function. */
+function normalize(text: string): string {
+  return [...text]
+    .map((ch) => (/[a-zA-Z0-9]/.test(ch) ? ch.toLowerCase() : " "))
+    .join("")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+type SnomedSearchResult = {
+  snomed_concept_id: string;
+  term: string;
+  semantic_tag?: string;
+  read_code?: string;
+};
+
+interface AliasConflict {
+  concept_fsn: string;
+  concept_id: string;
+}
+
 export default function SurfaceFormsPage() {
   const router = useRouter();
 
+  // ── Search + pagination ───────────────────────────────────
   const [searchInput, setSearchInput] = useState("");
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(50);
 
-  const [items, setItems] = useState<SurfaceFormItem[]>([]);
+  // ── Data ─────────────────────────────────────────────────
+  const [groups, setGroups] = useState<ConceptGroup[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [deleteTarget, setDeleteTarget] = useState<SurfaceFormItem | null>(null);
+  // ── Delete concept group ──────────────────────────────────
+  const [deleteTarget, setDeleteTarget] = useState<ConceptGroup | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  // Duplicate audit
+  // ── Delete individual surface form ────────────────────────
+  const [deletingAlias, setDeletingAlias] = useState<string | null>(null); // normalized
+
+  // ── Add SNOMED concept panel ──────────────────────────────
+  const [addConceptOpen, setAddConceptOpen] = useState(false);
+  const [addConceptQuery, setAddConceptQuery] = useState("");
+  const [addConceptResults, setAddConceptResults] = useState<SnomedSearchResult[]>([]);
+  const [addConceptSearching, setAddConceptSearching] = useState(false);
+  const [addConceptWarning, setAddConceptWarning] = useState<string | null>(null);
+  const addConceptDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ── Add alias (surface form) to a concept ────────────────
+  const [addAliasFor, setAddAliasFor] = useState<string | null>(null); // concept_id
+  const [addAliasInput, setAddAliasInput] = useState("");
+  const [aliasConflict, setAliasConflict] = useState<AliasConflict | null>(null);
+  const [aliasAdding, setAliasAdding] = useState(false);
+  const aliasConflictDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ── LLM alias suggestions ─────────────────────────────────
+  // concept_id -> string[] (loaded suggestions)
+  const [suggestions, setSuggestions] = useState<Record<string, string[]>>({});
+  // concept_id -> Set of normalized strings the user dismissed
+  const [dismissed, setDismissed] = useState<Record<string, Set<string>>>({});
+  const [suggestingFor, setSuggestingFor] = useState<string | null>(null);
+
+  // ── Duplicate audit ───────────────────────────────────────
   const [duplicates, setDuplicates] = useState<SurfaceFormDuplicate[] | null>(null);
   const [duplicatesOpen, setDuplicatesOpen] = useState(false);
   const [duplicatesLoading, setDuplicatesLoading] = useState(false);
   const [deduping, setDeduping] = useState(false);
   const [dedupeResult, setDedupeResult] = useState<number | null>(null);
-  // key = `${normalized}__${concept_id}`
   const [mappingActioning, setMappingActioning] = useState<string | null>(null);
 
-  // Add-mapping panel state — key = normalized form currently open
-  const [addMappingOpen, setAddMappingOpen] = useState<string | null>(null);
-  const [addMappingQuery, setAddMappingQuery] = useState("");
-  const [addMappingResults, setAddMappingResults] = useState<
-    Array<{ snomed_concept_id: string; term: string; semantic_tag?: string }>
-  >([]);
-  const [addMappingSearching, setAddMappingSearching] = useState(false);
-  const [addMappingAdding, setAddMappingAdding] = useState<string | null>(null);
-  const addMappingDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const searchDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // ── Scroll-to refs per concept ────────────────────────────
+  const groupRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const load = useCallback(async (q: string, p: number, rpp: number) => {
     setLoading(true);
     setError(null);
     try {
-      const result = await fetchSurfaceForms(q || undefined, undefined, rpp, p * rpp);
-      setItems(result.items);
+      const result = await fetchGroupedSurfaceForms(q || undefined, rpp, p * rpp);
+      setGroups(result.items);
       setTotal(result.total);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load surface forms");
@@ -110,27 +150,54 @@ export default function SurfaceFormsPage() {
 
   const handleSearchChange = (value: string) => {
     setSearchInput(value);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
+    if (searchDebounce.current) clearTimeout(searchDebounce.current);
+    searchDebounce.current = setTimeout(() => {
       setPage(0);
       setQuery(value);
     }, 350);
   };
 
-  const handleDelete = async () => {
-    if (!deleteTarget) return;
-    setDeleting(true);
+  const totalAliases = groups.reduce((sum, g) => sum + g.surface_forms.length, 0);
+
+  // ── LLM alias suggestions ─────────────────────────────────
+
+  const handleSuggest = async (conceptId: string) => {
+    setSuggestingFor(conceptId);
     try {
-      await deleteSurfaceForm(deleteTarget.normalized);
-      setDeleteTarget(null);
-      load(query, page, rowsPerPage);
+      const results = await suggestAliases(conceptId);
+      setSuggestions((prev) => ({ ...prev, [conceptId]: results }));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to delete surface form");
-      setDeleteTarget(null);
+      setError(e instanceof Error ? e.message : "Suggestion failed");
     } finally {
-      setDeleting(false);
+      setSuggestingFor(null);
     }
   };
+
+  const handleAcceptSuggestion = async (conceptId: string, form: string) => {
+    const norm = normalize(form);
+    try {
+      await upsertSurfaceFormMapping(norm, form, conceptId, { source: "llm_suggestion" });
+      // Remove from suggestions, refresh group
+      setSuggestions((prev) => ({
+        ...prev,
+        [conceptId]: (prev[conceptId] ?? []).filter((s) => s !== form),
+      }));
+      load(query, page, rowsPerPage);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to add suggestion");
+    }
+  };
+
+  const handleDismissSuggestion = (conceptId: string, form: string) => {
+    const norm = normalize(form);
+    setDismissed((prev) => {
+      const existing = new Set(prev[conceptId]);
+      existing.add(norm);
+      return { ...prev, [conceptId]: existing };
+    });
+  };
+
+  // ── Duplicate audit ───────────────────────────────────────
 
   const handleAuditDuplicates = async () => {
     setDuplicatesLoading(true);
@@ -196,49 +263,170 @@ export default function SurfaceFormsPage() {
     }
   };
 
-  // All confidences equal — auto-fix won't help, needs manual review
   const allSameConfidence = duplicates?.every((d) => {
     const confs = d.mappings.map((m) => m.confidence ?? 0);
     return confs.every((c) => c === confs[0]);
   }) ?? false;
 
-  const openAddMapping = (normalized: string) => {
-    setAddMappingOpen(normalized);
-    setAddMappingQuery("");
-    setAddMappingResults([]);
-  };
+  // ── Add SNOMED concept ────────────────────────────────────
 
-  const handleAddMappingSearch = async (q: string, normalized: string) => {
-    setAddMappingQuery(q);
-    if (addMappingDebounce.current) clearTimeout(addMappingDebounce.current);
-    if (q.trim().length < 2) { setAddMappingResults([]); return; }
-    addMappingDebounce.current = setTimeout(async () => {
-      setAddMappingSearching(true);
+  const handleAddConceptSearch = (q: string) => {
+    setAddConceptQuery(q);
+    setAddConceptWarning(null);
+    if (addConceptDebounce.current) clearTimeout(addConceptDebounce.current);
+    if (q.trim().length < 2) { setAddConceptResults([]); return; }
+    addConceptDebounce.current = setTimeout(async () => {
+      setAddConceptSearching(true);
       try {
-        setAddMappingResults(await searchTerms(q, 10));
-      } catch { setAddMappingResults([]); }
-      finally { setAddMappingSearching(false); }
+        setAddConceptResults(await searchTerms(q, 10));
+      } catch { setAddConceptResults([]); }
+      finally { setAddConceptSearching(false); }
     }, 300);
   };
 
-  const handleAddMapping = async (
-    normalized: string,
-    form: string,
-    conceptId: string,
-  ) => {
-    setAddMappingAdding(conceptId);
+  const handleSelectConcept = (result: SnomedSearchResult) => {
+    const existing = groups.find((g) => g.concept_id === result.snomed_concept_id);
+    if (existing) {
+      setAddConceptWarning(
+        `"${existing.concept_fsn}" already exists on this page. Scroll to it below.`,
+      );
+      // Scroll to the existing group
+      setTimeout(() => {
+        groupRefs.current[result.snomed_concept_id]?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 100);
+      return;
+    }
+    // Add placeholder group at top and open its alias input
+    const newGroup: ConceptGroup = {
+      concept_id: result.snomed_concept_id,
+      concept_fsn: result.term,
+      semantic_tag: result.semantic_tag,
+      read_code: result.read_code,
+      surface_forms: [],
+    };
+    setGroups((prev) => [newGroup, ...prev]);
+    setAddConceptOpen(false);
+    setAddConceptQuery("");
+    setAddConceptResults([]);
+    setAddConceptWarning(null);
+    setAddAliasFor(result.snomed_concept_id);
+    setAddAliasInput("");
+    setAliasConflict(null);
+  };
+
+  // ── Delete SNOMED concept group ───────────────────────────
+
+  const handleDeleteGroup = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
     try {
-      await upsertSurfaceFormMapping(normalized, form, conceptId);
-      setAddMappingOpen(null);
-      setAddMappingQuery("");
-      setAddMappingResults([]);
-      await refreshDuplicates();
+      for (const sf of deleteTarget.surface_forms) {
+        await deleteSurfaceForm(sf.normalized);
+      }
+      // If placeholder (0 surface forms) just remove from local state
+      setGroups((prev) => prev.filter((g) => g.concept_id !== deleteTarget.concept_id));
+      setDeleteTarget(null);
+      // Reload to sync server state
       load(query, page, rowsPerPage);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to add mapping");
+      setError(e instanceof Error ? e.message : "Failed to delete concept group");
+      setDeleteTarget(null);
     } finally {
-      setAddMappingAdding(null);
+      setDeleting(false);
     }
+  };
+
+  // ── Delete individual surface form (alias) ────────────────
+
+  const handleDeleteAlias = async (sf: GroupedSurfaceForm) => {
+    setDeletingAlias(sf.normalized);
+    try {
+      await deleteSurfaceForm(sf.normalized);
+      // Optimistic update
+      setGroups((prev) =>
+        prev
+          .map((g) => ({
+            ...g,
+            surface_forms: g.surface_forms.filter((s) => s.normalized !== sf.normalized),
+          }))
+          // Remove group if it has no more aliases (it was a placeholder or last alias)
+          .filter((g) => g.surface_forms.length > 0 || addAliasFor === g.concept_id),
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to remove alias");
+    } finally {
+      setDeletingAlias(null);
+    }
+  };
+
+  // ── Add alias ─────────────────────────────────────────────
+
+  const openAddAlias = (conceptId: string) => {
+    setAddAliasFor(conceptId);
+    setAddAliasInput("");
+    setAliasConflict(null);
+  };
+
+  const handleAliasInputChange = (value: string, targetConceptId: string) => {
+    setAddAliasInput(value);
+    setAliasConflict(null);
+
+    if (aliasConflictDebounce.current) clearTimeout(aliasConflictDebounce.current);
+    const norm = normalize(value);
+    if (norm.length < 2) return;
+
+    aliasConflictDebounce.current = setTimeout(async () => {
+      // Check loaded groups first (fast, client-side)
+      for (const g of groups) {
+        if (g.concept_id === targetConceptId) continue;
+        if (g.surface_forms.some((sf) => sf.normalized === norm)) {
+          setAliasConflict({ concept_fsn: g.concept_fsn, concept_id: g.concept_id });
+          return;
+        }
+      }
+      // Also check server for matches outside current page
+      try {
+        const result = await fetchSurfaceForms(norm, undefined, 1, 0);
+        const hit = result.items.find(
+          (item) => item.normalized === norm && item.concept_id !== targetConceptId,
+        );
+        if (hit) {
+          setAliasConflict({ concept_fsn: hit.concept_fsn, concept_id: hit.concept_id });
+        }
+      } catch { /* silent */ }
+    }, 400);
+  };
+
+  const handleAddAlias = async (conceptId: string) => {
+    const form = addAliasInput.trim();
+    if (!form) return;
+    const norm = normalize(form);
+
+    // Check if already in this group
+    const group = groups.find((g) => g.concept_id === conceptId);
+    if (group?.surface_forms.some((sf) => sf.normalized === norm)) {
+      setAddAliasFor(null);
+      setAddAliasInput("");
+      return;
+    }
+
+    setAliasAdding(true);
+    try {
+      await upsertSurfaceFormMapping(norm, form, conceptId);
+      setAddAliasFor(null);
+      setAddAliasInput("");
+      setAliasConflict(null);
+      load(query, page, rowsPerPage);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to add alias");
+    } finally {
+      setAliasAdding(false);
+    }
+  };
+
+  const handleAliasKeyDown = (e: React.KeyboardEvent, conceptId: string) => {
+    if (e.key === "Enter") { e.preventDefault(); handleAddAlias(conceptId); }
+    if (e.key === "Escape") { setAddAliasFor(null); setAddAliasInput(""); setAliasConflict(null); }
   };
 
   return (
@@ -257,15 +445,15 @@ export default function SurfaceFormsPage() {
 
       <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>
         <IconButton size="small" onClick={() => router.push("/settings")}>
-          <ArrowBackIcon fontSize="small" />
+          <CloseIcon fontSize="small" />
         </IconButton>
         <Typography variant="h5" sx={{ fontWeight: 700 }}>
           Surface Forms
         </Typography>
       </Box>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-        Surface forms are text strings recognised by the NLP pipeline and mapped
-        to SNOMED concepts. Remove spurious or over-broad mappings here.
+        Surface forms are text strings the NLP pipeline maps to SNOMED concepts. Grouped by concept
+        — add or remove aliases and concepts here.
       </Typography>
 
       {error && (
@@ -274,13 +462,14 @@ export default function SurfaceFormsPage() {
         </Alert>
       )}
 
+      {/* ── Toolbar ─────────────────────────────────────────── */}
       <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2, flexWrap: "wrap" }}>
         <TextField
           size="small"
-          placeholder="Search by surface form text…"
+          placeholder="Search by alias, concept name, SNOMED or Read code…"
           value={searchInput}
           onChange={(e) => handleSearchChange(e.target.value)}
-          sx={{ width: 360 }}
+          sx={{ width: 380 }}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
@@ -290,21 +479,40 @@ export default function SurfaceFormsPage() {
           }}
         />
         <Typography variant="body2" color="text.secondary" sx={{ flex: 1 }}>
-          {loading ? "Loading…" : `${total.toLocaleString()} surface form${total === 1 ? "" : "s"}`}
+          {loading
+            ? "Loading…"
+            : `${total.toLocaleString()} concept${total === 1 ? "" : "s"} · ${totalAliases.toLocaleString()} alias${totalAliases === 1 ? "" : "es"}`}
         </Typography>
         <Button
           size="small"
-          startIcon={duplicatesLoading ? <CircularProgress size={14} /> : <WarningAmberIcon fontSize="small" />}
+          variant="outlined"
+          color="warning"
+          startIcon={
+            duplicatesLoading
+              ? <CircularProgress size={14} />
+              : <WarningAmberIcon fontSize="small" />
+          }
           onClick={handleAuditDuplicates}
           disabled={duplicatesLoading || deduping}
-          color="warning"
-          variant="outlined"
         >
           Audit duplicates
         </Button>
+        <Button
+          size="small"
+          variant="outlined"
+          startIcon={<AddCircleOutlineIcon fontSize="small" />}
+          onClick={() => {
+            setAddConceptOpen((o) => !o);
+            setAddConceptQuery("");
+            setAddConceptResults([]);
+            setAddConceptWarning(null);
+          }}
+        >
+          Add SNOMED concept
+        </Button>
       </Box>
 
-      {/* Dedupe result banner */}
+      {/* ── Deduplication result banner ──────────────────────── */}
       {dedupeResult !== null && (
         <Alert
           severity={dedupeResult > 0 ? "success" : "info"}
@@ -312,53 +520,55 @@ export default function SurfaceFormsPage() {
           onClose={() => setDedupeResult(null)}
         >
           {dedupeResult > 0
-            ? `Removed ${dedupeResult} duplicate mapping${dedupeResult === 1 ? "" : "s"}. Surface forms now have at most one concept mapping.`
+            ? `Removed ${dedupeResult} duplicate mapping${dedupeResult === 1 ? "" : "s"}. Each surface form now has at most one concept mapping.`
             : "No duplicate mappings found — the graph is already clean."}
         </Alert>
       )}
 
-      {/* Duplicate audit panel */}
+      {/* ── Duplicate audit panel ────────────────────────────── */}
       <Collapse in={duplicatesOpen && !!duplicates}>
         {duplicates && (
           <Paper variant="outlined" sx={{ mb: 2, p: 2 }}>
-              <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1.5 }}>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                  <WarningAmberIcon color="warning" fontSize="small" />
-                  <Typography variant="subtitle2">
-                    {duplicates.length === 0
-                      ? "No duplicates found — graph is clean."
-                      : `${duplicates.length} surface form${duplicates.length === 1 ? "" : "s"} with multiple mappings`}
-                  </Typography>
-                </Box>
-                <Box sx={{ display: "flex", gap: 1 }}>
-                  {duplicates.length > 0 && !allSameConfidence && (
-                    <Tooltip title="Keeps the highest-confidence mapping per surface form and removes the rest">
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        color="warning"
-                        onClick={handleDeduplicate}
-                        disabled={deduping || !!mappingActioning}
-                      >
-                        {deduping ? <CircularProgress size={14} color="inherit" /> : "Fix all by confidence"}
-                      </Button>
-                    </Tooltip>
-                  )}
-                  <Button size="small" onClick={() => setDuplicatesOpen(false)}>
-                    Close
-                  </Button>
-                </Box>
+            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1.5 }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <WarningAmberIcon color="warning" fontSize="small" />
+                <Typography variant="subtitle2">
+                  {duplicates.length === 0
+                    ? "No duplicates found — graph is clean."
+                    : `${duplicates.length} surface form${duplicates.length === 1 ? "" : "s"} with multiple mappings`}
+                </Typography>
               </Box>
+              <Box sx={{ display: "flex", gap: 1 }}>
+                {duplicates.length > 0 && !allSameConfidence && (
+                  <Tooltip title="Keeps the highest-confidence mapping per surface form and removes the rest">
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      color="warning"
+                      onClick={handleDeduplicate}
+                      disabled={deduping || !!mappingActioning}
+                    >
+                      {deduping ? <CircularProgress size={14} color="inherit" /> : "Fix all by confidence"}
+                    </Button>
+                  </Tooltip>
+                )}
+                <Button size="small" onClick={() => setDuplicatesOpen(false)}>Close</Button>
+              </Box>
+            </Box>
 
-              {duplicates.length > 0 && allSameConfidence && (
-                <Alert severity="warning" sx={{ mb: 1.5 }}>
-                  All mappings have equal confidence — each surface form needs manual review. Use <strong>Keep</strong> to select the correct concept or <strong>Remove</strong> to delete individual mappings.
-                </Alert>
-              )}
+            {duplicates.length > 0 && allSameConfidence && (
+              <Alert severity="warning" sx={{ mb: 1.5 }}>
+                All mappings have equal confidence — each surface form needs manual review. Use{" "}
+                <strong>Keep</strong> to select the correct concept or <strong>Remove</strong> to
+                delete individual mappings.
+              </Alert>
+            )}
 
-              {duplicates.length > 0 && (
-                <List dense sx={{ maxHeight: 480, overflow: "auto" }}>
-                  {duplicates.map((d) => (
+            {duplicates.length > 0 && (
+              <List dense sx={{ maxHeight: 480, overflow: "auto" }}>
+                {duplicates.map((d) => {
+                  const anyBusy = !!mappingActioning;
+                  return (
                     <ListItem
                       key={d.normalized}
                       alignItems="flex-start"
@@ -374,86 +584,14 @@ export default function SurfaceFormsPage() {
                           color={d.concept_count > 1 ? "error" : "warning"}
                           variant="outlined"
                         />
-                        <Button
-                          size="small"
-                          startIcon={<AddCircleOutlineIcon fontSize="small" />}
-                          onClick={() =>
-                            addMappingOpen === d.normalized
-                              ? setAddMappingOpen(null)
-                              : openAddMapping(d.normalized)
-                          }
-                          sx={{ ml: "auto" }}
-                        >
-                          Add mapping
-                        </Button>
                       </Box>
-
-                      {/* Inline add-mapping search */}
-                      <Collapse in={addMappingOpen === d.normalized}>
-                        <Box sx={{ pl: 1, mb: 1 }}>
-                          <TextField
-                            size="small"
-                            fullWidth
-                            placeholder="Search SNOMED concept to add…"
-                            value={addMappingQuery}
-                            onChange={(e) => handleAddMappingSearch(e.target.value, d.normalized)}
-                            InputProps={{
-                              startAdornment: (
-                                <InputAdornment position="start">
-                                  {addMappingSearching
-                                    ? <CircularProgress size={14} />
-                                    : <SearchIcon fontSize="small" color="action" />}
-                                </InputAdornment>
-                              ),
-                            }}
-                          />
-                          {addMappingResults.length > 0 && (
-                            <Paper variant="outlined" sx={{ mt: 0.5, maxHeight: 180, overflow: "auto" }}>
-                              <List dense disablePadding>
-                                {addMappingResults.map((r, i) => (
-                                  <Box key={r.snomed_concept_id}>
-                                    {i > 0 && <Divider />}
-                                    <ListItemButton
-                                      onClick={() => handleAddMapping(d.normalized, d.form, r.snomed_concept_id)}
-                                      disabled={!!addMappingAdding}
-                                      sx={{ py: 0.5 }}
-                                    >
-                                      <ListItemText
-                                        primary={r.term}
-                                        secondary={
-                                          r.semantic_tag
-                                            ? `${r.snomed_concept_id} · ${r.semantic_tag}`
-                                            : r.snomed_concept_id
-                                        }
-                                        primaryTypographyProps={{ variant: "body2" }}
-                                        secondaryTypographyProps={{ variant: "caption" }}
-                                      />
-                                      {addMappingAdding === r.snomed_concept_id && (
-                                        <CircularProgress size={14} sx={{ ml: 1 }} />
-                                      )}
-                                    </ListItemButton>
-                                  </Box>
-                                ))}
-                              </List>
-                            </Paper>
-                          )}
-                        </Box>
-                      </Collapse>
                       {d.mappings.map((m) => {
                         const actionKey = `${d.normalized}__${m.concept_id}`;
                         const busy = mappingActioning === actionKey;
-                        const anyBusy = !!mappingActioning;
                         return (
                           <Box
                             key={m.concept_id}
-                            sx={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 1,
-                              pl: 1,
-                              mb: 0.5,
-                              flexWrap: "wrap",
-                            }}
+                            sx={{ display: "flex", alignItems: "center", gap: 1, pl: 1, mb: 0.5, flexWrap: "wrap" }}
                           >
                             <Typography variant="caption" sx={{ flex: 1, color: "text.secondary" }}>
                               → <strong>{m.concept_fsn}</strong>{" "}
@@ -470,9 +608,7 @@ export default function SurfaceFormsPage() {
                                   onClick={() => handleKeepMapping(d.normalized, m.concept_id)}
                                   disabled={anyBusy}
                                 >
-                                  {busy && mappingActioning?.endsWith(`__${m.concept_id}`) ? (
-                                    <CircularProgress size={12} color="inherit" />
-                                  ) : "Keep"}
+                                  {busy ? <CircularProgress size={12} color="inherit" /> : "Keep"}
                                 </Button>
                               </span>
                             </Tooltip>
@@ -486,9 +622,7 @@ export default function SurfaceFormsPage() {
                                   onClick={() => handleRemoveMapping(d.normalized, m.concept_id)}
                                   disabled={anyBusy}
                                 >
-                                  {busy ? (
-                                    <CircularProgress size={12} color="inherit" />
-                                  ) : "Remove"}
+                                  {busy ? <CircularProgress size={12} color="inherit" /> : "Remove"}
                                 </Button>
                               </span>
                             </Tooltip>
@@ -496,177 +630,253 @@ export default function SurfaceFormsPage() {
                         );
                       })}
                     </ListItem>
-                  ))}
-                </List>
-              )}
+                  );
+                })}
+              </List>
+            )}
           </Paper>
         )}
       </Collapse>
 
-      <Paper variant="outlined">
-        <TableContainer>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell sx={{ fontWeight: 600, width: "22%" }}>Surface form</TableCell>
-                <TableCell sx={{ fontWeight: 600, width: "34%" }}>Mapped concept</TableCell>
-                <TableCell sx={{ fontWeight: 600, width: "10%" }}>Confidence</TableCell>
-                <TableCell sx={{ fontWeight: 600, width: "10%" }}>Source</TableCell>
-                <TableCell sx={{ fontWeight: 600, width: "10%" }}>Created by</TableCell>
-                <TableCell sx={{ fontWeight: 600, width: "10%" }}>Last seen</TableCell>
-                <TableCell sx={{ width: "4%" }} />
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {loading && items.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
-                    <CircularProgress size={28} />
-                  </TableCell>
-                </TableRow>
-              ) : items.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      No surface forms found.
+      {/* ── Add concept panel ────────────────────────────────── */}
+      <Collapse in={addConceptOpen}>
+        <Paper variant="outlined" sx={{ mb: 2, p: 2 }}>
+          <Typography variant="subtitle2" sx={{ mb: 1 }}>
+            Search for a SNOMED concept to add
+          </Typography>
+          {addConceptWarning && (
+            <Alert severity="warning" sx={{ mb: 1.5 }} onClose={() => setAddConceptWarning(null)}>
+              {addConceptWarning}
+            </Alert>
+          )}
+          <TextField
+            size="small"
+            fullWidth
+            autoFocus
+          placeholder="Concept name, SNOMED code, or Read code…"
+            value={addConceptQuery}
+            onChange={(e) => handleAddConceptSearch(e.target.value)}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  {addConceptSearching
+                    ? <CircularProgress size={14} />
+                    : <SearchIcon fontSize="small" color="action" />}
+                </InputAdornment>
+              ),
+            }}
+          />
+          {addConceptResults.length > 0 && (
+            <Paper variant="outlined" sx={{ mt: 0.5, maxHeight: 240, overflow: "auto" }}>
+              <List dense disablePadding>
+                {addConceptResults.map((r, i) => (
+                  <Box key={r.snomed_concept_id}>
+                    {i > 0 && <Divider />}
+                    <ListItemButton onClick={() => handleSelectConcept(r)} sx={{ py: 0.75 }}>
+                      <ListItemText
+                        primary={r.term}
+                        secondary={
+                          <>
+                            {r.snomed_concept_id}
+                            {r.semantic_tag && ` · ${r.semantic_tag}`}
+                          </>
+                        }
+                        primaryTypographyProps={{ variant: "body2" }}
+                        secondaryTypographyProps={{ variant: "caption" }}
+                      />
+                    </ListItemButton>
+                  </Box>
+                ))}
+              </List>
+            </Paper>
+          )}
+        </Paper>
+      </Collapse>
+
+      {/* ── Concept groups ───────────────────────────────────── */}
+      {loading && groups.length === 0 ? (
+        <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
+          <CircularProgress />
+        </Box>
+      ) : groups.length === 0 ? (
+        <Paper variant="outlined" sx={{ p: 4, textAlign: "center" }}>
+          <Typography variant="body2" color="text.secondary">
+            No surface forms found.
+          </Typography>
+        </Paper>
+      ) : (
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+          {groups.map((group) => (
+            <Paper
+              key={group.concept_id}
+              variant="outlined"
+              ref={(el) => { groupRefs.current[group.concept_id] = el; }}
+              sx={{ p: 2 }}
+            >
+              {/* Concept header */}
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  justifyContent: "space-between",
+                  gap: 1,
+                  mb: 1,
+                }}
+              >
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                      {group.concept_fsn}
                     </Typography>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                items.flatMap((item) => [
-                  <TableRow key={`${item.normalized}__${item.concept_id}`} hover>
-                    <TableCell>
-                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                        {item.form}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {item.normalized}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2">{item.concept_fsn}</Typography>
-                      <Box sx={{ display: "flex", gap: 0.5, mt: 0.25, flexWrap: "wrap" }}>
-                        <Typography variant="caption" color="text.secondary">
-                          {item.concept_id}
-                        </Typography>
-                        {item.semantic_tag && (
-                          <Chip
-                            label={item.semantic_tag}
+                    {group.semantic_tag && (
+                      <Chip
+                        label={group.semantic_tag}
+                        size="small"
+                        variant="outlined"
+                        sx={{ height: 18, fontSize: "0.65rem" }}
+                      />
+                    )}
+                  </Box>
+                  <Typography variant="caption" color="text.secondary">
+                    {group.concept_id}
+                    {group.read_code && ` · Read: ${group.read_code}`}
+                    {group.icd10 && ` · ICD-10: ${group.icd10}`}
+                  </Typography>
+                </Box>
+                <Box sx={{ display: "flex", gap: 0.5 }}>
+                  <Tooltip title="Suggest more aliases using AI">
+                    <span>
+                      <IconButton
+                        size="small"
+                        color="primary"
+                        onClick={() => handleSuggest(group.concept_id)}
+                        disabled={suggestingFor === group.concept_id}
+                      >
+                        {suggestingFor === group.concept_id
+                          ? <CircularProgress size={16} />
+                          : <AutoAwesomeIcon fontSize="small" />}
+                      </IconButton>
+                    </span>
+                  </Tooltip>
+                  <Tooltip title="Delete this concept and all its aliases">
+                    <IconButton
+                      size="small"
+                      color="error"
+                      onClick={() => setDeleteTarget(group)}
+                    >
+                      <DeleteOutlineIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
+              </Box>
+
+              <Divider sx={{ mb: 1.5 }} />
+
+              {/* Alias chips */}
+              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75, alignItems: "center" }}>
+                {group.surface_forms.map((sf) => (
+                  <Chip
+                    key={sf.normalized}
+                    label={sf.form}
+                    size="small"
+                    variant="outlined"
+                    onDelete={
+                      deletingAlias === sf.normalized
+                        ? undefined
+                        : () => handleDeleteAlias(sf)
+                    }
+                    deleteIcon={
+                      deletingAlias === sf.normalized
+                        ? <CircularProgress size={12} />
+                        : undefined
+                    }
+                    title={`${sf.normalized}${sf.source ? ` · ${sf.source}` : ""}${sf.confidence != null ? ` · ${(sf.confidence * 100).toFixed(0)}%` : ""}`}
+                  />
+                ))}
+
+                {/* LLM-suggested alias chips */}
+                {(suggestions[group.concept_id] ?? [])
+                  .filter((s) => !dismissed[group.concept_id]?.has(normalize(s)))
+                  .map((s) => (
+                    <Tooltip key={s} title="AI suggestion — Accept or Dismiss">
+                      <Chip
+                        label={s}
+                        size="small"
+                        color="primary"
+                        variant="outlined"
+                        icon={<AutoAwesomeIcon style={{ fontSize: 12 }} />}
+                        sx={{ borderStyle: "dashed", opacity: 0.85 }}
+                        onClick={() => handleAcceptSuggestion(group.concept_id, s)}
+                        onDelete={() => handleDismissSuggestion(group.concept_id, s)}
+                        deleteIcon={<CloseIcon style={{ fontSize: 12 }} />}
+                      />
+                    </Tooltip>
+                  ))}
+
+                {/* Inline add-alias input */}
+                {addAliasFor === group.concept_id ? (
+                  <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5, flex: "1 1 260px", minWidth: 200 }}>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                      <TextField
+                        size="small"
+                        autoFocus
+                        placeholder="Type alias text, e.g. 2WW Breast Referral"
+                        value={addAliasInput}
+                        onChange={(e) => handleAliasInputChange(e.target.value, group.concept_id)}
+                        onKeyDown={(e) => handleAliasKeyDown(e, group.concept_id)}
+                        disabled={aliasAdding}
+                        sx={{ flex: 1 }}
+                        inputProps={{ style: { fontSize: "0.8rem", padding: "4px 8px" } }}
+                      />
+                      <Tooltip title="Confirm (Enter)">
+                        <span>
+                          <IconButton
                             size="small"
-                            variant="outlined"
-                            sx={{ height: 16, fontSize: "0.6rem" }}
-                          />
-                        )}
-                      </Box>
-                    </TableCell>
-                    <TableCell>
-                      {item.confidence != null ? (
-                        <Typography variant="body2">
-                          {(item.confidence * 100).toFixed(0)}%
-                        </Typography>
-                      ) : (
-                        <Typography variant="caption" color="text.secondary">—</Typography>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="caption" color="text.secondary">
-                        {item.source ?? "—"}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="caption" color="text.secondary">
-                        {item.created_by ?? "—"}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="caption" color="text.secondary">
-                        {item.last_seen_at
-                          ? new Date(item.last_seen_at).toLocaleDateString()
-                          : "—"}
-                      </Typography>
-                    </TableCell>
-                    <TableCell align="right" sx={{ whiteSpace: "nowrap" }}>
-                      <Tooltip title="Add / correct mapping">
+                            color="primary"
+                            onClick={() => handleAddAlias(group.concept_id)}
+                            disabled={aliasAdding || !addAliasInput.trim()}
+                          >
+                            {aliasAdding ? <CircularProgress size={14} /> : <CheckIcon fontSize="small" />}
+                          </IconButton>
+                        </span>
+                      </Tooltip>
+                      <Tooltip title="Cancel (Esc)">
                         <IconButton
                           size="small"
-                          onClick={() =>
-                            addMappingOpen === item.normalized
-                              ? setAddMappingOpen(null)
-                              : openAddMapping(item.normalized)
-                          }
+                          onClick={() => { setAddAliasFor(null); setAddAliasInput(""); setAliasConflict(null); }}
+                          disabled={aliasAdding}
                         >
-                          <AddCircleOutlineIcon fontSize="small" />
+                          <CloseIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
-                      <Tooltip title="Delete surface form">
-                        <IconButton
-                          size="small"
-                          onClick={() => setDeleteTarget(item)}
-                          color="error"
-                        >
-                          <DeleteOutlineIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                    </TableCell>
-                  </TableRow>,
-                  <TableRow key={`${item.normalized}__${item.concept_id}__add`}>
-                    <TableCell colSpan={7} sx={{ p: 0, borderBottom: addMappingOpen === item.normalized ? 1 : 0, borderColor: "divider" }}>
-                      <Collapse in={addMappingOpen === item.normalized}>
-                        <Box sx={{ p: 1.5, bgcolor: "action.hover" }}>
-                          <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: "block" }}>
-                            Add / correct mapping for <strong>{item.form}</strong>
-                          </Typography>
-                          <TextField
-                            size="small"
-                            fullWidth
-                            placeholder="Search SNOMED concept…"
-                            value={addMappingOpen === item.normalized ? addMappingQuery : ""}
-                            onChange={(e) => handleAddMappingSearch(e.target.value, item.normalized)}
-                            InputProps={{
-                              startAdornment: (
-                                <InputAdornment position="start">
-                                  {addMappingSearching
-                                    ? <CircularProgress size={14} />
-                                    : <SearchIcon fontSize="small" color="action" />}
-                                </InputAdornment>
-                              ),
-                            }}
-                          />
-                          {addMappingResults.length > 0 && (
-                            <Paper variant="outlined" sx={{ mt: 0.5, maxHeight: 180, overflow: "auto" }}>
-                              <List dense disablePadding>
-                                {addMappingResults.map((r, i) => (
-                                  <Box key={r.snomed_concept_id}>
-                                    {i > 0 && <Divider />}
-                                    <ListItemButton
-                                      onClick={() => handleAddMapping(item.normalized, item.form, r.snomed_concept_id)}
-                                      disabled={!!addMappingAdding}
-                                      sx={{ py: 0.5 }}
-                                    >
-                                      <ListItemText
-                                        primary={r.term}
-                                        secondary={r.semantic_tag ? `${r.snomed_concept_id} · ${r.semantic_tag}` : r.snomed_concept_id}
-                                        primaryTypographyProps={{ variant: "body2" }}
-                                        secondaryTypographyProps={{ variant: "caption" }}
-                                      />
-                                      {addMappingAdding === r.snomed_concept_id && (
-                                        <CircularProgress size={14} sx={{ ml: 1 }} />
-                                      )}
-                                    </ListItemButton>
-                                  </Box>
-                                ))}
-                              </List>
-                            </Paper>
-                          )}
-                        </Box>
-                      </Collapse>
-                    </TableCell>
-                  </TableRow>,
-                ])
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
+                    </Box>
+                    {aliasConflict && (
+                      <Alert severity="warning" sx={{ py: 0, fontSize: "0.75rem" }}>
+                        <strong>&ldquo;{normalize(addAliasInput)}&rdquo;</strong> already maps to{" "}
+                        <strong>{aliasConflict.concept_fsn}</strong> ({aliasConflict.concept_id}).
+                        Saving will create a duplicate — audit duplicates to resolve.
+                      </Alert>
+                    )}
+                  </Box>
+                ) : (
+                  <Chip
+                    label="+ Add alias"
+                    size="small"
+                    variant="outlined"
+                    color="primary"
+                    onClick={() => openAddAlias(group.concept_id)}
+                    sx={{ cursor: "pointer", borderStyle: "dashed" }}
+                    icon={<AddCircleOutlineIcon style={{ fontSize: 14 }} />}
+                  />
+                )}
+              </Box>
+            </Paper>
+          ))}
+        </Box>
+      )}
+
+      {/* ── Pagination ───────────────────────────────────────── */}
+      {total > PAGE_SIZE_OPTIONS[0] && (
         <TablePagination
           component="div"
           count={total}
@@ -678,19 +888,30 @@ export default function SurfaceFormsPage() {
             setRowsPerPage(parseInt(e.target.value, 10));
             setPage(0);
           }}
+          sx={{ mt: 1 }}
         />
-      </Paper>
+      )}
 
-      {/* Delete confirmation */}
+      {/* ── Delete concept confirmation ───────────────────────── */}
       <Dialog open={!!deleteTarget} onClose={() => !deleting && setDeleteTarget(null)}>
-        <DialogTitle>Delete surface form?</DialogTitle>
+        <DialogTitle>Delete concept group?</DialogTitle>
         <DialogContent>
-          <DialogContentText>
-            This will permanently remove{" "}
-            <strong>&ldquo;{deleteTarget?.form}&rdquo;</strong> and its mapping
-            to{" "}
-            <strong>{deleteTarget?.concept_fsn}</strong>. The NLP pipeline will
-            no longer recognise this text as that concept.
+          <DialogContentText component="div">
+            <Typography variant="body2" sx={{ mb: 1 }}>
+              This will permanently remove{" "}
+              <strong>{deleteTarget?.concept_fsn}</strong> and all{" "}
+              {deleteTarget?.surface_forms.length
+                ? `${deleteTarget.surface_forms.length} alias${deleteTarget.surface_forms.length === 1 ? "" : "es"}`
+                : "aliases"}{" "}
+              mapped to it. The NLP pipeline will no longer recognise these terms.
+            </Typography>
+            {deleteTarget && deleteTarget.surface_forms.length > 0 && (
+              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, mt: 1 }}>
+                {deleteTarget.surface_forms.map((sf) => (
+                  <Chip key={sf.normalized} label={sf.form} size="small" variant="outlined" />
+                ))}
+              </Box>
+            )}
           </DialogContentText>
         </DialogContent>
         <DialogActions>
@@ -698,7 +919,7 @@ export default function SurfaceFormsPage() {
             Cancel
           </Button>
           <Button
-            onClick={handleDelete}
+            onClick={handleDeleteGroup}
             color="error"
             variant="contained"
             disabled={deleting}

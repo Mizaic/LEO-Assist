@@ -7,6 +7,7 @@ import ClassificationReviewPanel from "@/components/classification-review/Classi
 import AnchorReviewPanel from "@/components/anchor-review/AnchorReviewPanel";
 import HITLTasksPanel from "@/components/operations/HITLTasksPanel";
 import ModelLifecyclePanel from "@/components/operations/ModelLifecyclePanel";
+import CodingReviewPanel from "@/components/operations/CodingReviewPanel";
 import LabelVerificationPanel from "@/components/operations/LabelVerificationPanel";
 import TrainingDataPanel from "@/components/operations/TrainingDataPanel";
 
@@ -18,6 +19,7 @@ type OperationsTab =
   | "peer_review"
   | "training"
   | "label_review"
+  | "coding_review"
   | "models";
 
 const TAB_LABELS: Record<OperationsTab, string> = {
@@ -28,6 +30,7 @@ const TAB_LABELS: Record<OperationsTab, string> = {
   peer_review: "Peer Review",
   training: "Training Data",
   label_review: "Label Review",
+  coding_review: "Coding Review",
   models: "Model Deployment",
 };
 
@@ -80,6 +83,7 @@ export default function OperationsWorkspace({
       )}
       {tab === "training" && <TrainingDataPanel />}
       {tab === "label_review" && <LabelVerificationPanel />}
+      {tab === "coding_review" && <CodingReviewPanel />}
       {tab === "models" && <ModelLifecyclePanel />}
     </Box>
   );

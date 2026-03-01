@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import CircularProgress from "@mui/material/CircularProgress";
+import UnauthorizedScreen from "@/components/UnauthorizedScreen";
 import Box from "@mui/material/Box";
 import Drawer from "@mui/material/Drawer";
 import List from "@mui/material/List";
@@ -65,7 +67,7 @@ function isEditorRoute(pathname: string): boolean {
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { session, status, signOut } = useAuth();
+  const { session, status, signIn, signOut } = useAuth();
   const { currentOrg, organizations, isPlatformAdmin, switchOrg, viewAll } = useOrg();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
@@ -94,27 +96,37 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   const badgeCounts: Record<string, number> = { reviewQueue: reviewBadge };
 
-  const isPublicPage = pathname === "/" || pathname === "/sign-in";
   const isEditor = isEditorRoute(pathname);
-  const isProtected =
-    pathname?.startsWith("/dashboard") ||
-    pathname?.startsWith("/pathways") ||
-    pathname?.startsWith("/safety-netting") ||
-    pathname?.startsWith("/reports") ||
-    pathname?.startsWith("/patients") ||
-    pathname?.startsWith("/operations") ||
-    pathname?.startsWith("/pipeline") ||
-    pathname?.startsWith("/measures") ||
-    pathname?.startsWith("/benchmarks") ||
-    pathname?.startsWith("/cohorts") ||
-    pathname?.startsWith("/games") ||
-    pathname?.startsWith("/settings");
+  // Listing public exceptions is safer than enumerating every protected path.
+  const isPublicPage =
+    pathname === "/" ||
+    pathname === "/sign-in" ||
+    pathname?.startsWith("/auth/");
+  const isProtected = !isPublicPage;
 
-  useEffect(() => {
-    if (status === "unauthenticated" && isProtected) {
-      router.replace("/sign-in");
-    }
-  }, [status, isProtected, router]);
+  // Block ALL protected content until auth state is known.
+  // This prevents a hacker briefly seeing page content during the loading window.
+  if (status === "loading" && isProtected) {
+    return (
+      <Box
+        sx={{
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          bgcolor: "background.default",
+        }}
+      >
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  // No valid session on a protected route — show the full unauthorized screen,
+  // do NOT render the page or the nav drawer.
+  if (status === "unauthenticated" && isProtected) {
+    return <UnauthorizedScreen onSignIn={signIn} />;
+  }
 
   if (isPublicPage) {
     return (

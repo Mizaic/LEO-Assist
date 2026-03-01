@@ -456,12 +456,55 @@ export async function upsertSurfaceFormMapping(
   );
 }
 
+export interface GroupedSurfaceForm {
+  normalized: string;
+  form: string;
+  source?: string;
+  created_by?: string;
+  created_at?: string;
+  confidence?: number;
+}
+
+export interface ConceptGroup {
+  concept_id: string;
+  concept_fsn: string;
+  semantic_tag?: string;
+  read_code?: string;
+  icd10?: string;
+  surface_forms: GroupedSurfaceForm[];
+}
+
+export interface ConceptGroupsPage {
+  items: ConceptGroup[];
+  total: number;
+  offset: number;
+  limit: number;
+}
+
+export async function fetchGroupedSurfaceForms(
+  q?: string,
+  limit = 50,
+  offset = 0,
+): Promise<ConceptGroupsPage> {
+  const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+  if (q) params.set("q", q);
+  return fetchJson<ConceptGroupsPage>(`${API_BASE}/terminology/surface-forms/grouped?${params}`);
+}
+
 export async function keepSurfaceFormMapping(normalized: string, conceptId: string) {
   const params = new URLSearchParams({ keep_concept_id: conceptId });
   return fetchJson<{ normalized: string; kept_concept_id: string; removed: number }>(
     `${API_BASE}/terminology/surface-forms/${encodeURIComponent(normalized)}?${params}`,
     { method: "DELETE" },
   );
+}
+
+export async function suggestAliases(conceptId: string): Promise<string[]> {
+  const result = await fetchJson<{ suggestions: string[]; concept_id: string }>(
+    `${API_BASE}/terminology/concepts/${encodeURIComponent(conceptId)}/suggest-aliases`,
+    { method: "POST" },
+  );
+  return result.suggestions;
 }
 
 export async function fetchDescendants(

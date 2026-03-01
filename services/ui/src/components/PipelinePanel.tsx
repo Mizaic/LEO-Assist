@@ -13,6 +13,7 @@ import {
   CardContent,
   Checkbox,
   Chip,
+  Collapse,
   Divider,
   FormControlLabel,
   LinearProgress,
@@ -40,6 +41,8 @@ import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import AnalyticsIcon from "@mui/icons-material/Analytics";
 import BoltIcon from "@mui/icons-material/Bolt";
+import MapIcon from "@mui/icons-material/Map";
+import PipelineOverviewDiagram from "@/components/operations/PipelineOverviewDiagram";
 import { cleanPatients } from "@/lib/api";
 import { usePipeline } from "@/context/PipelineContext";
 import type { EncounterLogEntry, EncounterOutcome } from "@/hooks/usePipelineStream";
@@ -429,8 +432,54 @@ export default function PipelinePanel({
   const fallbackCount = pipeline.encounterLog.filter((e) => e.fallbackUsed).length;
   const failedCount = pipeline.encounterLog.filter((e) => e.outcome === "failed").length;
 
+  const [diagramOpen, setDiagramOpen] = useState(false);
+
+  useEffect(() => {
+    if (localStorage.getItem("pipeline-diagram-open") !== "false") {
+      setDiagramOpen(true);
+    }
+  }, []);
+
+  const toggleDiagram = () => {
+    setDiagramOpen((prev) => {
+      const next = !prev;
+      localStorage.setItem("pipeline-diagram-open", String(next));
+      return next;
+    });
+  };
+
   return (
     <Box sx={{ maxWidth: 1000, mx: "auto", py: 4, px: 3 }}>
+      <Card variant="outlined" sx={{ mb: 2 }}>
+        <CardContent sx={{ py: 1.5, "&:last-child": { pb: 1.5 } }}>
+          <Stack
+            direction="row"
+            spacing={1}
+            alignItems="center"
+            onClick={toggleDiagram}
+            sx={{ cursor: "pointer", userSelect: "none" }}
+          >
+            <MapIcon fontSize="small" sx={{ color: "primary.main" }} />
+            <Typography variant="body2" sx={{ fontWeight: 600, flex: 1 }}>
+              How the Pipeline Works
+            </Typography>
+            <ExpandMoreIcon
+              fontSize="small"
+              sx={{
+                color: "text.secondary",
+                transform: diagramOpen ? "rotate(180deg)" : "rotate(0deg)",
+                transition: "transform 0.2s",
+              }}
+            />
+          </Stack>
+        </CardContent>
+        <Collapse in={diagramOpen} unmountOnExit>
+          <CardContent sx={{ pt: 0, px: 3, pb: 3 }}>
+            <PipelineOverviewDiagram />
+          </CardContent>
+        </Collapse>
+      </Card>
+
       <Card variant="outlined" sx={{ mb: 2, bgcolor: "action.hover" }}>
         <CardContent sx={{ py: 1.5, "&:last-child": { pb: 1.5 } }}>
           <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">

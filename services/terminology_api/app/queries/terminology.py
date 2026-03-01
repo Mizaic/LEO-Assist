@@ -1,12 +1,28 @@
 """Cypher queries for terminology operations against the Knowledge Graph."""
 
 TERMINOLOGY_SEARCH = """
-CALL db.index.fulltext.queryNodes("term_fulltext", $q) YIELD node, score
-MATCH (node)-[:DESCRIBES]->(c:Concept)
-WHERE c.active = true
+CALL {
+    CALL db.index.fulltext.queryNodes("term_fulltext", $q) YIELD node, score
+    MATCH (node)-[:DESCRIBES]->(c:Concept)
+    WHERE c.active = true
+    RETURN c, score AS weighted_score
+    UNION
+    CALL db.index.fulltext.queryNodes("surface_form_fulltext", $q) YIELD node, score
+    MATCH (node)-[:MAPS_TO]->(c:Concept)
+    WHERE c.active = true
+    RETURN c, score * 1.2 AS weighted_score
+    UNION
+    MATCH (c:Concept {id: $q})
+    WHERE c.active = true
+    RETURN c, 2.0 AS weighted_score
+    UNION
+    MATCH (rd:ReadCode {code: $q})<-[:MAPS_TO_READ]-(c:Concept)
+    WHERE c.active = true
+    RETURN c, 2.0 AS weighted_score
+}
 OPTIONAL MATCH (c)-[:MAPS_TO_READ]->(rd:ReadCode)
 OPTIONAL MATCH (c)-[:MAPS_TO_ICD10]->(icd:Icd10Code)
-WITH c, max(score) AS best_score,
+WITH c, max(weighted_score) AS best_score,
      collect(DISTINCT rd.code)[0] AS read_code,
      collect(DISTINCT icd.code)[0] AS icd10
 RETURN c.id AS snomed_concept_id,

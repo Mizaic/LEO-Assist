@@ -150,12 +150,28 @@ LIMIT $limit
 
 
 TERMINOLOGY_SEARCH = """
-CALL db.index.fulltext.queryNodes("term_fulltext", $q) YIELD node, score
-MATCH (node)-[:DESCRIBES]->(c:Concept)
-WHERE c.active = true
+CALL {
+    CALL db.index.fulltext.queryNodes("term_fulltext", $q) YIELD node, score
+    MATCH (node)-[:DESCRIBES]->(c:Concept)
+    WHERE c.active = true
+    RETURN c, score AS weighted_score
+    UNION
+    CALL db.index.fulltext.queryNodes("surface_form_fulltext", $q) YIELD node, score
+    MATCH (node)-[:MAPS_TO]->(c:Concept)
+    WHERE c.active = true
+    RETURN c, score * 1.2 AS weighted_score
+    UNION
+    MATCH (c:Concept {id: $q})
+    WHERE c.active = true
+    RETURN c, 2.0 AS weighted_score
+    UNION
+    MATCH (rd:ReadCode {code: $q})<-[:MAPS_TO_READ]-(c:Concept)
+    WHERE c.active = true
+    RETURN c, 2.0 AS weighted_score
+}
 OPTIONAL MATCH (c)-[:MAPS_TO_READ]->(rd:ReadCode)
 OPTIONAL MATCH (c)-[:MAPS_TO_ICD10]->(icd:Icd10Code)
-WITH c, max(score) AS best_score,
+WITH c, max(weighted_score) AS best_score,
      collect(DISTINCT rd.code)[0] AS read_code,
      collect(DISTINCT icd.code)[0] AS icd10
 RETURN c.id AS snomed_concept_id,
@@ -169,12 +185,28 @@ LIMIT $limit
 """
 
 TERMINOLOGY_SEARCH_FILTERED = """
-CALL db.index.fulltext.queryNodes("term_fulltext", $q) YIELD node, score
-MATCH (node)-[:DESCRIBES]->(c:Concept)
-WHERE c.active = true AND c.semantic_tag IN $tags
+CALL {
+    CALL db.index.fulltext.queryNodes("term_fulltext", $q) YIELD node, score
+    MATCH (node)-[:DESCRIBES]->(c:Concept)
+    WHERE c.active = true AND c.semantic_tag IN $tags
+    RETURN c, score AS weighted_score
+    UNION
+    CALL db.index.fulltext.queryNodes("surface_form_fulltext", $q) YIELD node, score
+    MATCH (node)-[:MAPS_TO]->(c:Concept)
+    WHERE c.active = true AND c.semantic_tag IN $tags
+    RETURN c, score * 1.2 AS weighted_score
+    UNION
+    MATCH (c:Concept {id: $q})
+    WHERE c.active = true AND c.semantic_tag IN $tags
+    RETURN c, 2.0 AS weighted_score
+    UNION
+    MATCH (rd:ReadCode {code: $q})<-[:MAPS_TO_READ]-(c:Concept)
+    WHERE c.active = true AND c.semantic_tag IN $tags
+    RETURN c, 2.0 AS weighted_score
+}
 OPTIONAL MATCH (c)-[:MAPS_TO_READ]->(rd:ReadCode)
 OPTIONAL MATCH (c)-[:MAPS_TO_ICD10]->(icd:Icd10Code)
-WITH c, max(score) AS best_score,
+WITH c, max(weighted_score) AS best_score,
      collect(DISTINCT rd.code)[0] AS read_code,
      collect(DISTINCT icd.code)[0] AS icd10
 RETURN c.id AS snomed_concept_id,
@@ -292,6 +324,66 @@ RETURN sf.normalized       AS normalized,
        }) AS mappings
 ORDER BY rel_count DESC, sf.form
 LIMIT 200
+"""
+
+GET_CONCEPT_FOR_SUGGESTION = """
+MATCH (c:Concept {id: $concept_id})
+WHERE c.active = true
+OPTIONAL MATCH (sf:SurfaceForm)-[:MAPS_TO]->(c)
+RETURN c.fsn            AS concept_fsn,
+       c.semantic_tag   AS semantic_tag,
+       collect(sf.form) AS existing_aliases
+"""
+
+GROUPED_SURFACE_FORMS = """
+MATCH (sf:SurfaceForm)-[m:MAPS_TO]->(c:Concept)
+WHERE c.active = true
+  AND ($q IS NULL
+       OR toLower(sf.form) CONTAINS toLower($q)
+       OR toLower(c.fsn)   CONTAINS toLower($q)
+       OR c.id             CONTAINS $q
+       OR EXISTS {
+           MATCH (c)-[:MAPS_TO_READ]->(rd_f:ReadCode)
+           WHERE rd_f.code = $q
+       })
+WITH c,
+     collect({
+       normalized:  sf.normalized,
+       form:        sf.form,
+       source:      sf.source,
+       created_by:  sf.created_by,
+       created_at:  toString(sf.created_at),
+       confidence:  m.confidence
+     }) AS surface_forms
+OPTIONAL MATCH (c)-[:MAPS_TO_READ]->(rd:ReadCode)
+OPTIONAL MATCH (c)-[:MAPS_TO_ICD10]->(icd:Icd10Code)
+WITH c, surface_forms,
+     collect(DISTINCT rd.code)[0] AS read_code,
+     collect(DISTINCT icd.code)[0] AS icd10
+RETURN c.id            AS concept_id,
+       c.fsn           AS concept_fsn,
+       c.semantic_tag  AS semantic_tag,
+       read_code,
+       icd10,
+       surface_forms
+ORDER BY c.fsn
+SKIP $offset
+LIMIT $limit
+"""
+
+COUNT_GROUPED_SURFACE_FORMS = """
+MATCH (sf:SurfaceForm)-[:MAPS_TO]->(c:Concept)
+WHERE c.active = true
+  AND ($q IS NULL
+       OR toLower(sf.form) CONTAINS toLower($q)
+       OR toLower(c.fsn)   CONTAINS toLower($q)
+       OR c.id             CONTAINS $q
+       OR EXISTS {
+           MATCH (c)-[:MAPS_TO_READ]->(rd_f:ReadCode)
+           WHERE rd_f.code = $q
+       })
+WITH DISTINCT c
+RETURN count(c) AS total
 """
 
 # Depth must be interpolated via Python .format(depth=N) before execution —
