@@ -163,7 +163,8 @@ RETURN
     t.text           AS text,
     t.entities_json  AS entities_json,
     t.source         AS source,
-    t.quality_score  AS quality_score
+    t.quality_score  AS quality_score,
+    toString(t.verified_at) AS verified_at
 ORDER BY t.created_at ASC
 """
 

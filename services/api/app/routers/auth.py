@@ -165,7 +165,10 @@ def callback(
         },
     )
 
-    redirect_url = f"{FRONTEND_URL}{state}" if state.startswith("/") else f"{FRONTEND_URL}/{state.lstrip('/')}"
+    normalized_state = state if state.startswith("/") else f"/{state.lstrip('/')}"
+    if normalized_state in {"/", "/sign-in", "/auth/callback"}:
+        normalized_state = "/dashboard"
+    redirect_url = f"{FRONTEND_URL}{normalized_state}"
     resp = RedirectResponse(url=redirect_url, status_code=302)
     resp.set_cookie(
         key=COOKIE_NAME,

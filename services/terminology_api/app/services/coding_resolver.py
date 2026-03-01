@@ -28,12 +28,22 @@ TAG_GROUPS: dict[str, str] = {
     "substance": "pharma",
     "product": "pharma",
     "regime/therapy": "pharma",
+    "medicinal product": "pharma",
+    "clinical drug": "pharma",
     "procedure": "procedure",
     "observable entity": "observable",
+    "assessment scale": "observable",
     "body structure": "anatomy",
+    "physical object": "device",
     "organism": "organism",
     "qualifier value": "qualifier",
+    "staging scale": "qualifier",
+    "tumor staging": "qualifier",
     "attribute": "qualifier",
+    "record artifact": "admin",
+    "morphologic abnormality": "clinical",
+    "occupation": "social",
+    "environment": "social",
 }
 
 _TAG_BOOST = 1.3
@@ -72,6 +82,7 @@ def _build_fulltext_queries(mention: str) -> list[str]:
 class CodingCandidate:
     snomed_concept_id: str | None
     snomed_term: str | None
+    semantic_tag: str | None
     read_code: str | None
     score: float
     source: str
@@ -242,6 +253,7 @@ class CodingResolver:
             CodingCandidate(
                 snomed_concept_id=c["concept_id"],
                 snomed_term=c.get("fsn"),
+                semantic_tag=c.get("semantic_tag"),
                 read_code=(c.get("read_codes") or [None])[0],
                 score=round(fused, 4),
                 source="hybrid",

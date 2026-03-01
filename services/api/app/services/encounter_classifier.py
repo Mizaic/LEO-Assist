@@ -1,31 +1,28 @@
-"""Encounter pre-classification via 2-model agreement.
+"""Encounter pre-classification via rule-based spaCy textcat component.
 
 Classifies each encounter as admin_only / document_transfer / clinical
-BEFORE extraction. Saves LLM cost by skipping extraction for non-clinical
-encounters and provides domain hints for clinical ones.
+BEFORE extraction. Saves processing cost by skipping extraction for
+non-clinical encounters.
+
+The classifier uses deterministic phrase and regex pattern matching
+(libs.classifiers.encounter_textcat). Encounter text is never sent to an
+LLM, closing the prompt injection surface identified in threat NER-T-001.
 """
 from __future__ import annotations
 
 import dataclasses
 import json
 import logging
-import re
 from datetime import datetime, timezone
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
-from libs.llm_client.factory import create_llm, LLMResponse
-from libs.prompts.registry import get_prompt
-from libs.prompts.few_shot_builder import build_few_shot_section
-from libs.utils.deidentify import deidentify_text
+from libs.classifiers.encounter_textcat import classify_text
 
 if TYPE_CHECKING:
     from libs.redis_client.checkpoint import CheckpointStore
 
 logger = logging.getLogger(__name__)
-logging.getLogger("httpx").setLevel(logging.WARNING)
-
-_JSON_RE = re.compile(r"\{.*\}", re.DOTALL)
 
 
 @dataclass
@@ -37,7 +34,7 @@ class ClassificationResult:
     expected_semantic_tags: list[str] = field(default_factory=list)
     clinical_significance: str = "medium"
     consensus_agreement: bool = True
-    model_a_type: str = ""
+    model_a_type: str = "rule_textcat"
     model_b_type: str = ""
 
 
@@ -54,88 +51,30 @@ class PatientEncounterIndex:
     classifications: dict[str, ClassificationResult] = field(default_factory=dict)
 
 
-def _parse_classification(text: str) -> dict[str, Any]:
-    text = text.strip()
-    try:
-        return json.loads(text)
-    except json.JSONDecodeError:
-        m = _JSON_RE.search(text)
-        if m:
-            try:
-                return json.loads(m.group(0))
-            except json.JSONDecodeError:
-                pass
-    return {}
-
-
 def classify_encounter(
     encounter_text: str,
     encounter_id: str = "",
 ) -> ClassificationResult:
-    """Classify a single encounter using 2-model agreement."""
-    base_prompt = get_prompt("encounter_classify", version=1)
-    few_shot = build_few_shot_section()
-    system_prompt = base_prompt + few_shot if few_shot else base_prompt
+    """Classify a single encounter using the rule-based textcat component.
 
-    if few_shot:
-        logger.debug(
-            "classify_encounter: using few-shot prompt (%d extra chars) for encounter %s",
-            len(few_shot),
-            encounter_id,
-        )
+    Returns a ClassificationResult with content_type set to one of:
+    admin_only, document_transfer, or clinical.
 
-    safe_text = deidentify_text(encounter_text[:3000])
-    user_msg = f"Classify this GP encounter:\n\n{safe_text}"
+    Metadata fields (domains, encounter_purpose, etc.) are not populated
+    by this classifier; they remain as empty defaults.  The pipeline only
+    uses content_type for the clinical filter gate.
+    """
+    content_type = classify_text(encounter_text)
 
-    model_a = create_llm(provider="aws", tier="small")
-    model_b = create_llm(provider="azure", tier="small")
-
-    result_a = _call_model(model_a, system_prompt, user_msg, "aws_small")
-    result_b = _call_model(model_b, system_prompt, user_msg, "azure_small")
-
-    type_a = result_a.get("content_type", "clinical")
-    type_b = result_b.get("content_type", "clinical")
-
-    if type_a not in ("admin_only", "document_transfer", "clinical"):
-        type_a = "clinical"
-    if type_b not in ("admin_only", "document_transfer", "clinical"):
-        type_b = "clinical"
-
-    agreement = type_a == type_b
-    content_type = type_a if agreement else "clinical"
-
-    primary = result_a if agreement else (result_a if type_a == "clinical" else result_b)
+    significance = "low" if content_type != "clinical" else "medium"
 
     return ClassificationResult(
         content_type=content_type,
-        domains=primary.get("domains", []),
-        encounter_purpose=primary.get("encounter_purpose", []),
-        key_clinical_signals=primary.get("key_clinical_signals", []),
-        expected_semantic_tags=primary.get("expected_semantic_tags", []),
-        clinical_significance=primary.get("clinical_significance", "medium"),
-        consensus_agreement=agreement,
-        model_a_type=type_a,
-        model_b_type=type_b,
+        clinical_significance=significance,
+        consensus_agreement=True,
+        model_a_type="rule_textcat",
+        model_b_type="",
     )
-
-
-def _call_model(
-    client: Any,
-    system: str,
-    user_msg: str,
-    label: str,
-) -> dict[str, Any]:
-    try:
-        response: LLMResponse = client.converse(
-            system=system,
-            messages=[{"role": "user", "content": user_msg}],
-            max_tokens=512,
-            temperature=0.0,
-        )
-        return _parse_classification(response.text)
-    except Exception:
-        logger.warning("Classification model %s failed", label, exc_info=True)
-        return {"content_type": "clinical"}
 
 
 def build_patient_encounter_index(
@@ -173,7 +112,12 @@ def build_patient_encounter_index(
 
         if not text or not text.strip():
             index.admin_count += 1
-            result = ClassificationResult(content_type="admin_only", consensus_agreement=True)
+            result = ClassificationResult(
+                content_type="admin_only",
+                clinical_significance="low",
+                consensus_agreement=True,
+                model_a_type="rule_textcat",
+            )
             index.classifications[enc_id] = result
             logger.info("  [%d/%d] Encounter %s -> admin_only (empty text)", n, total, enc_id)
             if checkpoint_store:
@@ -186,12 +130,9 @@ def build_patient_encounter_index(
         if checkpoint_store:
             checkpoint_store.set(cache_key, dataclasses.asdict(result))
 
-        agreement = "OK" if result.consensus_agreement else "DISAGREE"
-        domains_str = ",".join(result.domains) if result.domains else "none"
         logger.info(
-            "  [%d/%d] Encounter %s -> %s [%s] domains=%s significance=%s",
-            n, total, enc_id, result.content_type, agreement, domains_str,
-            result.clinical_significance,
+            "  [%d/%d] Encounter %s -> %s",
+            n, total, enc_id, result.content_type,
         )
 
         if result.content_type == "admin_only":

@@ -95,7 +95,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [fetchSession]);
 
   const signIn = useCallback(() => {
-    const next = typeof window !== "undefined" ? window.location.pathname || "/dashboard" : "/dashboard";
+    const currentPath = typeof window !== "undefined" ? window.location.pathname : "";
+    const isPublicPath = currentPath === "/" || currentPath === "/sign-in" || currentPath.startsWith("/auth/callback");
+    const next = isPublicPath ? "/dashboard" : currentPath || "/dashboard";
     window.location.href = `${API_BASE}/auth/login?next_url=${encodeURIComponent(next)}`;
   }, []);
 

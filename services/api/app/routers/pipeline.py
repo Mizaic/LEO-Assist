@@ -230,7 +230,7 @@ def stream_unprocessed(
     workers: int = Query(default=4, ge=1, le=8),
     scope: CallerScope = Depends(get_caller_scope),
 ):
-    """Run pipeline only for encounters that don't yet have a ReviewTask."""
+    """Run pipeline only for encounters that don't yet have :DOCUMENTS links."""
     ids = [pid.strip() for pid in patient_ids.split(",") if pid.strip()]
     if not ids:
         ids = [patient_ids.strip()]

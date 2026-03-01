@@ -29,6 +29,7 @@ from typing import Any
 
 import httpx
 
+from libs.ner.observable_post_processor import parse_measurement_from_text
 from services.coding_worker.app.pipeline.extractor_contract import (
     CONTRACT_VERSION,
     ExtractionItem,
@@ -119,6 +120,7 @@ class ModelExtractorProvider:
             doc = nlp(sent.text)
             for ent in doc.ents:
                 assertion = self._label_to_assertion(ent.label_)
+                parsed = parse_measurement_from_text(ent.text) if ent.label_.lower() == "observable_entity" else {}
                 items.append(ExtractionItem(
                     sentence_id=sent.sentence_id,
                     text=ent.text,
@@ -130,6 +132,9 @@ class ModelExtractorProvider:
                     normalized=ent.text,
                     source_meta={"label": ent.label_},
                     relations=[],
+                    numeric_value=str(parsed.get("numeric_value", "")).strip(),
+                    unit=str(parsed.get("unit", "")).strip(),
+                    reference_range=str(parsed.get("reference_range", "")).strip(),
                     source=_SOURCE,
                     model_name=self.model_name,
                     model_version=self.model_version,
@@ -190,17 +195,29 @@ class ModelExtractorProvider:
             sid = ent.get("sentence_id", "")
             sent = sent_map.get(sid)
             assertion = self._label_to_assertion(ent.get("label", ""))
+            semantic_tag = ent.get("semantic_tag", ent.get("label", "other")).lower()
+            text = ent.get("text", "")
+            parsed = parse_measurement_from_text(text) if semantic_tag == "observable_entity" else {}
             items.append(ExtractionItem(
                 sentence_id=sid,
-                text=ent.get("text", ""),
+                text=text,
                 span_start=ent.get("span_start", sent.start if sent else 0),
                 span_end=ent.get("span_end", sent.end if sent else 0),
-                semantic_tag=ent.get("semantic_tag", ent.get("label", "other")).lower(),
+                semantic_tag=semantic_tag,
                 assertion=assertion,
                 confidence=float(ent.get("confidence", 0.0)),
-                normalized=ent.get("normalized", ent.get("text", "")),
+                normalized=ent.get("normalized", text),
                 source_meta=ent.get("source_meta", {}),
                 relations=ent.get("relations", []),
+                numeric_value=str(ent.get("value", ent.get("numeric_value", parsed.get("numeric_value", ""))) or "").strip(),
+                unit=str(ent.get("unit", parsed.get("unit", "")) or "").strip(),
+                reference_range=str(
+                    ent.get(
+                        "reference_range",
+                        ent.get("referenceRange", parsed.get("reference_range", "")),
+                    )
+                    or ""
+                ).strip(),
                 source=_SOURCE,
                 model_name=self.model_name,
                 model_version=self.model_version,

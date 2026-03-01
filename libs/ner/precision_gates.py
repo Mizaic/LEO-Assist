@@ -240,7 +240,7 @@ def check_entity(
         reasons.append("entity_text_blocklisted_location")
 
     # Very short entities (≤2 chars) are almost always spurious, EXCEPT for
-    # modifier/cue labels (X_NEGATION_CUE etc.) where single words like "No"
+    # modifier labels (X_DOSAGE, X_ROUTE etc.) where short tokens
     # are clinically valid and intentional.
     # qualifier_value is also exempt: staging codes (T1, N0, M0, G1, G2) are
     # intentionally short and clinically meaningful.

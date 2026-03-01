@@ -25,6 +25,7 @@ class ResolveRequest(BaseModel):
 class CandidateResponse(BaseModel):
     snomed_concept_id: str | None
     snomed_term: str | None
+    semantic_tag: str | None = None
     read_code: str | None
     score: float
     source: str
@@ -51,6 +52,7 @@ def resolve_terms(body: ResolveRequest):
                 CandidateResponse(
                     snomed_concept_id=c.snomed_concept_id,
                     snomed_term=c.snomed_term,
+                    semantic_tag=c.semantic_tag,
                     read_code=c.read_code,
                     score=c.score,
                     source=c.source,

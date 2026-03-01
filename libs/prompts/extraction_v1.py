@@ -24,10 +24,22 @@ Return ONLY valid JSON. No explanation, no markdown, no preamble.
       "text": "exact surface form from the sentence",
       "lookup_term": "standard clinical term for SNOMED lookup",
       "semantic_tag": "disorder",
-      "assertion": "present"
+      "assertion": "present",
+      "value": null,
+      "unit": null,
+      "reference_range": null
     }
   ]
 }
+
+For observable entities (semantic_tag "observable entity") that have a measured \
+value in the text, populate "value", "unit", and "reference_range":
+- "value": the numeric value exactly as written — e.g. "145/69", "7.2", "64.5", "106"
+- "unit": the unit of measurement — e.g. "mmHg", "mmol/L", "kg", "g/L", "%", "bpm"
+- "reference_range": the reference range if stated — e.g. "130-180", ">90", "3.5-5.0"
+  Strip any surrounding brackets. Omit (null) if not present in the text.
+
+For all other semantic tags, leave "value", "unit", and "reference_range" as null.
 
 Return {"terms": []} when no codable entities exist in the sentence subset.
 

@@ -39,6 +39,18 @@ interface VerificationStats {
   pending: number;
 }
 
+interface VerifyAllStatus {
+  status?: "idle" | "running" | "stopping" | "cancelled" | "done" | "failed";
+  auto_resolved?: number;
+  total?: number;
+  done?: number;
+  remaining?: number;
+  progress_pct?: number;
+  items_per_min?: number;
+  eta_seconds?: number | null;
+  eta_at?: number | null;
+}
+
 interface QueueResponse {
   reviews: LabelVerificationReview[];
   total: number;
@@ -70,8 +82,18 @@ const VALID_ENTITY_LABELS = [
   "event",
   "body_structure",
   "tumor_staging",
+  "assessment_scale",
+  "staging_scale",
+  "regime_therapy",
+  "record_artifact",
+  "physical_object",
+  "organism",
+  "morphologic_abnormality",
+  "occupation",
+  "attribute",
+  "environment",
+  "product",
   "X_PATHWAY_MILESTONE",
-  "X_NEGATION_CUE",
   "X_TEMPORAL",
   "X_DOSAGE",
   "X_FREQUENCY",
@@ -100,7 +122,12 @@ export default function LabelVerificationPanel() {
     pending: 0,
   });
   const [pendingCount, setPendingCount] = useState(0);
+  const [autoResolvedCount, setAutoResolvedCount] = useState(0);
+  const [verifyStatus, setVerifyStatus] = useState<VerifyAllStatus | null>(null);
+  const [startingVerify, setStartingVerify] = useState(false);
+  const [stoppingVerify, setStoppingVerify] = useState(false);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -119,7 +146,7 @@ export default function LabelVerificationPanel() {
     setLoading(true);
     try {
       const data = await jsonFetch<QueueResponse>(
-        `/api/training/labels/verification-queue?page=${page}&page_size=20`
+        `/api/training/labels/verification-queue?page=${page}&page_size=${pageSize}`
       );
       setReviews(data.reviews);
       setStats(
@@ -133,6 +160,9 @@ export default function LabelVerificationPanel() {
       );
       setPendingCount(data.pending ?? 0);
       setTotalPages(Math.max(1, data.total_pages ?? 1));
+      const status = await jsonFetch<VerifyAllStatus>("/api/training/labels/verify-all/status");
+      setVerifyStatus(status);
+      setAutoResolvedCount(status.auto_resolved ?? 0);
 
       const nextSelected: Record<string, string> = {};
       const nextSpans: Record<string, string> = {};
@@ -168,7 +198,7 @@ export default function LabelVerificationPanel() {
     } finally {
       setLoading(false);
     }
-  }, [page]);
+  }, [page, pageSize]);
 
   useEffect(() => {
     fetchQueue();
@@ -256,8 +286,27 @@ export default function LabelVerificationPanel() {
       { label: `Agreements: ${stats.agreements.toLocaleString()}` },
       { label: `Disagreements: ${stats.disagreements.toLocaleString()}` },
       { label: `Pending HITL: ${pendingCount.toLocaleString()}`, color: "warning" as const },
+      { label: `Auto-resolved: ${autoResolvedCount.toLocaleString()}`, color: "success" as const },
+      ...(verifyStatus?.status === "running" || verifyStatus?.status === "stopping"
+        ? [
+            { label: `Progress: ${(verifyStatus.progress_pct ?? 0).toFixed(1)}%`, color: "primary" as const },
+            { label: `Remaining: ${(verifyStatus.remaining ?? 0).toLocaleString()}`, color: "primary" as const },
+            {
+              label: `ETA: ${typeof verifyStatus.eta_seconds === "number" ? `${Math.max(0, Math.round(verifyStatus.eta_seconds / 60))}m` : "unknown"}`,
+              color: "primary" as const,
+            },
+            {
+              label: `Finish: ${
+                typeof verifyStatus.eta_at === "number"
+                  ? new Date(verifyStatus.eta_at * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+                  : "unknown"
+              }`,
+              color: "primary" as const,
+            },
+          ]
+        : []),
     ],
-    [pendingCount, stats]
+    [autoResolvedCount, pendingCount, stats, verifyStatus]
   );
 
   const parseEntities = (raw?: string): LabelEntity[] => {
@@ -364,6 +413,34 @@ export default function LabelVerificationPanel() {
     }
   };
 
+  const handleStartVerification = async (mode: "all" | "hitl_only", resetPending = false) => {
+    setStartingVerify(true);
+    try {
+      await jsonFetch("/api/training/labels/verify-all", {
+        method: "POST",
+        body: JSON.stringify({ mode, reset_pending: resetPending }),
+      });
+      await fetchQueue();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not start label verification");
+    } finally {
+      setStartingVerify(false);
+    }
+  };
+
+  const handleStopVerification = async () => {
+    setStoppingVerify(true);
+    try {
+      await jsonFetch("/api/training/labels/verify-all/cancel", { method: "POST" });
+      const status = await jsonFetch<VerifyAllStatus>("/api/training/labels/verify-all/status");
+      setVerifyStatus(status);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not stop label verification");
+    } finally {
+      setStoppingVerify(false);
+    }
+  };
+
   return (
     <Box sx={{ maxWidth: 1100, mx: "auto", px: 3, py: 3 }}>
       <Typography variant="h6" sx={{ fontWeight: 700, mb: 0.5 }}>
@@ -388,6 +465,39 @@ export default function LabelVerificationPanel() {
       <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
         <Button variant="outlined" size="small" onClick={fetchQueue} disabled={loading}>
           Refresh
+        </Button>
+        <Button
+          variant="outlined"
+          size="small"
+          disabled={startingVerify || verifyStatus?.status === "running" || verifyStatus?.status === "stopping"}
+          onClick={() => handleStartVerification("all", true)}
+        >
+          Reset + reverify all
+        </Button>
+        <Button
+          variant="outlined"
+          size="small"
+          disabled={startingVerify || verifyStatus?.status === "running" || verifyStatus?.status === "stopping"}
+          onClick={() => handleStartVerification("hitl_only", false)}
+        >
+          Reverify HITL only
+        </Button>
+        <Button
+          variant="outlined"
+          size="small"
+          disabled={startingVerify || verifyStatus?.status === "running" || verifyStatus?.status === "stopping"}
+          onClick={() => handleStartVerification("resume", false)}
+        >
+          Resume
+        </Button>
+        <Button
+          variant="outlined"
+          color="error"
+          size="small"
+          disabled={stoppingVerify || (verifyStatus?.status !== "running" && verifyStatus?.status !== "stopping")}
+          onClick={handleStopVerification}
+        >
+          Stop verify
         </Button>
       </Stack>
 
@@ -599,6 +709,20 @@ export default function LabelVerificationPanel() {
         <Button size="small" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
           Next →
         </Button>
+        <FormControl size="small" sx={{ minWidth: 100, ml: 1 }}>
+          <Select
+            value={pageSize}
+            onChange={(e) => {
+              setPageSize(Number(e.target.value));
+              setPage(1);
+            }}
+          >
+            {[10, 25, 50, 100, 500].map((n) => (
+              <MenuItem key={n} value={n}>{n === 500 ? "All" : n}</MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+        <Typography variant="caption" color="text.secondary">per page</Typography>
       </Stack>
     </Box>
   );

@@ -90,6 +90,7 @@ interface GS {
   nextDir: Dir;
   food: Pt;
   alive: boolean;
+  started: boolean;
   score: number;
   level: number;
   eaten: number;
@@ -141,7 +142,7 @@ function effectiveTickMs(s: GS): number {
   return Math.max(Math.round(ms), 25);
 }
 
-function mkState(): GS {
+function mkState(started = false): GS {
   const snake: Pt[] = [[12, 12]];
   const now = performance.now();
   return {
@@ -150,6 +151,7 @@ function mkState(): GS {
     nextDir: "right",
     food: freeCell(snake, []),
     alive: true,
+    started,
     score: 0,
     level: 1,
     eaten: 0,
@@ -176,6 +178,7 @@ export default function SnakeGame() {
 
   const [score, setScore] = useState(0);
   const [gameOver, setGameOver] = useState(false);
+  const [started, setStarted] = useState(false);
   const [level, setLevel] = useState(1);
   const [combo, setCombo] = useState(0);
   const [effects, setEffects] = useState<Effect[]>([]);
@@ -185,6 +188,7 @@ export default function SnakeGame() {
     setLevel(s.level);
     setCombo(s.combo);
     setGameOver(!s.alive);
+    setStarted(s.started);
     if (s.fx.length > 0 || prevFxLen.current > 0) {
       setEffects(s.fx.map((e) => ({ ...e })));
       prevFxLen.current = s.fx.length;
@@ -192,7 +196,12 @@ export default function SnakeGame() {
   }, []);
 
   const restart = useCallback(() => {
-    gs.current = mkState();
+    gs.current = mkState(true);
+    pushUI(gs.current);
+  }, [pushUI]);
+
+  const startGame = useCallback(() => {
+    gs.current.started = true;
     pushUI(gs.current);
   }, [pushUI]);
 
@@ -200,6 +209,11 @@ export default function SnakeGame() {
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
       const s = gs.current;
+      if (!s.started && e.key === " ") {
+        e.preventDefault();
+        startGame();
+        return;
+      }
       if (!s.alive && e.key === " ") {
         restart();
         return;
@@ -211,7 +225,7 @@ export default function SnakeGame() {
     };
     window.addEventListener("keydown", h);
     return () => window.removeEventListener("keydown", h);
-  }, [restart]);
+  }, [restart, startGame]);
 
   /* game loop (rAF with accumulator-based ticks) */
   useEffect(() => {
@@ -220,7 +234,7 @@ export default function SnakeGame() {
 
     /* ── game tick ── */
     function tick(s: GS, now: number) {
-      if (!s.alive) return;
+      if (!s.started || !s.alive) return;
 
       s.dir = s.nextDir;
       const [dx, dy] = DIR_VEC[s.dir];
@@ -469,6 +483,19 @@ export default function SnakeGame() {
       }
       ctx.globalAlpha = 1;
 
+      /* start overlay */
+      if (!s.started) {
+        ctx.fillStyle = "rgba(15,23,42,0.85)";
+        ctx.fillRect(0, 0, W, H);
+        ctx.textAlign = "center";
+        ctx.fillStyle = "#e2e8f0";
+        ctx.font = "bold 22px sans-serif";
+        ctx.fillText("Ready to play?", W / 2, H / 2 - 30);
+        ctx.font = "14px monospace";
+        ctx.fillStyle = "#94a3b8";
+        ctx.fillText("Press SPACE or click Start Game", W / 2, H / 2 + 10);
+      }
+
       /* game over overlay */
       if (!s.alive) {
         ctx.fillStyle = "rgba(15,23,42,0.88)";
@@ -508,11 +535,11 @@ export default function SnakeGame() {
       const dt = now - s.prev;
       s.prev = now;
 
-      if (s.alive) {
+      if (s.started && s.alive) {
         s.acc += dt;
         const ms = effectiveTickMs(s);
         let ticks = 0;
-        while (s.acc >= ms && s.alive && ticks < 4) {
+        while (s.acc >= ms && s.started && s.alive && ticks < 4) {
           s.acc -= ms;
           tick(s, now);
           ticks++;
@@ -577,6 +604,23 @@ export default function SnakeGame() {
             {combo}x
           </span>
         )}
+        {!started && (
+          <button
+            onClick={startGame}
+            style={{
+              background: "linear-gradient(135deg,#22c55e,#16a34a)",
+              color: "#fff",
+              border: "none",
+              borderRadius: 6,
+              padding: "4px 14px",
+              fontSize: 12,
+              fontWeight: 700,
+              cursor: "pointer",
+            }}
+          >
+            Start Game
+          </button>
+        )}
         {gameOver && (
           <button
             onClick={restart}
@@ -636,10 +680,12 @@ export default function SnakeGame() {
         ref={cvs}
         width={W}
         height={H}
+        onClick={!started ? startGame : undefined}
         style={{
           borderRadius: 8,
           border: "1px solid #334155",
           display: "block",
+          cursor: !started ? "pointer" : undefined,
         }}
       />
 

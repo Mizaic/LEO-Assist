@@ -99,10 +99,21 @@ interface ExportPreview {
 }
 
 interface VerificationStatus {
-  status: "idle" | "running" | "done" | "failed";
+  status: "idle" | "running" | "stopping" | "cancelled" | "done" | "failed";
   started_at: number | null;
   finished_at: number | null;
+  total?: number;
+  done?: number;
+  remaining?: number;
+  progress_pct?: number;
+  items_per_min?: number;
+  eta_seconds?: number | null;
+  eta_at?: number | null;
   pending_review: number;
+  auto_resolved?: number;
+  run_mode?: "all" | "hitl_only";
+  reset_pending?: boolean;
+  stop_requested?: boolean;
   last_error: string | null;
 }
 
@@ -148,8 +159,18 @@ const VALID_ENTITY_LABELS = [
   "event",
   "body_structure",
   "tumor_staging",
+  "assessment_scale",
+  "staging_scale",
+  "regime_therapy",
+  "record_artifact",
+  "physical_object",
+  "organism",
+  "morphologic_abnormality",
+  "occupation",
+  "attribute",
+  "environment",
+  "product",
   "X_PATHWAY_MILESTONE",
-  "X_NEGATION_CUE",
   "X_TEMPORAL",
   "X_DOSAGE",
   "X_FREQUENCY",
@@ -291,6 +312,18 @@ export default function TrainingDataPanel() {
   useEffect(() => { fetchStats(); fetchJobs(); fetchPreview(); fetchVerificationStatus(); }, [fetchStats, fetchJobs, fetchPreview, fetchVerificationStatus]);
   useEffect(() => { fetchLabels(); }, [fetchLabels]);
 
+  // Keep verifier progress reactive without SSE: poll status while running/stopping.
+  useEffect(() => {
+    const isActive =
+      verificationStatus?.status === "running" ||
+      verificationStatus?.status === "stopping";
+    if (!isActive) return;
+    const id = setInterval(() => {
+      fetchVerificationStatus();
+    }, 5000);
+    return () => clearInterval(id);
+  }, [verificationStatus?.status, fetchVerificationStatus]);
+
   // Keep refs in sync so the polling interval can read them without being recreated
   useEffect(() => { jobsRef.current = jobs; }, [jobs]);
   useEffect(() => { pollingPausedRef.current = pollingPaused; }, [pollingPaused]);
@@ -383,10 +416,13 @@ export default function TrainingDataPanel() {
     }
   };
 
-  const handleVerifyLabels = async () => {
+  const handleVerifyLabels = async (mode: "all" | "hitl_only", resetPending = false) => {
     setStartingVerification(true);
     try {
-      await jsonFetch<{ status: string; message: string }>("/api/training/labels/verify-all", { method: "POST" });
+      await jsonFetch<{ status: string; message: string }>("/api/training/labels/verify-all", {
+        method: "POST",
+        body: JSON.stringify({ mode, reset_pending: resetPending }),
+      });
       fetchVerificationStatus();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not start label verification");
@@ -395,10 +431,24 @@ export default function TrainingDataPanel() {
     }
   };
 
+  const handleStopVerification = async () => {
+    try {
+      await jsonFetch<{ status: string; message: string }>("/api/training/labels/verify-all/cancel", {
+        method: "POST",
+      });
+      fetchVerificationStatus();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not stop label verification");
+    }
+  };
+
   const totalPages = Math.max(1, Math.ceil(labelTotal / PAGE_SIZE));
   const activeJob = jobs.find((j) => ACTIVE_STATUSES.has(j.status));
   const lastJob = !activeJob ? jobs[0] : undefined;
-  const verificationRunning = verificationStatus?.status === "running" || startingVerification;
+  const verificationRunning =
+    verificationStatus?.status === "running" ||
+    verificationStatus?.status === "stopping" ||
+    startingVerification;
   const verificationFinishedAt = verificationStatus?.finished_at
     ? new Date(verificationStatus.finished_at * 1000).toLocaleString([], { dateStyle: "short", timeStyle: "short" })
     : null;
@@ -636,9 +686,17 @@ export default function TrainingDataPanel() {
             )}
             {verificationStatus?.pending_review ? (
               <Chip
-                label={`${verificationStatus.pending_review} to review`}
+                label={`${verificationStatus.pending_review} HITL pending`}
                 size="small"
                 color="warning"
+                variant="outlined"
+              />
+            ) : null}
+            {(verificationStatus?.auto_resolved ?? 0) > 0 ? (
+              <Chip
+                label={`${verificationStatus?.auto_resolved ?? 0} auto-resolved`}
+                size="small"
+                color="success"
                 variant="outlined"
               />
             ) : null}
@@ -679,11 +737,100 @@ export default function TrainingDataPanel() {
               size="small"
               variant="outlined"
               disabled={verificationRunning}
-              onClick={handleVerifyLabels}
+              onClick={() => handleVerifyLabels("all", false)}
             >
               {startingVerification ? "Starting..." : "Verify labels"}
             </Button>
+            <Button
+              size="small"
+              variant="outlined"
+              color="warning"
+              disabled={verificationRunning}
+              onClick={() => handleVerifyLabels("all", true)}
+            >
+              Reset + reverify all
+            </Button>
+            <Button
+              size="small"
+              variant="outlined"
+              color="secondary"
+              disabled={verificationRunning}
+              onClick={() => handleVerifyLabels("hitl_only", false)}
+            >
+              Reverify HITL only
+            </Button>
+            <Button
+              size="small"
+              variant="outlined"
+              disabled={verificationRunning}
+              onClick={() => handleVerifyLabels("resume", false)}
+            >
+              Resume
+            </Button>
+            <Button
+              size="small"
+              variant="outlined"
+              color="error"
+              disabled={!verificationRunning}
+              onClick={handleStopVerification}
+            >
+              Stop verify
+            </Button>
           </Stack>
+
+          {verificationRunning && (
+            <Stack
+              direction="row"
+              spacing={1}
+              sx={{ px: 2, pb: 1.5, flexWrap: "wrap" }}
+              alignItems="center"
+            >
+              <Chip
+                label={`${verificationStatus?.done ?? 0}/${verificationStatus?.total ?? 0} labels (${(verificationStatus?.progress_pct ?? 0).toFixed(1)}%)`}
+                size="small"
+                color="primary"
+                variant="outlined"
+              />
+              <Chip
+                label={`${verificationStatus?.remaining ?? 0} labels remaining`}
+                size="small"
+                color="primary"
+                variant="outlined"
+              />
+              {typeof verificationStatus?.items_per_min === "number" && verificationStatus.items_per_min > 0 ? (
+                <Chip
+                  label={`${verificationStatus.items_per_min.toFixed(1)} labels/min`}
+                  size="small"
+                  color="primary"
+                  variant="outlined"
+                />
+              ) : null}
+              {typeof verificationStatus?.eta_seconds === "number" ? (
+                <Chip
+                  label={`ETA ${fmtElapsed(verificationStatus.eta_seconds)}`}
+                  size="small"
+                  color="primary"
+                  variant="outlined"
+                />
+              ) : null}
+              {typeof verificationStatus?.eta_at === "number" ? (
+                <Chip
+                  label={`ETA at ${new Date(verificationStatus.eta_at * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`}
+                  size="small"
+                  color="primary"
+                  variant="outlined"
+                />
+              ) : null}
+            </Stack>
+          )}
+
+          {verificationRunning && typeof verificationStatus?.progress_pct === "number" ? (
+            <LinearProgress
+              variant="determinate"
+              value={Math.max(0, Math.min(100, verificationStatus.progress_pct))}
+              sx={{ mx: 2, mb: 1.5, borderRadius: 1 }}
+            />
+          ) : null}
 
           {/* Table */}
           <TableContainer sx={{ borderTop: "1px solid", borderColor: "divider" }}>

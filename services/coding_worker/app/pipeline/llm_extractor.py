@@ -43,6 +43,9 @@ class ExtractedTerm:
     assertion: str
     context: dict[str, Any]
     modifiers: dict[str, Any]
+    numeric_value: str = ""      # structured value for observable entities, e.g. "145/69"
+    unit: str = ""               # e.g. "mmHg", "mmol/L", "kg"
+    reference_range: str = ""    # e.g. "130-180", ">90"
 
 
 class LLMExtractor:
@@ -142,5 +145,8 @@ class LLMExtractor:
                 assertion=assertion,
                 context=dict(_ASSERTION_TO_CONTEXT.get(assertion, _ASSERTION_TO_CONTEXT["present"])),
                 modifiers={},
+                numeric_value=str(row.get("value", "") or "").strip(),
+                unit=str(row.get("unit", "") or "").strip(),
+                reference_range=str(row.get("reference_range", "") or "").strip(),
             ))
         return out

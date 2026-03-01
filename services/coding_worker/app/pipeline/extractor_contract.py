@@ -11,7 +11,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Protocol, runtime_checkable
 
-CONTRACT_VERSION = "1.0"
+CONTRACT_VERSION = "1.1"
 
 
 @dataclass(frozen=True)
@@ -20,10 +20,15 @@ class ExtractionItem:
 
     All extractors — LLM-backed or model-backed — must produce instances of
     this type.  Downstream code must not assume any provider-specific shape.
+
+    For observable entities (semantic_tag == "observable entity"), extractors
+    should populate numeric_value, unit, and reference_range where present in
+    the source text.  These are persisted as r.value, r.unit, r.referenceRange
+    on the :DOCUMENTS relationship for direct queryability.
     """
 
     sentence_id: str
-    text: str
+    text: str               # exact NER span — used as r.evidence for traceability
     span_start: int
     span_end: int
     semantic_tag: str
@@ -32,6 +37,11 @@ class ExtractionItem:
     normalized: str         # lookup term or normalised surface form
     source_meta: dict[str, Any] = field(default_factory=dict)
     relations: list[dict[str, Any]] = field(default_factory=list)
+
+    # Structured measurement fields — populated for observable entities
+    numeric_value: str = ""       # e.g. "145/69", "7.2", "64.5"
+    unit: str = ""                # e.g. "mmHg", "%", "kg", "mmol/L"
+    reference_range: str = ""     # e.g. "130-180", ">90", "3.5-5.0"
 
     # Provenance — stamped at write time from the provider that produced this item
     source: str = "unknown"           # "llm" | "model"
@@ -57,6 +67,9 @@ class ExtractionItem:
             normalized=self.normalized,
             source_meta=self.source_meta,
             relations=self.relations,
+            numeric_value=self.numeric_value,
+            unit=self.unit,
+            reference_range=self.reference_range,
             source=source,
             model_name=model_name,
             model_version=model_version,

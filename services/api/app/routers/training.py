@@ -43,9 +43,12 @@ from libs.cypher.training_label_queries import (
 )
 from libs.cypher.label_verification_queries import (
     COUNT_VERIFICATION_QUEUE_PENDING,
+    DELETE_ALL_VERIFICATION_REVIEWS_FOR_INCLUDED,
     GET_LABEL_VERIFIER_SCORECARD,
+    GET_LABEL_VERIFIER_SCORECARD_BREAKDOWN,
     GET_VERIFICATION_QUEUE,
     GET_VERIFICATION_STATS,
+    RESET_TRAINING_LABEL_VERIFICATION_FIELDS,
     RESOLVE_LABEL_VERIFICATION_REVIEW,
 )
 from libs.cypher.post_processor_rule_queries import (
@@ -54,7 +57,13 @@ from libs.cypher.post_processor_rule_queries import (
     UPDATE_POST_PROCESSOR_RULE_ACTIVE,
 )
 from libs.ner.training_label_writer import bulk_upsert_training_labels
-from app.services.label_verifier import begin_job, get_job_state, run_verification
+from app.services.label_verifier import (
+    begin_job,
+    begin_job_with_mode,
+    get_job_state,
+    request_stop_job,
+    run_verification,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -112,6 +121,11 @@ class PostProcessorRuleRequest(BaseModel):
 
 class UpdatePostProcessorRuleRequest(BaseModel):
     active: bool
+
+
+class VerifyAllRequest(BaseModel):
+    mode: str = "all"  # all | hitl_only
+    reset_pending: bool = False
 
 
 # ------------------------------------------------------------------
@@ -246,7 +260,10 @@ _VALID_ENTITY_LABELS: frozenset[str] = frozenset(
         "disorder", "finding", "procedure", "observable_entity",
         "qualifier_value", "substance", "medicinal_product", "clinical_drug",
         "situation", "event", "body_structure", "tumor_staging",
-        "X_PATHWAY_MILESTONE", "X_NEGATION_CUE",
+        "assessment_scale", "staging_scale", "regime_therapy", "record_artifact",
+        "physical_object", "organism", "morphologic_abnormality", "occupation",
+        "attribute", "environment", "product",
+        "X_PATHWAY_MILESTONE",
         "X_TEMPORAL", "X_DOSAGE", "X_FREQUENCY", "X_ROUTE",
     }
 )
@@ -314,14 +331,48 @@ def update_label_entities(
 
 
 @router.post("/labels/verify-all")
-def verify_all_labels(scope: CallerScope = Depends(get_caller_scope)) -> dict[str, Any]:
+def verify_all_labels(
+    body: VerifyAllRequest | None = None,
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
     """Trigger background dual-model verification over included labels."""
-    if not begin_job():
+    if body is None:
+        started = begin_job()
+        mode = "all"
+        reset_pending = False
+    else:
+        mode = body.mode if body.mode in {"all", "hitl_only"} else "all"
+        reset_pending = bool(body.reset_pending)
+        started = begin_job_with_mode(run_mode=mode, reset_pending=reset_pending)
+
+    if not started:
         raise HTTPException(status_code=409, detail="A label verification job is already running")
+
+    if reset_pending:
+        client = PatientGraphClient()
+        try:
+            with client.session() as session:
+                session.run(RESET_TRAINING_LABEL_VERIFICATION_FIELDS)
+                session.run(DELETE_ALL_VERIFICATION_REVIEWS_FOR_INCLUDED)
+        finally:
+            client.close()
 
     thread = threading.Thread(target=run_verification, daemon=True)
     thread.start()
-    return {"status": "started", "message": "Label verification started in background"}
+    return {
+        "status": "started",
+        "mode": mode,
+        "reset_pending": reset_pending,
+        "message": "Label verification started in background",
+    }
+
+
+@router.post("/labels/verify-all/cancel")
+def cancel_verify_all(scope: CallerScope = Depends(get_caller_scope)) -> dict[str, Any]:
+    """Request graceful cancellation of running label verification job."""
+    if not request_stop_job():
+        raise HTTPException(status_code=409, detail="No running label verification job to cancel")
+    return {"status": "stopping", "message": "Cancellation requested"}
 
 
 @router.get("/labels/verify-all/status")
@@ -335,6 +386,7 @@ def verification_status(scope: CallerScope = Depends(get_caller_scope)) -> dict[
             pending_row = session.run(COUNT_VERIFICATION_QUEUE_PENDING).single()
         return {
             **state,
+            "auto_resolved": int(state.get("auto_resolved", 0) or 0),
             "stats": dict(stats_row) if stats_row else {
                 "total_labels": 0,
                 "verified_labels": 0,
@@ -358,7 +410,7 @@ def verification_status(scope: CallerScope = Depends(get_caller_scope)) -> dict[
 def get_verification_queue(
     scope: CallerScope = Depends(get_caller_scope),
     page: int = Query(default=1, ge=1),
-    page_size: int = Query(default=30, le=200),
+    page_size: int = Query(default=25, le=500),
 ) -> dict[str, Any]:
     """Return unresolved label-verification disagreements for human review."""
     skip = (page - 1) * page_size
@@ -624,14 +676,59 @@ def get_verifier_scorecard(scope: CallerScope = Depends(get_caller_scope)) -> di
     try:
         with client.session() as session:
             row = session.run(GET_LABEL_VERIFIER_SCORECARD).single()
+            breakdown_rows = [dict(r) for r in session.run(GET_LABEL_VERIFIER_SCORECARD_BREAKDOWN)]
         if not row:
             return {"total_resolved": 0}
         data = dict(row)
         total = data.get("total_resolved") or 0
+        by_label: dict[str, dict[str, Any]] = {}
+        by_resolver: dict[str, dict[str, Any]] = {}
+        for r in breakdown_rows:
+            label = str(r.get("label") or "__UNKNOWN__")
+            resolver = str(r.get("resolved_by") or "human")
+            n = int(r.get("n") or 0)
+            model_a_correct = int(r.get("model_a_correct") or 0)
+            model_b_correct = int(r.get("model_b_correct") or 0)
+            label_bucket = by_label.setdefault(label, {"total": 0, "model_a_correct": 0, "model_b_correct": 0})
+            label_bucket["total"] += n
+            label_bucket["model_a_correct"] += model_a_correct
+            label_bucket["model_b_correct"] += model_b_correct
+            bucket = by_resolver.setdefault(resolver, {"total": 0, "model_a_correct": 0, "model_b_correct": 0})
+            bucket["total"] += n
+            bucket["model_a_correct"] += model_a_correct
+            bucket["model_b_correct"] += model_b_correct
+
+        label_accuracy = {
+            k: {
+                "total": v["total"],
+                "model_a_accuracy": round(v["model_a_correct"] / v["total"], 4) if v["total"] else None,
+                "model_b_accuracy": round(v["model_b_correct"] / v["total"], 4) if v["total"] else None,
+            }
+            for k, v in by_label.items()
+        }
+        resolver_accuracy = {
+            k: {
+                "total": v["total"],
+                "model_a_accuracy": round(v["model_a_correct"] / v["total"], 4) if v["total"] else None,
+                "model_b_accuracy": round(v["model_b_correct"] / v["total"], 4) if v["total"] else None,
+            }
+            for k, v in by_resolver.items()
+        }
+        auto_rows = [v for k, v in by_resolver.items() if k.startswith("auto_triage:")]
+        auto_total = sum(v["total"] for v in auto_rows)
+        auto_a_correct = sum(v["model_a_correct"] for v in auto_rows)
+        auto_b_correct = sum(v["model_b_correct"] for v in auto_rows)
         return {
             **data,
             "model_a_accuracy": round(data["model_a_correct"] / total, 4) if total else None,
             "model_b_accuracy": round(data["model_b_correct"] / total, 4) if total else None,
+            "per_label": label_accuracy,
+            "by_resolved_by": resolver_accuracy,
+            "auto_triage_accuracy": {
+                "total": auto_total,
+                "model_a_accuracy": round(auto_a_correct / auto_total, 4) if auto_total else None,
+                "model_b_accuracy": round(auto_b_correct / auto_total, 4) if auto_total else None,
+            },
         }
     finally:
         client.close()

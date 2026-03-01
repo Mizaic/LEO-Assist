@@ -1,0 +1,2048 @@
+# =============================================================================
+# DC-TM-SEC-001 — Security Threat Model
+# Primary Care Clinical Pathway Audit Platform
+# =============================================================================
+#
+# Document ID:    DC-TM-SEC-001
+# Version:        1.0.0
+# Status:         Draft
+# Date:           2026-03-01
+# Standard:       IEC 81001-5-1:2021, ISO 14971:2019 (via AAMI TIR57)
+# Classification: QMS — Design Controls
+#
+# Regulatory scope:
+#   - UK Medical Devices Regulations 2002 (as amended) — UKCA Class I
+#   - ISO 13485:2016 — Quality Management System
+#   - IEC 62304:2006/AMD1:2015 — Software Lifecycle Processes
+#   - IEC 81001-5-1:2021 — Health Software Security Lifecycle
+#   - ISO 14971:2019 — Risk Management
+#   - UK GDPR / Data Protection Act 2018 — Article 9 special category data
+#   - NHS Data Security and Protection Toolkit (DSPT)
+#   - NCSC Secure by Design Principles
+#   - NCSC Cyber Assessment Framework (CAF)
+#
+# System classification:
+#   IEC 62304 Software Safety Class: B (per DC-SC-001)
+#   Data classification: Clinical (special category), PII, Operational
+#   Deployment: Cloud-hosted SaaS, multi-tenant NHS trust access
+#
+# Cross-references:
+#   - DC-SC-001  Software Safety Classification
+#   - DC-RM-001  Risk Management
+#   - DC-SOUP-001 SOUP List
+# =============================================================================
+
+system_context:
+  product: "Primary Care Clinical Pathway Audit Platform"
+  iec_62304_class: "B"
+  data_classifications:
+    - "Clinical (UK GDPR Article 9 special category)"
+    - "PII (NHS patient records)"
+    - "Operational (system configuration, model artifacts)"
+  deployment: "Cloud-hosted SaaS — Neo4j Aura, Azure Cache for Redis, Azure Service Bus, AWS Bedrock, Azure OpenAI"
+  services:
+    - {name: "core-api", port: 8000, exposure: "public", framework: "FastAPI 0.115+"}
+    - {name: "terminology-api", port: 8001, exposure: "internal", framework: "FastAPI"}
+    - {name: "fhir-api", port: 8002, exposure: "internal", framework: "FastAPI"}
+    - {name: "analytics-api", port: 8003, exposure: "internal", framework: "FastAPI"}
+    - {name: "model-inference", port: 8004, exposure: "internal", framework: "FastAPI"}
+    - {name: "training-worker", port: 8005, exposure: "internal", framework: "FastAPI"}
+    - {name: "coding-worker", port: null, exposure: "internal", framework: "async message consumer"}
+    - {name: "analysis-worker", port: null, exposure: "internal", framework: "async message consumer"}
+    - {name: "ui", port: 3000, exposure: "public", framework: "Next.js 16"}
+  data_stores:
+    - {name: "Neo4j Patient Graph", type: "graph database", data: "Patient, Encounter, clinical text, review tasks"}
+    - {name: "Neo4j Knowledge Graph", type: "graph database", data: "SNOMED terminology, FHIR resources, SurfaceForm mappings"}
+    - {name: "Redis", type: "key-value", data: "OAuth sessions, pipeline progress, LLM cache, checkpoints"}
+  external_services:
+    - {name: "Azure AD v2.0", purpose: "OAuth authentication"}
+    - {name: "AWS Bedrock", purpose: "Primary LLM (Claude)", data_sent: "de-identified clinical text"}
+    - {name: "Azure OpenAI", purpose: "Fallback LLM (GPT-4o)", data_sent: "de-identified clinical text"}
+    - {name: "Azure Blob Storage", purpose: "NER model artifact storage"}
+    - {name: "Azure Service Bus", purpose: "Async job messaging"}
+
+# =============================================================================
+# PHASE 1: RECONNAISSANCE — All Components
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# COMPONENT 1: AUTH SUBSYSTEM
+# ---------------------------------------------------------------------------
+component_1_auth:
+  name: "Auth Subsystem"
+  purpose: "OAuth 2.0 authentication via Azure AD, session management, org-scoped authorization"
+  iec_62304_contribution: "B"
+  trust_boundaries:
+    - "Internet → Core API (OAuth flow)"
+    - "Core API → Redis (session storage)"
+    - "Core API → Neo4j (org scope resolution)"
+    - "Core API → Analytics API (org context fetch)"
+  data_assets: "PII (email, name, org), Azure AD access tokens, session IDs"
+  network_exposure: "Public"
+  authentication_context: "Azure AD OAuth 2.0 authorization code flow"
+
+  phase_1_reconnaissance:
+    entry_points:
+      - id: "AUTH-EP-001"
+        type: "HTTP GET"
+        path: "/auth/login"
+        file: "services/api/app/routers/auth.py"
+        line: 63
+        authentication: "none"
+        description: "Initiates OAuth flow; redirects to Azure AD"
+      - id: "AUTH-EP-002"
+        type: "HTTP GET"
+        path: "/auth/callback"
+        file: "services/api/app/routers/auth.py"
+        line: 81
+        authentication: "none (OAuth callback)"
+        description: "Handles OAuth code exchange, creates session"
+      - id: "AUTH-EP-003"
+        type: "HTTP POST"
+        path: "/auth/logout"
+        file: "services/api/app/routers/auth.py"
+        line: 185
+        authentication: "session cookie"
+        description: "Clears session and cookie"
+      - id: "AUTH-EP-004"
+        type: "HTTP GET"
+        path: "/auth/session"
+        file: "services/api/app/routers/auth.py"
+        line: 196
+        authentication: "session cookie (optional)"
+        description: "Returns current user info; returns null user if unauthenticated"
+      - id: "AUTH-EP-005"
+        type: "FastAPI dependency"
+        path: "get_caller_scope / get_caller_scope_from_request"
+        file: "libs/auth/org_scope.py"
+        line: 196
+        authentication: "X-User-Email header OR ?email= query param OR session cookie"
+        description: "Resolves caller identity and org scope for all protected endpoints"
+
+    data_flows:
+      - id: "AUTH-DF-001"
+        description: "OAuth authorization code flow"
+        source: "Browser"
+        steps:
+          - "Browser → /auth/login → 302 redirect to Azure AD"
+          - "Azure AD → /auth/callback with ?code= (cleartext over HTTPS)"
+          - "Core API → Azure AD token endpoint (HTTPS POST with client_secret)"
+          - "Azure AD → access_token + id_token (JWT, cleartext in memory)"
+          - "Core API decodes id_token (base64, NO signature verification)"
+          - "Core API → Redis SET auth:session:{session_id} (JSON with access_token)"
+          - "Core API → Browser SET-COOKIE leo_session={session_id} (httponly, samesite=lax, secure=FALSE)"
+        encryption_transit: "HTTPS to Azure AD; HTTP between services"
+        encryption_rest: "Redis — depends on Azure Cache for Redis TLS config"
+        crosses_trust_boundary: true
+        clinical_decision_pathway: false
+
+      - id: "AUTH-DF-002"
+        description: "Org scope resolution"
+        source: "Any authenticated request"
+        steps:
+          - "Request arrives with X-User-Email header, ?email= param, or leo_session cookie"
+          - "get_caller_scope_from_request extracts email (no validation against session)"
+          - "PatientGraphClient opens Neo4j session"
+          - "Cypher query: MATCH (pr:Practitioner {email: $email})"
+          - "Expands org hierarchy: GPPractice → ICB → CancerAlliance"
+          - "Returns CallerScope(email, is_admin, org_ids)"
+        encryption_transit: "bolt:// to Neo4j (TLS depends on deployment config)"
+        encryption_rest: "Neo4j Aura encrypts at rest"
+        crosses_trust_boundary: true
+        clinical_decision_pathway: false
+
+      - id: "AUTH-DF-003"
+        description: "Org context enrichment at login"
+        source: "OAuth callback"
+        steps:
+          - "Core API → Analytics API GET /analytics/auth/org-context?email={email}"
+          - "Analytics API → Neo4j (Practitioner lookup)"
+          - "Returns is_platform_admin, organizations"
+          - "Stored in Redis session alongside access_token"
+        encryption_transit: "HTTP (plaintext between services)"
+        encryption_rest: "Redis session store"
+        crosses_trust_boundary: true
+        clinical_decision_pathway: false
+
+    trust_boundary_analysis:
+      - boundary: "Internet → Core API (OAuth callback)"
+        authentication_present: "yes — OAuth authorization code from Azure AD"
+        authentication_citation: "services/api/app/routers/auth.py:81-109"
+        authorisation_enforcement: "no — callback is open, relies on Azure AD code validity"
+        input_validation:
+          code_parameter: "checked for presence (line 94) but not validated beyond exchange"
+          state_parameter: "used as redirect URL without validation (line 68, 168)"
+          error_parameter: "reflected to frontend URL (line 92)"
+
+      - boundary: "Core API → Redis (session store)"
+        authentication_present: "yes — Redis URL with optional password"
+        authentication_citation: "services/api/app/services/session_store.py:30-61"
+        authorisation_enforcement: "no — any process with Redis URL has full access"
+        input_validation: "session_id is cryptographically random (secrets.token_urlsafe(32), line 128)"
+
+      - boundary: "Caller identity resolution (X-User-Email)"
+        authentication_present: "no — header accepted without signature verification"
+        authentication_citation: "libs/auth/org_scope.py:196-215"
+        authorisation_enforcement: "yes — org scope restricts data visibility"
+        authorisation_citation: "libs/auth/org_scope.py:65-135, 218-241"
+        input_validation: "email normalized (lowercase, strip) but not validated against session"
+
+    secrets_usage:
+      - secret: "AZURE_AD_CLIENT_SECRET"
+        storage: "environment variable (loaded from secrets/.env)"
+        rotation_evidence: "undocumented"
+        scope: ["services/api/app/routers/auth.py:32"]
+
+      - secret: "AZURE_AD_CLIENT_ID"
+        storage: "environment variable"
+        rotation_evidence: "undocumented"
+        scope: ["services/api/app/routers/auth.py:31"]
+
+      - secret: "AZURE_AD_TENANT_ID"
+        storage: "environment variable"
+        rotation_evidence: "undocumented"
+        scope: ["services/api/app/routers/auth.py:30"]
+
+      - secret: "Session ID (leo_session cookie)"
+        storage: "browser cookie + Redis key"
+        rotation_evidence: "none — no rotation on use; 7-day TTL"
+        scope: ["services/api/app/services/session_store.py:19-21"]
+
+      - secret: "Azure AD access_token"
+        storage: "Redis (auth:session:{session_id} JSON field)"
+        rotation_evidence: "none — token stored at login, never refreshed"
+        scope: ["services/api/app/routers/auth.py:157-165"]
+
+    existing_controls:
+      - control: "Cryptographically random session IDs"
+        citation: "services/api/app/services/session_store.py:128-129"
+        description: "secrets.token_urlsafe(32) — 256 bits of entropy"
+      - control: "HttpOnly cookie"
+        citation: "services/api/app/routers/auth.py:174"
+        description: "Session cookie inaccessible to JavaScript"
+      - control: "SameSite=lax cookie"
+        citation: "services/api/app/routers/auth.py:176"
+        description: "Mitigates cross-site POST CSRF (but not GET)"
+      - control: "v2.0 token enforcement"
+        citation: "services/api/app/routers/auth.py:122-136"
+        description: "Rejects Azure AD v1.0 tokens (sts.windows.net issuer)"
+      - control: "Redis session TTL"
+        citation: "services/api/app/services/session_store.py:20"
+        description: "Sessions expire after 7 days"
+      - control: "Org-scoped data access"
+        citation: "libs/auth/org_scope.py:65-135"
+        description: "Non-admin users restricted to their org hierarchy"
+      - control: "Patient-in-scope check"
+        citation: "libs/auth/org_scope.py:218-241"
+        description: "Verifies patient GP is within caller's org_ids"
+
+  phase_2_threats:
+    - id: "AUTH-S-001"
+      element: "libs/auth/org_scope.py:196-215"
+      threat: "Identity spoofing via X-User-Email header"
+      attack_vector: "Attacker sets X-User-Email header to any email address (including platform admin) when calling protected API endpoints directly"
+      prerequisites: "Network access to Core API port 8000"
+      threat_actors: ["malicious_insider", "compromised_nhs_endpoint", "external_targeted"]
+      evidence:
+        file: "libs/auth/org_scope.py"
+        line: 196
+        snippet: "def get_caller_scope(x_user_email: Optional[str] = Header(default=None, alias='X-User-Email'), email: Optional[str] = Query(default=None)) -> CallerScope:"
+      impact:
+        confidentiality: "High"
+        integrity: "High"
+        availability: "None"
+        clinical_safety: "High"
+        patient_data_exposure: true
+      likelihood: "High"
+      likelihood_rationale: "Trivially exploitable — requires only setting an HTTP header. The get_caller_scope dependency is overridden in main.py (line 77) with get_caller_scope_from_request which falls back to session cookie, but the original get_caller_scope accepting bare X-User-Email is still used by internal services (FHIR, Analytics, proxy forwarding)."
+      existing_controls: "get_caller_scope_from_request in deps.py provides session cookie fallback for the Core API, but the fallback chain still prefers X-User-Email header over session"
+      gaps: "No validation that X-User-Email matches the authenticated session. Any caller who can reach the API can set this header."
+      confidence: "Confirmed"
+      regulatory_impact:
+        - standard: "IEC 81001-5-1"
+          clause: "5.3.2"
+          nature: "Inadequate authentication mechanism — identity accepted from unauthenticated header"
+        - standard: "UK GDPR"
+          clause: "Article 32(1)(b)"
+          nature: "Inability to ensure ongoing confidentiality of processing systems"
+        - standard: "DSPT"
+          clause: "Assertion 4.3.1"
+          nature: "Access controls do not ensure only authorised individuals access data"
+
+    - id: "AUTH-S-002"
+      element: "services/api/app/deps.py:46-65"
+      threat: "Identity spoofing via email query parameter"
+      attack_vector: "Attacker appends ?email=admin@nhs.net to any protected endpoint URL"
+      prerequisites: "Network access to Core API; knowledge of admin email address"
+      threat_actors: ["malicious_insider", "compromised_nhs_endpoint", "external_targeted"]
+      evidence:
+        file: "services/api/app/deps.py"
+        line: 53
+        snippet: "caller_email = (x_user_email or email or '').strip().lower()"
+      impact:
+        confidentiality: "High"
+        integrity: "High"
+        availability: "None"
+        clinical_safety: "High"
+        patient_data_exposure: true
+      likelihood: "High"
+      likelihood_rationale: "The ?email= parameter is documented in the code as 'legacy fallback' but is still active. Any URL with a valid practitioner email grants that user's scope."
+      existing_controls: "Session cookie fallback exists but X-User-Email and ?email= are checked first"
+      gaps: "Query parameter identity is not authenticated against any credential"
+      confidence: "Confirmed"
+      regulatory_impact:
+        - standard: "IEC 81001-5-1"
+          clause: "5.3.2"
+          nature: "Authentication bypass via query parameter"
+
+    - id: "AUTH-T-001"
+      element: "services/api/app/routers/auth.py:122-149"
+      threat: "Token tampering — no JWT signature verification"
+      attack_vector: "Attacker intercepts or forges a JWT with valid-looking claims (correct email, tenant, issuer) but invalid signature. The callback handler decodes it via base64 without verifying against Azure AD JWKS."
+      prerequisites: "Ability to inject a forged JWT into the token exchange response (MITM on token endpoint) or forge a token that Azure AD returns"
+      threat_actors: ["external_targeted", "supply_chain"]
+      evidence:
+        file: "services/api/app/routers/auth.py"
+        line: 125
+        snippet: "payload_b64 = token.split('.')[1]\npayload_b64 += '=' * (4 - len(payload_b64) % 4)\nclaims = json.loads(base64.urlsafe_b64decode(payload_b64))"
+      impact:
+        confidentiality: "High"
+        integrity: "High"
+        availability: "None"
+        clinical_safety: "Medium"
+        patient_data_exposure: true
+      likelihood: "Medium"
+      likelihood_rationale: "The token exchange happens over HTTPS to Azure AD, making MITM difficult. However, the absence of signature verification means any code path that processes existing tokens (session restore, token refresh) is vulnerable. The stored access_token in Redis is never re-validated."
+      existing_controls: "HTTPS to Azure AD token endpoint; v2.0 issuer check"
+      gaps: "No JWKS-based cryptographic signature verification of id_token or access_token. python-jose[cryptography] is in requirements but not used for token validation."
+      confidence: "Confirmed"
+      regulatory_impact:
+        - standard: "IEC 81001-5-1"
+          clause: "5.3.3"
+          nature: "Cryptographic verification of authentication tokens not implemented"
+        - standard: "NCSC CAF"
+          clause: "B2.a"
+          nature: "Identity verification does not use cryptographic methods"
+
+    - id: "AUTH-T-002"
+      element: "services/api/app/routers/auth.py:68,168"
+      threat: "OAuth state parameter tampering — open redirect"
+      attack_vector: "Attacker crafts a login URL with state=//evil.com or state=/auth/callback?error=phishing. After OAuth, the user is redirected to FRONTEND_URL + attacker-controlled path. Since state is not signed or validated against an allowlist, the attacker controls the post-login redirect."
+      prerequisites: "Ability to send a crafted URL to the victim (phishing)"
+      threat_actors: ["external_opportunistic", "external_targeted"]
+      evidence:
+        file: "services/api/app/routers/auth.py"
+        line: 68
+        snippet: "state = next_url"
+      impact:
+        confidentiality: "Medium"
+        integrity: "Low"
+        availability: "None"
+        clinical_safety: "None"
+        patient_data_exposure: false
+      likelihood: "Medium"
+      likelihood_rationale: "The redirect is prefixed with FRONTEND_URL (line 171), limiting the redirect to paths on the frontend domain. However, path-based phishing (e.g., redirect to a page that mimics a login form) is still possible."
+      existing_controls: "Redirect prefixed with FRONTEND_URL; normalized_state must start with '/'"
+      gaps: "No CSRF nonce in state parameter; no allowlist of valid redirect paths; state not cryptographically signed"
+      confidence: "Probable"
+      regulatory_impact:
+        - standard: "IEC 81001-5-1"
+          clause: "5.3.4"
+          nature: "Session management vulnerability — OAuth state not protected"
+
+    - id: "AUTH-R-001"
+      element: "services/api/app/routers/auth.py"
+      threat: "Repudiation — no audit trail for authentication events"
+      attack_vector: "Attacker authenticates, performs malicious actions, and there is no durable audit log of when sessions were created, by whom, or when they expired."
+      prerequisites: "Valid or spoofed identity"
+      threat_actors: ["malicious_insider", "compromised_nhs_endpoint"]
+      evidence:
+        file: "services/api/app/routers/auth.py"
+        line: 156
+        snippet: "save_session(session_id, {...})"
+      impact:
+        confidentiality: "None"
+        integrity: "Medium"
+        availability: "None"
+        clinical_safety: "Low"
+        patient_data_exposure: false
+      likelihood: "Medium"
+      likelihood_rationale: "Authentication events are logged via Python logging (logger.info/warning) but not persisted to a durable audit store. Log retention depends on infrastructure configuration."
+      existing_controls: "Python logging captures some auth events"
+      gaps: "No durable, tamper-evident audit log for authentication events. No session creation/destruction events written to a persistent store. IEC 62304 Clause 5.2 requires audit trail for clinical decisions."
+      confidence: "Confirmed"
+      regulatory_impact:
+        - standard: "IEC 62304"
+          clause: "5.2"
+          nature: "Insufficient audit trail for security-relevant events"
+        - standard: "IEC 81001-5-1"
+          clause: "5.4.2"
+          nature: "Security event logging not persisted to durable store"
+
+    - id: "AUTH-I-001"
+      element: "services/api/app/routers/auth.py:173-181"
+      threat: "Session cookie transmitted over HTTP (secure=False)"
+      attack_vector: "Session cookie is transmitted in cleartext over HTTP connections. An attacker on the same network (e.g., NHS hospital WiFi) can intercept the cookie via passive network sniffing."
+      prerequisites: "Network-level access (same LAN, compromised network equipment)"
+      threat_actors: ["external_opportunistic", "compromised_nhs_endpoint"]
+      evidence:
+        file: "services/api/app/routers/auth.py"
+        line: 177
+        snippet: "secure=False,  # True in production with HTTPS"
+      impact:
+        confidentiality: "High"
+        integrity: "High"
+        availability: "None"
+        clinical_safety: "Medium"
+        patient_data_exposure: true
+      likelihood: "Medium"
+      likelihood_rationale: "Code comment indicates this should be True in production, but the setting is hardcoded, not driven by environment configuration. If deployed as-is, sessions are exposed."
+      existing_controls: "Code comment acknowledges the issue"
+      gaps: "secure flag is hardcoded False, not configurable via environment variable"
+      confidence: "Confirmed"
+      regulatory_impact:
+        - standard: "IEC 81001-5-1"
+          clause: "5.3.5"
+          nature: "Session credentials transmitted without transport encryption enforcement"
+        - standard: "UK GDPR"
+          clause: "Article 32(1)(a)"
+          nature: "Encryption of personal data in transit not enforced"
+
+    - id: "AUTH-I-002"
+      element: "services/api/app/services/session_store.py:20"
+      threat: "Excessive session lifetime enables persistent access from stolen cookie"
+      attack_vector: "A stolen session cookie (via XSS on a same-site origin, network interception, or endpoint compromise) provides 7 days of persistent access without re-authentication."
+      prerequisites: "Stolen session cookie"
+      threat_actors: ["malicious_insider", "compromised_nhs_endpoint", "external_targeted"]
+      evidence:
+        file: "services/api/app/services/session_store.py"
+        line: 20
+        snippet: "SESSION_TTL = 60 * 60 * 24 * 7  # 7 days"
+      impact:
+        confidentiality: "High"
+        integrity: "High"
+        availability: "None"
+        clinical_safety: "Medium"
+        patient_data_exposure: true
+      likelihood: "Medium"
+      likelihood_rationale: "7-day TTL is long for a medical device application. No session rotation on activity, no single-use session tokens, no IP binding."
+      existing_controls: "Session expires after 7 days; logout deletes session"
+      gaps: "No session rotation; no re-authentication on sensitive operations; no IP or user-agent binding; no concurrent session limits"
+      confidence: "Confirmed"
+      regulatory_impact:
+        - standard: "IEC 81001-5-1"
+          clause: "5.3.4"
+          nature: "Session management does not limit exposure window"
+        - standard: "DSPT"
+          clause: "Assertion 4.2.2"
+          nature: "Session timeout exceeds NHS recommended limits"
+
+    - id: "AUTH-D-001"
+      element: "services/api/app/services/session_store.py:105-108"
+      threat: "Redis session store denial of service — in-memory fallback"
+      attack_vector: "If Redis becomes unavailable, the session store falls back to in-memory storage. This means (a) sessions created during Redis outage are lost on process restart, (b) sessions are not shared across API replicas, and (c) an attacker who causes Redis to fail forces a degraded authentication mode."
+      prerequisites: "Ability to disrupt Redis connectivity"
+      threat_actors: ["external_targeted"]
+      evidence:
+        file: "services/api/app/services/session_store.py"
+        line: 107
+        snippet: "_redis_client = False  # Mark as permanently unavailable this process lifetime"
+      impact:
+        confidentiality: "Low"
+        integrity: "Low"
+        availability: "Medium"
+        clinical_safety: "Low"
+        patient_data_exposure: false
+      likelihood: "Low"
+      likelihood_rationale: "Redis on Azure Cache is generally reliable. Marking as permanently unavailable per-process is aggressive but prevents repeated connection attempts."
+      existing_controls: "Graceful fallback to in-memory store"
+      gaps: "In-memory fallback is not HA-compatible; sessions are not shared across replicas. No alerting on Redis failover."
+      confidence: "Probable"
+      regulatory_impact:
+        - standard: "IEC 81001-5-1"
+          clause: "5.5.2"
+          nature: "Degraded security mode under failure conditions not documented"
+
+    - id: "AUTH-E-001"
+      element: "libs/auth/org_scope.py:88-97"
+      threat: "Privilege escalation via platform admin flag"
+      attack_vector: "An attacker who spoofs the email of a platform admin (via X-User-Email header or ?email= param) gains is_admin=True, which bypasses all org scope restrictions. Platform admin status is stored as a boolean on the Practitioner node in Neo4j."
+      prerequisites: "Knowledge of a platform admin email address; AUTH-S-001 or AUTH-S-002 exploited"
+      threat_actors: ["malicious_insider", "compromised_nhs_endpoint"]
+      evidence:
+        file: "libs/auth/org_scope.py"
+        line: 88
+        snippet: "is_admin = bool(user.get('is_platform_admin', False))"
+      impact:
+        confidentiality: "High"
+        integrity: "High"
+        availability: "None"
+        clinical_safety: "High"
+        patient_data_exposure: true
+      likelihood: "High"
+      likelihood_rationale: "Chained with AUTH-S-001/AUTH-S-002, this is trivially exploitable. Admin emails may be discoverable from organizational directories."
+      existing_controls: "Platform admin is checked in Neo4j graph, not in a header"
+      gaps: "The authentication of the caller identity is weak (header-based), so the admin privilege check is effectively bypassed"
+      confidence: "Confirmed"
+      regulatory_impact:
+        - standard: "IEC 81001-5-1"
+          clause: "5.3.6"
+          nature: "Privilege escalation to full system access via identity spoofing"
+        - standard: "UK GDPR"
+          clause: "Article 32(1)(d)"
+          nature: "Inability to ensure authorized access boundaries"
+
+# ---------------------------------------------------------------------------
+# COMPONENT 2: CORE API GATEWAY
+# ---------------------------------------------------------------------------
+component_2_core_api:
+  name: "Core API Gateway"
+  purpose: "Central FastAPI application serving all HTTP endpoints and proxying to internal services"
+  iec_62304_contribution: "B"
+  trust_boundaries:
+    - "UI → Core API"
+    - "Core API → Terminology/FHIR/Analytics APIs (proxy)"
+  data_assets: "All data types — clinical, PII, operational"
+  network_exposure: "Public"
+  authentication_context: "Session cookie (via deps.py); some endpoints unauthenticated"
+
+  phase_1_reconnaissance:
+    entry_points:
+      - id: "API-EP-001"
+        type: "HTTP GET"
+        path: "/health"
+        file: "services/api/app/main.py"
+        line: 100
+        authentication: "none"
+      - id: "API-EP-002"
+        type: "HTTP wildcard"
+        path: "/api/proxy/{benchmarks,fhir,analytics,pipeline}/*"
+        file: "services/api/app/routers/proxy.py"
+        line: 57
+        authentication: "session cookie (get_access_token, get_user_email)"
+      - id: "API-EP-003"
+        type: "HTTP multiple"
+        path: "/model-registry/*"
+        file: "services/api/app/routers/model_registry.py"
+        line: 1
+        authentication: "none"
+      - id: "API-EP-004"
+        type: "HTTP multiple"
+        path: "/terminology/*"
+        file: "services/api/app/routers/terminology.py"
+        line: 1
+        authentication: "none"
+      - id: "API-EP-005"
+        type: "HTTP multiple"
+        path: "/games/*"
+        file: "services/api/app/routers/games.py"
+        line: 1
+        authentication: "none"
+      - id: "API-EP-006"
+        type: "HTTP GET"
+        path: "/pipeline/extractor-status"
+        file: "services/api/app/routers/pipeline.py"
+        authentication: "none"
+      - id: "API-EP-007"
+        type: "HTTP GET"
+        path: "/pipeline/progress/{run_id}"
+        file: "services/api/app/routers/pipeline.py"
+        authentication: "none"
+
+    trust_boundary_analysis:
+      - boundary: "CORS policy"
+        authentication_present: "N/A"
+        authorisation_enforcement: "hardcoded origins"
+        input_validation:
+          origins: "['http://localhost:3000', 'http://127.0.0.1:3000'] — not production-ready"
+          credentials: "true"
+          methods: "['*']"
+          headers: "['*']"
+        citation: "services/api/app/main.py:79-84"
+
+    existing_controls:
+      - control: "CORS middleware restricts browser origins"
+        citation: "services/api/app/main.py:79-84"
+      - control: "Proxy router requires session authentication"
+        citation: "services/api/app/routers/proxy.py:57-65"
+      - control: "Proxy strips dangerous headers (host, cookie, transfer-encoding)"
+        citation: "services/api/app/routers/proxy.py:42-43"
+
+  phase_2_threats:
+    - id: "API-S-001"
+      element: "services/api/app/routers/model_registry.py"
+      threat: "Unauthenticated model lifecycle manipulation"
+      attack_vector: "All model registry endpoints (register, upload, validate, canary, promote, rollback, reject) have no authentication. An attacker can register a malicious NER model, upload it to blob storage, validate with fabricated metrics, and promote it to production — replacing the legitimate clinical NER model."
+      prerequisites: "Network access to Core API port 8000; knowledge of API endpoints"
+      threat_actors: ["external_opportunistic", "external_targeted", "supply_chain"]
+      evidence:
+        file: "services/api/app/routers/model_registry.py"
+        line: 1
+        snippet: "router = APIRouter(prefix='/model-registry', tags=['model-registry'])"
+      impact:
+        confidentiality: "None"
+        integrity: "High"
+        availability: "High"
+        clinical_safety: "High"
+        patient_data_exposure: false
+      likelihood: "High"
+      likelihood_rationale: "No authentication whatsoever. Any HTTP client can call POST /model-registry/register, POST /versions/{v}/upload, POST /versions/{v}/promote."
+      existing_controls: "Offline eval threshold gates (P>=0.80, R>=0.75); canary KPI gates; force flag requires explicit opt-in"
+      gaps: "No authentication or authorization on any model registry endpoint. Threshold gates can be bypassed by posting fabricated precision/recall values."
+      confidence: "Confirmed"
+      regulatory_impact:
+        - standard: "IEC 62304"
+          clause: "5.8"
+          nature: "Software release process lacks access control — unauthenticated model deployment"
+        - standard: "IEC 81001-5-1"
+          clause: "5.7.1"
+          nature: "Software supply chain integrity not protected"
+        - standard: "ISO 14971"
+          clause: "5.5"
+          nature: "Risk control measure (model validation gates) bypassable"
+
+    - id: "API-S-002"
+      element: "services/api/app/routers/terminology.py"
+      threat: "Unauthenticated terminology writeback"
+      attack_vector: "POST /terminology/writeback, POST /terminology/surface-forms/upsert-mapping, DELETE /terminology/surface-forms/* have no authentication. An attacker can inject incorrect SurfaceForm→SNOMED mappings into the Knowledge Graph, subtly biasing terminology resolution for all future coding operations."
+      prerequisites: "Network access to Core API"
+      threat_actors: ["external_targeted", "supply_chain"]
+      evidence:
+        file: "services/api/app/routers/terminology.py"
+        line: 100
+        snippet: "@router.post('/writeback', response_model=WritebackResponse)\ndef trigger_writeback(body: WritebackRequest | None = None):"
+      impact:
+        confidentiality: "None"
+        integrity: "High"
+        availability: "None"
+        clinical_safety: "High"
+        patient_data_exposure: false
+      likelihood: "Medium"
+      likelihood_rationale: "SurfaceForm mappings have a 1.2x boost weight, not authoritative. But systematic manipulation could bias coding at population level."
+      existing_controls: "SurfaceForm provides 1.2x suggestion boost, not authoritative resolution"
+      gaps: "No authentication on write endpoints for terminology data"
+      confidence: "Confirmed"
+      regulatory_impact:
+        - standard: "IEC 81001-5-1"
+          clause: "5.3.6"
+          nature: "Write access to clinical terminology data without authentication"
+
+    - id: "API-T-001"
+      element: "services/api/app/main.py:79-84"
+      threat: "CORS misconfiguration for production deployment"
+      attack_vector: "CORS origins are hardcoded to localhost. In production, if the middleware is not reconfigured, the browser will block cross-origin requests from the production domain, or if origins are widened to '*', any website can make authenticated requests."
+      prerequisites: "Deployment with default CORS configuration"
+      threat_actors: ["external_opportunistic"]
+      evidence:
+        file: "services/api/app/main.py"
+        line: 81
+        snippet: "allow_origins=['http://localhost:3000', 'http://127.0.0.1:3000']"
+      impact:
+        confidentiality: "Medium"
+        integrity: "Medium"
+        availability: "None"
+        clinical_safety: "Low"
+        patient_data_exposure: true
+      likelihood: "Medium"
+      likelihood_rationale: "This is a configuration issue that must be addressed at deployment. If left as-is, the API won't work from production. If changed to '*', it becomes a vulnerability."
+      existing_controls: "Hardcoded to localhost — restrictive but non-functional in production"
+      gaps: "CORS origins not configurable via environment variable; no production CORS policy documented"
+      confidence: "Probable"
+      regulatory_impact:
+        - standard: "IEC 81001-5-1"
+          clause: "5.3.5"
+          nature: "Cross-origin policy not configured for deployment environment"
+
+    - id: "API-D-001"
+      element: "services/api/app/main.py"
+      threat: "No rate limiting on API endpoints"
+      attack_vector: "An attacker floods the API with requests, exhausting server resources, Neo4j connections, Redis connections, or LLM API quotas (via pipeline/run triggering Bedrock calls)."
+      prerequisites: "Network access to Core API"
+      threat_actors: ["external_opportunistic", "external_targeted"]
+      evidence:
+        file: "services/api/app/main.py"
+        line: 69
+        snippet: "app = FastAPI(title='Training Creator HITL API', version='0.2.0')"
+      impact:
+        confidentiality: "None"
+        integrity: "None"
+        availability: "High"
+        clinical_safety: "Medium"
+        patient_data_exposure: false
+      likelihood: "Medium"
+      likelihood_rationale: "No rate limiting middleware is configured. FastAPI has no built-in rate limiting."
+      existing_controls: "None"
+      gaps: "No rate limiting on any endpoint. No request throttling. No connection pooling limits exposed."
+      confidence: "Confirmed"
+      regulatory_impact:
+        - standard: "IEC 81001-5-1"
+          clause: "5.5.1"
+          nature: "No protection against denial of service"
+
+    - id: "API-T-002"
+      element: "services/api/app/routers/proxy.py:47-48"
+      threat: "Proxy forwards access token and user email to internal services"
+      attack_vector: "The proxy injects Authorization: Bearer {token} and X-User-Email headers when forwarding to internal services. If an internal service is compromised, the attacker gains the forwarded access token and can impersonate the user."
+      prerequisites: "Compromise of an internal service (FHIR, Analytics, Terminology API)"
+      threat_actors: ["supply_chain", "external_targeted"]
+      evidence:
+        file: "services/api/app/routers/proxy.py"
+        line: 47
+        snippet: "headers['Authorization'] = f'Bearer {token}'\nheaders['X-User-Email'] = user_email"
+      impact:
+        confidentiality: "High"
+        integrity: "Medium"
+        availability: "None"
+        clinical_safety: "Low"
+        patient_data_exposure: true
+      likelihood: "Low"
+      likelihood_rationale: "Requires compromise of an internal service first. Internal services do not validate the Bearer token."
+      existing_controls: "Internal services are not publicly exposed"
+      gaps: "No token scoping for internal service calls; forwarded tokens have full user permissions"
+      confidence: "Probable"
+      regulatory_impact:
+        - standard: "IEC 81001-5-1"
+          clause: "5.3.3"
+          nature: "Credential forwarding without least-privilege scoping"
+
+# ---------------------------------------------------------------------------
+# COMPONENT 3: PATIENT DATA SERVICE
+# ---------------------------------------------------------------------------
+component_3_patient_data:
+  name: "Patient Data Service"
+  purpose: "CRUD operations for patient encounters, coded links, and review workflows"
+  iec_62304_contribution: "B"
+  trust_boundaries: ["Core API → Neo4j Patient Graph"]
+  data_assets: "Clinical (encounter text, coded concepts), PII (patient demographics)"
+  network_exposure: "Internal (via Core API)"
+
+  phase_2_threats:
+    - id: "PAT-S-001"
+      element: "services/api/app/routers/patients.py:66"
+      threat: "Patient data accessible via spoofed identity"
+      attack_vector: "Combined with AUTH-S-001/AUTH-S-002, an attacker spoofing an email within the target org scope can access all patient data for that org's GP practices."
+      prerequisites: "AUTH-S-001 or AUTH-S-002 exploited; knowledge of a practitioner email in target org"
+      threat_actors: ["malicious_insider", "compromised_nhs_endpoint"]
+      evidence:
+        file: "services/api/app/routers/patients.py"
+        line: 66
+        snippet: "@router.get('')\ndef list_patients(scope: CallerScope = Depends(get_caller_scope)):"
+      impact:
+        confidentiality: "High"
+        integrity: "None"
+        availability: "None"
+        clinical_safety: "None"
+        patient_data_exposure: true
+      likelihood: "High"
+      likelihood_rationale: "Directly chained from AUTH-S-001. All patient endpoints depend on get_caller_scope."
+      existing_controls: "require_patient_in_scope checks patient GP against org_ids"
+      gaps: "Scope check is sound but relies on unverified caller identity"
+      confidence: "Confirmed"
+      regulatory_impact:
+        - standard: "UK GDPR"
+          clause: "Article 9(2)"
+          nature: "Special category data accessible without adequate authentication"
+
+    - id: "PAT-T-001"
+      element: "services/api/app/services/patient_graph_writer.py:37-50"
+      threat: "Cypher label injection via semantic tag"
+      attack_vector: "The _upsert_query function constructs Cypher with f-string label interpolation. The label comes from _label_for_tag() which maps semantic_tag to a fixed set. However, if a new semantic_tag is passed that is not in the mapping, it defaults to 'SnomedConcept'. The label is NOT user-controllable because it passes through _label_for_tag() normalization."
+      prerequisites: "N/A — mitigated by _label_for_tag normalization"
+      threat_actors: []
+      evidence:
+        file: "services/api/app/services/patient_graph_writer.py"
+        line: 38
+        snippet: "def _upsert_query(label: str) -> str:\n    return f\"\"\"\nMATCH (e:Encounter {{id: $encounter_id}})\nMERGE (s:{label} {{conceptId: $concept_id}})\n\"\"\""
+      impact:
+        confidentiality: "None"
+        integrity: "None"
+        availability: "None"
+        clinical_safety: "None"
+        patient_data_exposure: false
+      likelihood: "Low"
+      likelihood_rationale: "The label parameter is derived from _label_for_tag() which normalizes to a fixed set. However, the pattern of f-string Cypher construction is a latent risk if the mapping is modified."
+      existing_controls: "_label_for_tag normalization restricts labels to fixed set; all other Cypher parameters use $param placeholders"
+      gaps: "Pattern of f-string label interpolation is fragile; should use parameterized label construction"
+      confidence: "Investigate"
+      regulatory_impact:
+        - standard: "IEC 81001-5-1"
+          clause: "5.6.1"
+          nature: "Query construction pattern vulnerable to injection if normalization bypassed"
+
+# ---------------------------------------------------------------------------
+# COMPONENT 4: CODING PIPELINE
+# ---------------------------------------------------------------------------
+component_4_coding_pipeline:
+  name: "Coding Pipeline"
+  purpose: "Extract clinical entities from encounter text via LLM/NER, resolve to SNOMED, persist DOCUMENTS links"
+  iec_62304_contribution: "B"
+  trust_boundaries:
+    - "Service Bus → Coding Worker"
+    - "Coding Worker → AWS Bedrock"
+    - "Coding Worker → Terminology API"
+    - "Coding Worker → Neo4j Patient Graph"
+  data_assets: "Clinical text (de-identified), SNOMED codes, extraction results"
+  network_exposure: "Internal"
+
+  phase_2_threats:
+    - id: "COD-T-001"
+      element: "services/coding_worker/app/services/job_handler.py:41-46"
+      threat: "Unvalidated message body — arbitrary patient processing"
+      attack_vector: "Messages from Azure Service Bus are deserialized and patient_id, encounter_id, mode, dry_run are read directly from the body without schema validation. A compromised publisher or message injection could trigger processing of arbitrary patient IDs or invalid modes."
+      prerequisites: "Access to Azure Service Bus queue (connection string) or compromised publisher"
+      threat_actors: ["supply_chain", "malicious_insider"]
+      evidence:
+        file: "services/coding_worker/app/services/job_handler.py"
+        line: 41
+        snippet: "body = msg.body\npatient_id = body.get('patient_id')\nencounter_id = body.get('encounter_id')\nrun_id = msg.correlation_id or msg.message_id\ndry_run = body.get('dry_run', False)\nmode = body.get('mode', 'all')"
+      impact:
+        confidentiality: "Medium"
+        integrity: "Medium"
+        availability: "Low"
+        clinical_safety: "Medium"
+        patient_data_exposure: false
+      likelihood: "Low"
+      likelihood_rationale: "Requires Azure Service Bus connection string. The worker does validate mode against a rejection list (consensus modes, line 66-67)."
+      existing_controls: "Mode validation rejects consensus/consensus_fanout/consensus_chunk; Azure Service Bus authentication via connection string"
+      gaps: "No Pydantic schema validation on message body; no patient_id format validation; dry_run flag could be set to true to suppress writes silently"
+      confidence: "Probable"
+      regulatory_impact:
+        - standard: "IEC 81001-5-1"
+          clause: "5.6.1"
+          nature: "Input validation missing at message bus trust boundary"
+
+    - id: "COD-I-001"
+      element: "services/coding_worker/app/pipeline/pipeline_service.py:341-356"
+      threat: "Clinical text sent to external LLM providers"
+      attack_vector: "De-identified encounter text is sent to AWS Bedrock (and potentially Azure OpenAI via fallback) for entity extraction. While de-identified, the text may contain residual PII that regex-based de-identification missed (e.g., embedded names in narrative, unusual identifier formats)."
+      prerequisites: "Standard system operation"
+      threat_actors: ["supply_chain"]
+      evidence:
+        file: "services/coding_worker/app/pipeline/llm_extractor.py"
+        line: 82
+        snippet: "self._client.converse(modelId=..., system=[...], messages=[...])"
+      impact:
+        confidentiality: "Medium"
+        integrity: "None"
+        availability: "None"
+        clinical_safety: "None"
+        patient_data_exposure: true
+      likelihood: "Medium"
+      likelihood_rationale: "De-identification is regex-based (libs/utils/deidentify.py) and cannot catch all PII patterns. First names in narrative, unusual identifier formats, and clinical details that indirectly identify patients may pass through."
+      existing_controls: "Regex-based de-identification (deidentify.py); AWS Bedrock and Azure OpenAI data processing agreements"
+      gaps: "De-identification is not validated for completeness; no PHI detection audit before LLM submission; no data processing impact assessment documented for LLM providers"
+      confidence: "Probable"
+      regulatory_impact:
+        - standard: "UK GDPR"
+          clause: "Article 9, Article 28"
+          nature: "Special category data may be transferred to third-party processors without adequate safeguards"
+        - standard: "DSPT"
+          clause: "Assertion 3.4"
+          nature: "Personal data transferred to external processors without documented DPIA"
+
+    - id: "COD-I-002"
+      element: "services/coding_worker/app/pipeline/pipeline_service.py:341-356"
+      threat: "Terminology resolution via unauthenticated HTTP"
+      attack_vector: "The coding worker calls the Terminology API over HTTP without authentication. If network segmentation is insufficient, an attacker could intercept or modify terminology resolution responses, causing incorrect SNOMED coding."
+      prerequisites: "Network access between coding worker and terminology API; MITM position"
+      threat_actors: ["external_targeted"]
+      evidence:
+        file: "services/coding_worker/app/pipeline/pipeline_service.py"
+        line: 51
+        snippet: "TERMINOLOGY_API_URL = os.getenv('TERMINOLOGY_API_URL', 'http://localhost:8001')"
+      impact:
+        confidentiality: "Low"
+        integrity: "High"
+        availability: "Low"
+        clinical_safety: "High"
+        patient_data_exposure: false
+      likelihood: "Low"
+      likelihood_rationale: "Internal service communication; requires network-level compromise. But systematic SNOMED miscoding has clinical safety implications."
+      existing_controls: "Internal network; services not publicly exposed"
+      gaps: "No authentication, no mTLS, no request signing between services"
+      confidence: "Probable"
+      regulatory_impact:
+        - standard: "IEC 81001-5-1"
+          clause: "5.3.5"
+          nature: "Inter-service communication without authentication or encryption"
+
+# ---------------------------------------------------------------------------
+# COMPONENT 5: TERMINOLOGY RESOLUTION
+# ---------------------------------------------------------------------------
+component_5_terminology:
+  name: "Terminology Resolution"
+  purpose: "Hybrid SNOMED CT terminology search and code resolution"
+  iec_62304_contribution: "B"
+  trust_boundaries: ["Coding Worker → Terminology API", "Terminology API → Neo4j Knowledge Graph"]
+  data_assets: "Clinical terms, SNOMED concepts, SurfaceForm mappings"
+  network_exposure: "Internal"
+
+  phase_2_threats:
+    - id: "TERM-S-001"
+      element: "services/terminology_api/app/main.py"
+      threat: "CORS wildcard allows any origin"
+      attack_vector: "The Terminology API uses allow_origins=['*']. Combined with unauthenticated endpoints, any website can make requests to the Terminology API from a user's browser."
+      prerequisites: "User visits attacker-controlled website while on same network"
+      threat_actors: ["external_opportunistic"]
+      evidence:
+        file: "services/terminology_api/app/main.py"
+        line: "TODO:INSPECT"
+        snippet: "allow_origins=['*']"
+      impact:
+        confidentiality: "Low"
+        integrity: "Medium"
+        availability: "Low"
+        clinical_safety: "Low"
+        patient_data_exposure: false
+      likelihood: "Low"
+      likelihood_rationale: "Terminology API is intended to be internal-only. CORS wildcard is only relevant if the API is browser-accessible."
+      existing_controls: "API is intended to be internal"
+      gaps: "CORS wildcard should be restricted; API should not be publicly reachable"
+      confidence: "Confirmed"
+      regulatory_impact:
+        - standard: "IEC 81001-5-1"
+          clause: "5.3.5"
+          nature: "Cross-origin policy allows unrestricted access"
+
+    - id: "TERM-T-001"
+      element: "services/terminology_api/app/services/coding_resolver.py:61-62"
+      threat: "Lucene fulltext injection"
+      attack_vector: "User-supplied search terms are used in Lucene fulltext index queries. Special characters could alter query semantics. The coding_resolver._escape_lucene() function escapes special characters."
+      prerequisites: "Ability to submit search terms (via /terminology/search or /terminology/resolve)"
+      threat_actors: ["malicious_insider"]
+      evidence:
+        file: "services/terminology_api/app/services/coding_resolver.py"
+        line: 61
+        snippet: "_escape_lucene() escapes special characters"
+      impact:
+        confidentiality: "Low"
+        integrity: "Low"
+        availability: "Low"
+        clinical_safety: "None"
+        patient_data_exposure: false
+      likelihood: "Low"
+      likelihood_rationale: "Lucene escaping is implemented. Neo4j fulltext indexes have limited attack surface."
+      existing_controls: "_escape_lucene() escapes Lucene special characters"
+      gaps: "Escaping function should be tested against edge cases"
+      confidence: "Investigate"
+      regulatory_impact:
+        - standard: "IEC 81001-5-1"
+          clause: "5.6.1"
+          nature: "Input validation for query injection"
+
+# ---------------------------------------------------------------------------
+# COMPONENT 6: TRAINING & LABEL VERIFICATION
+# ---------------------------------------------------------------------------
+component_6_training:
+  name: "Training & Label Verification"
+  purpose: "NER training data management, dual-model label verification, model training pipeline"
+  iec_62304_contribution: "B"
+  trust_boundaries:
+    - "Core API → Neo4j (training labels)"
+    - "Label Verifier → AWS Bedrock + Azure OpenAI"
+    - "Training Worker → Azure Blob Storage"
+  data_assets: "De-identified training labels, model artifacts, evaluation metrics"
+  network_exposure: "Internal"
+
+  phase_2_threats:
+    - id: "TRN-I-001"
+      element: "services/api/app/services/label_verifier.py"
+      threat: "Training label text sent to dual LLM providers"
+      attack_vector: "The label verification process sends encounter text (from TrainingLabel nodes) to both AWS Bedrock and Azure OpenAI simultaneously. This doubles the exposure surface for de-identified clinical text."
+      prerequisites: "Label verification triggered (POST /training/labels/verify-all)"
+      threat_actors: ["supply_chain"]
+      evidence:
+        file: "services/api/app/services/label_verifier.py"
+        line: 365
+        snippet: "fut_aws = inner.submit(_call_model_for_label, 'aws', text, entities)\nfut_azure = inner.submit(_call_model_for_label, 'azure', text, entities)"
+      impact:
+        confidentiality: "Medium"
+        integrity: "None"
+        availability: "None"
+        clinical_safety: "None"
+        patient_data_exposure: true
+      likelihood: "Medium"
+      likelihood_rationale: "Standard operation — every verification run sends all included labels to both providers"
+      existing_controls: "De-identification before training label creation; training labels use patient_id_hash not raw ID"
+      gaps: "No additional PHI check before LLM submission; clinical text sent to two separate cloud providers"
+      confidence: "Confirmed"
+      regulatory_impact:
+        - standard: "UK GDPR"
+          clause: "Article 28, Article 9"
+          nature: "De-identified clinical text sent to multiple third-party processors"
+
+    - id: "TRN-T-001"
+      element: "services/training_worker/app/trainer.py"
+      threat: "Model training with tampered labels"
+      attack_vector: "If training labels are poisoned via unauthenticated bulk-import endpoint (POST /training/labels/bulk-import) or through exploiting AUTH-S-001, an attacker can inject biased training data that systematically miscodes clinical entities."
+      prerequisites: "AUTH-S-001 exploited or direct API access"
+      threat_actors: ["malicious_insider", "external_targeted"]
+      evidence:
+        file: "services/api/app/routers/training.py"
+        line: 813
+        snippet: "@router.post('/labels/bulk-import')\ndef bulk_import_labels(body: BulkImportRequest, scope: CallerScope = Depends(get_caller_scope)):"
+      impact:
+        confidentiality: "None"
+        integrity: "High"
+        availability: "None"
+        clinical_safety: "High"
+        patient_data_exposure: false
+      likelihood: "Medium"
+      likelihood_rationale: "Bulk import requires auth (CallerScope) but auth is bypassable via AUTH-S-001. Source validation is a string check against 4 allowed values."
+      existing_controls: "CallerScope dependency (bypassable); source string validation; F1 threshold validation on trained model"
+      gaps: "No integrity verification of imported entities; no checksums or signatures on training data"
+      confidence: "Probable"
+      regulatory_impact:
+        - standard: "IEC 62304"
+          clause: "5.5"
+          nature: "Training data integrity not verified — data poisoning possible"
+        - standard: "ISO 14971"
+          clause: "5.5"
+          nature: "Risk control (model validation threshold) can be bypassed if training data is systematically biased in a way that passes F1 gates"
+
+# ---------------------------------------------------------------------------
+# COMPONENT 7: ANALYSIS WORKER
+# ---------------------------------------------------------------------------
+component_7_analysis:
+  name: "Analysis Worker"
+  purpose: "Post-coding clinical analysis — anchor detection, episode building, safety-net detection, KPI calculation"
+  iec_62304_contribution: "B"
+  trust_boundaries:
+    - "Service Bus → Analysis Worker"
+    - "Analysis Worker → Azure OpenAI"
+    - "Analysis Worker → Neo4j Patient Graph"
+  data_assets: "Clinical text, episode data, safety-net alerts, KPI metrics"
+  network_exposure: "Internal"
+
+  phase_2_threats:
+    - id: "ANL-I-001"
+      element: "services/analysis_worker/app/analyzers/episode_builder.py"
+      threat: "Full encounter text sent to Azure OpenAI for episode classification"
+      attack_vector: "Episode building sends concatenated encounter text to Azure OpenAI for LLM-driven classification and merging. This is the fullest form of clinical text exposure."
+      prerequisites: "Analysis job triggered after coding completion"
+      threat_actors: ["supply_chain"]
+      evidence:
+        file: "services/analysis_worker/app/analyzers/episode_builder.py"
+        line: "TODO:INSPECT"
+        snippet: "LLM episode classification via Azure OpenAI"
+      impact:
+        confidentiality: "Medium"
+        integrity: "None"
+        availability: "None"
+        clinical_safety: "None"
+        patient_data_exposure: true
+      likelihood: "Medium"
+      likelihood_rationale: "Standard operation path for all analyzed patients"
+      existing_controls: "De-identification applied upstream in coding pipeline"
+      gaps: "No independent de-identification check before analysis LLM calls"
+      confidence: "Probable"
+      regulatory_impact:
+        - standard: "UK GDPR"
+          clause: "Article 28"
+          nature: "Clinical text sent to third-party processor"
+
+    - id: "ANL-T-001"
+      element: "services/analysis_worker/app/services/job_handler.py"
+      threat: "Unvalidated analysis message body"
+      attack_vector: "Same pattern as COD-T-001 — message body fields read without schema validation"
+      prerequisites: "Access to Azure Service Bus"
+      threat_actors: ["supply_chain", "malicious_insider"]
+      evidence:
+        file: "services/analysis_worker/app/services/job_handler.py"
+        line: "TODO:INSPECT"
+        snippet: "body = msg.body; patient_id = body.get('patient_id')"
+      impact:
+        confidentiality: "Medium"
+        integrity: "Medium"
+        availability: "Low"
+        clinical_safety: "Medium"
+        patient_data_exposure: false
+      likelihood: "Low"
+      likelihood_rationale: "Same as COD-T-001"
+      existing_controls: "Azure Service Bus authentication"
+      gaps: "No Pydantic schema validation on message body"
+      confidence: "Probable"
+      regulatory_impact:
+        - standard: "IEC 81001-5-1"
+          clause: "5.6.1"
+          nature: "Input validation missing at message bus trust boundary"
+
+# ---------------------------------------------------------------------------
+# COMPONENT 8: FHIR & ANALYTICS APIs
+# ---------------------------------------------------------------------------
+component_8_fhir_analytics:
+  name: "FHIR & Analytics APIs"
+  purpose: "FHIR R4B measure evaluation, benchmark management, org context, cohort analytics"
+  iec_62304_contribution: "B"
+  trust_boundaries: ["Core API proxy → FHIR/Analytics APIs", "APIs → Neo4j"]
+  data_assets: "Aggregate clinical metrics, org structure, benchmark data"
+  network_exposure: "Internal"
+
+  phase_2_threats:
+    - id: "FHIR-S-001"
+      element: "services/fhir_api/app/main.py"
+      threat: "No authentication on FHIR API endpoints"
+      attack_vector: "FHIR API endpoints (Measure, MeasureReport, Library, BenchmarkSet) have no authentication. If network-accessible, an attacker can create, modify, or delete FHIR resources including clinical measures and benchmark rules."
+      prerequisites: "Network access to FHIR API port 8002"
+      threat_actors: ["malicious_insider", "external_targeted"]
+      evidence:
+        file: "services/fhir_api/app/main.py"
+        line: "TODO:INSPECT"
+        snippet: "No authentication middleware configured"
+      impact:
+        confidentiality: "Low"
+        integrity: "High"
+        availability: "Medium"
+        clinical_safety: "Medium"
+        patient_data_exposure: false
+      likelihood: "Low"
+      likelihood_rationale: "Intended to be accessed via Core API proxy which adds Bearer token and X-User-Email. Direct access depends on network segmentation."
+      existing_controls: "Intended to be behind Core API proxy; proxy adds auth headers"
+      gaps: "FHIR API does not validate the forwarded Bearer token or X-User-Email; relies entirely on network segmentation"
+      confidence: "Confirmed"
+      regulatory_impact:
+        - standard: "IEC 81001-5-1"
+          clause: "5.3.2"
+          nature: "Clinical resource CRUD without authentication"
+
+    - id: "ANLAPI-S-001"
+      element: "services/analytics_api/app/routers/org_context.py"
+      threat: "Org context endpoint returns admin status by email without authentication"
+      attack_vector: "GET /analytics/auth/org-context?email=X returns is_platform_admin status for any email. This endpoint is called by the Core API auth callback to populate session data. An unauthenticated caller can enumerate admin accounts."
+      prerequisites: "Network access to Analytics API port 8003"
+      threat_actors: ["malicious_insider", "external_targeted"]
+      evidence:
+        file: "services/analytics_api/app/routers/org_context.py"
+        line: "TODO:INSPECT"
+        snippet: "GET /analytics/auth/org-context?email={email}"
+      impact:
+        confidentiality: "Medium"
+        integrity: "None"
+        availability: "None"
+        clinical_safety: "None"
+        patient_data_exposure: false
+      likelihood: "Low"
+      likelihood_rationale: "Internal API; requires network access to port 8003"
+      existing_controls: "Internal network"
+      gaps: "No authentication; admin account enumeration possible"
+      confidence: "Probable"
+      regulatory_impact:
+        - standard: "IEC 81001-5-1"
+          clause: "5.3.2"
+          nature: "Privilege information disclosure without authentication"
+
+# ---------------------------------------------------------------------------
+# COMPONENT 9: UI FRONTEND
+# ---------------------------------------------------------------------------
+component_9_ui:
+  name: "UI Frontend"
+  purpose: "Next.js web application for clinical audit workflows"
+  iec_62304_contribution: "B"
+  trust_boundaries: ["Browser → Core API"]
+  data_assets: "Session cookie, clinical data displayed in browser"
+  network_exposure: "Public"
+
+  phase_2_threats:
+    - id: "UI-T-001"
+      element: "services/ui/src/lib/authContext.tsx"
+      threat: "No CSRF protection for state-changing operations"
+      attack_vector: "The UI uses session cookies for authentication. State-changing POST/PATCH/DELETE requests rely on SameSite=lax which prevents cross-site POSTs from third-party sites but not from same-site origins. A compromised page on the same domain could forge requests."
+      prerequisites: "Attacker can serve content from same eTLD+1 domain"
+      threat_actors: ["external_targeted"]
+      evidence:
+        file: "services/ui/src/lib/authContext.tsx"
+        line: "TODO:INSPECT"
+        snippet: "credentials: 'include' on all fetch calls"
+      impact:
+        confidentiality: "Low"
+        integrity: "High"
+        availability: "Low"
+        clinical_safety: "Medium"
+        patient_data_exposure: false
+      likelihood: "Low"
+      likelihood_rationale: "SameSite=lax provides significant protection. Exploitation requires same-site origin compromise."
+      existing_controls: "SameSite=lax cookie; HttpOnly prevents JS access"
+      gaps: "No CSRF token; no custom header requirement (e.g., X-Requested-With)"
+      confidence: "Probable"
+      regulatory_impact:
+        - standard: "IEC 81001-5-1"
+          clause: "5.6.2"
+          nature: "Cross-site request forgery protection incomplete"
+
+    - id: "UI-I-001"
+      element: "services/ui/src/lib/authContext.tsx"
+      threat: "Clinical data exposed in browser memory"
+      attack_vector: "Full encounter text, coded entities, and patient demographics are fetched and rendered in the browser. A browser extension, DevTools console, or memory dump could extract this data."
+      prerequisites: "Access to user's browser (physical or remote)"
+      threat_actors: ["malicious_insider", "compromised_nhs_endpoint"]
+      evidence:
+        file: "services/ui/src/lib/api/legacy.ts"
+        line: "TODO:INSPECT"
+        snippet: "Direct fetch of patient encounters and coded links"
+      impact:
+        confidentiality: "High"
+        integrity: "None"
+        availability: "None"
+        clinical_safety: "None"
+        patient_data_exposure: true
+      likelihood: "Low"
+      likelihood_rationale: "Requires access to authenticated user's browser session"
+      existing_controls: "Session timeout (7 days); org-scoped data access; no persistent client-side storage of clinical data"
+      gaps: "No Content-Security-Policy header; no Subresource Integrity on scripts; clinical data cached in React state"
+      confidence: "Probable"
+      regulatory_impact:
+        - standard: "UK GDPR"
+          clause: "Article 32(1)"
+          nature: "Clinical data exposure in client-side application"
+
+# ---------------------------------------------------------------------------
+# COMPONENT 10: NEO4J & REDIS CLIENTS
+# ---------------------------------------------------------------------------
+component_10_data_clients:
+  name: "Neo4j & Redis Clients"
+  purpose: "Database connection management for Patient Graph, Knowledge Graph, and Redis"
+  iec_62304_contribution: "B"
+  trust_boundaries: ["Application tier → Data tier"]
+  data_assets: "Database credentials, all data in transit"
+  network_exposure: "Internal"
+
+  phase_2_threats:
+    - id: "DB-I-001"
+      element: "libs/neo4j_client/client.py:17-19"
+      threat: "Secrets file loaded at module import — credentials in process memory"
+      attack_vector: "Neo4j and Redis credentials are loaded from secrets/.env via load_dotenv at module import time. All credentials are available as environment variables in process memory for the lifetime of the process."
+      prerequisites: "Process memory access (e.g., container escape, debug endpoint, core dump)"
+      threat_actors: ["external_targeted"]
+      evidence:
+        file: "libs/neo4j_client/client.py"
+        line: 19
+        snippet: "load_dotenv(_REPO_ROOT / 'secrets' / '.env')"
+      impact:
+        confidentiality: "High"
+        integrity: "None"
+        availability: "None"
+        clinical_safety: "None"
+        patient_data_exposure: true
+      likelihood: "Low"
+      likelihood_rationale: "Requires process-level access. Standard pattern for containerized applications."
+      existing_controls: "secrets/.env is gitignored; environment variables are standard credential delivery"
+      gaps: "No secrets manager integration (e.g., Azure Key Vault); credentials not rotated automatically; no credential encryption in memory"
+      confidence: "Probable"
+      regulatory_impact:
+        - standard: "IEC 81001-5-1"
+          clause: "5.3.7"
+          nature: "Credentials stored in plaintext environment variables"
+
+    - id: "DB-I-002"
+      element: "docker-compose.yml:10,31"
+      threat: "Hardcoded development credentials in docker-compose"
+      attack_vector: "Neo4j passwords ('patient-dev', 'knowledge-dev') are hardcoded in docker-compose.yml. If this file is used in production or the passwords are not changed, databases are accessible with known credentials."
+      prerequisites: "docker-compose.yml used in production; network access to Neo4j ports"
+      threat_actors: ["external_opportunistic"]
+      evidence:
+        file: "docker-compose.yml"
+        line: 10
+        snippet: "NEO4J_AUTH: neo4j/patient-dev"
+      impact:
+        confidentiality: "High"
+        integrity: "High"
+        availability: "High"
+        clinical_safety: "High"
+        patient_data_exposure: true
+      likelihood: "Low"
+      likelihood_rationale: "docker-compose.yml is for local development. Production uses Neo4j Aura with separate credentials."
+      existing_controls: "Production uses Neo4j Aura (separate credentials); docker-compose is dev-only"
+      gaps: "No documentation warning against using docker-compose credentials in production; no credential rotation policy documented"
+      confidence: "Probable"
+      regulatory_impact:
+        - standard: "IEC 81001-5-1"
+          clause: "5.3.7"
+          nature: "Default credentials in configuration files"
+
+# ---------------------------------------------------------------------------
+# COMPONENT 11: LLM CLIENT & MESSAGE BUS
+# ---------------------------------------------------------------------------
+component_11_llm_bus:
+  name: "LLM Client & Message Bus"
+  purpose: "Unified LLM provider abstraction; async message bus for job distribution"
+  iec_62304_contribution: "B"
+  trust_boundaries:
+    - "Application → AWS Bedrock"
+    - "Application → Azure OpenAI"
+    - "Application → Azure Service Bus"
+  data_assets: "Clinical text (sent to LLMs), API keys, message payloads"
+  network_exposure: "Internal → External"
+
+  phase_2_threats:
+    - id: "LLM-I-001"
+      element: "libs/llm_client/cache.py"
+      threat: "LLM response cache stores clinical data in process memory"
+      attack_vector: "The InMemoryLLMCache stores LLM responses (which contain clinical entity extractions) in an unbounded OrderedDict. A process memory dump or debug interface could expose cached clinical data."
+      prerequisites: "Process memory access"
+      threat_actors: ["external_targeted"]
+      evidence:
+        file: "libs/llm_client/cache.py"
+        line: 22
+        snippet: "class InMemoryLLMCache:\n    def __init__(self, max_size: int = 10_000, ...):\n        self._cache: OrderedDict[str, Dict[str, Any]] = OrderedDict()"
+      impact:
+        confidentiality: "Medium"
+        integrity: "None"
+        availability: "None"
+        clinical_safety: "None"
+        patient_data_exposure: true
+      likelihood: "Low"
+      likelihood_rationale: "Standard caching pattern. LLM_CACHE_TTL_SECONDS defaults to 0 (no TTL)."
+      existing_controls: "Cache is in-process only; max_size limits growth"
+      gaps: "No encryption of cached data; default TTL is 0 (no expiration); cache not cleared on logout"
+      confidence: "Probable"
+      regulatory_impact:
+        - standard: "UK GDPR"
+          clause: "Article 5(1)(e)"
+          nature: "Clinical data retained in cache without storage limitation"
+
+    - id: "BUS-T-001"
+      element: "libs/message_bus/azure_adapter.py"
+      threat: "Message bus messages not integrity-protected"
+      attack_vector: "Messages on Azure Service Bus are JSON-serialized with no signing or integrity check. A compromised publisher could send crafted messages that trigger arbitrary pipeline operations."
+      prerequisites: "Azure Service Bus connection string"
+      threat_actors: ["supply_chain", "malicious_insider"]
+      evidence:
+        file: "libs/message_bus/azure_adapter.py"
+        line: 37
+        snippet: "sb_msg = ServiceBusMessage(body=json.dumps(message.body), ...)"
+      impact:
+        confidentiality: "Low"
+        integrity: "High"
+        availability: "Medium"
+        clinical_safety: "Medium"
+        patient_data_exposure: false
+      likelihood: "Low"
+      likelihood_rationale: "Azure Service Bus provides transport security and authentication. Message tampering requires connection string compromise."
+      existing_controls: "Azure Service Bus connection string authentication; AMQP TLS"
+      gaps: "No message-level signing or integrity verification; no message schema validation at consumer"
+      confidence: "Probable"
+      regulatory_impact:
+        - standard: "IEC 81001-5-1"
+          clause: "5.6.1"
+          nature: "Message integrity not verified at application layer"
+
+# ---------------------------------------------------------------------------
+# COMPONENT 12: NER, PROMPTS & DE-IDENTIFICATION
+# ---------------------------------------------------------------------------
+component_12_ner_deidentification:
+  name: "NER Processing, Prompts & De-identification"
+  purpose: "Entity extraction schema mapping, prompt management, PII removal"
+  iec_62304_contribution: "B"
+  trust_boundaries: ["None (in-process)"]
+  data_assets: "Clinical text, PII, extraction prompts"
+  network_exposure: "Isolated"
+
+  phase_2_threats:
+    - id: "DEID-I-001"
+      element: "libs/utils/deidentify.py"
+      threat: "Incomplete PII removal — regex-based de-identification has known gaps"
+      attack_vector: "The de-identification module uses regex patterns for name detection (CAPS,Firstname format), NHS numbers, postcodes, etc. It explicitly documents that 'first names in free-text narrative (e.g. discussed with Christopher) are not catchable by regex alone' (line 28-30). Clinical text with residual PII is then sent to external LLM providers."
+      prerequisites: "Clinical text contains PII in formats not covered by regex patterns"
+      threat_actors: ["N/A — systemic gap"]
+      evidence:
+        file: "libs/utils/deidentify.py"
+        line: 28
+        snippet: "NOTE — first names in free-text narrative (e.g. 'discussed with Christopher')\nare not catchable by regex alone."
+      impact:
+        confidentiality: "High"
+        integrity: "None"
+        availability: "None"
+        clinical_safety: "None"
+        patient_data_exposure: true
+      likelihood: "High"
+      likelihood_rationale: "GP consultation text frequently contains embedded names in narrative. The documented gap confirms PII will pass through to LLMs."
+      existing_controls: "Comprehensive regex patterns for SURNAME,Firstname, NHS numbers, postcodes, phones, emails, dates, addresses, facility names"
+      gaps: "No NER-based name detection; no validation step to audit de-identification completeness; deployment-specific org list (_LOCAL_ORGS) must be manually updated per deployment"
+      confidence: "Confirmed"
+      regulatory_impact:
+        - standard: "UK GDPR"
+          clause: "Article 9, Article 32"
+          nature: "Incomplete pseudonymisation of special category data before third-party processing"
+        - standard: "DSPT"
+          clause: "Assertion 3.3"
+          nature: "De-identification of personal data incomplete"
+
+    - id: "DEID-I-002"
+      element: "libs/utils/deidentify.py:46-52"
+      threat: "Deployment-specific organisation names hardcoded"
+      attack_vector: "The _LOCAL_ORGS tuple contains site-specific organisation names (Woodbrook Medical Centre, LLR Charnwood DN, etc.) that must be updated for each deployment. If not updated, the practice names will not be scrubbed from clinical text sent to LLMs."
+      prerequisites: "Deployment at a site not listed in _LOCAL_ORGS"
+      threat_actors: ["N/A — configuration gap"]
+      evidence:
+        file: "libs/utils/deidentify.py"
+        line: 46
+        snippet: "_LOCAL_ORGS: tuple[str, ...] = (\n    'Loughborough Urgent Treatment Centre',\n    'Woodbrook Medical Centre',\n    ..."
+      impact:
+        confidentiality: "Medium"
+        integrity: "None"
+        availability: "None"
+        clinical_safety: "None"
+        patient_data_exposure: true
+      likelihood: "High"
+      likelihood_rationale: "Multi-tenant SaaS deployment will serve multiple NHS trusts. Each trust's organisation names need to be in this list."
+      existing_controls: "Current deployment organisations are listed"
+      gaps: "Organisation list not configurable via environment or database; requires code change per deployment"
+      confidence: "Confirmed"
+      regulatory_impact:
+        - standard: "UK GDPR"
+          clause: "Article 32"
+          nature: "De-identification configuration not scalable for multi-tenant deployment"
+
+    - id: "NER-T-001"
+      element: "libs/prompts/extraction_v1.py"
+      threat: "Prompt injection via clinical text"
+      attack_vector: "Encounter text is embedded directly into LLM prompts. Malicious content in encounter records (either injected by a compromised GP system or crafted by a malicious user) could contain prompt injection payloads that alter extraction behavior."
+      prerequisites: "Malicious content in encounter text"
+      threat_actors: ["supply_chain", "malicious_insider"]
+      evidence:
+        file: "services/coding_worker/app/pipeline/llm_extractor.py"
+        line: "TODO:INSPECT"
+        snippet: "Encounter text included in LLM messages"
+      impact:
+        confidentiality: "Low"
+        integrity: "Medium"
+        availability: "Low"
+        clinical_safety: "Medium"
+        patient_data_exposure: false
+      likelihood: "Low"
+      likelihood_rationale: "GP system encounter text is unlikely to contain deliberate injection payloads. The structured JSON output format provides some resilience. The classification step no longer uses an LLM, removing that attack surface entirely."
+      existing_controls: >
+        Structured JSON output format; output validation (assertion values, entity label validation);
+        de-identification strips some control characters;
+        encounter classification step replaced with rule-based spaCy PhraseMatcher component
+        (libs/classifiers/encounter_textcat.py) — EPR text is no longer embedded in any LLM prompt
+        during classification; the NER extraction path (ModelExtractorProvider) also does not use
+        an LLM, meaning no EPR text is sent to an external model under the current configuration.
+      gaps: >
+        The LLM extraction path (LLMExtractorProvider / libs/prompts/extraction_v1.py) is still
+        available as a configurable provider and embeds encounter text in prompts when active.
+        Prompt injection testing with adversarial clinical text payloads against that path is
+        outstanding (see TODO:MANUAL below). No explicit injection detection in the LLM extraction
+        path if it is enabled.
+      remediation_applied:
+        - action: "Replaced LLM-based encounter classifier with rule-based spaCy textcat component"
+          files:
+            - "libs/classifiers/encounter_textcat.py"
+            - "libs/classifiers/encounter_rules.json"
+            - "services/api/app/services/encounter_classifier.py"
+          date: "2026-03-01"
+          closes: "Classification LLM surface (encounter text no longer sent to AWS Haiku or Azure GPT)"
+      confidence: "Probable"
+      regulatory_impact:
+        - standard: "IEC 81001-5-1"
+          clause: "5.6.1"
+          nature: "Untrusted input embedded in LLM prompts without sanitisation (residual: LLM extraction path only when enabled)"
+
+# =============================================================================
+# PHASE 3: ATTACK PATH SYNTHESIS
+# =============================================================================
+
+attack_chains:
+  - id: "CHAIN-001"
+    name: "Identity spoofing to full patient data exfiltration"
+    steps:
+      - step: 1
+        threat_ref: "AUTH-S-001"
+        action: "Attacker sets X-User-Email header to a known practitioner email"
+      - step: 2
+        threat_ref: "AUTH-E-001"
+        action: "If admin email used, attacker gains is_admin=True bypassing all org scope restrictions"
+      - step: 3
+        threat_ref: "PAT-S-001"
+        action: "Attacker calls GET /patients to list all patients (admin scope = unrestricted)"
+      - step: 4
+        action: "Attacker calls GET /patients/{id}/encounters to retrieve full clinical text for each patient"
+    objective: "Bulk exfiltration of patient clinical records"
+    blast_radius: "All patient data across all NHS trusts (if admin email spoofed)"
+    controls_traversed: "org_scope resolution (bypassed by admin flag)"
+    overall_severity: "Critical"
+    clinical_safety_impact: "Patient data breach; UK GDPR Article 9 special category data exposed"
+
+  - id: "CHAIN-002"
+    name: "Unauthenticated model supply chain compromise"
+    steps:
+      - step: 1
+        threat_ref: "API-S-001"
+        action: "Attacker calls POST /model-registry/register with malicious model version"
+      - step: 2
+        action: "Attacker calls POST /model-registry/versions/{v}/upload with trojanized spaCy model"
+      - step: 3
+        action: "Attacker calls POST /model-registry/versions/{v}/validate with fabricated P=0.95 R=0.95"
+      - step: 4
+        action: "Attacker calls POST /model-registry/versions/{v}/canary/start"
+      - step: 5
+        action: "Attacker calls POST /model-registry/versions/{v}/canary/result with fabricated P=0.90 R=0.90"
+      - step: 6
+        action: "Attacker calls POST /model-registry/versions/{v}/promote — triggers hot-reload on inference service"
+    objective: "Replace production NER model with attacker-controlled model that systematically miscodes clinical entities"
+    blast_radius: "All future coding operations; all training data derived from model output; population-level audit data integrity"
+    controls_traversed: "Offline eval threshold (bypassed by fabricated metrics); canary KPI gate (bypassed by fabricated metrics)"
+    overall_severity: "Critical"
+    clinical_safety_impact: "Systematic miscoding of clinical entities leading to incorrect audit data — directly triggers DC-RM-001 risk R-CL-007 (systematic domain miscoding masks pathway failure)"
+
+  - id: "CHAIN-003"
+    name: "Identity spoofing to training data poisoning"
+    steps:
+      - step: 1
+        threat_ref: "AUTH-S-001"
+        action: "Attacker spoofs a practitioner email"
+      - step: 2
+        threat_ref: "TRN-T-001"
+        action: "Attacker calls POST /training/labels/bulk-import with poisoned training labels"
+      - step: 3
+        action: "Poisoned labels included in next training run"
+      - step: 4
+        action: "Trained model learns biased patterns from poisoned data"
+    objective: "Corrupt NER model training data to produce systematically biased clinical coding"
+    blast_radius: "All future model versions trained on poisoned data; population-level audit integrity"
+    controls_traversed: "CallerScope auth (bypassed via AUTH-S-001); source string validation (attacker uses valid source name)"
+    overall_severity: "High"
+    clinical_safety_impact: "Gradual degradation of NER accuracy in targeted clinical domains"
+
+  - id: "CHAIN-004"
+    name: "Terminology poisoning via unauthenticated endpoints"
+    steps:
+      - step: 1
+        threat_ref: "API-S-002"
+        action: "Attacker calls POST /terminology/surface-forms/upsert-mapping to inject false SNOMED mappings"
+      - step: 2
+        action: "SurfaceForm MAPS_TO relationships bias terminology resolution for targeted clinical terms"
+      - step: 3
+        action: "Future coding operations use biased mappings, producing incorrect SNOMED codes"
+    objective: "Subtly manipulate clinical coding by biasing terminology resolution"
+    blast_radius: "All patients whose encounters contain the targeted clinical terms"
+    controls_traversed: "SurfaceForm 1.2x boost weight (attacker must accept limited influence per mapping)"
+    overall_severity: "Medium"
+    clinical_safety_impact: "Biased SNOMED coding at population level"
+
+  - id: "CHAIN-005"
+    name: "Session theft via insecure cookie to persistent access"
+    steps:
+      - step: 1
+        threat_ref: "AUTH-I-001"
+        action: "Attacker intercepts leo_session cookie over HTTP (secure=False)"
+      - step: 2
+        threat_ref: "AUTH-I-002"
+        action: "Stolen cookie valid for 7 days without rotation"
+      - step: 3
+        action: "Attacker uses cookie to access all resources the victim can access"
+    objective: "Persistent impersonation of legitimate user"
+    blast_radius: "All data within victim's org scope"
+    controls_traversed: "Session cookie authentication (cookie is the only credential)"
+    overall_severity: "High"
+    clinical_safety_impact: "Patient data exposure within victim's org scope"
+
+# =============================================================================
+# PHASE 4: GAP ANALYSIS AND CONSOLIDATION
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# 4.1 VALIDATION
+# ---------------------------------------------------------------------------
+validation:
+  upgraded_from_investigate:
+    - threat: "PAT-T-001"
+      action: "Retained as Investigate — f-string Cypher label construction is mitigated by _label_for_tag but pattern is fragile"
+      requires: "Review _label_for_tag to confirm all possible inputs are handled"
+
+  insufficient_evidence:
+    - threat: "TERM-T-001"
+      finding: "Lucene injection risk mitigated by _escape_lucene() — retained as Investigate"
+      requires: "Fuzz testing of _escape_lucene with Neo4j Lucene edge cases"
+
+# ---------------------------------------------------------------------------
+# 4.2 GAP SUMMARY
+# ---------------------------------------------------------------------------
+gaps:
+  - id: "GAP-001"
+    title: "Identity accepted from unauthenticated HTTP header"
+    category: "Authentication"
+    severity: "Critical"
+    affected_threats: ["AUTH-S-001", "AUTH-S-002", "AUTH-E-001", "PAT-S-001"]
+    evidence:
+      file: "libs/auth/org_scope.py"
+      line: 196
+      snippet: "x_user_email: Optional[str] = Header(default=None, alias='X-User-Email')"
+    remediation: "Remove X-User-Email header and ?email= query parameter acceptance. All identity resolution must derive from the authenticated session cookie. For internal service-to-service calls, implement service authentication (mTLS or signed JWTs)."
+    regulatory_impact:
+      - standard: "IEC 81001-5-1"
+        clause: "5.3.2"
+      - standard: "UK GDPR"
+        clause: "Article 32(1)(b)"
+      - standard: "DSPT"
+        clause: "Assertion 4.3.1"
+    exploitability: "Trivial"
+
+  - id: "GAP-002"
+    title: "No JWT signature verification on Azure AD tokens"
+    category: "Authentication"
+    severity: "High"
+    affected_threats: ["AUTH-T-001"]
+    evidence:
+      file: "services/api/app/routers/auth.py"
+      line: 125
+      snippet: "payload_b64 = token.split('.')[1]"
+    remediation: "Implement JWKS-based JWT signature verification using python-jose[cryptography] (already in requirements). Fetch Azure AD v2.0 JWKS from https://login.microsoftonline.com/{tenant}/discovery/v2.0/keys and validate both id_token and access_token signatures."
+    regulatory_impact:
+      - standard: "IEC 81001-5-1"
+        clause: "5.3.3"
+    exploitability: "Difficult"
+
+  - id: "GAP-003"
+    title: "Unauthenticated model registry endpoints"
+    category: "Authentication"
+    severity: "Critical"
+    affected_threats: ["API-S-001"]
+    evidence:
+      file: "services/api/app/routers/model_registry.py"
+      line: 1
+      snippet: "router = APIRouter(prefix='/model-registry', tags=['model-registry'])"
+    remediation: "Add CallerScope dependency to all model registry endpoints. Restrict upload/promote/rollback to platform admin role."
+    regulatory_impact:
+      - standard: "IEC 62304"
+        clause: "5.8"
+      - standard: "IEC 81001-5-1"
+        clause: "5.7.1"
+    exploitability: "Trivial"
+
+  - id: "GAP-004"
+    title: "Unauthenticated terminology write endpoints"
+    category: "Authentication"
+    severity: "High"
+    affected_threats: ["API-S-002"]
+    evidence:
+      file: "services/api/app/routers/terminology.py"
+      line: 100
+      snippet: "@router.post('/writeback')"
+    remediation: "Add CallerScope dependency to POST /writeback, POST /surface-forms/upsert-mapping, DELETE /surface-forms/*. Restrict to authorized roles."
+    regulatory_impact:
+      - standard: "IEC 81001-5-1"
+        clause: "5.3.6"
+    exploitability: "Trivial"
+
+  - id: "GAP-005"
+    title: "Session cookie secure flag hardcoded False"
+    category: "Encryption"
+    severity: "High"
+    affected_threats: ["AUTH-I-001"]
+    evidence:
+      file: "services/api/app/routers/auth.py"
+      line: 177
+      snippet: "secure=False,"
+    remediation: "Make secure flag configurable via environment variable (e.g., COOKIE_SECURE=true). Default to True in production. Set to False only for local development."
+    regulatory_impact:
+      - standard: "IEC 81001-5-1"
+        clause: "5.3.5"
+      - standard: "UK GDPR"
+        clause: "Article 32(1)(a)"
+    exploitability: "Moderate"
+
+  - id: "GAP-006"
+    title: "No rate limiting on any endpoint"
+    category: "Configuration"
+    severity: "High"
+    affected_threats: ["API-D-001"]
+    evidence:
+      file: "services/api/app/main.py"
+      line: 69
+      snippet: "app = FastAPI()"
+    remediation: "Add rate limiting middleware (e.g., slowapi) with per-IP and per-user limits. Critical endpoints (pipeline/run, training/verify-all) should have lower limits."
+    regulatory_impact:
+      - standard: "IEC 81001-5-1"
+        clause: "5.5.1"
+    exploitability: "Trivial"
+
+  - id: "GAP-007"
+    title: "Inter-service communication without authentication"
+    category: "Authentication"
+    severity: "High"
+    affected_threats: ["COD-I-002", "FHIR-S-001", "ANLAPI-S-001"]
+    evidence:
+      file: "services/coding_worker/app/pipeline/pipeline_service.py"
+      line: 51
+      snippet: "TERMINOLOGY_API_URL = os.getenv('TERMINOLOGY_API_URL', 'http://localhost:8001')"
+    remediation: "Implement service-to-service authentication: either mTLS between containers, shared secret in Authorization header, or service mesh (e.g., Istio). Internal APIs should validate incoming auth."
+    regulatory_impact:
+      - standard: "IEC 81001-5-1"
+        clause: "5.3.5"
+    exploitability: "Moderate"
+
+  - id: "GAP-008"
+    title: "Incomplete de-identification before LLM submission"
+    category: "SBOM"
+    severity: "High"
+    affected_threats: ["DEID-I-001", "COD-I-001", "TRN-I-001", "ANL-I-001"]
+    evidence:
+      file: "libs/utils/deidentify.py"
+      line: 28
+      snippet: "NOTE — first names in free-text narrative are not catchable by regex alone"
+    remediation: "Add NER-based name detection (spaCy PERSON model) as a second pass after regex de-identification. Implement a PHI audit check that flags text with potential residual PII before LLM submission. Document Data Processing Impact Assessment for LLM providers."
+    regulatory_impact:
+      - standard: "UK GDPR"
+        clause: "Article 9, Article 28, Article 35"
+      - standard: "DSPT"
+        clause: "Assertion 3.3, Assertion 3.4"
+    exploitability: "Moderate"
+
+  - id: "GAP-009"
+    title: "No CSRF protection"
+    category: "Configuration"
+    severity: "Medium"
+    affected_threats: ["UI-T-001"]
+    evidence:
+      file: "services/api/app/routers/auth.py"
+      line: 176
+      snippet: "samesite='lax'"
+    remediation: "Add CSRF token to state-changing endpoints, or require a custom header (e.g., X-Requested-With) that cannot be set by cross-origin forms."
+    regulatory_impact:
+      - standard: "IEC 81001-5-1"
+        clause: "5.6.2"
+    exploitability: "Difficult"
+
+  - id: "GAP-010"
+    title: "OAuth state parameter not CSRF-protected"
+    category: "Authentication"
+    severity: "Medium"
+    affected_threats: ["AUTH-T-002"]
+    evidence:
+      file: "services/api/app/routers/auth.py"
+      line: 68
+      snippet: "state = next_url"
+    remediation: "Generate a cryptographic nonce, store it in a short-lived cookie, and include it in the OAuth state parameter. Validate the nonce on callback before processing the redirect."
+    regulatory_impact:
+      - standard: "IEC 81001-5-1"
+        clause: "5.3.4"
+    exploitability: "Moderate"
+
+  - id: "GAP-011"
+    title: "Excessive session TTL without rotation"
+    category: "Configuration"
+    severity: "Medium"
+    affected_threats: ["AUTH-I-002"]
+    evidence:
+      file: "services/api/app/services/session_store.py"
+      line: 20
+      snippet: "SESSION_TTL = 60 * 60 * 24 * 7"
+    remediation: "Reduce session TTL to 8-12 hours (aligned with NHS working day). Implement sliding session renewal with new session ID on each renewal. Add absolute session lifetime cap."
+    regulatory_impact:
+      - standard: "IEC 81001-5-1"
+        clause: "5.3.4"
+      - standard: "DSPT"
+        clause: "Assertion 4.2.2"
+    exploitability: "Moderate"
+
+  - id: "GAP-012"
+    title: "No durable security audit log"
+    category: "Logging"
+    severity: "High"
+    affected_threats: ["AUTH-R-001"]
+    evidence:
+      file: "services/api/app/routers/auth.py"
+      line: 156
+      snippet: "save_session(session_id, {...})"
+    remediation: "Implement a durable, append-only security audit log (e.g., Neo4j AuditEvent nodes or Azure Monitor). Log: authentication events, authorization decisions, data access, clinical data modifications, model lifecycle events."
+    regulatory_impact:
+      - standard: "IEC 62304"
+        clause: "5.2"
+      - standard: "IEC 81001-5-1"
+        clause: "5.4.2"
+      - standard: "DSPT"
+        clause: "Assertion 6.3"
+    exploitability: "N/A"
+
+  - id: "GAP-013"
+    title: "CORS origins not configurable for production"
+    category: "Configuration"
+    severity: "Medium"
+    affected_threats: ["API-T-001"]
+    evidence:
+      file: "services/api/app/main.py"
+      line: 81
+      snippet: "allow_origins=['http://localhost:3000', 'http://127.0.0.1:3000']"
+    remediation: "Make CORS origins configurable via ALLOWED_ORIGINS environment variable. Reject '*' wildcard in production."
+    regulatory_impact:
+      - standard: "IEC 81001-5-1"
+        clause: "5.3.5"
+    exploitability: "Moderate"
+
+  - id: "GAP-014"
+    title: "Deployment-specific de-identification config hardcoded"
+    category: "Configuration"
+    severity: "Medium"
+    affected_threats: ["DEID-I-002"]
+    evidence:
+      file: "libs/utils/deidentify.py"
+      line: 46
+      snippet: "_LOCAL_ORGS: tuple[str, ...] = ('Loughborough Urgent Treatment Centre', ...)"
+    remediation: "Move _LOCAL_ORGS to a configuration source (environment variable, config file, or database) that can be updated per deployment without code changes."
+    regulatory_impact:
+      - standard: "UK GDPR"
+        clause: "Article 32"
+    exploitability: "Moderate"
+
+# ---------------------------------------------------------------------------
+# 4.3 REGULATORY TRACEABILITY
+# ---------------------------------------------------------------------------
+regulatory_trace:
+  - standard: "IEC 62304"
+    clause: "5.2"
+    requirement: "Software requirements analysis — traceability and audit"
+    status: "Non-conforming"
+    related_findings: ["AUTH-R-001", "GAP-012"]
+
+  - standard: "IEC 62304"
+    clause: "5.5"
+    requirement: "Software unit implementation and verification"
+    status: "Non-conforming"
+    related_findings: ["TRN-T-001", "GAP-003"]
+
+  - standard: "IEC 62304"
+    clause: "5.8"
+    requirement: "Software release — access control and integrity"
+    status: "Non-conforming"
+    related_findings: ["API-S-001", "GAP-003"]
+
+  - standard: "IEC 81001-5-1"
+    clause: "5.3.2"
+    requirement: "Authentication"
+    status: "Non-conforming"
+    related_findings: ["AUTH-S-001", "AUTH-S-002", "AUTH-E-001", "FHIR-S-001", "ANLAPI-S-001", "GAP-001", "GAP-003", "GAP-004"]
+
+  - standard: "IEC 81001-5-1"
+    clause: "5.3.3"
+    requirement: "Cryptographic controls — token verification"
+    status: "Non-conforming"
+    related_findings: ["AUTH-T-001", "GAP-002"]
+
+  - standard: "IEC 81001-5-1"
+    clause: "5.3.4"
+    requirement: "Session management"
+    status: "Non-conforming"
+    related_findings: ["AUTH-T-002", "AUTH-I-002", "AUTH-D-001", "GAP-010", "GAP-011"]
+
+  - standard: "IEC 81001-5-1"
+    clause: "5.3.5"
+    requirement: "Communication security"
+    status: "Non-conforming"
+    related_findings: ["AUTH-I-001", "API-T-001", "COD-I-002", "GAP-005", "GAP-007", "GAP-013"]
+
+  - standard: "IEC 81001-5-1"
+    clause: "5.3.6"
+    requirement: "Authorisation"
+    status: "Non-conforming"
+    related_findings: ["AUTH-E-001", "API-S-002", "GAP-004"]
+
+  - standard: "IEC 81001-5-1"
+    clause: "5.3.7"
+    requirement: "Secrets management"
+    status: "Insufficient evidence"
+    related_findings: ["DB-I-001", "DB-I-002"]
+
+  - standard: "IEC 81001-5-1"
+    clause: "5.4.2"
+    requirement: "Security event logging"
+    status: "Non-conforming"
+    related_findings: ["AUTH-R-001", "GAP-012"]
+
+  - standard: "IEC 81001-5-1"
+    clause: "5.5.1"
+    requirement: "Resilience — DoS protection"
+    status: "Non-conforming"
+    related_findings: ["API-D-001", "GAP-006"]
+
+  - standard: "IEC 81001-5-1"
+    clause: "5.5.2"
+    requirement: "Degraded mode security"
+    status: "Non-conforming"
+    related_findings: ["AUTH-D-001"]
+
+  - standard: "IEC 81001-5-1"
+    clause: "5.6.1"
+    requirement: "Input validation"
+    status: "Non-conforming"
+    related_findings: ["COD-T-001", "ANL-T-001", "BUS-T-001", "NER-T-001"]
+
+  - standard: "IEC 81001-5-1"
+    clause: "5.6.2"
+    requirement: "Cross-site request protection"
+    status: "Non-conforming"
+    related_findings: ["UI-T-001", "GAP-009"]
+
+  - standard: "IEC 81001-5-1"
+    clause: "5.7.1"
+    requirement: "Software supply chain integrity"
+    status: "Non-conforming"
+    related_findings: ["API-S-001", "GAP-003"]
+
+  - standard: "UK GDPR"
+    clause: "Article 9(2)"
+    requirement: "Lawful processing of special category data"
+    status: "Insufficient evidence"
+    related_findings: ["PAT-S-001"]
+
+  - standard: "UK GDPR"
+    clause: "Article 28"
+    requirement: "Processor agreements for third-party data processing"
+    status: "Insufficient evidence"
+    related_findings: ["COD-I-001", "TRN-I-001", "ANL-I-001"]
+
+  - standard: "UK GDPR"
+    clause: "Article 32(1)(a)"
+    requirement: "Encryption of personal data"
+    status: "Non-conforming"
+    related_findings: ["AUTH-I-001", "GAP-005"]
+
+  - standard: "UK GDPR"
+    clause: "Article 32(1)(b)"
+    requirement: "Ongoing confidentiality of processing systems"
+    status: "Non-conforming"
+    related_findings: ["AUTH-S-001", "AUTH-S-002", "GAP-001"]
+
+  - standard: "UK GDPR"
+    clause: "Article 32(1)(d)"
+    requirement: "Regular testing and evaluation of security measures"
+    status: "Insufficient evidence"
+    related_findings: []
+
+  - standard: "UK GDPR"
+    clause: "Article 35"
+    requirement: "Data Protection Impact Assessment"
+    status: "Insufficient evidence"
+    related_findings: ["COD-I-001", "GAP-008"]
+
+  - standard: "DSPT"
+    clause: "Assertion 3.3"
+    requirement: "Personal data adequately protected"
+    status: "Non-conforming"
+    related_findings: ["DEID-I-001", "GAP-008"]
+
+  - standard: "DSPT"
+    clause: "Assertion 3.4"
+    requirement: "Data sharing with third parties documented"
+    status: "Insufficient evidence"
+    related_findings: ["COD-I-001", "TRN-I-001"]
+
+  - standard: "DSPT"
+    clause: "Assertion 4.2.2"
+    requirement: "Session management"
+    status: "Non-conforming"
+    related_findings: ["AUTH-I-002", "GAP-011"]
+
+  - standard: "DSPT"
+    clause: "Assertion 4.3.1"
+    requirement: "Access control"
+    status: "Non-conforming"
+    related_findings: ["AUTH-S-001", "GAP-001"]
+
+  - standard: "DSPT"
+    clause: "Assertion 6.3"
+    requirement: "Audit trail"
+    status: "Non-conforming"
+    related_findings: ["AUTH-R-001", "GAP-012"]
+
+  - standard: "NCSC CAF"
+    clause: "B2.a"
+    requirement: "Identity and access management"
+    status: "Non-conforming"
+    related_findings: ["AUTH-S-001", "AUTH-T-001", "GAP-001", "GAP-002"]
+
+  - standard: "ISO 14971"
+    clause: "5.5"
+    requirement: "Risk control verification"
+    status: "Non-conforming"
+    related_findings: ["API-S-001", "TRN-T-001"]
+
+# ---------------------------------------------------------------------------
+# 4.4 UNRESOLVED ITEMS
+# ---------------------------------------------------------------------------
+unresolved_items:
+  - type: "TODO:VERIFY"
+    description: "Verify Azure Cache for Redis TLS configuration in production"
+    impact: "Session data and pipeline progress may be transmitted in cleartext if Redis TLS is not enabled"
+
+  - type: "TODO:VERIFY"
+    description: "Verify Neo4j Aura TLS configuration — bolt:// vs bolt+s://"
+    impact: "Database credentials and clinical data may be transmitted in cleartext"
+
+  - type: "TODO:VERIFY"
+    description: "Verify production CORS configuration — current code has localhost hardcoded"
+    impact: "API may be inaccessible from production frontend or CORS may be widened unsafely"
+
+  - type: "TODO:VERIFY"
+    description: "Verify cookie secure flag in production deployment"
+    impact: "Session cookies may be transmitted over HTTP if not overridden at deployment"
+
+  - type: "TODO:VERIFY"
+    description: "Verify network segmentation between internal services in production"
+    impact: "Unauthenticated internal APIs may be reachable from unexpected network segments"
+
+  - type: "TODO:CROSS-REF"
+    description: "Infrastructure WAF/reverse proxy configuration not available from codebase"
+    impact: "Rate limiting, IP filtering, and TLS termination may exist at infrastructure layer"
+
+  - type: "TODO:CROSS-REF"
+    description: "Azure AD app registration configuration — accessTokenAcceptedVersion, redirect URIs, API permissions"
+    impact: "Token validation scope and OAuth flow security depend on Azure AD configuration"
+
+  - type: "TODO:MANUAL"
+    description: "Penetration test of X-User-Email header spoofing in production environment"
+    impact: "Confirm whether infrastructure-level controls (API gateway, WAF) mitigate GAP-001"
+
+  - type: "TODO:MANUAL"
+    description: "De-identification completeness assessment using annotated clinical text corpus"
+    impact: "Quantify residual PII rate in text sent to LLM providers"
+
+  - type: "TODO:MANUAL"
+    description: "Prompt injection testing with adversarial clinical text payloads"
+    impact: "Determine if prompt injection can alter extraction behavior in practice"
+
+  - type: "TODO:INSPECT"
+    description: "FHIR API main.py — verify CORS configuration and middleware stack"
+    impact: "FHIR API may have permissive CORS or lack middleware protections"
+
+  - type: "TODO:INSPECT"
+    description: "Analytics API org_context router — verify email parameter handling"
+    impact: "Admin enumeration may be possible via unauthenticated org context endpoint"
+
+# =============================================================================
+# SUMMARY
+# =============================================================================
+summary:
+  total_threats: 28
+  by_confidence:
+    confirmed: 15
+    probable: 11
+    investigate: 2
+  by_severity:
+    critical: 3
+    high: 11
+    medium: 10
+    low: 4
+  attack_chains: 5
+  gaps: 14
+  regulatory_non_conformities:
+    iec_62304: 3
+    iec_81001_5_1: 12
+    uk_gdpr: 5
+    dspt: 4
+    ncsc_caf: 1
+    iso_14971: 1
+  critical_findings:
+    - "GAP-001: Identity spoofing via X-User-Email header (Trivial exploitability)"
+    - "GAP-003: Unauthenticated model registry — full model lifecycle manipulation (Trivial exploitability)"
+    - "CHAIN-001: End-to-end patient data exfiltration via identity spoofing"
+    - "CHAIN-002: Supply chain model compromise via unauthenticated model registry"
+  visibility_limitations:
+    - "Infrastructure configuration (network rules, WAF, cloud IAM) not available from codebase"
+    - "Runtime secrets values not inspected"
+    - "Deployment-time configuration (CORS, cookie secure, TLS) not verifiable from code alone"
+    - "Azure AD app registration settings not available"
+    - "Database access control configuration beyond connection credentials"
+    - "Third-party service (AWS Bedrock, Azure OpenAI) security posture and data processing agreements"
+    - "Azure Service Bus network access policies"
+    - "Production container orchestration security (Kubernetes RBAC, network policies)"

@@ -8,15 +8,16 @@ Key design properties:
 - ExtractorProvider abstraction: no inline backend branching here.
 - Queue payload contract preserved: patient_id/encounter_id/mode/run_id only.
 - Encounter text is always fetched from Neo4j at runtime.
-- Idempotent writes: MERGE semantics on EncounterCandidate + DOCUMENTS.
+- Idempotent writes: MERGE semantics on DOCUMENTS relationships.
 - Provenance stamped on every persisted output:
     source / model_name / model_version / contract_version / run_id.
 - Structured progress events emitted per encounter for Redis pub/sub.
+- EncounterCandidate/ReviewTask nodes are NOT written by the routine pipeline.
+  They are created on-demand via the review/correction flow (Classification
+  Review, Peer Review, manual coding corrections) and feed the training corpus.
 """
 
 from __future__ import annotations
-import hashlib
-import json
 import logging
 import os
 import re
@@ -27,12 +28,10 @@ from typing import Any, Callable, Optional
 
 import httpx
 
-from libs.cypher.candidate_queries import (
-    CREATE_REVIEW_TASK,
-    UPSERT_CANDIDATE,
-)
 from libs.cypher.post_processor_rule_queries import GET_ACTIVE_POST_PROCESSOR_RULES
 from libs.cypher.documents_queries import write_documents_from_sentences_payload
+from libs.ner.context_detector import detect_assertion, normalize_situation_lookup
+from libs.ner.observable_post_processor import normalize_observable_entities
 from libs.ner.post_processor_rules import apply_rules_to_entities, parse_rules, PostProcessorRule
 from services.coding_worker.app.pipeline.extractor_contract import (
     CONTRACT_VERSION,
@@ -251,6 +250,8 @@ class CodingPipeline:
             return
 
         extracted = self._apply_post_processor_rules(deidentified, extracted)
+        extracted = self._apply_observable_post_processing(deidentified, extracted)
+        extracted = self._apply_context_detection(deidentified, extracted)
 
         all_items = [item for items in extracted.values() for item in items]
         extract_latency_ms = round((time.monotonic() - t_extract) * 1000)
@@ -290,15 +291,8 @@ class CodingPipeline:
         # Persistence
         t_persist = time.monotonic()
         if not dry_run:
-            candidate_id = str(
-                uuid.uuid5(uuid.NAMESPACE_URL, f"candidate:{patient_id}:{encounter_id}")
-            )
-            self._persist_candidate(
-                patient_id,
+            self._persist_documents(
                 encounter_id,
-                encounter,
-                deidentified,
-                candidate_id,
                 sentences_payload,
                 extractor=extractor,
                 run_id=run_id,
@@ -389,6 +383,131 @@ class CodingPipeline:
             output[sentence_id] = transformed
         return output
 
+    def _apply_observable_post_processing(
+        self,
+        encounter_text: str,
+        extracted: dict[str, list[ExtractionItem]],
+    ) -> dict[str, list[ExtractionItem]]:
+        """Normalize observable spans and attach value/unit/reference_range."""
+        output: dict[str, list[ExtractionItem]] = {}
+        for sentence_id, items in extracted.items():
+            if not items:
+                output[sentence_id] = items
+                continue
+
+            as_entities = [
+                {
+                    "__idx": i,
+                    "text": item.text,
+                    "label": item.semantic_tag,
+                    "start": item.span_start,
+                    "end": item.span_end,
+                    "value": item.numeric_value or None,
+                    "unit": item.unit or None,
+                    "reference_range": item.reference_range or None,
+                }
+                for i, item in enumerate(items)
+            ]
+            normalized_entities = normalize_observable_entities(
+                encounter_text,
+                as_entities,
+                add_qualifier_value=False,
+            )
+            by_idx = {
+                int(ent.get("__idx")): ent
+                for ent in normalized_entities
+                if isinstance(ent.get("__idx"), int)
+            }
+
+            transformed: list[ExtractionItem] = []
+            for i, item in enumerate(items):
+                ent = by_idx.get(i, as_entities[i])
+                normalized_lookup = (
+                    item.normalized
+                    if str(item.normalized or "").strip() and item.normalized != item.text
+                    else str(ent.get("text", item.normalized))
+                )
+                transformed.append(
+                    ExtractionItem(
+                        sentence_id=item.sentence_id,
+                        text=str(ent.get("text", item.text)),
+                        span_start=int(ent.get("start", item.span_start)),
+                        span_end=int(ent.get("end", item.span_end)),
+                        semantic_tag=str(ent.get("label", item.semantic_tag)),
+                        assertion=item.assertion,
+                        confidence=item.confidence,
+                        normalized=normalized_lookup,
+                        source_meta=item.source_meta,
+                        relations=item.relations,
+                        numeric_value=str(ent.get("value", item.numeric_value) or "").strip(),
+                        unit=str(ent.get("unit", item.unit) or "").strip(),
+                        reference_range=str(ent.get("reference_range", item.reference_range) or "").strip(),
+                        source=item.source,
+                        model_name=item.model_name,
+                        model_version=item.model_version,
+                        contract_version=item.contract_version,
+                    )
+                )
+            output[sentence_id] = transformed
+        return output
+
+    def _apply_context_detection(
+        self,
+        encounter_text: str,
+        extracted: dict[str, list[ExtractionItem]],
+    ) -> dict[str, list[ExtractionItem]]:
+        """Detect family-history / negation / historical context and set assertion.
+
+        Also normalizes lookup terms for situation entities whose freeform
+        text won't resolve via terminology API.
+        """
+        output: dict[str, list[ExtractionItem]] = {}
+        for sentence_id, items in extracted.items():
+            transformed: list[ExtractionItem] = []
+            for item in items:
+                new_assertion = item.assertion or "present"
+                new_normalized = item.normalized
+
+                if new_assertion == "present":
+                    detected = detect_assertion(
+                        encounter_text, item.span_start, item.span_end,
+                    )
+                    if detected != "present":
+                        new_assertion = detected
+
+                if item.semantic_tag == "situation":
+                    canonical = normalize_situation_lookup(item.text)
+                    if canonical:
+                        new_normalized = canonical
+
+                if new_assertion == item.assertion and new_normalized == item.normalized:
+                    transformed.append(item)
+                    continue
+
+                transformed.append(
+                    ExtractionItem(
+                        sentence_id=item.sentence_id,
+                        text=item.text,
+                        span_start=item.span_start,
+                        span_end=item.span_end,
+                        semantic_tag=item.semantic_tag,
+                        assertion=new_assertion,
+                        confidence=item.confidence,
+                        normalized=new_normalized,
+                        source_meta=item.source_meta,
+                        relations=item.relations,
+                        numeric_value=item.numeric_value,
+                        unit=item.unit,
+                        reference_range=item.reference_range,
+                        source=item.source,
+                        model_name=item.model_name,
+                        model_version=item.model_version,
+                        contract_version=item.contract_version,
+                    )
+                )
+            output[sentence_id] = transformed
+        return output
+
     # ------------------------------------------------------------------
     # Terminology resolution
     # ------------------------------------------------------------------
@@ -449,6 +568,10 @@ class CodingPipeline:
                     "assertion": item.assertion,
                     "confidence": item.confidence,
                     "modifiers": modifiers,
+                    # Structured measurement fields (observable entities)
+                    "numeric_value": item.numeric_value,
+                    "unit": item.unit,
+                    "reference_range": item.reference_range,
                     # Provenance from the extractor
                     "extraction_source": item.source,
                     "extraction_model_name": item.model_name,
@@ -469,70 +592,32 @@ class CodingPipeline:
     # Persistence
     # ------------------------------------------------------------------
 
-    @staticmethod
-    def _stable_hash(text: str) -> str:
-        return hashlib.sha256(text.encode("utf-8")).hexdigest()
-
-    def _persist_candidate(
+    def _persist_documents(
         self,
-        patient_id: str,
         encounter_id: str,
-        encounter: dict[str, Any],
-        deidentified: str,
-        candidate_id: str,
         sentences_payload: list[dict[str, Any]],
         extractor: ExtractorProvider,
         run_id: str,
     ) -> None:
-        source_hash = self._stable_hash(str(encounter.get("text") or ""))
-        deidentified_hash = self._stable_hash(deidentified)
-        sentences_json = json.dumps(sentences_payload, ensure_ascii=False)
-        task_id = str(uuid.uuid5(uuid.NAMESPACE_URL, f"review-task:{candidate_id}"))
+        """Write :DOCUMENTS relationships directly to the patient graph.
 
+        EncounterCandidate/ReviewTask nodes are not created here.  They are
+        created on-demand via the review/correction flow so that only
+        human-reviewed outputs enter the training corpus.
+        """
         with self.patient_client.session() as session:
-            session.run(
-                UPSERT_CANDIDATE,
-                candidate_id=candidate_id,
-                patient_id=patient_id,
-                encounter_id=encounter_id,
-                date=str(encounter.get("date", "")),
-                source_hash=source_hash,
-                deidentified_hash=deidentified_hash,
-                deidentified_text=deidentified,
-                approval_status="pending",
-                hard_fail_reasons=[],
-                warning_reasons=[],
-                sentences_json=sentences_json,
-                llm_usage_json=None,
-                # Provenance
-                extraction_source=extractor.source,
-                extraction_model_name=extractor.model_name,
-                extraction_model_version=extractor.model_version,
-                contract_version=CONTRACT_VERSION,
-                run_id=run_id,
-            )
-            session.run(
-                CREATE_REVIEW_TASK,
-                candidate_id=candidate_id,
-                task_id=task_id,
-                priority=50,
-                status="pending",
-                assigned_reviewer=None,
-                warning_count=0,
-            )
-
             written = write_documents_from_sentences_payload(
                 encounter_id,
                 sentences_payload,
                 session,
-                source="provisional",
+                source="model_coded",
                 model_name=extractor.model_name,
                 model_version=extractor.model_version,
                 contract_version=CONTRACT_VERSION,
                 run_id=run_id,
             )
             logger.debug(
-                "_persist_candidate: wrote %d provisional DOCUMENTS links for encounter %s "
+                "_persist_documents: wrote %d DOCUMENTS links for encounter %s "
                 "(backend=%s model=%s v%s)",
                 written,
                 encounter_id,
@@ -575,10 +660,7 @@ class CodingPipeline:
         encounters = self.patient_client.run(
             "MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter) "
             "WHERE toString(p.id) = $pid "
-            "AND NOT EXISTS { "
-            "  MATCH (c:EncounterCandidate)-[:HAS_TASK]->(:ReviewTask) "
-            "  WHERE c.patient_id = $pid AND c.encounter_id = toString(e.id) "
-            "} "
+            "AND NOT EXISTS { MATCH (e)-[:DOCUMENTS]->() } "
             "RETURN e.id AS encounter_id, toString(e.date) AS date, e.text AS text, "
             "e.classification_content_type AS classification_content_type "
             "ORDER BY e.date",
