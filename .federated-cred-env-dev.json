@@ -1,0 +1,7 @@
+{
+  "name": "leo-ai-cd-env-dev",
+  "issuer": "https://token.actions.githubusercontent.com",
+  "subject": "repo:Healthcare-Copilot/LEO-AI-CORE:environment:dev",
+  "description": "GitHub Actions CD deploy-dev job (environment: dev)",
+  "audiences": ["api://AzureADTokenExchange"]
+}

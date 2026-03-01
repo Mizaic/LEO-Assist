@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Accordion,
   AccordionDetails,
@@ -8,13 +8,17 @@ import {
   Alert,
   Box,
   Button,
+  ButtonGroup,
   Chip,
   CircularProgress,
+  Menu,
+  MenuItem,
   Paper,
   Stack,
   TextField,
   Typography,
 } from "@mui/material";
+import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import TabFlowDiagram, { type TabStage } from "@/components/operations/TabFlowDiagram";
@@ -140,7 +144,14 @@ export default function CodingReviewPanel() {
   const [searchReviewId, setSearchReviewId] = useState<string | null>(null);
   const [lastChecked, setLastChecked] = useState<Date | null>(null);
   const [rechecking, setRechecking] = useState(false);
-  const [recheckResult, setRecheckResult] = useState<{ rechecked: number; auto_resolved: number } | null>(null);
+  const [recheckMode, setRecheckMode] = useState<"quick" | "llm" | null>(null);
+  const [recheckMenuOpen, setRecheckMenuOpen] = useState(false);
+  const recheckAnchorRef = useRef<HTMLDivElement>(null);
+  const [recheckResult, setRecheckResult] = useState<{
+    rechecked: number;
+    auto_resolved: number;
+    ignored_by_rule: number;
+  } | null>(null);
 
   const fetchQueue = useCallback(async () => {
     setLoading(true);
@@ -159,22 +170,80 @@ export default function CodingReviewPanel() {
     }
   }, [page, pageSize]);
 
-  const recheckList = useCallback(async () => {
+  const stopRechecking = useCallback((errorMsg?: string) => {
+    setRechecking(false);
+    setRecheckMode(null);
+    if (errorMsg) setError(errorMsg);
+  }, []);
+
+  const recheckList = useCallback(async (tryAlternatives: boolean) => {
     setRechecking(true);
+    setRecheckMode(tryAlternatives ? "llm" : "quick");
     setRecheckResult(null);
     try {
-      const result = await jsonFetch<{ rechecked: number; auto_resolved: number }>(
-        "/api/training/coding-review/recheck",
+      await jsonFetch<{ status: string }>(
+        `/api/training/coding-review/recheck?try_alternatives=${tryAlternatives}`,
         { method: "POST" }
       );
-      setRecheckResult(result);
-      setPage(1);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Recheck failed. The terminology server may be unavailable.");
-    } finally {
-      setRechecking(false);
+      stopRechecking(e instanceof Error ? e.message : "Recheck failed. The terminology server may be unavailable.");
     }
-  }, []);
+  }, [stopRechecking]);
+
+  // Poll recheck status every 2 s while a job is running.
+  useEffect(() => {
+    if (!rechecking) return;
+
+    const MAX_POLL_MS = 10 * 60 * 1000; // 10 minutes hard stop
+    const startedAt = Date.now();
+    let consecutiveErrors = 0;
+
+    const id = setInterval(async () => {
+      if (Date.now() - startedAt > MAX_POLL_MS) {
+        clearInterval(id);
+        stopRechecking("Recheck timed out. It may still be running in the background -- check the server logs.");
+        return;
+      }
+
+      try {
+        const state = await jsonFetch<{
+          status: string;
+          rechecked?: number;
+          auto_resolved?: number;
+        }>("/api/training/coding-review/recheck/status");
+
+        consecutiveErrors = 0;
+
+        if (state.status === "done") {
+          clearInterval(id);
+          setRechecking(false);
+          setRecheckMode(null);
+          setLastChecked(new Date());
+          setRecheckResult({
+            rechecked: state.rechecked ?? 0,
+            auto_resolved: state.auto_resolved ?? 0,
+            ignored_by_rule: 0,
+          });
+          setPage(1);
+          fetchQueue();
+        } else if (state.status === "failed" || state.status === "idle") {
+          clearInterval(id);
+          stopRechecking(
+            state.status === "idle"
+              ? "Recheck stopped unexpectedly (server may have restarted). Check the server logs."
+              : "Recheck failed. Check the server logs for details."
+          );
+        }
+      } catch {
+        consecutiveErrors += 1;
+        if (consecutiveErrors >= 5) {
+          clearInterval(id);
+          stopRechecking("Lost contact with the server after 5 attempts. The recheck may still be running.");
+        }
+      }
+    }, 2000);
+    return () => clearInterval(id);
+  }, [rechecking, fetchQueue, stopRechecking]);
 
   useEffect(() => {
     fetchQueue();
@@ -311,15 +380,49 @@ export default function CodingReviewPanel() {
         {summaryChips.map((chip) => (
           <Chip key={chip.label} label={chip.label} color={chip.color} size="small" />
         ))}
-        <Button
+        <ButtonGroup
           size="small"
           variant="contained"
-          startIcon={rechecking ? <CircularProgress size={14} color="inherit" /> : <RefreshIcon />}
-          onClick={recheckList}
-          disabled={rechecking || loading}
+          ref={recheckAnchorRef}
+          disabled={loading}
         >
-          {rechecking ? "Rechecking..." : "Recheck list"}
-        </Button>
+          <Button
+            startIcon={rechecking ? <CircularProgress size={14} color="inherit" /> : <RefreshIcon />}
+            onClick={() => rechecking ? stopRechecking() : recheckList(false)}
+            sx={{ minWidth: 110 }}
+          >
+            {rechecking
+              ? recheckMode === "llm" ? "LLM running..." : "Running..."
+              : "Recheck"}
+          </Button>
+          <Button
+            sx={{ px: 0.5 }}
+            onClick={() => setRecheckMenuOpen((o) => !o)}
+            disabled={rechecking}
+          >
+            <ArrowDropDownIcon fontSize="small" />
+          </Button>
+        </ButtonGroup>
+        <Menu
+          open={recheckMenuOpen}
+          anchorEl={recheckAnchorRef.current}
+          onClose={() => setRecheckMenuOpen(false)}
+          anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+          transformOrigin={{ vertical: "top", horizontal: "right" }}
+        >
+          <MenuItem
+            dense
+            onClick={() => { setRecheckMenuOpen(false); recheckList(false); }}
+          >
+            Quick recheck
+          </MenuItem>
+          <MenuItem
+            dense
+            onClick={() => { setRecheckMenuOpen(false); recheckList(true); }}
+          >
+            LLM-assisted recheck
+          </MenuItem>
+        </Menu>
         {lastChecked && (
           <Typography variant="caption" color="text.secondary">
             Last checked {lastChecked.toLocaleTimeString()}
@@ -333,9 +436,17 @@ export default function CodingReviewPanel() {
           onClose={() => setRecheckResult(null)}
           sx={{ mb: 2 }}
         >
-          {recheckResult.auto_resolved > 0
-            ? `${recheckResult.auto_resolved} item${recheckResult.auto_resolved !== 1 ? "s" : ""} resolved automatically. ${recheckResult.rechecked - recheckResult.auto_resolved} still need review.`
-            : `Checked ${recheckResult.rechecked} item${recheckResult.rechecked !== 1 ? "s" : ""}. None resolved automatically - the list is up to date.`}
+          {(() => {
+            const { rechecked, auto_resolved, ignored_by_rule = 0 } = recheckResult;
+            const stillPending = rechecked - auto_resolved;
+            if (auto_resolved === 0 && ignored_by_rule === 0) {
+              return `Checked ${rechecked} item${rechecked !== 1 ? "s" : ""}. None resolved automatically - the list is up to date.`;
+            }
+            const parts: string[] = [];
+            if (auto_resolved > 0) parts.push(`${auto_resolved} coded automatically`);
+            if (ignored_by_rule > 0) parts.push(`${ignored_by_rule} suppressed by ignore rule`);
+            return `${parts.join(", ")}. ${stillPending} still need review.`;
+          })()}
         </Alert>
       )}
 
