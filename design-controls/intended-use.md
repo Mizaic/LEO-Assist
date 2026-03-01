@@ -114,7 +114,7 @@ For the NCDA programme, the platform is configured with:
 - Quality targets: Faster Diagnosis Standard (FDS) 28 days,
   Decision-to-Treat (DTT) 31 days, Referral-to-Treatment (RTT) 62 days
 - Guideline rules: NICE NG12 (Suspected cancer: recognition and referral)
-  and Cancer Signal Surveillance (CSS) patterns
+  and Cancer Signal Surveillance (safety-net) patterns
 
 ---
 

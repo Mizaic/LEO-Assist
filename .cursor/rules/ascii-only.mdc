@@ -1,0 +1,27 @@
+---
+description: No Unicode characters in source or scripts - must run on both Windows and Linux
+alwaysApply: true
+---
+
+# ASCII Only - No Unicode Characters
+
+This project runs on both Windows and Linux. Non-ASCII characters cause parse errors in PowerShell and encoding issues across platforms.
+
+## Rules
+
+- Use only ASCII (0x00-0x7F) in all source files, scripts, config, and comments.
+- **Comments**: use plain `-`, `=`, `*` for separators, never box-drawing chars like `─`, `│`, `═`.
+- **Strings**: use `--` or `->` instead of em-dashes or arrows like `—`, `→`.
+- **Quotes**: use straight quotes `'` `"`, never curly quotes.
+
+## Examples
+
+```
+# BAD
+# ── Secrets ───────────────────────────
+# Primary Care Audit — Local Dev
+
+# GOOD
+# -- Secrets -----------------------------------------------
+# Primary Care Audit - Local Dev
+```

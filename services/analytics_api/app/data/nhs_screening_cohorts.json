@@ -1,0 +1,78 @@
+{
+  "_comment": "NHS England cancer screening programme cohort eligibility criteria. Source of truth for system cohorts seeded at startup. Criteria sourced Feb 2026.",
+  "_sources": {
+    "bowel":    "https://www.gov.uk/government/publications/bowel-cancer-screening-benefits-and-risks/nhs-bowel-cancer-screening-helping-you-decide",
+    "breast":   "https://www.gov.uk/government/publications/breast-screening-helping-women-decide/nhs-breast-screening-helping-you-decide",
+    "cervical": "https://www.gov.uk/government/publications/cervical-screening-description-in-brief/cervical-screening-helping-you-decide--2",
+    "lung":     "https://www.nhs.uk/tests-and-treatments/lung-cancer-screening/"
+  },
+  "cohorts": [
+    {
+      "id": "bowel_50_74",
+      "name": "NHS Bowel Cancer Screening — Eligible (50–74)",
+      "description": "Patients aged 50–74 eligible for NHS Bowel Cancer Screening Programme (FIT home kit every 2 years). Ages 75+ can self-refer but are not routinely invited.",
+      "programme": "bowel",
+      "invite_frequency_years": 2,
+      "filters": {
+        "age_min": 50,
+        "age_max": 74
+      }
+    },
+    {
+      "id": "bowel_75_plus_self_refer",
+      "name": "NHS Bowel Cancer Screening — Self-refer eligible (75+)",
+      "description": "Patients aged 75 and over who are eligible to self-refer into the NHS Bowel Cancer Screening Programme (not automatically invited).",
+      "programme": "bowel",
+      "invite_frequency_years": 2,
+      "filters": {
+        "age_min": 75
+      }
+    },
+    {
+      "id": "breast_50_70",
+      "name": "NHS Breast Screening — Eligible (female, 50–70)",
+      "description": "Female patients aged 50–70 eligible for NHS Breast Screening Programme (mammogram every 3 years; first invite between ages 50–53).",
+      "programme": "breast",
+      "invite_frequency_years": 3,
+      "filters": {
+        "sex": "female",
+        "age_min": 50,
+        "age_max": 70
+      }
+    },
+    {
+      "id": "breast_71_plus_self_refer",
+      "name": "NHS Breast Screening — Self-refer eligible (female, 71+)",
+      "description": "Female patients aged 71 and over who are eligible to self-refer into NHS Breast Screening (every 3 years; not automatically invited).",
+      "programme": "breast",
+      "invite_frequency_years": 3,
+      "filters": {
+        "sex": "female",
+        "age_min": 71
+      }
+    },
+    {
+      "id": "cervical_25_64",
+      "name": "NHS Cervical Screening — Eligible (female, 25–64)",
+      "description": "Female patients aged 25–64 eligible for NHS Cervical Screening Programme (HPV primary screening every 5 years).",
+      "programme": "cervical",
+      "invite_frequency_years": 5,
+      "filters": {
+        "sex": "female",
+        "age_min": 25,
+        "age_max": 64
+      }
+    },
+    {
+      "id": "lung_55_74_ever_smoker",
+      "name": "NHS Lung Cancer Screening — Eligible (55–74, ever smoker)",
+      "description": "Patients aged 55–74 who are current or former smokers, eligible for NHS Targeted Lung Health Check (lung health check + low-dose CT if high risk). Available in selected areas; roll-out ongoing across England.",
+      "programme": "lung",
+      "filters": {
+        "age_min": 55,
+        "age_max": 74,
+        "smoking_status": "ever_smoker"
+      }
+    }
+  ]
+}

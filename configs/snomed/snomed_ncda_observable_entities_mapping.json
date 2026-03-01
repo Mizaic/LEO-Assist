@@ -1,0 +1,1155 @@
+{
+  "metadata": {
+    "total_terms": 60,
+    "successful_mappings": 60,
+    "failed_mappings": 0,
+    "llm_disambiguations": 0,
+    "generated_at": "2025-01-27T00:00:00.000000Z",
+    "notes": "Observable entities for lab results and clinical measurements",
+    "enriched_with_synonyms": true,
+    "synonym_enrichment_date": "2025-12-06T08:06:03.162853",
+    "synonym_stats": {
+      "concepts_with_synonyms": 55,
+      "concepts_not_found": 0,
+      "average_synonyms_per_concept": 3.3
+    }
+  },
+  "mappings": {
+    "Haemoglobin A1c level (observable entity)": {
+      "concept_id": 1003671000000109,
+      "preferred_term": "Haemoglobin A1c level (observable entity)",
+      "semantic_tag": "Observable_entity",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Haemoglobin A1c level",
+        "Haemoglobin A1c level (observable entity)",
+        "HbA1c level",
+        "HbA1c",
+        "HbA1c result"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Haemoglobin A1c level (observable entity)"
+    },
+    "World Health Organization performance status score (observable entity)": {
+      "concept_id": 1230348002,
+      "preferred_term": "World Health Organization performance status score (observable entity)",
+      "semantic_tag": "Observable_entity",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "WHO performance status score",
+        "World Health Organization performance status score",
+        "World Health Organization performance status score (observable entity)",
+        "WHO PS score",
+        "WHO performance status",
+        "WHO perf status"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "World Health Organization performance status score (observable entity)"
+    },
+    "Weight": {
+      "concept_id": 27113001,
+      "preferred_term": "Weight",
+      "semantic_tag": "Observable_entity",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Body weight",
+        "Body weight (observable entity)",
+        "Body weight, NOS",
+        "Patient details",
+        "Weight",
+        "body wt",
+        "weight (kg)",
+        "current weight",
+        "measured weight"
+      ],
+      "guideline_synonym_count": 9,
+      "guideline_name": "Weight"
+    },
+    "BMI - body mass index": {
+      "concept_id": 60621009,
+      "preferred_term": "BMI - body mass index",
+      "semantic_tag": "Observable_entity",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "BMI - Body mass index",
+        "Body mass index",
+        "Body mass index (observable entity)",
+        "Body mass index, NOS",
+        "Quetelet index",
+        "Weight: body mass",
+        "BMI reading",
+        "BMI score"
+      ],
+      "guideline_synonym_count": 8,
+      "guideline_name": "Body mass index (observable entity)"
+    },
+    "INR - international normalised ratio": {
+      "concept_id": 165581004,
+      "preferred_term": "INR - international normalised ratio",
+      "semantic_tag": "Observable_entity",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "INR - Internationalised ratio",
+        "INR - Internationalized ratio",
+        "INR - international normalised ratio",
+        "International normalised ratio",
+        "International normalized ratio",
+        "International normalized ratio (observable entity)",
+        "Internationalised ratio",
+        "Internationalized ratio",
+        "INR level",
+        "INR result",
+        "INR ratio"
+      ],
+      "guideline_synonym_count": 11,
+      "guideline_name": "INR - international normalised ratio"
+    },
+    "Serum glucose level (observable entity)": {
+      "concept_id": 1010611000000107,
+      "preferred_term": "Serum glucose level (observable entity)",
+      "semantic_tag": "Observable_entity",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Random Glucose",
+        "Serum glucose level",
+        "Serum glucose level (observable entity)",
+        "Glucose level",
+        "Glu",
+        "blood glucose level",
+        "plasma glucose level",
+        "serum glucose",
+        "blood glucose",
+        "plasma glucose",
+        "random blood glucose"
+      ],
+      "guideline_synonym_count": 11,
+      "guideline_name": "Serum glucose level (observable entity)"
+    },
+    "Neutrophil percent count in blood (observable entity)": {
+      "concept_id": 1108061000000108,
+      "preferred_term": "Neutrophil percent count in blood (observable entity)",
+      "semantic_tag": "Observable_entity",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Neut",
+        "NEU",
+        "Neutrophil count",
+        "Neutrophil percent count in blood",
+        "Neutrophil percent count in blood (observable entity)",
+        "neut %",
+        "neutrophils %",
+        "neutrophil %",
+        "neuts %"
+      ],
+      "guideline_synonym_count": 9,
+      "guideline_name": "Neutrophil percent count in blood (observable entity)"
+    },
+    "White blood cell count in blood (observable entity)": {
+      "concept_id": 1110441000000100,
+      "preferred_term": "White blood cell count in blood (observable entity)",
+      "semantic_tag": "Observable_entity",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Leucocyte count in blood",
+        "WCC",
+        "WBC",
+        "Total white blood count",
+        "White blood cell count in blood",
+        "White blood cell count in blood (observable entity)",
+        "white cell count",
+        "WBC count",
+        "white blood count",
+        "total WCC",
+        "white cells"
+      ],
+      "guideline_synonym_count": 11,
+      "guideline_name": "White blood cell count in blood (observable entity)"
+    },
+    "Haematocrit (observable entity)": {
+      "concept_id": 1022291000000105,
+      "preferred_term": "Haematocrit (observable entity)",
+      "semantic_tag": "Observable_entity",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Haematocrit",
+        "Haematocrit (observable entity)",
+        "Haematocrit - packed cell volume",
+        "Packed cell volume",
+        "HCT",
+        "pcv level",
+        "Hct level",
+        "PCV result",
+        "packed cell vol"
+      ],
+      "guideline_synonym_count": 9,
+      "guideline_name": "Haematocrit (observable entity)"
+    },
+    "Mean corpuscular haemoglobin (observable entity)": {
+      "concept_id": 1022471000000107,
+      "preferred_term": "Mean corpuscular haemoglobin (observable entity)",
+      "semantic_tag": "Observable_entity",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "MCH - Mean corpuscular haemoglobin",
+        "Mean cell haemoglobin",
+        "Mean corpuscular haemoglobin (observable entity)",
+        "mean cell Hb",
+        "MCH level",
+        "mean corpuscular Hb"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Mean corpuscular haemoglobin (observable entity)"
+    },
+    "Mean corpuscular volume (observable entity)": {
+      "concept_id": 1022491000000106,
+      "preferred_term": "Mean corpuscular volume (observable entity)",
+      "semantic_tag": "Observable_entity",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "MCV",
+        "MCV - Mean corpuscular volume",
+        "Mean cell volume",
+        "Mean corpuscular volume (observable entity)",
+        "mean cell vol"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Mean corpuscular volume (observable entity)"
+    },
+    "Platelet count (observable entity)": {
+      "concept_id": 1022651000000100,
+      "preferred_term": "Platelet count (observable entity)",
+      "semantic_tag": "Observable_entity",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Platelet count",
+        "Platelet count (observable entity)",
+        "Platelet count - observation",
+        "Plts",
+        "PLT",
+        "platelets",
+        "PLT count",
+        "platelet level"
+      ],
+      "guideline_synonym_count": 8,
+      "guideline_name": "Platelet count (observable entity)"
+    },
+    "Concentration of hemoglobin in erythrocyte (observable entity)": {
+      "concept_id": 416125006,
+      "preferred_term": "Concentration of hemoglobin in erythrocyte (observable entity)",
+      "semantic_tag": "Observable_entity",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Concentration of haemoglobin in erythrocyte",
+        "Concentration of hemoglobin in erythrocyte",
+        "Concentration of hemoglobin in erythrocyte (observable entity)",
+        "Haemoglobin concentration",
+        "Hb",
+        "HB",
+        "HGB",
+        "Hb level",
+        "haemoglobin level"
+      ],
+      "guideline_synonym_count": 9,
+      "guideline_name": "Concentration of hemoglobin in erythrocyte (observable entity)"
+    },
+    "Arbitrary concentration of cancer antigen 125 in serum (observable entity)": {
+      "concept_id": 1106431000000109,
+      "preferred_term": "Arbitrary concentration of cancer antigen 125 in serum (observable entity)",
+      "semantic_tag": "Observable_entity",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Arbitrary concentration of cancer antigen 125 in serum (observable entity)",
+        "CA 125 arbitrary concentration in serum",
+        "CA-125 (cancer antigen 125) arbitrary concentration in serum",
+        "CA-125 arbitrary concentration in serum"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Arbitrary concentration of cancer antigen 125 in serum (observable entity)"
+    },
+    "Quantitative faecal immunochemical test (observable entity)": {
+      "concept_id": 1049361000000101,
+      "preferred_term": "Quantitative faecal immunochemical test (observable entity)",
+      "semantic_tag": "Observable_entity",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "FIT",
+        "FIT Neg",
+        "FIT results can be measured in ug/L or `negative`",
+        "Mass content of haemoglobin in faeces by immunological test",
+        "QFIT - Quantitative faecal immunochemical test",
+        "Quantitative faecal immunochemical test",
+        "Quantitative faecal immunochemical test (observable entity)",
+        "qFIT",
+        "FIT value"
+      ],
+      "guideline_synonym_count": 9,
+      "guideline_name": "Quantitative faecal immunochemical test (observable entity)"
+    },
+    "Occult blood detected in feces by immunoassay (finding)": {
+      "concept_id": 71711000112103,
+      "preferred_term": "Occult blood detected in feces by immunoassay (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "FIT",
+        "FIT POSITIVE",
+        "POSITIVE FIT"
+      ],
+      "guideline_synonym_count": 7,
+      "guideline_name": "Quantitative faecal immunochemical test (observable entity)"
+    },
+    "PSA (prostate-specific antigen) level": {
+      "concept_id": 1030791000000100,
+      "preferred_term": "PSA (prostate-specific antigen) level",
+      "semantic_tag": "Observable_entity",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "PSA (prostate-specific antigen) level",
+        "Prostate specific antigen level",
+        "Prostate specific antigen level (observable entity)",
+        "PSA level",
+        "serum PSA",
+        "total PSA",
+        "PSA result"
+      ],
+      "guideline_synonym_count": 7,
+      "guideline_name": "PSA (prostate-specific antigen) level"
+    },
+    "Erythrocyte sedimentation rate (observable entity)": {
+      "concept_id": 1022511000000103,
+      "preferred_term": "Erythrocyte sedimentation rate (observable entity)",
+      "semantic_tag": "Observable_entity",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "ESR",
+        "ESR - erythrocyte sedimentation rate",
+        "Erythrocyte sedimentation rate",
+        "Erythrocyte sedimentation rate (observable entity)",
+        "ESR test",
+        "sedimentation rate",
+        "sed rate",
+        "ESR level",
+        "erythrocyte sed rate",
+        "ESR result"
+      ],
+      "guideline_synonym_count": 10,
+      "guideline_name": "Erythrocyte sedimentation rate (observable entity)"
+    },
+    "Faecal calprotectin content (observable entity)": {
+      "concept_id": 1002571000000102,
+      "preferred_term": "Faecal calprotectin content (observable entity)",
+      "semantic_tag": "Observable_entity",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Faecal calprotectin content",
+        "Faecal calprotectin content (observable entity)",
+        "faecal calprotectin",
+        "stool calprotectin"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Faecal calprotectin content (observable entity)"
+    },
+    "Serum C reactive protein level (observable entity)": {
+      "concept_id": 1001371000000100,
+      "preferred_term": "Serum C reactive protein level (observable entity)",
+      "semantic_tag": "Observable_entity",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "CRP",
+        "Serum C reactive protein level (observable entity)",
+        "Serum CRP (C reactive protein) level",
+        "CRP level",
+        "serum CRP",
+        "CRP result"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Serum C reactive protein level (observable entity)"
+    },
+    "Estimated glomerular filtration rate by laboratory calculation (observable entity)": {
+      "concept_id": 1107411000000104,
+      "preferred_term": "Estimated glomerular filtration rate by laboratory calculation (observable entity)",
+      "semantic_tag": "Observable_entity",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Estimated glomerular filtration rate by laboratory calculation",
+        "Estimated glomerular filtration rate by laboratory calculation (observable entity)",
+        "eGFR",
+        "eGFR (estimated glomerular filtration rate) by laboratory calculation",
+        "calculated eGFR",
+        "lab eGFR"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Estimated glomerular filtration rate by laboratory calculation (observable entity)"
+    },
+    "Blood sodium level (observable entity)": {
+      "concept_id": 1012681000000101,
+      "preferred_term": "Blood sodium level (observable entity)",
+      "semantic_tag": "Observable_entity",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Blood sodium level",
+        "Blood sodium level (observable entity)",
+        "Na",
+        "Plasma sodium level",
+        "Serum sodium level",
+        "Na+",
+        "serum Na",
+        "sodium level",
+        "serum sodium",
+        "Na level",
+        "sodium",
+        "plasma sodium"
+      ],
+      "guideline_synonym_count": 12,
+      "guideline_name": "Blood sodium level (observable entity)"
+    },
+    "Blood potassium level (observable entity)": {
+      "concept_id": 1012671000000103,
+      "preferred_term": "Blood potassium level (observable entity)",
+      "semantic_tag": "Observable_entity",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Blood potassium level",
+        "Blood potassium level (observable entity)",
+        "K",
+        "Plasma potassium level",
+        "Serum potassium level",
+        "serum K+",
+        "serum potassium",
+        "potassium level",
+        "plasma K+",
+        "K level"
+      ],
+      "guideline_synonym_count": 10,
+      "guideline_name": "Blood potassium level (observable entity)"
+    },
+    "Blood urea (observable entity)": {
+      "concept_id": 1028281000000106,
+      "preferred_term": "Blood urea (observable entity)",
+      "semantic_tag": "Observable_entity",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Blood urea",
+        "Blood urea (observable entity)",
+        "Urea",
+        "Plasma urea level",
+        "BUN",
+        "serum urea",
+        "urea level",
+        "plasma urea",
+        "blood urea level"
+      ],
+      "guideline_synonym_count": 9,
+      "guideline_name": "Blood urea (observable entity)"
+    },
+    "Serum creatinine level (observable entity)": {
+      "concept_id": 1000731000000107,
+      "preferred_term": "Serum creatinine level (observable entity)",
+      "semantic_tag": "Observable_entity",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Creat",
+        "Crea",
+        "Creatinine level",
+        "Serum creatinine level",
+        "Serum creatinine level (observable entity)",
+        "serum creatinine",
+        "creatinine",
+        "SCr",
+        "serum creat"
+      ],
+      "guideline_synonym_count": 9,
+      "guideline_name": "Serum creatinine level (observable entity)"
+    },
+    "Serum albumin level (observable entity)": {
+      "concept_id": 1000821000000103,
+      "preferred_term": "Serum albumin level (observable entity)",
+      "semantic_tag": "Observable_entity",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Alb",
+        "Serum albumin level",
+        "Serum albumin level (observable entity)",
+        "Plasma albumin level",
+        "serum albumin",
+        "albumin level",
+        "albumin",
+        "serum alb",
+        "alb level",
+        "s albumin"
+      ],
+      "guideline_synonym_count": 10,
+      "guideline_name": "Serum albumin level (observable entity)"
+    },
+    "Serum total protein (observable entity)": {
+      "concept_id": 1000811000000109,
+      "preferred_term": "Serum total protein (observable entity)",
+      "semantic_tag": "Observable_entity",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Serum total protein",
+        "Serum total protein (observable entity)",
+        "serum total protein level",
+        "total protein",
+        "serum TP",
+        "total protein level"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Serum total protein (observable entity)"
+    },
+    "Serum globulin level (observable entity)": {
+      "concept_id": 1001231000000108,
+      "preferred_term": "Serum globulin level (observable entity)",
+      "semantic_tag": "Observable_entity",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Serum globulin level",
+        "Serum globulin level (observable entity)",
+        "serum globulin",
+        "globulin level",
+        "globulin"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Serum globulin level (observable entity)"
+    },
+    "Serum alkaline phosphatase level (observable entity)": {
+      "concept_id": 1000621000000104,
+      "preferred_term": "Serum alkaline phosphatase level (observable entity)",
+      "semantic_tag": "Observable_entity",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Alk Phos",
+        "ALP",
+        "Serum alkaline phosphatase level",
+        "Serum alkaline phosphatase level (observable entity)",
+        "Plasma alkaline phosphatase level",
+        "ALP level",
+        "alkaline phosphatase",
+        "serum ALP",
+        "ALK PHOS level"
+      ],
+      "guideline_synonym_count": 9,
+      "guideline_name": "Serum alkaline phosphatase level (observable entity)"
+    },
+    "Serum alanine aminotransferase level (observable entity)": {
+      "concept_id": 1018251000000107,
+      "preferred_term": "Serum alanine aminotransferase level (observable entity)",
+      "semantic_tag": "Observable_entity",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "ALT",
+        "Serum alanine aminotransferase level",
+        "Serum alanine aminotransferase level (observable entity)",
+        "serum ALT",
+        "ALT level",
+        "alanine aminotransferase",
+        "alanine transaminase"
+      ],
+      "guideline_synonym_count": 7,
+      "guideline_name": "Serum alanine aminotransferase level (observable entity)"
+    },
+    "Gamma-glutamyl transferase level (observable entity)": {
+      "concept_id": 1028091000000102,
+      "preferred_term": "Gamma-glutamyl transferase level (observable entity)",
+      "semantic_tag": "Observable_entity",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "GGT",
+        "GGT (gamma-glutamyl transferase) level",
+        "Gamma-glutamyl transferase level",
+        "Gamma-glutamyl transferase level (observable entity)",
+        "GGT level",
+        "gamma GT",
+        "gamma-GT level",
+        "GGT result"
+      ],
+      "guideline_synonym_count": 8,
+      "guideline_name": "Gamma-glutamyl transferase level (observable entity)"
+    },
+    "Serum bilirubin level (observable entity)": {
+      "concept_id": 999691000000104,
+      "preferred_term": "Serum bilirubin level (observable entity)",
+      "semantic_tag": "Observable_entity",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Bili",
+        "TBil",
+        "Serum bilirubin level",
+        "Serum bilirubin level (observable entity)",
+        "bilirubin",
+        "serum bilirubin",
+        "total bilirubin",
+        "T bili",
+        "bilirubin level"
+      ],
+      "guideline_synonym_count": 9,
+      "guideline_name": "Serum bilirubin level (observable entity)"
+    },
+    "Serum free T4 level (observable entity)": {
+      "concept_id": 1016971000000106,
+      "preferred_term": "Serum free T4 level (observable entity)",
+      "semantic_tag": "Observable_entity",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Serum free T4 level",
+        "Serum free T4 level (observable entity)",
+        "free T4",
+        "fT4",
+        "free T4 level",
+        "serum fT4"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Serum free T4 level (observable entity)"
+    },
+    "Serum thyroid stimulating hormone level (observable entity)": {
+      "concept_id": 1022791000000101,
+      "preferred_term": "Serum thyroid stimulating hormone level (observable entity)",
+      "semantic_tag": "Observable_entity",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Serum TSH (thyroid stimulating hormone) level",
+        "Serum thyroid stimulating hormone level (observable entity)",
+        "serum TSH level",
+        "TSH level",
+        "serum TSH"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Serum thyroid stimulating hormone level (observable entity)"
+    },
+    "Serum adjusted calcium concentration (observable entity)": {
+      "concept_id": 935051000000108,
+      "preferred_term": "Serum adjusted calcium concentration (observable entity)",
+      "semantic_tag": "Observable_entity",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Ca cor",
+        "Serum adjusted calcium concentration",
+        "Serum adjusted calcium concentration (observable entity)"
+      ],
+      "guideline_synonym_count": 3,
+      "guideline_name": "Serum adjusted calcium concentration (observable entity)"
+    },
+    "Plasma adjusted calcium concentration (observable entity)": {
+      "concept_id": 935201000000104,
+      "preferred_term": "Plasma adjusted calcium concentration (observable entity)",
+      "semantic_tag": "Observable_entity",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Ca adj",
+        "Plasma adjusted calcium concentration",
+        "Plasma adjusted calcium concentration (observable entity)",
+        "Plasma corrected calcium concentration",
+        "corrected calcium",
+        "adj calcium"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Plasma adjusted calcium concentration (observable entity)"
+    },
+    "Serum inorganic phosphate level (observable entity)": {
+      "concept_id": 1000701000000101,
+      "preferred_term": "Serum inorganic phosphate level (observable entity)",
+      "semantic_tag": "Observable_entity",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Serum inorganic phosphate level",
+        "Serum inorganic phosphate level (observable entity)",
+        "phos",
+        "phosphate",
+        "serum phosphate",
+        "serum PO4",
+        "inorganic phosphate",
+        "phosphate level"
+      ],
+      "guideline_synonym_count": 8,
+      "guideline_name": "Serum inorganic phosphate level (observable entity)"
+    },
+    "Serum calcium level (observable entity)": {
+      "concept_id": 1000691000000101,
+      "preferred_term": "Serum calcium level (observable entity)",
+      "semantic_tag": "Observable_entity",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Ca",
+        "Serum calcium level",
+        "Serum calcium level (observable entity)",
+        "serum Ca",
+        "serum calcium"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Serum calcium level (observable entity)"
+    },
+    "Serum ferritin level (observable entity)": {
+      "concept_id": 993381000000106,
+      "preferred_term": "Serum ferritin level (observable entity)",
+      "semantic_tag": "Observable_entity",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Serum ferritin level",
+        "Serum ferritin level (observable entity)",
+        "serum ferritin",
+        "ferritin level",
+        "ferritin",
+        "s ferritin",
+        "serum ferritin result"
+      ],
+      "guideline_synonym_count": 7,
+      "guideline_name": "Serum ferritin level (observable entity)"
+    },
+    "Iron saturation in serum (observable entity)": {
+      "concept_id": 1107901000000107,
+      "preferred_term": "Iron saturation in serum (observable entity)",
+      "semantic_tag": "Observable_entity",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Iron saturation in serum",
+        "Iron saturation in serum (observable entity)",
+        "serum iron saturation",
+        "transferrin saturation",
+        "iron sat"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Iron saturation in serum (observable entity)"
+    },
+    "Serum total iron binding capacity (observable entity)": {
+      "concept_id": 1015451000000101,
+      "preferred_term": "Serum total iron binding capacity (observable entity)",
+      "semantic_tag": "Observable_entity",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Serum TIBC (total iron binding capacity)",
+        "Serum total iron binding capacity",
+        "Serum total iron binding capacity (observable entity)",
+        "TIBC",
+        "serum TIBC"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Serum total iron binding capacity (observable entity)"
+    },
+    "Serum vitamin B12 level (observable entity)": {
+      "concept_id": 993391000000108,
+      "preferred_term": "Serum vitamin B12 level (observable entity)",
+      "semantic_tag": "Observable_entity",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Serum vitamin B12 level",
+        "Serum vitamin B12 level (observable entity)",
+        "serum B12",
+        "B12 level",
+        "vitamin B12 level"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Serum vitamin B12 level (observable entity)"
+    },
+    "Serum folate level (observable entity)": {
+      "concept_id": 993411000000108,
+      "preferred_term": "Serum folate level (observable entity)",
+      "semantic_tag": "Observable_entity",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Serum folate level",
+        "Serum folate level (observable entity)",
+        "serum folate",
+        "folate level",
+        "folate"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Serum folate level (observable entity)"
+    },
+    "Cholesterol level (observable entity)": {
+      "concept_id": 850981000000101,
+      "preferred_term": "Cholesterol level (observable entity)",
+      "semantic_tag": "Observable_entity",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Chol",
+        "Cholesterol level",
+        "Cholesterol level (observable entity)",
+        "Lipids",
+        "serum cholesterol",
+        "total cholesterol",
+        "cholesterol",
+        "chol level",
+        "serum chol",
+        "cholesterol reading"
+      ],
+      "guideline_synonym_count": 10,
+      "guideline_name": "Cholesterol level (observable entity)"
+    },
+    "Serum triglycerides level (observable entity)": {
+      "concept_id": 1005691000000109,
+      "preferred_term": "Serum triglycerides level (observable entity)",
+      "semantic_tag": "Observable_entity",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Serum triglycerides level",
+        "Serum triglycerides level (observable entity)",
+        "serum TG level",
+        "serum triglycerides",
+        "triglycerides"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Serum triglycerides level (observable entity)"
+    },
+    "Plasma high density lipoprotein cholesterol level (observable entity)": {
+      "concept_id": 1010581000000101,
+      "preferred_term": "Plasma high density lipoprotein cholesterol level (observable entity)",
+      "semantic_tag": "Observable_entity",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "HDL",
+        "Lipids",
+        "Plasma HDL (high density lipoprotein) cholesterol level",
+        "Plasma high density lipoprotein cholesterol level (observable entity)",
+        "HDL cholesterol",
+        "HDL level"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Plasma high density lipoprotein cholesterol level (observable entity)"
+    },
+    "Serum low density lipoprotein cholesterol level (observable entity)": {
+      "concept_id": 1022191000000100,
+      "preferred_term": "Serum low density lipoprotein cholesterol level (observable entity)",
+      "semantic_tag": "Observable_entity",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "LDL",
+        "Serum LDL (low density lipoprotein) cholesterol level",
+        "Serum low density lipoprotein cholesterol level",
+        "Serum low density lipoprotein cholesterol level (observable entity)",
+        "LDL cholesterol",
+        "LDL chol",
+        "serum LDL",
+        "LDL level"
+      ],
+      "guideline_synonym_count": 8,
+      "guideline_name": "Serum low density lipoprotein cholesterol level (observable entity)"
+    },
+    "High density/low density lipoprotein ratio (observable entity)": {
+      "concept_id": 1029071000000109,
+      "preferred_term": "High density/low density lipoprotein ratio (observable entity)",
+      "semantic_tag": "Observable_entity",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "HDL/LDL ratio",
+        "High density/low density lipoprotein ratio",
+        "High density/low density lipoprotein ratio (observable entity)",
+        "HDL to LDL ratio",
+        "HDL LDL ratio"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "High density/low density lipoprotein ratio (observable entity)"
+    },
+    "Blood pressure (observable entity)": {
+      "concept_id": 75367002,
+      "preferred_term": "Blood pressure (observable entity)",
+      "semantic_tag": "Observable_entity",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "BP - Blood pressure",
+        "Blood pressure",
+        "Blood pressure (observable entity)",
+        "Blood pressure, NOS",
+        "BP reading",
+        "BP obs"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Blood pressure (observable entity)"
+    },
+    "ABPI - ankle brachial pressure index": {
+      "concept_id": 446841001,
+      "preferred_term": "ABPI - ankle brachial pressure index",
+      "semantic_tag": "Observable_entity",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "ABPI - ankle brachial pressure index",
+        "Ankle brachial pressure index",
+        "Ankle brachial pressure index (observable entity)",
+        "ankle-brachial index",
+        "ankle brachial index"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "ABPI - ankle brachial pressure index"
+    },
+    "Blood pressure measured in left upper arm (observable entity)": {
+      "concept_id": 2385941000000108,
+      "preferred_term": "Blood pressure measured in left upper arm (observable entity)",
+      "semantic_tag": "Observable_entity",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Blood pressure measured in left upper arm",
+        "Blood pressure measured in left upper arm (observable entity)",
+        "BP left arm",
+        "BP L arm",
+        "BP left upper arm"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Blood pressure measured in left upper arm (observable entity)"
+    },
+    "Blood pressure measured in right upper arm (observable entity)": {
+      "concept_id": 2385951000000106,
+      "preferred_term": "Blood pressure measured in right upper arm (observable entity)",
+      "semantic_tag": "Observable_entity",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Blood pressure measured in right upper arm",
+        "Blood pressure measured in right upper arm (observable entity)",
+        "BP right arm",
+        "BP R arm",
+        "right arm BP",
+        "BP right upper arm",
+        "R upper arm BP"
+      ],
+      "guideline_synonym_count": 7,
+      "guideline_name": "Blood pressure measured in right upper arm (observable entity)"
+    },
+    "Human immunodeficiency virus serology (observable entity)": {
+      "concept_id": 1020841000000100,
+      "preferred_term": "Human immunodeficiency virus serology (observable entity)",
+      "semantic_tag": "Observable_entity",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "HIV (human immunodeficiency virus) serology",
+        "Human immunodeficiency virus serology (observable entity)",
+        "HIV serology",
+        "HIV serology test",
+        "HIV serology screen",
+        "HIV Ab serology",
+        "HIV serology result"
+      ],
+      "guideline_synonym_count": 7,
+      "guideline_name": "Human immunodeficiency virus serology (observable entity)"
+    },
+    "Arbitrary concentration of tissue transglutaminase immunoglobulin A antibody in serum (observable entity)": {
+      "concept_id": 53671000237103,
+      "preferred_term": "Arbitrary concentration of tissue transglutaminase immunoglobulin A antibody in serum (observable entity)",
+      "semantic_tag": "Observable_entity",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Arbitrary concentration of tissue transglutaminase immunoglobulin A antibody in serum (observable entity)",
+        "tTG (tissue transglutaminase) IgA antibody arbitrary concentration in serum",
+        "TTG IgA titre"
+      ],
+      "guideline_synonym_count": 3,
+      "guideline_name": "Arbitrary concentration of tissue transglutaminase immunoglobulin A antibody in serum (observable entity)"
+    },
+    "Protein electrophoresis (observable entity)": {
+      "concept_id": 1017151000000102,
+      "preferred_term": "Protein electrophoresis (observable entity)",
+      "semantic_tag": "Observable_entity",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Protein electrophoresis",
+        "Protein electrophoresis (observable entity)",
+        "serum protein electrophoresis"
+      ],
+      "guideline_synonym_count": 3,
+      "guideline_name": "Protein electrophoresis (observable entity)"
+    },
+    "Clotting screening (observable entity)": {
+      "concept_id": 1029191000000107,
+      "preferred_term": "Clotting screening (observable entity)",
+      "semantic_tag": "Observable_entity",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Blood coagulation panel",
+        "Blood coagulation screen",
+        "Clotting screen",
+        "Clotting screening",
+        "Clotting screening (observable entity)",
+        "Coagulation screen",
+        "Coagulation system screening",
+        "coag screen",
+        "clotting profile",
+        "coag profile",
+        "clotting studies"
+      ],
+      "guideline_synonym_count": 11,
+      "guideline_name": "Clotting screening (observable entity)"
+    },
+    "Serum chloride level (observable entity)": {
+      "concept_id": 1000671000000100,
+      "preferred_term": "Serum chloride level (observable entity)",
+      "semantic_tag": "Observable_entity",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Cl",
+        "Chloride level",
+        "Plasma chloride level",
+        "Serum chloride level",
+        "Serum chloride level (observable entity)",
+        "serum chloride",
+        "serum Cl",
+        "chloride"
+      ],
+      "guideline_synonym_count": 8,
+      "guideline_name": "Serum chloride level (observable entity)"
+    },
+    "Fluid sample uric acid level (observable entity)": {
+      "concept_id": 1009061000000108,
+      "preferred_term": "Fluid sample uric acid level (observable entity)",
+      "semantic_tag": "Observable_entity",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "UA",
+        "Serum uric acid",
+        "Uric acid level",
+        "Fluid sample uric acid level",
+        "Fluid sample uric acid level (observable entity)",
+        "serum uric acid level",
+        "serum UA",
+        "serum urate",
+        "serum urate level",
+        "urate level",
+        "urate"
+      ],
+      "guideline_synonym_count": 11,
+      "guideline_name": "Fluid sample uric acid level (observable entity)"
+    },
+    "Serum aspartate aminotransferase level (observable entity)": {
+      "concept_id": 1000881000000102,
+      "preferred_term": "Serum aspartate aminotransferase level (observable entity)",
+      "semantic_tag": "Observable_entity",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "AST",
+        "Aspartate transaminase level",
+        "Serum aspartate aminotransferase level",
+        "Serum aspartate aminotransferase level (observable entity)",
+        "AST level",
+        "serum AST",
+        "aspartate transaminase"
+      ],
+      "guideline_synonym_count": 7,
+      "guideline_name": "Serum aspartate aminotransferase level (observable entity)"
+    },
+    "Serum amylase level (observable entity)": {
+      "concept_id": 997491000000108,
+      "preferred_term": "Serum amylase level (observable entity)",
+      "semantic_tag": "Observable_entity",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "AMY",
+        "Serum amylase level",
+        "Serum amylase level (observable entity)",
+        "serum amylase",
+        "amylase",
+        "amylase level",
+        "serum amy"
+      ],
+      "guideline_synonym_count": 7,
+      "guideline_name": "Serum amylase level (observable entity)"
+    },
+    "Lymphocyte count (observable entity)": {
+      "concept_id": 1022601000000109,
+      "preferred_term": "Lymphocyte count (observable entity)",
+      "semantic_tag": "Observable_entity",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Lym",
+        "Lymphocyte count",
+        "Lymphocyte count (observable entity)",
+        "lymphs",
+        "lymph count"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Lymphocyte count (observable entity)"
+    },
+    "Monocyte count (observable entity)": {
+      "concept_id": 1022621000000100,
+      "preferred_term": "Monocyte count (observable entity)",
+      "semantic_tag": "Observable_entity",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Mon",
+        "Monocyte count",
+        "Monocyte count - observation",
+        "Monocyte count (observable entity)",
+        "mono count",
+        "MON count",
+        "monocytes"
+      ],
+      "guideline_synonym_count": 7,
+      "guideline_name": "Monocyte count (observable entity)"
+    },
+    "Count of red blood cells in blood (observable entity)": {
+      "concept_id": 2304681000000108,
+      "preferred_term": "Count of red blood cells in blood (observable entity)",
+      "semantic_tag": "Observable_entity",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "RBC",
+        "Red blood cell count",
+        "Count of red blood cells in blood",
+        "Count of red blood cells in blood (observable entity)",
+        "RBC count",
+        "red cell count",
+        "erythrocyte count"
+      ],
+      "guideline_synonym_count": 7,
+      "guideline_name": "Count of red blood cells in blood (observable entity)"
+    }
+  }
+}

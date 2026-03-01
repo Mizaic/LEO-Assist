@@ -1,0 +1,59 @@
+{
+  "metadata": {
+    "domain": "temporal_analysis",
+    "description": "Specific SNOMED codes for NCDA temporal analysis milestones",
+    "purpose": "Track specific cancer pathway events that occur AFTER referral",
+    "total_terms": 2,
+    "generated_at": "2025-12-06T00:00:00Z",
+    "note": "These are high-value concepts rarely seen in primary care but critical when present"
+  },
+  "mappings": {
+    "MDT Consultation": {
+      "keyword": "MDT Consultation",
+      "concept_id": 1268903003,
+      "preferred_term": "Consultation by multidisciplinary team (procedure)",
+      "semantic_tag": "Procedure",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "manually_curated": true,
+      "ncda_milestone": "mdt_consultation",
+      "description": "Rare in primary care records but critical when present",
+      "guideline_synonyms": [
+        "Consultation by multidisciplinary team (procedure)",
+        "Consultation by MDT (multidisciplinary team)",
+        "Consultation by multidisciplinary team",
+        "MDT",
+        "MDT review",
+        "MDT discussion",
+        "MDT meeting",
+        "MDT outcome"
+      ],
+      "guideline_synonym_count": 8,
+      "guideline_name": "Consultation by multidisciplinary team (procedure)"
+    },
+    "Cancer Diagnosis Discussed": {
+      "keyword": "Cancer Diagnosis Discussed",
+      "concept_id": 395672005,
+      "preferred_term": "Cancer diagnosis discussed with patient (situation)",
+      "semantic_tag": "Situation",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "manually_curated": true,
+      "ncda_milestone": "diagnosis_discussed",
+      "description": "Documentation that cancer diagnosis was communicated to patient",
+      "guideline_synonyms": [
+        "Cancer diagnosis discussed with patient (situation)",
+        "Cancer diagnosis discussed with patient",
+        "Ca diag discussed with patient",
+        "Cancer diagnosis discussed with patient (procedure)",
+        "ca dx discussed with pt",
+        "cancer dx discussed with pt",
+        "ca diagnosis discussed with pt",
+        "cancer dx discussed",
+        "ca dx discussed"
+      ],
+      "guideline_synonym_count": 9,
+      "guideline_name": "Cancer diagnosis discussed with patient (situation)"
+    }
+  }
+}

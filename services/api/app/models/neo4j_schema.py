@@ -1,142 +1,39 @@
-"""Neo4j schema and write/query templates for HITL MVP."""
+"""Neo4j schema and write/query templates for HITL MVP.
 
+Queries are now defined in libs/cypher/ and re-exported here for backward
+compatibility. New code should import from libs/cypher/ directly.
+"""
 from __future__ import annotations
 
-SCHEMA_CONSTRAINTS = [
-    "CREATE CONSTRAINT encounter_candidate_id IF NOT EXISTS FOR (c:EncounterCandidate) REQUIRE c.candidate_id IS UNIQUE",
-    "CREATE CONSTRAINT review_task_id IF NOT EXISTS FOR (t:ReviewTask) REQUIRE t.task_id IS UNIQUE",
-    "CREATE CONSTRAINT approval_id IF NOT EXISTS FOR (a:Approval) REQUIRE a.approval_id IS UNIQUE",
-    "CREATE CONSTRAINT change_id IF NOT EXISTS FOR (chg:Change) REQUIRE chg.change_id IS UNIQUE",
-    "CREATE INDEX review_task_status IF NOT EXISTS FOR (t:ReviewTask) ON (t.status)",
-    "CREATE INDEX review_task_priority IF NOT EXISTS FOR (t:ReviewTask) ON (t.priority)",
-]
-
-
-UPSERT_CANDIDATE = """
-MERGE (c:EncounterCandidate {candidate_id: $candidate_id})
-SET c.patient_id = $patient_id,
-    c.encounter_id = $encounter_id,
-    c.date = $date,
-    c.source_hash = $source_hash,
-    c.deidentified_hash = $deidentified_hash,
-    c.deidentified_text = $deidentified_text,
-    c.approval_status = $approval_status,
-    c.hard_fail_reasons = $hard_fail_reasons,
-    c.warning_reasons = $warning_reasons,
-    c.sentences_json = $sentences_json,
-    c.updated_at = datetime(),
-    c.created_at = coalesce(c.created_at, datetime())
-"""
-
-
-CREATE_REVIEW_TASK = """
-MATCH (c:EncounterCandidate {candidate_id: $candidate_id})
-MERGE (t:ReviewTask {task_id: $task_id})
-SET t.priority = $priority,
-    t.status = $status,
-    t.assigned_reviewer = $assigned_reviewer,
-    t.warning_count = $warning_count,
-    t.created_at = coalesce(t.created_at, datetime()),
-    t.updated_at = datetime()
-MERGE (c)-[:HAS_TASK]->(t)
-"""
-
-
-APPEND_CHANGE = """
-MATCH (c:EncounterCandidate {candidate_id: $candidate_id})
-CREATE (chg:Change {
-    change_id: $change_id,
-    event_type: $event_type,
-    actor: $actor,
-    reason: $reason,
-    timestamp: datetime($timestamp),
-    before_hash: $before_hash,
-    after_hash: $after_hash,
-    version_bundle_json: $version_bundle_json
-})
-CREATE (c)-[:HAS_CHANGE]->(chg)
-"""
-
-
-APPEND_APPROVAL = """
-MATCH (c:EncounterCandidate {candidate_id: $candidate_id})-[:HAS_TASK]->(t:ReviewTask {task_id: $task_id})
-CREATE (a:Approval {
-    approval_id: $approval_id,
-    action: $action,
-    reviewer: $reviewer,
-    reason: $reason,
-    status_after: $status_after,
-    timestamp: datetime($timestamp),
-    before_hash: $before_hash,
-    after_hash: $after_hash
-})
-CREATE (t)-[:HAS_APPROVAL]->(a)
-SET t.status = $status_after, t.updated_at = datetime(), c.approval_status = $status_after
-"""
-
-
-LIST_TASKS = """
-MATCH (c:EncounterCandidate)-[:HAS_TASK]->(t:ReviewTask)
-WHERE ($status IS NULL OR t.status = $status)
-  AND ($patient_id IS NULL OR c.patient_id = $patient_id)
-WITH c, t
-ORDER BY
-    CASE WHEN t.status = 'pending' THEN 0 ELSE 1 END ASC,
-    t.updated_at DESC
-WITH c.patient_id AS patient_id, c.encounter_id AS encounter_id, collect({c: c, t: t})[0] AS latest
-WITH latest.c AS c, latest.t AS t
-RETURN t.task_id AS task_id,
-       c.candidate_id AS candidate_id,
-       c.patient_id AS patient_id,
-       c.encounter_id AS encounter_id,
-       t.priority AS priority,
-       t.status AS status,
-       t.warning_count AS warning_count,
-       t.created_at AS created_at,
-       t.updated_at AS updated_at
-ORDER BY t.priority DESC, t.updated_at ASC
-LIMIT $limit
-"""
-
-
-GET_TASK_DETAIL = """
-MATCH (c:EncounterCandidate)-[:HAS_TASK]->(t:ReviewTask {task_id: $task_id})
-RETURN t.task_id AS task_id,
-       c.candidate_id AS candidate_id,
-       c.patient_id AS patient_id,
-       c.encounter_id AS encounter_id,
-       t.priority AS priority,
-       t.status AS status,
-       t.warning_count AS warning_count,
-       t.created_at AS created_at,
-       t.updated_at AS updated_at,
-       c AS candidate
-"""
-
-
-GET_AUDIT_TIMELINE = """
-MATCH (c:EncounterCandidate {candidate_id: $candidate_id})
-OPTIONAL MATCH (c)-[:HAS_CHANGE]->(chg:Change)
-OPTIONAL MATCH (c)-[:HAS_TASK]->(:ReviewTask)-[:HAS_APPROVAL]->(a:Approval)
-RETURN c.candidate_id AS candidate_id,
-       collect(DISTINCT chg) AS changes,
-       collect(DISTINCT a) AS approvals
-"""
-
-
-LIST_APPROVED_CANDIDATES = """
-MATCH (c:EncounterCandidate)
-WHERE c.approval_status = 'approved'
-RETURN c
-ORDER BY c.patient_id, c.encounter_id
-"""
-
-LIST_APPROVED_CANDIDATES_FOR_PATIENT = """
-MATCH (c:EncounterCandidate)
-WHERE c.approval_status = 'approved' AND c.patient_id = $patient_id
-RETURN c
-ORDER BY c.encounter_id
-"""
+# Re-export from central registry
+from libs.cypher.schema_constraints import (  # noqa: F401
+    PATIENT_SCHEMA_CONSTRAINTS,
+    CODING_SCHEMA_CONSTRAINTS,
+)
+from libs.cypher.candidate_queries import (  # noqa: F401
+    UPSERT_CANDIDATE,
+    CREATE_REVIEW_TASK,
+    APPEND_CHANGE,
+    APPEND_APPROVAL,
+    LIST_TASKS,
+    GET_TASK_DETAIL,
+    GET_AUDIT_TIMELINE,
+    LIST_APPROVED_CANDIDATES,
+    LIST_APPROVED_CANDIDATES_FOR_PATIENT,
+)
+from libs.cypher.cleanup_queries import (  # noqa: F401
+    RESET_PATIENT_REVIEW_QUEUE,
+    RESET_ENCOUNTER_REVIEW_QUEUE,
+    RESET_PATIENT_DOCUMENTS,
+    RESET_PATIENT_DIRECT_SEMANTIC,
+    DELETE_ENCOUNTER_DOCUMENTS,
+)
+from libs.cypher.documents_queries import (  # noqa: F401
+    DELETE_CODED_LINK,
+    UPDATE_CODED_LINK_MODIFIERS,
+    LIST_ENCOUNTER_CODED_LINKS,
+    LIST_PATIENT_CODING_STATUS,
+)
 
 
 # ── Patient graph queries ──────────────────────────────────
@@ -148,7 +45,6 @@ RETURN toString(p.id) AS patient_id, count(e) AS encounter_count
 ORDER BY patient_id
 """
 
-# Coding graph: approved count per patient
 LIST_APPROVED_COUNT_BY_PATIENT = """
 MATCH (c:EncounterCandidate)
 WHERE c.approval_status = 'approved'
@@ -159,7 +55,10 @@ GET_PATIENT = """
 MATCH (p:Patient)
 WHERE toString(p.id) = $patient_id
 OPTIONAL MATCH (p)-[:HAS_ENCOUNTER]->(e:Encounter)
-RETURN toString(p.id) AS patient_id, count(e) AS encounter_count
+RETURN toString(p.id) AS patient_id,
+       count(e) AS encounter_count,
+       p.gender AS gender,
+       toString(p.birthDate) AS birth_date
 """
 
 LIST_PATIENT_ENCOUNTERS = """
@@ -167,7 +66,7 @@ MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter)
 WHERE toString(p.id) = $patient_id
 OPTIONAL MATCH (e)-[r:DOCUMENTS]->()
 WITH e, count(r) AS coded_count
-RETURN e.id AS encounter_id, toString(e.date) AS date, e.text AS text, coded_count
+RETURN e.id AS encounter_id, toString(e.date) AS date, e.text AS text, coded_count, e.flags AS flags
 ORDER BY e.date
 LIMIT $limit
 """
@@ -181,78 +80,98 @@ RETURN e.id AS encounter_id, toString(e.date) AS date, e.text AS text, coded_cou
 """
 
 
-# ── V3 Patient graph DOCUMENTS (semantic links) ─────────────
+# ── Encounter search queries ──────────────────────────────
 
-LIST_ENCOUNTER_CODED_LINKS = """
-MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter)
-WHERE toString(p.id) = $patient_id AND toString(e.id) = $encounter_id
-OPTIONAL MATCH (e)-[r:DOCUMENTS]->(s)
-RETURN toString(e.id) AS encounter_id,
-       labels(s) AS node_labels,
-       s.conceptId AS concept_id,
-       s.name AS term,
-       s.readCode AS read_code,
-       s.semanticTag AS semantic_tag,
-       r.evidence AS evidence,
-       r.confidence AS confidence,
-       r.domain AS domain,
-       r.context AS context,
-       r.modifiers AS modifiers,
-       r.coded_at AS coded_at
-ORDER BY r.coded_at DESC
-"""
-
-LIST_PATIENT_CODING_STATUS = """
+SEARCH_ENCOUNTERS_KEYWORD = """
 MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter)
 WHERE toString(p.id) = $patient_id
-OPTIONAL MATCH (e)-[r:DOCUMENTS]->(s)
+  AND toLower(e.text) CONTAINS toLower($q)
+OPTIONAL MATCH (e)-[r:DOCUMENTS]->()
 WITH e, count(r) AS coded_count
-RETURN toString(e.id) AS encounter_id, coded_count
+RETURN toString(e.id) AS encounter_id,
+       toString(e.date) AS date,
+       e.text AS text,
+       coded_count,
+       e.flags AS flags
+ORDER BY e.date DESC
+LIMIT $limit
 """
 
-DELETE_CODED_LINK = """
+SEARCH_ENCOUNTERS_BY_CONCEPT_DOCS = """
+MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter)-[:DOCUMENTS]->(s)
+WHERE toString(p.id) = $patient_id AND s.conceptId IN $concept_ids
+WITH e, collect(DISTINCT s.conceptId) AS matched_concepts
+OPTIONAL MATCH (e)-[r:DOCUMENTS]->()
+WITH e, matched_concepts, count(r) AS coded_count
+RETURN toString(e.id) AS encounter_id,
+       toString(e.date) AS date,
+       e.text AS text,
+       coded_count,
+       e.flags AS flags,
+       matched_concepts
+ORDER BY size(matched_concepts) DESC, e.date DESC
+LIMIT $limit
+"""
+
+SEARCH_ENCOUNTERS_BY_CONCEPT_CANDIDATES = """
+MATCH (ec:EncounterCandidate)
+WHERE ec.patient_id = $patient_id
+  AND any(cid IN $concept_ids WHERE ec.sentences_json CONTAINS cid)
+WITH collect(DISTINCT ec.encounter_id) AS eids
 MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter)
-WHERE toString(p.id) = $patient_id AND toString(e.id) = $encounter_id
-MATCH (e)-[r:DOCUMENTS]->(s)
-WHERE s.conceptId = $concept_id
-DELETE r
+WHERE toString(p.id) = $patient_id AND toString(e.id) IN eids
+OPTIONAL MATCH (e)-[r:DOCUMENTS]->()
+WITH e, count(r) AS coded_count
+RETURN toString(e.id) AS encounter_id,
+       toString(e.date) AS date,
+       e.text AS text,
+       coded_count,
+       e.flags AS flags
+ORDER BY e.date DESC
+LIMIT $limit
 """
 
-RESET_PATIENT_DOCUMENTS = """
-MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter)-[r:DOCUMENTS]->()
+SEARCH_ENCOUNTERS_VECTOR = """
+CALL db.index.vector.queryNodes('encounter_vector_index', $k, $query_vector)
+YIELD node, score
+MATCH (p:Patient)-[:HAS_ENCOUNTER]->(node)
 WHERE toString(p.id) = $patient_id
-WITH count(r) AS links_deleted
-MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter)-[r:DOCUMENTS]->()
-WHERE toString(p.id) = $patient_id
-DELETE r
-RETURN links_deleted
+OPTIONAL MATCH (node)-[r:DOCUMENTS]->()
+WITH node AS e, score, count(r) AS coded_count
+RETURN toString(e.id) AS encounter_id,
+       toString(e.date) AS date,
+       e.text AS text,
+       coded_count,
+       e.flags AS flags,
+       score AS similarity
+ORDER BY score DESC
+LIMIT $limit
 """
 
-RESET_PATIENT_DIRECT_SEMANTIC = """
-MATCH (p:Patient)-[r]->(s)
-WHERE toString(p.id) = $patient_id
-  AND (s:SnomedConcept OR s:Clinical_finding OR s:Disease OR s:Situation
-       OR s:Observable_entity OR s:Procedure)
-DELETE r
-RETURN count(r) AS direct_deleted
-"""
-
-DELETE_ENCOUNTER_DOCUMENTS = """
-MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter)-[r:DOCUMENTS]->()
-WHERE toString(p.id) = $patient_id AND toString(e.id) = $encounter_id
-DELETE r
-"""
-
-
-# ── Terminology search query ───────────────────────────────
 
 TERMINOLOGY_SEARCH = """
-CALL db.index.fulltext.queryNodes("term_fulltext", $q) YIELD node, score
-MATCH (node)-[:DESCRIBES]->(c:Concept)
-WHERE c.active = true
+CALL {
+    CALL db.index.fulltext.queryNodes("term_fulltext", $q) YIELD node, score
+    MATCH (node)-[:DESCRIBES]->(c:Concept)
+    WHERE c.active = true
+    RETURN c, score AS weighted_score
+    UNION
+    CALL db.index.fulltext.queryNodes("surface_form_fulltext", $q) YIELD node, score
+    MATCH (node)-[:MAPS_TO]->(c:Concept)
+    WHERE c.active = true
+    RETURN c, score * 1.2 AS weighted_score
+    UNION
+    MATCH (c:Concept {id: $q})
+    WHERE c.active = true
+    RETURN c, 2.0 AS weighted_score
+    UNION
+    MATCH (rd:ReadCode {code: $q})<-[:MAPS_TO_READ]-(c:Concept)
+    WHERE c.active = true
+    RETURN c, 2.0 AS weighted_score
+}
 OPTIONAL MATCH (c)-[:MAPS_TO_READ]->(rd:ReadCode)
 OPTIONAL MATCH (c)-[:MAPS_TO_ICD10]->(icd:Icd10Code)
-WITH c, max(score) AS best_score,
+WITH c, max(weighted_score) AS best_score,
      collect(DISTINCT rd.code)[0] AS read_code,
      collect(DISTINCT icd.code)[0] AS icd10
 RETURN c.id AS snomed_concept_id,
@@ -262,5 +181,225 @@ RETURN c.id AS snomed_concept_id,
        read_code,
        best_score AS score
 ORDER BY best_score DESC
+LIMIT $limit
+"""
+
+TERMINOLOGY_SEARCH_FILTERED = """
+CALL {
+    CALL db.index.fulltext.queryNodes("term_fulltext", $q) YIELD node, score
+    MATCH (node)-[:DESCRIBES]->(c:Concept)
+    WHERE c.active = true AND c.semantic_tag IN $tags
+    RETURN c, score AS weighted_score
+    UNION
+    CALL db.index.fulltext.queryNodes("surface_form_fulltext", $q) YIELD node, score
+    MATCH (node)-[:MAPS_TO]->(c:Concept)
+    WHERE c.active = true AND c.semantic_tag IN $tags
+    RETURN c, score * 1.2 AS weighted_score
+    UNION
+    MATCH (c:Concept {id: $q})
+    WHERE c.active = true AND c.semantic_tag IN $tags
+    RETURN c, 2.0 AS weighted_score
+    UNION
+    MATCH (rd:ReadCode {code: $q})<-[:MAPS_TO_READ]-(c:Concept)
+    WHERE c.active = true AND c.semantic_tag IN $tags
+    RETURN c, 2.0 AS weighted_score
+}
+OPTIONAL MATCH (c)-[:MAPS_TO_READ]->(rd:ReadCode)
+OPTIONAL MATCH (c)-[:MAPS_TO_ICD10]->(icd:Icd10Code)
+WITH c, max(weighted_score) AS best_score,
+     collect(DISTINCT rd.code)[0] AS read_code,
+     collect(DISTINCT icd.code)[0] AS icd10
+RETURN c.id AS snomed_concept_id,
+       c.fsn AS term,
+       c.semantic_tag AS semantic_tag,
+       icd10,
+       read_code,
+       best_score AS score
+ORDER BY best_score DESC
+LIMIT $limit
+"""
+
+LIST_SURFACE_FORMS = """
+MATCH (sf:SurfaceForm)-[m:MAPS_TO]->(c:Concept)
+WHERE ($q IS NULL OR toLower(sf.form) CONTAINS toLower($q))
+  AND ($concept_id IS NULL OR c.id = $concept_id)
+WITH sf, c,
+     max(m.confidence)              AS confidence,
+     head(collect(m.approved_by))   AS approved_by,
+     head(collect(m.provenance))    AS provenance
+RETURN sf.normalized    AS normalized,
+       sf.form          AS form,
+       sf.source        AS source,
+       sf.status        AS status,
+       sf.created_by    AS created_by,
+       toString(sf.created_at)    AS created_at,
+       toString(sf.last_seen_at)  AS last_seen_at,
+       c.id             AS concept_id,
+       c.fsn            AS concept_fsn,
+       c.semantic_tag   AS semantic_tag,
+       confidence,
+       approved_by,
+       provenance
+ORDER BY sf.form
+SKIP $offset
+LIMIT $limit
+"""
+
+COUNT_SURFACE_FORMS = """
+MATCH (sf:SurfaceForm)-[:MAPS_TO]->(c:Concept)
+WHERE ($q IS NULL OR toLower(sf.form) CONTAINS toLower($q))
+  AND ($concept_id IS NULL OR c.id = $concept_id)
+WITH sf, c
+RETURN count(*) AS total
+"""
+
+DELETE_SURFACE_FORM = """
+MATCH (sf:SurfaceForm {normalized: $normalized})
+DETACH DELETE sf
+"""
+
+UPSERT_SURFACE_FORM_MAPPING = """
+MATCH (c:Concept {id: $concept_id})
+MERGE (sf:SurfaceForm {normalized: $normalized})
+ON CREATE SET sf.form = $form,
+              sf.source = $source,
+              sf.status = 'active',
+              sf.created_at = datetime(),
+              sf.created_by = $created_by
+MERGE (sf)-[m:MAPS_TO]->(c)
+ON CREATE SET m.created_at = datetime(),
+              m.created_by = $created_by,
+              m.approved_at = datetime()
+SET m.confidence = $confidence,
+    m.provenance = $provenance
+RETURN sf.normalized AS normalized,
+       sf.form       AS form,
+       c.id          AS concept_id,
+       c.fsn         AS concept_fsn
+"""
+
+DELETE_SURFACE_FORM_MAPPING = """
+MATCH (sf:SurfaceForm {normalized: $normalized})-[r:MAPS_TO]->(c:Concept {id: $concept_id})
+DELETE r
+RETURN count(r) AS removed
+"""
+
+KEEP_SURFACE_FORM_MAPPING = """
+MATCH (sf:SurfaceForm {normalized: $normalized})-[r:MAPS_TO]->(c:Concept)
+WHERE c.id <> $keep_concept_id
+DELETE r
+RETURN count(r) AS removed
+"""
+
+DEDUPLICATE_SURFACE_FORM_RELS = """
+MATCH (sf:SurfaceForm)-[r:MAPS_TO]->(c:Concept)
+WITH sf, collect({r: r, confidence: coalesce(r.confidence, 0.0)}) AS all_rels
+WHERE size(all_rels) > 1
+WITH sf, all_rels,
+     reduce(best = all_rels[0], x IN all_rels |
+       CASE WHEN x.confidence > best.confidence THEN x ELSE best END
+     ) AS keeper
+UNWIND all_rels AS entry
+WITH entry.r AS r, keeper
+WHERE r <> keeper.r
+DELETE r
+RETURN count(r) AS duplicates_removed
+"""
+
+AUDIT_SURFACE_FORM_DUPLICATES = """
+MATCH (sf:SurfaceForm)-[r:MAPS_TO]->(c:Concept)
+WITH sf, count(DISTINCT c) AS concept_count, count(r) AS rel_count
+WHERE rel_count > 1
+WITH sf, concept_count, rel_count
+MATCH (sf)-[r:MAPS_TO]->(c:Concept)
+RETURN sf.normalized       AS normalized,
+       sf.form             AS form,
+       concept_count,
+       rel_count,
+       collect({
+           concept_id:  c.id,
+           concept_fsn: c.fsn,
+           confidence:  r.confidence,
+           provenance:  r.provenance
+       }) AS mappings
+ORDER BY rel_count DESC, sf.form
+LIMIT 200
+"""
+
+GET_CONCEPT_FOR_SUGGESTION = """
+MATCH (c:Concept {id: $concept_id})
+WHERE c.active = true
+OPTIONAL MATCH (sf:SurfaceForm)-[:MAPS_TO]->(c)
+RETURN c.fsn            AS concept_fsn,
+       c.semantic_tag   AS semantic_tag,
+       collect(sf.form) AS existing_aliases
+"""
+
+GROUPED_SURFACE_FORMS = """
+MATCH (sf:SurfaceForm)-[m:MAPS_TO]->(c:Concept)
+WHERE c.active = true
+  AND ($q IS NULL
+       OR toLower(sf.form) CONTAINS toLower($q)
+       OR toLower(c.fsn)   CONTAINS toLower($q)
+       OR c.id             CONTAINS $q
+       OR EXISTS {
+           MATCH (c)-[:MAPS_TO_READ]->(rd_f:ReadCode)
+           WHERE rd_f.code = $q
+       })
+WITH c,
+     collect({
+       normalized:  sf.normalized,
+       form:        sf.form,
+       source:      sf.source,
+       created_by:  sf.created_by,
+       created_at:  toString(sf.created_at),
+       confidence:  m.confidence
+     }) AS surface_forms
+OPTIONAL MATCH (c)-[:MAPS_TO_READ]->(rd:ReadCode)
+OPTIONAL MATCH (c)-[:MAPS_TO_ICD10]->(icd:Icd10Code)
+WITH c, surface_forms,
+     collect(DISTINCT rd.code)[0] AS read_code,
+     collect(DISTINCT icd.code)[0] AS icd10
+RETURN c.id            AS concept_id,
+       c.fsn           AS concept_fsn,
+       c.semantic_tag  AS semantic_tag,
+       read_code,
+       icd10,
+       surface_forms
+ORDER BY c.fsn
+SKIP $offset
+LIMIT $limit
+"""
+
+COUNT_GROUPED_SURFACE_FORMS = """
+MATCH (sf:SurfaceForm)-[:MAPS_TO]->(c:Concept)
+WHERE c.active = true
+  AND ($q IS NULL
+       OR toLower(sf.form) CONTAINS toLower($q)
+       OR toLower(c.fsn)   CONTAINS toLower($q)
+       OR c.id             CONTAINS $q
+       OR EXISTS {
+           MATCH (c)-[:MAPS_TO_READ]->(rd_f:ReadCode)
+           WHERE rd_f.code = $q
+       })
+WITH DISTINCT c
+RETURN count(c) AS total
+"""
+
+# Depth must be interpolated via Python .format(depth=N) before execution —
+# Neo4j does not support parameterised variable-length path bounds.
+DESCENDANTS_TEMPLATE = """
+MATCH (ancestor:Concept {{id: $concept_id}})<-[:IS_A*1..{depth}]-(d:Concept)
+WHERE d.active = true
+  AND ($semantic_tag IS NULL OR d.semantic_tag = $semantic_tag)
+OPTIONAL MATCH (sf:SurfaceForm)-[:MAPS_TO]->(d)
+WITH d, count(sf) AS surface_form_count, collect(sf.form)[0..10] AS surface_forms
+RETURN DISTINCT
+    d.id            AS snomed_concept_id,
+    d.fsn           AS term,
+    d.semantic_tag  AS semantic_tag,
+    surface_form_count,
+    surface_forms
+ORDER BY d.fsn
 LIMIT $limit
 """

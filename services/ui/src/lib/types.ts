@@ -10,6 +10,7 @@ export interface EncounterSummary {
   date: string;
   text?: string;
   coded_count?: number;
+  flags?: string;
 }
 
 export interface CodedLink {
@@ -17,9 +18,18 @@ export interface CodedLink {
   term?: string;
   read_code?: string;
   semantic_tag?: string;
+  /** DOCUMENTS relationship: evidence text from encounter */
   evidence?: string;
-  modifiers?: Record<string, unknown>;
+  /** DOCUMENTS relationship: extraction confidence (0–1) */
+  confidence?: number;
+  /** DOCUMENTS relationship: domain (e.g. clinical_finding) */
+  domain?: string;
+  /** DOCUMENTS relationship: negated, uncertain, historical, etc. */
   context?: Record<string, unknown>;
+  /** DOCUMENTS relationship: value, unit, reference_range, interpretation */
+  modifiers?: Record<string, unknown>;
+  /** DOCUMENTS relationship: when the link was coded */
+  coded_at?: string;
 }
 
 export interface TermSearchResult {
@@ -38,12 +48,23 @@ export interface Correction {
   time: string;
 }
 
+export interface LLMUsage {
+  input_tokens: number;
+  output_tokens: number;
+  cached_input_tokens: number;
+  total_tokens: number;
+  llm_calls: number;
+  cost_usd?: number;
+}
+
 export interface PipelineRunResponse {
   run_id: string;
   processed_encounters: number;
   queued_for_review: number;
+  auto_approved?: number;
   rejected_hard_fail: number;
   warnings_only: number;
+  llm_usage?: LLMUsage;
 }
 
 export interface ReviewTaskSummary {
@@ -84,6 +105,10 @@ export interface EncounterTerm {
   evidence_text: string;
   extraction_method: string;
   extraction_confidence?: number;
+  /** New training-schema: direct semantic tag (e.g. "procedure", "disorder") */
+  semantic_tag?: string;
+  /** New training-schema: "present" | "absent" | "family" — overrides individual context flags when present */
+  assertion?: string;
 }
 
 export interface EncounterSentence {
@@ -108,6 +133,7 @@ export interface EncounterCandidate {
   warning_reasons: string[];
   sentences: EncounterSentence[];
   audit_events?: unknown[];
+  llm_usage_json?: string;
 }
 
 export interface ReviewTaskDetail {

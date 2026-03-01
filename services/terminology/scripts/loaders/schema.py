@@ -34,6 +34,11 @@ FULLTEXT_INDEXES = [
         "CREATE FULLTEXT INDEX term_fulltext IF NOT EXISTS "
         "FOR (t:Term) ON EACH [t.surface_form]",
     ),
+    (
+        "surface_form_fulltext",
+        "CREATE FULLTEXT INDEX surface_form_fulltext IF NOT EXISTS "
+        "FOR (s:SurfaceForm) ON EACH [s.form]",
+    ),
 ]
 
 

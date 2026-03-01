@@ -1,0 +1,129 @@
+{
+  "metadata": {
+    "domain": "communication_difficulty",
+    "total_terms": 10,
+    "successful_mappings": 10,
+    "failed_mappings": 0,
+    "llm_disambiguations": 8,
+    "generated_at": "2025-12-01T16:36:04.661804Z",
+    "enriched_with_synonyms": true,
+    "synonym_enrichment_date": "2025-12-06T08:05:51.339093",
+    "synonym_stats": {
+      "concepts_with_synonyms": 5,
+      "concepts_not_found": 0,
+      "average_synonyms_per_concept": 6.8
+    }
+  },
+  "mappings": {
+    "Speech impairment": {
+      "concept_id": 29164008,
+      "preferred_term": "Speech impairment",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.891498430306455,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Disturbance in speech",
+        "Disturbance in speech (finding)",
+        "Disturbance in speech, NOS",
+        "Speech abnormality",
+        "Speech abnormality, NOS",
+        "Speech impairment",
+        "speech difficulty",
+        "speech problems",
+        "impaired speech",
+        "speech disturbance",
+        "speech disorder"
+      ],
+      "guideline_synonym_count": 11,
+      "guideline_name": "Speech impairment"
+    },
+    "Hearing impairment": {
+      "concept_id": 15188001,
+      "preferred_term": "Hearing loss (disorder)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9229213818399732,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Deafness",
+        "Deafness, NOS",
+        "Difficulty hearing",
+        "HI - Hearing impairment",
+        "HL - Hearing loss",
+        "HOH - Hard of hearing",
+        "Hard of hearing",
+        "Hearing impaired",
+        "Hearing impairment",
+        "Hearing loss",
+        "Hearing loss (disorder)",
+        "Hearing loss (finding)",
+        "Hearing loss, NOS",
+        "Hypoacusis",
+        "Impaired hearing",
+        "reduced hearing",
+        "poor hearing",
+        "loss of hearing"
+      ],
+      "guideline_synonym_count": 18,
+      "guideline_name": "Hearing loss (disorder)"
+    },
+    "Vision impairment": {
+      "concept_id": 397540003,
+      "preferred_term": "Visual impairment",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9446403980255127,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Impaired vision",
+        "Visual difficulty",
+        "Visual impairment",
+        "Visual impairment (disorder)",
+        "reduced vision",
+        "poor vision",
+        "low vision",
+        "vision loss"
+      ],
+      "guideline_synonym_count": 8,
+      "guideline_name": "Visual impairment"
+    },
+    "Language barrier": {
+      "concept_id": 422693009,
+      "preferred_term": "Language barrier (observable entity)",
+      "semantic_tag": "Observable_entity",
+      "score": 0.8880078792572021,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Language barrier",
+        "Language barrier (observable entity)",
+        "lang barrier",
+        "communication barrier",
+        "language difficulties",
+        "limited English"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Language barrier (observable entity)"
+    },
+    "Cognitive impairment": {
+      "concept_id": 386806002,
+      "preferred_term": "Cognitive impairment",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9090540409088135,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Cognitive decline",
+        "Cognitive deficit",
+        "Cognitive disturbance",
+        "Cognitive dysfunction",
+        "Cognitive impairment",
+        "Impaired cognition",
+        "Impaired cognition (finding)",
+        "cog impairment",
+        "cognitive problems",
+        "cognitive difficulties",
+        "cognitive issues",
+        "reduced cognition"
+      ],
+      "guideline_synonym_count": 12,
+      "guideline_name": "Cognitive impairment"
+    }
+  }
+}

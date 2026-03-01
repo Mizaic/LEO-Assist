@@ -1,0 +1,814 @@
+{
+  "metadata": {
+    "domain": "screening",
+    "total_terms": 55,
+    "successful_mappings": 55,
+    "failed_mappings": 0,
+    "llm_disambiguations": 0,
+    "generated_at": "2026-02-28T00:00:00.000000Z",
+    "notes": "Full NHS cancer screening domain: offered/declined/completed situations, FIT/FOB/sigmoidoscopy results, lung/bowel/breast/cervical programme findings, DNA events, and eligibility. Covers all four active NHS England screening programmes (bowel, breast, cervical, lung).",
+    "enriched_with_synonyms": true,
+    "synonym_enrichment_date": "2026-02-28T00:00:00.000000Z",
+    "synonym_stats": {
+      "concepts_with_synonyms": 55,
+      "concepts_not_found": 0,
+      "average_synonyms_per_concept": 2.5
+    }
+  },
+  "mappings": {
+    "Screening offered": {
+      "concept_id": 1104631000000101,
+      "preferred_term": "Screening offered (situation)",
+      "semantic_tag": "Situation",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Screening offered",
+        "Screening offered (situation)",
+        "offered screening",
+        "screening offer made"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Screening offered (situation)"
+    },
+    "Breast cancer screening declined": {
+      "concept_id": 12275351000119103,
+      "preferred_term": "Breast cancer screening declined (situation)",
+      "semantic_tag": "Situation",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Breast cancer screening declined",
+        "Breast cancer screening declined (situation)",
+        "declined breast screening",
+        "breast screening declined",
+        "refused breast screening"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Breast cancer screening declined (situation)"
+    },
+    "Bowel cancer screening declined": {
+      "concept_id": 294201000000109,
+      "preferred_term": "Bowel cancer screening declined (situation)",
+      "semantic_tag": "Situation",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Bowel cancer screening declined",
+        "Bowel cancer screening declined (situation)",
+        "BCSP declined"
+      ],
+      "guideline_synonym_count": 3,
+      "guideline_name": "Bowel cancer screening declined (situation)"
+    },
+    "Colon cancer screening declined": {
+      "concept_id": 31001000119109,
+      "preferred_term": "Colon cancer screening declined (situation)",
+      "semantic_tag": "Situation",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Colon cancer screening declined",
+        "Colon cancer screening declined (situation)",
+        "declined bowel screening",
+        "CRC screening declined",
+        "declined colon screening"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Colon cancer screening declined (situation)"
+    },
+    "Lung cancer screening declined": {
+      "concept_id": 13015001000119105,
+      "preferred_term": "Lung cancer screening declined (situation)",
+      "semantic_tag": "Situation",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Lung cancer screening declined",
+        "Lung cancer screening declined (situation)",
+        "declined lung ca screening",
+        "lung ca screening refused",
+        "refused lung cancer screening",
+        "lung cancer screen declined",
+        "declined lung screening",
+        "lung ca screen refused"
+      ],
+      "guideline_synonym_count": 8,
+      "guideline_name": "Lung cancer screening declined (situation)"
+    },
+    "Cervical cancer screening offered": {
+      "concept_id": 1104621000000103,
+      "preferred_term": "Cervical cancer screening offered (situation)",
+      "semantic_tag": "Situation",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Cervical cancer screening offered",
+        "Cervical cancer screening offered (situation)",
+        "smear test offered",
+        "cervical smear offered",
+        "cervical screening offered",
+        "smear offered",
+        "cervical screen offered",
+        "CCS offered"
+      ],
+      "guideline_synonym_count": 8,
+      "guideline_name": "Cervical cancer screening offered (situation)"
+    },
+    "Prostate cancer screening declined": {
+      "concept_id": 31011000119107,
+      "preferred_term": "Prostate cancer screening declined (situation)",
+      "semantic_tag": "Situation",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Prostate cancer screening declined",
+        "Prostate cancer screening declined (situation)",
+        "declined PSA screening"
+      ],
+      "guideline_synonym_count": 3,
+      "guideline_name": "Prostate cancer screening declined (situation)"
+    },
+    "Screening for malignant neoplasm done": {
+      "concept_id": 1148677007,
+      "preferred_term": "Screening for malignant neoplasm done (situation)",
+      "semantic_tag": "Situation",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Screening for cancer done",
+        "Screening for malignant neoplasm done",
+        "Screening for malignant neoplasm done (situation)",
+        "cancer screen done",
+        "cancer screening completed",
+        "cancer screen completed"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Screening for malignant neoplasm done (situation)"
+    },
+    "Screening for malignant neoplasm of cervix done": {
+      "concept_id": 1148678002,
+      "preferred_term": "Screening for malignant neoplasm of cervix done (situation)",
+      "semantic_tag": "Situation",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Cervical cancer screening done",
+        "Screening for malignant neoplasm of cervix done",
+        "Screening for malignant neoplasm of cervix done (situation)",
+        "cervical smear done",
+        "smear test done",
+        "cervical screening completed",
+        "cervical smear completed",
+        "smear done"
+      ],
+      "guideline_synonym_count": 8,
+      "guideline_name": "Screening for malignant neoplasm of cervix done (situation)"
+    },
+    "Screening for malignant neoplasm of vagina done": {
+      "concept_id": 146861000119102,
+      "preferred_term": "Screening for malignant neoplasm of vagina done (situation)",
+      "semantic_tag": "Situation",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Screening for malignant neoplasm of vagina done",
+        "Screening for malignant neoplasm of vagina done (situation)",
+        "Screening for vaginal cancer done",
+        "vaginal cancer screening done",
+        "vaginal cancer screen done"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Screening for malignant neoplasm of vagina done (situation)"
+    },
+    "Cervical smear negative": {
+      "concept_id": 269958004,
+      "preferred_term": "Not detected by smear of cervix (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Cervical smear - negative",
+        "Cervical smear - negative (finding)",
+        "Cervical smear: negative",
+        "Not detected by cervical smear",
+        "Not detected by smear of cervix",
+        "Not detected by smear of cervix (finding)",
+        "smear negative",
+        "neg cervical smear"
+      ],
+      "guideline_synonym_count": 8,
+      "guideline_name": "Not detected by smear of cervix (finding)"
+    },
+    "Cervical smear HPV negative": {
+      "concept_id": 888091000000108,
+      "preferred_term": "Cervical smear - human papillomavirus negative (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Cervical smear - human papillomavirus negative",
+        "Cervical smear - human papillomavirus negative (finding)",
+        "smear HPV neg",
+        "cervical smear HPV neg",
+        "HPV neg cervical smear",
+        "smear HPV negative"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Cervical smear - human papillomavirus negative (finding)"
+    },
+    "Cervical cancer screening normal": {
+      "concept_id": 171160002,
+      "preferred_term": "Ca cervix screening normal (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Ca cervix screening normal",
+        "Ca cervix screening normal (finding)",
+        "cervical smear normal",
+        "smear normal",
+        "cervical screen normal",
+        "smear test normal",
+        "normal cervical smear"
+      ],
+      "guideline_synonym_count": 7,
+      "guideline_name": "Ca cervix screening normal (finding)"
+    },
+    "Cervical cancer screening abnormal": {
+      "concept_id": 171161003,
+      "preferred_term": "Ca cervix screening abnormal (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Ca cervix screening abnormal",
+        "Ca cervix screening abnormal (finding)"
+      ],
+      "guideline_synonym_count": 2,
+      "guideline_name": "Ca cervix screening abnormal (finding)"
+    },
+    "Mammography normal": {
+      "concept_id": 168749009,
+      "preferred_term": "Mammography normal (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Mammography normal",
+        "Mammography normal (finding)",
+        "mammo normal",
+        "mammogram NAD",
+        "mammo NAD",
+        "mammogram unremarkable"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Mammography normal (finding)"
+    },
+    "Breast neoplasm screening normal": {
+      "concept_id": 171175005,
+      "preferred_term": "Breast neoplasm screening normal (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Breast neoplasm screening normal",
+        "Breast neoplasm screening normal (finding)",
+        "breast screening normal",
+        "breast screen normal"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Breast neoplasm screening normal (finding)"
+    },
+    "Breast neoplasm screening abnormal": {
+      "concept_id": 171176006,
+      "preferred_term": "Breast neoplasm screening abnormal (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Breast neoplasm screening abnormal",
+        "Breast neoplasm screening abnormal (finding)",
+        "abnormal breast screening",
+        "breast screen abnormal"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Breast neoplasm screening abnormal (finding)"
+    },
+    "HPV test negative": {
+      "concept_id": 391148009,
+      "preferred_term": "Human papillomavirus test negative (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "HPV - Human papillomavirus test negative",
+        "HPV - Human papillomavirus test negative (finding)",
+        "Human papillomavirus test negative",
+        "Human papillomavirus test negative (finding)",
+        "HPV negative",
+        "HPV test neg",
+        "HPV neg",
+        "HPV not detected",
+        "HPV result negative"
+      ],
+      "guideline_synonym_count": 9,
+      "guideline_name": "Human papillomavirus test negative (finding)"
+    },
+    "HPV test positive": {
+      "concept_id": 391147004,
+      "preferred_term": "Human papillomavirus test positive (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "HPV - Human papillomavirus test positive",
+        "HPV - Human papillomavirus test positive (finding)",
+        "Human papillomavirus test positive",
+        "Human papillomavirus test positive (finding)",
+        "HPV positive",
+        "HPV detected",
+        "positive HPV test",
+        "HPV pos",
+        "HPV screen positive"
+      ],
+      "guideline_synonym_count": 9,
+      "guideline_name": "Human papillomavirus test positive (finding)"
+    },
+    "Bowel screening FIT normal": {
+      "concept_id": 1101361000000103,
+      "preferred_term": "Bowel cancer screening programme liquid faecal immunochemical test normal (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Bowel cancer screening programme liquid faecal immunochemical test normal",
+        "Bowel cancer screening programme liquid faecal immunochemical test normal (finding)",
+        "BCSP FIT normal",
+        "FIT negative"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Bowel cancer screening programme liquid faecal immunochemical test normal (finding)"
+    },
+    "Bowel screening FIT abnormal": {
+      "concept_id": 1101371000000105,
+      "preferred_term": "Bowel cancer screening programme liquid faecal immunochemical test abnormal (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Bowel cancer screening programme liquid faecal immunochemical test abnormal",
+        "Bowel cancer screening programme liquid faecal immunochemical test abnormal (finding)",
+        "FIT positive"
+      ],
+      "guideline_synonym_count": 3,
+      "guideline_name": "Bowel cancer screening programme liquid faecal immunochemical test abnormal (finding)"
+    },
+    "Screening declined": {
+      "concept_id": 31021000119100,
+      "preferred_term": "Screening declined (situation)",
+      "semantic_tag": "Situation",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Screening declined",
+        "Screening declined (situation)",
+        "Patient declined screening",
+        "declined screening",
+        "pt declined screening",
+        "refused screening",
+        "patient refused screening"
+      ],
+      "guideline_synonym_count": 7,
+      "guideline_name": "Screening declined (situation)"
+    },
+    "Cancer screening leaflet given": {
+      "concept_id": 202201000000100,
+      "preferred_term": "Cancer screening leaflet given (situation)",
+      "semantic_tag": "Situation",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Cancer screening leaflet given",
+        "Cancer screening leaflet given (situation)",
+        "Screening leaflet provided"
+      ],
+      "guideline_synonym_count": 3,
+      "guideline_name": "Cancer screening leaflet given (situation)"
+    },
+    "Advice given about bowel cancer screening": {
+      "concept_id": 382161000000102,
+      "preferred_term": "Advice given about bowel cancer screening programme (situation)",
+      "semantic_tag": "Situation",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Advice given about bowel cancer screening programme",
+        "Advice given about bowel cancer screening programme (situation)",
+        "Bowel cancer screening advice given",
+        "bowel screening advice given",
+        "BCSP advice given"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Advice given about bowel cancer screening programme (situation)"
+    },
+    "NHS bowel cancer screening FIT kit replacement requested": {
+      "concept_id": 1218761000000105,
+      "preferred_term": "National Health Service Bowel Cancer Screening Programme replacement faecal immunochemical test kit requested (situation)",
+      "semantic_tag": "Situation",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "NHS Bowel Cancer Screening Programme replacement faecal immunochemical test kit requested",
+        "NHS Bowel Cancer Screening Programme replacement FIT kit requested",
+        "NHS Bowel Cancer Screening Programme replacement faecal blood test kit requested",
+        "NHS bowel screening replacement kit requested",
+        "replacement FIT kit requested"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "National Health Service Bowel Cancer Screening Programme replacement faecal immunochemical test kit requested (situation)"
+    },
+    "Did not attend lung cancer screening": {
+      "concept_id": 1771781000000107,
+      "preferred_term": "Did not attend lung cancer screening (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Did not attend lung cancer screening",
+        "Did not attend lung cancer screening (finding)",
+        "DNA lung cancer screening",
+        "Lung cancer screening: did not attend",
+        "missed lung cancer screening",
+        "DNA lung ca screening",
+        "lung ca screening DNA"
+      ],
+      "guideline_synonym_count": 7,
+      "guideline_name": "Did not attend lung cancer screening (finding)"
+    },
+    "Did not attend bowel cancer screening": {
+      "concept_id": 294261000000108,
+      "preferred_term": "Did not attend bowel cancer screening (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Did not attend bowel cancer screening",
+        "Did not attend bowel cancer screening (finding)",
+        "DNA bowel cancer screening",
+        "Bowel cancer screening: did not attend",
+        "DNA bowel screening"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Did not attend bowel cancer screening (finding)"
+    },
+    "Lung cancer screening": {
+      "concept_id": 275981009,
+      "preferred_term": "Screening for malignant neoplasm of lung (procedure)",
+      "semantic_tag": "Procedure",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Lung cancer screening",
+        "Screening for malignant neoplasm of lung",
+        "Screening for malignant neoplasm of lung (procedure)",
+        "Lung health check",
+        "lung Ca screening"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Screening for malignant neoplasm of lung (procedure)"
+    },
+    "Bowel cancer screening programme finding": {
+      "concept_id": 384171000000104,
+      "preferred_term": "Bowel cancer screening programme finding (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Bowel cancer screening programme finding",
+        "Bowel cancer screening programme finding (finding)",
+        "BCSP finding",
+        "bowel screening finding",
+        "BCSP result"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Bowel cancer screening programme finding (finding)"
+    },
+    "Bowel screening FOB test abnormal": {
+      "concept_id": 375241000000109,
+      "preferred_term": "Bowel cancer screening programme faecal occult blood test abnormal (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Bowel cancer screening programme faecal occult blood test abnormal",
+        "Bowel cancer screening programme faecal occult blood test abnormal (finding)",
+        "Bowel screening FOB abnormal",
+        "Bowel screening FOBT abnormal"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Bowel cancer screening programme faecal occult blood test abnormal (finding)"
+    },
+    "Bowel screening FOB test normal": {
+      "concept_id": 375211000000108,
+      "preferred_term": "Bowel cancer screening programme faecal occult blood test normal (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Bowel cancer screening programme faecal occult blood test normal",
+        "Bowel cancer screening programme faecal occult blood test normal (finding)",
+        "Bowel screening FOB normal",
+        "Bowel screening FOBT normal",
+        "BCS FOB normal",
+        "BCSP FOBT normal"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Bowel cancer screening programme faecal occult blood test normal (finding)"
+    },
+    "Bowel screening FOB test result unclear": {
+      "concept_id": 375181000000107,
+      "preferred_term": "Bowel cancer screening programme faecal occult blood test result unclear (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Bowel cancer screening programme faecal occult blood test result unclear",
+        "Bowel cancer screening programme faecal occult blood test result unclear (finding)",
+        "Bowel screening FOB result unclear"
+      ],
+      "guideline_synonym_count": 3,
+      "guideline_name": "Bowel cancer screening programme faecal occult blood test result unclear (finding)"
+    },
+    "Bowel screening FOB test technical failure": {
+      "concept_id": 375151000000101,
+      "preferred_term": "Bowel cancer screening programme faecal occult blood test technical failure (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Bowel cancer screening programme faecal occult blood test technical failure",
+        "Bowel cancer screening programme faecal occult blood test technical failure (finding)"
+      ],
+      "guideline_synonym_count": 2,
+      "guideline_name": "Bowel cancer screening programme faecal occult blood test technical failure (finding)"
+    },
+    "Bowel screening FOB testing incomplete participation": {
+      "concept_id": 384241000000100,
+      "preferred_term": "Bowel cancer screening programme faecal occult blood testing incomplete participation (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Bowel cancer screening programme faecal occult blood testing incomplete participation",
+        "Bowel cancer screening programme faecal occult blood testing incomplete participation (finding)",
+        "bowel screening FOB incomplete"
+      ],
+      "guideline_synonym_count": 3,
+      "guideline_name": "Bowel cancer screening programme faecal occult blood testing incomplete participation (finding)"
+    },
+    "Bowel screening FOB test kit spoilt": {
+      "concept_id": 375121000000106,
+      "preferred_term": "Bowel cancer screening programme faecal occult blood testing kit spoilt (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Bowel cancer screening programme faecal occult blood testing kit spoilt",
+        "Bowel cancer screening programme faecal occult blood testing kit spoilt (finding)",
+        "Bowel screening kit spoilt",
+        "FOB kit spoilt",
+        "BCSP kit spoilt",
+        "bowel screen kit spoilt"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Bowel cancer screening programme faecal occult blood testing kit spoilt (finding)"
+    },
+    "Bowel screening FIT sample rejected": {
+      "concept_id": 1101391000000109,
+      "preferred_term": "Bowel cancer screening programme liquid faecal immunochemical test sample rejected (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Bowel cancer screening programme liquid faecal immunochemical test sample rejected",
+        "Bowel cancer screening programme liquid faecal immunochemical test sample rejected (finding)",
+        "Bowel screening FIT sample rejected",
+        "FIT sample rejected",
+        "BCSP FIT sample rejected",
+        "bowel screening FIT rejected"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Bowel cancer screening programme liquid faecal immunochemical test sample rejected (finding)"
+    },
+    "Bowel screening FIT technical failure": {
+      "concept_id": 1101381000000107,
+      "preferred_term": "Bowel cancer screening programme liquid faecal immunochemical test technical failure (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Bowel cancer screening programme liquid faecal immunochemical test technical failure",
+        "Bowel cancer screening programme liquid faecal immunochemical test technical failure (finding)"
+      ],
+      "guideline_synonym_count": 2,
+      "guideline_name": "Bowel cancer screening programme liquid faecal immunochemical test technical failure (finding)"
+    },
+    "No response to bowel cancer screening FIT invitation": {
+      "concept_id": 1101401000000107,
+      "preferred_term": "No response to bowel cancer screening programme liquid faecal immunochemical testing invitation (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "No response to bowel cancer screening programme liquid faecal immunochemical testing invitation",
+        "No response to bowel cancer screening programme liquid faecal immunochemical testing invitation (finding)",
+        "No response to bowel screening FIT invitation",
+        "did not respond to FIT invite"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "No response to bowel cancer screening programme liquid faecal immunochemical testing invitation (finding)"
+    },
+    "Not eligible for bowel cancer screening": {
+      "concept_id": 758851000000101,
+      "preferred_term": "Not eligible for bowel cancer screening programme (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Not eligible for bowel cancer screening programme",
+        "Not eligible for bowel cancer screening programme (finding)",
+        "Ineligible for bowel cancer screening",
+        "ineligible BCSP",
+        "not eligible BCSP",
+        "not for bowel screening"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Not eligible for bowel cancer screening programme (finding)"
+    },
+    "Bowel scope cancer detected": {
+      "concept_id": 884601000000103,
+      "preferred_term": "Bowel scope (flexible sigmoidoscopy) screen: cancer detected (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Bowel scope screen: cancer detected",
+        "Bowel scope (flexible sigmoidoscopy) screen: cancer detected",
+        "Bowel scope (flexible sigmoidoscopy) screen: cancer detected (finding)",
+        "Flexible sigmoidoscopy screening: cancer detected"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Bowel scope (flexible sigmoidoscopy) screen: cancer detected (finding)"
+    },
+    "Bowel scope incidental findings": {
+      "concept_id": 921341000000109,
+      "preferred_term": "Bowel scope (flexible sigmoidoscopy) screen: incidental findings (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Bowel scope screen: incidental findings",
+        "Bowel scope (flexible sigmoidoscopy) screen: incidental findings",
+        "Bowel scope (flexible sigmoidoscopy) screen: incidental findings (finding)"
+      ],
+      "guideline_synonym_count": 3,
+      "guideline_name": "Bowel scope (flexible sigmoidoscopy) screen: incidental findings (finding)"
+    },
+    "Bowel scope minor polyps removed no follow up": {
+      "concept_id": 884561000000103,
+      "preferred_term": "Bowel scope (flexible sigmoidoscopy) screen: minor polyps removed - no follow up required (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Bowel scope screen: minor polyps removed - no follow up required",
+        "Bowel scope (flexible sigmoidoscopy) screen: minor polyps removed - no follow up required",
+        "Bowel scope (flexible sigmoidoscopy) screen: minor polyps removed - no follow up required (finding)"
+      ],
+      "guideline_synonym_count": 3,
+      "guideline_name": "Bowel scope (flexible sigmoidoscopy) screen: minor polyps removed - no follow up required (finding)"
+    },
+    "Bowel scope other abnormality detected": {
+      "concept_id": 884641000000100,
+      "preferred_term": "Bowel scope (flexible sigmoidoscopy) screen: other abnormality detected (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Bowel scope screen: other abnormality detected",
+        "Bowel scope (flexible sigmoidoscopy) screen: other abnormality detected",
+        "Bowel scope (flexible sigmoidoscopy) screen: other abnormality detected (finding)"
+      ],
+      "guideline_synonym_count": 3,
+      "guideline_name": "Bowel scope (flexible sigmoidoscopy) screen: other abnormality detected (finding)"
+    },
+    "Bowel scope referred for colonoscopy": {
+      "concept_id": 884581000000107,
+      "preferred_term": "Bowel scope (flexible sigmoidoscopy) screen: referred for colonoscopy (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Bowel scope screen: referred for colonoscopy",
+        "Bowel scope (flexible sigmoidoscopy) screen: referred for colonoscopy",
+        "Bowel scope (flexible sigmoidoscopy) screen: referred for colonoscopy (finding)",
+        "Flexible sigmoidoscopy: referred for colonoscopy"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Bowel scope (flexible sigmoidoscopy) screen: referred for colonoscopy (finding)"
+    },
+    "Bowel scope suspected cancer detected": {
+      "concept_id": 884621000000107,
+      "preferred_term": "Bowel scope (flexible sigmoidoscopy) screen: suspected cancer detected (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Bowel scope screen: suspected cancer detected",
+        "Bowel scope (flexible sigmoidoscopy) screen: suspected cancer detected",
+        "Bowel scope (flexible sigmoidoscopy) screen: suspected cancer detected (finding)"
+      ],
+      "guideline_synonym_count": 3,
+      "guideline_name": "Bowel scope (flexible sigmoidoscopy) screen: suspected cancer detected (finding)"
+    },
+    "Bowel scope invitation declined": {
+      "concept_id": 884721000000101,
+      "preferred_term": "Bowel scope (flexible-sigmoidoscopy) screening invitation declined (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Bowel scope screening invitation declined",
+        "Bowel scope (flexible-sigmoidoscopy) screening invitation declined",
+        "Bowel scope (flexible-sigmoidoscopy) screening invitation declined (finding)",
+        "bowel scope declined"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Bowel scope (flexible-sigmoidoscopy) screening invitation declined (finding)"
+    },
+    "Bowel scope attended but not screened": {
+      "concept_id": 884781000000100,
+      "preferred_term": "Bowel scope (flexible-sigmoidoscopy) screening: attended but not screened (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Bowel scope screening: attended but not screened",
+        "Bowel scope (flexible-sigmoidoscopy) screening: attended but not screened",
+        "Bowel scope (flexible-sigmoidoscopy) screening: attended but not screened (finding)"
+      ],
+      "guideline_synonym_count": 3,
+      "guideline_name": "Bowel scope (flexible-sigmoidoscopy) screening: attended but not screened (finding)"
+    },
+    "Did not attend bowel scope appointment": {
+      "concept_id": 884761000000109,
+      "preferred_term": "Did not attend bowel scope (flexible-sigmoidoscopy) appointment (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Did not attend bowel scope appointment",
+        "Did not attend bowel scope (flexible-sigmoidoscopy) appointment",
+        "Did not attend bowel scope (flexible-sigmoidoscopy) appointment (finding)",
+        "Bowel scope appointment: did not attend",
+        "DNA bowel scope",
+        "DNA flex sig appt",
+        "DNA bowel scope appt"
+      ],
+      "guideline_synonym_count": 7,
+      "guideline_name": "Did not attend bowel scope (flexible-sigmoidoscopy) appointment (finding)"
+    },
+    "Did not respond to bowel scope screening invitation": {
+      "concept_id": 884741000000108,
+      "preferred_term": "Did not respond to bowel scope (flexible-sigmoidoscopy) screening invitation (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Did not respond to bowel scope screening invitation",
+        "Did not respond to bowel scope (flexible-sigmoidoscopy) screening invitation",
+        "Did not respond to bowel scope (flexible-sigmoidoscopy) screening invitation (finding)",
+        "Bowel scope screening invitation: did not respond",
+        "did not respond bowel scope"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Did not respond to bowel scope (flexible-sigmoidoscopy) screening invitation (finding)"
+    },
+    "Unsuitable for bowel scope screening": {
+      "concept_id": 884801000000104,
+      "preferred_term": "Unsuitable for bowel scope (flexible sigmoidoscope) screening invitation at this time (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Unsuitable for bowel scope screening invitation at this time",
+        "Bowel scope screening invitation: unsuitable at this time",
+        "Unsuitable for bowel scope (flexible sigmoidoscope) screening invitation at this time",
+        "Unsuitable for bowel scope (flexible sigmoidoscope) screening invitation at this time (finding)"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Unsuitable for bowel scope (flexible sigmoidoscope) screening invitation at this time (finding)"
+    }
+  }
+}

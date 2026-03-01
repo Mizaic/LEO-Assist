@@ -1,0 +1,334 @@
+{
+  "metadata": {
+    "domain": "seen_by_specialist",
+    "total_terms": 24,
+    "successful_mappings": 24,
+    "failed_mappings": 0,
+    "llm_disambiguations": 0,
+    "generated_at": "2025-12-05T12:00:00.000000Z",
+    "note": "Added shorter search terms to match GPconnect encounter text patterns",
+    "enriched_with_synonyms": true,
+    "synonym_enrichment_date": "2025-12-06T08:06:07.111701",
+    "synonym_stats": {
+      "concepts_with_synonyms": 24,
+      "concepts_not_found": 0,
+      "average_synonyms_per_concept": 2.0
+    }
+  },
+  "mappings": {
+    "Seen in fast track suspected sarcoma clinic": {
+      "concept_id": 382361000000100,
+      "preferred_term": "Seen in fast track suspected sarcoma clinic (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 1,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Seen in fast track suspected sarcoma clinic",
+        "Seen in fast track suspected sarcoma clinic (finding)"
+      ],
+      "guideline_synonym_count": 2,
+      "guideline_name": "Seen in fast track suspected sarcoma clinic (finding)"
+    },
+    "Seen in fast track suspected sarcoma": {
+      "concept_id": 382361000000100,
+      "preferred_term": "Seen in fast track suspected sarcoma clinic (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.95,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Seen in fast track suspected sarcoma clinic",
+        "Seen in fast track suspected sarcoma clinic (finding)"
+      ],
+      "guideline_synonym_count": 2,
+      "guideline_name": "Seen in fast track suspected sarcoma clinic (finding)"
+    },
+    "Seen in fast track suspected skin cancer clinic": {
+      "concept_id": 382711000000103,
+      "preferred_term": "Seen in fast track suspected skin cancer clinic (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 1,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Seen in fast track suspected skin cancer clinic",
+        "Seen in fast track suspected skin cancer clinic (finding)"
+      ],
+      "guideline_synonym_count": 2,
+      "guideline_name": "Seen in fast track suspected skin cancer clinic (finding)"
+    },
+    "Seen in fast track suspected skin cancer": {
+      "concept_id": 382711000000103,
+      "preferred_term": "Seen in fast track suspected skin cancer clinic (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.95,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Seen in fast track suspected skin cancer clinic",
+        "Seen in fast track suspected skin cancer clinic (finding)"
+      ],
+      "guideline_synonym_count": 2,
+      "guideline_name": "Seen in fast track suspected skin cancer clinic (finding)"
+    },
+    "Seen in fast track suspected lung cancer clinic": {
+      "concept_id": 382681000000102,
+      "preferred_term": "Seen in fast track suspected lung cancer clinic (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 1,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Seen in fast track suspected lung cancer clinic",
+        "Seen in fast track suspected lung cancer clinic (finding)"
+      ],
+      "guideline_synonym_count": 2,
+      "guideline_name": "Seen in fast track suspected lung cancer clinic (finding)"
+    },
+    "Seen in fast track suspected lung": {
+      "concept_id": 382681000000102,
+      "preferred_term": "Seen in fast track suspected lung cancer clinic (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.95,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Seen in fast track suspected lung cancer clinic",
+        "Seen in fast track suspected lung cancer clinic (finding)"
+      ],
+      "guideline_synonym_count": 2,
+      "guideline_name": "Seen in fast track suspected lung cancer clinic (finding)"
+    },
+    "Seen in fast track suspected brain tumour clinic": {
+      "concept_id": 382401000000109,
+      "preferred_term": "Seen in fast track suspected brain tumour clinic (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 1,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Seen in fast track suspected brain tumour clinic",
+        "Seen in fast track suspected brain tumour clinic (finding)",
+        "2WW brain tumour clinic"
+      ],
+      "guideline_synonym_count": 3,
+      "guideline_name": "Seen in fast track suspected brain tumour clinic (finding)"
+    },
+    "Seen in fast track suspected brain tumour": {
+      "concept_id": 382401000000109,
+      "preferred_term": "Seen in fast track suspected brain tumour clinic (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.95,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Seen in fast track suspected brain tumour clinic",
+        "Seen in fast track suspected brain tumour clinic (finding)",
+        "2WW brain tumour clinic"
+      ],
+      "guideline_synonym_count": 3,
+      "guideline_name": "Seen in fast track suspected brain tumour clinic (finding)"
+    },
+    "Seen in fast track suspected breast cancer clinic": {
+      "concept_id": 382431000000103,
+      "preferred_term": "Seen in fast track suspected breast cancer clinic (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 1,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Seen in fast track suspected breast cancer clinic",
+        "Seen in fast track suspected breast cancer clinic (finding)"
+      ],
+      "guideline_synonym_count": 2,
+      "guideline_name": "Seen in fast track suspected breast cancer clinic (finding)"
+    },
+    "Seen in fast track suspected breast": {
+      "concept_id": 382431000000103,
+      "preferred_term": "Seen in fast track suspected breast cancer clinic (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.95,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Seen in fast track suspected breast cancer clinic",
+        "Seen in fast track suspected breast cancer clinic (finding)"
+      ],
+      "guideline_synonym_count": 2,
+      "guideline_name": "Seen in fast track suspected breast cancer clinic (finding)"
+    },
+    "Seen in fast track suspected childrens tumour clinic": {
+      "concept_id": 383201000000101,
+      "preferred_term": "Seen in fast track suspected childrens tumour clinic (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 1,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Seen in fast track suspected childrens tumour clinic",
+        "Seen in fast track suspected childrens tumour clinic (finding)"
+      ],
+      "guideline_synonym_count": 2,
+      "guideline_name": "Seen in fast track suspected childrens tumour clinic (finding)"
+    },
+    "Seen in fast track suspected colorectal cancer clinic": {
+      "concept_id": 382651000000108,
+      "preferred_term": "Seen in fast track suspected colorectal cancer clinic (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 1,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Seen in fast track suspected colorectal cancer clinic",
+        "Seen in fast track suspected colorectal cancer clinic (finding)"
+      ],
+      "guideline_synonym_count": 2,
+      "guideline_name": "Seen in fast track suspected colorectal cancer clinic (finding)"
+    },
+    "Seen in fast track suspected colorectal": {
+      "concept_id": 382651000000108,
+      "preferred_term": "Seen in fast track suspected colorectal cancer clinic (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.95,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Seen in fast track suspected colorectal cancer clinic",
+        "Seen in fast track suspected colorectal cancer clinic (finding)"
+      ],
+      "guideline_synonym_count": 2,
+      "guideline_name": "Seen in fast track suspected colorectal cancer clinic (finding)"
+    },
+    "Seen in fast track suspected lower GI": {
+      "concept_id": 382651000000108,
+      "preferred_term": "Seen in fast track suspected colorectal cancer clinic (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Seen in fast track suspected colorectal cancer clinic",
+        "Seen in fast track suspected colorectal cancer clinic (finding)"
+      ],
+      "guideline_synonym_count": 2,
+      "guideline_name": "Seen in fast track suspected colorectal cancer clinic (finding)"
+    },
+    "Seen in fast track suspected urological cancer clinic": {
+      "concept_id": 382841000000109,
+      "preferred_term": "Seen in fast track suspected urological cancer clinic (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 1,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Seen in fast track suspected urological cancer clinic",
+        "Seen in fast track suspected urological cancer clinic (finding)"
+      ],
+      "guideline_synonym_count": 2,
+      "guideline_name": "Seen in fast track suspected urological cancer clinic (finding)"
+    },
+    "Seen in fast track suspected urological": {
+      "concept_id": 382841000000109,
+      "preferred_term": "Seen in fast track suspected urological cancer clinic (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.95,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Seen in fast track suspected urological cancer clinic",
+        "Seen in fast track suspected urological cancer clinic (finding)"
+      ],
+      "guideline_synonym_count": 2,
+      "guideline_name": "Seen in fast track suspected urological cancer clinic (finding)"
+    },
+    "Seen in fast track suspected head and neck cancer clinic": {
+      "concept_id": 382621000000103,
+      "preferred_term": "Seen in fast track suspected head and neck cancer clinic (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 1,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Seen in fast track suspected head and neck cancer clinic",
+        "Seen in fast track suspected head and neck cancer clinic (finding)"
+      ],
+      "guideline_synonym_count": 2,
+      "guideline_name": "Seen in fast track suspected head and neck cancer clinic (finding)"
+    },
+    "Seen in fast track suspected head and neck": {
+      "concept_id": 382621000000103,
+      "preferred_term": "Seen in fast track suspected head and neck cancer clinic (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.95,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Seen in fast track suspected head and neck cancer clinic",
+        "Seen in fast track suspected head and neck cancer clinic (finding)"
+      ],
+      "guideline_synonym_count": 2,
+      "guideline_name": "Seen in fast track suspected head and neck cancer clinic (finding)"
+    },
+    "Seen in fast track suspected gynaecological cancer clinic": {
+      "concept_id": 382511000000105,
+      "preferred_term": "Seen in fast track suspected gynaecological cancer clinic (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 1,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Seen in fast track suspected gynaecological cancer clinic",
+        "Seen in fast track suspected gynaecological cancer clinic (finding)"
+      ],
+      "guideline_synonym_count": 2,
+      "guideline_name": "Seen in fast track suspected gynaecological cancer clinic (finding)"
+    },
+    "Seen in fast track suspected gynaecological": {
+      "concept_id": 382511000000105,
+      "preferred_term": "Seen in fast track suspected gynaecological cancer clinic (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.95,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Seen in fast track suspected gynaecological cancer clinic",
+        "Seen in fast track suspected gynaecological cancer clinic (finding)"
+      ],
+      "guideline_synonym_count": 2,
+      "guideline_name": "Seen in fast track suspected gynaecological cancer clinic (finding)"
+    },
+    "Seen in fast track suspected haematology malignancy clinic": {
+      "concept_id": 382581000000103,
+      "preferred_term": "Seen in fast track suspected haematology malignancy clinic (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 1,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Seen in fast track suspected haematological malignancy clinic",
+        "Seen in fast track suspected haematological malignancy clinic (finding)"
+      ],
+      "guideline_synonym_count": 2,
+      "guideline_name": "Seen in fast track suspected haematological malignancy clinic (finding)"
+    },
+    "Seen in fast track suspected haematology": {
+      "concept_id": 382581000000103,
+      "preferred_term": "Seen in fast track suspected haematology malignancy clinic (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.95,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Seen in fast track suspected haematological malignancy clinic",
+        "Seen in fast track suspected haematological malignancy clinic (finding)"
+      ],
+      "guideline_synonym_count": 2,
+      "guideline_name": "Seen in fast track suspected haematological malignancy clinic (finding)"
+    },
+    "Seen in fast track suspected upper gastrointestinal cancer clinic": {
+      "concept_id": 382811000000108,
+      "preferred_term": "Seen in fast track suspected upper gastrointestinal cancer clinic (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 1,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Seen in fast track suspected upper gastrointestinal cancer clinic",
+        "Seen in fast track suspected upper gastrointestinal cancer clinic (finding)"
+      ],
+      "guideline_synonym_count": 2,
+      "guideline_name": "Seen in fast track suspected upper gastrointestinal cancer clinic (finding)"
+    },
+    "Seen in fast track suspected upper GI": {
+      "concept_id": 382811000000108,
+      "preferred_term": "Seen in fast track suspected upper gastrointestinal cancer clinic (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.95,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Seen in fast track suspected upper gastrointestinal cancer clinic",
+        "Seen in fast track suspected upper gastrointestinal cancer clinic (finding)"
+      ],
+      "guideline_synonym_count": 2,
+      "guideline_name": "Seen in fast track suspected upper gastrointestinal cancer clinic (finding)"
+    }
+  }
+}

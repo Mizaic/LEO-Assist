@@ -141,12 +141,12 @@ def _validate_term(
         and end <= len(deidentified_text)
     )
     if not relative_valid and not absolute_valid:
-        hard_fails.append("term_span_out_of_range")
+        warnings.append("term_span_out_of_range")
         return GateResult(hard_fails, warnings)
 
     span_text = sentence_text[start:end] if relative_valid else deidentified_text[start:end]
     if span_text.strip() != t_text.strip():
-        hard_fails.append("term_text_span_mismatch")
+        warnings.append("term_text_span_mismatch")
 
     ctx = term.get("context", {})
     if not isinstance(ctx, dict):

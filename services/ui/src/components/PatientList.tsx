@@ -2,9 +2,21 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Box from "@mui/material/Box";
+import Typography from "@mui/material/Typography";
+import Stack from "@mui/material/Stack";
+import TextField from "@mui/material/TextField";
+import InputAdornment from "@mui/material/InputAdornment";
+import Button from "@mui/material/Button";
+import Card from "@mui/material/Card";
+import CardActionArea from "@mui/material/CardActionArea";
+import LinearProgress from "@mui/material/LinearProgress";
+import Skeleton from "@mui/material/Skeleton";
+import SearchIcon from "@mui/icons-material/Search";
+import RefreshIcon from "@mui/icons-material/Refresh";
+import { Virtuoso } from "react-virtuoso";
 import { fetchPatients } from "@/lib/api";
 import type { Patient } from "@/lib/types";
-import PipelinePanel from "./PipelinePanel";
 
 export default function PatientList() {
   const [patients, setPatients] = useState<Patient[]>([]);
@@ -34,132 +46,118 @@ export default function PatientList() {
     : patients;
 
   return (
-    <div style={{ maxWidth: 960, margin: "0 auto", padding: "32px 24px" }}>
-      <h1 style={{
-        fontFamily: "var(--font-heading)",
-        fontSize: 28,
-        fontWeight: 700,
-        marginBottom: 24,
-        color: "#0f172a",
-      }}>
-        Clinical Coding Review
-      </h1>
+    <Box sx={{ maxWidth: 960, mx: "auto", p: 3 }}>
+      <Typography variant="h4" sx={{ mb: 3 }}>
+        Patients
+      </Typography>
 
-      <PipelinePanel />
+      {error && (
+        <Typography color="error" sx={{ mb: 2 }}>
+          {error}
+        </Typography>
+      )}
 
-      {loading && <p style={{ color: "#64748b" }}>Loading patients…</p>}
-      {error && <p style={{ color: "#b91c1c" }}>{error}</p>}
+      <Stack direction="row" spacing={1} sx={{ alignItems: "center", mb: 1.5 }}>
+        <TextField
+          size="small"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search by patient ID…"
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon fontSize="small" />
+                </InputAdornment>
+              ),
+              sx: { fontFamily: "var(--font-mono)" },
+            },
+          }}
+          sx={{ minWidth: 260 }}
+        />
+        {query && (
+          <Button variant="outlined" size="small" onClick={() => setQuery("")}>
+            Clear
+          </Button>
+        )}
+        <Button
+          variant="outlined"
+          size="small"
+          startIcon={<RefreshIcon />}
+          onClick={load}
+        >
+          Refresh
+        </Button>
+      </Stack>
 
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-        <h2 style={{ fontSize: 18, fontWeight: 600, color: "#334155" }}>Patients</h2>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search by patient ID..."
-            style={{
-              border: "1px solid #cbd5e1",
-              borderRadius: 8,
-              padding: "6px 10px",
-              fontSize: 13,
-              minWidth: 220,
-              fontFamily: "var(--font-mono)",
-            }}
-          />
-          {query && (
-            <button
-              onClick={() => setQuery("")}
-              style={{
-                background: "#fff",
-                border: "1px solid #cbd5e1",
-                borderRadius: 8,
-                padding: "6px 10px",
-                fontSize: 12,
-                cursor: "pointer",
-                color: "#475569",
-              }}
-            >
-              Clear
-            </button>
-          )}
-          <button
-            onClick={load}
-            style={{
-              background: "none",
-              border: "1px solid #cbd5e1",
-              borderRadius: 8,
-              padding: "6px 14px",
-              fontSize: 13,
-              cursor: "pointer",
-              color: "#475569",
-            }}
-          >
-            Refresh
-          </button>
-        </div>
-      </div>
-      <p style={{ fontSize: 12, color: "#64748b", marginBottom: 10 }}>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
         Showing {filteredPatients.length} of {patients.length} patients
-      </p>
+      </Typography>
 
-      <div style={{ display: "grid", gap: 8 }}>
-        {filteredPatients.map((p) => (
-          <button
-            key={p.patient_id}
-            onClick={() => router.push(`/patients/${p.patient_id}`)}
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr auto auto",
-              alignItems: "center",
-              gap: 16,
-              background: "#fff",
-              border: "1px solid #e2e8f0",
-              borderRadius: 10,
-              padding: "14px 20px",
-              cursor: "pointer",
-              textAlign: "left",
-              animation: "cardIn 0.25s ease",
-              transition: "box-shadow 0.15s",
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.06)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "none"; }}
-          >
-            <div>
-              <span style={{ fontFamily: "var(--font-mono)", fontWeight: 600, fontSize: 15 }}>
-                {p.patient_id}
-              </span>
-              <span style={{ color: "#64748b", fontSize: 13, marginLeft: 12 }}>
-                {p.encounter_count} encounters
-              </span>
-            </div>
-            <div style={{ width: 120, height: 6, background: "#e2e8f0", borderRadius: 3, overflow: "hidden" }}>
-              <div
-                style={{
-                  width: `${Math.round((p.progress ?? 0) * 100)}%`,
-                  height: "100%",
-                  background: (p.progress ?? 0) >= 1 ? "#16a34a" : "#4f46e5",
-                  borderRadius: 3,
-                  transition: "width 0.3s",
-                }}
-              />
-            </div>
-            <span style={{ fontSize: 12, color: "#64748b", minWidth: 50, textAlign: "right" }}>
-              {p.reviewed_count ?? 0}/{p.encounter_count}
-            </span>
-          </button>
-        ))}
-      </div>
+      {loading && (
+        <Stack spacing={1}>
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} variant="rounded" height={64} />
+          ))}
+        </Stack>
+      )}
+
+      {!loading && filteredPatients.length > 0 && (
+        <Virtuoso
+          data={filteredPatients}
+          useWindowScroll
+          itemContent={(_index, p) => {
+            const progress = Math.round((p.progress ?? 0) * 100);
+            return (
+              <Box sx={{ pb: 1 }}>
+                <Card variant="outlined">
+                  <CardActionArea onClick={() => router.push(`/patients/${p.patient_id}`)}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        p: 2,
+                      }}
+                    >
+                      <Box>
+                        <Typography variant="subtitle1" sx={{ fontFamily: "var(--font-mono)", fontWeight: 600 }}>
+                          {p.patient_id}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          {p.encounter_count} encounters
+                        </Typography>
+                      </Box>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                        <LinearProgress
+                          variant="determinate"
+                          value={progress}
+                          color={progress >= 100 ? "success" : "primary"}
+                          sx={{ width: 120, height: 6, borderRadius: 1 }}
+                        />
+                        <Typography variant="caption" color="text.secondary">
+                          {p.reviewed_count ?? 0}/{p.encounter_count}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </CardActionArea>
+                </Card>
+              </Box>
+            );
+          }}
+        />
+      )}
 
       {!loading && patients.length === 0 && !error && (
-        <p style={{ color: "#94a3b8", textAlign: "center", padding: 40 }}>
-          No patients found. Run the pipeline to generate review tasks.
-        </p>
+        <Typography color="text.secondary" sx={{ textAlign: "center", py: 5 }}>
+          No patients found. Process records to begin referral quality review.
+        </Typography>
       )}
       {!loading && patients.length > 0 && filteredPatients.length === 0 && !error && (
-        <p style={{ color: "#94a3b8", textAlign: "center", padding: 40 }}>
+        <Typography color="text.secondary" sx={{ textAlign: "center", py: 5 }}>
           No patients match your search. Try a different ID.
-        </p>
+        </Typography>
       )}
-    </div>
+    </Box>
   );
 }

@@ -70,7 +70,7 @@
 | **Keyboard shortcuts not discoverable** | `ReviewView.tsx` L302–306 | A/R/C/J/K shown in footer bar | Add tooltip or help icon: "Keyboard shortcuts" | Medium |
 | **CTX_FLAGS abbreviations** | `EntityCard.tsx` L114–127 | Neg, Unc, Hist, Fam, Hyp, Res | Add tooltips: "Negated", "Uncertain", etc. | Low |
 | **Term search semantic tags** | `TermSearch.tsx` L213–228 | Tags shown as filter chips | Good — recognition. Consider "Recent searches" for power users | Low |
-| **Patient ID placeholder** | `PipelinePanel.tsx` L99 | "e.g. 4202301609, 4203796334" | Good. Add "Paste from clipboard" or recent patient IDs | Low |
+| **Patient ID placeholder** | `PipelinePanel.tsx` | "e.g. 999 000 0001, 999 000 0002" (synthetic test IDs — real NHS numbers removed) | Supports plain digits, spaced and hyphenated formats | Low |
 
 ### 7. Flexibility and Efficiency
 

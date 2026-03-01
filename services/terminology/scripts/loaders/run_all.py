@@ -11,9 +11,9 @@ Phases:
     5  dm+d drug extension (VTM, VMP, AMP, VMPP, AMPP)
 
 Neo4j connection comes from secrets/.env:
-    CODING_GRAPH_NEO4J_URI
-    CODING_GRAPH_NEO4J_USERNAME
-    CODING_GRAPH_NEO4J_PASSWORD
+    KNOWLEDGE_GRAPH_NEO4J_URI
+    KNOWLEDGE_GRAPH_NEO4J_USERNAME
+    KNOWLEDGE_GRAPH_NEO4J_PASSWORD
 """
 
 from __future__ import annotations
@@ -48,13 +48,13 @@ def _load_neo4j_config() -> tuple[str, str, str]:
         load_dotenv(secrets_env)
         logger.info("Loaded secrets from %s", secrets_env)
 
-    uri = os.environ.get("CODING_GRAPH_NEO4J_URI", "")
-    user = os.environ.get("CODING_GRAPH_NEO4J_USERNAME", "")
-    password = os.environ.get("CODING_GRAPH_NEO4J_PASSWORD", "")
+    uri = os.environ.get("KNOWLEDGE_GRAPH_NEO4J_URI", "")
+    user = os.environ.get("KNOWLEDGE_GRAPH_NEO4J_USERNAME", "")
+    password = os.environ.get("KNOWLEDGE_GRAPH_NEO4J_PASSWORD", "")
 
     if not all([uri, user, password]):
         raise RuntimeError(
-            "Missing CODING_GRAPH_NEO4J_URI / _USERNAME / _PASSWORD. "
+            "Missing KNOWLEDGE_GRAPH_NEO4J_URI / _USERNAME / _PASSWORD. "
             "Set in secrets/.env or environment."
         )
     return uri, user, password

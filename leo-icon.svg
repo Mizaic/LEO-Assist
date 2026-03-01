@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- White/light border for dark mode contrast -->
+  <circle cx="50" cy="50" r="50" fill="#0052CC"/>
+  <circle cx="50" cy="50" r="50" fill="none" stroke="#FFFFFF" stroke-width="3" opacity="0.5"/>
+  
+  <!-- Subtle glow effect for better visibility on dark backgrounds -->
+  <defs>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- LEO text with enhanced visibility -->
+  <text x="50" y="58" 
+        font-family="Arial, sans-serif" 
+        font-size="24" 
+        font-weight="bold" 
+        fill="white" 
+        text-anchor="middle" 
+        dominant-baseline="middle"
+        filter="url(#glow)">
+    LEO
+  </text>
+</svg>
+
