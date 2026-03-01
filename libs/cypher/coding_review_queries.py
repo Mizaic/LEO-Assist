@@ -96,3 +96,36 @@ MATCH (cr:CodingReview)-[:REVIEWS_CODING]->(t:TrainingLabel)
 WHERE t.include = true
 DETACH DELETE cr
 """
+
+GET_PENDING_FOR_RECHECK = """
+MATCH (cr:CodingReview)-[:REVIEWS_CODING]->(t:TrainingLabel)
+WHERE cr.resolved = false
+  AND t.include = true
+RETURN
+    cr.review_id    AS review_id,
+    cr.entity_text  AS entity_text,
+    cr.entity_label AS entity_label
+LIMIT $limit
+"""
+
+UPDATE_CODING_REVIEW_FIELDS = """
+MATCH (cr:CodingReview {review_id: $review_id})
+SET cr.coded             = $coded,
+    cr.snomed_concept_id = $snomed_concept_id,
+    cr.snomed_term       = $snomed_term,
+    cr.score             = $score,
+    cr.semantic_tag      = $semantic_tag,
+    cr.updated_at        = datetime()
+RETURN cr.review_id AS review_id
+"""
+
+AUTO_RESOLVE_CODING_REVIEW = """
+MATCH (cr:CodingReview {review_id: $review_id})
+SET cr.resolved            = true,
+    cr.resolved_concept_id = $concept_id,
+    cr.resolved_term       = $term,
+    cr.resolved_by         = 'auto_recheck',
+    cr.resolved_at         = datetime(),
+    cr.updated_at          = datetime()
+RETURN cr.review_id AS review_id
+"""
