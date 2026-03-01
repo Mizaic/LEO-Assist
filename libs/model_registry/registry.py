@@ -237,13 +237,18 @@ class ModelRegistry:
         self,
         version: str,
         rollback_target_version: Optional[str] = None,
+        force: bool = False,
     ) -> ModelRecord:
         """Promote a canary model to production active.
 
         Requirements:
         - Status must be CANARY.
-        - Canary KPIs must be present and pass thresholds.
+        - Canary KPIs must be present and pass thresholds (bypassed when force=True).
         - rollback_target_version must be registered (unless first ever promotion).
+
+        Args:
+            force: Skip canary threshold gate. Use only when deliberately overriding
+                   a gate failure — the reason should be documented in the model notes.
         """
         record = self._get(version)
         if record.status != ModelStatus.CANARY:
@@ -256,7 +261,7 @@ class ModelRegistry:
                 "ModelRegistry: canary KPIs not recorded — call record_canary_result() first"
             )
 
-        if (
+        if not force and (
             record.canary_precision < _MIN_CANARY_PRECISION
             or record.canary_recall < _MIN_CANARY_RECALL
         ):
@@ -285,10 +290,22 @@ class ModelRegistry:
 
         record.status = ModelStatus.PROMOTED
         record.promoted_at = datetime.now(timezone.utc).isoformat()
+        if force:
+            record.notes = (
+                f"{record.notes}\n[FORCED PROMOTION] Gate overridden: "
+                f"P={record.canary_precision:.3f} R={record.canary_recall:.3f} "
+                f"(thresholds P>={_MIN_CANARY_PRECISION} R>={_MIN_CANARY_RECALL})"
+            ).strip()
+            logger.warning(
+                "ModelRegistry: v%s FORCE-PROMOTED — gate thresholds not met "
+                "(P=%.3f R=%.3f, required P>=%.2f R>=%.2f)",
+                version, record.canary_precision, record.canary_recall,
+                _MIN_CANARY_PRECISION, _MIN_CANARY_RECALL,
+            )
         self._active_version = version
         logger.info(
-            "ModelRegistry: v%s PROMOTED to active (rollback_target=%s)",
-            version, record.rollback_target_version,
+            "ModelRegistry: v%s PROMOTED to active (rollback_target=%s force=%s)",
+            version, record.rollback_target_version, force,
         )
         self._save()
         # Signal the inference service to hot-swap immediately

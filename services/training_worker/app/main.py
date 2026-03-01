@@ -21,6 +21,7 @@ import os
 import queue
 import threading
 import time
+from contextlib import asynccontextmanager
 from typing import Any, Optional
 
 from fastapi import FastAPI, HTTPException
@@ -28,14 +29,26 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-from app.job_store import get_store
-from app.job_runner import submit_job
+from app.job_store import REDIS_URL, get_store
+from app.job_runner import preload_training_modules, submit_job
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 _IDLE_TIMEOUT_S = 300
+
+
+@asynccontextmanager
+async def _lifespan(app: FastAPI):
+    """Warm heavy imports on startup so the first job has no cold-start."""
+    if os.getenv("TRAINING_PRELOAD_IMPORTS", "true").lower() not in {"0", "false", "no"}:
+        t0 = time.perf_counter()
+        try:
+            preload_training_modules()
+            logger.info("Startup warmup finished in %.2fs", time.perf_counter() - t0)
+        except Exception as exc:
+            logger.warning("Startup warmup failed after %.2fs: %s", time.perf_counter() - t0, exc)
+    yield
 
 
 app = FastAPI(
@@ -46,6 +59,7 @@ app = FastAPI(
         "Reads TrainingLabel nodes from Neo4j, trains the NER head, "
         "evaluates, and uploads the artifact to Azure Blob."
     ),
+    lifespan=_lifespan,
 )
 
 app.add_middleware(
@@ -159,7 +173,7 @@ def stream_training_progress(job_id: str):
 
     Relays Redis pub/sub messages from channel ``training:{job_id}``
     to the browser.  Closes automatically when the job reaches a
-    terminal state or after 5 minutes of silence.
+    terminal state or after _IDLE_TIMEOUT_S seconds of silence.
     """
     events: queue.Queue[Optional[dict]] = queue.Queue()
 
@@ -193,19 +207,16 @@ def stream_training_progress(job_id: str):
     threading.Thread(target=_redis_listener, daemon=True).start()
 
     def _event_generator():
-        idle_ticks = 0
+        # Generator closes when listener puts None (terminal state or timeout).
+        # The 2-second queue timeout emits heartbeats to keep the connection alive.
         while True:
             try:
                 event = events.get(timeout=2.0)
             except queue.Empty:
-                idle_ticks += 1
                 yield _fmt_sse("heartbeat", {"type": "heartbeat", "ts": time.time(), "job_id": job_id})
-                if idle_ticks > (_IDLE_TIMEOUT_S // 2):
-                    break
                 continue
             if event is None:
                 break
-            idle_ticks = 0
             yield _fmt_sse(str(event.get("type", "message")), event)
 
     return StreamingResponse(

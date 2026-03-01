@@ -7,6 +7,7 @@ import ClassificationReviewPanel from "@/components/classification-review/Classi
 import AnchorReviewPanel from "@/components/anchor-review/AnchorReviewPanel";
 import HITLTasksPanel from "@/components/operations/HITLTasksPanel";
 import ModelLifecyclePanel from "@/components/operations/ModelLifecyclePanel";
+import LabelVerificationPanel from "@/components/operations/LabelVerificationPanel";
 import TrainingDataPanel from "@/components/operations/TrainingDataPanel";
 
 type OperationsTab =
@@ -16,6 +17,7 @@ type OperationsTab =
   | "exclusion_conflict"
   | "peer_review"
   | "training"
+  | "label_review"
   | "models";
 
 const TAB_LABELS: Record<OperationsTab, string> = {
@@ -25,6 +27,7 @@ const TAB_LABELS: Record<OperationsTab, string> = {
   exclusion_conflict: "Exclusion Conflicts",
   peer_review: "Peer Review",
   training: "Training Data",
+  label_review: "Label Review",
   models: "Model Deployment",
 };
 
@@ -76,6 +79,7 @@ export default function OperationsWorkspace({
         />
       )}
       {tab === "training" && <TrainingDataPanel />}
+      {tab === "label_review" && <LabelVerificationPanel />}
       {tab === "models" && <ModelLifecyclePanel />}
     </Box>
   );

@@ -33,9 +33,12 @@ VALID_LABELS: frozenset[str] = frozenset(
         "observable_entity",
         "qualifier_value",
         "substance",
+        "medicinal_product",
+        "clinical_drug",
         "situation",
         "event",
         "body_structure",
+        "tumor_staging",
         # Pathway milestones
         "X_PATHWAY_MILESTONE",
         # Modifier / context labels
@@ -56,7 +59,11 @@ _LABEL_NORMALISATION: dict[str, str] = {
     "body structure": "body_structure",
     "body_part": "body_structure",
     "substance_use": "substance",
+    "medicinal product": "medicinal_product",
+    "clinical drug": "clinical_drug",
     "qualifier": "qualifier_value",
+    "tumor staging": "tumor_staging",
+    "tumour staging": "tumor_staging",
     "context_dependent": "situation",
 }
 

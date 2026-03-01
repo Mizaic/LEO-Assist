@@ -36,6 +36,10 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, Optional
 
+# Inference runs on CPU only. Disable GPU device visibility before any
+# spaCy / thinc / CuPy import so the CUDA probe is skipped entirely.
+os.environ.setdefault("CUDA_VISIBLE_DEVICES", "-1")
+
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
@@ -49,9 +53,34 @@ logger = logging.getLogger(__name__)
 _loader = ModelLoader()
 
 
+def _resolve_startup_version() -> str:
+    """Return the currently promoted version from the ModelRegistry.
+
+    Always reads the registry — never uses a hardcoded env var — so the
+    inference service is always in sync with whatever version was last promoted
+    via the Model Deployment workflow.
+    """
+    try:
+        from libs.model_registry.registry import get_registry
+        active = get_registry().get_active()
+        if active:
+            logger.info(
+                "Inference service: active version from registry — v%s (status=%s)",
+                active.model_version, active.status,
+            )
+            return active.model_version
+        logger.warning(
+            "Inference service: no promoted model in registry — "
+            "promote a version via the Model Deployment tab to load a model"
+        )
+    except Exception as exc:
+        logger.warning("Inference service: could not read registry: %s", exc)
+    return ""
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    version = os.getenv("CODING_MODEL_VERSION", "")
+    version = _resolve_startup_version()
     if version:
         try:
             await asyncio.to_thread(_loader.load_version, version)
@@ -60,10 +89,6 @@ async def lifespan(app: FastAPI):
                 "Inference service: startup model load failed — serving degraded",
                 exc_info=True,
             )
-    else:
-        logger.warning(
-            "Inference service: CODING_MODEL_VERSION not set — no model loaded at startup"
-        )
     yield
 
 

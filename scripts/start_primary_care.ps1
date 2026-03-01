@@ -2,24 +2,24 @@
 # Creates / activates .venv, installs all deps, starts every microservice.
 #
 # Usage:
-#   .\scripts\start_primary_care.ps1                            # full stack (3 coding + 2 analysis workers)
-#   .\scripts\start_primary_care.ps1 -SkipInstall               # skip pip/npm
-#   .\scripts\start_primary_care.ps1 -NoWorkers                 # skip background workers
-#   .\scripts\start_primary_care.ps1 -Services api,ui           # named subset
+#   .\scripts\start_primary_care.ps1                            # full stack — ALL services including inference + training worker
+#   .\scripts\start_primary_care.ps1 -SkipInstall               # skip pip/npm install
+#   .\scripts\start_primary_care.ps1 -NoWorkers                 # skip background coding/analysis workers
+#   .\scripts\start_primary_care.ps1 -NoModelInference          # skip NER inference service
+#   .\scripts\start_primary_care.ps1 -NoTrainingWorker          # skip NER training worker
+#   .\scripts\start_primary_care.ps1 -Services api,ui           # named subset (others skipped)
 #   .\scripts\start_primary_care.ps1 -CodingWorkers 1           # single coding worker (debug)
 #   .\scripts\start_primary_care.ps1 -AnalysisWorkers 1         # single analysis worker (debug)
-#   .\scripts\start_primary_care.ps1 -ModelInference            # also start NER model inference service
-#   .\scripts\start_primary_care.ps1 -TrainingWorker            # also start NER training worker (port 8005)
 #
-# Model inference service notes:
-#   Only needed when CODING_EXTRACTOR_BACKEND=model|auto (default: llm).
-#   Downloads the active NER model artifact from Azure Blob at startup.
+# Model inference service:
+#   Starts by default. Downloads the active NER model from Azure Blob at startup.
 #   Exposes /extract, /health, /reload, /versions on -ModelInferencePort (default 8004).
+#   Use -NoModelInference to skip if you only need LLM-based coding.
 #
-# Training worker notes:
-#   On-demand — start when you want to fine-tune the NER model.
-#   Reads TrainingLabel nodes from Neo4j, trains NER head on Bio_ClinicalBERT, uploads to blob.
+# Training worker:
+#   Starts by default. Reads TrainingLabel nodes from Neo4j, trains NER head, uploads to blob.
 #   Exposes /train/jobs, /train/progress/{job_id} on -TrainingWorkerPort (default 8005).
+#   Use -NoTrainingWorker to skip if you are not doing model training today.
 
 param(
     [int]$ApiPort             = 8000,
@@ -33,8 +33,8 @@ param(
     [int]$AnalysisWorkers     = 2,
     [switch]$SkipInstall,
     [switch]$NoWorkers,
-    [switch]$ModelInference,
-    [switch]$TrainingWorker,
+    [switch]$NoModelInference,
+    [switch]$NoTrainingWorker,
     [string[]]$Services       = @()
 )
 
@@ -83,6 +83,11 @@ if (Test-Path $masterEnv) {
     Write-Host "         Create secrets\.env or set environment variables manually." -ForegroundColor Yellow
 }
 
+# Always override MODEL_REGISTRY_STORE_PATH with the resolved absolute path so
+# every child process finds the file regardless of its working directory.
+$absRegistryPath = Join-Path $ModelCacheDir "model_registry.json"
+[System.Environment]::SetEnvironmentVariable("MODEL_REGISTRY_STORE_PATH", $absRegistryPath, 'Process')
+
 # -- Local model cache directory -------------------------------------------
 # Model inference service downloads NER artifacts from Azure Blob into this dir.
 # Committed to .gitignore; safe to delete between dev sessions.
@@ -108,7 +113,7 @@ if (-not $SkipInstall) {
     if (Test-Path $ModelInferenceReq) {
         & $VenvPython -m pip install --quiet --upgrade -r $ModelInferenceReq
     }
-    if ($TrainingWorker -and (Test-Path $TrainingWorkerReq)) {
+    if (-not $NoTrainingWorker -and (Test-Path $TrainingWorkerReq)) {
         & $VenvPython -m pip install --quiet --upgrade -r $TrainingWorkerReq
     }
     Write-Host "  [pip]  Python dependencies up to date." -ForegroundColor Green
@@ -182,22 +187,22 @@ if (ShouldStart "analytics_api") {
     $windowCount++
 }
 
-# 5  Model Inference Service  (NER spaCy endpoint; only when -ModelInference or CODING_EXTRACTOR_BACKEND=model|auto)
+# 5  Model Inference Service  (NER spaCy endpoint)
 #    Downloads the active model from Azure Blob at startup. Hot-reload via /reload.
-#    Skipped by default because CODING_EXTRACTOR_BACKEND defaults to 'llm'.
-$needsModelInference = $ModelInference -or ($env:CODING_EXTRACTOR_BACKEND -in @("model", "auto"))
-if ($needsModelInference -and (ShouldStart "model_inference")) {
+#    On by default; suppress with -NoModelInference or -Services (without model_inference).
+if (-not $NoModelInference -and (ShouldStart "model_inference")) {
     $miCmd = "& '$VenvPython' -m uvicorn app.main:app --app-dir '$ModelInferenceDir' --host 0.0.0.0 --port $ModelInferencePort"
     Start-ServiceWindow -Title "Model Inference :$ModelInferencePort" -Command $miCmd -WorkDir $RepoRoot
     Write-Host "    Model Inference    http://localhost:$ModelInferencePort  (NER /extract /health /reload /versions)" -ForegroundColor White
     $windowCount++
-} elseif (-not $needsModelInference) {
-    Write-Host "    Model Inference    [skipped - CODING_EXTRACTOR_BACKEND=llm; use -ModelInference to start]" -ForegroundColor DarkGray
+} else {
+    Write-Host "    Model Inference    [skipped; use without -NoModelInference to start]" -ForegroundColor DarkGray
 }
 
-# 6  Training Worker  (NER fine-tuning; only when -TrainingWorker flag)
-#    Starts in external PowerShell window like other services. Kills any existing process on port first.
-if ($TrainingWorker -and (ShouldStart "training_worker")) {
+# 6  Training Worker  (NER fine-tuning)
+#    On by default; suppress with -NoTrainingWorker or -Services (without training_worker).
+#    Kills any existing process on the port before starting.
+if (-not $NoTrainingWorker -and (ShouldStart "training_worker")) {
     $existing = Get-NetTCPConnection -LocalPort $TrainingWorkerPort -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
     if ($existing) {
         $procId = $existing.OwningProcess
@@ -210,7 +215,7 @@ if ($TrainingWorker -and (ShouldStart "training_worker")) {
     Write-Host "    Training Worker    http://localhost:$TrainingWorkerPort  (NER fine-tuning /train/jobs /train/progress)" -ForegroundColor White
     $windowCount++
 } else {
-    Write-Host "    Training Worker    [skipped; use -TrainingWorker to start]" -ForegroundColor DarkGray
+    Write-Host "    Training Worker    [skipped; use without -NoTrainingWorker to start]" -ForegroundColor DarkGray
 }
 
 # 6  Coding Workers  (message-bus consumers, fan-out parallel classification + extraction)

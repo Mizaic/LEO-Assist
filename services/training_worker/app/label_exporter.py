@@ -11,6 +11,7 @@ This module never reads or writes raw patient identifiers.
 
 from __future__ import annotations
 
+import datetime
 import json
 import logging
 import os
@@ -30,9 +31,12 @@ _LABEL_MAP: dict[str, str] = {
     "observable_entity": "OBSERVABLE",
     "qualifier_value": "QUALIFIER",
     "substance": "SUBSTANCE",
+    "medicinal_product": "MEDICINAL_PRODUCT",
+    "clinical_drug": "CLINICAL_DRUG",
     "situation": "SITUATION",
     "event": "EVENT",
     "body_structure": "BODY_STRUCTURE",
+    "tumor_staging": "TUMOR_STAGING",
     "X_PATHWAY_MILESTONE": "PATHWAY_MILESTONE",
     "X_NEGATION_CUE": "NEGATION_CUE",
     "X_TEMPORAL": "TEMPORAL",
@@ -48,11 +52,9 @@ def _normalise_label(raw: str) -> str:
 
 def _record_to_spacy_doc(nlp, text: str, entities: list[dict[str, Any]]):
     """Convert a single training record to a spaCy Doc with entity spans."""
-    import spacy
-
     doc = nlp.make_doc(text)
     spans = []
-    seen_tokens = set()
+    seen_tokens: set[int] = set()
 
     for ent in entities:
         start_char = int(ent.get("start", 0))
@@ -103,7 +105,9 @@ def export_labels(
     from spacy.tokens import DocBin
 
     from libs.neo4j_client.client import PatientGraphClient
+    from libs.cypher.post_processor_rule_queries import GET_ACTIVE_POST_PROCESSOR_RULES
     from libs.cypher.training_label_queries import GET_ALL_INCLUDED_LABELS_FOR_EXPORT
+    from libs.ner.post_processor_rules import apply_rules_to_entities, parse_rules
 
     min_count = int(os.getenv("TRAINING_MIN_LABEL_COUNT", "50"))
 
@@ -117,9 +121,15 @@ def export_labels(
     records = []
     try:
         with client.session() as session:
+            rule_rows = [dict(r) for r in session.run(GET_ACTIVE_POST_PROCESSOR_RULES)]
+            rules = parse_rules(rule_rows)
+            if rules:
+                _log(f"Loaded {len(rules)} active post-processor rules.")
             rows = session.run(GET_ALL_INCLUDED_LABELS_FOR_EXPORT)
             for row in rows:
                 entities = json.loads(row["entities_json"] or "[]")
+                if rules:
+                    entities = apply_rules_to_entities(str(row["text"] or ""), entities, rules)
                 if not entities:
                     continue
                 records.append({
@@ -148,30 +158,23 @@ def export_labels(
 
     _log(f"Split: {len(train_records)} train / {len(dev_records)} dev")
 
-    # Build a blank spaCy pipeline for tokenisation only (no components loaded yet)
     nlp = spacy.blank("en")
-
-    all_labels: set[str] = set()
-    for rec in records:
-        for ent in rec["entities"]:
-            all_labels.add(_normalise_label(str(ent.get("label", ""))))
 
     output_dir.mkdir(parents=True, exist_ok=True)
     train_bin = DocBin()
     dev_bin = DocBin()
-
+    all_labels: set[str] = set()
     skipped = 0
-    for rec in train_records:
-        try:
-            doc = _record_to_spacy_doc(nlp, rec["text"], rec["entities"])
-            train_bin.add(doc)
-        except Exception:
-            skipped += 1
 
-    for rec in dev_records:
+    # Single pass over all records: collect labels and build DocBins together.
+    for is_train, rec in (
+        [(True, r) for r in train_records] + [(False, r) for r in dev_records]
+    ):
+        for ent in rec["entities"]:
+            all_labels.add(_normalise_label(str(ent.get("label", ""))))
         try:
             doc = _record_to_spacy_doc(nlp, rec["text"], rec["entities"])
-            dev_bin.add(doc)
+            (train_bin if is_train else dev_bin).add(doc)
         except Exception:
             skipped += 1
 
@@ -183,8 +186,6 @@ def export_labels(
     if skipped:
         _log(f"Warning: {skipped} records skipped due to span alignment issues.")
 
-    # Write meta for provenance
-    import datetime, json as _json
     meta = {
         "exported_at": datetime.datetime.utcnow().isoformat(),
         "total_records": len(records),
@@ -196,15 +197,18 @@ def export_labels(
         "seed": seed,
         "schema_version": _SCHEMA_VERSION,
     }
-    (output_dir / "export_meta.json").write_text(_json.dumps(meta, indent=2))
+    (output_dir / "export_meta.json").write_text(json.dumps(meta, indent=2))
     _log(f"DocBins written to {output_dir}")
 
+    exported_at = datetime.datetime.utcnow().isoformat()
     return {
         "total": len(records),
         "train_count": len(train_records),
         "dev_count": len(dev_records),
         "skipped": skipped,
         "labels_found": sorted(all_labels),
+        "label_set": sorted(all_labels),
+        "exported_at": exported_at,
         "train_path": str(train_path),
         "dev_path": str(dev_path),
     }

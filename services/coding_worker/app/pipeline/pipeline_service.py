@@ -31,7 +31,9 @@ from libs.cypher.candidate_queries import (
     CREATE_REVIEW_TASK,
     UPSERT_CANDIDATE,
 )
+from libs.cypher.post_processor_rule_queries import GET_ACTIVE_POST_PROCESSOR_RULES
 from libs.cypher.documents_queries import write_documents_from_sentences_payload
+from libs.ner.post_processor_rules import apply_rules_to_entities, parse_rules, PostProcessorRule
 from services.coding_worker.app.pipeline.extractor_contract import (
     CONTRACT_VERSION,
     ExtractionItem,
@@ -90,6 +92,7 @@ class CodingPipeline:
         # Provider is lazily initialised on first run so the progress_hook
         # can be forwarded for fallback events.
         self._extractor: Optional[ExtractorProvider] = None
+        self._post_rules: list[PostProcessorRule] | None = None
 
     def _get_extractor(
         self,
@@ -247,6 +250,8 @@ class CodingPipeline:
             })
             return
 
+        extracted = self._apply_post_processor_rules(deidentified, extracted)
+
         all_items = [item for items in extracted.values() for item in items]
         extract_latency_ms = round((time.monotonic() - t_extract) * 1000)
 
@@ -330,6 +335,59 @@ class CodingPipeline:
             for item in items:
                 by_sentence.setdefault(item.sentence_id, []).append(item)
         return by_sentence
+
+    def _load_post_processor_rules(self) -> list[PostProcessorRule]:
+        if self._post_rules is not None:
+            return self._post_rules
+        rows = self.patient_client.run(GET_ACTIVE_POST_PROCESSOR_RULES)
+        self._post_rules = parse_rules(rows)
+        if self._post_rules:
+            logger.info("Loaded %d active post-processor rules", len(self._post_rules))
+        return self._post_rules
+
+    def _apply_post_processor_rules(
+        self,
+        encounter_text: str,
+        extracted: dict[str, list[ExtractionItem]],
+    ) -> dict[str, list[ExtractionItem]]:
+        rules = self._load_post_processor_rules()
+        if not rules:
+            return extracted
+
+        output: dict[str, list[ExtractionItem]] = {}
+        for sentence_id, items in extracted.items():
+            transformed: list[ExtractionItem] = []
+            for item in items:
+                entity = {
+                    "text": item.text,
+                    "label": item.semantic_tag,
+                    "start": item.span_start,
+                    "end": item.span_end,
+                }
+                updated = apply_rules_to_entities(encounter_text, [entity], rules)
+                if not updated:
+                    continue
+                ent = updated[0]
+                transformed.append(
+                    ExtractionItem(
+                        sentence_id=item.sentence_id,
+                        text=str(ent.get("text", item.text)),
+                        span_start=int(ent.get("start", item.span_start)),
+                        span_end=int(ent.get("end", item.span_end)),
+                        semantic_tag=str(ent.get("label", item.semantic_tag)),
+                        assertion=item.assertion,
+                        confidence=item.confidence,
+                        normalized=str(ent.get("text", item.normalized)),
+                        source_meta=item.source_meta,
+                        relations=item.relations,
+                        source=item.source,
+                        model_name=item.model_name,
+                        model_version=item.model_version,
+                        contract_version=item.contract_version,
+                    )
+                )
+            output[sentence_id] = transformed
+        return output
 
     # ------------------------------------------------------------------
     # Terminology resolution

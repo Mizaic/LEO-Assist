@@ -23,14 +23,12 @@ from __future__ import annotations
 
 import logging
 import os
-import tempfile
 import threading
 import time
 import uuid
 from typing import Any, Optional
 
 import httpx
-import spacy
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from pydantic import BaseModel
 
@@ -91,6 +89,8 @@ class CanaryResultRequest(BaseModel):
 
 class PromoteRequest(BaseModel):
     rollback_target_version: Optional[str] = None
+    force: bool = False
+    force_reason: str = ""
 
 
 class RejectRequest(BaseModel):
@@ -131,26 +131,6 @@ def _f1(precision: Optional[float], recall: Optional[float]) -> Optional[float]:
         return 0.0
     return (2.0 * precision * recall) / denom
 
-
-def _to_span(ent: dict[str, Any], sent_start: int, sent_end: int) -> Optional[tuple[int, int, str]]:
-    start_raw = ent.get("span_start", ent.get("start"))
-    end_raw = ent.get("span_end", ent.get("end"))
-    label = str(ent.get("semantic_tag", ent.get("label", "")) or "").strip().lower()
-    if start_raw is None or end_raw is None or not label:
-        return None
-    try:
-        start = int(start_raw)
-        end = int(end_raw)
-    except Exception:
-        return None
-    if start < 0 or end <= start:
-        return None
-    # Gold labels are typically document-global offsets. If the span overlaps
-    # this sentence and looks global, convert to sentence-relative coordinates.
-    if sent_start <= start and end <= sent_end:
-        start -= sent_start
-        end -= sent_start
-    return (start, end, label)
 
 
 def _compute_metrics(
@@ -198,22 +178,13 @@ def _compute_metrics(
     }
 
 
-def _fetch_gold_candidates(limit: int = _GOLD_MAX_CANDIDATES) -> list[dict[str, Any]]:
-    query = """
-    MATCH (ec:EncounterCandidate)
-    WHERE coalesce(ec.approved, false) = true
-    WITH ec
-    ORDER BY coalesce(ec.approved_at, ec.updated_at, ec.created_at) DESC
-    LIMIT $limit
-    RETURN
-      ec.candidate_id AS candidate_id,
-      ec.encounter_id AS encounter_id,
-      ec.sentences_json AS sentences_json
-    """
+def _fetch_gold_labels(limit: int = _GOLD_MAX_CANDIDATES) -> list[dict[str, Any]]:
+    """Fetch included TrainingLabel nodes as the gold evaluation corpus."""
+    from libs.cypher.training_label_queries import GET_ALL_INCLUDED_LABELS_FOR_EXPORT
     client = PatientGraphClient()
     with client.session() as session:
-        rows = session.run(query, {"limit": int(limit)}).data()
-    return rows
+        rows = session.run(GET_ALL_INCLUDED_LABELS_FOR_EXPORT).data()
+    return rows[:limit]
 
 
 def _set_canary_job(job_id: str, patch: dict[str, Any]) -> None:
@@ -236,7 +207,6 @@ def _run_canary_gold_job(version: str, job_id: str) -> None:
             "updated_at": time.time(),
         },
     )
-    temp_dir_obj: tempfile.TemporaryDirectory[str] | None = None
     try:
         reg = get_registry()
         rec = reg.get(version)
@@ -257,65 +227,82 @@ def _run_canary_gold_job(version: str, job_id: str) -> None:
             {"phase": "downloading_model", "message": "Downloading artifact from model store", "updated_at": time.time()},
         )
         store = ModelStore()
-        temp_dir_obj = tempfile.TemporaryDirectory(prefix=f"canary_{version}_")
-        model_dir = store.download(version, destination=temp_dir_obj.name)
-        nlp = spacy.load(model_dir)
+        model_dir = store.download(version)
+        import spacy  # noqa: PLC0415 — lazy to avoid CuPy CUDA probe at API startup
+        nlp = spacy.load(str(model_dir))
 
         _set_canary_job(
             job_id,
-            {"phase": "loading_gold_data", "message": "Fetching approved gold EncounterCandidates", "updated_at": time.time()},
+            {"phase": "loading_gold_data", "message": "Fetching included TrainingLabel gold corpus", "updated_at": time.time()},
         )
-        rows = _fetch_gold_candidates()
+        import json as _json
+        rows = _fetch_gold_labels()
         if not rows:
-            raise RuntimeError("No approved gold EncounterCandidates found")
+            raise RuntimeError("No included TrainingLabel records found — add labels in the Training Data tab first")
+
+        # Reuse the same label normalisation as the offline evaluator / exporter.
+        _LABEL_MAP: dict[str, str] = {
+            "disorder": "DISORDER", "finding": "FINDING", "procedure": "PROCEDURE",
+            "observable_entity": "OBSERVABLE", "qualifier_value": "QUALIFIER",
+            "substance": "SUBSTANCE", "medicinal_product": "MEDICINAL_PRODUCT",
+            "clinical_drug": "CLINICAL_DRUG", "situation": "SITUATION",
+            "event": "EVENT", "body_structure": "BODY_STRUCTURE",
+            "tumor_staging": "TUMOR_STAGING", "X_PATHWAY_MILESTONE": "PATHWAY_MILESTONE",
+            "X_NEGATION_CUE": "NEGATION_CUE", "X_TEMPORAL": "TEMPORAL",
+            "X_DOSAGE": "DOSAGE", "X_FREQUENCY": "FREQUENCY", "X_ROUTE": "ROUTE",
+        }
+
+        def _norm(raw: str) -> str:
+            return _LABEL_MAP.get(raw, raw.upper())
 
         tp: dict[str, int] = {}
         fp: dict[str, int] = {}
         fn: dict[str, int] = {}
-        sentences_scored = 0
+        docs_scored = 0
 
         _set_canary_job(
             job_id,
-            {"phase": "scoring", "message": "Running model over gold candidates", "total_candidates": len(rows), "updated_at": time.time()},
+            {"phase": "scoring", "message": "Running model over gold labels", "total_candidates": len(rows), "updated_at": time.time()},
         )
         for idx, row in enumerate(rows, start=1):
-            if idx % 25 == 0:
+            if idx % 50 == 0:
                 _set_canary_job(
                     job_id,
                     {"progress": idx / max(len(rows), 1), "processed_candidates": idx, "updated_at": time.time()},
                 )
-            sentences_json = row.get("sentences_json") or "[]"
+            text = str(row.get("text") or "")
+            if not text.strip():
+                continue
             try:
-                import json
-                sentences = json.loads(sentences_json)
+                entities = _json.loads(row.get("entities_json") or "[]")
             except Exception:
                 continue
-            for sent in sentences:
-                text = str(sent.get("text", "") or "")
-                if not text.strip():
-                    continue
-                sent_start = int(sent.get("start", 0) or 0)
-                sent_end = int(sent.get("end", sent_start + len(text)) or (sent_start + len(text)))
-                gold_terms = sent.get("terms", []) or []
-                gold = set()
-                for term in gold_terms:
-                    span = _to_span(term, sent_start, sent_end)
-                    if span is not None:
-                        gold.add(span)
-                pred_doc = nlp(text)
-                pred = {(ent.start_char, ent.end_char, ent.label_.strip().lower()) for ent in pred_doc.ents}
 
-                for span in pred:
-                    label = span[2]
-                    if span in gold:
-                        tp[label] = tp.get(label, 0) + 1
-                    else:
-                        fp[label] = fp.get(label, 0) + 1
-                for span in gold:
-                    label = span[2]
-                    if span not in pred:
-                        fn[label] = fn.get(label, 0) + 1
-                sentences_scored += 1
+            gold: set[tuple[int, int, str]] = set()
+            for ent in entities:
+                try:
+                    start = int(ent.get("start", 0))
+                    end = int(ent.get("end", 0))
+                    label = _norm(str(ent.get("label", "") or ""))
+                    if end > start and label:
+                        gold.add((start, end, label))
+                except Exception:
+                    continue
+
+            pred_doc = nlp(text)
+            pred = {(e.start_char, e.end_char, e.label_) for e in pred_doc.ents}
+
+            for span in pred:
+                lbl = span[2]
+                if span in gold:
+                    tp[lbl] = tp.get(lbl, 0) + 1
+                else:
+                    fp[lbl] = fp.get(lbl, 0) + 1
+            for span in gold:
+                lbl = span[2]
+                if span not in pred:
+                    fn[lbl] = fn.get(lbl, 0) + 1
+            docs_scored += 1
 
         metrics = _compute_metrics(tp, fp, fn)
         overall = metrics["overall"]
@@ -333,7 +320,7 @@ def _run_canary_gold_job(version: str, job_id: str) -> None:
                 "updated_at": time.time(),
                 "completed_at": time.time(),
                 "metrics": metrics,
-                "sentences_scored": sentences_scored,
+                "sentences_scored": docs_scored,
                 "candidate_count": len(rows),
             },
         )
@@ -350,8 +337,7 @@ def _run_canary_gold_job(version: str, job_id: str) -> None:
             },
         )
     finally:
-        if temp_dir_obj is not None:
-            temp_dir_obj.cleanup()
+        pass
 
 
 async def _inference_health() -> dict[str, Any]:
@@ -661,11 +647,17 @@ def promote_version(version: str, req: PromoteRequest) -> dict[str, Any]:
     if not reg.get(version):
         raise HTTPException(status_code=404, detail=f"Version {version!r} not found")
     try:
-        rec = reg.promote(version, rollback_target_version=req.rollback_target_version)
+        rec = reg.promote(
+            version,
+            rollback_target_version=req.rollback_target_version,
+            force=req.force,
+        )
     except RuntimeError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     return {
         "promoted": True,
+        "forced": req.force,
+        "force_reason": req.force_reason,
         "record": _record_to_dict(rec),
         "inference_reload_triggered": True,
     }

@@ -161,6 +161,7 @@ export default function ModelLifecyclePanel() {
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [rollbackConfirmOpen, setRollbackConfirmOpen] = useState(false);
+  const [forcePromoteConfirmOpen, setForcePromoteConfirmOpen] = useState(false);
   const [busyAction, setBusyAction] = useState<string | null>(null);
 
   const [goldJobId, setGoldJobId] = useState<string | null>(null);
@@ -257,18 +258,23 @@ export default function ModelLifecyclePanel() {
     }
   }
 
-  async function promote(version: string) {
+  async function promote(version: string, force = false) {
     setBusyAction(`promote:${version}`);
     setError(null);
     try {
       const res = await fetch(`/api/model-registry/versions/${version}/promote`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rollback_target_version: active?.model_version ?? null }),
+        body: JSON.stringify({
+          rollback_target_version: active?.model_version ?? null,
+          force,
+          force_reason: force ? "Manual override — recall gate failed; labels to be improved and model retrained." : "",
+        }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.detail || `Failed (${res.status})`);
-      setInfo(`v${version} promoted and inference hot-reload triggered.`);
+      setInfo(`v${version} promoted${force ? " (gate overridden)" : ""} — inference hot-reload triggered.`);
+      setForcePromoteConfirmOpen(false);
       await loadAll();
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Promote failed");
@@ -501,7 +507,7 @@ export default function ModelLifecyclePanel() {
                     Per-label detail is shown for the latest completed gold run in this session.
                   </Typography>
                 )}
-                <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+                <Stack direction="row" spacing={1} sx={{ mt: 1 }} flexWrap="wrap">
                   <Tooltip title={canaryPass ? "" : "Canary thresholds not met"}>
                     <span>
                       <Button
@@ -514,6 +520,28 @@ export default function ModelLifecyclePanel() {
                       </Button>
                     </span>
                   </Tooltip>
+                  {!canaryPass && canaryVersion.canary_precision !== null && (
+                    <Tooltip title="Override gate failure and promote anyway — record will be flagged for audit">
+                      <Button
+                        variant="outlined"
+                        color="warning"
+                        onClick={() => setForcePromoteConfirmOpen(true)}
+                        disabled={!!busyAction}
+                      >
+                        Force promote
+                      </Button>
+                    </Tooltip>
+                  )}
+                  {canaryVersion.canary_precision === null && (
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      onClick={() => runGoldTest(canaryVersion.model_version)}
+                      disabled={busyAction === `run-gold:${canaryVersion.model_version}` || !!goldJobId}
+                    >
+                      {busyAction === `run-gold:${canaryVersion.model_version}` ? <CircularProgress size={16} /> : "Re-run gold test"}
+                    </Button>
+                  )}
                   <Button
                     variant="outlined"
                     color="error"
@@ -583,6 +611,41 @@ export default function ModelLifecyclePanel() {
           Training labels are managed in the Training Data tab. Training worker handles register, upload, and offline validation automatically.
         </Typography>
       </Paper>
+
+      <Dialog open={forcePromoteConfirmOpen} onClose={() => setForcePromoteConfirmOpen(false)}>
+        <DialogTitle>Force promote — gate override</DialogTitle>
+        <DialogContent>
+          <Stack spacing={1.5}>
+            <Stack direction="row" spacing={1} alignItems="flex-start">
+              <WarningAmberIcon color="warning" sx={{ mt: 0.25 }} />
+              <Typography variant="body2">
+                The gold test did <strong>not</strong> meet the required thresholds
+                (precision ≥ {(MODEL_CANARY_MIN_PRECISION * 100).toFixed(0)}%,
+                recall ≥ {(MODEL_CANARY_MIN_RECALL * 100).toFixed(0)}%).
+              </Typography>
+            </Stack>
+            <Typography variant="body2">
+              Forcing promotion will flag this version in the audit trail with a
+              <strong> [FORCED PROMOTION]</strong> note. Use only if you intend to
+              retrain with improved labels shortly.
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Current results: P={pct(canaryVersion?.canary_precision)} R={pct(canaryVersion?.canary_recall)}
+            </Typography>
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setForcePromoteConfirmOpen(false)}>Cancel</Button>
+          <Button
+            color="warning"
+            variant="contained"
+            disabled={busyAction === `promote:${canaryVersion?.model_version}`}
+            onClick={() => canaryVersion && promote(canaryVersion.model_version, true)}
+          >
+            {busyAction === `promote:${canaryVersion?.model_version}` ? <CircularProgress size={16} /> : "Confirm force promote"}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Dialog open={rollbackConfirmOpen} onClose={() => setRollbackConfirmOpen(false)}>
         <DialogTitle>Confirm rollback</DialogTitle>

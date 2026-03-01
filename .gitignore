@@ -236,6 +236,22 @@ docker-compose.override.yml
 # External / downloaded content (not source-controlled)
 external_content/
 
+# ============================================================
+# Model artefacts & training data  (never commit — use Azure Blob + Neo4j)
+# ============================================================
+
+# Local model cache — downloaded from Azure Blob at runtime (can be 1–10 GB)
+.model_cache/
+
+# spaCy training temp directories created by the training worker
+training_job_*/
+
+# spaCy DocBin exports (train.spacy / dev.spacy) — regenerated from Neo4j
+*.spacy
+
+# Recovery / one-off scripts output
+scripts/recover_*.json
+
 # Cursor AI workspace files (keep rules, ignore state)
 .cursor/chat/
 .cursor/history/

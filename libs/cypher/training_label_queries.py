@@ -80,6 +80,13 @@ SET t.include          = true,
 RETURN t.label_id AS label_id
 """
 
+UPDATE_TRAINING_LABEL_ENTITIES = """
+MATCH (t:TrainingLabel {label_id: $label_id})
+SET t.entities_json = $entities_json,
+    t.updated_at    = datetime()
+RETURN t.label_id AS label_id, t.entities_json AS entities_json
+"""
+
 # ------------------------------------------------------------------
 # Read queries
 # ------------------------------------------------------------------

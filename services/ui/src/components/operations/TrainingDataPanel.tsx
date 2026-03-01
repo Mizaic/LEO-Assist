@@ -15,9 +15,14 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  Divider,
+  Drawer,
+  FormControl,
   IconButton,
   LinearProgress,
+  MenuItem,
   Paper,
+  Select,
   Stack,
   Table,
   TableBody,
@@ -31,8 +36,12 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import AddIcon from "@mui/icons-material/Add";
 import BlockIcon from "@mui/icons-material/Block";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import CloseIcon from "@mui/icons-material/Close";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
@@ -89,6 +98,14 @@ interface ExportPreview {
   by_label_type: Record<string, number>;
 }
 
+interface VerificationStatus {
+  status: "idle" | "running" | "done" | "failed";
+  started_at: number | null;
+  finished_at: number | null;
+  pending_review: number;
+  last_error: string | null;
+}
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -104,6 +121,40 @@ async function jsonFetch<T>(url: string, init?: RequestInit): Promise<T> {
   }
   return res.json() as Promise<T>;
 }
+
+// ---------------------------------------------------------------------------
+// Entity editing constants
+// ---------------------------------------------------------------------------
+
+interface LabelEntity {
+  text: string;
+  label: string;
+  start: number;
+  end: number;
+  assertion?: string;
+  confidence?: number;
+}
+
+const VALID_ENTITY_LABELS = [
+  "disorder",
+  "finding",
+  "procedure",
+  "observable_entity",
+  "qualifier_value",
+  "substance",
+  "medicinal_product",
+  "clinical_drug",
+  "situation",
+  "event",
+  "body_structure",
+  "tumor_staging",
+  "X_PATHWAY_MILESTONE",
+  "X_NEGATION_CUE",
+  "X_TEMPORAL",
+  "X_DOSAGE",
+  "X_FREQUENCY",
+  "X_ROUTE",
+] as const;
 
 const SOURCE_LABELS: Record<string, string> = {
   hitl_approval: "HITL",
@@ -127,16 +178,17 @@ function fmtElapsed(s: number | null) {
   return `${Math.floor(s / 60)}m ${Math.round(s % 60)}s`;
 }
 
-function EntityPills({ entitiesJson }: { entitiesJson: string }) {
+function EntityPills({ entitiesJson, showAll = false }: { entitiesJson: string; showAll?: boolean }) {
   let entities: { text: string; label: string }[] = [];
   try { entities = JSON.parse(entitiesJson); } catch { /* ignore */ }
   if (!entities.length) return <Typography variant="caption" color="text.disabled">—</Typography>;
+  const visible = showAll ? entities : entities.slice(0, 5);
   return (
     <Stack direction="row" flexWrap="wrap" gap={0.5}>
-      {entities.slice(0, 5).map((e, i) => (
+      {visible.map((e, i) => (
         <Chip key={i} label={`${e.text} · ${e.label}`} size="small" variant="outlined" sx={{ fontSize: 11 }} />
       ))}
-      {entities.length > 5 && <Chip label={`+${entities.length - 5} more`} size="small" />}
+      {!showAll && entities.length > 5 && <Chip label={`+${entities.length - 5} more`} size="small" />}
     </Stack>
   );
 }
@@ -155,6 +207,11 @@ export default function TrainingDataPanel() {
   const [searchText, setSearchText] = useState("");
   const [loadingLabels, setLoadingLabels] = useState(false);
 
+  const [selectedLabel, setSelectedLabel] = useState<TrainingLabel | null>(null);
+  const [editingEntities, setEditingEntities] = useState(false);
+  const [draftEntities, setDraftEntities] = useState<LabelEntity[]>([]);
+  const [savingEntities, setSavingEntities] = useState(false);
+
   const [excludeTarget, setExcludeTarget] = useState<string | null>(null);
   const [excludeReason, setExcludeReason] = useState("");
   const [excludeBusy, setExcludeBusy] = useState(false);
@@ -166,15 +223,15 @@ export default function TrainingDataPanel() {
   const [startingJob, setStartingJob] = useState(false);
   const [expandedJob, setExpandedJob] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [verificationStatus, setVerificationStatus] = useState<VerificationStatus | null>(null);
+  const [startingVerification, setStartingVerification] = useState(false);
 
   const PAGE_SIZE = 30;
-  const esRef = useRef<EventSource | null>(null);
   const heroLogRef = useRef<HTMLDivElement | null>(null);
   const historyLogRef = useRef<HTMLDivElement | null>(null);
   const [pollingPaused, setPollingPaused] = useState(false);
   const pollingPausedRef = useRef(false);
   const jobsRef = useRef<TrainingJob[]>([]);
-  const lastJobsRefreshAtRef = useRef(0);
 
   // Auto-scroll both log boxes to bottom whenever log lines change
   useEffect(() => {
@@ -217,13 +274,6 @@ export default function TrainingDataPanel() {
     } catch { /* training worker may be offline */ }
   }, []);
 
-  const refreshJobsThrottled = useCallback((minIntervalMs = 2000) => {
-    const now = Date.now();
-    if (now - lastJobsRefreshAtRef.current < minIntervalMs) return;
-    lastJobsRefreshAtRef.current = now;
-    fetchJobs();
-  }, [fetchJobs]);
-
   const fetchPreview = useCallback(async () => {
     try {
       const data = await jsonFetch<ExportPreview>("/api/training/export-preview", { method: "POST" });
@@ -231,7 +281,14 @@ export default function TrainingDataPanel() {
     } catch { /* silently swallow */ }
   }, []);
 
-  useEffect(() => { fetchStats(); fetchJobs(); fetchPreview(); }, [fetchStats, fetchJobs, fetchPreview]);
+  const fetchVerificationStatus = useCallback(async () => {
+    try {
+      const data = await jsonFetch<VerificationStatus>("/api/training/labels/verify-all/status");
+      setVerificationStatus(data);
+    } catch { /* silently swallow */ }
+  }, []);
+
+  useEffect(() => { fetchStats(); fetchJobs(); fetchPreview(); fetchVerificationStatus(); }, [fetchStats, fetchJobs, fetchPreview, fetchVerificationStatus]);
   useEffect(() => { fetchLabels(); }, [fetchLabels]);
 
   // Keep refs in sync so the polling interval can read them without being recreated
@@ -274,6 +331,31 @@ export default function TrainingDataPanel() {
     }
   };
 
+  const handleSaveEntities = async () => {
+    if (!selectedLabel) return;
+    setSavingEntities(true);
+    try {
+      await jsonFetch(`/api/training/labels/${selectedLabel.label_id}/entities`, {
+        method: "PATCH",
+        body: JSON.stringify({ entities: draftEntities }),
+      });
+      const updatedEntitiesJson = JSON.stringify(draftEntities);
+      setSelectedLabel({ ...selectedLabel, entities_json: updatedEntitiesJson });
+      setLabels((prev) =>
+        prev.map((l) =>
+          l.label_id === selectedLabel.label_id
+            ? { ...l, entities_json: updatedEntitiesJson }
+            : l
+        )
+      );
+      setEditingEntities(false);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to save entities");
+    } finally {
+      setSavingEntities(false);
+    }
+  };
+
   const handleInclude = async (id: string) => {
     try {
       await jsonFetch(`/api/training/labels/${id}/include`, { method: "POST" });
@@ -287,18 +369,12 @@ export default function TrainingDataPanel() {
   const handleStartJob = async () => {
     setStartingJob(true);
     try {
-      const res = await jsonFetch<{ job_id: string }>(
+      await jsonFetch<{ job_id: string }>(
         "/api/training-worker/jobs",
         { method: "POST", body: JSON.stringify({ notes: jobNotes, triggered_by: "ui" }) }
       );
       setStartJobOpen(false);
       setJobNotes("");
-      const es = new EventSource(`${window.location.origin}/api/training-worker/progress/${res.job_id}`);
-      esRef.current?.close();
-      esRef.current = es;
-      es.addEventListener("training_log", () => refreshJobsThrottled(2000));
-      es.addEventListener("training_done", () => { fetchJobs(); es.close(); });
-      es.addEventListener("training_failed", () => { fetchJobs(); es.close(); });
       fetchJobs();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not start training");
@@ -307,9 +383,25 @@ export default function TrainingDataPanel() {
     }
   };
 
+  const handleVerifyLabels = async () => {
+    setStartingVerification(true);
+    try {
+      await jsonFetch<{ status: string; message: string }>("/api/training/labels/verify-all", { method: "POST" });
+      fetchVerificationStatus();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not start label verification");
+    } finally {
+      setStartingVerification(false);
+    }
+  };
+
   const totalPages = Math.max(1, Math.ceil(labelTotal / PAGE_SIZE));
   const activeJob = jobs.find((j) => ACTIVE_STATUSES.has(j.status));
   const lastJob = !activeJob ? jobs[0] : undefined;
+  const verificationRunning = verificationStatus?.status === "running" || startingVerification;
+  const verificationFinishedAt = verificationStatus?.finished_at
+    ? new Date(verificationStatus.finished_at * 1000).toLocaleString([], { dateStyle: "short", timeStyle: "short" })
+    : null;
 
   // ---------- render ----------
 
@@ -534,7 +626,7 @@ export default function TrainingDataPanel() {
       {/* ── Label library (collapsed) ── */}
       <Accordion disableGutters variant="outlined" sx={{ borderRadius: "8px !important" }}>
         <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ px: 2 }}>
-          <Stack direction="row" spacing={1.5} alignItems="center">
+          <Stack direction="row" spacing={1.5} alignItems="center" sx={{ width: "100%" }}>
             <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Label library</Typography>
             {labelTotal > 0 && (
               <Chip label={`${labelTotal.toLocaleString()} records`} size="small" variant="outlined" />
@@ -542,6 +634,19 @@ export default function TrainingDataPanel() {
             {(stats?.excluded ?? 0) > 0 && (
               <Chip label={`${stats!.excluded} excluded`} size="small" color="warning" variant="outlined" />
             )}
+            {verificationStatus?.pending_review ? (
+              <Chip
+                label={`${verificationStatus.pending_review} to review`}
+                size="small"
+                color="warning"
+                variant="outlined"
+              />
+            ) : null}
+            {verificationRunning ? (
+              <Chip label="Verification running" size="small" color="primary" />
+            ) : verificationFinishedAt ? (
+              <Chip label={`Last verified ${verificationFinishedAt}`} size="small" variant="outlined" />
+            ) : null}
           </Stack>
         </AccordionSummary>
         <AccordionDetails sx={{ p: 0 }}>
@@ -566,7 +671,18 @@ export default function TrainingDataPanel() {
               <ToggleButton value="true">Included</ToggleButton>
               <ToggleButton value="false">Excluded</ToggleButton>
             </ToggleButtonGroup>
-            <IconButton size="small" onClick={fetchLabels}><RefreshIcon fontSize="small" /></IconButton>
+            <IconButton size="small" onClick={() => { fetchLabels(); fetchVerificationStatus(); }}>
+              <RefreshIcon fontSize="small" />
+            </IconButton>
+            <Box flex={1} />
+            <Button
+              size="small"
+              variant="outlined"
+              disabled={verificationRunning}
+              onClick={handleVerifyLabels}
+            >
+              {startingVerification ? "Starting..." : "Verify labels"}
+            </Button>
           </Stack>
 
           {/* Table */}
@@ -589,7 +705,17 @@ export default function TrainingDataPanel() {
                   <TableRow><TableCell colSpan={5} align="center"><Typography variant="caption" color="text.disabled">No records found</Typography></TableCell></TableRow>
                 )}
                 {labels.map((label) => (
-                  <TableRow key={label.label_id} sx={{ opacity: label.include ? 1 : 0.45 }}>
+                  <TableRow
+                    key={label.label_id}
+                    hover
+                    onClick={() => setSelectedLabel(label)}
+                    sx={{
+                      opacity: label.include ? 1 : 0.55,
+                      cursor: "pointer",
+                      "&.Mui-selected, &.Mui-selected:hover": { bgcolor: "action.selected" },
+                    }}
+                    selected={selectedLabel?.label_id === label.label_id}
+                  >
                     <TableCell sx={{ maxWidth: 260 }}>
                       <Typography variant="caption" sx={{ fontFamily: "monospace" }}>
                         {label.text.slice(0, 100)}{label.text.length > 100 ? "…" : ""}
@@ -608,8 +734,8 @@ export default function TrainingDataPanel() {
                     </TableCell>
                     <TableCell align="right">
                       {label.include
-                        ? <Tooltip title="Remove from training"><IconButton size="small" onClick={() => setExcludeTarget(label.label_id)}><BlockIcon fontSize="small" color="error" /></IconButton></Tooltip>
-                        : <Tooltip title="Add back to training"><IconButton size="small" onClick={() => handleInclude(label.label_id)}><CheckCircleOutlineIcon fontSize="small" color="success" /></IconButton></Tooltip>}
+                        ? <Tooltip title="Remove from training"><IconButton size="small" onClick={(e) => { e.stopPropagation(); setExcludeTarget(label.label_id); }}><BlockIcon fontSize="small" color="error" /></IconButton></Tooltip>
+                        : <Tooltip title="Add back to training"><IconButton size="small" onClick={(e) => { e.stopPropagation(); handleInclude(label.label_id); }}><CheckCircleOutlineIcon fontSize="small" color="success" /></IconButton></Tooltip>}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -627,6 +753,272 @@ export default function TrainingDataPanel() {
           </Stack>
         </AccordionDetails>
       </Accordion>
+
+      {/* ── Label detail drawer ── */}
+      <Drawer
+        anchor="right"
+        open={!!selectedLabel}
+        onClose={() => { setSelectedLabel(null); setEditingEntities(false); }}
+        PaperProps={{ sx: { width: { xs: "100%", sm: 500 }, display: "flex", flexDirection: "column" } }}
+      >
+        {selectedLabel && (
+          <>
+            {/* Header */}
+            <Stack
+              direction="row"
+              alignItems="center"
+              justifyContent="space-between"
+              sx={{ px: 2.5, py: 1.75, borderBottom: "1px solid", borderColor: "divider", flexShrink: 0 }}
+            >
+              <Box>
+                <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.3 }}>Label detail</Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ fontFamily: "monospace" }}>
+                  {selectedLabel.label_id.slice(0, 20)}…
+                </Typography>
+              </Box>
+              <IconButton size="small" onClick={() => { setSelectedLabel(null); setEditingEntities(false); }} edge="end">
+                <CloseIcon fontSize="small" />
+              </IconButton>
+            </Stack>
+
+            {/* Status & action bar */}
+            <Stack
+              direction="row"
+              spacing={1}
+              alignItems="center"
+              sx={{ px: 2.5, py: 1.25, borderBottom: "1px solid", borderColor: "divider", flexShrink: 0 }}
+            >
+              <Chip
+                label={SOURCE_LABELS[selectedLabel.source] ?? selectedLabel.source}
+                color={SOURCE_COLORS[selectedLabel.source] ?? "default"}
+                size="small"
+                variant="outlined"
+              />
+              {selectedLabel.include
+                ? <Chip label="Included" color="success" size="small" />
+                : <Chip label="Excluded" color="default" size="small" />}
+              <Box flex={1} />
+              {selectedLabel.include
+                ? (
+                  <Button
+                    size="small"
+                    color="error"
+                    startIcon={<BlockIcon />}
+                    onClick={() => {
+                      const id = selectedLabel.label_id;
+                      setSelectedLabel(null);
+                      setExcludeTarget(id);
+                    }}
+                  >
+                    Exclude
+                  </Button>
+                ) : (
+                  <Button
+                    size="small"
+                    color="success"
+                    startIcon={<CheckCircleOutlineIcon />}
+                    onClick={() => {
+                      handleInclude(selectedLabel.label_id);
+                      setSelectedLabel(null);
+                    }}
+                  >
+                    Re-include
+                  </Button>
+                )}
+            </Stack>
+
+            {/* Scrollable body */}
+            <Box sx={{ overflowY: "auto", flex: 1 }}>
+
+              {/* Encounter text */}
+              <Box sx={{ px: 2.5, pt: 2, pb: 2.5 }}>
+                <Typography variant="caption" color="text.secondary" sx={{ textTransform: "uppercase", letterSpacing: 0.6, fontWeight: 600, fontSize: 10.5 }}>
+                  Encounter text
+                </Typography>
+                <Box
+                  sx={{
+                    mt: 1,
+                    bgcolor: (t) => t.palette.mode === "dark" ? "#1e293b" : "#f8fafc",
+                    border: "1px solid",
+                    borderColor: "divider",
+                    borderRadius: 1,
+                    p: 1.5,
+                    fontFamily: "monospace",
+                    fontSize: 12.5,
+                    lineHeight: 1.85,
+                    whiteSpace: "pre-wrap",
+                    wordBreak: "break-word",
+                  }}
+                >
+                  {selectedLabel.text}
+                </Box>
+              </Box>
+
+              <Divider />
+
+              {/* Entities */}
+              <Box sx={{ px: 2.5, py: 2 }}>
+                <Stack direction="row" alignItems="center" sx={{ mb: 1 }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ textTransform: "uppercase", letterSpacing: 0.6, fontWeight: 600, fontSize: 10.5, flex: 1 }}>
+                    Entities
+                  </Typography>
+                  {!editingEntities ? (
+                    <Tooltip title="Edit entities">
+                      <IconButton
+                        size="small"
+                        onClick={() => {
+                          let parsed: LabelEntity[] = [];
+                          try { parsed = JSON.parse(selectedLabel.entities_json); } catch { /* ignore */ }
+                          setDraftEntities(parsed);
+                          setEditingEntities(true);
+                        }}
+                      >
+                        <EditOutlinedIcon sx={{ fontSize: 15 }} />
+                      </IconButton>
+                    </Tooltip>
+                  ) : (
+                    <Stack direction="row" spacing={0.5}>
+                      <Button
+                        size="small"
+                        onClick={() => setEditingEntities(false)}
+                        disabled={savingEntities}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        size="small"
+                        variant="contained"
+                        onClick={handleSaveEntities}
+                        disabled={savingEntities || draftEntities.length === 0}
+                        startIcon={savingEntities ? <CircularProgress size={12} /> : undefined}
+                      >
+                        {savingEntities ? "Saving…" : "Save"}
+                      </Button>
+                    </Stack>
+                  )}
+                </Stack>
+
+                {!editingEntities ? (
+                  <EntityPills entitiesJson={selectedLabel.entities_json} showAll />
+                ) : (
+                  <Stack spacing={1}>
+                    {draftEntities.map((ent, idx) => (
+                      <Stack key={idx} direction="row" spacing={1} alignItems="center">
+                        <TextField
+                          size="small"
+                          value={ent.text}
+                          onChange={(e) => {
+                            const newText = e.target.value;
+                            setDraftEntities((prev) => {
+                              const next = [...prev];
+                              const start = selectedLabel.text.indexOf(newText);
+                              next[idx] = {
+                                ...next[idx],
+                                text: newText,
+                                start: start >= 0 ? start : next[idx].start,
+                                end: start >= 0 ? start + newText.length : next[idx].end,
+                              };
+                              return next;
+                            });
+                          }}
+                          sx={{ flex: 1, "& input": { fontFamily: "monospace", fontSize: 12 } }}
+                          placeholder="Entity span text"
+                        />
+                        <FormControl size="small" sx={{ minWidth: 160 }}>
+                          <Select
+                            value={ent.label}
+                            onChange={(e) =>
+                              setDraftEntities((prev) => {
+                                const next = [...prev];
+                                next[idx] = { ...next[idx], label: e.target.value };
+                                return next;
+                              })
+                            }
+                            sx={{ fontSize: 12 }}
+                          >
+                            {VALID_ENTITY_LABELS.map((l) => (
+                              <MenuItem key={l} value={l} sx={{ fontSize: 12 }}>
+                                {l}
+                              </MenuItem>
+                            ))}
+                          </Select>
+                        </FormControl>
+                        <Tooltip title="Remove entity">
+                          <IconButton
+                            size="small"
+                            color="error"
+                            onClick={() =>
+                              setDraftEntities((prev) => prev.filter((_, i) => i !== idx))
+                            }
+                          >
+                            <DeleteOutlineIcon sx={{ fontSize: 16 }} />
+                          </IconButton>
+                        </Tooltip>
+                      </Stack>
+                    ))}
+                    <Button
+                      size="small"
+                      startIcon={<AddIcon />}
+                      onClick={() =>
+                        setDraftEntities((prev) => [
+                          ...prev,
+                          { text: "", label: "finding", start: 0, end: 0 },
+                        ])
+                      }
+                      sx={{ alignSelf: "flex-start", mt: 0.5 }}
+                    >
+                      Add entity
+                    </Button>
+                  </Stack>
+                )}
+              </Box>
+
+              <Divider />
+
+              {/* Metadata */}
+              <Box sx={{ px: 2.5, py: 2 }}>
+                <Typography variant="caption" color="text.secondary" sx={{ textTransform: "uppercase", letterSpacing: 0.6, fontWeight: 600, fontSize: 10.5 }}>
+                  Metadata
+                </Typography>
+                <Stack spacing={1.25} sx={{ mt: 1.5 }}>
+                  <Stack direction="row" spacing={1.5}>
+                    <Typography variant="caption" color="text.secondary" sx={{ minWidth: 130, flexShrink: 0 }}>Quality score</Typography>
+                    <Typography variant="caption">
+                      {selectedLabel.quality_score != null ? selectedLabel.quality_score.toFixed(3) : "—"}
+                    </Typography>
+                  </Stack>
+                  <Stack direction="row" spacing={1.5}>
+                    <Typography variant="caption" color="text.secondary" sx={{ minWidth: 130, flexShrink: 0 }}>Last updated</Typography>
+                    <Typography variant="caption">
+                      {new Date(selectedLabel.updated_at).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}
+                    </Typography>
+                  </Stack>
+                  <Stack direction="row" spacing={1.5} alignItems="flex-start">
+                    <Typography variant="caption" color="text.secondary" sx={{ minWidth: 130, flexShrink: 0 }}>Encounter ID</Typography>
+                    <Typography variant="caption" sx={{ fontFamily: "monospace", wordBreak: "break-all" }}>
+                      {selectedLabel.encounter_id}
+                    </Typography>
+                  </Stack>
+                  <Stack direction="row" spacing={1.5} alignItems="flex-start">
+                    <Typography variant="caption" color="text.secondary" sx={{ minWidth: 130, flexShrink: 0 }}>Label ID</Typography>
+                    <Typography variant="caption" sx={{ fontFamily: "monospace", wordBreak: "break-all" }}>
+                      {selectedLabel.label_id}
+                    </Typography>
+                  </Stack>
+                  {!selectedLabel.include && selectedLabel.excluded_reason && (
+                    <Stack direction="row" spacing={1.5} alignItems="flex-start">
+                      <Typography variant="caption" color="text.secondary" sx={{ minWidth: 130, flexShrink: 0 }}>Excluded reason</Typography>
+                      <Typography variant="caption" color="warning.main">
+                        {selectedLabel.excluded_reason}
+                      </Typography>
+                    </Stack>
+                  )}
+                </Stack>
+              </Box>
+            </Box>
+          </>
+        )}
+      </Drawer>
 
       {/* ── Exclude dialog ── */}
       <Dialog open={!!excludeTarget} onClose={() => setExcludeTarget(null)} maxWidth="sm" fullWidth>

@@ -18,6 +18,7 @@ from typing import Any, Optional
 logger = logging.getLogger(__name__)
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
+_MAX_JOBS = int(os.getenv("TRAINING_MAX_JOB_HISTORY", "100"))
 
 
 class TrainingJob:
@@ -55,7 +56,7 @@ class TrainingJob:
             "status": self.status,
             "phase": self.phase,
             # Keep list payloads light; UI only needs recent tail.
-            "log_lines": self.log_lines[-max(0, log_tail):],
+            "log_lines": self.log_lines[-max(0, log_tail):] if log_tail > 0 else [],
             "log_line_count": len(self.log_lines),
             "metrics": self.metrics,
             "artifact_uri": self.artifact_uri,
@@ -91,6 +92,7 @@ class TrainingJobStore:
         job = TrainingJob(**kwargs)
         with self._lock:
             self._jobs[job.job_id] = job
+            self._evict_old_jobs()
         self._publish(job.job_id, {"type": "job_created", "job_id": job.job_id, "status": job.status})
         return job
 
@@ -126,6 +128,21 @@ class TrainingJobStore:
             "job_id": job.job_id,
             "line": line,
         })
+
+    def _evict_old_jobs(self) -> None:
+        """Drop oldest terminal jobs when the store exceeds _MAX_JOBS.
+
+        Must be called with self._lock held.
+        """
+        if len(self._jobs) <= _MAX_JOBS:
+            return
+        terminal = {"done", "failed", "cancelled"}
+        evictable = sorted(
+            (j for j in self._jobs.values() if j.status in terminal),
+            key=lambda j: j.created_at,
+        )
+        for job in evictable[:len(self._jobs) - _MAX_JOBS]:
+            del self._jobs[job.job_id]
 
     def _publish(self, job_id: str, payload: dict[str, Any]) -> None:
         r = self._get_redis()

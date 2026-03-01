@@ -42,6 +42,7 @@ def evaluate_model(
     import spacy
     from spacy.tokens import DocBin
     from spacy.scorer import Scorer
+    from spacy.training import Example
 
     def _log(msg: str) -> None:
         logger.info("[evaluator] %s", msg)
@@ -56,20 +57,18 @@ def evaluate_model(
 
     _log(f"Loading dev set from {dev_path}…")
     dev_bin = DocBin().from_disk(dev_path)
-    dev_docs = list(dev_bin.get_docs(nlp.vocab))
+    gold_docs = list(dev_bin.get_docs(nlp.vocab))
 
-    if not dev_docs:
+    if not gold_docs:
         raise RuntimeError("Dev set is empty — cannot evaluate")
 
-    _log(f"Evaluating on {len(dev_docs)} dev documents…")
+    _log(f"Evaluating on {len(gold_docs)} dev documents…")
 
-    # Run model on dev texts, collect examples
-    from spacy.training import Example
-
-    examples = []
-    for gold_doc in dev_docs:
-        pred_doc = nlp(gold_doc.text)
-        examples.append(Example(pred_doc, gold_doc))
+    # Batch inference via nlp.pipe — more efficient than calling nlp() in a loop,
+    # especially with GPU/transformer models where batching amortises overhead.
+    texts = [doc.text for doc in gold_docs]
+    pred_docs = list(nlp.pipe(texts))
+    examples = [Example(pred, gold) for pred, gold in zip(pred_docs, gold_docs)]
 
     scorer = Scorer()
     scores = scorer.score(examples)
@@ -104,5 +103,5 @@ def evaluate_model(
         "passed_gates": passed,
         "min_precision": _MIN_PRECISION,
         "min_recall": _MIN_RECALL,
-        "dev_doc_count": len(dev_docs),
+        "dev_doc_count": len(gold_docs),
     }
