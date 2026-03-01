@@ -15,5 +15,5 @@ COPY --from=build-venv /venv /venv
 COPY libs/ /app/libs/
 COPY services/analysis_worker/ /app/services/analysis_worker/
 WORKDIR /app
-ENV PYTHONPATH=/app
+ENV PYTHONPATH=/app:/app/services/analysis_worker
 ENTRYPOINT ["/venv/bin/python3", "-m", "services.analysis_worker.app.main"]
