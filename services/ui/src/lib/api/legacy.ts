@@ -11,7 +11,14 @@ function formatApiError(detail: string | undefined, status: number): string {
 }
 
 async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(url, { ...init, credentials: "include" });
+  const res = await fetch(url, {
+    ...init,
+    credentials: "include",
+    headers: {
+      "X-Requested-With": "XMLHttpRequest",
+      ...(init?.headers ?? {}),
+    },
+  });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     const detail = (err as { detail?: string }).detail;

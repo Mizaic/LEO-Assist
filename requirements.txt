@@ -14,9 +14,9 @@ httpx>=0.28
 # --- Graph database ---
 neo4j>=5.28
 
-# --- NLP pipeline (Core API sentence splitting, medspacy inference) ---
+# --- NLP pipeline (medspacy 1.3.1 allows spacy>=3.8 on Python >= 3.12) ---
 spacy>=3.8,<4.0
-medspacy>=1.3
+medspacy==1.3.1
 PyRuSH>=1.0.8
 # Install with [ctk] so all CUDA component wheels (cublas, nvrtc etc) are bundled.
 # This avoids cupy.cublas DLL-load failures on Windows without a system CUDA install.

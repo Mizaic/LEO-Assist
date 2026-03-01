@@ -205,7 +205,7 @@ def get_caller_scope(
     """
     if not leo_session:
         raise HTTPException(status_code=401, detail="Not authenticated")
-    from app.services.session_store import load_session
+    from libs.redis_client.session import load_session
     data = load_session(leo_session) or {}
     caller_email = (data.get("email") or "").strip().lower()
     if not caller_email:
