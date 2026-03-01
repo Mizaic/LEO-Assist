@@ -51,6 +51,7 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import HourglassTopIcon from "@mui/icons-material/HourglassTop";
 import PauseIcon from "@mui/icons-material/Pause";
 import PlayCircleOutlineIcon from "@mui/icons-material/PlayCircleOutline";
+import TabFlowDiagram, { type TabStage } from "@/components/operations/TabFlowDiagram";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -212,6 +213,72 @@ function EntityPills({ entitiesJson, showAll = false }: { entitiesJson: string; 
     </Stack>
   );
 }
+
+// ---------------------------------------------------------------------------
+// How this tab works - stages for the flow diagram
+// ---------------------------------------------------------------------------
+
+const TRAINING_STAGES: TabStage[] = [
+  {
+    id: "td1", num: 1,
+    label: "Collect Reviews",
+    tooltip: "All the notes that human reviewers have checked and approved are gathered together. These become the teaching examples for the AI.",
+    detailIn: "Approved human-reviewed labels from the Label Review and other queues",
+    detailOut: "A set of correct examples ready to learn from",
+    branches: [
+      {
+        label: "Not enough examples",
+        description: "Training cannot start until there are at least 50 approved examples. Check back after more reviews are done",
+      },
+    ],
+  },
+  {
+    id: "td2", num: 2,
+    label: "Check Examples",
+    tooltip: "Each example is inspected and tidied. You can edit or remove examples that look wrong before training starts.",
+    detailIn: "The collected training examples",
+    detailOut: "A clean, checked set of teaching examples",
+    branches: [
+      {
+        label: "Exclude an example",
+        description: "You can remove an example from training if you think it would teach the AI the wrong thing",
+      },
+    ],
+  },
+  {
+    id: "td3", num: 3,
+    label: "AI Learns",
+    tooltip: "The AI studies thousands of correct examples so it can learn to spot medical words on its own.",
+    detailIn: "The clean training examples",
+    detailOut: "A freshly trained AI model",
+    branches: [
+      {
+        label: "Hardware retry",
+        description: "If training fails on a fast machine, we try again on slower hardware -- up to 4 attempts",
+      },
+    ],
+  },
+  {
+    id: "td4", num: 4,
+    label: "AI Tested",
+    tooltip: "We give the AI a quiz using examples it has never seen before to check it learned well enough.",
+    detailIn: "The trained AI and a set of test examples",
+    detailOut: "A test score -- it must reach at least 80% precision and 75% recall to pass",
+    branches: [
+      {
+        label: "Failed the test",
+        description: "If the AI does not score high enough, training stops here and the new model is not used",
+      },
+    ],
+  },
+  {
+    id: "td5", num: 5,
+    label: "New AI Ready",
+    tooltip: "If the AI passes, it is saved and registered. Head to the Model Deployment tab to promote it to live.",
+    detailIn: "The tested and approved AI model",
+    detailOut: "A new model version ready to be deployed",
+  },
+];
 
 // ---------------------------------------------------------------------------
 // Main panel
@@ -462,6 +529,23 @@ export default function TrainingDataPanel() {
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
         Review what's in the training set, then start a run to update the NER model.
       </Typography>
+
+      {/* How this works */}
+      <Accordion variant="outlined" disableGutters sx={{ mb: 3 }}>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+            How this tab works
+          </Typography>
+        </AccordionSummary>
+        <AccordionDetails sx={{ pt: 0 }}>
+          <TabFlowDiagram
+            stages={TRAINING_STAGES}
+            color="#7C3AED"
+            lightColor="#EDE9FE"
+            trackLabel="Training Data"
+          />
+        </AccordionDetails>
+      </Accordion>
 
       {error && (
         <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>{error}</Alert>

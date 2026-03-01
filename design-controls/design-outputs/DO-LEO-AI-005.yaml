@@ -1,0 +1,81 @@
+# -- DO-LEO-AI-005 -- Abnormal Result Detector
+# ISO 13485 / IEC 62304 Design Output
+# Schema: design-controls/templates/design_outputs_schema.yaml
+
+- id: "DO-LEO-AI-005"
+  version: "1.0.0"
+  type: "Algorithm"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-007"]
+    user_needs: ["UN-LEO-AI-003"]
+    risks_addressed: ["R-LEO-AI-021"]
+    verification_tests: ["VT-LEO-AI-005"]
+    validation_tests: []
+
+  specification:
+    title: "Abnormal Result Detector"
+    description: |
+      Analyses coded clinical data to detect abnormal investigation results
+      by comparing values against reference ranges and clinical thresholds.
+      Flags results that fall outside normal ranges and classifies severity
+      to support clinical safety-netting workflows.
+    purpose: "Identify abnormal investigation results so they can be flagged for clinical review and safety-netting"
+    technical_approach: "Rule-based comparison of numeric and coded results against configurable reference ranges, with severity classification logic"
+    acceptance_criteria:
+      - criterion: "Sensitivity for detecting abnormal results"
+        type: "functional"
+        measurement: "Sensitivity against gold-standard abnormal result labels"
+        target: ">= 0.95 sensitivity"
+      - criterion: "No false negatives on critical-range results"
+        type: "safety"
+        measurement: "Review of critical-range test cases"
+        target: "0 missed critical-range results"
+      - criterion: "Detection completes within time limit per encounter"
+        type: "performance"
+        measurement: "Wall-clock timing in integration tests"
+        target: "<= 1 second per encounter"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/analysis_worker/app/analyzers/abnormal_results.py"
+        description: "Abnormal result detection algorithm with reference range comparison"
+        storage_location: "git"
+    technical_details:
+      language: ["Python 3.11"]
+      framework: []
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions: ["Critical-range detection", "Severity classification"]
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false
+
+  production_information:
+    deployment_instructions: "Deployed as part of the analysis-worker container via Azure Container Apps"
+
+  documentation:
+    design_documentation: []
+    inline_documentation:
+      follows_standards: true
+
+  approval:
+    created_by: "Engineering Team"
+    created_date: "2026-03-01"
+
+  version_history:
+    - version: "1.0.0"
+      date: "2026-03-01"
+      changes: "Initial creation"
+      reason: "Implement DI-LEO-AI-007"
+      author: "Engineering Team"
+      approval_status: "draft"
+
+  metadata:
+    tags: ["abnormal-results", "safety-net", "analysis"]
+    priority: "high"
+    complexity: "moderate"

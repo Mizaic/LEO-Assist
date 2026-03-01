@@ -1,0 +1,76 @@
+# -- DI-LEO-AI-022 -- Audit Event Emitter
+# IEC 62304 / ISO 13485 Design Input
+# Schema: design-controls/templates/design_inputs_schema.yaml
+
+- id: "DI-LEO-AI-022"
+  type: "Regulatory"
+  derived_from: ["UN-LEO-AI-014"]
+  requirement: "The system SHALL emit immutable audit events for all pipeline actions, human review decisions, configuration changes, and authentication events, recording actor identity, timestamp, action type, affected resources, and outcome"
+  rationale: "IEC 62304 and ISO 13485 require documented evidence of all decisions. The audit emitter is the single point of audit event creation, ensuring consistent formatting and mandatory field population across all services."
+
+  machine_spec:
+    agent_prompt: |
+      Implement audit event emitter (~200 LOC).
+
+      SINGLE PURPOSE: Emit immutable, structured audit events for all
+      auditable actions across all services.
+
+      REQUIREMENTS:
+      1. Provide a single emit_audit_event() function used by all services
+      2. Enforce mandatory fields: actor, timestamp, action, resource, outcome
+      3. Store audit events as append-only nodes in Neo4j
+      4. Support FHIR AuditEvent resource format for interoperability
+      5. Guarantee event immutability -- no update or delete operations
+      6. Include correlation ID for tracing events across services
+
+      METHODS:
+      - emit(actor, action, resource, outcome): Create audit event
+      - build_fhir_audit_event(event): Format as FHIR AuditEvent
+      - store_event(event): Persist to Neo4j audit log
+      - query_events(filters): Retrieve audit events by criteria
+
+      CODE CLARITY:
+      - Mandatory fields enforced via Pydantic model validation
+      - Audit emitter is stateless -- receives all context per call
+      - No audit event can be modified after creation
+
+    acceptance_criteria:
+      - type: "test"
+        spec: "All auditable actions emit audit records with required fields"
+      - type: "test"
+        spec: "Audit records are immutable -- no update or delete permitted"
+      - type: "test"
+        spec: "Audit events include correlation ID for cross-service tracing"
+      - type: "test"
+        spec: "FHIR AuditEvent format produced correctly"
+
+    constraints:
+      - type: "regulatory"
+        spec: "Audit records must comply with IEC 62304 traceability requirements"
+      - type: "security"
+        spec: "Audit log is append-only -- no deletion or modification capability"
+
+    dependencies: []
+
+    downstream_impacts:
+      - "services/fhir_api -- exposes audit events via FHIR AuditEvent endpoint"
+      - "services/api -- emits audit events for user actions"
+      - "services/coding_worker -- emits audit events for pipeline decisions"
+
+    technical_details:
+      language: "Python"
+      libraries: ["neo4j"]
+      file_structure:
+        - "libs/audit/audit_emitter.py"
+        - "services/fhir_api/app/routers/audit_event.py"
+      estimated_loc: 200
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: "All auditable events emit audit records with required fields; records are immutable (append-only)"
+    test_protocol: "VT-LEO-AI-022"
+
+  safety_class: "B"
+  risks: []
+  tags: ["audit-trail", "compliance", "regulatory"]

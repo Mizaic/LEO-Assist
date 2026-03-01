@@ -2,6 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
   Alert,
   Box,
   Button,
@@ -26,6 +29,7 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/lib/authContext";
 import ClassificationValidationReport from "./ClassificationValidationReport";
 import ClassificationPromptPanel from "./ClassificationPromptPanel";
+import TabFlowDiagram, { type TabStage } from "@/components/operations/TabFlowDiagram";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -113,6 +117,61 @@ function ScoreBar({ label, correct, total }: { label: string; correct: number; t
 }
 
 // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// How this tab works - stages for the flow diagram
+// ---------------------------------------------------------------------------
+
+const CLASSIFICATION_STAGES: TabStage[] = [
+  {
+    id: "cr1", num: 1,
+    label: "Two AIs Read It",
+    tooltip: "Each note is read by two different AI tools: Claude Haiku and GPT-5-mini. Both decide whether the note is a health note, an admin note, or a document transfer.",
+    detailIn: "A patient note from the database",
+    detailOut: "Two separate labels -- one from each AI tool",
+  },
+  {
+    id: "cr2", num: 2,
+    label: "They Disagree",
+    tooltip: "Sometimes the two AI tools give different labels for the same note. When that happens, we need a human to settle it.",
+    detailIn: "Two different labels for the same note",
+    detailOut: "A disagreement record added to this review queue",
+    branches: [
+      {
+        label: "They agree",
+        description: "If both AIs give the same label, the note is auto-approved and you will not see it here",
+      },
+    ],
+  },
+  {
+    id: "cr3", num: 3,
+    label: "You See Both",
+    tooltip: "You can read the full note and see exactly what each AI said. This helps you make an informed decision.",
+    detailIn: "The note text and both AI labels",
+    detailOut: "A clear picture of the disagreement",
+  },
+  {
+    id: "cr4", num: 4,
+    label: "You Decide",
+    tooltip: "You pick which AI was right -- or say neither was right and choose the correct label yourself.",
+    detailIn: "Your knowledge of the note",
+    detailOut: "A vote: Haiku was right, GPT was right, or neither",
+    branches: [
+      {
+        label: "Neither was right",
+        description: "You can open the Neither option and pick the correct label from a list, with an optional note to explain",
+      },
+    ],
+  },
+  {
+    id: "cr5", num: 5,
+    label: "Label Saved",
+    tooltip: "Your choice is saved straight away. It corrects the label on that note and helps the AI improve over time.",
+    detailIn: "Your vote",
+    detailOut: "The correct label saved to the database; the AI scorecard updates",
+  },
+];
+
+// ---------------------------------------------------------------------------
 // Main panel
 // ---------------------------------------------------------------------------
 
@@ -190,6 +249,23 @@ export default function ClassificationReviewPanel() {
 
   return (
     <Box sx={{ maxWidth: 960, mx: "auto", py: 4, px: 3 }}>
+      {/* How this works */}
+      <Accordion variant="outlined" disableGutters sx={{ mb: 3 }}>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+            How this tab works
+          </Typography>
+        </AccordionSummary>
+        <AccordionDetails sx={{ pt: 0 }}>
+          <TabFlowDiagram
+            stages={CLASSIFICATION_STAGES}
+            color="#F97316"
+            lightColor="#FFF7ED"
+            trackLabel="Classification Review"
+          />
+        </AccordionDetails>
+      </Accordion>
+
       {/* Header */}
       <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 3 }}>
         <Box>

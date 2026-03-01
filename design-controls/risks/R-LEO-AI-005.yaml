@@ -1,0 +1,56 @@
+# -- R-LEO-AI-005 -- SurfaceForm Writeback Error Propagation
+# ISO 14971 / IEC 62304 Risk
+# Schema: design-controls/templates/risks_schema.yaml
+
+- id: "R-LEO-AI-005"
+  title: "Reviewer-approved incorrect SurfaceForm mapping propagates to future encounters"
+
+  hazard:
+    description: "Incorrect SurfaceForm mapping written back to terminology database after reviewer approval"
+    category: "software_defect"
+
+  hazardous_situation: "A reviewer approves an incorrect SNOMED mapping, which is stored as a SurfaceForm and applied as a suggestion boost to future encounters with the same surface text"
+
+  harm:
+    description: "Propagated incorrect mapping could bias future coding suggestions, though it is a suggestion boost not an authoritative override"
+    severity: "minor"
+
+  initial_risk_estimate:
+    severity: 2
+    probability: 2
+    detectability: 3
+    rpn: 12
+    risk_level: "low"
+
+  mitigation_measures:
+    - control_type: "inherent_safety"
+      description: "SurfaceForm provides a 1.2x suggestion boost only, not an authoritative override -- future reviewers can override"
+      implemented_by: []
+      verified_by: []
+      effectiveness: "effective"
+    - control_type: "procedural_control"
+      description: "Periodic SurfaceForm audit to identify and correct erroneous mappings"
+      implemented_by: []
+      verified_by: []
+      effectiveness: "effective"
+
+  residual_risk_estimate:
+    severity: 2
+    probability: 1
+    detectability: 2
+    rpn: 4
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: "SurfaceForm is a weak suggestion boost (1.2x) that does not override reviewer judgment. Future reviewers independently evaluate all coding proposals. Erroneous mappings are self-correcting through continued use."
+
+  monitoring:
+    monitoring_plan: "Audit SurfaceForm mappings for accuracy"
+    metrics: ["SurfaceForm override rate by reviewers", "SurfaceForm accuracy audit results"]
+    review_frequency: "Quarterly"
+
+  metadata:
+    identified_by: "Risk Management Team"
+    identified_date: "2026-03-01"
+    status: "analyzed"
+
+  tags: ["clinical-risk", "terminology", "surfaceform"]

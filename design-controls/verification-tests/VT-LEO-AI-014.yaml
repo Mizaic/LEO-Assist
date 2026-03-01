@@ -1,0 +1,107 @@
+# -- VT-LEO-AI-014 -- Data Governance Verification
+# IEC 62304 Verification Test Protocol
+# Schema: design-controls/templates/verification_test_schema.yaml
+
+- id: "VT-LEO-AI-014"
+  version: "1.0"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-023"]
+    risks: ["R-LEO-AI-008", "R-LEO-AI-009"]
+    user_needs: ["UN-LEO-AI-015"]
+
+  metadata:
+    title: "Data Governance Verification"
+    description: "Verifies that patient data is stored only in the Patient graph, the Coding graph contains no patient data, and cross-database queries are prevented."
+    test_level: "integration"
+    test_type: "security"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    created_by: "Quality Engineer"
+    created_date: "2026-03-01"
+
+  test_environment:
+    environment_type: "ci_cd"
+    prerequisites:
+      - "Neo4j Patient database running"
+      - "Neo4j Coding database running"
+      - "Data governance middleware configured"
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: true
+
+  test_cases:
+    - case_id: "VT-014-TC-001"
+      case_name: "Patient data stored only in Patient graph"
+      priority: "critical"
+      preconditions:
+        - "Patient graph database is empty or in known state"
+        - "Pipeline has processed a synthetic patient record"
+      test_steps:
+        - step_number: 1
+          action: "Run the analysis pipeline for a synthetic patient"
+          expected_result: "Pipeline completes successfully"
+          verification_method: "Assert pipeline status is 'completed'"
+        - step_number: 2
+          action: "Query the Patient graph for the synthetic patient's identifiable data"
+          expected_result: "Patient identifiable data is found in the Patient graph"
+          verification_method: "Assert query returns records with patient name, NHS number, and date of birth"
+        - step_number: 3
+          action: "Verify patient record structure conforms to governance schema"
+          expected_result: "Record contains only permitted fields for the Patient graph"
+          verification_method: "Assert all returned fields are in the Patient graph allow-list"
+      acceptance_criteria:
+        - "Patient identifiable data exists in the Patient graph"
+        - "Patient graph records conform to the governance schema"
+
+    - case_id: "VT-014-TC-002"
+      case_name: "Coding graph contains no patient data"
+      priority: "critical"
+      preconditions:
+        - "Pipeline has processed a synthetic patient record"
+        - "Coding graph is accessible for query"
+      test_steps:
+        - step_number: 1
+          action: "Query the Coding graph for any patient identifiable fields (name, NHS number, date of birth)"
+          expected_result: "No patient identifiable data found"
+          verification_method: "Assert query returns zero results"
+        - step_number: 2
+          action: "Enumerate all node labels and properties in the Coding graph"
+          expected_result: "No property keys match patient identifier field names"
+          verification_method: "Assert none of the property keys are in the patient identifier list"
+      acceptance_criteria:
+        - "Coding graph contains zero patient identifiable data"
+        - "No property keys in the Coding graph correspond to patient identifiers"
+
+    - case_id: "VT-014-TC-003"
+      case_name: "Cross-database query prevented"
+      priority: "critical"
+      preconditions:
+        - "Both Patient and Coding databases are running"
+        - "Application user credentials are available"
+      test_steps:
+        - step_number: 1
+          action: "Attempt a cross-database query from Coding graph to Patient graph using application credentials"
+          expected_result: "Query is rejected or returns an error"
+          verification_method: "Assert query raises a permission error or returns empty result"
+        - step_number: 2
+          action: "Attempt a cross-database query from Patient graph to Coding graph using application credentials"
+          expected_result: "Query is rejected or returns an error"
+          verification_method: "Assert query raises a permission error or returns empty result"
+      acceptance_criteria:
+        - "No cross-database queries succeed with application credentials"
+        - "Database isolation is enforced at the connection level"
+
+  pass_fail_criteria:
+    pass_threshold: "100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["test_report", "code_coverage"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-014/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history: []

@@ -1,0 +1,95 @@
+# -- UN-LEO-AI-004 -- Guideline Compliance Checking
+# IEC 62304 / ISO 13485 User Need
+# Schema: design-controls/templates/user_needs_schema.yaml
+
+- id: "UN-LEO-AI-004"
+  title: "System checks coded encounters against clinical guidelines and generates deviation alerts"
+  description: |
+    Clinical audit teams need the system to match coded encounter
+    patterns against programme-specific clinical guidelines (such as
+    NICE NG12 for cancer referral) and generate alerts where pathways
+    deviate from expected practice. This includes checking for timely
+    referrals, appropriate investigations, and adherence to recommended
+    actions for presenting symptoms. Guideline rules are defined per
+    programme and stored as configuration data.
+
+  stakeholder:
+    type: "end_user"
+    role: "Clinical Audit Team Member"
+    organization: "NHS Primary Care Organisation"
+
+  priority: "MUST"
+
+  rationale: |
+    Identifying guideline deviations manually requires deep knowledge
+    of multiple clinical guidelines and cross-referencing against
+    patient records. Automated checking ensures consistent application
+    of guidelines across all patients and highlights areas for quality
+    improvement.
+
+  benefit: "Consistent, automated checking of every patient pathway against clinical guidelines, replacing selective manual review"
+
+  use_case: |
+    1. Coded encounters and detected abnormal results are available for
+       a patient.
+    2. System loads the programme-specific guideline rule set (e.g.
+       NICE NG12 for suspected cancer referral).
+    3. System matches coded encounter patterns against each guideline
+       rule -- checking for expected investigations, referral timelines,
+       and recommended actions.
+    4. System generates deviation alerts where pathways do not match
+       expected practice, with severity classification (info, warning,
+       critical).
+    5. Each alert references the specific guideline clause and the
+       encounters that triggered it.
+    6. Alerts are presented to the audit team for review and action.
+
+  current_solution: "Manual cross-referencing of patient records against printed or online clinical guidelines by experienced auditors"
+
+  pain_points:
+    - "Manual guideline checking requires specialist knowledge"
+    - "Inconsistent application across auditors"
+    - "Time-consuming cross-referencing"
+    - "Easy to miss subtle deviations"
+
+  acceptance_criteria:
+    - "System shall match coded encounters against programme-defined guideline rules"
+    - "System shall generate alerts for guideline deviations with severity classification"
+    - "System shall support configurable guideline rule sets per programme"
+    - "System shall link alerts to specific encounters and guideline references"
+    - "System shall process guideline checking for a patient in under 5 seconds"
+
+  success_metrics:
+    - metric: "Alert accuracy"
+      target: ">=90% against expert review"
+      baseline: "Manual review: variable, dependent on auditor experience"
+    - metric: "Processing time per patient"
+      target: "<=5 seconds"
+      baseline: "Manual review: 20-40 minutes per patient"
+    - metric: "Guideline coverage"
+      target: "100% of configured rules"
+      baseline: "Manual review: selective coverage only"
+
+  regulatory_impact: "high"
+  safety_impact: "high"
+
+  derived_from:
+    - "Intended Use Statement DC-IU-001 Section 2.1.4"
+    - "NHS NCDA programme requirements"
+    - "NICE NG12 guideline requirements"
+
+  related_standards:
+    - "IEC 62304:2006"
+    - "ISO 13485:2016"
+    - "NICE NG12 - Suspected cancer: recognition and referral"
+    - "DCB0129 - Clinical Risk Management"
+
+  metadata:
+    created_by: "Quality Engineering"
+    created_date: "2026-03-01"
+    status: "draft"
+
+  design_inputs: []
+  validation_tests: []
+
+  tags: ["guideline-compliance", "nice-ng12", "core-capability", "pipeline", "clinical-safety"]

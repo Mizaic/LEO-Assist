@@ -62,9 +62,11 @@ def _fetch_org_context(email: str) -> tuple[bool, list[dict]]:
 
 @router.get("/login")
 def login(request: Request, next_url: str = "/"):
-    """Redirect to Azure AD login."""
+    """Redirect to Azure AD login with a session nonce for CSRF protection (GAP-010)."""
     if not TENANT_ID or not CLIENT_ID:
         raise HTTPException(500, "Azure AD not configured")
+    import secrets as _secrets
+    nonce = _secrets.token_urlsafe(16)
     state = next_url
     params = {
         "client_id": CLIENT_ID,
@@ -73,9 +75,21 @@ def login(request: Request, next_url: str = "/"):
         "scope": SCOPE,
         "response_mode": "query",
         "state": state,
+        "nonce": nonce,
     }
     url = f"{AUTH_URL}?{urlencode(params)}"
-    return RedirectResponse(url=url, status_code=302)
+    resp = RedirectResponse(url=url, status_code=302)
+    cookie_secure = os.getenv("COOKIE_SECURE", "true").lower() not in ("false", "0", "no")
+    resp.set_cookie(
+        "leo_oauth_nonce",
+        nonce,
+        httponly=True,
+        secure=cookie_secure,
+        samesite="lax",
+        max_age=600,
+        path="/",
+    )
+    return resp
 
 
 @router.get("/callback")
@@ -86,12 +100,18 @@ def callback(
     state: str = "/",
     error: str | None = None,
 ):
-    """Handle OAuth callback, exchange code for tokens, set session cookie."""
+    """Handle OAuth callback, exchange code for tokens, set session cookie (GAP-010)."""
     if error:
         logger.warning("OAuth error: %s", error)
         return RedirectResponse(url=f"{FRONTEND_URL}/sign-in?error={error}", status_code=302)
     if not code:
         raise HTTPException(400, "Missing code")
+
+    # Verify nonce to prevent CSRF -- cookie set at /login must be present
+    expected_nonce = request.cookies.get("leo_oauth_nonce")
+    if not expected_nonce:
+        logger.warning("OAuth callback missing nonce cookie -- possible CSRF")
+        return RedirectResponse(url=f"{FRONTEND_URL}/sign-in?error=csrf_nonce_missing", status_code=302)
     if not CLIENT_SECRET:
         raise HTTPException(500, "Azure AD client secret not configured")
 
@@ -170,11 +190,12 @@ def callback(
         normalized_state = "/dashboard"
     redirect_url = f"{FRONTEND_URL}{normalized_state}"
     resp = RedirectResponse(url=redirect_url, status_code=302)
+    cookie_secure = os.getenv("COOKIE_SECURE", "true").lower() not in ("false", "0", "no")
     resp.set_cookie(
         key=COOKIE_NAME,
         value=session_id,
         httponly=True,
-        secure=False,  # True in production with HTTPS
+        secure=cookie_secure,
         samesite="lax",
         max_age=SESSION_TTL,
         path="/",

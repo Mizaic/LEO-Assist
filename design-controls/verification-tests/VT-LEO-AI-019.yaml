@@ -1,0 +1,117 @@
+# -- VT-LEO-AI-019 -- Encryption and Security Verification
+# IEC 62304 Verification Test Protocol
+# Schema: design-controls/templates/verification_test_schema.yaml
+
+- id: "VT-LEO-AI-019"
+  version: "1.0"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-030"]
+    risks: ["R-LEO-AI-010"]
+    user_needs: ["UN-LEO-AI-021"]
+
+  metadata:
+    title: "Encryption and Security Verification"
+    description: "Verifies that all endpoints use TLS 1.2 or higher, data at rest is encrypted with AES-256, and Azure Key Vault integration works correctly for secret retrieval."
+    test_level: "system"
+    test_type: "security"
+    safety_class: "B"
+    automation_status: "semi-automated"
+    automation_framework: "pytest"
+    created_by: "Quality Engineer"
+    created_date: "2026-03-01"
+
+  test_environment:
+    environment_type: "staging"
+    prerequisites:
+      - "All services deployed to staging with production-equivalent TLS configuration"
+      - "Azure Key Vault provisioned with test secrets"
+      - "TLS inspection tools available (openssl or equivalent)"
+      - "Storage account encryption settings accessible"
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: true
+
+  test_cases:
+    - case_id: "VT-019-TC-001"
+      case_name: "TLS 1.2+ on all endpoints"
+      priority: "critical"
+      preconditions:
+        - "All API endpoints are accessible from the test environment"
+      test_steps:
+        - step_number: 1
+          action: "Connect to each API endpoint using TLS 1.2 and verify the handshake succeeds"
+          expected_result: "TLS 1.2 handshake completes successfully for all endpoints"
+          verification_method: "Assert TLS connection is established with protocol version >= 1.2"
+        - step_number: 2
+          action: "Attempt to connect using TLS 1.0 and TLS 1.1"
+          expected_result: "Connection is rejected for TLS versions below 1.2"
+          verification_method: "Assert connection failure or handshake error for TLS 1.0 and 1.1"
+        - step_number: 3
+          action: "Verify the cipher suites in use meet security requirements"
+          expected_result: "Only approved cipher suites are negotiated"
+          verification_method: "Assert negotiated cipher suite is in the approved list"
+      acceptance_criteria:
+        - "All endpoints accept TLS 1.2 or higher"
+        - "TLS 1.0 and 1.1 connections are refused"
+        - "Only approved cipher suites are used"
+
+    - case_id: "VT-019-TC-002"
+      case_name: "Data at rest encrypted AES-256"
+      priority: "critical"
+      preconditions:
+        - "Azure storage accounts and databases are provisioned"
+        - "Azure CLI or SDK access is available for configuration inspection"
+      test_steps:
+        - step_number: 1
+          action: "Query the encryption settings of all Azure storage accounts used by the system"
+          expected_result: "All storage accounts have encryption enabled with AES-256"
+          verification_method: "Assert storage account encryption type is 'AES256'"
+        - step_number: 2
+          action: "Query the encryption settings of the Neo4j database volumes"
+          expected_result: "Database volumes use encrypted storage"
+          verification_method: "Assert volume encryption is enabled"
+        - step_number: 3
+          action: "Query the encryption settings of the Redis cache"
+          expected_result: "Redis data is encrypted at rest"
+          verification_method: "Assert Redis encryption-at-rest is enabled"
+      acceptance_criteria:
+        - "All persistent storage uses AES-256 encryption at rest"
+        - "No unencrypted data stores are found"
+
+    - case_id: "VT-019-TC-003"
+      case_name: "Key Vault integration verified"
+      priority: "critical"
+      preconditions:
+        - "Azure Key Vault is provisioned with test secrets"
+        - "Application managed identity is configured"
+      test_steps:
+        - step_number: 1
+          action: "Start the application and verify it retrieves secrets from Key Vault on startup"
+          expected_result: "Application starts successfully using Key Vault secrets"
+          verification_method: "Assert application health endpoint returns 200 and logs show Key Vault access"
+        - step_number: 2
+          action: "Rotate a secret in Key Vault and trigger a refresh"
+          expected_result: "Application picks up the new secret value"
+          verification_method: "Assert the application uses the updated secret (e.g., reconnects with new credentials)"
+        - step_number: 3
+          action: "Revoke the application's Key Vault access and attempt to start the application"
+          expected_result: "Application fails to start with a clear error about Key Vault access"
+          verification_method: "Assert application exits with a Key Vault access error in logs"
+      acceptance_criteria:
+        - "Application retrieves secrets from Key Vault at startup"
+        - "Secret rotation is supported"
+        - "Missing Key Vault access produces a clear failure"
+
+  pass_fail_criteria:
+    pass_threshold: "100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["test_report", "code_coverage"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-019/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history: []

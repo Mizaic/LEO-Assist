@@ -1,0 +1,80 @@
+# -- DI-LEO-AI-016 -- Coding Review UI
+# IEC 62304 / ISO 13485 Design Input
+# Schema: design-controls/templates/design_inputs_schema.yaml
+
+- id: "DI-LEO-AI-016"
+  type: "Functional"
+  derived_from: ["UN-LEO-AI-010"]
+  requirement: "The system SHALL provide a review interface that displays AI coding proposals alongside the de-identified source text, enabling reviewers to confirm, edit, or reject each proposal with contextual information including confidence scores, alternative candidates, and context flags"
+  rationale: "Effective human review requires the reviewer to see both the AI proposal and the source text side by side. Contextual information (confidence, alternatives, negation flags) helps reviewers make informed decisions. The UI must support efficient review workflow for high throughput."
+
+  machine_spec:
+    agent_prompt: |
+      Implement the Coding Review UI components (~300 LOC total).
+
+      SINGLE PURPOSE: Provide a side-by-side review interface for AI coding
+      proposals with contextual information to support efficient human review.
+
+      REQUIREMENTS:
+      1. Display AI coding proposals alongside de-identified source text.
+      2. Show confidence scores for each proposal.
+      3. Show alternative candidate codes ranked by confidence.
+      4. Display context flags (negation, family history, past history).
+      5. Support confirm, edit, and reject actions on each proposal.
+      6. Support keyboard shortcuts for efficient review workflow.
+
+      COMPONENTS:
+      - ReviewView: Main review layout with split-pane source/proposal view.
+      - EncounterCodedView: Display coded encounter details and proposals.
+      - EntityCard: Individual entity card with confidence and actions.
+      - EntitySidebar: Side panel with alternative candidates and context.
+
+      CODE CLARITY:
+      - Use MUI components for consistent styling.
+      - Keep components under 30 lines of JSX where practical.
+      - Use TypeScript strict mode.
+
+    acceptance_criteria:
+      - type: "demonstration"
+        spec: "Reviewer can view source text and coding proposals side by side"
+      - type: "demonstration"
+        spec: "Confidence scores and alternative candidates are visible"
+      - type: "demonstration"
+        spec: "Context flags (negation, family history) are clearly displayed"
+      - type: "demonstration"
+        spec: "Confirm, edit, and reject actions work for each proposal"
+      - type: "test"
+        spec: "All review actions call the review service API correctly"
+
+    constraints:
+      - type: "performance"
+        spec: "Review interface loads in < 2 seconds"
+      - type: "code_quality"
+        spec: "Components <= 30 lines of JSX; TypeScript strict mode enabled"
+
+    dependencies: []
+
+    downstream_impacts:
+      - "review_service"
+      - "audit_trail"
+
+    technical_details:
+      language: "TypeScript"
+      framework: "Next.js / React"
+      libraries: ["mui"]
+      file_structure:
+        - "services/ui/src/components/ReviewView.tsx"
+        - "services/ui/src/components/EncounterCodedView.tsx"
+        - "services/ui/src/components/EntityCard.tsx"
+        - "services/ui/src/components/EntitySidebar.tsx"
+      estimated_loc: 300
+
+  verification:
+    method: "Demonstration"
+    phase: "OQ"
+    acceptance: "Reviewer can view source text, coding proposals, confidence scores, and context flags; can confirm, edit, or reject each proposal"
+    test_protocol: "VT-LEO-AI-016"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-006"]
+  tags: ["hitl", "review-ui", "frontend", "usability"]

@@ -21,12 +21,13 @@ _MAX_LOCK_RENEWAL_SECONDS = int(os.getenv("SB_MAX_LOCK_RENEWAL_SECONDS", "14400"
 
 
 class AzureServiceBusAdapter(MessageBusAdapter):
-    def __init__(self, connection_string: str) -> None:
+    def __init__(self, fully_qualified_namespace: str) -> None:
         from azure.servicebus.aio import ServiceBusClient
+        from libs.azure.credentials import get_credential
 
-        self._client = ServiceBusClient.from_connection_string(
-            connection_string,
-            # Keep the underlying AMQP connection alive between messages
+        self._client = ServiceBusClient(
+            fully_qualified_namespace=fully_qualified_namespace,
+            credential=get_credential(),
             uamqp_transport=False,
         )
         self._senders: dict[str, Any] = {}

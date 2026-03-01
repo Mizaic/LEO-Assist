@@ -2,6 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
   Alert,
   Badge,
   Box,
@@ -18,11 +21,13 @@ import {
 } from "@mui/material";
 import BarChartOutlinedIcon from "@mui/icons-material/BarChartOutlined";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import HowToVoteOutlinedIcon from "@mui/icons-material/HowToVoteOutlined";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/authContext";
 import AnchorReviewCard from "./AnchorReviewCard";
+import TabFlowDiagram, { type TabStage } from "@/components/operations/TabFlowDiagram";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -116,6 +121,60 @@ function ScoreBar({
     </Box>
   );
 }
+
+// ---------------------------------------------------------------------------
+// How this tab works - stages for the flow diagram
+// ---------------------------------------------------------------------------
+
+const ANCHOR_STAGES: TabStage[] = [
+  {
+    id: "ar1", num: 1,
+    label: "Two AIs Check It",
+    tooltip: "Two AI tools read a note and decide which cancer care pathway it belongs to -- for example, a new referral, a diagnosis, or a follow-up.",
+    detailIn: "A patient note that the anchor detector has flagged",
+    detailOut: "Two cancer pathway labels -- one from each AI",
+  },
+  {
+    id: "ar2", num: 2,
+    label: "They Disagree",
+    tooltip: "The two AIs give different pathway labels, or one says the note has nothing to do with cancer when we think it does.",
+    detailIn: "Two different pathway labels for the same note",
+    detailOut: "A disagreement record added to this review queue",
+    branches: [
+      {
+        label: "NON_CANCER flag",
+        description: "If the note was already flagged as cancer-related but one AI says NON_CANCER, it appears in the separate NON_CANCER flags tab as a precision warning",
+      },
+    ],
+  },
+  {
+    id: "ar3", num: 3,
+    label: "You See Both",
+    tooltip: "You can read the full note and see both AI answers, with the reason each AI gave for its choice.",
+    detailIn: "The note text, both pathway labels, and both reasons",
+    detailOut: "A clear picture of the disagreement",
+  },
+  {
+    id: "ar4", num: 4,
+    label: "You Decide",
+    tooltip: "You pick the correct cancer pathway domain from a list of options. Your vote is the ground truth.",
+    detailIn: "Your clinical knowledge of the note",
+    detailOut: "A vote with the correct pathway domain",
+    branches: [
+      {
+        label: "Neither was right",
+        description: "You can select a different domain from the full list if both AI labels were wrong",
+      },
+    ],
+  },
+  {
+    id: "ar5", num: 5,
+    label: "Domain Confirmed",
+    tooltip: "Your answer is saved and linked to that note. It feeds into the AI training data to improve future pathway labelling.",
+    detailIn: "Your voted domain",
+    detailOut: "The correct pathway domain saved; AI scorecard updates",
+  },
+];
 
 // ---------------------------------------------------------------------------
 // Main panel
@@ -242,6 +301,23 @@ export default function AnchorReviewPanel() {
 
   return (
     <Box sx={{ maxWidth: 1040, mx: "auto", py: 4, px: 3 }}>
+      {/* How this works */}
+      <Accordion variant="outlined" disableGutters sx={{ mb: 3 }}>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+            How this tab works
+          </Typography>
+        </AccordionSummary>
+        <AccordionDetails sx={{ pt: 0 }}>
+          <TabFlowDiagram
+            stages={ANCHOR_STAGES}
+            color="#EF4444"
+            lightColor="#FEF2F2"
+            trackLabel="Anchor Review"
+          />
+        </AccordionDetails>
+      </Accordion>
+
       {/* Header */}
       <Stack
         direction="row"

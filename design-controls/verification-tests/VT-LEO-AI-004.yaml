@@ -1,0 +1,107 @@
+# -- VT-LEO-AI-004 -- LLM Disambiguation Verification
+# IEC 62304 Verification Test Protocol
+# Schema: design-controls/templates/verification_test_schema.yaml
+
+- id: "VT-LEO-AI-004"
+  version: "1.0"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-006"]
+    risks: ["R-LEO-AI-001", "R-LEO-AI-011", "R-LEO-AI-014"]
+    user_needs: ["UN-LEO-AI-002"]
+
+  metadata:
+    title: "LLM Disambiguation Verification"
+    description: >
+      Verifies that the LLM disambiguation step is invoked only when the
+      confidence score falls below the configured threshold, that the LLM
+      returns valid structured JSON, and that the system hard-fails safely
+      when the LLM service is unavailable.
+    test_level: "integration"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "semi-automated"
+    automation_framework: "pytest"
+    test_file_path: "tests/integration/test_llm_disambiguation.py"
+    created_by: "Quality Engineer"
+    created_date: "2026-03-01"
+
+  test_environment:
+    environment_type: "ci_cd"
+    prerequisites:
+      - "Python 3.12 installed with project dependencies"
+      - "LLM service endpoint configured (or mock available)"
+      - "Confidence threshold configuration accessible"
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: true
+
+  test_cases:
+    - case_id: "VT-004-TC-001"
+      case_name: "LLM called only below confidence threshold"
+      priority: "critical"
+      preconditions:
+        - "Confidence threshold set to 0.70"
+        - "Test entities with known confidence scores available"
+      test_steps:
+        - step_number: 1
+          action: "Submit an entity with confidence 0.85 (above threshold)"
+          expected_result: "LLM disambiguation is not invoked"
+          verification_method: "Assert no outbound call to the LLM service is recorded"
+        - step_number: 2
+          action: "Submit an entity with confidence 0.55 (below threshold)"
+          expected_result: "LLM disambiguation is invoked and returns a refined mapping"
+          verification_method: "Assert an outbound LLM call is recorded and a refined result is returned"
+      acceptance_criteria:
+        - "LLM is never called when confidence >= threshold"
+        - "LLM is always called when confidence < threshold"
+
+    - case_id: "VT-004-TC-002"
+      case_name: "Structured JSON output validated"
+      priority: "critical"
+      preconditions:
+        - "LLM service (or mock) returns structured JSON"
+      test_steps:
+        - step_number: 1
+          action: "Trigger LLM disambiguation for an ambiguous entity"
+          expected_result: "LLM returns a JSON object matching the expected schema"
+          verification_method: "Validate returned JSON against the disambiguation response schema"
+        - step_number: 2
+          action: "Trigger LLM disambiguation with an entity that produces malformed output from the LLM"
+          expected_result: "System detects the malformed response and raises a validation error"
+          verification_method: "Assert a schema validation error is logged and the entity is flagged for manual review"
+      acceptance_criteria:
+        - "Valid LLM responses pass schema validation"
+        - "Malformed LLM responses are caught and flagged"
+
+    - case_id: "VT-004-TC-003"
+      case_name: "Hard-fail on LLM unavailability"
+      priority: "critical"
+      preconditions:
+        - "LLM service endpoint is unreachable (simulated outage)"
+      test_steps:
+        - step_number: 1
+          action: "Submit an entity requiring disambiguation while LLM service is down"
+          expected_result: "System raises a service unavailability error and halts the disambiguation step"
+          verification_method: "Assert the error type is LLMServiceUnavailable and the entity is not silently skipped"
+        - step_number: 2
+          action: "Verify the pipeline does not proceed with an unresolved entity"
+          expected_result: "Entity remains in an unresolved state and is queued for retry"
+          verification_method: "Assert entity status is 'pending_disambiguation' in the output"
+      acceptance_criteria:
+        - "System does not silently skip disambiguation on LLM failure"
+        - "Error is logged with severity=critical"
+        - "Entity is queued for retry or manual review"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 90% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["test_report", "code_coverage"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-004/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history: []

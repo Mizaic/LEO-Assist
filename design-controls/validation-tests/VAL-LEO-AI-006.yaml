@@ -1,0 +1,159 @@
+# -- VAL-LEO-AI-006 -- Security and Access Control Validation
+# IEC 62304 Validation Test Protocol
+# Schema: design-controls/templates/validation_test_schema.yaml
+
+- id: "VAL-LEO-AI-006"
+  version: "1.0"
+  status: "draft"
+
+  traceability:
+    user_needs: ["UN-LEO-AI-013", "UN-LEO-AI-015", "UN-LEO-AI-021"]
+    design_inputs: ["DI-LEO-AI-020", "DI-LEO-AI-023", "DI-LEO-AI-030"]
+    risks: ["R-LEO-AI-008", "R-LEO-AI-010", "R-LEO-AI-024"]
+    verification_tests: ["VT-LEO-AI-012", "VT-LEO-AI-014", "VT-LEO-AI-019"]
+
+  metadata:
+    title: "Security and Access Control Validation"
+    validation_phase: "alpha"
+    test_type: "end_to_end"
+    automation_level: "semi-automated"
+    participants:
+      user_type: "internal_qa"
+      count: 3
+      selection_criteria: "QA engineers with experience in RBAC and multi-tenant systems"
+    created_by: "Quality Engineer"
+    created_date: "2026-03-01"
+
+  test_environment:
+    environment_name: "staging"
+    prerequisites:
+      - "All verification tests VT-LEO-AI-012, VT-LEO-AI-014, VT-LEO-AI-019 passed"
+      - "System deployed to staging with production-equivalent RBAC configuration"
+      - "At least two test organisations provisioned with separate data"
+      - "Test user accounts created for each role (builder, reviewer, admin)"
+    infrastructure: "Azure Container Apps staging environment with multi-tenant isolation"
+
+  user_scenarios:
+    - scenario_id: "SCENARIO-001"
+      scenario_name: "Role-based access -- builder cannot approve, reviewer cannot release"
+      user_role: "QA Engineer"
+      user_goal: "Confirm that role boundaries prevent users from performing actions outside their assigned role"
+      preconditions:
+        - "Builder account and reviewer account are provisioned in the same organisation"
+        - "A coding task exists in a state ready for approval"
+      steps:
+        - step_number: 1
+          action: "Log in as a builder and attempt to approve a coding task"
+          expected_result: "System denies the approval action and displays an access denied message"
+          success_criteria: "HTTP 403 returned; UI shows clear error explaining the role restriction"
+        - step_number: 2
+          action: "Log in as a reviewer and attempt to release a model version"
+          expected_result: "System denies the release action and displays an access denied message"
+          success_criteria: "HTTP 403 returned; UI shows clear error explaining the role restriction"
+        - step_number: 3
+          action: "Log in as an admin and perform both approval and release actions"
+          expected_result: "System allows both actions to complete successfully"
+          success_criteria: "Both actions return HTTP 200 and the records update correctly"
+      postconditions:
+        - "No role boundary was bypassed during testing"
+        - "Audit log records all access attempts including denied ones"
+      success_metrics:
+        - metric: "Access control enforcement rate"
+          target: "100%"
+          measurement_method: "Count of correctly enforced access decisions divided by total access attempts"
+      evidence_to_capture:
+        - "Screenshots of access denied responses"
+        - "Audit log entries for all access attempts"
+        - "API response codes and bodies"
+
+    - scenario_id: "SCENARIO-002"
+      scenario_name: "Multi-tenant isolation -- Organisation A user cannot see Organisation B data"
+      user_role: "QA Engineer"
+      user_goal: "Confirm that tenant boundaries prevent any cross-organisation data access"
+      preconditions:
+        - "Two test organisations (A and B) each have data loaded"
+        - "User accounts exist in each organisation"
+      steps:
+        - step_number: 1
+          action: "Log in as Organisation A user and list all available records"
+          expected_result: "Only Organisation A records appear in the results"
+          success_criteria: "Zero records from Organisation B are visible"
+        - step_number: 2
+          action: "Attempt to access a known Organisation B record by direct ID or URL"
+          expected_result: "System returns 403 or 404 without leaking Organisation B data"
+          success_criteria: "No Organisation B data appears in the response body"
+        - step_number: 3
+          action: "Log in as Organisation B user and repeat the same checks in reverse"
+          expected_result: "Only Organisation B records are visible; Organisation A data is inaccessible"
+          success_criteria: "Zero cross-tenant data exposure in either direction"
+      postconditions:
+        - "No cross-tenant data leakage detected"
+        - "Audit log confirms all cross-tenant access attempts were blocked"
+      success_metrics:
+        - metric: "Cross-tenant data exposure incidents"
+          target: "0"
+          measurement_method: "Count of records visible to a user outside their organisation"
+      evidence_to_capture:
+        - "API response payloads showing filtered results"
+        - "Screenshots of record lists per organisation"
+        - "Audit log entries for cross-tenant access attempts"
+
+    - scenario_id: "SCENARIO-003"
+      scenario_name: "Patient data separation -- Coding database contains no patient data"
+      user_role: "QA Engineer"
+      user_goal: "Confirm that the Coding database and model store contain no patient-identifiable information"
+      preconditions:
+        - "A full pipeline run has been completed with test patient data"
+        - "Coding database and model store are accessible for inspection"
+      steps:
+        - step_number: 1
+          action: "Query the Coding database for any fields that could contain patient identifiers (name, NHS number, date of birth, address)"
+          expected_result: "No patient-identifiable fields exist in any Coding database table or document"
+          success_criteria: "Zero patient identifiers found in schema or data"
+        - step_number: 2
+          action: "Inspect the model store for any training artifacts that embed patient data"
+          expected_result: "Model artifacts contain only anonymised or aggregated data"
+          success_criteria: "Zero patient identifiers found in model store artifacts"
+        - step_number: 3
+          action: "Review the pipeline logs to confirm patient data was stripped before reaching the Coding database"
+          expected_result: "Logs show de-identification step completed before data reached the Coding layer"
+          success_criteria: "De-identification step is logged and no patient data appears after that step"
+      postconditions:
+        - "Coding database confirmed free of patient-identifiable information"
+        - "Model store confirmed free of patient-identifiable information"
+      success_metrics:
+        - metric: "Patient data leakage incidents"
+          target: "0"
+          measurement_method: "Automated scan of Coding database and model store for known patient identifier patterns"
+      evidence_to_capture:
+        - "Database schema export showing no patient identifier fields"
+        - "Scan report from patient identifier detection tool"
+        - "Pipeline log excerpts showing de-identification step"
+
+  acceptance_criteria:
+    - criterion: "All access control tests pass"
+      target: "100% pass rate"
+      measurement_method: "Count of passed access control test cases divided by total cases"
+    - criterion: "Zero cross-tenant data exposure"
+      target: "0 incidents"
+      measurement_method: "Count of cross-tenant data leakage events detected during testing"
+    - criterion: "Zero patient data in Coding database"
+      target: "0 patient identifiers found"
+      measurement_method: "Automated scan of Coding database and model store for patient identifier patterns"
+
+  user_feedback:
+    feedback_methods: ["survey", "observation"]
+
+  evidence_bundle:
+    bundle_id: "VAL-006-EXEC-ALPHA-placeholder"
+    blob_path: "/evidence-bundles/LEO-AI/validation/VAL-LEO-AI-006/"
+    artifacts:
+      - type: "user_acceptance_results"
+        description: "Access control and tenant isolation test results with pass/fail per scenario"
+      - type: "audit_provenance_snapshot"
+        description: "Audit log snapshot showing access control enforcement decisions"
+      - type: "test_log_bundle"
+        description: "Patient data scan reports and pipeline de-identification logs"
+    immutability: true
+
+  execution_history: []

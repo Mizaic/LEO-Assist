@@ -1,0 +1,96 @@
+# -- UN-LEO-AI-006 -- Clinical Episode Building
+# IEC 62304 / ISO 13485 User Need
+# Schema: design-controls/templates/user_needs_schema.yaml
+
+- id: "UN-LEO-AI-006"
+  title: "System constructs structured clinical episodes linking encounters to milestones"
+  description: |
+    Clinical audit teams need the system to construct a ClinicalEpisode
+    for each distinct patient pathway, linking shortlisted encounters
+    to detected milestones and classifying the episode status as
+    confirmed, excluded, or inconclusive. Episode building uses
+    rule-based classification with LLM fallback for edge cases. Each
+    episode captures the complete timeline from first presentation
+    through treatment.
+
+  stakeholder:
+    type: "end_user"
+    role: "Clinical Audit Team Member"
+    organization: "NHS Primary Care Organisation"
+
+  priority: "MUST"
+
+  rationale: |
+    The clinical episode is the primary unit of analysis for pathway
+    audits. Without structured episodes, it is impossible to calculate
+    pathway durations, identify breaches, or compare performance across
+    organisations. Manual episode construction from raw encounter data
+    is the most time-consuming part of current audit processes.
+
+  benefit: "Automated construction of complete clinical episodes from raw encounter data, reducing assembly time from days to minutes"
+
+  use_case: |
+    1. Coded encounters, detected milestones, abnormal results, and
+       guideline alerts are available for a patient.
+    2. System groups related encounters into distinct clinical episodes
+       based on temporal proximity, shared SNOMED domains, and milestone
+       linkage.
+    3. System links each encounter to the relevant milestone within the
+       episode timeline.
+    4. System applies rule-based classification to determine episode
+       status (confirmed, excluded, inconclusive).
+    5. Ambiguous cases where rule-based classification has low confidence
+       are routed to LLM fallback for additional reasoning.
+    6. System generates a complete episode timeline with all linked
+       encounters, milestones, and metadata for review.
+
+  current_solution: "Manual assembly of patient timelines by auditors using spreadsheets, paper records, and clinical judgement"
+
+  pain_points:
+    - "Manual episode assembly takes days per patient"
+    - "Subjective grouping decisions"
+    - "Difficult to handle overlapping conditions"
+    - "No standardised approach across organisations"
+
+  acceptance_criteria:
+    - "System shall group related encounters into distinct clinical episodes"
+    - "System shall link encounters to milestones within each episode"
+    - "System shall classify episode status (confirmed, excluded, inconclusive)"
+    - "System shall use rule-based classification with LLM fallback for ambiguous cases"
+    - "System shall achieve episode classification accuracy >=85% against expert consensus"
+    - "System shall generate a complete timeline for each episode"
+
+  success_metrics:
+    - metric: "Episode classification accuracy"
+      target: ">=85% against expert consensus"
+      baseline: "Manual review: variable, estimated 75-80%"
+    - metric: "Episode assembly time per patient"
+      target: "<=30 seconds"
+      baseline: "Manual assembly: 1-3 days per patient"
+    - metric: "Expert agreement rate"
+      target: ">=80%"
+      baseline: "Inter-auditor agreement: estimated 70-75%"
+
+  regulatory_impact: "medium"
+  safety_impact: "medium"
+
+  derived_from:
+    - "Intended Use Statement DC-IU-001 Section 2.1.6"
+    - "NHS NCDA programme requirements"
+    - "NHS Cancer Waiting Times standards"
+
+  related_standards:
+    - "IEC 62304:2006"
+    - "ISO 13485:2016"
+    - "NHS Cancer Waiting Times guidance"
+    - "DCB0129 - Clinical Risk Management"
+
+  metadata:
+    created_by: "Quality Engineering"
+    created_date: "2026-03-01"
+    status: "draft"
+
+  design_inputs: []
+  validation_tests: []
+
+  tags: ["episode-building", "clinical-episode", "core-capability", "pipeline"]

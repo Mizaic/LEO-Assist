@@ -1,0 +1,85 @@
+# -- DO-LEO-AI-003 -- SNOMED CT Resolution Service
+# ISO 13485 / IEC 62304 Design Output
+# Schema: design-controls/templates/design_outputs_schema.yaml
+
+- id: "DO-LEO-AI-003"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-004"]
+    user_needs: ["UN-LEO-AI-002", "UN-LEO-AI-023"]
+    risks_addressed: ["R-LEO-AI-004", "R-LEO-AI-005", "R-LEO-AI-019"]
+    verification_tests: ["VT-LEO-AI-003"]
+    validation_tests: []
+
+  specification:
+    title: "SNOMED CT Resolution Service"
+    description: |
+      Resolves extracted clinical entities to SNOMED CT concept codes using
+      the terminology API. Performs candidate lookup, semantic ranking, and
+      concept validation against the SNOMED hierarchy. Returns ranked
+      candidate lists with confidence scores for human review.
+    purpose: "Map free-text clinical entities to standardised SNOMED CT codes with high accuracy and full traceability"
+    technical_approach: "Terminology graph queries against Neo4j-hosted SNOMED ontology with semantic similarity ranking and hierarchy validation"
+    acceptance_criteria:
+      - criterion: "Coding accuracy meets threshold on gold-standard data"
+        type: "functional"
+        measurement: "Precision and recall against gold-standard coded dataset"
+        target: ">= 0.90 precision, >= 0.85 recall"
+      - criterion: "All resolved codes are valid SNOMED CT concepts"
+        type: "functional"
+        measurement: "Validation against SNOMED release"
+        target: "0 invalid concept IDs"
+      - criterion: "Resolution latency within limit"
+        type: "performance"
+        measurement: "Wall-clock timing per entity batch"
+        target: "<= 500ms per entity"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/terminology_api/app/services/coding_resolver.py"
+        description: "Core resolver that maps entities to SNOMED CT candidates"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/terminology_api/app/queries/terminology.py"
+        description: "Neo4j Cypher queries for terminology graph lookups"
+        storage_location: "git"
+    technical_details:
+      language: ["Python 3.11"]
+      framework: ["FastAPI"]
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions: ["Concept code validation", "Candidate ranking accuracy"]
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false
+
+  production_information:
+    deployment_instructions: "Deployed as part of the terminology-api container via Azure Container Apps"
+
+  documentation:
+    design_documentation: []
+    inline_documentation:
+      follows_standards: true
+
+  approval:
+    created_by: "Engineering Team"
+    created_date: "2026-03-01"
+
+  version_history:
+    - version: "1.0.0"
+      date: "2026-03-01"
+      changes: "Initial creation"
+      reason: "Implement DI-LEO-AI-004"
+      author: "Engineering Team"
+      approval_status: "draft"
+
+  metadata:
+    tags: ["snomed", "terminology", "coding", "resolution"]
+    priority: "high"
+    complexity: "complex"

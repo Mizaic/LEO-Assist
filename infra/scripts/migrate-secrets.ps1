@@ -1,0 +1,103 @@
+# -- LEO AI Core - Secret Migration Script ---------------------------------
+# Reads secrets from a .env file and pushes them to the environment Key Vault.
+# Safe to re-run: only overwrites if the value has changed.
+#
+# Usage:
+#   .\infra\scripts\migrate-secrets.ps1 -Environment dev
+#   .\infra\scripts\migrate-secrets.ps1 -Environment dev -SourceFile secrets\.env
+#   .\infra\scripts\migrate-secrets.ps1 -Environment dev -WhatIf
+#
+# Requires: az CLI logged in with Key Vault Secrets Officer on leoai-{env}-kv
+param(
+    [Parameter(Mandatory)]
+    [ValidateSet('dev', 'val', 'prod')]
+    [string]$Environment,
+
+    [string]$SourceFile = 'secrets\.env',
+    [switch]$WhatIf
+)
+
+Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
+
+$KvName = "leoai-$Environment-kv"
+
+# -- Secret name mapping: KV secret name -> env var in source file ---------
+$SecretMap = [ordered]@{
+    'neo4j-patient-uri'       = 'NEO4J_URI'
+    'neo4j-patient-password'  = 'NEO4J_PASSWORD'
+    'neo4j-knowledge-uri'     = 'KNOWLEDGE_GRAPH_NEO4J_URI'
+    'neo4j-knowledge-password'= 'KNOWLEDGE_GRAPH_NEO4J_PASSWORD'
+    'aws-access-key-id'       = 'AWS_ACCESS_KEY_ID'
+    'aws-secret-access-key'   = 'AWS_SECRET_ACCESS_KEY'
+    'azure-ad-client-id'      = 'AZURE_AD_CLIENT_ID'
+    'service-auth-secret'     = 'SERVICE_AUTH_SECRET'
+    'redis-url'               = 'REDIS_URL'
+    'azure-openai-api-key'    = 'AZURE_OPENAI_API_KEY'
+}
+
+# -- Parse source .env file ------------------------------------------------
+if (-not (Test-Path $SourceFile)) {
+    Write-Error "Source file not found: $SourceFile"
+    exit 1
+}
+
+$EnvVars = @{}
+foreach ($line in Get-Content $SourceFile) {
+    $trimmed = $line.Trim()
+    if ($trimmed -eq '' -or $trimmed.StartsWith('#')) { continue }
+    $eq = $trimmed.IndexOf('=')
+    if ($eq -lt 1) { continue }
+    $key = $trimmed.Substring(0, $eq).Trim()
+    $val = $trimmed.Substring($eq + 1).Trim()
+    $val = $val -replace '\s*#.*$', ''
+    if ($val.StartsWith('"') -and $val.EndsWith('"')) { $val = $val.Substring(1, $val.Length - 2) }
+    if ($val.StartsWith("'") -and $val.EndsWith("'")) { $val = $val.Substring(1, $val.Length - 2) }
+    $EnvVars[$key] = $val
+}
+
+# -- If SERVICE_AUTH_SECRET not in source file, generate one ---------------
+if (-not $EnvVars.ContainsKey('SERVICE_AUTH_SECRET') -or $EnvVars['SERVICE_AUTH_SECRET'] -eq '') {
+    Write-Host "SERVICE_AUTH_SECRET not found in source file -- generating a new one."
+    $rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+    $bytes = New-Object byte[] 32
+    $rng.GetBytes($bytes)
+    $EnvVars['SERVICE_AUTH_SECRET'] = [System.BitConverter]::ToString($bytes).Replace('-', '').ToLower()
+}
+
+# -- Push secrets to Key Vault ---------------------------------------------
+$success = 0; $skipped = 0; $errors = 0
+
+foreach ($kvName2 in $SecretMap.Keys) {
+    $envVar = $SecretMap[$kvName2]
+    $value = $EnvVars[$envVar]
+
+    if ([string]::IsNullOrWhiteSpace($value)) {
+        Write-Host "  SKIP  $kvName2 ($envVar is blank)"
+        $skipped++
+        continue
+    }
+
+    if ($WhatIf) {
+        Write-Host "  WOULD SET  $kvName2 (from $envVar)"
+        $success++
+        continue
+    }
+
+    try {
+        az keyvault secret set `
+            --vault-name $KvName `
+            --name $kvName2 `
+            --value $value `
+            --output none
+        Write-Host "  OK    $kvName2"
+        $success++
+    } catch {
+        Write-Warning "  ERROR $kvName2 : $_"
+        $errors++
+    }
+}
+
+Write-Host ""
+Write-Host "Done: $success set, $skipped skipped, $errors errors."
+if ($errors -gt 0) { exit 1 }

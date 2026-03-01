@@ -1,0 +1,66 @@
+# -- R-LEO-AI-008 -- Patient Data in Coding Graph
+# ISO 14971 / IEC 62304 Risk
+# Schema: design-controls/templates/risks_schema.yaml
+
+- id: "R-LEO-AI-008"
+  title: "Patient-identifiable data inadvertently stored in the Coding terminology database"
+
+  hazard:
+    description: "Developer error or application bug causes patient-identifiable data to be written to the Coding Neo4j database"
+    category: "data_corruption"
+
+  hazardous_situation: "Patient-identifiable clinical data is stored in the Coding database, which has broader access controls than the Patient database, potentially exposing patient data to users or systems that should not have access"
+
+  harm:
+    description: "Patient data breach affecting confidentiality; regulatory violation under UK GDPR and NHS information governance requirements"
+    severity: "critical"
+
+  initial_risk_estimate:
+    severity: 4
+    probability: 2
+    detectability: 2
+    rpn: 16
+    risk_level: "high"
+
+  mitigation_measures:
+    - control_type: "inherent_safety"
+      description: "Architectural separation: Patient and Coding databases are physically separate Neo4j instances with independent connection strings"
+      implemented_by: []
+      verified_by: []
+      effectiveness: "highly_effective"
+    - control_type: "protective_measure"
+      description: "Schema constraints prevent patient-identifiable node types in Coding database"
+      implemented_by: []
+      verified_by: []
+      effectiveness: "effective"
+    - control_type: "protective_measure"
+      description: "Code review and unit tests verify no patient data crosses the database boundary"
+      implemented_by: []
+      verified_by: []
+      effectiveness: "effective"
+    - control_type: "procedural_control"
+      description: "Periodic audit of Coding database contents for patient data presence"
+      implemented_by: []
+      verified_by: []
+      effectiveness: "effective"
+
+  residual_risk_estimate:
+    severity: 4
+    probability: 1
+    detectability: 1
+    rpn: 4
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: "Architectural separation provides inherent safety -- patient data and coding data use physically separate databases with independent connections. Schema constraints, code review, unit tests, and periodic audits provide defence in depth. Probability reduced to improbable through multiple independent controls."
+
+  monitoring:
+    monitoring_plan: "Periodic automated scan of Coding database for patient data patterns"
+    metrics: ["Coding database patient data scan results", "Schema constraint violation count"]
+    review_frequency: "Monthly"
+
+  metadata:
+    identified_by: "Risk Management Team"
+    identified_date: "2026-03-01"
+    status: "analyzed"
+
+  tags: ["data-governance", "patient-safety", "gdpr", "neo4j"]

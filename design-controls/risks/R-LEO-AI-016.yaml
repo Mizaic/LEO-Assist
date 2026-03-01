@@ -1,0 +1,56 @@
+# -- R-LEO-AI-016 -- Incorrect LLM Cost Tracking
+# ISO 14971 / IEC 62304 Risk
+# Schema: design-controls/templates/risks_schema.yaml
+
+- id: "R-LEO-AI-016"
+  title: "LLM token usage or pricing miscalculated leading to unexpected costs"
+
+  hazard:
+    description: "Token counting or pricing calculation contains errors"
+    category: "software_defect"
+
+  hazardous_situation: "LLM cost tracking reports incorrect values, leading to budget overruns or incorrect cost attribution"
+
+  harm:
+    description: "Financial impact from unexpected costs; no clinical or patient safety impact"
+    severity: "negligible"
+
+  initial_risk_estimate:
+    severity: 1
+    probability: 2
+    detectability: 2
+    rpn: 4
+    risk_level: "low"
+
+  mitigation_measures:
+    - control_type: "protective_measure"
+      description: "Cost configuration externalised in environment variables for easy correction"
+      implemented_by: []
+      verified_by: []
+      effectiveness: "effective"
+    - control_type: "protective_measure"
+      description: "Unit tests verify cost calculation logic"
+      implemented_by: []
+      verified_by: []
+      effectiveness: "effective"
+
+  residual_risk_estimate:
+    severity: 1
+    probability: 1
+    detectability: 2
+    rpn: 2
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: "Externalised configuration enables rapid correction; unit tests catch calculation errors; no clinical impact limits severity to financial only"
+
+  monitoring:
+    monitoring_plan: "Compare tracked costs against actual LLM provider invoices"
+    metrics: ["Actual vs predicted LLM costs", "Token count accuracy"]
+    review_frequency: "Monthly"
+
+  metadata:
+    identified_by: "Risk Management Team"
+    identified_date: "2026-03-01"
+    status: "analyzed"
+
+  tags: ["operational", "cost-tracking", "llm"]

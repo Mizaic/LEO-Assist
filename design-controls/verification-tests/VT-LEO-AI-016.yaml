@@ -1,0 +1,145 @@
+# -- VT-LEO-AI-016 -- Terminology Service Verification
+# IEC 62304 Verification Test Protocol
+# Schema: design-controls/templates/verification_test_schema.yaml
+
+- id: "VT-LEO-AI-016"
+  version: "1.0"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-033", "DI-LEO-AI-034", "DI-LEO-AI-035"]
+    risks: ["R-LEO-AI-005", "R-LEO-AI-019"]
+    user_needs: ["UN-LEO-AI-023"]
+
+  metadata:
+    title: "Terminology Service Verification"
+    description: "Verifies that the terminology API supports hybrid search for SNOMED concepts, value set and concept map CRUD operations, and writeback of SurfaceForm mappings."
+    test_level: "integration"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    created_by: "Quality Engineer"
+    created_date: "2026-03-01"
+
+  test_environment:
+    environment_type: "ci_cd"
+    prerequisites:
+      - "Terminology API service running"
+      - "Neo4j Coding graph seeded with SNOMED CT subset"
+      - "Vector embeddings generated for concept descriptions"
+      - "Redis cache available"
+    test_data:
+      data_type: "fixture"
+      cleanup_required: true
+
+  test_cases:
+    - case_id: "VT-016-TC-001"
+      case_name: "Hybrid search returns relevant concepts"
+      priority: "critical"
+      preconditions:
+        - "SNOMED CT concepts are loaded in the Coding graph"
+        - "Vector index is built and available"
+      test_steps:
+        - step_number: 1
+          action: "Search for 'high blood pressure' using the hybrid search endpoint"
+          expected_result: "Results include SNOMED concept 38341003 (Hypertensive disorder)"
+          verification_method: "Assert the expected concept ID appears in the top 5 results"
+        - step_number: 2
+          action: "Search for 'diabetes' using the hybrid search endpoint"
+          expected_result: "Results include SNOMED concept 73211009 (Diabetes mellitus)"
+          verification_method: "Assert the expected concept ID appears in the top 5 results"
+        - step_number: 3
+          action: "Search for a nonsense string 'xyzzy12345'"
+          expected_result: "Results are empty or contain only low-confidence matches"
+          verification_method: "Assert results are empty or all confidence scores are below threshold"
+      acceptance_criteria:
+        - "Known clinical terms return the correct SNOMED concept in the top 5"
+        - "Nonsense queries do not return high-confidence results"
+        - "Search response time is under 2 seconds"
+
+    - case_id: "VT-016-TC-002"
+      case_name: "Value set CRUD operations"
+      priority: "high"
+      preconditions:
+        - "Terminology API is running"
+        - "No pre-existing test value sets"
+      test_steps:
+        - step_number: 1
+          action: "POST a new value set with a list of SNOMED concept IDs"
+          expected_result: "HTTP 201 Created returned with value set ID"
+          verification_method: "Assert status code is 201 and response contains the value set ID"
+        - step_number: 2
+          action: "GET the created value set by ID"
+          expected_result: "Value set returned with all included concepts"
+          verification_method: "Assert returned concept list matches the submitted list"
+        - step_number: 3
+          action: "PUT an updated value set with an additional concept"
+          expected_result: "HTTP 200 OK returned with updated concept list"
+          verification_method: "Assert the additional concept is present in the response"
+        - step_number: 4
+          action: "DELETE the value set"
+          expected_result: "HTTP 204 No Content returned"
+          verification_method: "Assert status code is 204 and subsequent GET returns 404"
+      acceptance_criteria:
+        - "Value sets support full CRUD lifecycle"
+        - "Concept membership is accurately maintained"
+
+    - case_id: "VT-016-TC-003"
+      case_name: "Concept map CRUD operations"
+      priority: "high"
+      preconditions:
+        - "Terminology API is running"
+        - "Source and target code systems are available"
+      test_steps:
+        - step_number: 1
+          action: "POST a new concept map with source-to-target mappings"
+          expected_result: "HTTP 201 Created returned"
+          verification_method: "Assert status code is 201"
+        - step_number: 2
+          action: "GET the concept map by ID and verify mappings"
+          expected_result: "All source-to-target mappings are returned"
+          verification_method: "Assert each submitted mapping is present in the response"
+        - step_number: 3
+          action: "Translate a source concept using the concept map"
+          expected_result: "Correct target concept returned"
+          verification_method: "Assert translated concept matches the expected target"
+      acceptance_criteria:
+        - "Concept maps store and retrieve mappings accurately"
+        - "Translate operation returns the correct target concept"
+
+    - case_id: "VT-016-TC-004"
+      case_name: "Writeback stores SurfaceForm mappings"
+      priority: "critical"
+      preconditions:
+        - "Terminology API writeback endpoint is available"
+        - "A clinician has reviewed and approved a coding suggestion"
+      test_steps:
+        - step_number: 1
+          action: "POST a writeback request with a SurfaceForm, the approved SNOMED code, and provenance metadata"
+          expected_result: "HTTP 201 Created returned"
+          verification_method: "Assert status code is 201"
+        - step_number: 2
+          action: "Query the Coding graph for the SurfaceForm mapping"
+          expected_result: "SurfaceForm node linked to the correct SNOMED concept with provenance"
+          verification_method: "Assert the SurfaceForm-to-concept relationship exists with correct provenance fields"
+        - step_number: 3
+          action: "Perform a hybrid search using the same surface form text"
+          expected_result: "The approved SNOMED concept is boosted in search results"
+          verification_method: "Assert the approved concept appears higher in results than before writeback"
+      acceptance_criteria:
+        - "SurfaceForm mappings are persisted in the Coding graph"
+        - "Provenance metadata is stored with the mapping"
+        - "Writeback improves future search relevance for the same surface form"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 95% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["test_report", "code_coverage"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-016/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history: []

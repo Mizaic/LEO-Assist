@@ -1,0 +1,61 @@
+# -- R-LEO-AI-021 -- Incorrect Milestone Detection
+# ISO 14971 / IEC 62304 Risk
+# Schema: design-controls/templates/risks_schema.yaml
+
+- id: "R-LEO-AI-021"
+  title: "Incorrect milestone detection leads to wrong pathway duration calculations"
+
+  hazard:
+    description: "Anchor detection algorithm assigns wrong dates to clinical milestones or misidentifies milestone type"
+    category: "software_defect"
+
+  hazardous_situation: "Incorrect milestone dates cause pathway duration calculations to show false breaches or mask real breaches of national waiting time targets"
+
+  harm:
+    description: "Inaccurate pathway metrics could misdirect quality improvement or mask genuine performance issues at population level"
+    severity: "serious"
+
+  initial_risk_estimate:
+    severity: 3
+    probability: 3
+    detectability: 2
+    rpn: 18
+    risk_level: "medium"
+
+  mitigation_measures:
+    - control_type: "protective_measure"
+      description: "Human review of milestone assignments before episode finalisation"
+      implemented_by: []
+      verified_by: []
+      effectiveness: "highly_effective"
+    - control_type: "protective_measure"
+      description: "Milestone detection accuracy validated against gold-standard data with threshold >= 0.90"
+      implemented_by: []
+      verified_by: []
+      effectiveness: "highly_effective"
+    - control_type: "protective_measure"
+      description: "Quality validation step detects temporal anomalies in milestone sequences"
+      implemented_by: []
+      verified_by: []
+      effectiveness: "effective"
+
+  residual_risk_estimate:
+    severity: 3
+    probability: 1
+    detectability: 1
+    rpn: 3
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: "Human review gate, gold-standard validation, and temporal anomaly detection provide three independent layers of control. Probability of undetected systematic milestone errors reduced to improbable."
+
+  monitoring:
+    monitoring_plan: "Track milestone detection accuracy, temporal anomaly rates, and duration calculation verification"
+    metrics: ["Milestone detection accuracy", "Temporal anomaly detection rate", "Duration calculation verification rate"]
+    review_frequency: "Monthly"
+
+  metadata:
+    identified_by: "Risk Management Team"
+    identified_date: "2026-03-01"
+    status: "analyzed"
+
+  tags: ["clinical-risk", "milestone-detection", "pathway-metrics"]

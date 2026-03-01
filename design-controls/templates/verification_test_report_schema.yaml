@@ -1,0 +1,1042 @@
+# ============================================================================
+# VERIFICATION TEST REPORT SCHEMA - IEC 62304 / FDA 21 CFR Part 820 Compliant
+# ============================================================================
+# This schema defines the structure for verification test execution reports
+# that document the RESULTS of executing verification test protocols.
+#
+# KEY DISTINCTION:
+# - Verification Test Protocol: "What to test and how" (PLAN)
+# - Verification Test Report: "What was tested and what happened" (RESULTS)
+#
+# Regulatory References:
+# - ISO 13485:2016 Section 7.3.6 (Design and Development Verification)
+#   "Records of verification results and necessary actions shall be maintained"
+# - FDA 21 CFR Part 820.30(e) (Design Verification)
+#   "Design verification results shall be documented in the DHF"
+# - FDA 21 CFR Part 11 (Electronic Records)
+#   "Electronic records shall be signed and include date/time stamps"
+# - IEC 62304:2006 Section 5.5, 5.6, 5.7 (Verification evidence)
+#
+# Version: 1.0
+# Created: 2025-11-10
+# Owner: Quality & Engineering
+# ============================================================================
+
+meta:
+  schema_version: "1.0"
+  schema_name: "Verification Test Report Schema"
+  purpose: "Define machine-readable structure for verification test execution results"
+  intended_use: "All verification test report documents recording test execution"
+  regulatory_compliance:
+    - "ISO 13485:2016 Section 7.3.6 - Verification Records"
+    - "FDA 21 CFR Part 820.30(e) - Design Verification Documentation"
+    - "FDA 21 CFR Part 11 - Electronic Records and Signatures"
+    - "IEC 62304:2006 - Verification Evidence Requirements"
+  change_history:
+    - version: "1.0"
+      date: "2025-11-10"
+      change: "Initial schema creation - addresses critical gap in test documentation"
+      author: "Quality Engineering"
+
+# ============================================================================
+# REGULATORY CONTEXT
+# ============================================================================
+
+regulatory_context:
+  iso_13485_7_3_6:
+    requirement: "Records of the results of the verification and any necessary actions shall be maintained"
+    schema_implementation: "Complete test execution records with results, deviations, and corrective actions"
+    
+  fda_21_cfr_820_30_e:
+    requirement: "The results of the design verification, including identification of the design, method(s), the date, and the individual(s) performing the verification, shall be documented in the DHF"
+    schema_implementation: "Report includes design identification, methods used, execution date/time, and tester identification"
+    
+  fda_21_cfr_part_11:
+    electronic_records: "Electronic records must be accurate, accessible, indelible, and include audit trail"
+    electronic_signatures: "Electronic signatures must be unique, verified, and include date/time stamp"
+    schema_implementation: "Immutable evidence bundles with cryptographic signatures and audit trails"
+    
+  iec_62304:
+    section_5_5: "Results of unit verification shall be documented"
+    section_5_6: "Results of integration testing shall be documented"
+    section_5_7: "Results of system testing shall be documented"
+    schema_implementation: "Comprehensive test results with traceability to test protocols"
+
+# ============================================================================
+# SCHEMA DEFINITION
+# ============================================================================
+
+schema:
+  verification_test_report:
+    description: "Complete record of verification test execution"
+    required: true
+    fields:
+      
+      # --- IDENTIFICATION ---
+      id:
+        type: string
+        required: true
+        format: "VTR-{PROJECT}-###-EXEC-{execution_number}"
+        description: "Unique verification test report identifier"
+        example: "VTR-PLATFORM-001-EXEC-001"
+        pattern: "^VTR-[A-Z]+-\\d{3}-EXEC-\\d{3}$"
+        note: "Links report to protocol (VT-XXX) with execution sequence"
+        
+      protocol_id:
+        type: string
+        required: true
+        format: "VT-{PROJECT}-###"
+        description: "Verification test protocol that was executed"
+        example: "VT-PLATFORM-001"
+        
+      protocol_version:
+        type: string
+        required: true
+        format: "semantic versioning (major.minor)"
+        description: "Version of protocol that was executed"
+        example: "1.0"
+        
+      report_version:
+        type: string
+        required: true
+        format: "major.minor"
+        description: "Version of this report (if amended)"
+        example: "1.0"
+        
+      status:
+        type: enum
+        required: true
+        values: ["in_progress", "completed", "approved", "rejected", "superseded"]
+        description: "Current status of test report"
+        
+      # --- EXECUTION METADATA ---
+      execution_metadata:
+        type: object
+        required: true
+        description: "Who, what, when, where of test execution (FDA 21 CFR Part 11 requirement)"
+        fields:
+          execution_date:
+            type: datetime
+            required: true
+            format: "ISO 8601 (YYYY-MM-DDTHH:MM:SSZ)"
+            description: "When test execution started"
+            
+          completion_date:
+            type: datetime
+            required: true
+            format: "ISO 8601 (YYYY-MM-DDTHH:MM:SSZ)"
+            description: "When test execution completed"
+            
+          duration:
+            type: string
+            required: true
+            description: "Total execution duration"
+            example: "2h 15m 30s"
+            
+          executed_by:
+            type: object
+            required: true
+            description: "Person(s) who executed the test"
+            fields:
+              name:
+                type: string
+                required: true
+                description: "Full name of tester"
+              role:
+                type: string
+                required: true
+                description: "Role of tester"
+                example: "Quality Engineer, Senior Developer"
+              user_id:
+                type: string
+                required: true
+                description: "Unique user identifier"
+              signature:
+                type: string
+                required: false
+                description: "Electronic signature (21 CFR Part 11)"
+              signature_date:
+                type: datetime
+                required: false
+                format: "ISO 8601"
+                
+          witnessed_by:
+            type: array
+            required: false
+            item_type: object
+            description: "Witness(es) for critical tests"
+            fields:
+              name:
+                type: string
+                required: true
+              role:
+                type: string
+                required: true
+              signature:
+                type: string
+                required: false
+              signature_date:
+                type: datetime
+                required: false
+                
+          environment:
+            type: object
+            required: true
+            description: "Test environment details"
+            fields:
+              environment_name:
+                type: enum
+                required: true
+                values: ["Development", "Staging", "Production-Like", "Production"]
+              infrastructure:
+                type: string
+                required: true
+                description: "Infrastructure details"
+                example: "Azure AKS staging cluster"
+              software_versions:
+                type: array
+                required: true
+                item_type: object
+                description: "Software under test and dependencies"
+                fields:
+                  component:
+                    type: string
+                    required: true
+                  version:
+                    type: string
+                    required: true
+                  git_commit:
+                    type: string
+                    required: false
+                    description: "Git commit hash"
+              configuration:
+                type: string
+                required: false
+                description: "Configuration snapshot or reference"
+                
+      # --- TRACEABILITY ---
+      traceability:
+        type: object
+        required: true
+        description: "Links to design controls and previous executions"
+        fields:
+          design_inputs:
+            type: array
+            required: true
+            item_type: string
+            format: "DI-{PROJECT}-###"
+            min_items: 1
+            description: "Design Inputs verified by this test"
+            
+          design_outputs:
+            type: array
+            required: true
+            item_type: string
+            format: "DO-{PROJECT}-###"
+            min_items: 1
+            description: "Design Outputs verified by this test"
+            
+          user_needs:
+            type: array
+            required: true
+            item_type: string
+            format: "UN-{PROJECT}-###"
+            min_items: 1
+            description: "User Needs traced through Design Inputs"
+            
+          risks:
+            type: array
+            required: false
+            item_type: string
+            format: "R-{PROJECT}-###"
+            description: "Risks whose controls were verified"
+            
+          previous_executions:
+            type: array
+            required: false
+            item_type: string
+            format: "VTR-{PROJECT}-###-EXEC-###"
+            description: "Previous execution reports for comparison"
+            
+          related_reports:
+            type: array
+            required: false
+            item_type: string
+            description: "Related test reports (dependencies)"
+            
+      # --- TEST RESULTS ---
+      test_results:
+        type: object
+        required: true
+        description: "Overall test execution results"
+        fields:
+          overall_result:
+            type: enum
+            required: true
+            values: ["Pass", "Pass with Deviations", "Fail", "Blocked", "Inconclusive"]
+            description: "Overall test verdict"
+            
+          pass_count:
+            type: integer
+            required: true
+            description: "Number of test steps/cases that passed"
+            
+          fail_count:
+            type: integer
+            required: true
+            description: "Number of test steps/cases that failed"
+            
+          blocked_count:
+            type: integer
+            required: false
+            description: "Number of test steps/cases blocked"
+            
+          skipped_count:
+            type: integer
+            required: false
+            description: "Number of test steps/cases skipped"
+            
+          pass_percentage:
+            type: number
+            required: true
+            description: "Pass rate percentage"
+            calculation: "(pass_count / total_count) * 100"
+            
+          acceptance_criteria_met:
+            type: boolean
+            required: true
+            description: "Whether acceptance criteria from protocol were met"
+            
+      # --- DETAILED STEP RESULTS ---
+      step_results:
+        type: array
+        required: true
+        item_type: object
+        min_items: 1
+        description: "Results for each test procedure step from protocol"
+        fields:
+          step_number:
+            type: integer
+            required: true
+            description: "Step number from protocol"
+            
+          instruction:
+            type: string
+            required: true
+            description: "Test instruction from protocol"
+            
+          expected_result:
+            type: string
+            required: true
+            description: "Expected result from protocol"
+            
+          actual_result:
+            type: string
+            required: true
+            description: "Actual observed result"
+            
+          result:
+            type: enum
+            required: true
+            values: ["Pass", "Fail", "Blocked", "Skipped", "N/A"]
+            description: "Step result verdict"
+            
+          execution_timestamp:
+            type: datetime
+            required: true
+            format: "ISO 8601"
+            description: "When this step was executed"
+            
+          measurements:
+            type: array
+            required: false
+            item_type: object
+            description: "Quantitative measurements taken"
+            fields:
+              metric:
+                type: string
+                required: true
+              value:
+                type: string
+                required: true
+              unit:
+                type: string
+                required: false
+              target:
+                type: string
+                required: false
+              pass:
+                type: boolean
+                required: true
+                
+          screenshots:
+            type: array
+            required: false
+            item_type: string
+            description: "Screenshot URIs for this step"
+            
+          logs:
+            type: array
+            required: false
+            item_type: string
+            description: "Log file URIs for this step"
+            
+          evidence_artifacts:
+            type: array
+            required: false
+            item_type: string
+            description: "Evidence artifact URIs for this step"
+            
+          notes:
+            type: string
+            required: false
+            max_length: 2000
+            description: "Additional notes or observations"
+            
+          deviation:
+            type: object
+            required: false
+            description: "Deviation from expected result (if any)"
+            fields:
+              deviation_id:
+                type: string
+                required: true
+                description: "Unique deviation identifier"
+              description:
+                type: string
+                required: true
+                description: "Description of deviation"
+              impact_assessment:
+                type: string
+                required: true
+                description: "Assessment of impact"
+              justification:
+                type: string
+                required: false
+                description: "Justification if deviation accepted"
+                
+      # --- ACCEPTANCE CRITERIA RESULTS ---
+      acceptance_criteria_results:
+        type: array
+        required: true
+        item_type: object
+        min_items: 1
+        description: "Results for each acceptance criterion from protocol"
+        fields:
+          criterion:
+            type: string
+            required: true
+            description: "Acceptance criterion from protocol"
+            
+          threshold:
+            type: string
+            required: true
+            description: "Threshold from protocol"
+            
+          actual_value:
+            type: string
+            required: true
+            description: "Actual measured value"
+            
+          met:
+            type: boolean
+            required: true
+            description: "Whether criterion was met"
+            
+          evidence:
+            type: string
+            required: true
+            description: "Evidence supporting result"
+            
+      # --- CODE COVERAGE (for software tests) ---
+      code_coverage:
+        type: object
+        required: false
+        description: "Code coverage metrics (for automated software tests)"
+        fields:
+          line_coverage:
+            type: number
+            required: true
+            description: "Line coverage percentage"
+            
+          branch_coverage:
+            type: number
+            required: false
+            description: "Branch coverage percentage"
+            
+          function_coverage:
+            type: number
+            required: false
+            description: "Function coverage percentage"
+            
+          target_line_coverage:
+            type: number
+            required: true
+            description: "Target line coverage"
+            default: 80.0
+            
+          target_branch_coverage:
+            type: number
+            required: false
+            description: "Target branch coverage"
+            default: 70.0
+            
+          meets_target:
+            type: boolean
+            required: true
+            description: "Whether coverage meets targets"
+            
+          coverage_report_uri:
+            type: string
+            required: false
+            description: "URI to detailed coverage report"
+            
+      # --- DEFECTS FOUND ---
+      defects:
+        type: array
+        required: false
+        item_type: object
+        description: "Defects discovered during test execution"
+        fields:
+          defect_id:
+            type: string
+            required: true
+            description: "Unique defect identifier"
+            example: "BUG-001"
+            
+          severity:
+            type: enum
+            required: true
+            values: ["critical", "major", "minor", "trivial"]
+            description: "Defect severity"
+            
+          title:
+            type: string
+            required: true
+            description: "Brief defect description"
+            
+          description:
+            type: string
+            required: true
+            description: "Detailed defect description"
+            
+          steps_to_reproduce:
+            type: array
+            required: true
+            item_type: string
+            description: "Steps to reproduce the defect"
+            
+          expected_behavior:
+            type: string
+            required: true
+            description: "Expected behavior"
+            
+          actual_behavior:
+            type: string
+            required: true
+            description: "Actual observed behavior"
+            
+          test_step_number:
+            type: integer
+            required: false
+            description: "Test step where defect was found"
+            
+          evidence_artifacts:
+            type: array
+            required: false
+            item_type: string
+            description: "Evidence URIs (screenshots, logs)"
+            
+          status:
+            type: enum
+            required: true
+            values: ["open", "in_progress", "resolved", "verified", "closed", "deferred"]
+            
+          assigned_to:
+            type: string
+            required: false
+            description: "Person assigned to fix"
+            
+          resolution:
+            type: string
+            required: false
+            description: "How defect was resolved"
+            
+      # --- DEVIATIONS ---
+      deviations:
+        type: array
+        required: false
+        item_type: object
+        description: "Deviations from test protocol"
+        fields:
+          deviation_id:
+            type: string
+            required: true
+            description: "Unique deviation identifier"
+            example: "DEV-001"
+            
+          type:
+            type: enum
+            required: true
+            values: ["procedure", "environment", "timing", "personnel", "equipment"]
+            description: "Type of deviation"
+            
+          description:
+            type: string
+            required: true
+            description: "Description of deviation from protocol"
+            
+          reason:
+            type: string
+            required: true
+            description: "Why deviation occurred"
+            
+          impact_assessment:
+            type: string
+            required: true
+            description: "Assessment of impact on test validity"
+            
+          impact_level:
+            type: enum
+            required: true
+            values: ["none", "minor", "moderate", "major"]
+            
+          corrective_action:
+            type: string
+            required: false
+            description: "Corrective action taken or planned"
+            
+          approved_by:
+            type: string
+            required: false
+            description: "Who approved deviation (for major deviations)"
+            
+          approval_date:
+            type: datetime
+            required: false
+            format: "ISO 8601"
+            
+      # --- EVIDENCE BUNDLE ---
+      evidence_bundle:
+        type: object
+        required: true
+        description: "Collection of all test evidence (21 CFR Part 11 compliant)"
+        fields:
+          bundle_id:
+            type: string
+            required: true
+            description: "Unique evidence bundle identifier"
+            example: "VTR-001-EXEC-001-BUNDLE-20251110-143022"
+            
+          storage_location:
+            type: string
+            required: true
+            format: "Azure Blob Storage URI"
+            description: "Immutable storage location"
+            example: "https://stqmshccp.blob.core.windows.net/evidence/VTR-001-EXEC-001/"
+            
+          immutability:
+            type: object
+            required: true
+            description: "Immutability verification (WORM storage)"
+            fields:
+              enabled:
+                type: boolean
+                required: true
+                default: true
+              retention_period:
+                type: string
+                required: true
+                description: "Retention period"
+                example: "7 years"
+              hash:
+                type: string
+                required: false
+                description: "Cryptographic hash of bundle"
+                example: "SHA256:a3f2d8e9..."
+                
+          artifacts:
+            type: array
+            required: true
+            item_type: object
+            min_items: 1
+            description: "All evidence artifacts"
+            fields:
+              artifact_id:
+                type: string
+                required: true
+                description: "Unique artifact identifier"
+                
+              type:
+                type: enum
+                required: true
+                values:
+                  - "test_log"
+                  - "code_coverage_report"
+                  - "performance_metrics"
+                  - "screenshot"
+                  - "video_recording"
+                  - "database_query_result"
+                  - "api_response"
+                  - "error_log"
+                  - "audit_trail"
+                  - "configuration_snapshot"
+                  - "test_data"
+                  - "source_code_snapshot"
+                  - "network_trace"
+                  - "system_logs"
+                  
+              file_name:
+                type: string
+                required: true
+                description: "File name"
+                
+              uri:
+                type: string
+                required: true
+                description: "URI to artifact in blob storage"
+                
+              size_bytes:
+                type: integer
+                required: false
+                description: "File size in bytes"
+                
+              mime_type:
+                type: string
+                required: false
+                description: "MIME type"
+                
+              created_timestamp:
+                type: datetime
+                required: true
+                format: "ISO 8601"
+                
+              hash:
+                type: string
+                required: false
+                description: "File hash for integrity"
+                
+              description:
+                type: string
+                required: false
+                description: "Artifact description"
+                
+      # --- RISK CONTROL VERIFICATION ---
+      risk_control_verification:
+        type: array
+        required: false
+        item_type: object
+        description: "Verification results for risk controls"
+        fields:
+          risk_id:
+            type: string
+            required: true
+            format: "R-{PROJECT}-###"
+            
+          control_description:
+            type: string
+            required: true
+            description: "Risk control being verified"
+            
+          verification_method:
+            type: string
+            required: true
+            description: "How control was verified"
+            
+          result:
+            type: enum
+            required: true
+            values: ["Pass", "Fail", "Inconclusive"]
+            
+          evidence:
+            type: string
+            required: true
+            description: "Evidence of verification"
+            
+          notes:
+            type: string
+            required: false
+            
+      # --- CONCLUSIONS ---
+      conclusions:
+        type: object
+        required: true
+        description: "Test conclusions and recommendations"
+        fields:
+          summary:
+            type: string
+            required: true
+            min_length: 50
+            max_length: 5000
+            description: "Executive summary of test results"
+            
+          design_inputs_verified:
+            type: boolean
+            required: true
+            description: "Whether Design Inputs are verified as meeting requirements"
+            
+          design_outputs_verified:
+            type: boolean
+            required: true
+            description: "Whether Design Outputs meet Design Inputs"
+            
+          ready_for_release:
+            type: boolean
+            required: true
+            description: "Whether output is ready for release"
+            
+          limitations:
+            type: array
+            required: false
+            item_type: string
+            description: "Limitations of testing"
+            
+          recommendations:
+            type: array
+            required: false
+            item_type: string
+            description: "Recommendations for improvement"
+            
+          next_steps:
+            type: array
+            required: false
+            item_type: string
+            description: "Required next steps"
+            
+      # --- APPROVAL ---
+      approval:
+        type: object
+        required: true
+        description: "Report approval workflow"
+        fields:
+          report_author:
+            type: string
+            required: true
+            description: "Person who authored report"
+            
+          author_signature:
+            type: string
+            required: false
+            description: "Electronic signature (21 CFR Part 11)"
+            
+          author_signature_date:
+            type: datetime
+            required: false
+            format: "ISO 8601"
+            
+          reviewed_by:
+            type: string
+            required: false
+            description: "Person who reviewed report"
+            note: "Required for status = 'approved'"
+            
+          reviewer_signature:
+            type: string
+            required: false
+            description: "Electronic signature"
+            
+          reviewer_signature_date:
+            type: datetime
+            required: false
+            format: "ISO 8601"
+            
+          approved_by:
+            type: string
+            required: false
+            description: "Quality Manager who approved"
+            note: "Required for status = 'approved'"
+            
+          approver_signature:
+            type: string
+            required: false
+            description: "Electronic signature"
+            
+          approver_signature_date:
+            type: datetime
+            required: false
+            format: "ISO 8601"
+            
+          approval_notes:
+            type: string
+            required: false
+            max_length: 2000
+            
+      # --- AMENDMENTS ---
+      amendments:
+        type: array
+        required: false
+        item_type: object
+        description: "Record of amendments to report (21 CFR Part 11 requirement)"
+        fields:
+          amendment_number:
+            type: integer
+            required: true
+            description: "Sequential amendment number"
+            
+          amendment_date:
+            type: datetime
+            required: true
+            format: "ISO 8601"
+            
+          amended_by:
+            type: string
+            required: true
+            description: "Person who made amendment"
+            
+          reason:
+            type: string
+            required: true
+            description: "Reason for amendment"
+            
+          sections_changed:
+            type: array
+            required: true
+            item_type: string
+            description: "Sections of report that were changed"
+            
+          changes_description:
+            type: string
+            required: true
+            description: "Description of changes made"
+            
+          approved_by:
+            type: string
+            required: true
+            description: "Who approved amendment"
+            
+          approval_date:
+            type: datetime
+            required: true
+            format: "ISO 8601"
+            
+      # --- AUDIT TRAIL ---
+      audit_trail:
+        type: array
+        required: true
+        item_type: object
+        description: "Complete audit trail (21 CFR Part 11 requirement)"
+        fields:
+          timestamp:
+            type: datetime
+            required: true
+            format: "ISO 8601"
+            
+          user:
+            type: string
+            required: true
+            description: "User who performed action"
+            
+          action:
+            type: enum
+            required: true
+            values: ["created", "modified", "approved", "rejected", "viewed", "exported"]
+            
+          field_changed:
+            type: string
+            required: false
+            description: "Field that was modified"
+            
+          old_value:
+            type: string
+            required: false
+            description: "Previous value"
+            
+          new_value:
+            type: string
+            required: false
+            description: "New value"
+            
+          reason:
+            type: string
+            required: false
+            description: "Reason for change"
+            
+          ip_address:
+            type: string
+            required: false
+            description: "IP address of action"
+
+# ============================================================================
+# VALIDATION RULES
+# ============================================================================
+
+validation_rules:
+  - rule: "protocol_exists"
+    description: "protocol_id must reference an existing verification test protocol"
+    
+  - rule: "step_results_complete"
+    description: "Must have result for every step in the protocol"
+    
+  - rule: "approval_required_for_approved_status"
+    description: "If status is 'approved', approved_by and approver_signature_date must be populated"
+    
+  - rule: "21_cfr_part_11_compliance"
+    description: "Must have who, what, when, why for all actions (electronic records requirement)"
+    
+  - rule: "evidence_bundle_immutable"
+    description: "Evidence bundle must be in immutable storage (WORM)"
+    
+  - rule: "defects_logged"
+    description: "All failures must have corresponding defects logged"
+    
+  - rule: "deviations_approved"
+    description: "Major deviations must be approved before test can pass"
+    
+  - rule: "acceptance_criteria_evaluation"
+    description: "All acceptance criteria from protocol must be evaluated"
+    
+  - rule: "traceability_complete"
+    description: "Must trace to Design Inputs, Design Outputs, and User Needs"
+
+# ============================================================================
+# USAGE EXAMPLES
+# ============================================================================
+
+examples:
+  - example_name: "Passing Unit Test Report"
+    description: "Automated unit test with high code coverage"
+    scenario: "All tests pass, coverage exceeds targets"
+    
+  - example_name: "Failing Integration Test Report"
+    description: "Integration test with failures and defects"
+    scenario: "Some tests fail, defects logged, corrective action required"
+    
+  - example_name: "Test with Deviations"
+    description: "Test executed with protocol deviations"
+    scenario: "Environment deviation, impact assessed, approved"
+
+# ============================================================================
+# CHANGE CONTROL
+# ============================================================================
+
+change_control:
+  report_amendments:
+    allowed_changes: "Corrections to factual errors, clarifications"
+    prohibited_changes: "Cannot change test results after approval"
+    amendment_process: "Document in amendments array, requires approval"
+    audit_trail: "All amendments recorded in audit_trail"
+    
+  report_retention:
+    duration: "7 years minimum (FDA requirement)"
+    location: "Azure Blob Storage with WORM policy"
+    accessibility: "Must remain accessible for audits"
+
+# ============================================================================
+# RELATIONSHIP TO OTHER SCHEMAS
+# ============================================================================
+
+schema_relationships:
+  protocol_to_report:
+    relationship: "Verification Test Protocol is EXECUTED BY Verification Test Report"
+    cardinality: "1 Protocol → 1+ Reports (one per execution)"
+    
+  report_to_design_outputs:
+    relationship: "Verification Test Report VERIFIES Design Outputs"
+    cardinality: "1 Report → 1+ Design Outputs"
+    
+  report_to_defects:
+    relationship: "Verification Test Report DOCUMENTS Defects"
+    cardinality: "1 Report → 0+ Defects"
+
+
+

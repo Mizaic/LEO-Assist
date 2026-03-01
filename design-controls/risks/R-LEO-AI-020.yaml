@@ -1,0 +1,61 @@
+# -- R-LEO-AI-020 -- Security Vulnerability in SOUP
+# ISO 14971 / IEC 62304 Risk
+# Schema: design-controls/templates/risks_schema.yaml
+
+- id: "R-LEO-AI-020"
+  title: "Known security vulnerability (CVE) discovered in a SOUP dependency"
+
+  hazard:
+    description: "A SOUP component has a known security vulnerability that could be exploited"
+    category: "security_breach"
+
+  hazardous_situation: "An attacker exploits a known vulnerability in a SOUP dependency to gain unauthorised access, escalate privileges, or exfiltrate data"
+
+  harm:
+    description: "Data breach, system compromise, or service disruption depending on vulnerability severity"
+    severity: "serious"
+
+  initial_risk_estimate:
+    severity: 3
+    probability: 3
+    detectability: 2
+    rpn: 18
+    risk_level: "medium"
+
+  mitigation_measures:
+    - control_type: "procedural_control"
+      description: "SOUP monitoring per DC-SOUP-001 Section 7.2 with quarterly CVE review"
+      implemented_by: []
+      verified_by: []
+      effectiveness: "effective"
+    - control_type: "protective_measure"
+      description: "Automated dependency vulnerability scanning in CI/CD pipeline"
+      implemented_by: []
+      verified_by: []
+      effectiveness: "highly_effective"
+    - control_type: "procedural_control"
+      description: "Critical CVE patch SLA of 48 hours"
+      implemented_by: []
+      verified_by: []
+      effectiveness: "effective"
+
+  residual_risk_estimate:
+    severity: 3
+    probability: 1
+    detectability: 1
+    rpn: 3
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: "Automated scanning detects known CVEs. Quarterly review catches missed vulnerabilities. Critical patch SLA ensures rapid remediation. Multiple layers reduce exploitation probability to improbable."
+
+  monitoring:
+    monitoring_plan: "Continuous automated scanning in CI/CD with quarterly manual CVE review"
+    metrics: ["Open CVE count", "Mean time to patch", "Dependency scan pass rate"]
+    review_frequency: "Continuous (CI/CD) and quarterly review"
+
+  metadata:
+    identified_by: "Risk Management Team"
+    identified_date: "2026-03-01"
+    status: "analyzed"
+
+  tags: ["soup", "security", "cve", "vulnerability"]

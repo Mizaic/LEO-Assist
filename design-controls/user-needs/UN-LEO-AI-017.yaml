@@ -1,0 +1,98 @@
+# -- UN-LEO-AI-017 -- Safety Netting
+# IEC 62304 / ISO 13485 User Need
+# Schema: design-controls/templates/user_needs_schema.yaml
+
+- id: "UN-LEO-AI-017"
+  title: "System provides electronic safety-netting for patients with cancer-relevant symptoms"
+  description: |
+    Pathway coordinators need electronic safety-netting tools that
+    identify patients who presented with cancer-relevant symptoms but
+    were not referred or investigated within expected timeframes. The
+    system shall flag patients where there is a gap between symptom
+    presentation and expected follow-up action, enabling proactive
+    outreach. This supports the Network Contract DES requirement for
+    strengthening and standardising safety netting, including the use
+    of electronic tools.
+
+  stakeholder:
+    type: "end_user"
+    role: "Pathway Coordinator"
+    organization: "NHS Primary Care Network"
+
+  priority: "MUST"
+
+  rationale: |
+    The updated Network Contract DES (paragraph 28) requires
+    strengthening and standardising safety netting, including the use
+    of electronic tools. Patients who present with potential cancer
+    symptoms but are not referred or investigated may have delayed
+    diagnoses. Electronic safety netting provides a systematic catch-all
+    that does not rely on individual clinician recall.
+
+  benefit: "Systematic identification of patients at risk of delayed cancer diagnosis through electronic safety-net alerts"
+
+  use_case: |
+    1. Programme administrator configures safety-net rules for the NCDA
+       programme, defining symptom codes, expected follow-up actions,
+       and timeframe thresholds (e.g. referral within 14 days of
+       symptom presentation).
+    2. System scans patient encounters for cancer-relevant symptom codes.
+    3. System checks whether expected follow-up actions (referral,
+       investigation, review) occurred within the configured timeframe.
+    4. System generates a safety-net alert for each patient where the
+       expected action is missing or overdue.
+    5. Pathway coordinator reviews the alert queue, prioritised by risk
+       level and time elapsed since symptom presentation.
+    6. Coordinator initiates outreach or escalation for flagged patients.
+    7. System tracks alert resolution status and records outcomes.
+
+  current_solution: "Clinician memory and ad-hoc diary reminders; no systematic electronic safety netting in primary care"
+
+  pain_points:
+    - "Safety netting relies on individual clinician recall"
+    - "No systematic way to identify patients who fell through the net"
+    - "Delayed diagnoses discovered only when patients re-present with advanced disease"
+    - "No population-level visibility of safety-net gaps"
+
+  acceptance_criteria:
+    - "System shall identify patients with cancer-relevant symptom codes"
+    - "System shall detect absence of expected follow-up actions within configurable timeframes"
+    - "System shall generate safety-net alerts with patient details and symptom history"
+    - "System shall prioritise alerts by risk level"
+    - "System shall track alert resolution status"
+    - "System shall support configurable safety-net rules per programme"
+
+  success_metrics:
+    - metric: "Safety-net coverage"
+      target: "100% of eligible patients covered"
+      baseline: "Current: estimated 40-60% covered by manual processes"
+    - metric: "Alert generation latency"
+      target: "<=24 hours from data availability"
+      baseline: "Current: weeks to months (if detected at all)"
+    - metric: "False negative rate"
+      target: "<=2%"
+      baseline: "Current: unknown"
+
+  regulatory_impact: "high"
+  safety_impact: "critical"
+
+  derived_from:
+    - "Intended Use Statement DC-IU-001 Section 2.3"
+    - "Network Contract DES Paragraph 28"
+    - "Cancer Signal Surveillance patterns"
+
+  related_standards:
+    - "IEC 62304:2006"
+    - "ISO 13485:2016"
+    - "NICE NG12"
+    - "ISO 14971:2019"
+
+  metadata:
+    created_by: "Quality Engineering"
+    created_date: "2026-03-01"
+    status: "draft"
+
+  design_inputs: []
+  validation_tests: []
+
+  tags: ["safety-netting", "electronic-tools", "des-paragraph-28", "clinical-safety", "ncda"]

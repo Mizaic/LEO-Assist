@@ -1,0 +1,72 @@
+name: CI - Build and Push Images
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: [main]
+
+permissions:
+  id-token: write   # required for OIDC federated credential
+  contents: read
+
+env:
+  ACR_NAME: leoaicr
+  ACR_LOGIN_SERVER: leoaicr.azurecr.io
+
+jobs:
+  build-push:
+    name: Build ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: core-api
+            dockerfile: infra/dockerfiles/Dockerfile.core-api
+          - service: terminology-api
+            dockerfile: infra/dockerfiles/Dockerfile.terminology-api
+          - service: fhir-api
+            dockerfile: infra/dockerfiles/Dockerfile.fhir-api
+          - service: analytics-api
+            dockerfile: infra/dockerfiles/Dockerfile.analytics-api
+          - service: coding-worker
+            dockerfile: infra/dockerfiles/Dockerfile.coding-worker
+          - service: analysis-worker
+            dockerfile: infra/dockerfiles/Dockerfile.analysis-worker
+          - service: model-inference
+            dockerfile: infra/dockerfiles/Dockerfile.model-inference
+          - service: training-worker
+            dockerfile: infra/dockerfiles/Dockerfile.training-worker
+          - service: ui
+            dockerfile: infra/dockerfiles/Dockerfile.ui
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Log in to ACR
+        run: az acr login --name ${{ env.ACR_NAME }}
+
+      - name: Build and push
+        run: |
+          IMAGE=${{ env.ACR_LOGIN_SERVER }}/${{ matrix.service }}
+          TAG=sha-${{ github.sha }}
+          docker build \
+            --file ${{ matrix.dockerfile }} \
+            --tag $IMAGE:$TAG \
+            --tag $IMAGE:latest \
+            --cache-from $IMAGE:latest \
+            .
+          docker push $IMAGE:$TAG
+          docker push $IMAGE:latest
+
+      - name: Output image digest
+        run: docker inspect --format='{{index .RepoDigests 0}}' ${{ env.ACR_LOGIN_SERVER }}/${{ matrix.service }}:sha-${{ github.sha }}

@@ -49,6 +49,7 @@ $ApiDir             = Join-Path $RepoRoot "services\api"
 $ModelInferenceDir  = Join-Path $RepoRoot "services\model_inference"
 $TrainingWorkerDir  = Join-Path $RepoRoot "services\training_worker"
 $ReqFile            = Join-Path $RepoRoot "requirements.txt"
+$ApiReq             = Join-Path $ApiDir "requirements.txt"
 $ModelInferenceReq  = Join-Path $ModelInferenceDir "requirements.txt"
 $TrainingWorkerReq  = Join-Path $TrainingWorkerDir "requirements.txt"
 $ModelCacheDir      = Join-Path $RepoRoot ".model_cache"
@@ -108,6 +109,10 @@ if (-not $SkipInstall) {
     Write-Host "  [pip]  Installing / upgrading Python dependencies..." -ForegroundColor Yellow
     & $VenvPython -m pip install --quiet --upgrade pip
     & $VenvPython -m pip install --quiet --upgrade -r $ReqFile
+    # Core API has its own requirements (slowapi, azure-identity, etc.)
+    if (Test-Path $ApiReq) {
+        & $VenvPython -m pip install --quiet --upgrade -r $ApiReq
+    }
     # Model inference service has its own requirements (spaCy, azure-storage-blob)
     # that may drift from the monorepo floor - install on top of the venv.
     if (Test-Path $ModelInferenceReq) {

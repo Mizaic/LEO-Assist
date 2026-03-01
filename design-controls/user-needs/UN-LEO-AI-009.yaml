@@ -1,0 +1,93 @@
+# -- UN-LEO-AI-009 -- Clinical Interpretation
+# IEC 62304 / ISO 13485 User Need
+# Schema: design-controls/templates/user_needs_schema.yaml
+
+- id: "UN-LEO-AI-009"
+  title: "System provides LLM-assisted clinical interpretation of audit findings"
+  description: |
+    Clinical audit teams need LLM-assisted clinical interpretation of
+    coded encounters, episode timelines, and quality findings. The
+    interpretation provides narrative context explaining what happened
+    in a patient pathway, why certain alerts were raised, and what the
+    clinical significance may be. All interpretations are proposals that
+    require mandatory human review before acceptance.
+
+  stakeholder:
+    type: "end_user"
+    role: "Clinical Audit Team Member"
+    organization: "NHS Primary Care Organisation"
+
+  priority: "SHOULD"
+
+  rationale: |
+    Raw coded data and timeline visualisations require clinical expertise
+    to interpret. LLM-generated interpretations provide a starting point
+    for clinical discussion, reducing the cognitive load on reviewers
+    and enabling non-specialist audit staff to understand complex
+    pathways.
+
+  benefit: "Reduces interpretation time and makes complex clinical pathways accessible to non-specialist audit staff"
+
+  use_case: |
+    1. Auditor opens a completed episode in the review interface.
+    2. Auditor requests an LLM-assisted interpretation of the episode
+       timeline.
+    3. System sends episode data (coded encounters, milestones, quality
+       flags) to the LLM inference service.
+    4. LLM generates a narrative summary explaining the patient pathway
+       in plain language (reading age 9-11).
+    5. System displays the interpretation alongside the episode timeline,
+       clearly labelled as an AI-generated proposal.
+    6. System shows a confidence indicator for the interpretation.
+    7. Auditor reviews the interpretation, edits if needed, and either
+       accepts or rejects it.
+    8. Accepted interpretations are stored with the episode data; rejected
+       interpretations are logged for model improvement.
+
+  current_solution: "Clinical coders manually write narrative summaries for selected episodes; most episodes have no interpretation"
+
+  pain_points:
+    - "Manual interpretation is too slow to cover all audited episodes"
+    - "Non-specialist audit staff struggle to interpret complex coded data"
+    - "Interpretation quality varies between individual reviewers"
+    - "No standardised format for clinical pathway narratives"
+
+  acceptance_criteria:
+    - "System shall generate narrative interpretation of episode timelines"
+    - "System shall explain alert rationale in plain language (reading age 9-11)"
+    - "System shall flag interpretation confidence level"
+    - "All interpretations shall require human review before acceptance"
+    - "System shall not make diagnostic or treatment recommendations"
+
+  success_metrics:
+    - metric: "Reviewer acceptance rate"
+      target: ">=75% accepted without major edits"
+      baseline: "N/A -- no current automated interpretation"
+    - metric: "Readability score"
+      target: "Flesch-Kincaid grade level <=6"
+      baseline: "N/A"
+    - metric: "Interpretation generation time"
+      target: "<=15 seconds per episode"
+      baseline: "Manual interpretation: 15-30 minutes"
+
+  regulatory_impact: "high"
+  safety_impact: "medium"
+
+  derived_from:
+    - "Intended Use Statement DC-IU-001 Section 2.5"
+    - "NHS NCDA programme interpretation requirements"
+
+  related_standards:
+    - "IEC 62304:2006"
+    - "ISO 13485:2016"
+    - "IEC 62366-1:2015"
+
+  metadata:
+    created_by: "Quality Engineering"
+    created_date: "2026-03-01"
+    status: "draft"
+
+  design_inputs: []
+  validation_tests: []
+
+  tags: ["interpretation", "llm", "core-capability", "pipeline", "human-review"]
