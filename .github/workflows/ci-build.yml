@@ -1,8 +1,6 @@
 name: CI - Build and Push Images
 
 on:
-  push:
-    branches: ["**"]
   pull_request:
     branches: [main]
 
