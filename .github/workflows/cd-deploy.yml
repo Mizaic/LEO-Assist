@@ -1,7 +1,9 @@
 name: CD - Deploy
 
 on:
-  push:
+  workflow_run:
+    workflows: ["CI - Build and Push Images"]
+    types: [completed]
     branches: [main]
   workflow_dispatch:
     inputs:
@@ -27,7 +29,9 @@ jobs:
     name: Deploy to dev
     runs-on: ubuntu-latest
     environment: dev
-    if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && inputs.environment == 'dev')
+    if: >
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') ||
+      (github.event_name == 'workflow_dispatch' && inputs.environment == 'dev')
 
     steps:
       - name: Checkout
@@ -38,7 +42,7 @@ jobs:
         run: |
           TAG="${{ github.event.inputs.image_tag }}"
           if [ -z "$TAG" ]; then
-            TAG="sha-${{ github.sha }}"
+            TAG="sha-${{ github.event.workflow_run.head_sha || github.sha }}"
           fi
           echo "tag=$TAG" >> $GITHUB_OUTPUT
 
