@@ -28,11 +28,12 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
+from libs.utils.logging import configure_logging
 
 from app.job_store import REDIS_URL, get_store
 from app.job_runner import preload_training_modules, submit_job
 
-logging.basicConfig(level=logging.INFO)
+configure_logging(service_name="training-worker")
 logger = logging.getLogger(__name__)
 
 _IDLE_TIMEOUT_S = 300

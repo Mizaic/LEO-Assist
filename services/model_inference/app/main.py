@@ -42,10 +42,11 @@ os.environ.setdefault("CUDA_VISIBLE_DEVICES", "-1")
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
+from libs.utils.logging import configure_logging
 
 from app.model_loader import ModelLoader
 
-logging.basicConfig(level=logging.INFO)
+configure_logging(service_name="model-inference")
 logger = logging.getLogger(__name__)
 
 # Global model loader — shared across all requests.
