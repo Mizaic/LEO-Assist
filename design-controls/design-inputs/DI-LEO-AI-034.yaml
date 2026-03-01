@@ -1,0 +1,80 @@
+# -- DI-LEO-AI-034 -- Value Set and Concept Map Management
+# IEC 62304 / ISO 13485 Design Input
+# Schema: design-controls/templates/design_inputs_schema.yaml
+
+- id: "DI-LEO-AI-034"
+  type: "Functional"
+  derived_from: ["UN-LEO-AI-023"]
+  requirement: "The system SHALL provide CRUD operations for SNOMED CT value sets and concept maps, supporting creation, editing, versioning, and validation of terminology resources used by programme configurations"
+  rationale: "Value sets define which SNOMED concepts belong to each clinical domain. Concept maps define mappings between coding systems. Both are essential programme configuration resources that must be managed through the platform."
+
+  machine_spec:
+    agent_prompt: |
+      Implement value set and concept map management (~250 LOC).
+
+      SINGLE PURPOSE: Provide CRUD operations for SNOMED CT
+      value sets and concept maps with versioning and validation.
+
+      REQUIREMENTS:
+      1. Value set CRUD: create, read, update, delete, search
+      2. Concept map CRUD: create, read, update, delete, search
+      3. Version tracking for all terminology resource changes
+      4. Validation of value set membership against SNOMED hierarchy
+      5. Validation of concept map source/target code systems
+      6. Export value sets and concept maps in FHIR format
+
+      METHODS:
+      - create_valueset(data): Create new value set
+      - update_valueset(id, data): Update and version value set
+      - expand_valueset(id): Expand value set using SNOMED hierarchy
+      - create_conceptmap(data): Create new concept map
+      - update_conceptmap(id, data): Update and version concept map
+      - validate_mapping(source, target): Check mapping validity
+
+      CODE CLARITY:
+      - Value set and concept map services are separate modules
+      - Version history stored as Neo4j relationship chain
+      - Validation errors return actionable messages
+
+    acceptance_criteria:
+      - type: "test"
+        spec: "Value set CRUD operations work correctly"
+      - type: "test"
+        spec: "Concept map CRUD operations work correctly"
+      - type: "test"
+        spec: "Versioning tracks all changes with timestamps and authors"
+      - type: "test"
+        spec: "Validation rejects invalid value sets and concept maps"
+
+    constraints:
+      - type: "code_quality"
+        spec: "Separate service modules for value sets and concept maps"
+      - type: "regulatory"
+        spec: "Terminology resources must be exportable in FHIR format"
+
+    dependencies: []
+
+    downstream_impacts:
+      - "DI-LEO-AI-033 -- search uses value sets for concept scoping"
+      - "services/terminology_api -- value set and concept map endpoints hosted here"
+
+    technical_details:
+      language: "Python"
+      framework: "FastAPI"
+      libraries: ["neo4j"]
+      file_structure:
+        - "services/terminology_api/app/routers/valueset.py"
+        - "services/terminology_api/app/routers/conceptmap.py"
+        - "services/terminology_api/app/services/valueset_service.py"
+        - "services/terminology_api/app/services/conceptmap_service.py"
+      estimated_loc: 250
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: "Value set and concept map CRUD operations work correctly; versioning tracks changes; validation rejects invalid resources"
+    test_protocol: "VT-LEO-AI-034"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-019"]
+  tags: ["terminology", "value-sets", "concept-maps", "configuration"]

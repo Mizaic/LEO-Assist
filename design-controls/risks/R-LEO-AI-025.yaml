@@ -1,0 +1,66 @@
+# -- R-LEO-AI-025 -- Pipeline Configuration Error
+# ISO 14971 / IEC 62304 Risk
+# Schema: design-controls/templates/risks_schema.yaml
+
+- id: "R-LEO-AI-025"
+  title: "Incorrect pipeline or programme configuration causes erroneous processing"
+
+  hazard:
+    description: "Administrator configures a pipeline or programme with incorrect parameters (wrong value sets, incorrect milestone definitions, misconfigured guideline rules)"
+    category: "misuse"
+
+  hazardous_situation: "A programme is configured with incorrect clinical domain definitions, causing the pipeline to systematically include or exclude the wrong encounters, apply wrong guideline rules, or calculate durations between wrong milestones"
+
+  harm:
+    description: "Incorrect audit results for the affected programme, potentially misdirecting quality improvement"
+    severity: "serious"
+
+  initial_risk_estimate:
+    severity: 3
+    probability: 3
+    detectability: 3
+    rpn: 27
+    risk_level: "medium"
+
+  mitigation_measures:
+    - control_type: "protective_measure"
+      description: "Configuration validation rules check for completeness and consistency before activation"
+      implemented_by: []
+      verified_by: []
+      effectiveness: "effective"
+    - control_type: "protective_measure"
+      description: "Dry-run mode allows testing configuration against sample data before production use"
+      implemented_by: []
+      verified_by: []
+      effectiveness: "highly_effective"
+    - control_type: "procedural_control"
+      description: "Programme configuration requires QA review and approval before activation"
+      implemented_by: []
+      verified_by: []
+      effectiveness: "effective"
+    - control_type: "information_for_safety"
+      description: "Configuration change audit trail records who changed what and when"
+      implemented_by: []
+      verified_by: []
+      effectiveness: "effective"
+
+  residual_risk_estimate:
+    severity: 3
+    probability: 1
+    detectability: 2
+    rpn: 6
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: "Configuration validation, dry-run testing, and QA approval provide three independent controls. Audit trail enables rapid identification and rollback of incorrect configuration. Probability of undetected configuration error reaching production reduced to improbable."
+
+  monitoring:
+    monitoring_plan: "Track configuration validation pass rates, dry-run anomalies, and rollback frequency"
+    metrics: ["Configuration validation pass rate", "Dry-run anomaly rate", "Configuration rollback frequency"]
+    review_frequency: "Per configuration change"
+
+  metadata:
+    identified_by: "Risk Management Team"
+    identified_date: "2026-03-01"
+    status: "analyzed"
+
+  tags: ["configuration", "programme-management", "human-error"]

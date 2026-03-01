@@ -1,0 +1,112 @@
+# -- VT-LEO-AI-017 -- Analytics Dashboard Verification
+# IEC 62304 Verification Test Protocol
+# Schema: design-controls/templates/verification_test_schema.yaml
+
+- id: "VT-LEO-AI-017"
+  version: "1.0"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-027", "DI-LEO-AI-028"]
+    risks: []
+    user_needs: ["UN-LEO-AI-019"]
+
+  metadata:
+    title: "Analytics Dashboard Verification"
+    description: "Verifies that the analytics dashboard API returns correct metrics, the dashboard UI renders within 3 seconds, and drill-down navigation functions correctly."
+    test_level: "system"
+    test_type: "functional"
+    safety_class: "A"
+    automation_status: "semi-automated"
+    automation_framework: "Playwright / pytest"
+    created_by: "Quality Engineer"
+    created_date: "2026-03-01"
+
+  test_environment:
+    environment_type: "staging"
+    prerequisites:
+      - "Analytics API service running"
+      - "UI application deployed to staging"
+      - "Analysis pipeline has completed for test data set"
+      - "Browser automation environment available"
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: true
+
+  test_cases:
+    - case_id: "VT-017-TC-001"
+      case_name: "Dashboard API returns correct metrics"
+      priority: "critical"
+      preconditions:
+        - "Analytics API is running"
+        - "Known data set has been processed with expected metric values"
+      test_steps:
+        - step_number: 1
+          action: "Call the dashboard metrics endpoint for the test organisation and reporting period"
+          expected_result: "HTTP 200 OK with metrics payload"
+          verification_method: "Assert status code is 200 and response contains metrics object"
+        - step_number: 2
+          action: "Compare returned metric values against the known expected values"
+          expected_result: "All metric values match within acceptable tolerance"
+          verification_method: "Assert each metric value equals the expected value (tolerance +/- 0.1%)"
+        - step_number: 3
+          action: "Verify metric breakdown by measure is present"
+          expected_result: "Per-measure breakdown is included in the response"
+          verification_method: "Assert each active measure has an entry in the breakdown"
+      acceptance_criteria:
+        - "API returns accurate metrics matching the processed data"
+        - "Per-measure breakdown is present and correct"
+        - "Response time is under 2 seconds"
+
+    - case_id: "VT-017-TC-002"
+      case_name: "Dashboard UI renders within 3 seconds"
+      priority: "high"
+      preconditions:
+        - "UI application is deployed and accessible"
+        - "Test user is authenticated"
+      test_steps:
+        - step_number: 1
+          action: "Navigate to the dashboard page in a browser"
+          expected_result: "Dashboard page loads and displays metric cards"
+          verification_method: "Assert dashboard container element is visible"
+        - step_number: 2
+          action: "Measure time from navigation start to largest contentful paint (LCP)"
+          expected_result: "LCP is under 3 seconds"
+          verification_method: "Assert LCP metric is less than 3000ms"
+        - step_number: 3
+          action: "Verify all metric cards display numeric values (not loading spinners)"
+          expected_result: "All metric cards show data"
+          verification_method: "Assert no loading indicators remain after page load"
+      acceptance_criteria:
+        - "Dashboard renders within 3 seconds"
+        - "All metric cards display data without persistent loading states"
+
+    - case_id: "VT-017-TC-003"
+      case_name: "Drill-down navigation works"
+      priority: "medium"
+      preconditions:
+        - "Dashboard is loaded with metric data"
+      test_steps:
+        - step_number: 1
+          action: "Click on a metric card to drill down into measure-level detail"
+          expected_result: "Measure detail view loads with per-patient or per-practice breakdown"
+          verification_method: "Assert detail view container is visible and contains data rows"
+        - step_number: 2
+          action: "Click the back button to return to the dashboard summary"
+          expected_result: "Dashboard summary view is restored"
+          verification_method: "Assert dashboard summary container is visible and metric cards are displayed"
+      acceptance_criteria:
+        - "Drill-down navigation loads the correct detail view"
+        - "Back navigation returns to the summary without data loss"
+
+  pass_fail_criteria:
+    pass_threshold: "95% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["test_report", "code_coverage"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-017/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history: []

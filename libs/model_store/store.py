@@ -12,7 +12,10 @@ Blob path convention
 
 Environment variables
 ---------------------
-AZURE_STORAGE_CONNECTION_STRING   Azure Blob Storage connection string (required)
+AZURE_STORAGE_ACCOUNT_URL         Azure Blob Storage account URL
+                                  (e.g. https://leoaimodels.blob.core.windows.net)
+                                  Uses DefaultAzureCredential (Managed Identity in ACA,
+                                  az login locally). Leave blank for local FS fallback.
 MODEL_STORE_CONTAINER             Container name (default: "ner-models")
 MODEL_STORE_MODEL_NAME            Model name prefix (default: "medspacy_clinical_ner")
 MODEL_STORE_CACHE_DIR             Local directory for downloaded model cache
@@ -20,10 +23,8 @@ MODEL_STORE_CACHE_DIR             Local directory for downloaded model cache
 
 Fallback / local dev
 --------------------
-Set AZURE_STORAGE_CONNECTION_STRING to the empty string to activate the
-local-filesystem fallback.  The store will read/write from MODEL_STORE_CACHE_DIR
-instead of blob.  This lets the training pipeline and inference service work
-locally without Azure credentials.
+Leave AZURE_STORAGE_ACCOUNT_URL unset to activate the local-filesystem fallback.
+The store will read/write from MODEL_STORE_CACHE_DIR instead of blob.
 """
 
 from __future__ import annotations
@@ -45,7 +46,7 @@ logger = logging.getLogger(__name__)
 _CONTAINER = os.getenv("MODEL_STORE_CONTAINER", "ner-models")
 _MODEL_NAME = os.getenv("MODEL_STORE_MODEL_NAME", "medspacy_clinical_ner")
 _CACHE_DIR = Path(os.getenv("MODEL_STORE_CACHE_DIR", "/tmp/model_cache"))
-_CONN_STR = os.getenv("AZURE_STORAGE_CONNECTION_STRING", "")
+_ACCOUNT_URL = os.getenv("AZURE_STORAGE_ACCOUNT_URL", "")
 
 _ARCHIVE_NAME = "model.tar.gz"
 _MANIFEST_NAME = "manifest.json"
@@ -89,16 +90,16 @@ class ModelStore:
         self._blob_client = self._init_blob_client()
 
     def _init_blob_client(self):
-        if not _CONN_STR:
+        if not _ACCOUNT_URL:
             logger.info(
-                "ModelStore: no AZURE_STORAGE_CONNECTION_STRING — using local filesystem at %s",
+                "ModelStore: AZURE_STORAGE_ACCOUNT_URL not set -- using local filesystem at %s",
                 self._cache_dir,
             )
             return None
         try:
             from azure.storage.blob import BlobServiceClient
-            client = BlobServiceClient.from_connection_string(_CONN_STR)
-            # Ensure container exists
+            from libs.azure.credentials import get_credential
+            client = BlobServiceClient(account_url=_ACCOUNT_URL, credential=get_credential())
             try:
                 client.create_container(self._container)
             except Exception:
@@ -109,7 +110,7 @@ class ModelStore:
             return client
         except Exception:
             logger.warning(
-                "ModelStore: failed to init Azure Blob client — falling back to local FS",
+                "ModelStore: failed to init Azure Blob client -- falling back to local FS",
                 exc_info=True,
             )
             return None

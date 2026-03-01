@@ -39,27 +39,107 @@ system_context:
     - "Clinical (UK GDPR Article 9 special category)"
     - "PII (NHS patient records)"
     - "Operational (system configuration, model artifacts)"
-  deployment: "Cloud-hosted SaaS — Neo4j Aura, Azure Cache for Redis, Azure Service Bus, AWS Bedrock, Azure OpenAI"
+  deployment: >
+    Azure Container Apps (ACA) per-environment (leo-ai-dev, leo-ai-val, leo-ai-prod).
+    Shared ACR (leo-ai RG). Neo4j Aura (external). Azure Managed Redis (per-env).
+    Azure Service Bus Standard (per-env). AWS Bedrock. Azure OpenAI (per-env).
+    All secrets in Azure Key Vault (per-env). All services use a single
+    user-assigned Managed Identity per environment.
+
+  # -- ACA trust zones -------------------------------------------------------
+  # ZONE A (Internet): Internet -> core-api (HTTPS, external ingress)
+  #                    Internet -> ui (HTTPS, external ingress)
+  # ZONE B (ACA internal network): ACA encrypted peer-to-peer traffic.
+  #   Internal-ingress services (terminology-api, fhir-api, analytics-api,
+  #   model-inference, training-worker) are reachable only from within the
+  #   ACA environment DNS; not externally addressable.
+  # ZONE C (Azure PaaS): ACA -> Key Vault, Service Bus, Blob, Redis, OpenAI
+  #   via HTTPS with Managed Identity. No connection strings in environment.
+  # ZONE D (External SaaS): ACA -> Neo4j Aura (TLS 1.3 + Bolt/HTTPS)
+  #                         ACA -> AWS Bedrock (HTTPS, IAM key)
+  trust_zones:
+    - id: ZONE_A
+      name: "Internet"
+      services: [core-api, ui]
+      ingress: external
+      controls: [TLS 1.3, Entra ID OAuth, cookie session, nonce CSRF]
+    - id: ZONE_B
+      name: "ACA internal network"
+      services: [terminology-api, fhir-api, analytics-api, model-inference, training-worker, coding-worker, analysis-worker]
+      ingress: internal
+      controls: [ACA mTLS peer-traffic-encryption, shared-secret Bearer token (GAP-007), Managed Identity service token (GAP-002)]
+    - id: ZONE_C
+      name: "Azure PaaS"
+      services: [Key Vault, Service Bus, Blob Storage, Redis, Azure OpenAI]
+      controls: [Managed Identity, RBAC, TLS 1.2+, private endpoints optional]
+    - id: ZONE_D
+      name: "External SaaS"
+      services: [Neo4j Aura, AWS Bedrock]
+      controls: [TLS 1.3, Bolt+TLS, IAM key]
+
   services:
-    - {name: "core-api", port: 8000, exposure: "public", framework: "FastAPI 0.115+"}
-    - {name: "terminology-api", port: 8001, exposure: "internal", framework: "FastAPI"}
-    - {name: "fhir-api", port: 8002, exposure: "internal", framework: "FastAPI"}
-    - {name: "analytics-api", port: 8003, exposure: "internal", framework: "FastAPI"}
-    - {name: "model-inference", port: 8004, exposure: "internal", framework: "FastAPI"}
-    - {name: "training-worker", port: 8005, exposure: "internal", framework: "FastAPI"}
-    - {name: "coding-worker", port: null, exposure: "internal", framework: "async message consumer"}
-    - {name: "analysis-worker", port: null, exposure: "internal", framework: "async message consumer"}
-    - {name: "ui", port: 3000, exposure: "public", framework: "Next.js 16"}
+    - {name: "core-api", port: 8000, exposure: "external", framework: "FastAPI 0.115+", trust_zone: "ZONE_A/ZONE_B"}
+    - {name: "terminology-api", port: 8001, exposure: "internal", framework: "FastAPI", trust_zone: "ZONE_B"}
+    - {name: "fhir-api", port: 8002, exposure: "internal", framework: "FastAPI", trust_zone: "ZONE_B"}
+    - {name: "analytics-api", port: 8003, exposure: "internal", framework: "FastAPI", trust_zone: "ZONE_B"}
+    - {name: "model-inference", port: 8004, exposure: "internal", framework: "FastAPI", trust_zone: "ZONE_B"}
+    - {name: "training-worker", port: 8005, exposure: "internal", framework: "FastAPI", trust_zone: "ZONE_B"}
+    - {name: "coding-worker", port: null, exposure: "none", framework: "async message consumer", trust_zone: "ZONE_B"}
+    - {name: "analysis-worker", port: null, exposure: "none", framework: "async message consumer", trust_zone: "ZONE_B"}
+    - {name: "ui", port: 3000, exposure: "external", framework: "Next.js 16", trust_zone: "ZONE_A"}
   data_stores:
-    - {name: "Neo4j Patient Graph", type: "graph database", data: "Patient, Encounter, clinical text, review tasks"}
-    - {name: "Neo4j Knowledge Graph", type: "graph database", data: "SNOMED terminology, FHIR resources, SurfaceForm mappings"}
-    - {name: "Redis", type: "key-value", data: "OAuth sessions, pipeline progress, LLM cache, checkpoints"}
+    - {name: "Neo4j Patient Graph", type: "graph database", data: "Patient, Encounter, clinical text, review tasks", trust_zone: "ZONE_D"}
+    - {name: "Neo4j Knowledge Graph", type: "graph database", data: "SNOMED terminology, FHIR resources, SurfaceForm mappings", trust_zone: "ZONE_D"}
+    - {name: "Azure Managed Redis", type: "key-value", data: "OAuth sessions, pipeline progress, LLM cache, checkpoints", trust_zone: "ZONE_C", note: "Migrated from Azure Cache for Redis (connection string) to Azure Managed Redis (Managed Identity + rediss:// URL)"}
   external_services:
     - {name: "Azure AD v2.0", purpose: "OAuth authentication"}
     - {name: "AWS Bedrock", purpose: "Primary LLM (Claude)", data_sent: "de-identified clinical text"}
     - {name: "Azure OpenAI", purpose: "Fallback LLM (GPT-4o)", data_sent: "de-identified clinical text"}
-    - {name: "Azure Blob Storage", purpose: "NER model artifact storage"}
-    - {name: "Azure Service Bus", purpose: "Async job messaging"}
+    - {name: "Azure Blob Storage (leoaimodels)", purpose: "NER model artifact storage", trust_zone: "ZONE_C"}
+    - {name: "Azure Service Bus", purpose: "Async job messaging (coding-jobs, analysis-jobs queues)", trust_zone: "ZONE_C"}
+    - {name: "Azure Key Vault", purpose: "Centralised secret management (per-env)", trust_zone: "ZONE_C"}
+    - {name: "Azure Container Registry (leoaicr)", purpose: "Docker image registry (shared, leo-ai RG)", trust_zone: "ZONE_C"}
+
+  # -- ACA-specific threat reclassifications (3 threats) -------------------
+  # T-ACA-001: ACA internal network lateral movement
+  #   Pre-ACA: Internal services had no network isolation; any process with
+  #   network access could call internal endpoints.
+  #   Post-ACA: Internal-ingress ACA services are not externally addressable.
+  #   ACA peer-to-peer traffic encryption is enabled (mTLS).
+  #   Residual risk: A compromised internal container could still call sibling
+  #   services. Mitigated by shared-secret Bearer token (GAP-007) and
+  #   Managed Identity app-role validation (GAP-002).
+  #   Reclassification: HIGH -> MEDIUM (ACA network + service auth controls)
+  #
+  # T-ACA-002: Container image supply chain attack
+  #   Distroless runtime images (no shell, no package manager) significantly
+  #   reduce the attack surface for container escape and RCE.
+  #   All images pinned via sha256 digest in CI.
+  #   Reclassification: MEDIUM -> LOW (distroless + ACR content trust)
+  #
+  # T-ACA-003: Secret exfiltration via environment variables
+  #   Pre-ACA: Secrets in .env files, readable by any process with FS access.
+  #   Post-ACA: Secrets are Key Vault secret references injected by ACA at
+  #   container start; never stored in image or plain env config files.
+  #   Residual risk: A process can still read its own env at runtime.
+  #   Mitigated by distroless (no shell exec), non-root containers.
+  #   Reclassification: HIGH -> LOW (KV references + distroless)
+  aca_threat_reclassifications:
+    - id: T-ACA-001
+      description: "ACA internal network lateral movement"
+      pre_aca_risk: HIGH
+      post_aca_risk: MEDIUM
+      controls: ["ACA internal-ingress (no external DNS)", "ACA mTLS peer encryption", "GAP-007 shared-secret Bearer", "GAP-002 Managed Identity app-role (JWKS)"]
+    - id: T-ACA-002
+      description: "Container image supply chain attack"
+      pre_aca_risk: MEDIUM
+      post_aca_risk: LOW
+      controls: ["Distroless runtime images (no shell, no apt)", "Multi-stage builds (build tools stripped)", "Non-root appuser", "ACR with Managed Identity pull (no admin credentials)"]
+    - id: T-ACA-003
+      description: "Secret exfiltration via environment variables or .env files"
+      pre_aca_risk: HIGH
+      post_aca_risk: LOW
+      controls: ["Azure Key Vault secret references (secrets never in plain env config)", "Managed Identity (no connection strings in code)", "Distroless images (no shell to exec-into)", "Non-root containers"]
 
 # =============================================================================
 # PHASE 1: RECONNAISSANCE — All Components

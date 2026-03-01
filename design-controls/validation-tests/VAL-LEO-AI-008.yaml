@@ -1,0 +1,165 @@
+# -- VAL-LEO-AI-008 -- Terminology Management Validation
+# IEC 62304 Validation Test Protocol
+# Schema: design-controls/templates/validation_test_schema.yaml
+
+- id: "VAL-LEO-AI-008"
+  version: "1.0"
+  status: "draft"
+
+  traceability:
+    user_needs: ["UN-LEO-AI-023"]
+    design_inputs: ["DI-LEO-AI-033", "DI-LEO-AI-034", "DI-LEO-AI-035"]
+    risks: ["R-LEO-AI-005", "R-LEO-AI-019"]
+    verification_tests: ["VT-LEO-AI-016"]
+
+  metadata:
+    title: "Terminology Management Validation"
+    validation_phase: "alpha"
+    test_type: "user_acceptance"
+    automation_level: "semi-automated"
+    participants:
+      user_type: "internal_qa"
+      count: 3
+      selection_criteria: "QA engineers with clinical terminology and SNOMED CT knowledge"
+    created_by: "Quality Engineer"
+    created_date: "2026-03-01"
+
+  test_environment:
+    environment_name: "staging"
+    prerequisites:
+      - "Verification test VT-LEO-AI-016 passed"
+      - "System deployed to staging with Terminology API service running"
+      - "SNOMED CT release loaded into the terminology store"
+      - "Test user accounts with clinical coder, administrator, and reviewer roles"
+    infrastructure: "Azure Container Apps staging environment with Terminology API and Neo4j"
+
+  user_scenarios:
+    - scenario_id: "SCENARIO-001"
+      scenario_name: "Clinical coder searches for a SNOMED concept using different search modes"
+      user_role: "Clinical Coder"
+      user_goal: "Find the correct SNOMED concept for a clinical term using keyword, semantic, and hierarchical search"
+      preconditions:
+        - "SNOMED CT content is loaded and indexed"
+        - "Clinical coder account is provisioned"
+      steps:
+        - step_number: 1
+          action: "Search for 'type 2 diabetes' using keyword search mode"
+          expected_result: "Results include 'Type 2 diabetes mellitus' (SCTID 44054006) and related concepts"
+          success_criteria: "Target concept appears in the top 10 results"
+        - step_number: 2
+          action: "Search for 'sugar disease' using semantic search mode"
+          expected_result: "Results include diabetes-related concepts despite the non-clinical phrasing"
+          success_criteria: "At least one diabetes concept appears in the top 10 results"
+        - step_number: 3
+          action: "Navigate the hierarchy from 'Diabetes mellitus' to view child concepts"
+          expected_result: "Hierarchical browser shows Type 1, Type 2, and other diabetes subtypes"
+          success_criteria: "Child concepts are displayed with correct is-a relationships"
+      postconditions:
+        - "Coder has identified the correct SNOMED concept"
+        - "Search activity is logged for analytics"
+      success_metrics:
+        - metric: "Search relevance"
+          target: "Target concept in top 10 results for all search modes"
+          measurement_method: "Rank position of the target concept in search results"
+        - metric: "Search response time"
+          target: "<= 2 seconds"
+          measurement_method: "API response time from request to results"
+      evidence_to_capture:
+        - "Search queries and result lists"
+        - "Screenshots of search results and hierarchy browser"
+        - "API response times"
+
+    - scenario_id: "SCENARIO-002"
+      scenario_name: "Administrator creates and publishes a new value set for a clinical domain"
+      user_role: "Terminology Administrator"
+      user_goal: "Create a value set containing relevant SNOMED concepts for a specific clinical domain and publish it"
+      preconditions:
+        - "Administrator account is provisioned with value set management permissions"
+        - "Target SNOMED concepts are identified"
+      steps:
+        - step_number: 1
+          action: "Create a new value set with a name, description, and clinical domain tag"
+          expected_result: "System creates the value set in draft status and returns a value set ID"
+          success_criteria: "Value set is created and visible in the value set list"
+        - step_number: 2
+          action: "Add SNOMED concepts to the value set using concept IDs and inclusion rules"
+          expected_result: "Concepts are added to the value set and the member count updates"
+          success_criteria: "All specified concepts appear in the value set membership list"
+        - step_number: 3
+          action: "Publish the value set and verify it is available for use in coding workflows"
+          expected_result: "Value set status changes to published and it appears in the coding workflow picker"
+          success_criteria: "Value set is selectable in coding workflows and resolves correctly"
+      postconditions:
+        - "Published value set is available for coding workflows"
+        - "Value set change is recorded in the audit trail"
+      success_metrics:
+        - metric: "Value set operation success rate"
+          target: "100%"
+          measurement_method: "Count of successful create/add/publish operations divided by total attempts"
+      evidence_to_capture:
+        - "Value set creation and publication API responses"
+        - "Screenshots of value set in coding workflow picker"
+        - "Audit trail entries for value set changes"
+
+    - scenario_id: "SCENARIO-003"
+      scenario_name: "Reviewer approves a coding and the SurfaceForm writeback appears in future searches"
+      user_role: "Clinical Reviewer"
+      user_goal: "Approve a coding decision and verify that the surface form is written back to improve future search results"
+      preconditions:
+        - "A coding task with a resolved SNOMED concept is pending review"
+        - "Reviewer account is provisioned"
+      steps:
+        - step_number: 1
+          action: "Review the coding task and approve the SNOMED concept assignment"
+          expected_result: "Coding is marked as approved and the surface form is queued for writeback"
+          success_criteria: "Coding status changes to approved; writeback event is logged"
+        - step_number: 2
+          action: "Wait for the writeback process to complete"
+          expected_result: "Surface form writeback completes and the new form is indexed"
+          success_criteria: "Writeback confirmation appears in the system status or logs"
+        - step_number: 3
+          action: "Search for the original clinical term that was coded"
+          expected_result: "The approved surface form appears as a suggestion in search results"
+          success_criteria: "Written-back surface form appears in search results for the original term"
+      postconditions:
+        - "Surface form is persisted and available for future searches"
+        - "Coding approval and writeback are recorded in the audit trail"
+      success_metrics:
+        - metric: "Writeback success rate"
+          target: "100%"
+          measurement_method: "Count of successful writebacks divided by total approved codings"
+        - metric: "Writeback visibility"
+          target: "Surface form appears in search within 60 seconds of approval"
+          measurement_method: "Time from approval to surface form appearing in search results"
+      evidence_to_capture:
+        - "Coding approval API response"
+        - "Writeback completion logs"
+        - "Search results showing the written-back surface form"
+
+  acceptance_criteria:
+    - criterion: "Search returns relevant results across all search modes"
+      target: "Target concept in top 10 results for keyword, semantic, and hierarchical search"
+      measurement_method: "Rank position analysis of target concepts in search results"
+    - criterion: "Value set operations complete successfully"
+      target: "100% success rate for create, add, and publish operations"
+      measurement_method: "Count of successful operations divided by total attempts"
+    - criterion: "Writeback appears as suggestion in future resolution"
+      target: "100% of approved surface forms visible in search within 60 seconds"
+      measurement_method: "Time from coding approval to surface form appearing in search results"
+
+  user_feedback:
+    feedback_methods: ["survey", "observation"]
+
+  evidence_bundle:
+    bundle_id: "VAL-008-EXEC-ALPHA-placeholder"
+    blob_path: "/evidence-bundles/LEO-AI/validation/VAL-LEO-AI-008/"
+    artifacts:
+      - type: "user_acceptance_results"
+        description: "Terminology search, value set, and writeback test results with pass/fail per scenario"
+      - type: "classification_output"
+        description: "SNOMED concept search results and ranking data across search modes"
+      - type: "audit_provenance_snapshot"
+        description: "Audit trail entries for value set changes and coding approvals"
+    immutability: true
+
+  execution_history: []

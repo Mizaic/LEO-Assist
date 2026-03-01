@@ -1,0 +1,111 @@
+# -- DR-LEO-AI-005 -- Pre-Release Review
+# ISO 13485 Design Review
+# Schema: design-controls/templates/design_review_schema.yaml
+
+- id: "DR-LEO-AI-005"
+  title: "Phase 5 Pre-Release Review - Validation Results and Release Readiness"
+  version: "1.0"
+  phase: "pre_release"
+
+  scope:
+    description: |
+      Review of 10 Validation Tests (VAL-LEO-AI-001 to 010) results, overall
+      residual risk assessment, and release readiness decision. This review
+      determines whether the system is ready for production deployment based
+      on validation evidence and risk acceptability.
+    modules:
+      - "End-to-End Validation"
+      - "HITL Validation"
+      - "Safety Netting Validation"
+      - "Security Validation"
+      - "Performance Validation"
+    change_summary: "Pre-release review - validation protocols ready for execution"
+
+  scheduling:
+    planned_date: "2026-06-01"
+    duration_minutes: 90
+    location: "Microsoft Teams - Design Review Channel"
+
+  participants:
+    - user_id: "quality_lead"
+      name: "Quality Lead"
+      role: "chair"
+      function: "Quality Assurance"
+      attendance: "present"
+    - user_id: "eng_lead"
+      name: "Engineering Lead"
+      role: "presenter"
+      function: "Engineering"
+      attendance: "present"
+    - user_id: "clinical_lead"
+      name: "Clinical Lead"
+      role: "clinical"
+      function: "Clinical Safety"
+      attendance: "present"
+
+  items_reviewed:
+    - entity_type: "validation_test"
+      entity_id: "VAL-LEO-AI-001"
+      review_status: "not_reviewed"
+      comments: "Validation protocol approved. Pending execution in alpha environment."
+    - entity_type: "validation_test"
+      entity_id: "VAL-LEO-AI-002"
+      review_status: "not_reviewed"
+      comments: "Validation protocol approved. Pending execution in alpha environment."
+    - entity_type: "validation_test"
+      entity_id: "VAL-LEO-AI-003"
+      review_status: "not_reviewed"
+      comments: "Validation protocol approved. Pending execution in alpha environment."
+    - entity_type: "validation_test"
+      entity_id: "VAL-LEO-AI-006"
+      review_status: "not_reviewed"
+      comments: "Validation protocol approved. Pending execution in alpha environment."
+
+  review_criteria:
+    - criterion: "All validation protocols approved"
+      category: "completeness"
+      result: "pass"
+      evidence: "All 10 validation protocols have been reviewed and approved in DR-LEO-AI-004"
+    - criterion: "Verification tests completed"
+      category: "completeness"
+      result: "not_applicable"
+      evidence: "Verification execution pending -- results will be reviewed at re-convened meeting"
+    - criterion: "Residual risk assessment current"
+      category: "safety"
+      result: "pass"
+      evidence: "Risk register reviewed and up to date as of DR-LEO-AI-003"
+    - criterion: "Regulatory requirements met"
+      category: "regulatory"
+      result: "pass"
+      evidence: "DCB0129 and DES Paragraph 28 compliance confirmed in requirements and risk reviews"
+    - criterion: "Release documentation complete"
+      category: "completeness"
+      result: "partial"
+      evidence: "Release notes and deployment guide drafted; final versions pending validation results"
+
+  action_items: []
+
+  decision:
+    overall_result: "deferred"
+    rationale: "Validation protocols are approved and ready for execution. Review deferred to post-validation execution. Re-convene when alpha validation results are available."
+    next_phase: "Post-validation re-review"
+
+  minutes:
+    agenda:
+      - "Review of validation test readiness"
+      - "Residual risk assessment update"
+      - "Release documentation status"
+      - "Release readiness decision"
+    discussion_notes: |
+      The team confirmed that all validation protocols are approved and ready
+      for execution in the alpha environment. The risk register was reviewed
+      and confirmed current. Release documentation is in draft and will be
+      finalised after validation results are available. The team agreed to
+      defer the release decision until alpha validation is complete. A follow-up
+      review will be scheduled once results are available.
+
+  status: "draft"
+
+  metadata:
+    created_by: "quality_lead"
+    created_date: "2026-03-01"

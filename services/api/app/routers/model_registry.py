@@ -29,15 +29,19 @@ import uuid
 from typing import Any, Optional
 
 import httpx
-from fastapi import APIRouter, BackgroundTasks, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel
 
 from libs.model_registry.registry import ModelRecord, ModelRegistry, get_registry
 from libs.model_store import ModelStore
 from libs.neo4j_client.client import PatientGraphClient
+from app.deps import require_admin
 
 logger = logging.getLogger(__name__)
 
+# Read-only routes are open to any authenticated user.
+# Mutating routes (register, upload, validate, canary, promote, rollback, reject)
+# require platform admin -- see GAP-003.
 router = APIRouter(prefix="/model-registry", tags=["model-registry"])
 
 _INFERENCE_ENDPOINT = os.getenv("CODING_MODEL_ENDPOINT", "http://localhost:8004")
@@ -419,7 +423,7 @@ async def get_version(version: str) -> dict[str, Any]:
 # ------------------------------------------------------------------
 
 @router.post("/register")
-def register_version(req: RegisterRequest) -> dict[str, Any]:
+def register_version(req: RegisterRequest, _: object = Depends(require_admin)) -> dict[str, Any]:
     """Register a new model version in the lifecycle registry.
 
     This is the first step.  Use /upload next to push the model artifact to blob.
@@ -495,6 +499,7 @@ def upload_version(
     version: str,
     req: UploadRequest,
     background_tasks: BackgroundTasks,
+    _: object = Depends(require_admin),
 ) -> dict[str, Any]:
     """Upload a trained model directory to Azure Blob Storage.
 
@@ -525,7 +530,7 @@ def upload_version(
 # ------------------------------------------------------------------
 
 @router.post("/versions/{version}/validate")
-def validate_version(version: str, req: ValidateRequest) -> dict[str, Any]:
+def validate_version(version: str, req: ValidateRequest, _: object = Depends(require_admin)) -> dict[str, Any]:
     """Record offline eval precision/recall for a registered version.
 
     The registry compares against MODEL_MIN_PRECISION / MODEL_MIN_RECALL
@@ -554,7 +559,7 @@ def validate_version(version: str, req: ValidateRequest) -> dict[str, Any]:
 # ------------------------------------------------------------------
 
 @router.post("/versions/{version}/canary/start")
-def start_canary(version: str, req: CanaryStartRequest) -> dict[str, Any]:
+def start_canary(version: str, req: CanaryStartRequest, _: object = Depends(require_admin)) -> dict[str, Any]:
     """Advance an offline-validated version to canary deployment."""
     reg = get_registry()
     if not reg.get(version):
@@ -571,7 +576,7 @@ def start_canary(version: str, req: CanaryStartRequest) -> dict[str, Any]:
 # ------------------------------------------------------------------
 
 @router.post("/versions/{version}/canary/result")
-def record_canary_result(version: str, req: CanaryResultRequest) -> dict[str, Any]:
+def record_canary_result(version: str, req: CanaryResultRequest, _: object = Depends(require_admin)) -> dict[str, Any]:
     """Record canary cohort KPI precision/recall for a version in canary state."""
     reg = get_registry()
     if not reg.get(version):
@@ -594,7 +599,7 @@ def record_canary_result(version: str, req: CanaryResultRequest) -> dict[str, An
 # ------------------------------------------------------------------
 
 @router.post("/versions/{version}/canary/run-gold")
-def run_canary_gold(version: str) -> dict[str, Any]:
+def run_canary_gold(version: str, _: object = Depends(require_admin)) -> dict[str, Any]:
     """Run automated gold-patient canary evaluation in a background thread."""
     reg = get_registry()
     rec = reg.get(version)
@@ -637,7 +642,7 @@ def get_canary_gold_job(job_id: str) -> dict[str, Any]:
 # ------------------------------------------------------------------
 
 @router.post("/versions/{version}/promote")
-def promote_version(version: str, req: PromoteRequest) -> dict[str, Any]:
+def promote_version(version: str, req: PromoteRequest, _: object = Depends(require_admin)) -> dict[str, Any]:
     """Promote a canary version to production active.
 
     Validates canary KPI thresholds, promotes, and automatically signals
@@ -664,7 +669,7 @@ def promote_version(version: str, req: PromoteRequest) -> dict[str, Any]:
 
 
 @router.post("/versions/{version}/reject")
-def reject_version(version: str, req: RejectRequest) -> dict[str, Any]:
+def reject_version(version: str, req: RejectRequest, _: object = Depends(require_admin)) -> dict[str, Any]:
     """Mark a version as deprecated after failed human review/canary decision."""
     reg = get_registry()
     rec = reg.get(version)
@@ -682,7 +687,7 @@ def reject_version(version: str, req: RejectRequest) -> dict[str, Any]:
 # ------------------------------------------------------------------
 
 @router.post("/rollback")
-def rollback() -> dict[str, Any]:
+def rollback(_: object = Depends(require_admin)) -> dict[str, Any]:
     """Rollback the active model to its registered rollback target.
 
     Automatically signals the inference service to hot-reload the prior version.

@@ -15,6 +15,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from services.fhir_api.app.routers.audit_event import router as audit_event_router
 from services.fhir_api.app.routers.benchmark import router as benchmark_router
 from services.fhir_api.app.routers.measure import router as measure_router
 from services.fhir_api.app.routers.measure_report import router as measure_report_router
@@ -40,14 +41,17 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+import os
+_allowed_origins = [o.strip() for o in os.getenv("ALLOWED_ORIGINS", "").split(",") if o.strip()] or ["*"]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+app.include_router(audit_event_router, prefix="/fhir", tags=["AuditEvent"])
 app.include_router(benchmark_router, prefix="/benchmarks", tags=["Benchmarks"])
 app.include_router(measure_router, prefix="/fhir", tags=["Measure"])
 app.include_router(measure_report_router, prefix="/fhir", tags=["MeasureReport"])

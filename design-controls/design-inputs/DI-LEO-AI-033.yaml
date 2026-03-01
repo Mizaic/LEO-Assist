@@ -1,0 +1,78 @@
+# -- DI-LEO-AI-033 -- Terminology Search and Resolution
+# IEC 62304 / ISO 13485 Design Input
+# Schema: design-controls/templates/design_inputs_schema.yaml
+
+- id: "DI-LEO-AI-033"
+  type: "Functional"
+  derived_from: ["UN-LEO-AI-023"]
+  requirement: "The system SHALL provide a terminology search API supporting hybrid SNOMED CT concept search (exact match, full-text, vector similarity) with response time under 500ms for P95 requests"
+  rationale: "Audit teams need to search terminology daily for concept lookup, value set building, and mapping verification. Hybrid search covers exact matches, near-matches, and semantically related concepts."
+
+  machine_spec:
+    agent_prompt: |
+      Implement terminology search and resolution API (~200 LOC).
+
+      SINGLE PURPOSE: Provide hybrid SNOMED CT concept search
+      combining exact match, full-text, and vector similarity
+      with sub-500ms P95 response time.
+
+      REQUIREMENTS:
+      1. Exact match search by SNOMED concept ID or term
+      2. Full-text search across concept descriptions
+      3. Vector similarity search using concept embeddings
+      4. Hybrid scoring that combines all three strategies
+      5. Result ranking with configurable strategy weights
+      6. P95 response time under 500ms
+
+      METHODS:
+      - search(query, mode): Run search with specified mode
+      - exact_match(concept_id): Lookup by SNOMED ID
+      - fulltext_search(text): Full-text index query
+      - vector_search(text): Embedding similarity search
+      - resolve(surface_form): Resolve text to best concept
+
+      CODE CLARITY:
+      - Search strategies are composable and independently testable
+      - Weights and thresholds are configurable via parameters
+      - Response includes match scores and strategy attribution
+
+    acceptance_criteria:
+      - type: "test"
+        spec: "Search returns relevant concepts for test queries"
+      - type: "test"
+        spec: "P95 response time <= 500ms under typical load"
+      - type: "test"
+        spec: "All three hybrid search modes return valid results"
+
+    constraints:
+      - type: "performance"
+        spec: "P95 response time <= 500ms"
+      - type: "code_quality"
+        spec: "Search strategies are pluggable and independently testable"
+
+    dependencies: []
+
+    downstream_impacts:
+      - "DI-LEO-AI-034 -- value set building uses search for concept lookup"
+      - "DI-LEO-AI-035 -- writeback creates mappings from search results"
+      - "services/terminology_api -- search endpoints hosted here"
+
+    technical_details:
+      language: "Python"
+      framework: "FastAPI"
+      libraries: ["neo4j", "sentence-transformers"]
+      file_structure:
+        - "services/terminology_api/app/routers/search.py"
+        - "services/terminology_api/app/routers/resolve.py"
+        - "services/terminology_api/app/queries/terminology.py"
+      estimated_loc: 200
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: "Search returns relevant concepts; P95 response time <= 500ms; hybrid modes work correctly"
+    test_protocol: "VT-LEO-AI-033"
+
+  safety_class: "A"
+  risks: ["R-LEO-AI-019"]
+  tags: ["terminology", "search", "snomed-ct", "api"]

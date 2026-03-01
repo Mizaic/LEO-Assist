@@ -1,0 +1,30 @@
+# -- NER Training Worker ---------------------------------------------------
+# Runs spaCy training jobs triggered via the model registry. Writes trained
+# model artifacts back to Azure Blob Storage.
+#
+# libgomp1 required at runtime by spaCy/thinc (OpenMP). Cannot use distroless.
+
+# -- Build stage: compile C extensions, install deps into /venv ------------
+FROM python:3.11-slim-bookworm AS build
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential gcc libgomp1 && \
+    rm -rf /var/lib/apt/lists/*
+RUN python -m venv /venv && /venv/bin/pip install --upgrade pip setuptools wheel
+
+FROM build AS build-venv
+COPY services/training_worker/requirements.txt /requirements.txt
+RUN /venv/bin/pip install --disable-pip-version-check --no-cache-dir -r /requirements.txt
+
+# -- Runtime: slim with only libgomp, no build tools, non-root user --------
+FROM python:3.11-slim-bookworm
+RUN apt-get update && apt-get install -y --no-install-recommends libgomp1 && \
+    rm -rf /var/lib/apt/lists/* && \
+    useradd --no-create-home --shell /sbin/nologin appuser
+COPY --from=build-venv /venv /venv
+COPY libs/ /app/libs/
+COPY services/training_worker/ /app/services/training_worker/
+WORKDIR /app
+ENV PYTHONPATH=/app
+USER appuser
+EXPOSE 8005
+ENTRYPOINT ["/venv/bin/python3", "-m", "services.training_worker.app.main"]

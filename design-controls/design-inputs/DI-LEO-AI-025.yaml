@@ -1,0 +1,75 @@
+# -- DI-LEO-AI-025 -- Safety-Net Detector
+# IEC 62304 / ISO 13485 Design Input
+# Schema: design-controls/templates/design_inputs_schema.yaml
+
+- id: "DI-LEO-AI-025"
+  type: "Safety"
+  derived_from: ["UN-LEO-AI-017"]
+  requirement: "The system SHALL identify patients who presented with cancer-relevant symptoms but lack expected follow-up actions (referral, investigation) within configurable timeframes, generating safety-net alerts with risk prioritisation"
+  rationale: "Electronic safety netting is required by DES paragraph 28. The safety-net detector implements the catch-all for patients at risk of delayed cancer diagnosis, providing systematic coverage that does not rely on individual clinician recall."
+
+  machine_spec:
+    agent_prompt: |
+      Implement safety-net detector (~250 LOC).
+
+      SINGLE PURPOSE: Identify patients with cancer-relevant symptoms
+      missing expected follow-up actions and generate prioritised alerts.
+
+      REQUIREMENTS:
+      1. Query patient records for cancer-relevant symptom presentations
+      2. Check for expected follow-up actions (referral, investigation, review)
+      3. Apply configurable timeframes for expected action windows
+      4. Generate safety-net alerts for patients with missing actions
+      5. Prioritise alerts by risk level (symptom severity, time elapsed)
+      6. Support configurable symptom-action pair definitions
+
+      METHODS:
+      - detect_gaps(patient_cohort): Scan cohort for missing follow-ups
+      - check_followup(patient, symptom): Verify expected action exists
+      - prioritise_alerts(gaps): Rank by risk level
+      - generate_alerts(gaps): Create structured alert records
+      - load_symptom_action_pairs(): Load configurable rule definitions
+
+      CODE CLARITY:
+      - Symptom-action pairs are data-driven configuration, not code
+      - Timeframe thresholds configurable per symptom type
+      - All detection decisions logged with reasoning for audit
+
+    acceptance_criteria:
+      - type: "test"
+        spec: "Safety-net false negative rate <= 2% against validated test cases"
+      - type: "test"
+        spec: "All configured symptom-action pairs covered"
+      - type: "test"
+        spec: "Alerts prioritised correctly by risk level"
+      - type: "test"
+        spec: "Configurable timeframes applied per symptom type"
+
+    constraints:
+      - type: "safety"
+        spec: "False negative rate <= 2% -- system must err on side of alerting"
+      - type: "safety"
+        spec: "All detection decisions logged with clinical reasoning"
+
+    dependencies: []
+
+    downstream_impacts:
+      - "services/analytics_api -- safety-net alerts displayed on dashboard"
+      - "services/api -- alerts served to clinical users for review"
+
+    technical_details:
+      language: "Python"
+      libraries: ["neo4j"]
+      file_structure:
+        - "services/analysis_worker/app/analyzers/safety_net_detector.py"
+      estimated_loc: 250
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: "Safety-net false negative rate <= 2% against validated test cases; all configured symptom-action pairs covered"
+    test_protocol: "VT-LEO-AI-025"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-022"]
+  tags: ["safety-netting", "clinical-safety", "des-paragraph-28", "cancer"]

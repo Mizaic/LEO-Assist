@@ -1,0 +1,80 @@
+# -- DI-LEO-AI-003 -- NLP Entity Extraction Pipeline
+# IEC 62304 / ISO 13485 Design Input
+# Schema: design-controls/templates/design_inputs_schema.yaml
+
+- id: "DI-LEO-AI-003"
+  type: "Functional"
+  derived_from: ["UN-LEO-AI-002"]
+  requirement: "The system SHALL extract clinical entities from free-text encounter narratives using a spaCy-based NLP pipeline with biomedical NER (scispaCy) and produce structured entity records with span offsets, confidence scores, and entity types"
+  rationale: "Entity extraction is the foundation of SNOMED coding. spaCy/scispaCy provides a proven biomedical NER pipeline that can be trained on domain-specific gold data. Structured output with span offsets enables human reviewers to verify extractions against source text."
+
+  machine_spec:
+    agent_prompt: |
+      Implement NLP entity extraction pipeline (~300 LOC).
+
+      SINGLE PURPOSE: Extract clinical entities from free-text encounter
+      narratives using spaCy/scispaCy biomedical NER.
+
+      REQUIREMENTS:
+      1. Load scispaCy biomedical NER model (en_ner_bc5cdr_md or custom)
+      2. Process encounter narrative text through NLP pipeline
+      3. Extract entities with span offsets (start_char, end_char)
+      4. Assign confidence scores to each extracted entity
+      5. Classify entity types (condition, medication, procedure, etc.)
+      6. Support extractor registry for pluggable extraction strategies
+      7. Build entity relations where context supports it
+
+      METHODS:
+      - extract_entities(text): Run NER pipeline, return entity list
+      - register_extractor(name, extractor): Add extractor to registry
+      - build_relations(entities): Link related entities
+      - format_output(entities): Structure for downstream consumption
+
+      CODE CLARITY:
+      - Pipeline stages are composable and independently testable
+      - Entity model uses Pydantic with clear field documentation
+      - Span offsets enable source-text highlighting in UI
+
+    acceptance_criteria:
+      - type: "test"
+        spec: "Entity extraction F1 >= 0.85 against gold-standard labelled data"
+      - type: "test"
+        spec: "All entities include span offsets, confidence, and type"
+      - type: "test"
+        spec: "Pipeline processes typical encounter text in <= 2 seconds"
+
+    constraints:
+      - type: "safety"
+        spec: "All extracted entities traceable to source text via span offsets"
+      - type: "performance"
+        spec: "Single encounter extraction completes in <= 2 seconds"
+      - type: "code_quality"
+        spec: "Extractors registered via registry pattern -- no hard-coded pipeline"
+
+    dependencies: []
+
+    downstream_impacts:
+      - "DI-LEO-AI-004 -- extracted entities feed terminology resolution"
+      - "DI-LEO-AI-005 -- extracted entities feed context detection"
+      - "services/coding_worker -- pipeline orchestrator consumes entities"
+
+    technical_details:
+      language: "Python"
+      framework: "FastAPI"
+      libraries: ["spacy", "scispacy", "medspacy"]
+      file_structure:
+        - "services/coding_worker/app/pipeline/pipeline_service.py"
+        - "services/coding_worker/app/pipeline/extractor_registry.py"
+        - "libs/ner/context_detector.py"
+        - "libs/ner/relation_builder.py"
+      estimated_loc: 300
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: "Entity extraction F1 >= 0.85 against gold-standard labelled data"
+    test_protocol: "VT-LEO-AI-003"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-001", "R-LEO-AI-002", "R-LEO-AI-013", "R-LEO-AI-017"]
+  tags: ["nlp", "ner", "entity-extraction", "spacy", "coding-pipeline"]

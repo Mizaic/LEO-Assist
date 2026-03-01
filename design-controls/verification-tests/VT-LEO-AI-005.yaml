@@ -1,0 +1,106 @@
+# -- VT-LEO-AI-005 -- Abnormal Detection Verification
+# IEC 62304 Verification Test Protocol
+# Schema: design-controls/templates/verification_test_schema.yaml
+
+- id: "VT-LEO-AI-005"
+  version: "1.0"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-007"]
+    risks: ["R-LEO-AI-021"]
+    user_needs: ["UN-LEO-AI-003"]
+
+  metadata:
+    title: "Abnormal Detection Verification"
+    description: >
+      Verifies that the abnormal detection module correctly flags clinical
+      values outside defined reference ranges, classifies severity levels
+      accurately, and meets the required sensitivity threshold against a
+      labelled test dataset.
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    test_file_path: "tests/unit/test_abnormal_detection.py"
+    created_by: "Quality Engineer"
+    created_date: "2026-03-01"
+
+  test_environment:
+    environment_type: "ci_cd"
+    prerequisites:
+      - "Python 3.12 installed with project dependencies"
+      - "Reference range configuration loaded"
+      - "Labelled abnormal-values test dataset available"
+    test_data:
+      data_type: "fixture"
+      cleanup_required: true
+
+  test_cases:
+    - case_id: "VT-005-TC-001"
+      case_name: "Values outside range flagged"
+      priority: "critical"
+      preconditions:
+        - "Reference ranges configured for blood pressure, HbA1c, and eGFR"
+      test_steps:
+        - step_number: 1
+          action: "Submit a set of clinical values that are within normal range"
+          expected_result: "No abnormal flags are raised"
+          verification_method: "Assert all values have abnormal=false"
+        - step_number: 2
+          action: "Submit a set of clinical values that exceed upper or lower bounds"
+          expected_result: "Each out-of-range value is flagged as abnormal"
+          verification_method: "Assert abnormal=true for each out-of-range value"
+        - step_number: 3
+          action: "Submit values exactly on the boundary"
+          expected_result: "Boundary values are classified according to the inclusive/exclusive rule"
+          verification_method: "Assert boundary values match the expected classification"
+      acceptance_criteria:
+        - "All out-of-range values are flagged"
+        - "No in-range values are incorrectly flagged"
+        - "Boundary values handled according to configuration"
+
+    - case_id: "VT-005-TC-002"
+      case_name: "Severity classification correct"
+      priority: "high"
+      preconditions:
+        - "Severity thresholds configured (mild, moderate, severe)"
+      test_steps:
+        - step_number: 1
+          action: "Submit abnormal values at varying distances from the normal range"
+          expected_result: "Each value is assigned the correct severity level"
+          verification_method: "Assert severity label matches the expected classification for each value"
+      acceptance_criteria:
+        - "Severity classification matches expected labels for all test values"
+        - "Severe values are never classified as mild"
+
+    - case_id: "VT-005-TC-003"
+      case_name: "Sensitivity >= 95%"
+      priority: "critical"
+      preconditions:
+        - "Full labelled abnormal-values dataset loaded"
+      test_steps:
+        - step_number: 1
+          action: "Run abnormal detection across the entire labelled dataset"
+          expected_result: "Sensitivity metric computed"
+          verification_method: "Assert sensitivity >= 0.95"
+        - step_number: 2
+          action: "Log false-negative cases for audit trail"
+          expected_result: "Any missed abnormals are recorded with their values and expected flags"
+          verification_method: "Verify audit log contains details of each false negative"
+      acceptance_criteria:
+        - "Overall sensitivity >= 95%"
+        - "No severe abnormal value is missed (false-negative rate for severe = 0%)"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 95% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["test_report", "code_coverage"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-005/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history: []

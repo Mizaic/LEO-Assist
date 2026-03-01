@@ -1,0 +1,96 @@
+# -- DO-LEO-AI-021 -- Programme Configuration Registry
+# ISO 13485 / IEC 62304 Design Output
+# Schema: design-controls/templates/design_outputs_schema.yaml
+
+- id: "DO-LEO-AI-021"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-017"]
+    user_needs: ["UN-LEO-AI-011"]
+    risks_addressed: ["R-LEO-AI-025"]
+    verification_tests: ["VT-LEO-AI-017"]
+    validation_tests: ["VAL-LEO-AI-009"]
+
+  specification:
+    title: "Programme Configuration Registry"
+    description: |
+      Manages clinical audit programme configurations as graph data in
+      Neo4j. Supports creation, validation, activation, and deactivation
+      of programme configurations including clinical domain definitions,
+      milestone types, guideline rule sets, quality targets, and pipeline
+      workflow definitions. All programme-specific logic is stored as
+      data, not code, enabling new audit programmes to be deployed
+      through configuration changes only.
+    purpose: "Platform-agnostic programme configuration management enabling new clinical audit programmes without code changes"
+    technical_approach: |
+      ProgrammeConfigRegistry class provides CRUD operations for
+      programme configurations stored as Neo4j graph nodes and
+      relationships. Validation logic checks configuration completeness
+      and internal consistency before activation. Active configurations
+      are consumed by downstream pipeline, analysis, and KPI services.
+      API endpoints expose configuration management to administrators.
+    acceptance_criteria:
+      - criterion: "New programme configuration can be created and activated without code changes"
+        type: "functional"
+        measurement: "Integration test creates, validates, and activates a new programme"
+        target: "Configuration lifecycle completes successfully"
+      - criterion: "Validation rejects incomplete or inconsistent configurations"
+        type: "functional"
+        measurement: "Unit tests submit incomplete configs and verify rejection"
+        target: "All invalid configurations rejected with clear error messages"
+      - criterion: "Active configuration is consumed by downstream services"
+        type: "functional"
+        measurement: "Pipeline run uses newly activated programme configuration"
+        target: "Pipeline stage outputs match the new programme definitions"
+      - criterion: "Configuration retrieval within performance target"
+        type: "performance"
+        measurement: "API response time for configuration retrieval"
+        target: "< 200ms"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "libs/domain_config/registry.py"
+        description: "ProgrammeConfigRegistry class with CRUD and validation logic"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/api/app/routers/operations.py"
+        description: "API endpoints for programme configuration management"
+        storage_location: "git"
+    technical_details:
+      language: ["Python 3.11"]
+      framework: ["FastAPI"]
+
+  safety_characteristics:
+    safety_class: "B"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false
+
+  production_information:
+    deployment_instructions: "Deployed as part of the core API container; programme configurations stored in Neo4j"
+
+  documentation:
+    inline_documentation:
+      follows_standards: true
+
+  approval:
+    created_by: "Engineering Team"
+    created_date: "2026-03-01"
+
+  version_history:
+    - version: "1.0.0"
+      date: "2026-03-01"
+      changes: "Initial creation"
+      reason: "Implement DI-LEO-AI-017"
+      author: "Engineering Team"
+      approval_status: "draft"
+
+  metadata:
+    tags: ["programme-config", "configuration", "platform"]
+    priority: "high"
+    complexity: "moderate"

@@ -1,0 +1,61 @@
+# -- R-LEO-AI-017 -- spaCy/MedSpaCy NER Regression
+# ISO 14971 / IEC 62304 Risk
+# Schema: design-controls/templates/risks_schema.yaml
+
+- id: "R-LEO-AI-017"
+  title: "spaCy or MedSpaCy SOUP update introduces NER regression"
+
+  hazard:
+    description: "Update to spaCy or MedSpaCy library introduces regression in named entity recognition accuracy"
+    category: "software_defect"
+
+  hazardous_situation: "A SOUP component update degrades NER accuracy without detection, causing systematic extraction errors across all processed encounters until the regression is identified"
+
+  harm:
+    description: "Degraded audit data quality from undetected NER regression"
+    severity: "serious"
+
+  initial_risk_estimate:
+    severity: 3
+    probability: 2
+    detectability: 2
+    rpn: 12
+    risk_level: "medium"
+
+  mitigation_measures:
+    - control_type: "protective_measure"
+      description: "SOUP versions pinned in requirements.txt"
+      implemented_by: []
+      verified_by: []
+      effectiveness: "effective"
+    - control_type: "protective_measure"
+      description: "Regression testing against gold-standard dataset on every SOUP update"
+      implemented_by: []
+      verified_by: []
+      effectiveness: "highly_effective"
+    - control_type: "procedural_control"
+      description: "SOUP update requires QA approval per DC-SOUP-001"
+      implemented_by: []
+      verified_by: []
+      effectiveness: "effective"
+
+  residual_risk_estimate:
+    severity: 3
+    probability: 1
+    detectability: 1
+    rpn: 3
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: "Version pinning prevents unexpected updates. Gold-standard regression testing detects accuracy degradation before deployment. QA approval gate prevents untested SOUP changes reaching production."
+
+  monitoring:
+    monitoring_plan: "Track NER accuracy metrics after each SOUP update and verify version compliance"
+    metrics: ["NER accuracy after SOUP update", "SOUP version compliance"]
+    review_frequency: "Per SOUP update"
+
+  metadata:
+    identified_by: "Risk Management Team"
+    identified_date: "2026-03-01"
+    status: "analyzed"
+
+  tags: ["soup", "spacy", "medspacy", "regression"]

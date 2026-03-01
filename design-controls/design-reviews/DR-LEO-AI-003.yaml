@@ -1,0 +1,114 @@
+# -- DR-LEO-AI-003 -- Risk Review
+# ISO 13485 Design Review
+# Schema: design-controls/templates/design_review_schema.yaml
+
+- id: "DR-LEO-AI-003"
+  title: "Phase 3 Risk Management Review - Risk Register and Controls"
+  version: "1.0"
+  phase: "requirements"
+
+  scope:
+    description: |
+      Review of 25 risks (R-LEO-AI-001 to 025) for completeness of hazard
+      analysis, mitigation effectiveness, and residual risk acceptability.
+      This review covers clinical risks, data governance risks, system risks,
+      SOUP risks, and new risks identified from user needs analysis.
+    modules:
+      - "Clinical Risks (R-001 to R-007)"
+      - "Data Governance Risks (R-008 to R-010)"
+      - "System Risks (R-011 to R-016)"
+      - "SOUP Risks (R-017 to R-020)"
+      - "New Risks from User Needs (R-021 to R-025)"
+    change_summary: "Initial risk review - full risk register assessment"
+
+  scheduling:
+    planned_date: "2026-03-20"
+    duration_minutes: 90
+    location: "Microsoft Teams - Design Review Channel"
+
+  participants:
+    - user_id: "quality_lead"
+      name: "Quality Lead"
+      role: "chair"
+      function: "Quality Assurance"
+      attendance: "present"
+    - user_id: "eng_lead"
+      name: "Engineering Lead"
+      role: "presenter"
+      function: "Engineering"
+      attendance: "present"
+    - user_id: "clinical_lead"
+      name: "Clinical Lead"
+      role: "clinical"
+      function: "Clinical Safety"
+      attendance: "present"
+
+  items_reviewed:
+    - entity_type: "risk"
+      entity_id: "R-LEO-AI-006"
+      review_status: "approved"
+      comments: "Automation bias risk well-characterised. ALARP residual risk accepted with HITL controls."
+    - entity_type: "risk"
+      entity_id: "R-LEO-AI-008"
+      review_status: "approved"
+      comments: "Patient data separation risk is critical. Controls (tenant isolation, encryption) are adequate."
+    - entity_type: "risk"
+      entity_id: "R-LEO-AI-022"
+      review_status: "approved"
+      comments: "Safety-net alert failure risk mitigated with redundant notification channels. ALARP accepted."
+    - entity_type: "risk"
+      entity_id: "R-LEO-AI-024"
+      review_status: "approved"
+      comments: "Cross-tenant data isolation risk controlled by database-level separation and RBAC enforcement."
+
+  review_criteria:
+    - criterion: "All hazards identified"
+      category: "completeness"
+      result: "pass"
+      evidence: "Hazard analysis covers clinical, data governance, system, and SOUP risks across all modules"
+    - criterion: "Mitigation measures adequate"
+      category: "safety"
+      result: "pass"
+      evidence: "Each risk has at least one mitigation control with verification method defined"
+    - criterion: "Residual risk acceptable"
+      category: "safety"
+      result: "pass"
+      evidence: "All residual risks are rated acceptable or ALARP with documented justification"
+    - criterion: "Monitoring plans defined"
+      category: "completeness"
+      result: "pass"
+      evidence: "Post-market monitoring metrics defined for all high-severity risks"
+    - criterion: "Traceability to design inputs"
+      category: "traceability"
+      result: "partial"
+      evidence: "22 of 25 risks have complete DI traceability; 3 risks need DI links updated"
+
+  action_items: []
+
+  decision:
+    overall_result: "conditionally_approved"
+    rationale: "Risk register comprehensive. All residual risks acceptable or ALARP. Update DI traceability for 3 risks."
+    next_phase: "implementation"
+
+  minutes:
+    agenda:
+      - "Review of clinical risks (R-001 to R-007)"
+      - "Review of data governance and system risks (R-008 to R-016)"
+      - "Review of SOUP risks (R-017 to R-020)"
+      - "Review of new risks from user needs (R-021 to R-025)"
+      - "Residual risk acceptability assessment"
+      - "Action items and decision"
+    discussion_notes: |
+      The team reviewed all 25 risks in the register. Clinical risks related to
+      automation bias and missed diagnoses were discussed at length. The clinical
+      lead confirmed that HITL controls adequately mitigate automation bias risk
+      to ALARP. Data governance risks, particularly cross-tenant isolation, were
+      validated against the dual Neo4j architecture. Three risks were flagged for
+      incomplete Design Input traceability links. The team agreed that overall
+      residual risk is acceptable for the intended use.
+
+  status: "draft"
+
+  metadata:
+    created_by: "quality_lead"
+    created_date: "2026-03-01"

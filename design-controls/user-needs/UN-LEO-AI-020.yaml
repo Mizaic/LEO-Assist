@@ -1,0 +1,92 @@
+# -- UN-LEO-AI-020 -- System Performance
+# IEC 62304 / ISO 13485 User Need
+# Schema: design-controls/templates/user_needs_schema.yaml
+
+- id: "UN-LEO-AI-020"
+  title: "System processes pipeline runs within acceptable time limits and scales to multiple organisations"
+  description: |
+    All users need the system to process pipeline runs within acceptable time
+    limits. A full audit pipeline for a single patient should complete within
+    2 minutes. The system must scale horizontally to handle multiple
+    organisations running concurrent pipeline jobs. Infrastructure must support
+    auto-scaling based on queue depth and maintain availability of 99.5%
+    during business hours.
+
+  stakeholder:
+    type: "end_user"
+    role: "System Administrator"
+    organization: "Platform Operations"
+
+  priority: "MUST"
+
+  rationale: |
+    Clinical audit has time-sensitive reporting deadlines. Slow pipeline
+    processing limits the number of patients that can be audited within
+    reporting periods. Multi-organisation support requires the system to
+    handle concurrent workloads without degradation. Predictable performance
+    enables teams to plan audit cycles with confidence.
+
+  benefit: "Predictable pipeline processing times enabling population-scale audit within reporting deadlines"
+
+  use_case: |
+    1. System administrator monitors the platform operations dashboard during
+       a busy reporting period when multiple organisations are submitting
+       pipeline jobs concurrently.
+    2. Three NHS organisations each submit a batch of 500 patients for
+       full audit pipeline processing.
+    3. System distributes work across available worker instances and begins
+       auto-scaling additional workers based on queue depth.
+    4. Administrator observes pipeline throughput on the operations dashboard
+       and confirms each patient completes within the 2-minute target.
+    5. As queue depth decreases, the system scales workers back down to
+       reduce resource consumption.
+    6. All 1500 patients complete processing within the reporting window
+       without degradation to API response times.
+
+  current_solution: "Single-threaded batch processing on a single server with manual capacity planning"
+
+  pain_points:
+    - "Single-server processing cannot handle population-scale patient volumes within deadlines"
+    - "No auto-scaling means manual intervention is needed during peak reporting periods"
+    - "Concurrent organisation workloads cause unpredictable processing times"
+    - "No visibility into queue depth or processing throughput during batch runs"
+
+  acceptance_criteria:
+    - "Full audit pipeline shall complete for a single patient within 2 minutes"
+    - "System shall support at least 10 concurrent pipeline jobs"
+    - "System shall auto-scale workers based on queue depth"
+    - "System availability shall be >=99.5% during business hours"
+    - "API response times shall be <=500ms for P95"
+
+  success_metrics:
+    - metric: "P95 pipeline completion time"
+      target: "<=2 minutes per patient"
+      baseline: "Current single-server: 5-10 minutes per patient"
+    - metric: "Concurrent job capacity"
+      target: ">=10 simultaneous jobs"
+      baseline: "Current: 1 job at a time"
+    - metric: "System availability"
+      target: ">=99.5% during business hours"
+      baseline: "Current: no formal SLA"
+
+  regulatory_impact: "low"
+  safety_impact: "low"
+
+  derived_from:
+    - "Intended Use Statement DC-IU-001 Section 3.1"
+    - "Platform Operations non-functional requirements"
+    - "NHS reporting deadline constraints"
+
+  related_standards:
+    - "IEC 62304:2006"
+    - "ISO 13485:2016"
+
+  metadata:
+    created_by: "Quality Engineering"
+    created_date: "2026-03-01"
+    status: "draft"
+
+  design_inputs: []
+  validation_tests: []
+
+  tags: ["performance", "scalability", "infrastructure", "sla"]

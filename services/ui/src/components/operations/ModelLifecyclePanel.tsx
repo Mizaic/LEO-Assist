@@ -32,6 +32,7 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import TabFlowDiagram, { type TabStage } from "@/components/operations/TabFlowDiagram";
 
 type ModelStatus =
   | "registered"
@@ -153,6 +154,62 @@ function statusChip(status: ModelStatus) {
   const cfg = map[status];
   return <Chip size="small" label={cfg.label} color={cfg.color} />;
 }
+
+const DEPLOYMENT_STAGES: TabStage[] = [
+  {
+    id: "md1", num: 1,
+    label: "AI Trained",
+    tooltip: "A new version of the AI has finished its training run. It now needs to be tested before it can go live.",
+    detailIn: "A completed training run from the Training Data tab",
+    detailOut: "A registered model version waiting for testing",
+  },
+  {
+    id: "md2", num: 2,
+    label: "Gold Test",
+    tooltip: "We test the new AI on a set of real patient examples where we already know the right answers. This is called a gold patient test.",
+    detailIn: "The new AI model and a set of gold patient examples",
+    detailOut: "Precision and recall scores from the test",
+    branches: [
+      {
+        label: "Test already running",
+        description: "You can only run one gold test at a time. Wait for it to finish before starting another",
+      },
+    ],
+  },
+  {
+    id: "md3", num: 3,
+    label: "Check Scores",
+    tooltip: "We look at the test results. The AI must score at least 78% precision and 72% recall to pass.",
+    detailIn: "The test scores for each label type",
+    detailOut: "A pass or fail result for each threshold gate",
+    branches: [
+      {
+        label: "Failed a gate",
+        description: "If the AI does not meet the thresholds, you can reject it. You can still force-promote it, but this is logged as an audit event",
+      },
+    ],
+  },
+  {
+    id: "md4", num: 4,
+    label: "Go Live",
+    tooltip: "If the AI passes, you promote it to live. It becomes the main AI used by the pipeline from that moment on.",
+    detailIn: "Your decision to promote the model",
+    detailOut: "The new AI is live; the old version is marked as deprecated",
+    branches: [
+      {
+        label: "Rollback",
+        description: "If the live AI has problems, you can roll back to the previous version at any time",
+      },
+    ],
+  },
+  {
+    id: "md5", num: 5,
+    label: "Watch It",
+    tooltip: "We keep checking the health of the live AI. If it stops responding or gives strange results, an alert appears here.",
+    detailIn: "The live AI model running in the pipeline",
+    detailOut: "A health status: OK, Degraded, or Unreachable",
+  },
+];
 
 export default function ModelLifecyclePanel() {
   const [status, setStatus] = useState<StatusResponse | null>(null);
@@ -323,7 +380,7 @@ export default function ModelLifecyclePanel() {
   }
 
   return (
-    <Box sx={{ maxWidth: 1280, mx: "auto", px: 2 }}>
+    <Box sx={{ maxWidth: 1280, mx: "auto", px: 3, py: 3 }}>
       <Stack direction="row" justifyContent="space-between" alignItems="flex-start" mb={2}>
         <Box>
           <Typography variant="h6" fontWeight={700}>
@@ -337,6 +394,23 @@ export default function ModelLifecyclePanel() {
           Refresh
         </Button>
       </Stack>
+
+      {/* How this works */}
+      <Accordion variant="outlined" disableGutters sx={{ mb: 3 }}>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+            How this tab works
+          </Typography>
+        </AccordionSummary>
+        <AccordionDetails sx={{ pt: 0 }}>
+          <TabFlowDiagram
+            stages={DEPLOYMENT_STAGES}
+            color="#059669"
+            lightColor="#D1FAE5"
+            trackLabel="Model Deployment"
+          />
+        </AccordionDetails>
+      </Accordion>
 
       {loading && <LinearProgress sx={{ mb: 2 }} />}
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}

@@ -1,0 +1,82 @@
+# -- DI-LEO-AI-014 -- LLM Interpretation Service
+# IEC 62304 / ISO 13485 Design Input
+# Schema: design-controls/templates/design_inputs_schema.yaml
+
+- id: "DI-LEO-AI-014"
+  type: "Functional"
+  derived_from: ["UN-LEO-AI-009"]
+  requirement: "The system SHALL generate LLM-assisted narrative interpretations of clinical episode timelines, coded encounters, and quality findings, writing at a reading age of 9-11 years and flagging interpretation confidence level"
+  rationale: "Raw coded data and timelines require clinical expertise to interpret. LLM-generated interpretations make complex pathways accessible to non-specialist audit staff and provide a starting point for clinical discussion."
+
+  machine_spec:
+    agent_prompt: |
+      Implement the InterpretationService class (~200 LOC).
+
+      SINGLE PURPOSE: Generate plain-language narrative interpretations of
+      clinical episode data using LLM assistance.
+
+      REQUIREMENTS:
+      1. Accept a clinical episode with timeline, coded encounters, and
+         quality findings as input.
+      2. Generate a narrative interpretation at reading age 9-11 years
+         (Flesch-Kincaid grade <= 6).
+      3. Flag the confidence level of the interpretation (high, medium, low).
+      4. Never include diagnostic or treatment recommendations.
+      5. Use prompt templates from the prompt registry.
+      6. Support multiple LLM providers (OpenAI, Anthropic).
+
+      METHODS:
+      - interpret(episode): Generate a narrative interpretation.
+      - build_prompt(episode): Assemble the LLM prompt from template and episode data.
+      - assess_confidence(response): Evaluate interpretation confidence.
+      - validate_output(text): Check readability and absence of recommendations.
+
+      CODE CLARITY:
+      - Use guard clauses to flatten nesting.
+      - Keep functions under 30 lines.
+      - Use type hints throughout.
+
+    acceptance_criteria:
+      - type: "test"
+        spec: "Readability Flesch-Kincaid grade level <= 6 for all generated interpretations"
+      - type: "test"
+        spec: "No diagnostic or treatment recommendations present in output"
+      - type: "test"
+        spec: "Confidence level flagged on every interpretation"
+      - type: "inspection"
+        spec: "Prompt templates reviewed for safety and bias"
+
+    constraints:
+      - type: "safety"
+        spec: "All interpretations marked as AI-generated proposals requiring human review"
+      - type: "regulatory"
+        spec: "Output must comply with plain language standards (reading age 9-11)"
+      - type: "performance"
+        spec: "Interpretation generation completes in < 10 seconds per episode"
+      - type: "code_quality"
+        spec: "Functions <= 30 LOC; cyclomatic complexity <= 10"
+
+    dependencies: []
+
+    downstream_impacts:
+      - "review_service"
+      - "reporting_dashboard"
+
+    technical_details:
+      language: "Python"
+      framework: "FastAPI"
+      libraries: ["openai", "anthropic"]
+      file_structure:
+        - "services/api/app/routers/agent.py"
+        - "libs/prompts/registry.py"
+      estimated_loc: 200
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: "Readability Flesch-Kincaid <= 6; no diagnostic or treatment recommendations present"
+    test_protocol: "VT-LEO-AI-014"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-011", "R-LEO-AI-014"]
+  tags: ["interpretation", "llm", "plain-language", "analysis"]

@@ -1,0 +1,61 @@
+# -- R-LEO-AI-004 -- Incorrect SNOMED Disambiguation
+# ISO 14971 / IEC 62304 Risk
+# Schema: design-controls/templates/risks_schema.yaml
+
+- id: "R-LEO-AI-004"
+  title: "Terminology resolver selects wrong SNOMED concept from multiple candidates"
+
+  hazard:
+    description: "SNOMED CT resolver disambiguates to incorrect concept when multiple candidates match"
+    category: "software_defect"
+
+  hazardous_situation: "An ambiguous clinical term is linked to the wrong SNOMED concept, causing incorrect classification or value set matching"
+
+  harm:
+    description: "Wrong concept selection could cause encounters to be incorrectly included or excluded from clinical domains"
+    severity: "minor"
+
+  initial_risk_estimate:
+    severity: 2
+    probability: 3
+    detectability: 2
+    rpn: 12
+    risk_level: "medium"
+
+  mitigation_measures:
+    - control_type: "protective_measure"
+      description: "Multiple candidates shown in review UI for reviewer selection"
+      implemented_by: []
+      verified_by: []
+      effectiveness: "highly_effective"
+    - control_type: "protective_measure"
+      description: "Hybrid search with semantic tag re-ranking improves disambiguation accuracy"
+      implemented_by: []
+      verified_by: []
+      effectiveness: "effective"
+    - control_type: "protective_measure"
+      description: "SurfaceForm boost from prior approvals improves known-term resolution"
+      implemented_by: []
+      verified_by: []
+      effectiveness: "effective"
+
+  residual_risk_estimate:
+    severity: 2
+    probability: 1
+    detectability: 2
+    rpn: 4
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: "Reviewer sees all candidate concepts and selects the correct one. Hybrid resolution with semantic re-ranking reduces ambiguity. SurfaceForm learning improves over time."
+
+  monitoring:
+    monitoring_plan: "Monitor disambiguation accuracy and SurfaceForm hit rate"
+    metrics: ["Disambiguation accuracy", "SurfaceForm hit rate"]
+    review_frequency: "Quarterly"
+
+  metadata:
+    identified_by: "Risk Management Team"
+    identified_date: "2026-03-01"
+    status: "analyzed"
+
+  tags: ["clinical-risk", "terminology", "disambiguation"]

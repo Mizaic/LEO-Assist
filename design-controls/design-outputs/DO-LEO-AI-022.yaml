@@ -1,0 +1,96 @@
+# -- DO-LEO-AI-022 -- Screening Gap Detection Module
+# ISO 13485 / IEC 62304 Design Output
+# Schema: design-controls/templates/design_outputs_schema.yaml
+
+- id: "DO-LEO-AI-022"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-026"]
+    user_needs: ["UN-LEO-AI-018"]
+    risks_addressed: []
+    verification_tests: ["VT-LEO-AI-020"]
+    validation_tests: ["VAL-LEO-AI-003"]
+
+  specification:
+    title: "Screening Gap Detection Module"
+    description: |
+      Cross-references patient demographics (age, sex) and clinical
+      history against screening programme eligibility criteria to detect
+      patients not engaged with cancer and non-cancer screening
+      programmes. Generates screening gap reports aggregated at practice
+      and PCN level to support targeted outreach and improve screening
+      uptake, as required by DES paragraph 28.
+    purpose: "Identify eligible patients missing from screening programmes to enable proactive outreach"
+    technical_approach: |
+      Screening programme eligibility criteria are stored as
+      configuration data (age ranges, sex, exclusion conditions).
+      The detector queries the patient graph for demographics and
+      clinical history, matches against eligibility rules, checks for
+      screening participation records, and flags gaps. Results are
+      aggregated at practice and PCN level for dashboard presentation
+      and reporting via the analytics API.
+    acceptance_criteria:
+      - criterion: "Eligibility matching accuracy"
+        type: "functional"
+        measurement: "Accuracy against validated test data with known eligibility"
+        target: ">= 95%"
+      - criterion: "All configured screening programmes covered"
+        type: "functional"
+        measurement: "Count of programmes checked vs configured"
+        target: "100% coverage"
+      - criterion: "Practice and PCN aggregations calculated correctly"
+        type: "functional"
+        measurement: "Aggregate counts match manual count of individual patient gaps"
+        target: "Exact match"
+      - criterion: "Full practice screening gap analysis within time limit"
+        type: "performance"
+        measurement: "Wall-clock time for a full practice cohort"
+        target: "<= 60 seconds"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/analysis_worker/app/analyzers/safety_net_detector.py"
+        description: "Screening gap detection logic within the safety-net analyser"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/analytics_api/app/routers/cohorts.py"
+        description: "API endpoints serving screening gap metrics to the dashboard"
+        storage_location: "git"
+    technical_details:
+      language: ["Python 3.11"]
+      framework: ["FastAPI"]
+
+  safety_characteristics:
+    safety_class: "B"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false
+
+  production_information:
+    deployment_instructions: "Deployed as part of the analysis-worker and analytics-api containers"
+
+  documentation:
+    inline_documentation:
+      follows_standards: true
+
+  approval:
+    created_by: "Engineering Team"
+    created_date: "2026-03-01"
+
+  version_history:
+    - version: "1.0.0"
+      date: "2026-03-01"
+      changes: "Initial creation"
+      reason: "Implement DI-LEO-AI-026"
+      author: "Engineering Team"
+      approval_status: "draft"
+
+  metadata:
+    tags: ["screening", "population-health", "des-paragraph-28", "prevention"]
+    priority: "high"
+    complexity: "moderate"

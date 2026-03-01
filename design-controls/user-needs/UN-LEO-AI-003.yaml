@@ -1,0 +1,90 @@
+# -- UN-LEO-AI-003 -- Abnormal Result Detection
+# IEC 62304 / ISO 13485 User Need
+# Schema: design-controls/templates/user_needs_schema.yaml
+
+- id: "UN-LEO-AI-003"
+  title: "System flags abnormal laboratory and investigation results against reference ranges"
+  description: |
+    Pathway coordinators need the system to automatically flag abnormal
+    laboratory and investigation results by comparing values against
+    reference ranges. This includes blood tests, imaging reports, and
+    other diagnostic investigations. Abnormal results may indicate
+    disease progression or missed follow-up and are key inputs to
+    safety-netting and guideline compliance checking.
+
+  stakeholder:
+    type: "end_user"
+    role: "Pathway Coordinator"
+    organization: "NHS Primary Care Organisation"
+
+  priority: "MUST"
+
+  rationale: |
+    Abnormal results buried in large volumes of encounter data can be
+    missed during manual review. Automated detection ensures every
+    abnormal value is surfaced for clinical review, reducing the risk
+    of missed follow-up on significant findings.
+
+  benefit: "Every abnormal result is surfaced for review, reducing risk of missed findings from hours of manual scanning to automatic flagging"
+
+  use_case: |
+    1. Coded encounters from the NLP pipeline enter the analysis stage.
+    2. System identifies laboratory and investigation results within
+       encounter data.
+    3. System compares each result value against configurable reference
+       ranges for the relevant test type.
+    4. System classifies each abnormal result by severity (mildly
+       abnormal, significantly abnormal, critically abnormal).
+    5. System links each flagged result to the originating encounter
+       and patient record.
+    6. Flagged results are surfaced in the pathway coordinator's review
+       dashboard for clinical assessment.
+
+  current_solution: "Manual scanning of lab results within GP records; reliance on individual clinician recall and ad-hoc spreadsheet tracking"
+
+  pain_points:
+    - "Abnormal results buried in large records"
+    - "Manual scanning error-prone"
+    - "Reference ranges vary by context"
+    - "No systematic approach to flagging"
+
+  acceptance_criteria:
+    - "System shall compare lab values against configurable reference ranges"
+    - "System shall flag values outside reference ranges as abnormal"
+    - "System shall classify severity (mildly abnormal, significantly abnormal, critically abnormal)"
+    - "System shall link abnormal results to the originating encounter"
+    - "System shall achieve sensitivity >=95% for abnormal detection against validated test data"
+
+  success_metrics:
+    - metric: "Sensitivity"
+      target: ">=95%"
+      baseline: "Manual review: estimated 80-85%"
+    - metric: "False positive rate"
+      target: "<=10%"
+      baseline: "N/A"
+    - metric: "Processing time per result"
+      target: "<=2 seconds"
+      baseline: "Manual scanning: 2-5 minutes per result"
+
+  regulatory_impact: "medium"
+  safety_impact: "high"
+
+  derived_from:
+    - "Intended Use Statement DC-IU-001 Section 2.1.3"
+    - "NHS NCDA programme requirements"
+    - "NHS safety-netting guidance"
+
+  related_standards:
+    - "IEC 62304:2006"
+    - "ISO 13485:2016"
+    - "DCB0129 - Clinical Risk Management"
+
+  metadata:
+    created_by: "Quality Engineering"
+    created_date: "2026-03-01"
+    status: "draft"
+
+  design_inputs: []
+  validation_tests: []
+
+  tags: ["abnormal-detection", "clinical-safety", "core-capability", "pipeline"]
