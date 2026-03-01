@@ -33,7 +33,8 @@ async function triggerReauth(): Promise<void> {
   reauthInProgress = true;
   try {
     const next = encodeURIComponent(window.location.pathname || '/dashboard');
-    window.location.href = `${API_BASE_URL}/auth/login?next_url=${next}`;
+    // Same-origin path so the nonce cookie is set on the UI origin.
+    window.location.href = `/auth/login?next_url=${next}`;
   } finally {
     reauthInProgress = false;
   }
@@ -73,6 +74,7 @@ export async function apiFetch<T>(
   const requestHeaders: Record<string, string> = {
     'Content-Type': 'application/fhir+json',
     Accept: 'application/fhir+json',
+    'X-Requested-With': 'XMLHttpRequest',
     ...headers,
   };
 

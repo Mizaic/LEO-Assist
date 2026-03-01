@@ -45,7 +45,15 @@ import { api } from "@/lib/api";
 const DRAWER_WIDTH = 240;
 const RAIL_WIDTH = 56;
 
-const NAV_ITEMS = [
+type NavItem = {
+  label: string;
+  path: string;
+  icon: React.ReactElement;
+  badgeKey?: string;
+  activePrefix?: string[];
+};
+
+const NAV_ITEMS: NavItem[] = [
   { label: "Overview", path: "/dashboard", icon: <DashboardOutlinedIcon /> },
   { label: "Patients", path: "/patients", icon: <PeopleOutlineIcon /> },
   { label: "Referral Pathways", path: "/pathways", icon: <TimelineOutlinedIcon /> },
@@ -157,9 +165,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <Divider sx={{ width: "80%", mb: 1 }} />
       <List sx={{ p: 0, width: "100%" }}>
         {NAV_ITEMS.map((item) => {
-          const isActive = item.activePrefix
-            ? item.activePrefix.some((p) => pathname === p || pathname.startsWith(p + "/"))
-            : pathname === item.path || pathname.startsWith(item.path + "/");
+          const isActive = pathname
+            ? (item.activePrefix
+                ? item.activePrefix.some((p) => pathname === p || pathname.startsWith(p + "/"))
+                : pathname === item.path || pathname.startsWith(item.path + "/"))
+            : false;
           const badgeCount = item.badgeKey ? (badgeCounts[item.badgeKey] ?? 0) : 0;
           return (
             <Tooltip key={item.path} title={item.label} placement="right">
@@ -264,9 +274,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
       <List sx={{ px: 1, pt: 1 }}>
         {NAV_ITEMS.map((item) => {
-          const isActive = item.activePrefix
-            ? item.activePrefix.some((p) => pathname === p || pathname.startsWith(p + "/"))
-            : pathname === item.path || pathname.startsWith(item.path + "/");
+          const isActive = pathname
+            ? (item.activePrefix
+                ? item.activePrefix.some((p) => pathname === p || pathname.startsWith(p + "/"))
+                : pathname === item.path || pathname.startsWith(item.path + "/"))
+            : false;
           const badgeCount = item.badgeKey ? (badgeCounts[item.badgeKey] ?? 0) : 0;
           return (
             <ListItemButton

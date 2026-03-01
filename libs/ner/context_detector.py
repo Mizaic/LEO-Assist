@@ -35,8 +35,9 @@ _FAMILY_RULES: list[ContextRule] = [
 ]
 
 _NEGATION_RULES: list[ContextRule] = [
+    # Scope 80 chars to cover GP list patterns: "no weight loss/ haematemesis/ jaundice/ fever/ malaena"
     ContextRule(re.compile(r"\b(?:no|denies|denied|nil|without|never|not|absence\s+of|"
-                           r"no\s+evidence\s+of|ruled\s+out|excluded)\b", re.I), "absent", "forward", 40),
+                           r"no\s+evidence\s+of|ruled\s+out|excluded)\b", re.I), "absent", "forward", 80),
 ]
 
 _HISTORICAL_RULES: list[ContextRule] = [

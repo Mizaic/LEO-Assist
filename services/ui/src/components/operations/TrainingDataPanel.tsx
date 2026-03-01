@@ -125,7 +125,12 @@ interface VerificationStatus {
 async function jsonFetch<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, {
     ...init,
-    headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Requested-With": "XMLHttpRequest",
+      ...(init?.headers ?? {}),
+    },
   });
   if (!res.ok) {
     const text = await res.text().catch(() => res.statusText);
@@ -482,12 +487,13 @@ export default function TrainingDataPanel() {
     }
   };
 
-  const handleVerifyLabels = async (mode: "all" | "hitl_only", resetPending = false) => {
+  const handleVerifyLabels = async (mode: "all" | "hitl_only" | "resume", resetPending = false) => {
     setStartingVerification(true);
     try {
+      const apiMode = mode === "resume" ? "hitl_only" : mode;
       await jsonFetch<{ status: string; message: string }>("/api/training/labels/verify-all", {
         method: "POST",
-        body: JSON.stringify({ mode, reset_pending: resetPending }),
+        body: JSON.stringify({ mode: apiMode, reset_pending: resetPending }),
       });
       fetchVerificationStatus();
     } catch (e) {

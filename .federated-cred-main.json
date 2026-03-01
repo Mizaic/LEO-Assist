@@ -1,0 +1,7 @@
+{
+  "name": "leo-ai-ci-main",
+  "issuer": "https://token.actions.githubusercontent.com",
+  "subject": "repo:Healthcare-Copilot/LEO-AI-CORE:ref:refs/heads/main",
+  "description": "GitHub Actions CI for main branch",
+  "audiences": ["api://AzureADTokenExchange"]
+}
