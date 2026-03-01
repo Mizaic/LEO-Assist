@@ -1,0 +1,61 @@
+# -- R-LEO-AI-018 -- Bio_ClinicalBERT Embedding Drift
+# ISO 14971 / IEC 62304 Risk
+# Schema: design-controls/templates/risks_schema.yaml
+
+- id: "R-LEO-AI-018"
+  title: "Bio_ClinicalBERT model update changes embedding space, degrading vector search"
+
+  hazard:
+    description: "Update to Bio_ClinicalBERT model changes embedding vectors, invalidating stored embeddings and degrading vector similarity search"
+    category: "software_defect"
+
+  hazardous_situation: "Encounter shortlisting using vector similarity returns incorrect results because stored embeddings are incompatible with updated model embeddings"
+
+  harm:
+    description: "Degraded encounter shortlisting recall, potentially missing relevant encounters"
+    severity: "minor"
+
+  initial_risk_estimate:
+    severity: 2
+    probability: 1
+    detectability: 2
+    rpn: 4
+    risk_level: "low"
+
+  mitigation_measures:
+    - control_type: "protective_measure"
+      description: "Model version documented and tracked in SOUP list"
+      implemented_by: []
+      verified_by: []
+      effectiveness: "effective"
+    - control_type: "procedural_control"
+      description: "Re-indexing procedure required on model change"
+      implemented_by: []
+      verified_by: []
+      effectiveness: "effective"
+    - control_type: "protective_measure"
+      description: "Regression testing of shortlisting recall on model update"
+      implemented_by: []
+      verified_by: []
+      effectiveness: "highly_effective"
+
+  residual_risk_estimate:
+    severity: 2
+    probability: 1
+    detectability: 1
+    rpn: 2
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: "Model version is pinned and documented. Re-indexing procedure is defined. Regression testing validates recall before deployment. Probability of undetected drift is improbable."
+
+  monitoring:
+    monitoring_plan: "Track embedding model version and validate shortlisting recall after updates"
+    metrics: ["Embedding model version", "Shortlisting recall post-update"]
+    review_frequency: "Per model update"
+
+  metadata:
+    identified_by: "Risk Management Team"
+    identified_date: "2026-03-01"
+    status: "analyzed"
+
+  tags: ["soup", "embeddings", "bio-clinicalbert", "vector-search"]

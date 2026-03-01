@@ -1,0 +1,93 @@
+# -- UN-LEO-AI-007 -- Quality Validation
+# IEC 62304 / ISO 13485 User Need
+# Schema: design-controls/templates/user_needs_schema.yaml
+
+- id: "UN-LEO-AI-007"
+  title: "System validates completed clinical episodes for quality issues and anomalies"
+  description: |
+    Quality improvement leads need the system to check completed episodes
+    for duration outliers, missing milestones, temporal anomalies (e.g.
+    treatment before diagnosis), low-confidence classifications, coding
+    contradictions, and unactioned alerts. Quality validation acts as a
+    gate before episodes are accepted as final audit data.
+
+  stakeholder:
+    type: "end_user"
+    role: "Quality Improvement Lead"
+    organization: "NHS Primary Care Organisation"
+
+  priority: "MUST"
+
+  rationale: |
+    Without systematic quality checks, audit data may contain errors that
+    distort population-level analysis. Manual quality review cannot scale
+    to thousands of episodes. Automated validation catches systematic
+    errors that human reviewers miss.
+
+  benefit: "Automated quality gate catches data errors before they enter final audit datasets"
+
+  use_case: |
+    1. Pipeline completes episode assembly for a patient cohort.
+    2. System runs quality validation on each completed episode.
+    3. System checks episode duration against configurable thresholds and
+       flags outliers (e.g. episodes exceeding 365 days).
+    4. System verifies all mandatory milestones are present for the
+       programme type and flags gaps.
+    5. System checks milestone timestamps for temporal consistency and
+       flags anomalies such as treatment recorded before diagnosis.
+    6. System reviews NLP classification confidence scores and flags any
+       below the configured threshold.
+    7. System checks for coding contradictions (e.g. conflicting SNOMED
+       codes within the same episode).
+    8. System flags unactioned alerts from earlier pipeline stages.
+    9. Quality improvement lead reviews the validation report and decides
+       whether flagged episodes need manual correction.
+    10. Episodes that pass validation proceed to metrics calculation.
+
+  current_solution: "Manual spot-check review of spreadsheet-based episode data by quality leads"
+
+  pain_points:
+    - "Manual review cannot scale beyond small patient samples"
+    - "Systematic errors go undetected until downstream reporting"
+    - "No standard checklist -- review quality depends on individual reviewer"
+    - "Temporal anomalies are difficult to spot in tabular data"
+
+  acceptance_criteria:
+    - "System shall detect duration outliers using configurable thresholds"
+    - "System shall flag missing mandatory milestones"
+    - "System shall detect temporal anomalies in milestone sequences"
+    - "System shall identify low-confidence NLP classifications"
+    - "System shall flag coding contradictions"
+    - "Processing time shall be <=5 seconds per episode"
+
+  success_metrics:
+    - metric: "Quality issue detection rate"
+      target: ">=95% of known issues detected"
+      baseline: "Manual spot-check: estimated 60-70%"
+    - metric: "False positive rate"
+      target: "<=15%"
+      baseline: "N/A"
+    - metric: "Processing time per episode"
+      target: "<=5 seconds"
+      baseline: "Manual review: 10-15 minutes per episode"
+
+  regulatory_impact: "high"
+  safety_impact: "medium"
+
+  derived_from:
+    - "Intended Use Statement DC-IU-001 Section 2.3"
+    - "NHS NCDA programme quality requirements"
+
+  related_standards:
+    - "IEC 62304:2006"
+    - "ISO 13485:2016"
+
+  metadata:
+    created_by: "Quality Engineering"
+    created_date: "2026-03-01"
+    status: "draft"
+
+  design_inputs: []
+  validation_tests: []
+
+  tags: ["quality-validation", "data-quality", "core-capability", "pipeline"]

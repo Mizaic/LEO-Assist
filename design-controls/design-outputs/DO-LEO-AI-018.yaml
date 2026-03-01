@@ -1,0 +1,107 @@
+# -- DO-LEO-AI-018 -- Dashboard and Safety Netting UI
+# ISO 13485 / IEC 62304 Design Output
+# Schema: design-controls/templates/design_outputs_schema.yaml
+
+- id: "DO-LEO-AI-018"
+  version: "1.0.0"
+  type: "User_Interface"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-028"]
+    user_needs: ["UN-LEO-AI-019"]
+    risks_addressed: []
+    verification_tests: ["VT-LEO-AI-018"]
+    validation_tests: []
+
+  specification:
+    title: "Dashboard and Safety Netting UI"
+    description: |
+      Front-end pages and components that present practice-level KPI cards,
+      trend charts, and a safety netting worklist. The dashboard gives
+      clinicians and practice managers an at-a-glance view of coding quality
+      and QOF performance. The safety netting worklist highlights patients
+      whose care episodes may have missing or incorrect clinical codes,
+      allowing clinicians to review and action them.
+    purpose: "Visual dashboards and safety netting worklist UI components for clinical users"
+    technical_approach: |
+      Built with Next.js and React using server components where possible
+      for fast initial render. KPI cards fetch data from the Analytics API.
+      The safety netting page uses a patient pathway worklist component
+      that supports filtering, sorting, and inline episode timeline views.
+      All components follow the project MUI design system and meet WCAG 2.1
+      AA accessibility standards.
+    acceptance_criteria:
+      - criterion: "Dashboard page renders KPI cards with data from the Analytics API"
+        type: "functional"
+        measurement: "End-to-end test with mocked API verifies card content"
+        target: "All KPI cards display correct values"
+      - criterion: "Safety netting worklist displays patients requiring review"
+        type: "functional"
+        measurement: "Component test with fixture data verifies patient rows and sort order"
+        target: "Worklist renders all flagged patients in priority order"
+      - criterion: "Episode timeline view shows chronological care events"
+        type: "functional"
+        measurement: "Component test verifies timeline ordering and event details"
+        target: "Events displayed in correct chronological order"
+      - criterion: "UI meets WCAG 2.1 AA accessibility requirements"
+        type: "quality"
+        measurement: "Automated axe-core accessibility scan"
+        target: "Zero critical or serious accessibility violations"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/dashboard/page.tsx"
+        description: "Dashboard page component"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/src/components/dashboard/KPICards.tsx"
+        description: "KPI card components for dashboard metrics"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/safety-netting/page.tsx"
+        description: "Safety netting worklist page"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/src/components/safety-netting/PatientPathwayWorklist.tsx"
+        description: "Patient pathway worklist component with filtering and sorting"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/src/components/episodes/EpisodeTimelineView.tsx"
+        description: "Episode timeline view showing chronological care events"
+        storage_location: "git"
+    technical_details:
+      language: ["TypeScript"]
+      framework: ["Next.js", "React"]
+
+  safety_characteristics:
+    safety_class: "A"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false
+
+  production_information:
+    deployment_instructions: "Built as a static Next.js export and deployed as the UI container in Azure Container Apps"
+
+  documentation:
+    inline_documentation:
+      follows_standards: true
+
+  approval:
+    created_by: "Engineering Team"
+    created_date: "2026-03-01"
+
+  version_history:
+    - version: "1.0.0"
+      date: "2026-03-01"
+      changes: "Initial creation"
+      reason: "Implement design inputs"
+      author: "Engineering Team"
+      approval_status: "draft"
+
+  metadata:
+    tags: ["ui", "dashboard", "safety-netting", "accessibility"]
+    priority: "medium"
+    complexity: "moderate"

@@ -2,6 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
   Alert,
   Box,
   Button,
@@ -15,6 +18,8 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import TabFlowDiagram, { type TabStage } from "@/components/operations/TabFlowDiagram";
 
 interface LabelVerificationReview {
   review_id: string;
@@ -110,6 +115,54 @@ async function jsonFetch<T>(url: string, init?: RequestInit): Promise<T> {
   }
   return res.json() as Promise<T>;
 }
+
+const LABEL_STAGES: TabStage[] = [
+  {
+    id: "lv1", num: 1,
+    label: "Two Tools Read It",
+    tooltip: "Two medical AI tools -- AWS Comprehend Medical and Azure Text Analytics for Health -- both read the note and pull out key medical words.",
+    detailIn: "A patient note",
+    detailOut: "Two sets of medical word labels -- one from each AI tool",
+  },
+  {
+    id: "lv2", num: 2,
+    label: "They Disagree",
+    tooltip: "The two tools give different labels for the same word. For example, one says 'diagnosis' and the other says 'symptom'.",
+    detailIn: "Two different labels for the same word in the note",
+    detailOut: "A review record added to this queue",
+  },
+  {
+    id: "lv3", num: 3,
+    label: "You See Both",
+    tooltip: "You see the word highlighted in the note, along with what each AI tool said and the reason it gave.",
+    detailIn: "The word, the note, and both AI suggestions with reasons",
+    detailOut: "A clear picture of the disagreement",
+  },
+  {
+    id: "lv4", num: 4,
+    label: "You Choose",
+    tooltip: "You pick the right label for the word. You can also fix the word span, add a new word the AI missed, or remove a word that should not be there.",
+    detailIn: "Your knowledge of the medical term",
+    detailOut: "A corrected label, span, and optional suppression rule",
+    branches: [
+      {
+        label: "Add a new span",
+        description: "If the AI missed an important word entirely, you can add it with the correct label",
+      },
+      {
+        label: "Suppress a pattern",
+        description: "If the AI keeps making the same mistake, you can create a rule to stop it happening again",
+      },
+    ],
+  },
+  {
+    id: "lv5", num: 5,
+    label: "Saved for Training",
+    tooltip: "Your corrected label is saved into the training library. It will be used next time the AI is retrained.",
+    detailIn: "Your corrected label and span",
+    detailOut: "A verified training example added to the library",
+  },
+];
 
 export default function LabelVerificationPanel() {
   const [reviews, setReviews] = useState<LabelVerificationReview[]>([]);
@@ -448,6 +501,23 @@ export default function LabelVerificationPanel() {
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>
         Resolve AWS/Azure disagreements on label extraction quality.
       </Typography>
+
+      {/* How this works */}
+      <Accordion variant="outlined" disableGutters sx={{ mb: 3 }}>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+            How this tab works
+          </Typography>
+        </AccordionSummary>
+        <AccordionDetails sx={{ pt: 0 }}>
+          <TabFlowDiagram
+            stages={LABEL_STAGES}
+            color="#14B8A6"
+            lightColor="#CCFBF1"
+            trackLabel="Label Review"
+          />
+        </AccordionDetails>
+      </Accordion>
 
       {error && (
         <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>

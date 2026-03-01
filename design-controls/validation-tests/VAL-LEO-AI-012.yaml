@@ -1,0 +1,134 @@
+# -- VAL-LEO-AI-012 -- Audit Trail Immutability Validation
+# IEC 62304 Validation Test Protocol
+# Schema: design-controls/templates/validation_test_schema.yaml
+
+- id: "VAL-LEO-AI-012"
+  version: "1.0"
+  status: "draft"
+
+  traceability:
+    user_needs: ["UN-LEO-AI-014"]
+    design_inputs: ["DI-LEO-AI-022"]
+    risks: []
+    verification_tests: ["VT-LEO-AI-013"]
+
+  metadata:
+    title: "Audit Trail Immutability Validation"
+    validation_phase: "beta"
+    test_type: "user_acceptance"
+    automation_level: "manual"
+    participants:
+      user_type: "regulatory_affairs"
+      count: 3
+      selection_criteria: "Regulatory affairs specialists familiar with IEC 62304, ISO 13485, and FDA 21 CFR Part 11"
+    created_by: "Quality Engineer"
+    created_date: "2026-03-01"
+
+  test_environment:
+    environment_name: "staging"
+    prerequisites:
+      - "Verification test VT-LEO-AI-013 passed"
+      - "Full pipeline run completed with audit events for all stages"
+      - "Human review decisions recorded (confirm, edit, reject)"
+      - "Configuration change events logged"
+      - "Regulatory affairs participants briefed on audit trail requirements"
+    infrastructure: "Azure Container Apps staging environment with Neo4j audit database"
+
+  user_scenarios:
+    - scenario_id: "SCENARIO-001"
+      scenario_name: "Full decision chain reconstruction from audit trail"
+      user_role: "Regulatory Affairs Specialist"
+      user_goal: "Reconstruct the complete decision history for a specific patient finding using only the audit trail"
+      preconditions:
+        - "A complete pipeline run has been executed for a test patient cohort"
+        - "At least one AI coding proposal has been reviewed and confirmed by a human reviewer"
+        - "The batch has been released by an authorised releaser"
+      steps:
+        - step_number: 1
+          action: "Select a specific patient finding and query the audit trail for all related events"
+          expected_result: "System returns a chronological list of all events for the selected finding"
+          success_criteria: "Audit trail query returns results in under 5 seconds"
+        - step_number: 2
+          action: "Verify the chain includes: pipeline start, shortlisting, coding proposal, human review decision, and batch release"
+          expected_result: "All expected event types are present with no gaps in the chain"
+          success_criteria: "Zero gaps in the decision chain from pipeline start to release"
+        - step_number: 3
+          action: "Confirm each event includes actor identity, timestamp, action type, and outcome"
+          expected_result: "All mandatory fields are populated for every event"
+          success_criteria: "100% of events have all mandatory fields populated"
+        - step_number: 4
+          action: "Cross-reference the reviewer identity in the audit trail against the login records"
+          expected_result: "Reviewer identity matches the authenticated user who performed the review"
+          success_criteria: "Actor identity correctly traces to the authenticated user"
+      postconditions:
+        - "Complete decision chain documented for the test finding"
+        - "Evidence captured for regulatory inspection readiness"
+      success_metrics:
+        - metric: "Decision chain completeness"
+          target: "100% -- all decision stages present"
+          measurement_method: "Count of expected event types vs actual event types in the chain"
+        - metric: "Audit query response time"
+          target: "<= 5 seconds"
+          measurement_method: "Wall-clock time from query submission to results displayed"
+      evidence_to_capture:
+        - "Full audit trail output for the reconstructed decision chain"
+        - "Screenshots of audit query interface"
+        - "Timestamp comparison showing chronological ordering"
+
+    - scenario_id: "SCENARIO-002"
+      scenario_name: "Audit records are tamper-evident and immutable"
+      user_role: "Regulatory Affairs Specialist"
+      user_goal: "Verify that audit records cannot be modified or deleted after creation"
+      preconditions:
+        - "Audit events exist from previous test scenarios"
+        - "Database access credentials available for direct verification"
+      steps:
+        - step_number: 1
+          action: "Attempt to modify an existing audit record through the API"
+          expected_result: "API rejects the modification request with an appropriate error"
+          success_criteria: "HTTP 405 or 403 returned; no audit record modified"
+        - step_number: 2
+          action: "Attempt to delete an existing audit record through the API"
+          expected_result: "API rejects the deletion request with an appropriate error"
+          success_criteria: "HTTP 405 or 403 returned; no audit record deleted"
+        - step_number: 3
+          action: "Query the audit record again and verify it is unchanged"
+          expected_result: "Record content matches the original exactly"
+          success_criteria: "All field values identical to pre-test snapshot"
+      postconditions:
+        - "Immutability of audit records confirmed"
+      success_metrics:
+        - metric: "Modification rejection rate"
+          target: "100% -- all modification and deletion attempts rejected"
+          measurement_method: "Count of rejected requests vs total attempts"
+      evidence_to_capture:
+        - "API responses for modification and deletion attempts"
+        - "Before and after snapshots of the audit record"
+
+  acceptance_criteria:
+    - criterion: "Decision chain completeness"
+      target: "100% -- all pipeline stages represented in audit trail"
+      measurement_method: "Regulatory specialist reconstructs decision chain for at least 3 patient findings"
+    - criterion: "Audit record immutability"
+      target: "Zero records modifiable or deletable after creation"
+      measurement_method: "API-level and database-level modification attempts all rejected"
+    - criterion: "Audit query response time"
+      target: "<= 5 seconds for any audit record query"
+      measurement_method: "Wall-clock timing of audit trail queries"
+
+  user_feedback:
+    feedback_methods: ["interview", "observation"]
+
+  evidence_bundle:
+    bundle_id: "VAL-012-EXEC-BETA-placeholder"
+    blob_path: "/evidence-bundles/LEO-AI/validation/VAL-LEO-AI-012/"
+    artifacts:
+      - type: "test_results"
+        description: "Decision chain reconstruction evidence and immutability test results"
+      - type: "user_acceptance_results"
+        description: "Regulatory affairs specialist assessment and feedback"
+      - type: "test_log_bundle"
+        description: "API responses, audit trail query outputs, and database verification screenshots"
+    immutability: true
+
+  execution_history: []

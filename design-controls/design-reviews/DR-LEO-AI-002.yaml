@@ -1,0 +1,111 @@
+# -- DR-LEO-AI-002 -- Architecture Review
+# ISO 13485 Design Review
+# Schema: design-controls/templates/design_review_schema.yaml
+
+- id: "DR-LEO-AI-002"
+  title: "Phase 2 Architecture Review - Design Outputs and System Design"
+  version: "1.0"
+  phase: "architecture"
+
+  scope:
+    description: |
+      Review of 20 Design Outputs (DO-LEO-AI-001 to 020) for architectural
+      correctness, safety characteristics, and compliance with Design Inputs.
+      This review evaluates the system architecture including the NLP pipeline,
+      episode analysis, FHIR integration, and dual Neo4j graph stores.
+    modules:
+      - "NLP Pipeline Architecture"
+      - "Episode Analysis Architecture"
+      - "FHIR API Architecture"
+      - "Dual Neo4j Architecture"
+      - "Pipeline Orchestration"
+      - "Authentication Module"
+    change_summary: "Initial architecture review following requirements approval"
+
+  scheduling:
+    planned_date: "2026-04-01"
+    duration_minutes: 90
+    location: "Microsoft Teams - Design Review Channel"
+
+  participants:
+    - user_id: "quality_lead"
+      name: "Quality Lead"
+      role: "chair"
+      function: "Quality Assurance"
+      attendance: "present"
+    - user_id: "eng_lead"
+      name: "Engineering Lead"
+      role: "presenter"
+      function: "Engineering"
+      attendance: "present"
+    - user_id: "clinical_lead"
+      name: "Clinical Lead"
+      role: "clinical"
+      function: "Clinical Safety"
+      attendance: "present"
+
+  items_reviewed:
+    - entity_type: "design_output"
+      entity_id: "DO-LEO-AI-002"
+      review_status: "approved"
+      comments: "NLP pipeline architecture well-defined with clear component boundaries and data flow"
+    - entity_type: "design_output"
+      entity_id: "DO-LEO-AI-006"
+      review_status: "approved_minor"
+      comments: "Add error handling detail for pipeline failure modes and recovery procedures"
+      action_required: true
+    - entity_type: "design_output"
+      entity_id: "DO-LEO-AI-014"
+      review_status: "approved"
+      comments: "Dual Neo4j architecture provides clean separation between clinical and operational data"
+    - entity_type: "design_output"
+      entity_id: "DO-LEO-AI-012"
+      review_status: "approved"
+      comments: "Authentication module design meets RBAC and multi-tenancy requirements"
+
+  review_criteria:
+    - criterion: "Design outputs meet design inputs"
+      category: "correctness"
+      result: "pass"
+      evidence: "All 20 Design Outputs trace to one or more Design Inputs with documented rationale"
+    - criterion: "Safety characteristics specified"
+      category: "safety"
+      result: "pass"
+      evidence: "Safety-critical components identified with appropriate HITL controls and fail-safe behaviour"
+    - criterion: "Production information provided"
+      category: "completeness"
+      result: "partial"
+      evidence: "16 of 20 Design Outputs include deployment documentation; 4 need completion"
+    - criterion: "Acceptance criteria documented"
+      category: "testability"
+      result: "pass"
+      evidence: "All Design Outputs have measurable acceptance criteria linked to verification tests"
+
+  action_items: []
+
+  decision:
+    overall_result: "conditionally_approved"
+    rationale: "Architecture is sound. Dual database separation well-designed. Minor: complete production deployment documentation for 4 outputs."
+    next_phase: "implementation"
+
+  minutes:
+    agenda:
+      - "Review of NLP pipeline and episode analysis architecture"
+      - "Review of FHIR API and terminology service design"
+      - "Review of dual Neo4j and data separation architecture"
+      - "Review of authentication and pipeline orchestration"
+      - "Action items and decision"
+    discussion_notes: |
+      The engineering lead presented the system architecture covering all 20
+      Design Outputs. The dual Neo4j approach was discussed in detail and
+      confirmed as the preferred pattern for separating clinical coding data
+      from operational metadata. The clinical lead verified that HITL touchpoints
+      are architecturally enforced. Four Design Outputs need production deployment
+      details added before implementation proceeds. The team approved the
+      architecture conditionally.
+
+  status: "draft"
+
+  metadata:
+    created_by: "quality_lead"
+    created_date: "2026-03-01"

@@ -1,0 +1,56 @@
+# -- R-LEO-AI-003 -- Incorrect Context Assertion
+# ISO 14971 / IEC 62304 Risk
+# Schema: design-controls/templates/risks_schema.yaml
+
+- id: "R-LEO-AI-003"
+  title: "NLP assigns wrong context to extracted entity (negation, uncertainty, family history)"
+
+  hazard:
+    description: "Context classifier assigns incorrect assertion to clinical entity (e.g. marks present symptom as negated)"
+    category: "software_defect"
+
+  hazardous_situation: "A clinical entity is correctly extracted but assigned wrong context (e.g. 'no chest pain' coded as positive for chest pain), leading to incorrect pathway classification"
+
+  harm:
+    description: "Incorrect context could cause false positive or false negative pathway classifications, affecting audit accuracy"
+    severity: "minor"
+
+  initial_risk_estimate:
+    severity: 2
+    probability: 3
+    detectability: 2
+    rpn: 12
+    risk_level: "medium"
+
+  mitigation_measures:
+    - control_type: "protective_measure"
+      description: "Context flags (negated, uncertain, family, resolved, plan) visible in review UI for reviewer verification"
+      implemented_by: []
+      verified_by: []
+      effectiveness: "effective"
+    - control_type: "information_for_safety"
+      description: "Reviewer training on context flag interpretation"
+      implemented_by: []
+      verified_by: []
+      effectiveness: "effective"
+
+  residual_risk_estimate:
+    severity: 2
+    probability: 1
+    detectability: 2
+    rpn: 4
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: "Context flags are prominently displayed in the review interface. Reviewers can correct context assertions. Individual errors are low-severity as they affect single entities, not systematic patterns."
+
+  monitoring:
+    monitoring_plan: "Monitor context assertion accuracy"
+    metrics: ["Context assertion accuracy", "Reviewer context correction rate"]
+    review_frequency: "Quarterly"
+
+  metadata:
+    identified_by: "Risk Management Team"
+    identified_date: "2026-03-01"
+    status: "analyzed"
+
+  tags: ["clinical-risk", "nlp", "context-classification"]

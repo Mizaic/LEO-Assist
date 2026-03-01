@@ -1,0 +1,87 @@
+# -- DI-LEO-AI-018 -- Pipeline Service
+# IEC 62304 / ISO 13485 Design Input
+# Schema: design-controls/templates/design_inputs_schema.yaml
+
+- id: "DI-LEO-AI-018"
+  type: "Functional"
+  derived_from: ["UN-LEO-AI-012"]
+  requirement: "The system SHALL execute pipelines defined as directed workflow graphs, dispatching each step to the appropriate worker service via message bus, supporting branching, conditional edges, fan-out/fan-in patterns, and cross-pipeline triggers"
+  rationale: "Composable pipelines enable different processing configurations for different use cases. The pipeline service orchestrates step execution, manages workflow state, and handles failure recovery."
+
+  machine_spec:
+    agent_prompt: |
+      Implement the PipelineService class (~300 LOC).
+
+      SINGLE PURPOSE: Execute directed workflow graph pipelines, dispatching
+      steps to worker services via message bus with support for complex
+      workflow patterns.
+
+      REQUIREMENTS:
+      1. Load pipeline definitions from Neo4j as directed graphs.
+      2. Dispatch each step to the appropriate worker service via message bus.
+      3. Support branching (multiple outgoing edges from a node).
+      4. Support conditional edges (edge traversal based on step outcome).
+      5. Support fan-out/fan-in patterns (parallel step execution with join).
+      6. Support cross-pipeline triggers (one pipeline triggering another).
+      7. Manage workflow state and persist progress for failure recovery.
+
+      METHODS:
+      - execute(pipeline_id, input): Start pipeline execution.
+      - dispatch_step(step, payload): Send step to worker via message bus.
+      - evaluate_edges(step, result): Determine next steps based on outcome.
+      - fan_out(steps, payload): Execute steps in parallel.
+      - fan_in(step, results): Join parallel results.
+      - recover(pipeline_run_id): Resume a failed pipeline from last checkpoint.
+
+      CODE CLARITY:
+      - Use guard clauses to flatten nesting.
+      - Keep functions under 30 lines.
+      - Use type hints throughout.
+
+    acceptance_criteria:
+      - type: "test"
+        spec: "Pipeline executes all configured steps in correct order"
+      - type: "test"
+        spec: "Branching and conditional edges route correctly based on step outcomes"
+      - type: "test"
+        spec: "Fan-out/fan-in patterns execute steps in parallel and join results"
+      - type: "test"
+        spec: "Failed steps can be restarted from last checkpoint"
+      - type: "test"
+        spec: "Cross-pipeline triggers fire correctly"
+
+    constraints:
+      - type: "performance"
+        spec: "Step dispatch latency < 200ms"
+      - type: "reliability"
+        spec: "Pipeline state persisted after each step for crash recovery"
+      - type: "code_quality"
+        spec: "Functions <= 30 LOC; cyclomatic complexity <= 10"
+
+    dependencies: []
+
+    downstream_impacts:
+      - "analysis_worker"
+      - "coding_worker"
+      - "training_worker"
+
+    technical_details:
+      language: "Python"
+      framework: "FastAPI"
+      libraries: ["neo4j", "redis"]
+      file_structure:
+        - "services/api/app/services/pipeline_service.py"
+        - "services/api/app/routers/pipeline.py"
+        - "libs/message_bus/factory.py"
+        - "libs/message_bus/base.py"
+      estimated_loc: 300
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: "Pipeline executes all configured steps in correct order; branching and conditional edges work correctly; failed steps can be restarted"
+    test_protocol: "VT-LEO-AI-018"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-015"]
+  tags: ["pipeline", "workflow", "orchestration", "message-bus"]

@@ -1,0 +1,89 @@
+# -- UN-LEO-AI-001 -- Encounter Shortlisting
+# IEC 62304 / ISO 13485 User Need
+# Schema: design-controls/templates/user_needs_schema.yaml
+
+- id: "UN-LEO-AI-001"
+  title: "System searches patient GP records to find encounters relevant to a clinical audit programme"
+  description: |
+    Clinical audit teams need to search a patient's GP record across
+    programme-defined clinical domains to identify encounters relevant
+    to the audit. The system uses hybrid retrieval combining keyword
+    matching, full-text search, and clinical vector embeddings (via
+    scispaCy Bio_ClinicalBERT) to shortlist encounters that may contain
+    evidence of clinical pathway activity. This is the first step in
+    every audit pipeline and determines which encounters proceed to
+    coding and analysis.
+
+  stakeholder:
+    type: "end_user"
+    role: "Clinical Audit Team Member"
+    organization: "NHS Primary Care Organisation"
+
+  priority: "MUST"
+
+  rationale: |
+    Manual review of a patient's full GP record to find audit-relevant
+    encounters is time-consuming and error-prone. A typical GP record
+    contains hundreds of encounters spanning decades. Without automated
+    shortlisting, auditors must read every entry to decide relevance,
+    which limits the number of patients that can be audited and
+    introduces inconsistency between reviewers.
+
+  benefit: "Reduces encounter review time from hours per patient to seconds, enabling population-scale audit coverage"
+
+  use_case: |
+    1. Programme administrator configures clinical domains for the NCDA
+       programme (e.g. cancer_types, symptoms, fast_track_referrals).
+    2. Auditor triggers a pipeline run for a patient cohort.
+    3. System retrieves all encounters for each patient from the FHIR API.
+    4. System applies hybrid retrieval across configured domains.
+    5. System returns a ranked shortlist of relevant encounters per patient.
+    6. Shortlisted encounters proceed to the coding stage of the pipeline.
+
+  current_solution: "Manual review of full GP records by clinical coders; spreadsheet-based tracking"
+
+  pain_points:
+    - "Manual review takes hours per patient record"
+    - "Inconsistent shortlisting between different reviewers"
+    - "Impossible to achieve population-scale coverage manually"
+    - "Relevant encounters missed due to fatigue or unfamiliar terminology"
+
+  acceptance_criteria:
+    - "System shall retrieve encounters from FHIR R4 API for a given patient"
+    - "System shall apply keyword, full-text, and vector similarity search across programme-defined domains"
+    - "System shall return a ranked shortlist with relevance scores"
+    - "System shall achieve recall of 95% or higher for audit-relevant encounters against gold-standard labelled data"
+    - "System shall process shortlisting for a single patient in under 10 seconds"
+
+  success_metrics:
+    - metric: "Encounter recall"
+      target: ">=95% against gold-standard labels"
+      baseline: "Manual review: variable, estimated 85-90%"
+    - metric: "Processing time per patient"
+      target: "<=10 seconds"
+      baseline: "Manual review: 30-60 minutes per patient"
+    - metric: "Precision"
+      target: ">=70% (acceptable false positive rate for human review)"
+      baseline: "N/A"
+
+  regulatory_impact: "medium"
+  safety_impact: "medium"
+
+  derived_from:
+    - "Intended Use Statement DC-IU-001 Section 2.1.1"
+    - "NHS NCDA programme requirements"
+
+  related_standards:
+    - "IEC 62304:2006"
+    - "ISO 13485:2016"
+    - "NICE NG12 - Suspected cancer: recognition and referral"
+
+  metadata:
+    created_by: "Quality Engineering"
+    created_date: "2026-03-01"
+    status: "draft"
+
+  design_inputs: []
+  validation_tests: []
+
+  tags: ["encounter-shortlisting", "hybrid-retrieval", "core-capability", "pipeline"]

@@ -22,7 +22,7 @@ import logging
 from dataclasses import dataclass, field
 from typing import List, Literal, Optional
 
-from fastapi import Header, HTTPException, Query
+from fastapi import Header, HTTPException
 
 from libs.neo4j_client.client import PatientGraphClient
 
@@ -194,20 +194,22 @@ def _expand_alliance_scope(client: PatientGraphClient, ca_id: str) -> list[str]:
 
 
 def get_caller_scope(
-    x_user_email: Optional[str] = Header(default=None, alias="X-User-Email"),
-    email: Optional[str] = Query(default=None),
+    leo_session: Optional[str] = Header(default=None, alias="X-Leo-Session"),
 ) -> CallerScope:
-    """FastAPI dependency that resolves the caller's org scope.
+    """FastAPI dependency that resolves the caller's org scope from session.
 
-    Accepts caller identity via ``X-User-Email`` header (preferred, set by
-    API gateway / BFF) or ``?email=`` query parameter (legacy fallback).
+    GAP-001: X-User-Email header and ?email= query param removed.
+    Prefer using app.deps.get_caller_scope_from_request in service routers,
+    which reads from the secure session cookie. This function is kept for
+    internal callers that pass the session token via X-Leo-Session header.
     """
-    caller_email = x_user_email or email
+    if not leo_session:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    from app.services.session_store import load_session
+    data = load_session(leo_session) or {}
+    caller_email = (data.get("email") or "").strip().lower()
     if not caller_email:
-        raise HTTPException(
-            status_code=401,
-            detail="Caller identity required: set X-User-Email header or ?email= param",
-        )
+        raise HTTPException(status_code=401, detail="Session has no user email")
     client = PatientGraphClient()
     try:
         return resolve_caller_scope(client, caller_email)

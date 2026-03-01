@@ -1,0 +1,117 @@
+# -- VT-LEO-AI-018 -- Performance and Scaling Verification
+# IEC 62304 Verification Test Protocol
+# Schema: design-controls/templates/verification_test_schema.yaml
+
+- id: "VT-LEO-AI-018"
+  version: "1.0"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-029"]
+    risks: ["R-LEO-AI-012"]
+    user_needs: ["UN-LEO-AI-020"]
+
+  metadata:
+    title: "Performance and Scaling Verification"
+    description: "Verifies that the system meets performance SLAs including single patient pipeline completion within 2 minutes, 10 concurrent jobs within SLA, and API P95 response time at or below 500ms."
+    test_level: "system"
+    test_type: "performance"
+    safety_class: "A"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    created_by: "Quality Engineer"
+    created_date: "2026-03-01"
+
+  test_environment:
+    environment_type: "staging"
+    prerequisites:
+      - "All services deployed to staging environment"
+      - "Staging environment sized to match production specifications"
+      - "Performance monitoring and metrics collection enabled"
+      - "Load testing tools available"
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: true
+
+  test_cases:
+    - case_id: "VT-018-TC-001"
+      case_name: "Single patient pipeline completes within 2 minutes"
+      priority: "critical"
+      preconditions:
+        - "Pipeline services are running and idle"
+        - "Synthetic patient record is prepared"
+      test_steps:
+        - step_number: 1
+          action: "Submit a single patient pipeline run and record the start time"
+          expected_result: "Pipeline run accepted"
+          verification_method: "Assert HTTP 202 returned with run ID"
+        - step_number: 2
+          action: "Poll pipeline status until completion and record the end time"
+          expected_result: "Pipeline completes with status 'completed'"
+          verification_method: "Assert pipeline status is 'completed'"
+        - step_number: 3
+          action: "Calculate elapsed time (end - start)"
+          expected_result: "Elapsed time is 120 seconds or less"
+          verification_method: "Assert elapsed time <= 120 seconds"
+      acceptance_criteria:
+        - "Pipeline completes within 2 minutes for a single patient"
+        - "All pipeline steps produce valid outputs"
+
+    - case_id: "VT-018-TC-002"
+      case_name: "10 concurrent jobs complete within SLA"
+      priority: "critical"
+      preconditions:
+        - "Pipeline services are running and idle"
+        - "10 synthetic patient records are prepared"
+      test_steps:
+        - step_number: 1
+          action: "Submit 10 pipeline runs concurrently and record the batch start time"
+          expected_result: "All 10 runs accepted"
+          verification_method: "Assert 10 HTTP 202 responses received"
+        - step_number: 2
+          action: "Poll all pipeline runs until the last one completes"
+          expected_result: "All 10 pipelines complete with status 'completed'"
+          verification_method: "Assert all 10 pipeline statuses are 'completed'"
+        - step_number: 3
+          action: "Calculate total batch elapsed time"
+          expected_result: "Total batch time is within the defined SLA (20 minutes)"
+          verification_method: "Assert batch elapsed time <= 1200 seconds"
+      acceptance_criteria:
+        - "All 10 concurrent jobs complete successfully"
+        - "Total batch time is within the SLA"
+        - "No jobs fail due to resource contention"
+
+    - case_id: "VT-018-TC-003"
+      case_name: "API P95 response time <= 500ms"
+      priority: "critical"
+      preconditions:
+        - "API services are running under normal load"
+        - "Load testing tool configured for target endpoints"
+      test_steps:
+        - step_number: 1
+          action: "Send 1000 requests across key API endpoints over a 5-minute window"
+          expected_result: "All requests receive valid responses"
+          verification_method: "Assert error rate is below 1%"
+        - step_number: 2
+          action: "Calculate P95 response time from the collected latency data"
+          expected_result: "P95 response time is 500ms or less"
+          verification_method: "Assert P95 latency <= 500ms"
+        - step_number: 3
+          action: "Calculate P99 response time for informational reporting"
+          expected_result: "P99 response time is recorded"
+          verification_method: "Record P99 value in test evidence"
+      acceptance_criteria:
+        - "P95 response time is at or below 500ms"
+        - "Error rate is below 1% under sustained load"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["test_report", "code_coverage"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-018/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history: []

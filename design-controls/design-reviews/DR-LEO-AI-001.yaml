@@ -1,0 +1,115 @@
+# -- DR-LEO-AI-001 -- Requirements Review
+# ISO 13485 Design Review
+# Schema: design-controls/templates/design_review_schema.yaml
+
+- id: "DR-LEO-AI-001"
+  title: "Phase 1 Requirements Review - User Needs and Design Inputs"
+  version: "1.0"
+  phase: "requirements"
+
+  scope:
+    description: |
+      Review of all 23 User Needs (UN-LEO-AI-001 to 023) and 35 Design Inputs
+      (DI-LEO-AI-001 to 035) for completeness, consistency, traceability, and
+      testability. This review covers the full requirements baseline for LEO AI
+      prior to architecture design.
+    modules:
+      - "Core Pipeline (shortlisting, coding, analysis)"
+      - "Cross-Cutting (HITL, RBAC, audit trail)"
+      - "DES Paragraph 28 (NG12, safety netting, screening)"
+      - "Infrastructure (FHIR, terminology, dashboards)"
+    change_summary: "Initial requirements review - no prior review"
+
+  scheduling:
+    planned_date: "2026-03-15"
+    duration_minutes: 90
+    location: "Microsoft Teams - Design Review Channel"
+
+  participants:
+    - user_id: "quality_lead"
+      name: "Quality Lead"
+      role: "chair"
+      function: "Quality Assurance"
+      attendance: "present"
+    - user_id: "eng_lead"
+      name: "Engineering Lead"
+      role: "presenter"
+      function: "Engineering"
+      attendance: "present"
+    - user_id: "clinical_lead"
+      name: "Clinical Lead"
+      role: "clinical"
+      function: "Clinical Safety"
+      attendance: "present"
+
+  items_reviewed:
+    - entity_type: "user_need"
+      entity_id: "UN-LEO-AI-001"
+      review_status: "approved"
+      comments: "Clear and testable requirement for automated clinical coding"
+    - entity_type: "user_need"
+      entity_id: "UN-LEO-AI-010"
+      review_status: "approved"
+      comments: "Safety-critical HITL requirement well-defined with appropriate acceptance criteria"
+    - entity_type: "user_need"
+      entity_id: "UN-LEO-AI-016"
+      review_status: "approved"
+      comments: "DES Paragraph 28 user need clearly scoped to NG12, safety netting, and screening"
+    - entity_type: "design_input"
+      entity_id: "DI-LEO-AI-003"
+      review_status: "approved_minor"
+      comments: "Add quantitative precision metric target to acceptance criteria"
+      action_required: true
+    - entity_type: "design_input"
+      entity_id: "DI-LEO-AI-025"
+      review_status: "approved"
+      comments: "Safety-net detector on critical path -- acceptance criteria and traceability complete"
+
+  review_criteria:
+    - criterion: "Requirements are unambiguous and testable"
+      category: "testability"
+      result: "pass"
+      evidence: "All User Needs and Design Inputs have defined acceptance criteria"
+    - criterion: "Traceability to user needs complete"
+      category: "traceability"
+      result: "pass"
+      evidence: "All 35 Design Inputs trace to at least one User Need"
+    - criterion: "Safety requirements addressed"
+      category: "safety"
+      result: "pass"
+      evidence: "HITL, safety netting, and clinical override requirements fully specified"
+    - criterion: "Regulatory requirements met"
+      category: "regulatory"
+      result: "pass"
+      evidence: "DES Paragraph 28 and DCB0129 requirements captured in User Needs and Design Inputs"
+    - criterion: "Acceptance criteria measurable"
+      category: "completeness"
+      result: "partial"
+      evidence: "Most DIs have quantitative targets; 3 DIs need precision metrics added"
+
+  action_items: []
+
+  decision:
+    overall_result: "conditionally_approved"
+    rationale: "User Needs and Design Inputs substantially complete. Minor items: add quantitative precision targets to 3 DIs; verify NG12 rule coverage completeness."
+    next_phase: "architecture"
+
+  minutes:
+    agenda:
+      - "Review of 23 User Needs for completeness and clarity"
+      - "Review of 35 Design Inputs for traceability and testability"
+      - "Safety and regulatory requirements assessment"
+      - "Action items and decision"
+    discussion_notes: |
+      Team reviewed all User Needs and confirmed alignment with stakeholder
+      expectations. Design Inputs were assessed for traceability back to User
+      Needs. Three Design Inputs were flagged for missing quantitative precision
+      targets. The clinical lead confirmed that safety-critical requirements
+      (HITL override, safety netting) are adequately specified. The team agreed
+      to proceed to architecture phase pending minor updates.
+
+  status: "draft"
+
+  metadata:
+    created_by: "quality_lead"
+    created_date: "2026-03-01"

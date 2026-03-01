@@ -1,0 +1,97 @@
+# -- UN-LEO-AI-023 -- Terminology Management
+# IEC 62304 / ISO 13485 User Need
+# Schema: design-controls/templates/user_needs_schema.yaml
+
+- id: "UN-LEO-AI-023"
+  title: "System supports SNOMED CT terminology search, resolution, and value set management"
+  description: |
+    Clinical audit teams need to search, browse, and manage SNOMED CT
+    terminology within the platform. This includes hybrid concept resolution
+    (exact match, full-text search, and vector similarity), value set creation
+    and management, concept map maintenance, and writeback of new terminology
+    mappings discovered during the audit process. The terminology service
+    operates against the Coding Neo4j database, separate from patient data.
+
+  stakeholder:
+    type: "end_user"
+    role: "Clinical Audit Team Member"
+    organization: "NHS Primary Care Organisation"
+
+  priority: "MUST"
+
+  rationale: |
+    SNOMED CT is the foundation of clinical coding in the UK NHS. Audit teams
+    need to work with terminology daily -- searching for concepts, building
+    value sets for new domains, and mapping between code systems. An
+    integrated terminology service eliminates the need for external
+    terminology browsers and ensures consistency between the terms used in
+    coding and those used in audit configuration.
+
+  benefit: "Integrated terminology management eliminates context switching and ensures coding consistency"
+
+  use_case: |
+    1. Clinical audit team member opens the terminology management page
+       within the platform.
+    2. Team member searches for a SNOMED CT concept using a clinical term
+       such as "type 2 diabetes" -- the system returns results from exact
+       match, full-text, and vector similarity in a merged ranked list.
+    3. Team member selects the correct concept and adds it to a new value
+       set being built for a diabetes audit programme.
+    4. Team member creates a concept map linking SNOMED CT codes to local
+       Read v2 codes still in use at some practices.
+    5. During a pipeline run the coding worker discovers a new clinical term
+       that maps to a SNOMED CT concept not yet in the value set.
+    6. System writes back the new mapping to the Coding Neo4j database for
+       review and approval.
+    7. Team member reviews and approves the new mapping, which is then
+       available for future pipeline runs.
+
+  current_solution: "External SNOMED CT browser (NHS TRUD) with manual copy-paste of concept codes into spreadsheets"
+
+  pain_points:
+    - "Context switching between external terminology browser and audit platform slows workflow"
+    - "Manual copy-paste of concept codes introduces transcription errors"
+    - "Value sets maintained in spreadsheets have no version control or audit trail"
+    - "New terminology mappings discovered during audits are lost if not manually recorded"
+
+  acceptance_criteria:
+    - "System shall provide hybrid SNOMED CT concept search (exact, full-text, vector)"
+    - "System shall support value set creation and management"
+    - "System shall support concept map creation and maintenance"
+    - "System shall support writeback of new terminology mappings"
+    - "System shall operate against the dedicated Coding Neo4j database"
+    - "Search response time shall be <=500ms for P95"
+
+  success_metrics:
+    - metric: "Search response time"
+      target: "<=500ms P95"
+      baseline: "External browser: 2-5 seconds including context switch"
+    - metric: "Value set CRUD operations"
+      target: "<=2 seconds"
+      baseline: "Spreadsheet edits: 5-10 minutes including version management"
+    - metric: "Concept resolution accuracy"
+      target: ">=98%"
+      baseline: "Manual lookup: estimated 90-95%"
+
+  regulatory_impact: "medium"
+  safety_impact: "low"
+
+  derived_from:
+    - "Intended Use Statement DC-IU-001 Section 2.3"
+    - "NHS Digital SNOMED CT implementation requirements"
+    - "SNOMED CT UK Clinical Edition release schedule"
+
+  related_standards:
+    - "IEC 62304:2006"
+    - "ISO 13485:2016"
+    - "SNOMED CT UK Clinical Edition"
+
+  metadata:
+    created_by: "Quality Engineering"
+    created_date: "2026-03-01"
+    status: "draft"
+
+  design_inputs: []
+  validation_tests: []
+
+  tags: ["terminology", "snomed-ct", "value-sets", "concept-maps", "coding-database"]

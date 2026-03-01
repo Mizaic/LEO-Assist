@@ -1,0 +1,74 @@
+# -- DI-LEO-AI-030 -- Encryption and TLS Configuration
+# IEC 62304 / ISO 13485 Design Input
+# Schema: design-controls/templates/design_inputs_schema.yaml
+
+- id: "DI-LEO-AI-030"
+  type: "Security"
+  derived_from: ["UN-LEO-AI-021"]
+  requirement: "The system SHALL encrypt all data at rest using AES-256 or equivalent and all data in transit using TLS 1.2 or higher, with all certificates managed through Azure Key Vault"
+  rationale: "NHS DSPT and UK GDPR require encryption of patient data. TLS protects data in transit between services and to clients. AES-256 protects data at rest in databases and storage. Key Vault provides centralised certificate and secret management."
+
+  machine_spec:
+    agent_prompt: |
+      Implement encryption and TLS configuration (~100 LOC).
+
+      SINGLE PURPOSE: Ensure all data is encrypted at rest
+      (AES-256) and in transit (TLS 1.2+) with certificates
+      managed through Azure Key Vault.
+
+      REQUIREMENTS:
+      1. Key Vault loader retrieves secrets and certificates
+      2. All service endpoints enforce TLS 1.2 minimum
+      3. Storage accounts and databases use AES-256 at rest
+      4. Bicep modules configure Key Vault with access policies
+      5. Certificate rotation supported without downtime
+      6. No secrets stored in code, config files, or env vars
+
+      METHODS:
+      - load_secrets(vault_url): Fetch secrets from Key Vault
+      - get_certificate(cert_name): Retrieve TLS certificate
+      - rotate_secret(secret_name): Trigger secret rotation
+
+      CODE CLARITY:
+      - Key Vault URL is the only secret in environment config
+      - All secret access uses managed identity authentication
+      - Clear error messages when Key Vault is unreachable
+
+    acceptance_criteria:
+      - type: "inspection"
+        spec: "TLS 1.2+ confirmed on all service endpoints"
+      - type: "inspection"
+        spec: "AES-256 encryption at rest confirmed on all storage"
+      - type: "test"
+        spec: "Key Vault integration retrieves secrets successfully"
+
+    constraints:
+      - type: "security"
+        spec: "No secrets in source code, environment variables, or config files"
+      - type: "regulatory"
+        spec: "Meets NHS DSPT encryption requirements"
+
+    dependencies: []
+
+    downstream_impacts:
+      - "libs/keyvault -- all services use Key Vault loader for secrets"
+      - "infra/bicep -- Key Vault module referenced by all service modules"
+
+    technical_details:
+      language: "Python"
+      framework: "Azure Infrastructure"
+      libraries: ["azure-keyvault-secrets"]
+      file_structure:
+        - "libs/keyvault/loader.py"
+        - "infra/bicep/modules/keyvault.bicep"
+      estimated_loc: 100
+
+  verification:
+    method: "Inspection"
+    phase: "IQ"
+    acceptance: "TLS 1.2+ confirmed on all endpoints; AES-256 encryption at rest confirmed; Key Vault integration verified"
+    test_protocol: "VT-LEO-AI-030"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-010", "R-LEO-AI-020"]
+  tags: ["encryption", "tls", "keyvault", "security", "nhs-dspt"]

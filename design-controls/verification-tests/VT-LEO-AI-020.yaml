@@ -1,0 +1,117 @@
+# -- VT-LEO-AI-020 -- Screening Gap and Programme Config Verification
+# IEC 62304 Verification Test Protocol
+# Schema: design-controls/templates/verification_test_schema.yaml
+
+- id: "VT-LEO-AI-020"
+  version: "1.0"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-026", "DI-LEO-AI-017"]
+    risks: ["R-LEO-AI-025"]
+    user_needs: ["UN-LEO-AI-018", "UN-LEO-AI-011"]
+
+  metadata:
+    title: "Screening Gap and Programme Config Verification"
+    description: "Verifies that screening eligibility matching identifies correct patients, programme configuration can be created without code changes, and configuration validation rejects invalid configs."
+    test_level: "integration"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    created_by: "Quality Engineer"
+    created_date: "2026-03-01"
+
+  test_environment:
+    environment_type: "ci_cd"
+    prerequisites:
+      - "Analysis worker service running"
+      - "Patient graph seeded with synthetic patients of varying demographics"
+      - "Programme configuration store available"
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: true
+
+  test_cases:
+    - case_id: "VT-020-TC-001"
+      case_name: "Screening eligibility matching correct"
+      priority: "critical"
+      preconditions:
+        - "Synthetic patient population includes eligible and ineligible patients for a screening programme"
+        - "Screening programme rules are configured (age range, sex, inclusion/exclusion criteria)"
+      test_steps:
+        - step_number: 1
+          action: "Run the screening eligibility matcher against the synthetic patient population"
+          expected_result: "Eligible patients are identified and ineligible patients are excluded"
+          verification_method: "Assert the returned eligible patient set matches the expected set"
+        - step_number: 2
+          action: "Verify a patient at the lower age boundary is correctly included or excluded"
+          expected_result: "Boundary patient is classified correctly per the programme rules"
+          verification_method: "Assert boundary patient's eligibility matches expected classification"
+        - step_number: 3
+          action: "Verify a patient with an exclusion criterion is correctly excluded"
+          expected_result: "Patient with exclusion criterion is not in the eligible set"
+          verification_method: "Assert excluded patient is absent from the eligible set"
+      acceptance_criteria:
+        - "All eligible patients are identified (no false negatives)"
+        - "No ineligible patients are included (no false positives)"
+        - "Boundary conditions are handled correctly"
+
+    - case_id: "VT-020-TC-002"
+      case_name: "Programme configuration created without code changes"
+      priority: "critical"
+      preconditions:
+        - "Programme configuration API is available"
+        - "No pre-existing test programme configuration"
+      test_steps:
+        - step_number: 1
+          action: "POST a new screening programme configuration via the API"
+          expected_result: "HTTP 201 Created returned with programme ID"
+          verification_method: "Assert status code is 201 and response contains programme ID"
+        - step_number: 2
+          action: "Run the screening eligibility matcher using the new programme"
+          expected_result: "Matcher uses the new programme rules without any code deployment"
+          verification_method: "Assert matcher applies the new programme's age range and criteria"
+        - step_number: 3
+          action: "Update the programme configuration via the API"
+          expected_result: "HTTP 200 OK returned with updated configuration"
+          verification_method: "Assert updated rules are reflected in subsequent matcher runs"
+      acceptance_criteria:
+        - "New programme configurations are created via API without code changes"
+        - "Updated configurations take effect without redeployment"
+        - "Matcher correctly applies the new or updated rules"
+
+    - case_id: "VT-020-TC-003"
+      case_name: "Configuration validation rejects invalid configs"
+      priority: "high"
+      preconditions:
+        - "Programme configuration API is available"
+      test_steps:
+        - step_number: 1
+          action: "POST a programme configuration with a missing required field (e.g., no age range)"
+          expected_result: "HTTP 422 Unprocessable Entity returned with validation error"
+          verification_method: "Assert status code is 422 and response describes the missing field"
+        - step_number: 2
+          action: "POST a programme configuration with an invalid age range (min > max)"
+          expected_result: "HTTP 422 Unprocessable Entity returned with validation error"
+          verification_method: "Assert status code is 422 and response describes the invalid range"
+        - step_number: 3
+          action: "POST a programme configuration with an unrecognised exclusion criterion code"
+          expected_result: "HTTP 422 Unprocessable Entity returned with validation error"
+          verification_method: "Assert status code is 422 and response describes the unrecognised code"
+      acceptance_criteria:
+        - "Invalid configurations are rejected with informative error messages"
+        - "No invalid configurations are persisted"
+        - "Validation covers required fields, range logic, and code validity"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 95% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["test_report", "code_coverage"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-020/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history: []

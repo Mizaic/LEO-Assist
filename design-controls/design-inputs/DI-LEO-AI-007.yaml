@@ -1,0 +1,74 @@
+# -- DI-LEO-AI-007 -- Abnormal Result Detection
+# IEC 62304 / ISO 13485 Design Input
+# Schema: design-controls/templates/design_inputs_schema.yaml
+
+- id: "DI-LEO-AI-007"
+  type: "Functional"
+  derived_from: ["UN-LEO-AI-003"]
+  requirement: "The system SHALL compare laboratory and investigation result values against configurable reference ranges and flag abnormal values with severity classification (mildly abnormal, significantly abnormal, critically abnormal)"
+  rationale: "Abnormal results are key clinical signals for safety-netting and guideline compliance. Automated detection ensures every abnormal value is surfaced regardless of volume. Severity classification prioritises clinical review."
+
+  machine_spec:
+    agent_prompt: |
+      Implement abnormal result detection (~200 LOC).
+
+      SINGLE PURPOSE: Compare lab and investigation results against
+      reference ranges and classify abnormality severity.
+
+      REQUIREMENTS:
+      1. Accept coded result values with units and test type
+      2. Look up configurable reference ranges from Neo4j
+      3. Compare result value against applicable range
+      4. Classify severity: normal, mildly abnormal, significantly
+         abnormal, critically abnormal
+      5. Handle age/sex-specific reference ranges where applicable
+      6. Flag results with no matching reference range for manual review
+
+      METHODS:
+      - detect_abnormal(result): Check result against reference range
+      - lookup_range(test_code, demographics): Get applicable range
+      - classify_severity(value, range): Determine severity level
+      - flag_missing_range(result): Handle unknown test types
+
+      CODE CLARITY:
+      - Reference ranges are data in Neo4j, not hard-coded
+      - Severity thresholds are configurable per test type
+      - All flagged results include the reference range used
+
+    acceptance_criteria:
+      - type: "test"
+        spec: "Abnormal detection sensitivity >= 95% against validated test data"
+      - type: "test"
+        spec: "Severity classification matches expert review in >= 90% of cases"
+      - type: "test"
+        spec: "Results with no reference range flagged for manual review"
+
+    constraints:
+      - type: "safety"
+        spec: "Critically abnormal results never downgraded in severity"
+      - type: "code_quality"
+        spec: "Reference ranges are externally configurable, not embedded in code"
+
+    dependencies: []
+
+    downstream_impacts:
+      - "DI-LEO-AI-008 -- abnormal flags feed guideline rule evaluation"
+      - "services/analysis_worker -- abnormal results surfaced in analysis output"
+
+    technical_details:
+      language: "Python"
+      framework: "None"
+      libraries: ["neo4j"]
+      file_structure:
+        - "services/analysis_worker/app/analyzers/abnormal_results.py"
+      estimated_loc: 200
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: "Abnormal detection sensitivity >= 95% against validated test data"
+    test_protocol: "VT-LEO-AI-007"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-021"]
+  tags: ["abnormal-detection", "clinical-safety", "analysis"]

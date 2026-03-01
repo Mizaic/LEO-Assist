@@ -1,0 +1,56 @@
+# -- R-LEO-AI-015 -- Data Loss During Sync
+# ISO 14971 / IEC 62304 Risk
+# Schema: design-controls/templates/risks_schema.yaml
+
+- id: "R-LEO-AI-015"
+  title: "Data loss occurs when synchronising data between pipeline stages"
+
+  hazard:
+    description: "Sync operation fails mid-way, leaving data in an inconsistent state"
+    category: "data_corruption"
+
+  hazardous_situation: "A pipeline sync operation fails partway through, resulting in partial data updates that leave the system in an inconsistent state"
+
+  harm:
+    description: "Partial data loss requiring re-processing; no patient safety impact as re-run is safe"
+    severity: "minor"
+
+  initial_risk_estimate:
+    severity: 2
+    probability: 2
+    detectability: 2
+    rpn: 8
+    risk_level: "low"
+
+  mitigation_measures:
+    - control_type: "inherent_safety"
+      description: "Sync is per-encounter with delete-then-create pattern making re-run idempotent"
+      implemented_by: []
+      verified_by: []
+      effectiveness: "highly_effective"
+    - control_type: "protective_measure"
+      description: "Pipeline execution state tracking enables restart from failed step"
+      implemented_by: []
+      verified_by: []
+      effectiveness: "effective"
+
+  residual_risk_estimate:
+    severity: 2
+    probability: 1
+    detectability: 1
+    rpn: 2
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: "Idempotent sync pattern means partial failures are safely recoverable by re-running; pipeline state tracking enables targeted restart without data loss"
+
+  monitoring:
+    monitoring_plan: "Track sync failure rates and pipeline restart frequency"
+    metrics: ["Sync failure rate", "Pipeline restart count"]
+    review_frequency: "Weekly"
+
+  metadata:
+    identified_by: "Risk Management Team"
+    identified_date: "2026-03-01"
+    status: "analyzed"
+
+  tags: ["data-integrity", "pipeline", "sync"]

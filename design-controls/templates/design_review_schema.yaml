@@ -1,0 +1,566 @@
+# Design Review Schema
+# ISO 13485:2016 Section 7.3.5 - Design and Development Review
+# FDA 21 CFR Part 820.30(e) - Design Review
+#
+# Design Reviews are formal, documented, systematic reviews of design results
+# at appropriate stages to evaluate the ability to meet requirements and
+# identify any problems.
+
+meta:
+  schema_version: "1.0"
+  entity_type: design_review
+  regulatory_references:
+    - standard: ISO 13485:2016
+      section: "7.3.5"
+      title: Design and Development Review
+    - standard: FDA 21 CFR Part 820.30
+      subsection: "(e)"
+      title: Design Review
+    - standard: IEC 62304:2006
+      section: "5.6"
+      title: Software Development Planning Review
+
+# =============================================================================
+# DESIGN REVIEW STRUCTURE
+# =============================================================================
+
+design_review:
+  # Unique identifier (e.g., DR-MIA-001, DR-MIA-002)
+  id:
+    type: string
+    pattern: "^DR-[A-Z]+-\\d{3}$"
+    required: true
+    description: Unique Design Review identifier
+    example: "DR-MIA-001"
+
+  # Review metadata
+  title:
+    type: string
+    required: true
+    max_length: 200
+    description: Descriptive title for the review
+    example: "Phase 1 Concept Review - Voice Booking Module"
+
+  version:
+    type: string
+    required: true
+    description: Version of the review record
+    example: "1.0"
+
+  # =============================================================================
+  # REVIEW PHASE & SCOPE
+  # =============================================================================
+  
+  phase:
+    type: enum
+    required: true
+    values:
+      - concept          # Initial concept review
+      - requirements     # Requirements review
+      - architecture     # Architecture/design review
+      - implementation   # Implementation review (code complete)
+      - verification     # Verification results review
+      - validation       # Validation results review
+      - pre_release      # Pre-release/pre-production review
+      - post_market      # Post-market surveillance review
+    description: Design development phase for this review
+
+  scope:
+    description:
+      type: string
+      required: true
+      description: Detailed description of what is being reviewed
+    
+    modules:
+      type: array
+      items: string
+      description: List of modules/components under review
+      example:
+        - "Voice Booking Engine"
+        - "SMS Confirmation Service"
+    
+    change_summary:
+      type: string
+      description: Summary of changes since last review (if applicable)
+
+  # =============================================================================
+  # SCHEDULING
+  # =============================================================================
+  
+  scheduling:
+    planned_date:
+      type: date
+      required: true
+      description: Originally planned review date
+    
+    actual_date:
+      type: date
+      description: Actual date review was conducted
+    
+    duration_minutes:
+      type: integer
+      description: Planned or actual duration
+      example: 60
+    
+    location:
+      type: string
+      description: Physical location or video call link
+      example: "Microsoft Teams - Design Review Channel"
+
+  # =============================================================================
+  # PARTICIPANTS
+  # =============================================================================
+  
+  participants:
+    type: array
+    required: true
+    min_items: 2
+    description: |
+      ISO 13485 requires representatives of functions concerned with the 
+      design stage(s) being reviewed. Minimum: 2 participants from different functions.
+    
+    items:
+      user_id:
+        type: string
+        required: true
+        description: User ID of participant
+      
+      name:
+        type: string
+        required: true
+        description: Full name of participant
+      
+      role:
+        type: enum
+        required: true
+        values:
+          - chair           # Review chair/facilitator
+          - presenter       # Presenting the design
+          - reviewer        # Technical reviewer
+          - quality         # QA/Quality representative
+          - regulatory      # Regulatory affairs
+          - clinical        # Clinical/medical input
+          - engineering     # Engineering lead
+          - product         # Product management
+          - observer        # Non-voting observer
+      
+      function:
+        type: string
+        required: true
+        description: Organizational function represented
+        example: "Quality Assurance"
+      
+      attendance:
+        type: enum
+        values:
+          - present
+          - absent
+          - partial
+          - delegated
+        default: present
+      
+      signature:
+        type: object
+        description: Electronic signature for approval
+        properties:
+          signed_at:
+            type: datetime
+          signature_meaning:
+            type: string
+            example: "I have reviewed and approve this design review record"
+
+  # =============================================================================
+  # ITEMS UNDER REVIEW
+  # =============================================================================
+  
+  items_reviewed:
+    type: array
+    description: Design control items included in this review
+    items:
+      entity_type:
+        type: enum
+        values:
+          - user_need
+          - design_input
+          - design_output
+          - risk
+          - verification_test
+          - validation_test
+      
+      entity_id:
+        type: string
+        description: ID of the entity (e.g., UN-MIA-001, DI-MIA-005)
+      
+      review_status:
+        type: enum
+        required: true
+        values:
+          - approved          # Meets requirements, no issues
+          - approved_minor    # Approved with minor issues (non-blocking)
+          - hold              # On hold pending resolution of issues
+          - rejected          # Does not meet requirements
+          - deferred          # Deferred to future review
+          - not_reviewed      # Was not reviewed in this session
+      
+      comments:
+        type: string
+        description: Reviewer comments on this item
+      
+      action_required:
+        type: boolean
+        default: false
+        description: Whether action items were raised for this item
+
+  # =============================================================================
+  # REVIEW CRITERIA & CHECKLIST
+  # =============================================================================
+  
+  review_criteria:
+    type: array
+    description: Criteria evaluated during the review
+    items:
+      criterion:
+        type: string
+        required: true
+        example: "Requirements are unambiguous and testable"
+      
+      category:
+        type: enum
+        values:
+          - completeness      # All required elements present
+          - correctness       # Technically correct
+          - consistency       # Consistent with other docs
+          - traceability      # Properly traced to source
+          - testability       # Can be verified/validated
+          - safety            # Safety requirements addressed
+          - regulatory        # Regulatory requirements met
+          - usability         # User interface/experience
+          - maintainability   # Code/design maintainability
+      
+      result:
+        type: enum
+        values:
+          - pass
+          - fail
+          - partial
+          - not_applicable
+      
+      evidence:
+        type: string
+        description: Evidence supporting the result
+      
+      findings:
+        type: string
+        description: Issues or observations
+
+  # =============================================================================
+  # ACTION ITEMS
+  # =============================================================================
+  
+  action_items:
+    type: array
+    description: Issues identified and actions required
+    items:
+      id:
+        type: string
+        required: true
+        pattern: "^AI-\\d{3}$"
+        description: Action item ID within this review
+        example: "AI-001"
+      
+      title:
+        type: string
+        required: true
+        max_length: 200
+      
+      description:
+        type: string
+        required: true
+        description: Detailed description of the issue and required action
+      
+      severity:
+        type: enum
+        required: true
+        values:
+          - critical    # Must be resolved before proceeding
+          - major       # Must be resolved before next phase
+          - minor       # Should be resolved, non-blocking
+          - observation # For consideration, no action required
+      
+      category:
+        type: enum
+        values:
+          - design_defect
+          - documentation
+          - traceability_gap
+          - safety_concern
+          - regulatory_gap
+          - process_issue
+          - enhancement
+      
+      related_items:
+        type: array
+        items: string
+        description: IDs of related design control items
+        example:
+          - "DI-MIA-005"
+          - "R-MIA-002"
+      
+      owner:
+        type: string
+        required: true
+        description: Person responsible for resolution
+      
+      due_date:
+        type: date
+        required: true
+      
+      status:
+        type: enum
+        values:
+          - open
+          - in_progress
+          - resolved
+          - verified
+          - closed
+          - cancelled
+        default: open
+      
+      resolution:
+        type: object
+        properties:
+          resolved_by:
+            type: string
+          resolved_date:
+            type: date
+          resolution_notes:
+            type: string
+          verified_by:
+            type: string
+          verified_date:
+            type: date
+
+  # =============================================================================
+  # REVIEW DECISION
+  # =============================================================================
+  
+  decision:
+    overall_result:
+      type: enum
+      required: true
+      values:
+        - approved              # Design approved, proceed to next phase
+        - conditionally_approved # Approved pending resolution of action items
+        - not_approved          # Design requires rework
+        - deferred              # Decision deferred to future review
+    
+    rationale:
+      type: string
+      required: true
+      description: Justification for the decision
+    
+    conditions:
+      type: array
+      items: string
+      description: Conditions that must be met (if conditionally approved)
+    
+    next_phase:
+      type: string
+      description: Next design phase after approval
+    
+    next_review_date:
+      type: date
+      description: Scheduled date for next review (if applicable)
+
+  # =============================================================================
+  # MEETING NOTES
+  # =============================================================================
+  
+  minutes:
+    agenda:
+      type: array
+      items: string
+      description: Meeting agenda items
+    
+    discussion_notes:
+      type: string
+      description: Summary of key discussions
+    
+    risks_identified:
+      type: array
+      items: string
+      description: New risks identified during review
+    
+    key_decisions:
+      type: array
+      items:
+        decision:
+          type: string
+        rationale:
+          type: string
+
+  # =============================================================================
+  # STATUS & WORKFLOW
+  # =============================================================================
+  
+  status:
+    type: enum
+    required: true
+    values:
+      - draft           # Review being prepared
+      - scheduled       # Review scheduled, awaiting execution
+      - in_progress     # Review currently being conducted
+      - pending_actions # Review complete, awaiting action item resolution
+      - pending_signoff # Actions resolved, awaiting signatures
+      - completed       # Fully signed off
+      - cancelled       # Review cancelled
+    default: draft
+
+  # =============================================================================
+  # ATTACHMENTS & EVIDENCE
+  # =============================================================================
+  
+  attachments:
+    type: array
+    items:
+      filename:
+        type: string
+      description:
+        type: string
+      upload_date:
+        type: datetime
+      uploaded_by:
+        type: string
+      storage_location:
+        type: string
+
+  # =============================================================================
+  # AUDIT TRAIL
+  # =============================================================================
+  
+  metadata:
+    created_by:
+      type: string
+      required: true
+    created_date:
+      type: datetime
+      required: true
+    
+    last_modified_by:
+      type: string
+    last_modified_date:
+      type: datetime
+    
+    review_record_approved_by:
+      type: string
+      description: Person who approved the review record itself
+    review_record_approved_date:
+      type: datetime
+
+# =============================================================================
+# EXAMPLE DESIGN REVIEW
+# =============================================================================
+
+example:
+  id: "DR-MIA-001"
+  title: "Phase 1 Requirements Review - Voice Booking Core"
+  version: "1.0"
+  phase: requirements
+  
+  scope:
+    description: |
+      Review of core voice booking requirements including SMS confirmation,
+      email confirmation, and calendar integration features.
+    modules:
+      - "Voice Booking Engine"
+      - "SMS Confirmation Service"
+      - "Email Confirmation Service"
+    change_summary: "Initial requirements review - no prior review"
+  
+  scheduling:
+    planned_date: "2025-01-15"
+    actual_date: "2025-01-15"
+    duration_minutes: 90
+    location: "Microsoft Teams - Design Review Channel"
+  
+  participants:
+    - user_id: "user_001"
+      name: "Jane Smith"
+      role: chair
+      function: "Quality Assurance"
+      attendance: present
+    - user_id: "user_002"
+      name: "John Doe"
+      role: presenter
+      function: "Engineering"
+      attendance: present
+    - user_id: "user_003"
+      name: "Alice Johnson"
+      role: regulatory
+      function: "Regulatory Affairs"
+      attendance: present
+  
+  items_reviewed:
+    - entity_type: user_need
+      entity_id: "UN-MIA-001"
+      review_status: approved
+      comments: "Clear and testable requirement"
+    - entity_type: design_input
+      entity_id: "DI-MIA-001"
+      review_status: approved_minor
+      comments: "Add clarification on retry logic"
+      action_required: true
+  
+  review_criteria:
+    - criterion: "Requirements are unambiguous and testable"
+      category: testability
+      result: pass
+      evidence: "All requirements have acceptance criteria defined"
+    - criterion: "Traceability to user needs complete"
+      category: traceability
+      result: partial
+      findings: "3 design inputs missing user need traceability"
+  
+  action_items:
+    - id: "AI-001"
+      title: "Add retry logic clarification to DI-MIA-001"
+      description: "Specify maximum retry attempts and backoff strategy"
+      severity: minor
+      category: documentation
+      related_items: ["DI-MIA-001"]
+      owner: "John Doe"
+      due_date: "2025-01-22"
+      status: open
+  
+  decision:
+    overall_result: conditionally_approved
+    rationale: "Requirements are substantially complete. Minor documentation updates required."
+    conditions:
+      - "Resolve AI-001 before implementation begins"
+    next_phase: "architecture"
+    next_review_date: "2025-02-01"
+  
+  minutes:
+    agenda:
+      - "Review of voice booking user needs"
+      - "Review of SMS/Email confirmation design inputs"
+      - "Traceability verification"
+    discussion_notes: |
+      Team discussed SMS retry strategy. Agreed on 3 retries with exponential backoff.
+      Regulatory confirmed 60-second SLA is acceptable for Class B device.
+    key_decisions:
+      - decision: "Use Twilio as SMS provider"
+        rationale: "Best reliability and NHS compliance"
+  
+  status: pending_actions
+  
+  metadata:
+    created_by: "user_001"
+    created_date: "2025-01-10T10:00:00Z"
+
+
+
+
+
+
+

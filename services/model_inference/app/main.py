@@ -175,13 +175,15 @@ def extract(req: ExtractRequest) -> ExtractResponse:
             ),
         )
 
+    from libs.deid import deidentify
+
     entities: list[EntityOut] = []
 
     for sent in req.sentences:
-        doc = nlp(sent.text)
+        deid = deidentify(sent.text)
+        doc = nlp(deid.text)
         for ent in doc.ents:
             label = ent.label_
-            # spaCy entity confidence (if entity_ruler or custom scorer attached)
             confidence = float(getattr(ent, "kb_id_", 0.0) or 0.0)
             entities.append(EntityOut(
                 sentence_id=sent.sentence_id,

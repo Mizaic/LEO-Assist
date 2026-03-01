@@ -1,0 +1,752 @@
+# ============================================================================
+# VALIDATION TEST SCHEMA - IEC 62304 / FDA 21 CFR Part 820 Compliant
+# ============================================================================
+# This schema defines the structure for validation test protocols used to
+# validate User Needs for the Autonomous eQMS Platform.
+#
+# KEY DISTINCTION:
+# - Verification: "Did we build the product right?" (DIs meet specs)
+# - Validation: "Did we build the right product?" (System meets User Needs)
+#
+# Regulatory References:
+# - IEC 62304:2006 Section 5.8 (Software System Testing / Validation)
+# - FDA 21 CFR Part 820.30(g) (Design Validation)
+# - ISO 13485:2016 Section 7.3.7 (Design and Development Validation)
+# - FDA Guidance: General Principles of Software Validation
+#
+# Version: 1.0
+# Created: 2025-11-09
+# Owner: Quality & Engineering
+# ============================================================================
+
+meta:
+  schema_version: "1.0"
+  schema_name: "Validation Test Protocol Schema"
+  purpose: "Define machine-readable structure for IEC 62304/FDA-compliant validation tests"
+  intended_use: "All validation test protocols for User Needs"
+  regulatory_compliance:
+    - "IEC 62304:2006 - Medical Device Software Lifecycle (Section 5.8)"
+    - "FDA 21 CFR Part 820.30(g) - Design Validation"
+    - "ISO 13485:2016 - Medical Device Quality Management (Section 7.3.7)"
+    - "FDA Guidance: General Principles of Software Validation (2002)"
+  change_history:
+    - version: "1.0"
+      date: "2025-11-09"
+      change: "Initial schema creation"
+      author: "Quality Engineering"
+
+# ============================================================================
+# SCHEMA DEFINITION
+# ============================================================================
+
+schema:
+  validation_protocol:
+    description: "Root element for a validation test protocol"
+    required: true
+    fields:
+      
+      # --- IDENTIFICATION & VERSION CONTROL ---
+      id:
+        type: string
+        required: true
+        format: "VAL-PLATFORM-###"
+        description: "Unique validation test protocol identifier"
+        example: "VAL-PLATFORM-001"
+        
+      version:
+        type: string
+        required: true
+        format: "semantic versioning (major.minor)"
+        description: "Protocol version number"
+        example: "1.0"
+        
+      status:
+        type: enum
+        required: true
+        values: ["draft", "review", "approved", "alpha", "beta", "production", "completed", "obsolete"]
+        description: "Current lifecycle status of validation protocol"
+        state_transitions:
+          - "draft → review → approved → alpha → beta → production → completed"
+          - "Any state → obsolete (with justification)"
+        
+      # --- TRACEABILITY ---
+      traceability:
+        type: object
+        required: true
+        description: "Links to User Needs, Design Inputs, and Evidence"
+        fields:
+          user_needs:
+            type: array
+            required: true
+            item_type: string
+            format: "UN-PLATFORM-###"
+            description: "User Need(s) being validated"
+            min_items: 1
+            example: ["UN-PLATFORM-001"]
+            
+          design_inputs:
+            type: array
+            required: true
+            item_type: string
+            format: "DI-PLATFORM-###"
+            description: "Design Inputs that implement these User Needs"
+            min_items: 1
+            example: ["DI-PLATFORM-001", "DI-PLATFORM-002"]
+            
+          risks:
+            type: array
+            required: false
+            item_type: string
+            format: "R-PLATFORM-###"
+            description: "Risks related to these User Needs"
+            example: ["R-PLATFORM-001"]
+            
+          verification_tests:
+            type: array
+            required: false
+            item_type: string
+            format: "VT-PLATFORM-###"
+            description: "Verification tests that must pass before validation"
+            example: ["VT-PLATFORM-001", "VT-PLATFORM-002"]
+            
+          related_validation_tests:
+            type: array
+            required: false
+            item_type: string
+            format: "VAL-PLATFORM-###"
+            description: "Other validation tests with dependencies"
+            example: ["VAL-PLATFORM-002"]
+      
+      # --- METADATA ---
+      metadata:
+        type: object
+        required: true
+        fields:
+          title:
+            type: string
+            required: true
+            max_length: 200
+            description: "Human-readable validation test title"
+            example: "Meta-Learning System End-to-End Validation"
+            
+          validation_phase:
+            type: enum
+            required: true
+            values: ["alpha", "beta", "production"]
+            description: "Validation phase per Validation Plan"
+            definitions:
+              alpha: "Internal validation (QA team)"
+              beta: "Limited external validation (beta customers)"
+              production: "Full production validation (all customers)"
+              
+          test_type:
+            type: enum
+            required: true
+            values: ["end_to_end", "user_acceptance", "performance_qualification", "usability", "clinical", "field"]
+            description: "Type of validation testing"
+            definitions:
+              end_to_end: "Complete workflow from user perspective"
+              user_acceptance: "Actual users testing real scenarios"
+              performance_qualification: "Performance under actual conditions (PQ)"
+              usability: "IEC 62366 usability testing"
+              clinical: "Clinical validation (if required)"
+              field: "Real-world field testing"
+              
+          automation_level:
+            type: enum
+            required: true
+            values: ["automated", "semi-automated", "manual"]
+            description: "Degree of test automation"
+            
+          participants:
+            type: object
+            required: true
+            description: "Who participates in validation"
+            fields:
+              user_type:
+                type: enum
+                required: true
+                values: ["internal_qa", "beta_customer", "production_user"]
+              count:
+                type: integer
+                required: true
+                description: "Number of participants"
+              selection_criteria:
+                type: string
+                required: false
+                description: "How participants are selected"
+                
+          created_by:
+            type: string
+            required: true
+            description: "Person/role who created the protocol"
+            example: "Quality Engineer"
+            
+          created_date:
+            type: date
+            required: true
+            format: "YYYY-MM-DD"
+            description: "Date protocol was created"
+            
+          reviewed_by:
+            type: string
+            required: false
+            description: "Person who reviewed the protocol"
+            
+          reviewed_date:
+            type: date
+            required: false
+            format: "YYYY-MM-DD"
+            
+          approved_by:
+            type: string
+            required: false
+            description: "Quality Manager who approved protocol"
+            
+          approved_date:
+            type: date
+            required: false
+            format: "YYYY-MM-DD"
+            
+          estimated_duration:
+            type: string
+            required: false
+            description: "Estimated time to execute validation"
+            example: "4 weeks (alpha phase)"
+            
+      # --- TEST ENVIRONMENT ---
+      test_environment:
+        type: object
+        required: true
+        description: "Environment for validation testing"
+        fields:
+          environment_name:
+            type: enum
+            required: true
+            values: ["local", "ci", "staging", "beta-production", "production"]
+            description: "Target validation environment"
+            
+          prerequisites:
+            type: array
+            required: true
+            item_type: string
+            description: "Conditions that must be met before validation"
+            min_items: 1
+            example: 
+              - "All verification tests passed"
+              - "System deployed to staging"
+              - "Beta users trained"
+              
+          infrastructure:
+            type: string
+            required: true
+            description: "Infrastructure details"
+            example: "Azure AKS production-like environment"
+            
+          data:
+            type: object
+            required: false
+            description: "Test data requirements"
+            fields:
+              type:
+                type: enum
+                values: ["synthetic", "anonymized_real", "real_production"]
+              volume:
+                type: string
+                example: "100 User Needs, 500 Design Inputs"
+              scale:
+                type: enum
+                required: false
+                values: ["small", "medium", "large"]
+                description: "Dataset scale tier for this validation run"
+              seed:
+                type: string
+                required: false
+                description: "Deterministic seed for scenario generation"
+                example: "seed-20260130-001"
+              scenario_clock:
+                type: object
+                required: false
+                description: "Deterministic clock control for scenarios"
+                fields:
+                  as_of:
+                    type: datetime
+                    required: true
+                    format: "ISO 8601 (YYYY-MM-DDTHH:MM:SSZ)"
+                  timezone:
+                    type: string
+                    required: false
+                    example: "UTC"
+                  dst_policy:
+                    type: enum
+                    required: false
+                    values: ["standard", "fixed-utc"]
+                    description: "How to handle DST when generating scenario dates"
+                
+      # --- USER SCENARIOS ---
+      user_scenarios:
+        type: array
+        required: true
+        item_type: object
+        min_items: 1
+        description: "Real-world user scenarios to validate"
+        fields:
+          scenario_id:
+            type: string
+            required: true
+            description: "Unique scenario identifier"
+            example: "SCENARIO-001"
+            
+          scenario_name:
+            type: string
+            required: true
+            description: "Descriptive scenario name"
+            example: "Quality Engineer creates Design Input and generates code"
+            
+          user_role:
+            type: string
+            required: true
+            description: "User role performing scenario"
+            example: "Quality Engineer"
+            
+          user_goal:
+            type: string
+            required: true
+            description: "What the user wants to accomplish"
+            example: "Generate production-ready code from Design Input in <7 days"
+            
+          preconditions:
+            type: array
+            required: true
+            item_type: string
+            description: "Conditions before scenario starts"
+            
+          steps:
+            type: array
+            required: true
+            item_type: object
+            min_items: 1
+            description: "Step-by-step user actions"
+            fields:
+              step_number:
+                type: integer
+                required: true
+              action:
+                type: string
+                required: true
+                description: "User action"
+              expected_result:
+                type: string
+                required: true
+                description: "Expected system response"
+              success_criteria:
+                type: string
+                required: true
+                description: "How to measure success"
+                
+          postconditions:
+            type: array
+            required: true
+            item_type: string
+            description: "Expected state after scenario completes"
+            
+          success_metrics:
+            type: array
+            required: true
+            item_type: object
+            description: "Quantitative success measurements"
+            fields:
+              metric:
+                type: string
+                required: true
+                example: "Task completion rate"
+              target:
+                type: string
+                required: true
+                example: "≥90%"
+              measurement_method:
+                type: string
+                required: true
+                
+          evidence_to_capture:
+            type: array
+            required: true
+            item_type: string
+            description: "Evidence artifacts for this scenario"
+            
+      # --- ACCEPTANCE CRITERIA ---
+      acceptance_criteria:
+        type: array
+        required: true
+        item_type: object
+        min_items: 1
+        description: "Overall validation acceptance criteria"
+        fields:
+          criterion:
+            type: string
+            required: true
+            description: "High-level acceptance criterion"
+            example: "User Need fulfilled in real-world use"
+            
+          target:
+            type: string
+            required: true
+            description: "Quantitative target"
+            example: "≥90% of users successfully complete workflow"
+            
+          measurement_method:
+            type: string
+            required: true
+            description: "How criterion is measured"
+            example: "User acceptance test results analysis"
+            
+      # --- USER FEEDBACK ---
+      user_feedback:
+        type: object
+        required: true
+        description: "User feedback collection approach"
+        fields:
+          feedback_methods:
+            type: array
+            required: true
+            item_type: enum
+            values: ["survey", "interview", "observation", "analytics", "support_tickets"]
+            description: "Methods for collecting user feedback"
+            
+          satisfaction_surveys:
+            type: object
+            required: false
+            fields:
+              survey_tool:
+                type: string
+                example: "Google Forms, SurveyMonkey"
+              questions:
+                type: array
+                item_type: string
+                description: "Key survey questions"
+              target_response_rate:
+                type: string
+                example: "≥70%"
+                
+          usability_metrics:
+            type: object
+            required: false
+            fields:
+              sus_score_target:
+                type: number
+                description: "System Usability Scale target"
+                example: 70
+              task_completion_target:
+                type: string
+                example: "≥90%"
+              time_on_task_target:
+                type: string
+                example: "50% faster than manual process"
+              error_rate_target:
+                type: string
+                example: "<2 errors per task"
+                
+      # --- PERFORMANCE METRICS ---
+      performance_metrics:
+        type: array
+        required: false
+        item_type: object
+        description: "Performance metrics to validate (PQ)"
+        fields:
+          metric_name:
+            type: string
+            required: true
+            example: "Design Input to Validated Code cycle time"
+          target:
+            type: string
+            required: true
+            example: "P95 ≤7 days"
+          baseline:
+            type: string
+            required: false
+            description: "Baseline for comparison"
+            example: "Manual process: 90 days"
+          measurement_period:
+            type: string
+            required: true
+            example: "30 days continuous"
+            
+      # --- EVIDENCE BUNDLE ---
+      evidence_bundle:
+        type: object
+        required: true
+        description: "Evidence collection specification"
+        fields:
+          bundle_id:
+            type: string
+            required: true
+            format: "VAL-###-EXEC-{phase}-{timestamp}"
+            description: "Unique identifier for evidence bundle"
+            example: "VAL-001-EXEC-ALPHA-20251109-143022"
+            
+          blob_path:
+            type: string
+            required: true
+            format: "Azure Blob Storage path"
+            description: "Base path for evidence storage"
+            example: "/evidence-bundles/{tenant_id}/validation/VAL-001/"
+            
+          artifacts:
+            type: array
+            required: true
+            item_type: object
+            min_items: 1
+            description: "Expected evidence artifacts"
+            fields:
+              type:
+                type: enum
+                required: true
+                values: 
+                  - "user_acceptance_results"
+                  - "user_satisfaction_survey"
+                  - "usability_test_recording"
+                  - "task_completion_data"
+                  - "performance_metrics"
+                  - "user_feedback_transcripts"
+                  - "screenshot"
+                  - "video_recording"
+                  - "analytics_data"
+                  - "support_ticket_analysis"
+                  - "clinical_data"
+                  - "field_observation_notes"
+                  - "scenario_definition"
+                  - "expectation_manifest"
+                  - "fhir_export"
+                  - "api_capture"
+                  - "pipeline_logs"
+                  - "classification_output"
+                  - "retention_evaluation"
+                  - "audit_provenance_snapshot"
+                  - "test_log_bundle"
+                description: "Type of validation evidence"
+                
+              description:
+                type: string
+                required: true
+                
+              retention_period:
+                type: string
+                required: false
+                description: "Evidence retention duration"
+                example: "7 years"
+                
+          immutability:
+            type: boolean
+            required: true
+            default: true
+            description: "Whether evidence must be immutable (WORM)"
+            
+      # --- EXECUTION HISTORY ---
+      execution_history:
+        type: array
+        required: true
+        item_type: object
+        description: "Record of all validation executions"
+        fields:
+          execution_id:
+            type: string
+            required: true
+            description: "Unique execution identifier"
+            
+          phase:
+            type: enum
+            required: true
+            values: ["alpha", "beta", "production"]
+            
+          executed_by:
+            type: string
+            required: true
+            description: "Person/team that executed validation"
+            
+          executed_date:
+            type: datetime
+            required: true
+            format: "ISO 8601 (YYYY-MM-DDTHH:MM:SSZ)"
+            
+          participants:
+            type: array
+            required: true
+            item_type: object
+            description: "Users who participated"
+            fields:
+              user_id:
+                type: string
+                required: true
+              user_role:
+                type: string
+                required: true
+              organization:
+                type: string
+                required: false
+                
+          result:
+            type: enum
+            required: true
+            values: ["Pass", "Pass with observations", "Fail", "Incomplete"]
+            
+          scenarios_completed:
+            type: integer
+            required: true
+            description: "Number of scenarios completed"
+            
+          scenarios_passed:
+            type: integer
+            required: true
+            
+          user_satisfaction_score:
+            type: number
+            required: false
+            description: "Average satisfaction rating (1-5)"
+            
+          sus_score:
+            type: number
+            required: false
+            description: "System Usability Scale score (0-100)"
+            
+          key_findings:
+            type: array
+            required: true
+            item_type: string
+            description: "Key findings from validation"
+            
+          issues_found:
+            type: array
+            required: false
+            item_type: string
+            description: "Issue IDs discovered during validation"
+            
+          evidence_bundle_uri:
+            type: string
+            required: true
+            format: "Azure Blob Storage URI"
+            
+          notes:
+            type: string
+            required: false
+            max_length: 5000
+            
+          neo4j_record_id:
+            type: string
+            required: false
+            description: "Neo4j node ID for traceability"
+
+# ============================================================================
+# VALIDATION RULES
+# ============================================================================
+
+validation_rules:
+  - rule: "user_need_traceability"
+    description: "Every user_need must exist in user_needs.yaml"
+    
+  - rule: "verification_prerequisite"
+    description: "All verification_tests listed must have passed before validation"
+    
+  - rule: "participant_count"
+    description: "Minimum participant count: alpha=5, beta=15, production=50"
+    
+  - rule: "acceptance_criteria_quantitative"
+    description: "All acceptance criteria must be measurable"
+    
+  - rule: "evidence_completeness"
+    description: "Each execution must have complete evidence bundle"
+    
+  - rule: "user_satisfaction_threshold"
+    description: "User satisfaction must be ≥4/5 for validation to pass"
+    
+  - rule: "phase_progression"
+    description: "Must complete alpha before beta, beta before production"
+
+# ============================================================================
+# USAGE EXAMPLES
+# ============================================================================
+
+examples:
+  - example_name: "End-to-End Workflow Validation"
+    description: "Validate complete user workflow from start to finish"
+    file_reference: "validation_tests/meta_learning_validation.yaml - VAL-PLATFORM-001"
+    
+  - example_name: "User Acceptance Test"
+    description: "Real users testing system features"
+    file_reference: "validation_tests/design_controls_validation.yaml - VAL-PLATFORM-004"
+    
+  - example_name: "Performance Qualification"
+    description: "Validate performance under actual conditions"
+    file_reference: "validation_tests/meta_learning_validation.yaml - VAL-PLATFORM-003"
+    
+  - example_name: "Usability Test"
+    description: "IEC 62366 usability testing with task analysis"
+    file_reference: "validation_tests/ui_api_validation.yaml - VAL-PLATFORM-023"
+
+# ============================================================================
+# REGULATORY COMPLIANCE NOTES
+# ============================================================================
+
+regulatory_notes:
+  IEC_62304:
+    section_5_8: "Software system testing shall ensure software system fulfills requirements"
+    validation_definition: "Confirmation by examination and provision of objective evidence that software specifications conform to user needs and intended uses"
+    
+  FDA_21_CFR_820_30_g:
+    design_validation: "Design validation shall be performed under defined operating conditions on initial production units"
+    validation_timing: "Design validation shall ensure that devices conform to defined user needs and intended uses"
+    validation_documentation: "Results of design validation shall be documented"
+    
+  ISO_13485:
+    section_7_3_7: "Design and development validation shall be performed to ensure the product is capable of meeting requirements for specified application or intended use"
+    validation_conditions: "Validation shall be performed under defined operating conditions"
+    
+  FDA_Software_Validation_Guidance:
+    validation_activities: "User site testing, alpha/beta testing, usability testing, field testing"
+    evidence_requirements: "Documented test plans, test results, user feedback, traceability"
+
+# ============================================================================
+# DIFFERENCES FROM VERIFICATION
+# ============================================================================
+
+verification_vs_validation:
+  verification:
+    question: "Did we build the product right?"
+    focus: "Design Outputs meet Design Inputs"
+    when: "During development (continuous)"
+    environment: "Development, CI/CD, Staging"
+    participants: "Developers, QA team (internal)"
+    tests: "Unit, Integration, System tests"
+    evidence: "Test results, code coverage, defect logs"
+    
+  validation:
+    question: "Did we build the right product?"
+    focus: "System meets User Needs and intended use"
+    when: "After verification (phased: alpha, beta, production)"
+    environment: "Production-like, Beta, Production"
+    participants: "Real users (internal QA, beta customers, production users)"
+    tests: "End-to-end scenarios, UAT, Usability, Field testing"
+    evidence: "User feedback, satisfaction surveys, real-world usage data"
+
+# ============================================================================
+# CHANGE CONTROL
+# ============================================================================
+
+change_control:
+  protocol_changes:
+    minor_changes: "Clarifications, typo fixes - QA review required"
+    major_changes: "Changes to scenarios, criteria - QA approval required"
+    version_increment: "Minor: +0.1, Major: +1.0"
+    
+  phase_transitions:
+    alpha_to_beta: "Alpha validation complete, issues resolved, QM approval"
+    beta_to_production: "Beta validation complete, user satisfaction ≥4/5, QM approval"
+    
+  evidence_retention:
+    duration: "7 years minimum (FDA requirement)"
+    location: "Azure Blob Storage with WORM policy"
+
+
+
+
+
+

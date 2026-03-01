@@ -1,0 +1,61 @@
+# -- R-LEO-AI-022 -- Safety-Net Alert Failure
+# ISO 14971 / IEC 62304 Risk
+# Schema: design-controls/templates/risks_schema.yaml
+
+- id: "R-LEO-AI-022"
+  title: "Safety-net system fails to flag patients at risk of delayed cancer diagnosis"
+
+  hazard:
+    description: "Electronic safety-netting logic fails to detect patients with cancer-relevant symptoms who lack expected follow-up"
+    category: "software_defect"
+
+  hazardous_situation: "A patient who presented with cancer-relevant symptoms but was not referred or investigated is not flagged by the safety-net system, losing an opportunity for early intervention"
+
+  harm:
+    description: "Missed safety-net alert could contribute to delayed cancer diagnosis at population level through incorrect audit data and missed quality improvement opportunity"
+    severity: "serious"
+
+  initial_risk_estimate:
+    severity: 3
+    probability: 2
+    detectability: 3
+    rpn: 18
+    risk_level: "medium"
+
+  mitigation_measures:
+    - control_type: "protective_measure"
+      description: "Safety-net rules validated against known cases with false negative rate <= 2%"
+      implemented_by: []
+      verified_by: []
+      effectiveness: "highly_effective"
+    - control_type: "protective_measure"
+      description: "Rule coverage testing ensures all configured symptom-action pairs are covered"
+      implemented_by: []
+      verified_by: []
+      effectiveness: "effective"
+    - control_type: "procedural_control"
+      description: "Periodic manual review of a sample of non-flagged patients to verify safety-net completeness"
+      implemented_by: []
+      verified_by: []
+      effectiveness: "effective"
+
+  residual_risk_estimate:
+    severity: 3
+    probability: 1
+    detectability: 2
+    rpn: 6
+    risk_level: "low"
+    acceptability: "alarp"
+    justification: "Safety-net rules are validated against known cases. Rule coverage testing ensures completeness. Manual sampling provides independent verification. Risk is as low as reasonably practicable -- zero false negatives cannot be guaranteed but the false negative rate target of <=2% is achievable with current controls."
+
+  monitoring:
+    monitoring_plan: "Track safety-net false negative rate, rule coverage, and manual sampling concordance"
+    metrics: ["Safety-net false negative rate", "Rule coverage percentage", "Manual sampling concordance"]
+    review_frequency: "Monthly"
+
+  metadata:
+    identified_by: "Risk Management Team"
+    identified_date: "2026-03-01"
+    status: "analyzed"
+
+  tags: ["clinical-risk", "safety-netting", "cancer", "des-paragraph-28"]

@@ -1,0 +1,126 @@
+# -- VT-LEO-AI-006 -- Guideline Compliance and Safety Net Verification
+# IEC 62304 Verification Test Protocol
+# Schema: design-controls/templates/verification_test_schema.yaml
+
+- id: "VT-LEO-AI-006"
+  version: "1.0"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-008", "DI-LEO-AI-024", "DI-LEO-AI-025"]
+    risks: ["R-LEO-AI-022", "R-LEO-AI-023"]
+    user_needs: ["UN-LEO-AI-004", "UN-LEO-AI-016", "UN-LEO-AI-017"]
+
+  metadata:
+    title: "Guideline Compliance and Safety Net Verification"
+    description: >
+      Verifies that the guideline compliance engine correctly matches clinical
+      data against known guideline rules (e.g. NICE NG12 referral criteria),
+      detects deviations, generates safety-net alerts for at-risk patients,
+      and meets the false-negative rate threshold.
+    test_level: "integration"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    test_file_path: "tests/integration/test_guideline_compliance.py"
+    created_by: "Quality Engineer"
+    created_date: "2026-03-01"
+
+  test_environment:
+    environment_type: "ci_cd"
+    prerequisites:
+      - "Python 3.12 installed with project dependencies"
+      - "Guideline rule definitions loaded (NICE NG12, QOF)"
+      - "Labelled test cases with known compliance outcomes available"
+    test_data:
+      data_type: "fixture"
+      cleanup_required: true
+
+  test_cases:
+    - case_id: "VT-006-TC-001"
+      case_name: "Guideline rules match against known cases"
+      priority: "critical"
+      preconditions:
+        - "Guideline rule set loaded with at least 20 rules"
+        - "Test patient records with known rule matches available"
+      test_steps:
+        - step_number: 1
+          action: "Submit a patient record that matches a specific guideline rule"
+          expected_result: "Compliance engine identifies the matching rule and returns the expected recommendation"
+          verification_method: "Assert returned rule ID and recommendation match the gold-standard expected output"
+        - step_number: 2
+          action: "Submit a patient record that does not match any guideline rule"
+          expected_result: "Compliance engine returns no matches"
+          verification_method: "Assert empty match list is returned"
+      acceptance_criteria:
+        - "All known matching rules are detected"
+        - "No false matches are produced for non-matching records"
+
+    - case_id: "VT-006-TC-002"
+      case_name: "NG12 referral deviations detected"
+      priority: "critical"
+      preconditions:
+        - "NG12 two-week-wait referral criteria loaded"
+        - "Test cases include patients who should have been referred but were not"
+      test_steps:
+        - step_number: 1
+          action: "Submit a patient record meeting NG12 referral criteria where no referral was made"
+          expected_result: "System flags a referral deviation"
+          verification_method: "Assert deviation alert is generated with type='missed_referral'"
+        - step_number: 2
+          action: "Submit a patient record where the referral was made appropriately"
+          expected_result: "No deviation is flagged"
+          verification_method: "Assert no deviation alerts for this record"
+      acceptance_criteria:
+        - "All missed referrals are detected"
+        - "Appropriately referred patients do not trigger false alerts"
+
+    - case_id: "VT-006-TC-003"
+      case_name: "Safety-net alerts generated for at-risk patients"
+      priority: "critical"
+      preconditions:
+        - "Safety-net rule definitions loaded"
+        - "Test patient records include at-risk scenarios (e.g. abnormal result with no follow-up)"
+      test_steps:
+        - step_number: 1
+          action: "Submit an at-risk patient record (abnormal result, no follow-up booked)"
+          expected_result: "Safety-net alert is generated"
+          verification_method: "Assert alert is created with correct patient ID and risk category"
+        - step_number: 2
+          action: "Submit a patient record with appropriate follow-up already booked"
+          expected_result: "No safety-net alert is generated"
+          verification_method: "Assert no alert for this patient"
+      acceptance_criteria:
+        - "Alerts generated for all at-risk patients in the test set"
+        - "No alerts for patients with appropriate follow-up"
+
+    - case_id: "VT-006-TC-004"
+      case_name: "False negative rate <= 2%"
+      priority: "critical"
+      preconditions:
+        - "Full labelled compliance dataset loaded"
+      test_steps:
+        - step_number: 1
+          action: "Run guideline compliance checks across the entire labelled dataset"
+          expected_result: "False negative rate computed"
+          verification_method: "Assert false negative rate <= 0.02"
+        - step_number: 2
+          action: "Log all false negatives for audit trail"
+          expected_result: "Each false negative is recorded with patient ID and missed rule"
+          verification_method: "Verify audit log contains details of every false negative"
+      acceptance_criteria:
+        - "Overall false negative rate <= 2%"
+        - "No safety-critical rule has a false negative"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 95% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["test_report", "code_coverage"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-006/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history: []

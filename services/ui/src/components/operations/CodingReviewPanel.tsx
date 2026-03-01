@@ -2,6 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
   Alert,
   Box,
   Button,
@@ -12,6 +15,8 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import TabFlowDiagram, { type TabStage } from "@/components/operations/TabFlowDiagram";
 
 const jsonFetch = async <T,>(url: string, init?: RequestInit): Promise<T> => {
   const res = await fetch(url, {
@@ -62,6 +67,56 @@ interface TermCandidate {
   score: number;
   semantic_tag: string;
 }
+
+const CODING_STAGES: TabStage[] = [
+  {
+    id: "cod1", num: 1,
+    label: "Word Found",
+    tooltip: "The AI pulls a medical word out of a patient note. For example, it might find the word 'asthma' or 'blood pressure'.",
+    detailIn: "A patient note processed by the pipeline",
+    detailOut: "An extracted medical word with its label type",
+  },
+  {
+    id: "cod2", num: 2,
+    label: "Code Lookup",
+    tooltip: "The system searches the SNOMED library to find the official code that matches the medical word.",
+    detailIn: "The extracted medical word",
+    detailOut: "A best-match SNOMED code with a confidence score",
+    branches: [
+      {
+        label: "Good match found",
+        description: "If a high-confidence match is found, the code is saved automatically and will not appear here",
+      },
+    ],
+  },
+  {
+    id: "cod3", num: 3,
+    label: "No Match",
+    tooltip: "No good match was found, or the best match has a low confidence score. The word needs a human to assign the correct code.",
+    detailIn: "A word with no match or a low-confidence match",
+    detailOut: "A review item added to this queue",
+  },
+  {
+    id: "cod4", num: 4,
+    label: "You Search",
+    tooltip: "You can search the SNOMED library yourself, or type the concept ID directly if you already know it.",
+    detailIn: "Your search term or SNOMED concept ID",
+    detailOut: "Up to 5 candidate SNOMED concepts to choose from",
+    branches: [
+      {
+        label: "Manual entry",
+        description: "If you know the exact SNOMED concept ID, you can type it directly without searching",
+      },
+    ],
+  },
+  {
+    id: "cod5", num: 5,
+    label: "Code Confirmed",
+    tooltip: "The correct SNOMED code is saved and linked to that medical word in the patient record.",
+    detailIn: "Your chosen SNOMED concept",
+    detailOut: "The word coded correctly and saved to the database",
+  },
+];
 
 export default function CodingReviewPanel() {
   const [items, setItems] = useState<CodingReviewItem[]>([]);
@@ -163,11 +218,28 @@ export default function CodingReviewPanel() {
   );
 
   return (
-    <Box>
+    <Box sx={{ maxWidth: 960, mx: "auto", py: 3, px: 3 }}>
       <Typography variant="h5" sx={{ mb: 1 }}>Coding Review</Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
         Review entities where terminology resolution failed or returned low-confidence SNOMED matches.
       </Typography>
+
+      {/* How this works */}
+      <Accordion variant="outlined" disableGutters sx={{ mb: 3 }}>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+            How this tab works
+          </Typography>
+        </AccordionSummary>
+        <AccordionDetails sx={{ pt: 0 }}>
+          <TabFlowDiagram
+            stages={CODING_STAGES}
+            color="#3B5FD9"
+            lightColor="#DBEAFE"
+            trackLabel="Coding Review"
+          />
+        </AccordionDetails>
+      </Accordion>
 
       <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mb: 2 }}>
         {summaryChips.map((chip) => (

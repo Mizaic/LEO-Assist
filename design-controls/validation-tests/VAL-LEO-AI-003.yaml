@@ -1,0 +1,188 @@
+# -- VAL-LEO-AI-003 -- Cancer Referral and Safety Netting Validation
+# IEC 62304 Validation Test Protocol
+# Schema: design-controls/templates/validation_test_schema.yaml
+
+- id: "VAL-LEO-AI-003"
+  version: "1.0"
+  status: "draft"
+
+  traceability:
+    user_needs:
+      - "UN-LEO-AI-016"
+      - "UN-LEO-AI-017"
+      - "UN-LEO-AI-018"
+    design_inputs:
+      - "DI-LEO-AI-024"
+      - "DI-LEO-AI-025"
+      - "DI-LEO-AI-026"
+    risks:
+      - "R-LEO-AI-022"
+      - "R-LEO-AI-023"
+    verification_tests:
+      - "VT-LEO-AI-006"
+      - "VT-LEO-AI-020"
+
+  metadata:
+    title: "Cancer Referral and Safety Netting Validation"
+    validation_phase: "alpha"
+    test_type: "end_to_end"
+    automation_level: "semi-automated"
+    participants:
+      user_type: "internal_qa"
+      count: 5
+      selection_criteria: "QA engineers with knowledge of NG12 referral guidelines and cancer safety-netting protocols"
+    created_by: "Quality Engineer"
+    created_date: "2026-03-01"
+
+  test_environment:
+    environment_name: "staging"
+    prerequisites:
+      - "All linked verification tests (VT-LEO-AI-006, VT-LEO-AI-020) have passed"
+      - "Staging environment deployed with referral assessment and safety-netting services"
+      - "Synthetic patient cohort with known referral quality outcomes loaded in FHIR server"
+      - "NG12 referral criteria reference data loaded in terminology server"
+      - "Known at-risk patient list available for safety-net alert comparison"
+    infrastructure: "Azure Container Apps staging environment with FHIR R4 API, referral assessment service, and alert engine"
+
+  user_scenarios:
+    - scenario_id: "SCENARIO-001"
+      scenario_name: "Referral quality assessment against NG12 for known cases"
+      user_role: "Clinical Audit Team Member"
+      user_goal: "Assess referral quality for a cohort of patients with known cancer referral outcomes against NG12 guidelines"
+      preconditions:
+        - "Patient cohort contains >= 30 patients with known referral quality labels (appropriate, delayed, missed)"
+        - "NG12 criteria are configured for the relevant cancer types"
+        - "User has audit-team role credentials"
+      steps:
+        - step_number: 1
+          action: "Submit a referral quality assessment request for the test cohort"
+          expected_result: "System accepts the request and begins processing"
+          success_criteria: "HTTP 202 response with a valid job ID within 2 seconds"
+        - step_number: 2
+          action: "Monitor progress until referral assessment completes for all patients"
+          expected_result: "Each patient has a referral quality classification (appropriate, delayed, or missed)"
+          success_criteria: "All patients in the cohort have a classification result"
+        - step_number: 3
+          action: "Compare system classifications against expert-reviewed ground truth"
+          expected_result: "Classification accuracy report is generated"
+          success_criteria: "Agreement with expert review >= 90%"
+        - step_number: 4
+          action: "Review detailed assessment for a patient flagged as having a delayed referral"
+          expected_result: "System shows which NG12 criteria were met, timeline of events, and where delay occurred"
+          success_criteria: "Assessment narrative is clinically accurate and references specific NG12 criteria"
+      postconditions:
+        - "All patients have a referral quality classification stored with provenance metadata"
+        - "Detailed assessment narratives available for each patient"
+      success_metrics:
+        - metric: "Classification agreement with expert review"
+          target: ">= 90%"
+          measurement_method: "Compare system classifications against expert-labelled ground truth"
+        - metric: "Processing throughput"
+          target: "<= 30 seconds per patient"
+          measurement_method: "Measure wall-clock time per patient from submission to result"
+      evidence_to_capture:
+        - "Per-patient classification results with expert comparison"
+        - "Detailed assessment narratives for sampled patients"
+        - "NG12 criteria match/mismatch breakdown"
+
+    - scenario_id: "SCENARIO-002"
+      scenario_name: "Safety-net alert generation for patients with delayed follow-up"
+      user_role: "Clinical Audit Team Member"
+      user_goal: "Verify that safety-net alerts are generated for patients who have not received timely follow-up after a concerning finding"
+      preconditions:
+        - "Patient cohort contains >= 20 patients with known delayed follow-up situations"
+        - "Expected alert list is available as ground truth"
+        - "Safety-netting rules are configured for the relevant clinical pathways"
+      steps:
+        - step_number: 1
+          action: "Trigger safety-net analysis for the test patient cohort"
+          expected_result: "System processes all patients and generates safety-net alerts where applicable"
+          success_criteria: "Analysis completes within 60 seconds for the full cohort"
+        - step_number: 2
+          action: "Review the generated alert list and compare against the known at-risk patient list"
+          expected_result: "All known at-risk patients have a corresponding alert"
+          success_criteria: "Alert recall is 100% -- no at-risk patient is missed"
+        - step_number: 3
+          action: "Check alert details for clinical accuracy and actionability"
+          expected_result: "Each alert includes patient context, the concerning finding, expected follow-up, and elapsed time"
+          success_criteria: "All alerts contain sufficient information for clinical action without additional lookup"
+      postconditions:
+        - "Safety-net alerts stored with patient references and timestamps"
+        - "Alert generation audit trail recorded"
+      success_metrics:
+        - metric: "Alert recall for at-risk patients"
+          target: "100% -- every known at-risk patient has an alert"
+          measurement_method: "Compare generated alerts against the known at-risk patient list"
+        - metric: "Alert precision"
+          target: ">= 80% -- alerts are clinically valid"
+          measurement_method: "Clinical review of generated alerts for appropriateness"
+      evidence_to_capture:
+        - "Generated alert list with patient IDs"
+        - "Ground truth comparison report"
+        - "Sample alert detail screenshots"
+
+    - scenario_id: "SCENARIO-003"
+      scenario_name: "Screening gap detection for eligible non-participants"
+      user_role: "Clinical Audit Team Member"
+      user_goal: "Identify patients eligible for cancer screening programmes who have not participated within the recommended timeframe"
+      preconditions:
+        - "Patient cohort contains >= 40 patients with known screening eligibility and participation status"
+        - "Screening programme criteria configured (e.g. bowel, breast, cervical)"
+        - "Ground truth screening gap list available"
+      steps:
+        - step_number: 1
+          action: "Run screening gap detection for the test patient cohort"
+          expected_result: "System identifies patients eligible for screening who have not participated"
+          success_criteria: "Detection completes within 60 seconds for the full cohort"
+        - step_number: 2
+          action: "Compare detected gaps against the known screening gap list"
+          expected_result: "Detected gaps match the ground truth list"
+          success_criteria: "Gap detection recall >= 90% and precision >= 85%"
+        - step_number: 3
+          action: "Review gap detail for a sample patient to verify eligibility reasoning"
+          expected_result: "System shows eligibility criteria met, last screening date (if any), and recommended action"
+          success_criteria: "Eligibility reasoning is accurate and references the correct screening programme"
+      postconditions:
+        - "Screening gap results stored with patient references and eligibility reasoning"
+      success_metrics:
+        - metric: "Screening gap detection recall"
+          target: ">= 90%"
+          measurement_method: "Compare detected gaps against ground truth list"
+        - metric: "Screening gap detection precision"
+          target: ">= 85%"
+          measurement_method: "Clinical review of detected gaps for eligibility accuracy"
+      evidence_to_capture:
+        - "Detected screening gaps with patient IDs"
+        - "Ground truth comparison report"
+        - "Sample eligibility reasoning narratives"
+
+  acceptance_criteria:
+    - criterion: "Referral quality assessment matches expert review"
+      target: ">= 90% agreement with expert-labelled ground truth"
+      measurement_method: "Compare system classifications against expert review labels for all test patients"
+    - criterion: "Safety-net alerts generated for all known at-risk patients"
+      target: "100% alert recall -- no at-risk patient missed"
+      measurement_method: "Compare generated alert list against known at-risk patient list"
+    - criterion: "Screening gap detection identifies eligible non-participants"
+      target: ">= 90% recall and >= 85% precision"
+      measurement_method: "Compare detected gaps against ground truth screening participation data"
+
+  user_feedback:
+    feedback_methods: ["survey", "observation"]
+    usability_metrics:
+      task_completion_target: ">=90%"
+      time_on_task_target: "Referral assessment and safety-net analysis complete within 60 seconds per cohort"
+
+  evidence_bundle:
+    bundle_id: "VAL-003-EXEC-ALPHA-placeholder"
+    blob_path: "/evidence-bundles/LEO-AI/validation/VAL-LEO-AI-003/"
+    artifacts:
+      - type: "user_acceptance_results"
+        description: "Referral quality, safety-net, and screening gap validation results"
+      - type: "classification_output"
+        description: "Per-patient referral classifications and screening gap detections"
+      - type: "pipeline_logs"
+        description: "Safety-net alert generation logs with timestamps and patient references"
+    immutability: true
+
+  execution_history: []

@@ -1,0 +1,77 @@
+# -- DI-LEO-AI-004 -- SNOMED CT Terminology Resolution
+# IEC 62304 / ISO 13485 Design Input
+# Schema: design-controls/templates/design_inputs_schema.yaml
+
+- id: "DI-LEO-AI-004"
+  type: "Functional"
+  derived_from: ["UN-LEO-AI-002", "UN-LEO-AI-023"]
+  requirement: "The system SHALL resolve extracted clinical entities to SNOMED CT concepts using hybrid search (exact match, full-text, and vector similarity) against the Coding Neo4j database, returning ranked candidate concepts with confidence scores"
+  rationale: "Hybrid terminology resolution maximises the probability of finding the correct SNOMED concept. Exact match handles known terms, full-text catches near-matches, and vector similarity captures semantically related concepts. SurfaceForm boosting from prior approvals improves accuracy over time."
+
+  machine_spec:
+    agent_prompt: |
+      Implement SNOMED CT terminology resolution (~250 LOC).
+
+      SINGLE PURPOSE: Resolve extracted clinical entities to SNOMED CT
+      concepts using hybrid search against the Coding Neo4j database.
+
+      REQUIREMENTS:
+      1. Accept extracted entity text and metadata as input
+      2. Run exact match against SNOMED description table
+      3. Run full-text search against Neo4j full-text index
+      4. Run vector similarity search using entity embeddings
+      5. Combine search results with configurable score weights
+      6. Apply SurfaceForm boosting from prior approved mappings
+      7. Return ranked candidate list with confidence scores
+
+      METHODS:
+      - resolve(entity): Run hybrid search, return ranked candidates
+      - exact_match(text): Search SNOMED descriptions for exact hit
+      - fulltext_search(text): Neo4j full-text index search
+      - vector_search(embedding): Cosine similarity against concept embeddings
+      - apply_surface_boost(candidates): Boost from prior approvals
+      - rank_candidates(results): Combine and sort by composite score
+
+      CODE CLARITY:
+      - Each search strategy is independently testable
+      - Score combination is transparent and auditable
+      - Candidate output includes per-strategy scores for review
+
+    acceptance_criteria:
+      - type: "test"
+        spec: "Concept resolution accuracy >= 90% for top-1 candidate against gold standard"
+      - type: "test"
+        spec: "All candidates include confidence scores and source strategy"
+      - type: "test"
+        spec: "SurfaceForm boosting measurably improves accuracy on repeat terms"
+
+    constraints:
+      - type: "performance"
+        spec: "Single entity resolution completes in <= 500 milliseconds"
+      - type: "safety"
+        spec: "Low-confidence resolutions flagged for human review"
+
+    dependencies: []
+
+    downstream_impacts:
+      - "DI-LEO-AI-006 -- low-confidence resolutions trigger LLM fallback"
+      - "services/terminology_api -- resolution results served via API"
+
+    technical_details:
+      language: "Python"
+      framework: "FastAPI"
+      libraries: ["neo4j", "sentence-transformers"]
+      file_structure:
+        - "services/terminology_api/app/services/coding_resolver.py"
+        - "services/terminology_api/app/queries/terminology.py"
+      estimated_loc: 250
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: "Concept resolution accuracy >= 90% for top-1 candidate against gold standard"
+    test_protocol: "VT-LEO-AI-004"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-004", "R-LEO-AI-005", "R-LEO-AI-019"]
+  tags: ["terminology", "snomed-ct", "resolution", "hybrid-search"]
