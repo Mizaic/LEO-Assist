@@ -14,6 +14,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from libs.utils.logging import configure_logging
 
 from services.fhir_api.app.routers.audit_event import router as audit_event_router
 from services.fhir_api.app.routers.benchmark import router as benchmark_router
@@ -23,7 +24,7 @@ from services.fhir_api.app.routers.library import router as library_router
 from services.fhir_api.app.routers.device import router as device_router
 from services.fhir_api.app.routers.schema import router as schema_router
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
+configure_logging(service_name="fhir-api")
 logger = logging.getLogger("fhir-api")
 
 

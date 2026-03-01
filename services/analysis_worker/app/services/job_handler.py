@@ -33,6 +33,7 @@ from uuid import uuid4
 from libs.message_bus.base import Message
 from libs.neo4j_client.client import PatientGraphClient, KnowledgeGraphClient
 from libs.redis_client.checkpoint import CheckpointStore
+from libs.utils.logging import logging_context
 from services.analysis_worker.app.analyzers.anchor_detector import AnchorResult, detect_anchors
 from services.analysis_worker.app.analyzers.episode_builder import EpisodeBuildResult, build_episodes
 from services.analysis_worker.app.analyzers.safety_net_detector import detect_safety_net_signals
@@ -47,8 +48,24 @@ async def handle_analysis_job(msg: Message) -> None:
     patient_id = body.get("patient_id")
     start_date = body.get("start_date", "2020-01-01")
     end_date = body.get("end_date", "2030-12-31")
+    run_id = msg.correlation_id or msg.message_id or str(uuid4())
+    with logging_context(correlation_id=run_id):
+        await _handle_analysis_job_inner(
+            patient_id=patient_id,
+            start_date=start_date,
+            end_date=end_date,
+            run_id=run_id,
+        )
 
-    logger.info("Analysis job started: patient=%s", patient_id)
+
+async def _handle_analysis_job_inner(
+    *,
+    patient_id: str,
+    start_date: str,
+    end_date: str,
+    run_id: str,
+) -> None:
+    logger.info("Analysis job started: patient=%s run=%s", patient_id, run_id)
 
     store = CheckpointStore()
     if store.ping():

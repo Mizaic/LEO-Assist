@@ -73,6 +73,7 @@ from libs.cypher.post_processor_rule_queries import (
     UPDATE_POST_PROCESSOR_RULE_ACTIVE,
 )
 from libs.ner.training_label_writer import bulk_upsert_training_labels
+from libs.utils.logging import logging_context
 from app.services.label_verifier import (
     begin_job,
     begin_job_with_mode,
@@ -1215,6 +1216,61 @@ def _load_ignore_texts(session) -> frozenset[str]:
     )
 
 
+def _writeback_recheck_surface_form(
+    *,
+    entity_text: str,
+    concept_id: str,
+    resolved_by: str,
+) -> bool:
+    """Persist an auto-resolved LLM term as a SurfaceForm mapping."""
+    if not entity_text.strip() or not concept_id.strip():
+        return False
+    normalized = re.sub(r"\s+", " ", entity_text.strip().lower())
+    if not normalized:
+        return False
+    try:
+        from services.api.app.db.neo4j_client import CodingGraphClient
+        from services.api.app.models.neo4j_schema import UPSERT_SURFACE_FORM_MAPPING
+    except Exception:
+        logger.warning(
+            "RECHECK: [WRITEBACK_FAIL] term=%r concept=%r -- import failure",
+            entity_text,
+            concept_id,
+            exc_info=True,
+        )
+        return False
+
+    coding_client = CodingGraphClient()
+    try:
+        coding_client.run(
+            UPSERT_SURFACE_FORM_MAPPING,
+            normalized=normalized,
+            form=entity_text.strip(),
+            concept_id=concept_id,
+            confidence=1.0,
+            source="coding_review_recheck",
+            provenance="coding_review_recheck_llm_alt",
+            created_by=resolved_by,
+        )
+        logger.info(
+            "RECHECK: [WRITEBACK_OK] term=%r -> concept=%r provenance=%s",
+            entity_text,
+            concept_id,
+            "coding_review_recheck_llm_alt",
+        )
+        return True
+    except Exception:
+        logger.warning(
+            "RECHECK: [WRITEBACK_FAIL] term=%r concept=%r -- upsert failed",
+            entity_text,
+            concept_id,
+            exc_info=True,
+        )
+        return False
+    finally:
+        coding_client.close()
+
+
 def _recheck_suggest_alts(term: str, entity_label: str) -> list[str]:
     """Ask a small LLM for SNOMED-friendly alternative phrasings of a near-miss term.
 
@@ -1312,8 +1368,12 @@ def _apply_recheck_item(
     results_map: dict,
     ignore_texts: frozenset[str],
     try_alternatives: bool,
-) -> bool:
-    """Process one pending review item. Returns True if auto-resolved."""
+) -> tuple[str, bool]:
+    """Process one pending review item.
+
+    Returns:
+        (outcome, llm_writeback_ok)
+    """
     entity_text = item.get("entity_text", "")
     entity_label = item.get("entity_label", "")
     review_id = item.get("review_id", "")
@@ -1331,7 +1391,7 @@ def _apply_recheck_item(
             term="__ignored_by_rule__",
             resolved_by="ignore_rule",
         )
-        return True
+        return "ignored", False
 
     candidates = results_map.get(entity_text) or []
     top = candidates[0] if candidates and isinstance(candidates[0], dict) else {}
@@ -1391,87 +1451,184 @@ def _apply_recheck_item(
             term=term,
             resolved_by=resolved_by,
         )
+        llm_writeback_ok = False
+        if resolved_by.startswith("llm_alt:"):
+            llm_writeback_ok = _writeback_recheck_surface_form(
+                entity_text=entity_text,
+                concept_id=concept_id,
+                resolved_by=resolved_by,
+            )
         logger.info(
             "RECHECK: [FINALISED] term=%r -> concept=%r snomed=%r score=%.4f method=%r review=%s",
             entity_text, concept_id, term, score, resolved_by, review_id,
         )
-        return True
+        if resolved_by.startswith("llm_alt:"):
+            return "resolved_llm", llm_writeback_ok
+        return "resolved_direct", False
 
     logger.info(
         "RECHECK: [PENDING] term=%r label=%s -- not resolved, remains in queue review=%s",
         entity_text, entity_label, review_id,
     )
-    return False
+    if not coded:
+        return "pending_uncoded", False
+    if score is not None and score < _RECHECK_ALT_LOW:
+        return "pending_low_score", False
+    return "pending_unresolved", False
 
 
-def _run_recheck_job(try_alternatives: bool, ignore_texts: frozenset[str]) -> None:
+def _run_recheck_job(
+    *,
+    job_id: str,
+    try_alternatives: bool,
+    ignore_texts: frozenset[str],
+) -> None:
     """Background worker: process all pending coding review items in batches."""
     total_rechecked = 0
     total_auto_resolved = 0
     batch_num = 0
+    counters: dict[str, int] = {
+        "resolved_direct": 0,
+        "resolved_llm": 0,
+        "ignored_by_rule": 0,
+        "pending_uncoded": 0,
+        "pending_low_score": 0,
+        "pending_unresolved": 0,
+        "writeback_llm_success": 0,
+        "writeback_llm_failed": 0,
+    }
 
-    logger.info(
-        "RECHECK: [START] mode=%s ignore_rules=%d",
-        "llm_assisted" if try_alternatives else "quick",
-        len(ignore_texts),
-    )
-
-    try:
-        while True:
-            client = PatientGraphClient()
-            try:
-                with client.session() as session:
-                    rows = session.run(GET_PENDING_FOR_RECHECK, limit=_RECHECK_BATCH_LIMIT)
-                    pending = [dict(r) for r in rows]
-            finally:
-                client.close()
-
-            if not pending:
-                break
-
-            batch_num += 1
-            unique_terms = list({r["entity_text"] for r in pending if r.get("entity_text")})
-            logger.info(
-                "RECHECK: [BATCH %d] fetched=%d items, unique_terms=%d -- requesting terminology API",
-                batch_num, len(pending), len(unique_terms),
-            )
-
-            results_map = _call_terminology_batch(unique_terms)
-            logger.info(
-                "RECHECK: [BATCH %d] terminology returned %d results",
-                batch_num, len(results_map),
-            )
-
-            batch_resolved = 0
-            client = PatientGraphClient()
-            try:
-                with client.session() as session:
-                    for item in pending:
-                        if _apply_recheck_item(session, item, results_map, ignore_texts, try_alternatives):
-                            batch_resolved += 1
-            finally:
-                client.close()
-
-            total_rechecked += len(pending)
-            total_auto_resolved += batch_resolved
-            _set_recheck_state(rechecked=total_rechecked, auto_resolved=total_auto_resolved)
-            logger.info(
-                "RECHECK: [BATCH %d DONE] resolved=%d/%d (running total: %d/%d resolved)",
-                batch_num, batch_resolved, len(pending), total_auto_resolved, total_rechecked,
-            )
-
-            if len(pending) < _RECHECK_BATCH_LIMIT:
-                break
-
-        _set_recheck_state(status="done")
+    with logging_context(correlation_id=job_id):
         logger.info(
-            "RECHECK: [COMPLETE] batches=%d total_items=%d resolved=%d remaining=%d",
-            batch_num, total_rechecked, total_auto_resolved, total_rechecked - total_auto_resolved,
+            "RECHECK: [START] job=%s mode=%s ignore_rules=%d",
+            job_id,
+            "llm_assisted" if try_alternatives else "quick",
+            len(ignore_texts),
         )
+        try:
+            while True:
+                client = PatientGraphClient()
+                try:
+                    with client.session() as session:
+                        rows = session.run(
+                            GET_PENDING_FOR_RECHECK, limit=_RECHECK_BATCH_LIMIT
+                        )
+                        pending = [dict(r) for r in rows]
+                finally:
+                    client.close()
 
-    except Exception:
-        logger.exception("RECHECK: [FAILED] job raised an unhandled exception")
-        _set_recheck_state(status="failed")
+                if not pending:
+                    break
+
+                batch_num += 1
+                unique_terms = list(
+                    {r["entity_text"] for r in pending if r.get("entity_text")}
+                )
+                logger.info(
+                    "RECHECK: [BATCH %d] fetched=%d items, unique_terms=%d -- requesting terminology API",
+                    batch_num,
+                    len(pending),
+                    len(unique_terms),
+                )
+
+                results_map = _call_terminology_batch(unique_terms)
+                logger.info(
+                    "RECHECK: [BATCH %d] terminology returned %d results",
+                    batch_num,
+                    len(results_map),
+                )
+
+                batch_resolved = 0
+                client = PatientGraphClient()
+                try:
+                    with client.session() as session:
+                        for item in pending:
+                            outcome, llm_writeback_ok = _apply_recheck_item(
+                                session,
+                                item,
+                                results_map,
+                                ignore_texts,
+                                try_alternatives,
+                            )
+                            if outcome in {"resolved_direct", "resolved_llm", "ignored"}:
+                                batch_resolved += 1
+                            if outcome == "resolved_direct":
+                                counters["resolved_direct"] += 1
+                            elif outcome == "resolved_llm":
+                                counters["resolved_llm"] += 1
+                                if llm_writeback_ok:
+                                    counters["writeback_llm_success"] += 1
+                                else:
+                                    counters["writeback_llm_failed"] += 1
+                            elif outcome == "ignored":
+                                counters["ignored_by_rule"] += 1
+                            elif outcome == "pending_uncoded":
+                                counters["pending_uncoded"] += 1
+                            elif outcome == "pending_low_score":
+                                counters["pending_low_score"] += 1
+                            else:
+                                counters["pending_unresolved"] += 1
+                finally:
+                    client.close()
+
+                total_rechecked += len(pending)
+                total_auto_resolved += batch_resolved
+                _set_recheck_state(
+                    rechecked=total_rechecked,
+                    auto_resolved=total_auto_resolved,
+                    ignored_by_rule=counters["ignored_by_rule"],
+                    resolved_llm=counters["resolved_llm"],
+                    resolved_direct=counters["resolved_direct"],
+                    writeback_llm_success=counters["writeback_llm_success"],
+                    writeback_llm_failed=counters["writeback_llm_failed"],
+                )
+                logger.info(
+                    "RECHECK: [BATCH %d DONE] resolved=%d/%d (running total: %d/%d resolved)",
+                    batch_num,
+                    batch_resolved,
+                    len(pending),
+                    total_auto_resolved,
+                    total_rechecked,
+                )
+
+                if len(pending) < _RECHECK_BATCH_LIMIT:
+                    break
+
+            report = {
+                "processed": total_rechecked,
+                "resolved_total": total_auto_resolved,
+                "resolved_direct": counters["resolved_direct"],
+                "resolved_llm": counters["resolved_llm"],
+                "ignored_by_rule": counters["ignored_by_rule"],
+                "pending_uncoded": counters["pending_uncoded"],
+                "pending_low_score": counters["pending_low_score"],
+                "pending_unresolved": counters["pending_unresolved"],
+                "writeback_llm_success": counters["writeback_llm_success"],
+                "writeback_llm_failed": counters["writeback_llm_failed"],
+            }
+            _set_recheck_state(
+                status="done",
+                report=report,
+                rechecked=total_rechecked,
+                auto_resolved=total_auto_resolved,
+                ignored_by_rule=counters["ignored_by_rule"],
+                resolved_llm=counters["resolved_llm"],
+                resolved_direct=counters["resolved_direct"],
+                writeback_llm_success=counters["writeback_llm_success"],
+                writeback_llm_failed=counters["writeback_llm_failed"],
+            )
+            logger.info(
+                "RECHECK: [COMPLETE] job=%s batches=%d report=%s",
+                job_id,
+                batch_num,
+                report,
+            )
+
+        except Exception as exc:
+            logger.exception(
+                "RECHECK: [FAILED] job=%s raised an unhandled exception", job_id
+            )
+            _set_recheck_state(status="failed", last_error=str(exc))
 
 
 @router.post("/coding-review/recheck")
@@ -1496,20 +1653,33 @@ def recheck_coding_review(
     finally:
         client.close()
 
+    job_id = str(uuid.uuid4())
     _set_recheck_state(
+        job_id=job_id,
         status="running",
         try_alternatives=try_alternatives,
         rechecked=0,
         auto_resolved=0,
+        ignored_by_rule=0,
+        resolved_llm=0,
+        resolved_direct=0,
+        writeback_llm_success=0,
+        writeback_llm_failed=0,
+        report={},
+        last_error=None,
     )
 
     thread = threading.Thread(
         target=_run_recheck_job,
-        args=(try_alternatives, ignore_texts),
+        kwargs={
+            "job_id": job_id,
+            "try_alternatives": try_alternatives,
+            "ignore_texts": ignore_texts,
+        },
         daemon=True,
     )
     thread.start()
-    return {"status": "started", "try_alternatives": try_alternatives}
+    return {"status": "started", "job_id": job_id, "try_alternatives": try_alternatives}
 
 
 @router.get("/coding-review/recheck/status")

@@ -12,7 +12,7 @@ from typing import Any
 
 from libs.domain_config.registry import NCDA_DOMAIN_CONFIGS
 from libs.neo4j_client.client import KnowledgeGraphClient
-from services.terminology_api.app.queries.terminology import DESCENDANTS_TEMPLATE
+from libs.cypher.terminology_queries import DESCENDANTS_TEMPLATE
 
 logger = logging.getLogger(__name__)
 

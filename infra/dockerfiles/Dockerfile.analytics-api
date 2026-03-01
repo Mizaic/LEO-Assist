@@ -14,6 +14,7 @@ FROM gcr.io/distroless/python3-debian12:nonroot
 COPY --from=build-venv /venv /venv
 COPY libs/ /app/libs/
 COPY services/analytics_api/ /app/services/analytics_api/
+COPY services/analysis_worker/ /app/services/analysis_worker/
 WORKDIR /app
 ENV PYTHONPATH=/app:/app/services/analytics_api
 EXPOSE 8003
