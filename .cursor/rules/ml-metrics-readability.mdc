@@ -1,0 +1,53 @@
+---
+description: Plain-language standards for ML performance metrics displayed in the UI
+globs: services/ui/src/components/classification-review/**/*.tsx
+alwaysApply: false
+---
+
+# ML Metrics — Plain Language Standards
+
+Metrics such as precision, recall, F1, TP, FP, and FN are not understood by most readers.
+Any table or section that displays these figures MUST include a plain-English explanation
+rendered directly in the UI — not in a tooltip, not in a footnote formula.
+
+## Required column header names
+
+| Technical term      | Use instead              |
+|---------------------|--------------------------|
+| Support (n)         | Cases reviewed           |
+| Precision           | Precision                |
+| Recall / Sensitivity| Recall (sensitivity)     |
+| F1                  | F1 score                 |
+| TP                  | Correct                  |
+| FP                  | False alarms             |
+| FN                  | Missed                   |
+
+## Explanation block
+
+Place a `MetricExplanationBox` (or equivalent) **above** the first metric table in a section.
+It must cover every column in plain English. Example wording:
+
+- **Cases reviewed** — how many encounters of this type were in the test set.
+- **Precision** — of all the times the model predicted this category, how often was it right. 100% means no false alarms.
+- **Recall (sensitivity)** — of all encounters that truly belonged to this category, how many did the model find. 100% means nothing was missed.
+- **F1 score** — a single number that balances precision and recall. Higher is better; 100% is perfect.
+- **Correct / False alarms / Missed** — counts of right predictions, wrong predictions, and cases the model failed to find.
+
+Do NOT repeat the explanation box for every table in the same section — once per section is enough.
+
+## Scope note
+
+Always clarify that scores cover disagreement cases only:
+> "Scores cover disagreement cases only — encounters where the two models gave different answers."
+
+## What NOT to do
+
+```tsx
+// ❌ BAD — formula footnote, jargon headers, no explanation
+<TableCell>TP</TableCell>
+<Typography>Precision = TP/(TP+FP) · F1 = harmonic mean</Typography>
+
+// ✅ GOOD — plain headers + explanation block above the table
+<MetricExplanationBox />
+<TableCell>Correct</TableCell>
+```

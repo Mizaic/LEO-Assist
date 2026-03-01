@@ -10,11 +10,13 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from app.db.neo4j_client import CodingGraphClient
+from app.db.neo4j_client import PatientGraphClient
 from app.services.neo4j_store import (
     list_approved_candidates,
     list_approved_candidates_for_patient,
 )
+
+from libs.utils.deidentify import deidentify_text as _deidentify
 
 
 def _stable_hash(payload: Any) -> str:
@@ -23,7 +25,7 @@ def _stable_hash(payload: Any) -> str:
 
 
 class ExportService:
-    def __init__(self, neo4j_client: CodingGraphClient) -> None:
+    def __init__(self, neo4j_client: PatientGraphClient) -> None:
         self.neo4j = neo4j_client
 
     def create_export(self, export_name: str, train_ratio: float, seed: int) -> dict[str, Any]:
@@ -71,8 +73,11 @@ class ExportService:
         kb_rows: list[dict[str, str]] = []
 
         for candidate in candidates:
-            text = candidate.get("deidentified_text", "")
+            # Re-apply de-identification as a safety net: the stored text may
+            # have been processed by an older version of the patterns.
+            text = _deidentify(candidate.get("deidentified_text", ""))
             sent_entities: list[tuple[int, int, str]] = []
+            context_flags: list[dict[str, Any]] = []
             for sentence in candidate.get("sentences", []):
                 for term in sentence.get("terms", []):
                     concept_id = term.get("coding", {}).get("snomed_concept_id")
@@ -80,15 +85,33 @@ class ExportService:
                         continue
                     start = int(term.get("span_start", 0))
                     end = int(term.get("span_end", 0))
-                    label = term.get("semantic_tag", "CLINICAL") or "CLINICAL"
+                    label = term.get("semantic_tag") or "CLINICAL"
                     sent_entities.append((start, end, label))
+
+                    ctx = term.get("context", {})
+                    context_flags.append({
+                        "start": start,
+                        "end": end,
+                        "label": label,
+                        "negated": ctx.get("negated", False),
+                        "uncertain": ctx.get("uncertain", False),
+                        "historical": ctx.get("historical", False),
+                        "subject": ctx.get("subject", "patient"),
+                        "temporality": ctx.get("temporality", "present"),
+                    })
+
                     kb_rows.append({
                         "evidence": term.get("text", ""),
                         "concept_id": concept_id,
                         "term": term.get("coding", {}).get("snomed_term", ""),
+                        "semantic_tag": label,
+                        "negated": str(ctx.get("negated", False)),
                     })
             if sent_entities:
-                entities.append((text, {"entities": sent_entities}))
+                entities.append((
+                    text,
+                    {"entities": sent_entities, "context_flags": context_flags},
+                ))
 
         export_id = str(uuid.uuid4())
         out_dir = Path("exports")

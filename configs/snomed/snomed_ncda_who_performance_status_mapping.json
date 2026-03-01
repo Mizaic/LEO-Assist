@@ -1,0 +1,124 @@
+{
+  "metadata": {
+    "domain": "who_performance_status",
+    "description": "WHO (ECOG) Performance Status scores for assessing patient functional status",
+    "total_terms": 5,
+    "successful_mappings": 5,
+    "failed_mappings": 0,
+    "llm_disambiguations": 0,
+    "generated_at": "2025-12-04T22:00:00.000000Z",
+    "source": "NG12 Non-site-specific symptoms criteria",
+    "enriched_with_synonyms": true,
+    "synonym_enrichment_date": "2025-12-06T08:06:47.826349",
+    "synonym_stats": {
+      "concepts_with_synonyms": 5,
+      "concepts_not_found": 0,
+      "average_synonyms_per_concept": 7.0
+    }
+  },
+  "mappings": {
+    "WHO Performance Status Grade 0": {
+      "preferred_term": "World Health Organization performance status grade 0 (finding)",
+      "concept_id": 373803006,
+      "llm_disambiguated": false,
+      "score": 1.0,
+      "semantic_tag": "Clinical_finding",
+      "description": "Fully active, able to carry on all pre-disease performance without restriction",
+      "guideline_synonyms": [
+        "WHO performance status grade 0",
+        "WHO performance status grade 0 (finding)",
+        "World Health Organisation (WHO) performance status grade 0",
+        "World Health Organization (WHO) performance status grade 0",
+        "World Health Organization (WHO) performance status grade 0 (finding)",
+        "World Health Organization performance status grade 0",
+        "World Health Organization performance status grade 0 (finding)",
+        "WHO PS grade 0",
+        "WHO performance status 0"
+      ],
+      "guideline_synonym_count": 9,
+      "guideline_name": "World Health Organization performance status grade 0 (finding)"
+    },
+    "WHO Performance Status Grade 1": {
+      "preferred_term": "World Health Organization performance status grade 1 (finding)",
+      "concept_id": 373804000,
+      "llm_disambiguated": false,
+      "score": 1.0,
+      "semantic_tag": "Clinical_finding",
+      "description": "Restricted in physically strenuous activity but ambulatory and able to carry out work of a light or sedentary nature",
+      "guideline_synonyms": [
+        "WHO performance status grade 1",
+        "WHO performance status grade 1 (finding)",
+        "World Health Organisation (WHO) performance status grade 1",
+        "World Health Organization (WHO) performance status grade 1",
+        "World Health Organization (WHO) performance status grade 1 (finding)",
+        "World Health Organization performance status grade 1",
+        "World Health Organization performance status grade 1 (finding)",
+        "WHO PS grade 1"
+      ],
+      "guideline_synonym_count": 8,
+      "guideline_name": "World Health Organization performance status grade 1 (finding)"
+    },
+    "WHO Performance Status Grade 2": {
+      "preferred_term": "World Health Organization performance status grade 2 (finding)",
+      "concept_id": 373805004,
+      "llm_disambiguated": false,
+      "score": 1.0,
+      "semantic_tag": "Clinical_finding",
+      "description": "Ambulatory and capable of all selfcare but unable to carry out any work activities; up and about more than 50% of waking hours",
+      "guideline_synonyms": [
+        "WHO performance status grade 2",
+        "WHO performance status grade 2 (finding)",
+        "World Health Organisation (WHO) performance status grade 2",
+        "World Health Organization (WHO) performance status grade 2",
+        "World Health Organization (WHO) performance status grade 2 (finding)",
+        "World Health Organization performance status grade 2",
+        "World Health Organization performance status grade 2 (finding)",
+        "WHO PS grade 2",
+        "WHO perf status 2"
+      ],
+      "guideline_synonym_count": 9,
+      "guideline_name": "World Health Organization performance status grade 2 (finding)"
+    },
+    "WHO Performance Status Grade 3": {
+      "preferred_term": "World Health Organization performance status grade 3 (finding)",
+      "concept_id": 373806003,
+      "llm_disambiguated": false,
+      "score": 1.0,
+      "semantic_tag": "Clinical_finding",
+      "description": "Capable of only limited selfcare; confined to bed or chair more than 50% of waking hours",
+      "guideline_synonyms": [
+        "WHO performance status grade 3",
+        "WHO performance status grade 3 (finding)",
+        "World Health Organisation (WHO) performance status grade 3",
+        "World Health Organization (WHO) performance status grade 3",
+        "World Health Organization (WHO) performance status grade 3 (finding)",
+        "World Health Organization performance status grade 3",
+        "World Health Organization performance status grade 3 (finding)",
+        "WHO PS grade 3"
+      ],
+      "guideline_synonym_count": 8,
+      "guideline_name": "World Health Organization performance status grade 3 (finding)"
+    },
+    "WHO Performance Status Grade 4": {
+      "preferred_term": "World Health Organization performance status grade 4 (finding)",
+      "concept_id": 373807007,
+      "llm_disambiguated": false,
+      "score": 1.0,
+      "semantic_tag": "Clinical_finding",
+      "description": "Completely disabled; cannot carry on any selfcare; totally confined to bed or chair",
+      "guideline_synonyms": [
+        "WHO performance status grade 4",
+        "WHO performance status grade 4 (finding)",
+        "World Health Organisation (WHO) performance status grade 4",
+        "World Health Organization (WHO) performance status grade 4",
+        "World Health Organization (WHO) performance status grade 4 (finding)",
+        "World Health Organization performance status grade 4",
+        "World Health Organization performance status grade 4 (finding)",
+        "WHO PS grade 4",
+        "WHO perf status 4"
+      ],
+      "guideline_synonym_count": 9,
+      "guideline_name": "World Health Organization performance status grade 4 (finding)"
+    }
+  }
+}

@@ -6,7 +6,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from app.services.v3.patient_graph_writer import PatientGraphWriter, SemanticLinkPayload
+from app.services.patient_graph_writer import PatientGraphWriter, SemanticLinkPayload
 
 
 class TestPatientGraphWriter:

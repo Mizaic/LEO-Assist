@@ -1,0 +1,48 @@
+{
+  "metadata": {
+    "domain": "housebound_status",
+    "total_terms": 4,
+    "successful_mappings": 4,
+    "failed_mappings": 0,
+    "llm_disambiguations": 2,
+    "generated_at": "2025-12-01T16:38:36.502908Z",
+    "enriched_with_synonyms": true,
+    "synonym_enrichment_date": "2025-12-06T08:05:51.771815",
+    "synonym_stats": {
+      "concepts_with_synonyms": 2,
+      "concepts_not_found": 0,
+      "average_synonyms_per_concept": 2.0
+    }
+  },
+  "mappings": {
+    "Yes, the patient is considered housebound": {
+      "preferred_term": "Housebound (finding)",
+      "concept_id": 160689007,
+      "llm_disambiguated": true,
+      "score": 0.897362232208252,
+      "semantic_tag": "Clinical_finding",
+      "guideline_synonyms": [
+        "Housebound",
+        "Housebound (finding)",
+        "confined to home",
+        "house-bound"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Housebound (finding)"
+    },
+    "In residential or nursing home": {
+      "concept_id": 224224003,
+      "preferred_term": "Lives in staffed home (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9046775802233276,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Lives in staffed home",
+        "Lives in staffed home (finding)",
+        "lives in care home"
+      ],
+      "guideline_synonym_count": 3,
+      "guideline_name": "Lives in staffed home (finding)"
+    }
+  }
+}

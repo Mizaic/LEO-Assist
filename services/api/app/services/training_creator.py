@@ -1,4 +1,9 @@
-"""Training data creator pipeline service for HITL MVP."""
+"""Training data creator pipeline service for HITL MVP.
+
+.. deprecated::
+    Superseded by the V3 consensus pipeline (services/api/app/services/v3/).
+    Retained only for backward compatibility with pilot scripts.
+"""
 
 from __future__ import annotations
 
@@ -545,7 +550,7 @@ class TrainingCreatorService:
             return
 
         self._emit(progress_hook, {"type": "persist_started", **base})
-        with self.coding_graph.session() as session:
+        with self.patient_graph.session() as session:
             upsert_candidate(candidate, session)
             if not result.hard_fails:
                 priority = 100 if result.warnings else 50

@@ -2,6 +2,11 @@
 
 import { useState } from "react";
 import type { Correction } from "@/lib/types";
+import Paper from "@mui/material/Paper";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
+import TextField from "@mui/material/TextField";
+import Button from "@mui/material/Button";
 
 interface Props {
   fullText: string;
@@ -26,48 +31,60 @@ export default function ManualEntityBanner({ fullText, onAdd, onCancel, onCorrec
   }
 
   return (
-    <div style={{
-      position: "fixed",
-      bottom: 0,
-      left: 0,
-      right: 0,
-      background: "#fff",
-      borderTop: "2px solid #16a34a",
-      padding: "14px 24px",
-      zIndex: 900,
-      display: "flex",
-      alignItems: "center",
-      gap: 16,
-      boxShadow: "0 -4px 20px rgba(0,0,0,0.08)",
-    }}>
-      <span style={{ fontWeight: 600, fontSize: 14 }}>Add entity</span>
-      <input
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        placeholder="Type text to match…"
-        style={{ border: "1px solid #cbd5e1", borderRadius: 8, padding: "6px 12px", fontSize: 14, width: 240 }}
-        autoFocus
-      />
-      {matchIdx >= 0 && (
-        <span style={{ fontSize: 12, color: "#16a34a", fontFamily: "var(--font-mono)" }}>
-          Found at [{matchIdx}:{matchIdx + text.length}]
-        </span>
-      )}
-      {text.length >= 2 && matchIdx < 0 && (
-        <span style={{ fontSize: 12, color: "#dc2626" }}>Not found in text</span>
-      )}
-      <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
-        <button onClick={onCancel} style={{ padding: "6px 14px", border: "1px solid #e2e8f0", borderRadius: 8, background: "#fff", cursor: "pointer", fontSize: 13 }}>
-          Cancel
-        </button>
-        <button onClick={handleAdd} disabled={matchIdx < 0} style={{
-          padding: "6px 14px", border: "none", borderRadius: 8,
-          background: matchIdx >= 0 ? "#16a34a" : "#94a3b8",
-          color: "#fff", cursor: matchIdx >= 0 ? "pointer" : "not-allowed", fontSize: 13, fontWeight: 600,
-        }}>
-          Add
-        </button>
-      </div>
-    </div>
+    <Paper
+      elevation={8}
+      sx={{
+        position: "fixed",
+        bottom: 0,
+        left: 0,
+        right: 0,
+        borderTop: "2px solid",
+        borderColor: "success.main",
+        p: "14px 24px",
+        zIndex: 900,
+      }}
+    >
+      <Stack direction="row" alignItems="center" spacing={2}>
+        <Typography sx={{ fontWeight: 600, fontSize: 14 }}>Add entity</Typography>
+        <TextField
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="Type text to match…"
+          size="small"
+          autoFocus
+          sx={{
+            width: 240,
+            "& .MuiInputBase-input": { fontSize: 14 },
+          }}
+        />
+        {matchIdx >= 0 && (
+          <Typography
+            variant="caption"
+            sx={{ color: "success.main", fontFamily: "var(--font-mono)" }}
+          >
+            Found at [{matchIdx}:{matchIdx + text.length}]
+          </Typography>
+        )}
+        {text.length >= 2 && matchIdx < 0 && (
+          <Typography variant="caption" sx={{ color: "error.main" }}>
+            Not found in text
+          </Typography>
+        )}
+        <Stack direction="row" spacing={1} sx={{ ml: "auto" }}>
+          <Button variant="text" onClick={onCancel} sx={{ fontSize: 13, textTransform: "none" }}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            color="success"
+            onClick={handleAdd}
+            disabled={matchIdx < 0}
+            sx={{ fontSize: 13, fontWeight: 600, textTransform: "none" }}
+          >
+            Add
+          </Button>
+        </Stack>
+      </Stack>
+    </Paper>
   );
 }

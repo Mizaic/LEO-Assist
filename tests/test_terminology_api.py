@@ -1,0 +1,122 @@
+"""Tests for the Terminology API service layer."""
+
+from __future__ import annotations
+
+import json
+from unittest.mock import patch, MagicMock
+
+import pytest
+
+
+class TestCodingResolver:
+    """Tests for the hybrid SNOMED coding resolver."""
+
+    def test_resolve_empty_input(self):
+        from services.terminology_api.app.services.coding_resolver import CodingResolver
+
+        resolver = CodingResolver()
+        result = resolver.resolve_candidates([], neo4j_session=MagicMock())
+        assert result == {}
+
+    def test_resolve_returns_candidates(self):
+        from services.terminology_api.app.services.coding_resolver import CodingResolver
+
+        session = MagicMock()
+        session.run.return_value = [
+            {"concept_id": "25064002", "fsn": "Headache (finding)", "semantic_tag": "finding", "read_codes": ["1BA.."], "score": 1.0},
+        ]
+
+        resolver = CodingResolver()
+        result = resolver.resolve_candidates(["headache"], neo4j_session=session)
+        assert "headache" in result
+        assert len(result["headache"]) >= 1
+        assert result["headache"][0].snomed_concept_id == "25064002"
+
+
+class TestWritebackService:
+    """Tests for terminology writeback."""
+
+    def test_extract_surface_form_rows(self):
+        from services.terminology_api.app.services.writeback_service import _extract_surface_form_rows
+
+        sentences_json = json.dumps([{
+            "terms": [{
+                "text": "chest pain",
+                "coding": {"snomed_concept_id": "29857009", "score": 0.95},
+            }],
+        }])
+
+        candidates = [{"c": {"sentences_json": sentences_json}, "reviewer": "dr_smith"}]
+        rows, stats = _extract_surface_form_rows(candidates)
+
+        assert len(rows) == 1
+        assert rows[0]["form"] == "chest pain"
+        assert rows[0]["concept_id"] == "29857009"
+        assert stats.eligible == 1
+
+    def test_extract_skips_no_concept(self):
+        from services.terminology_api.app.services.writeback_service import _extract_surface_form_rows
+
+        sentences_json = json.dumps([{
+            "terms": [{"text": "something", "coding": {}}],
+        }])
+
+        candidates = [{"c": {"sentences_json": sentences_json}, "reviewer": "sys"}]
+        rows, stats = _extract_surface_form_rows(candidates)
+
+        assert len(rows) == 0
+        assert stats.skipped_no_concept == 1
+
+
+class TestValueSetService:
+    """Tests for FHIR ValueSet operations."""
+
+    @patch("services.terminology_api.app.services.valueset_service.KnowledgeGraphClient")
+    def test_get_valueset_not_found(self, MockKG):
+        from services.terminology_api.app.services.valueset_service import get_valueset
+
+        MockKG.return_value.run.return_value = []
+        result = get_valueset("nonexistent")
+        assert result is None
+
+    @patch("services.terminology_api.app.services.valueset_service.KnowledgeGraphClient")
+    def test_get_valueset_found(self, MockKG):
+        from services.terminology_api.app.services.valueset_service import get_valueset
+
+        vs = {"resourceType": "ValueSet", "id": "test-vs"}
+        MockKG.return_value.run.return_value = [{"rawJson": json.dumps(vs)}]
+        result = get_valueset("test-vs")
+        assert result is not None
+        assert result["id"] == "test-vs"
+
+    def test_expand_valueset_inline(self):
+        from services.terminology_api.app.services.valueset_service import expand_valueset
+
+        with patch("services.terminology_api.app.services.valueset_service.get_valueset") as mock_get:
+            mock_get.return_value = {
+                "resourceType": "ValueSet",
+                "id": "test-vs",
+                "compose": {
+                    "include": [{
+                        "system": "http://snomed.info/sct",
+                        "concept": [
+                            {"code": "12345", "display": "Test concept"},
+                            {"code": "67890", "display": "Another concept"},
+                        ],
+                    }],
+                },
+            }
+
+            result = expand_valueset("test-vs")
+            assert result is not None
+            assert "expansion" in result
+            assert result["expansion"]["total"] == 2
+            assert result["expansion"]["contains"][0]["code"] == "12345"
+
+    def test_expand_valueset_not_found(self):
+        from services.terminology_api.app.services.valueset_service import expand_valueset
+
+        with patch("services.terminology_api.app.services.valueset_service.get_valueset") as mock_get:
+            mock_get.return_value = None
+            result = expand_valueset("missing")
+            assert result is None

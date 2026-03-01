@@ -1506,7 +1506,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--patient-id",
-        default="4202301609",
+        default="9990000001",
         help="Patient ID used for raw and output file naming.",
     )
     args = parser.parse_args()

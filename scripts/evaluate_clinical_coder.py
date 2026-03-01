@@ -19,7 +19,7 @@ DEFAULT_INPUT = (
     / "terminology"
     / "data"
     / "training"
-    / "surface_forms_4202301609.jsonl"
+    / "surface_forms_9990000001.jsonl"
 )
 DEFAULT_OUT_DIR = ROOT / "services" / "terminology" / "data" / "training"
 

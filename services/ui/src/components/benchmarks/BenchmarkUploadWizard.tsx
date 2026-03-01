@@ -1,0 +1,213 @@
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import FormControl from '@mui/material/FormControl';
+import FormLabel from '@mui/material/FormLabel';
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
+import TextField from '@mui/material/TextField';
+import Typography from '@mui/material/Typography';
+import Stepper from '@mui/material/Stepper';
+import Step from '@mui/material/Step';
+import StepLabel from '@mui/material/StepLabel';
+import Alert from '@mui/material/Alert';
+import ArrowBackOutlined from '@mui/icons-material/ArrowBackOutlined';
+import { uploadBenchmarks, inferBenchmarkStructure } from '@/lib/api';
+
+const STEPS = ['Upload', 'Inspect', 'Map', 'Preview', 'Save'];
+const TEMPLATES = [
+  { id: 'ncda', label: 'NCDA (National Cancer Diagnosis Audit)' },
+];
+
+export function BenchmarkUploadWizard() {
+  const router = useRouter();
+  const [activeStep, setActiveStep] = useState(0);
+  const [rawJson, setRawJson] = useState<Record<string, unknown> | null>(null);
+  const [structure, setStructure] = useState<{ keys: string[]; sample: Record<string, unknown>; depth: number } | null>(null);
+  const [templateId, setTemplateId] = useState('ncda');
+  const [name, setName] = useState('');
+  const [auditId, setAuditId] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  const handleJsonInput = (text: string) => {
+    setError(null);
+    try {
+      const parsed = JSON.parse(text) as Record<string, unknown>;
+      setRawJson(parsed);
+    } catch (e) {
+      setError('Invalid JSON');
+      setRawJson(null);
+    }
+  };
+
+  const handleInspect = async () => {
+    if (!rawJson) return;
+    setError(null);
+    try {
+      const result = await inferBenchmarkStructure(rawJson);
+      setStructure(result);
+      setActiveStep(1);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to infer structure');
+    }
+  };
+
+  const handleMapNext = () => {
+    if (rawJson) {
+      const audit = rawJson.audit as Record<string, unknown> | undefined;
+      const year = audit?.year as number | undefined;
+      const suggestedId = year ? `ncda-${year}` : 'uploaded';
+      setAuditId((prev) => prev || suggestedId);
+      setName((prev) => prev || (audit?.name as string) || suggestedId);
+    }
+    setActiveStep(3);
+  };
+
+  const handleSave = async () => {
+    if (!rawJson) return;
+    setError(null);
+    setSaving(true);
+    try {
+      const result = await uploadBenchmarks({
+        rawJson,
+        templateId,
+        auditId: auditId || undefined,
+        name: name || undefined,
+      });
+      router.push('/benchmarks');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to save');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Box sx={{ p: 3, maxWidth: 800 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
+        <Button variant="text" startIcon={<ArrowBackOutlined />} onClick={() => router.push('/benchmarks')}>
+          Back
+        </Button>
+        <Typography variant="h5" sx={{ fontWeight: 600 }}>
+          Upload Benchmarks
+        </Typography>
+      </Box>
+
+      <Stepper activeStep={activeStep} sx={{ mb: 3 }}>
+        {STEPS.map((label) => (
+          <Step key={label}>
+            <StepLabel>{label}</StepLabel>
+          </Step>
+        ))}
+      </Stepper>
+
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+
+      {activeStep === 0 && (
+        <Card>
+          <CardContent>
+            <Typography sx={{ fontWeight: 600, mb: 2 }}>Upload JSON</Typography>
+            <TextField
+              fullWidth
+              multiline
+              rows={12}
+              placeholder='Paste benchmark JSON (e.g. NCDA format)...'
+              onChange={(e) => handleJsonInput(e.target.value)}
+              error={!!error}
+              helperText="Paste the full JSON content from your benchmark file."
+            />
+            <Button variant="contained" sx={{ mt: 2 }} onClick={handleInspect} disabled={!rawJson}>
+              Next: Inspect
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {activeStep === 1 && structure && (
+        <Card>
+          <CardContent>
+            <Typography sx={{ fontWeight: 600, mb: 2 }}>Inspect Structure</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Detected {structure.keys.length} keys, max depth {structure.depth}.
+            </Typography>
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="caption" color="text.secondary">Sample keys:</Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5 }}>
+                {structure.keys.slice(0, 20).map((k) => (
+                  <Typography key={k} component="span" variant="caption" sx={{ bgcolor: 'action.hover', px: 0.5, borderRadius: 0.5 }}>
+                    {k}
+                  </Typography>
+                ))}
+                {structure.keys.length > 20 && <Typography variant="caption">...</Typography>}
+              </Box>
+            </Box>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Button variant="outlined" onClick={() => setActiveStep(0)}>Back</Button>
+              <Button variant="contained" onClick={handleMapNext}>Next: Map</Button>
+            </Box>
+          </CardContent>
+        </Card>
+      )}
+
+      {activeStep === 2 && (
+        <Card>
+          <CardContent>
+            <Typography sx={{ fontWeight: 600, mb: 2 }}>Map to Schema</Typography>
+            <FormControl size="small" fullWidth sx={{ mb: 2 }}>
+              <FormLabel>Template</FormLabel>
+              <Select value={templateId} onChange={(e) => setTemplateId(e.target.value)}>
+                {TEMPLATES.map((t) => (
+                  <MenuItem key={t.id} value={t.id}>{t.label}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <TextField
+              fullWidth
+              size="small"
+              label="Set ID"
+              value={auditId}
+              onChange={(e) => setAuditId(e.target.value)}
+              placeholder="e.g. ncda-2018"
+              sx={{ mb: 2 }}
+            />
+            <TextField
+              fullWidth
+              size="small"
+              label="Display Name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. NCDA 2018"
+            />
+            <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
+              <Button variant="outlined" onClick={() => setActiveStep(1)}>Back</Button>
+              <Button variant="contained" onClick={handleMapNext}>Preview</Button>
+            </Box>
+          </CardContent>
+        </Card>
+      )}
+
+      {activeStep === 3 && (
+        <Card>
+          <CardContent>
+            <Typography sx={{ fontWeight: 600, mb: 2 }}>Preview & Save</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Audit ID: <strong>{auditId || '(auto)'}</strong> | Name: <strong>{name || '(auto)'}</strong> | Template: <strong>{templateId}</strong>
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
+              <Button variant="outlined" onClick={() => setActiveStep(2)}>Back</Button>
+              <Button variant="contained" onClick={handleSave} disabled={saving}>
+                {saving ? 'Saving...' : 'Save'}
+              </Button>
+            </Box>
+          </CardContent>
+        </Card>
+      )}
+    </Box>
+  );
+}

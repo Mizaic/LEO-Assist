@@ -1,0 +1,29 @@
+---
+description: MUI design system conventions for the Clinical Coding Review UI
+globs: services/ui/src/**/*.tsx
+alwaysApply: false
+---
+
+# MUI UI Conventions
+
+## Component library
+- Use **MUI** (`@mui/material`) for all UI components. Never use raw HTML elements with inline styles.
+- Import from specific paths: `import Button from "@mui/material/Button"` (not barrel imports).
+- Use the `sx` prop for all styling. Never use inline `style={}`.
+
+## Theme
+- Theme is defined in `src/theme.ts`. Use theme tokens via `sx` (e.g. `color: "primary.main"`).
+- Primary: `#1F3A8A` (deep blue). Secondary: `#14B8A6` (teal). Do not hardcode these.
+- Fonts: DM Sans (body), JetBrains Mono (code/IDs via `variant="subtitle1"` or `variant="subtitle2"`).
+
+## Layout
+- App shell with sidebar is in `AppShell.tsx`. Pages render inside the content area.
+- Use `Box`, `Stack`, `Paper` for layout. Use `Grid` only when 2D alignment is needed.
+
+## Common patterns
+- Dialogs: `Dialog` + `DialogTitle` + `DialogContent` + `DialogActions`.
+- Tables: `Table` + `TableHead/Body/Row/Cell`. Row hover comes from theme.
+- Status badges: `Chip` with `color` prop (success/warning/error/default).
+- Loading: `Skeleton` for lists/tables, `CircularProgress` for full-page.
+- Errors: `Alert severity="error"`.
+- Buttons: `disableElevation` is set globally. Use `variant="contained"` for primary, `variant="outlined"` for secondary, `variant="text"` for tertiary.

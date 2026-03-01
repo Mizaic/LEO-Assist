@@ -1,0 +1,12 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+COPY services/ui/package.json services/ui/package-lock.json* ./
+RUN npm install
+
+COPY services/ui/ .
+
+EXPOSE 3000
+
+CMD ["npm", "run", "dev"]

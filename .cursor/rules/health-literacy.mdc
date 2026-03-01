@@ -1,0 +1,63 @@
+---
+description: Health literacy and plain language standards for all user-facing text, AI-generated content, and report outputs
+alwaysApply: true
+---
+
+# Health Literacy -- Plain Language Standards
+
+UK average reading age is 9-11 years. Half of adults struggle with health information. All text that a patient or non-specialist might read must meet these standards.
+
+## Scope
+
+Applies to: UI labels, error messages, tooltips, AI-generated interpretations, executive summaries, report narrative, alert descriptions, and any LLM prompt that produces patient-readable output.
+
+Does NOT apply to: internal logs, code comments, SNOMED codes, or developer-only debug output.
+
+## Writing Rules
+
+1. **Short sentences.** One idea per sentence. Target 15-20 words max.
+2. **Everyday words.** Replace clinical jargon with plain English when the audience is non-clinical.
+3. **Active voice.** "We found 3 missing codes" not "3 missing codes were identified".
+4. **Explain before you name.** Give the plain meaning first, then the clinical term in brackets if needed: "high blood pressure (hypertension)".
+5. **No acronyms on first use.** Spell out, then abbreviate: "Quality and Outcomes Framework (QOF)".
+6. **Actionable.** Tell the reader what to do or what happens next.
+
+## Common Substitutions
+
+| Avoid               | Prefer                          |
+| -------------------- | ------------------------------- |
+| hypertension         | high blood pressure             |
+| prevalence           | how common something is         |
+| comorbidity          | other health conditions         |
+| contraindicated      | not recommended / not safe      |
+| asymptomatic         | no symptoms                     |
+| exacerbation         | flare-up / getting worse        |
+| aetiology            | cause                           |
+| prophylaxis          | prevention                      |
+| suboptimal           | could be better                 |
+| non-compliance       | not taking medicine as planned  |
+| utilisation          | use                             |
+| facilitate           | help                            |
+| subsequently         | then / after that               |
+| aforementioned       | mentioned earlier               |
+
+## LLM Prompt Guidance
+
+When writing system prompts or instructions that produce patient-readable text:
+- Include the directive: "Write at a reading age of 9-11 years using plain English."
+- Ask the model to "explain medical terms in everyday language on first use".
+- Request "short paragraphs of 2-3 sentences".
+
+## UI Text Checklist
+
+- Labels: 1-4 words. Sentence case ("Run pipeline", not "Run Pipeline").
+- Tooltips: one sentence explaining why, not just what.
+- Errors: say what went wrong, what was not changed, and what to do next.
+- Empty states: explain what will appear here and how to trigger it.
+
+## Checking Readability
+
+For critical outputs (executive summaries, interpretation narratives), verify readability:
+- Flesch Reading Ease >= 60 (plain English).
+- Flesch-Kincaid Grade Level <= 6 (maps to age ~11).
+- Free tools: hemingwayapp.com or readable.com.

@@ -3,6 +3,22 @@
 import { useMemo, useEffect, useRef, useState } from "react";
 import { searchTerms } from "@/lib/api";
 import type { TermSearchResult, Correction } from "@/lib/types";
+import Dialog from "@mui/material/Dialog";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import DialogActions from "@mui/material/DialogActions";
+import TextField from "@mui/material/TextField";
+import InputAdornment from "@mui/material/InputAdornment";
+import Button from "@mui/material/Button";
+import Chip from "@mui/material/Chip";
+import Stack from "@mui/material/Stack";
+import List from "@mui/material/List";
+import ListItemButton from "@mui/material/ListItemButton";
+import ListItemText from "@mui/material/ListItemText";
+import Typography from "@mui/material/Typography";
+import CircularProgress from "@mui/material/CircularProgress";
+import Box from "@mui/material/Box";
+import SearchIcon from "@mui/icons-material/Search";
 
 function parseSemanticTag(term: string, semanticTag: string | null): string {
   if (semanticTag) return semanticTag;
@@ -47,8 +63,14 @@ function parseLabResult(text: string): {
   return out;
 }
 
+export interface TermContext {
+  negated?: boolean;
+  uncertain?: boolean;
+  historical?: boolean;
+}
+
 interface Props {
-  onSelect: (result: TermSearchResult, modifiers?: { value?: string; unit?: string; reference_range?: string; interpretation?: string }) => void;
+  onSelect: (result: TermSearchResult, modifiers?: { value?: string; unit?: string; reference_range?: string; interpretation?: string }, context?: TermContext) => void;
   onClose: () => void;
   onCorrection: (c: Correction) => void;
   initialQuery?: string;
@@ -81,7 +103,9 @@ export default function TermSearch({
   const [unit, setUnit] = useState("");
   const [referenceRange, setReferenceRange] = useState("");
   const [interpretation, setInterpretation] = useState("");
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [negated, setNegated] = useState(false);
+  const [uncertain, setUncertain] = useState(false);
+  const [historical, setHistorical] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const tags = useMemo(() => {
@@ -109,15 +133,6 @@ export default function TermSearch({
       return next;
     });
   }
-
-  useEffect(() => {
-    inputRef.current?.focus();
-    function handleKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
-    }
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
-  }, [onClose]);
 
   useEffect(() => {
     if (initialQuery && initialQuery.length >= 2) {
@@ -148,17 +163,17 @@ export default function TermSearch({
     setSelectedTags(new Set());
   }, [results]);
 
-  function handleChange(value: string) {
-    setQuery(value);
+  function handleChange(val: string) {
+    setQuery(val);
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (value.trim().length < 2) {
+    if (val.trim().length < 2) {
       setResults([]);
       return;
     }
     debounceRef.current = setTimeout(async () => {
       setLoading(true);
       try {
-        setResults(await searchTerms(value));
+        setResults(await searchTerms(val));
       } catch {
         setResults([]);
       } finally {
@@ -167,275 +182,218 @@ export default function TermSearch({
     }, 300);
   }
 
+  function handleResultClick(r: TermSearchResult) {
+    if (captureValueUnit) {
+      setSelectedResult(r);
+      return;
+    }
+    onSelect(r);
+    onCorrection({
+      type: "reassign",
+      text: r.term,
+      detail: `Reassigned to SNOMED ${r.snomed_concept_id}`,
+      time: new Date().toISOString(),
+    });
+    onClose();
+  }
+
+  function handleConfirm() {
+    if (!selectedResult) return;
+    const mods: { value?: string; unit?: string; reference_range?: string; interpretation?: string } = {};
+    if (value.trim()) mods.value = value.trim();
+    if (unit.trim()) mods.unit = unit.trim();
+    if (referenceRange.trim()) mods.reference_range = referenceRange.trim();
+    if (interpretation.trim()) mods.interpretation = interpretation.trim();
+    const ctx: TermContext = {};
+    if (negated) ctx.negated = true;
+    if (uncertain) ctx.uncertain = true;
+    if (historical) ctx.historical = true;
+    onSelect(
+      selectedResult,
+      Object.keys(mods).length ? mods : undefined,
+      Object.keys(ctx).length ? ctx : undefined,
+    );
+    onClose();
+  }
+
   return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(0,0,0,0.3)",
-        display: "flex",
-        alignItems: "start",
-        justifyContent: "center",
-        paddingTop: 100,
-        zIndex: 2000,
-      }}
-      onClick={onClose}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          background: "#fff",
-          borderRadius: 14,
-          width: 560,
-          maxHeight: "70vh",
-          display: "flex",
-          flexDirection: "column",
-          boxShadow: "0 20px 60px rgba(0,0,0,0.15)",
-          animation: "cardIn 0.2s ease",
-        }}
-      >
-        <div style={{ padding: "16px 20px", borderBottom: "1px solid #e2e8f0" }}>
-          <input
-            ref={inputRef}
-            value={query}
-            onChange={(e) => handleChange(e.target.value)}
-            placeholder="Search SNOMED terms…"
-            style={{
-              width: "100%",
-              border: "none",
-              outline: "none",
-              fontSize: 16,
-              fontFamily: "var(--font-body)",
-            }}
-          />
-          {tags.length > 0 && (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 12 }}>
-              {tags.map((tag) => {
-                const isSelected = selectedTags.has(tag);
-                return (
-                  <button
-                    key={tag}
-                    type="button"
-                    onClick={() => toggleTag(tag)}
-                    style={{
-                      padding: "4px 10px",
-                      borderRadius: 16,
-                      border: `1px solid ${isSelected ? "#4f46e5" : "#e2e8f0"}`,
-                      background: isSelected ? "#eef2ff" : "#fff",
-                      color: isSelected ? "#4f46e5" : "#64748b",
-                      fontSize: 12,
-                      fontWeight: isSelected ? 600 : 500,
-                      cursor: "pointer",
-                    }}
-                  >
-                    {tag}
-                  </button>
-                );
-              })}
-              {selectedTags.size > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setSelectedTags(new Set())}
-                  style={{
-                    padding: "4px 10px",
-                    borderRadius: 16,
-                    border: "1px solid #e2e8f0",
-                    background: "#fff",
-                    color: "#64748b",
-                    fontSize: 12,
-                    cursor: "pointer",
-                  }}
-                >
-                  Clear
-                </button>
-              )}
-            </div>
-          )}
-        </div>
-        <div style={{ overflowY: "auto", flex: 1 }}>
-          {loading && <p style={{ padding: 16, color: "#64748b", fontSize: 14 }}>Searching…</p>}
-          {!loading && results.length === 0 && query.length >= 2 && (
-            <p style={{ padding: 16, color: "#94a3b8", fontSize: 14 }}>No results</p>
-          )}
-          {!loading && results.length > 0 && filteredResults.length === 0 && (
-            <p style={{ padding: 16, color: "#94a3b8", fontSize: 14 }}>
-              No results for selected tags. Clear filters or choose different tags.
-            </p>
-          )}
-          {filteredResults.map((r, i) => (
-            <button
-              key={`${r.snomed_concept_id}-${i}`}
-              onClick={() => {
-                if (captureValueUnit) {
-                  setSelectedResult(r);
-                  return;
-                }
-                onSelect(r);
-                onCorrection({
-                  type: "reassign",
-                  text: r.term,
-                  detail: `Reassigned to SNOMED ${r.snomed_concept_id}`,
-                  time: new Date().toISOString(),
-                });
-                onClose();
-              }}
-              style={{
-                display: "block",
-                width: "100%",
-                padding: "12px 20px",
-                textAlign: "left",
-                border: "none",
-                borderBottom: "1px solid #f1f5f9",
-                background: selectedResult?.snomed_concept_id === r.snomed_concept_id ? "#eef2ff" : "transparent",
-                cursor: "pointer",
-                transition: "background 0.1s",
-              }}
-              onMouseEnter={(e) => {
-                if (selectedResult?.snomed_concept_id !== r.snomed_concept_id) e.currentTarget.style.background = "#f8fafc";
-              }}
-              onMouseLeave={(e) => {
-                if (selectedResult?.snomed_concept_id !== r.snomed_concept_id) e.currentTarget.style.background = "transparent";
-              }}
-            >
-              <div style={{ fontSize: 14, fontWeight: 500, color: "#0f172a" }}>{r.term}</div>
-              <div style={{ fontSize: 12, color: "#64748b", fontFamily: "var(--font-mono)", marginTop: 2 }}>
-                <span style={{ marginRight: 8, color: "#6366f1", fontWeight: 500 }}>
-                  {parseSemanticTag(r.term, r.semantic_tag ?? null)}
-                </span>
-                SNOMED: {r.snomed_concept_id}
-                {r.read_code && <span> · Read: {r.read_code}</span>}
-                {r.icd10 && <span> · ICD-10: {r.icd10}</span>}
-                <span> · Score: {Math.round((r.score ?? 0) * 100)}%</span>
-              </div>
-            </button>
-          ))}
-        </div>
-        {captureValueUnit && selectedResult && (
-          <div
-            style={{
-              padding: "16px 20px",
-              borderTop: "1px solid #e2e8f0",
-              background: "#f8fafc",
-              display: "flex",
-              flexDirection: "column",
-              gap: 12,
-            }}
-          >
-            <div style={{ fontSize: 13, fontWeight: 600, color: "#334155" }}>
-              Add: {selectedResult.term}
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-                <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}>
-                  Value:
-                  <input
-                    type="text"
-                    value={value}
-                    onChange={(e) => setValue(e.target.value)}
-                    placeholder="e.g. 91 or &lt; 0.2"
-                    style={{
-                      width: 90,
-                      padding: "6px 10px",
-                      border: "1px solid #e2e8f0",
-                      borderRadius: 6,
-                      fontSize: 13,
-                    }}
-                  />
-                </label>
-                <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}>
-                  Unit:
-                  <input
-                    type="text"
-                    value={unit}
-                    onChange={(e) => setUnit(e.target.value)}
-                    placeholder="e.g. fL"
-                    style={{
-                      width: 100,
-                      padding: "6px 10px",
-                      border: "1px solid #e2e8f0",
-                      borderRadius: 6,
-                      fontSize: 13,
-                    }}
-                  />
-                </label>
-                <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}>
-                  Ref range:
-                  <input
-                    type="text"
-                    value={referenceRange}
-                    onChange={(e) => setReferenceRange(e.target.value)}
-                    placeholder="e.g. 80 - 99"
-                    style={{
-                      width: 110,
-                      padding: "6px 10px",
-                      border: "1px solid #e2e8f0",
-                      borderRadius: 6,
-                      fontSize: 13,
-                    }}
-                  />
-                </label>
-                <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}>
-                  Interpretation:
-                  <input
-                    type="text"
-                    value={interpretation}
-                    onChange={(e) => setInterpretation(e.target.value)}
-                    placeholder="normal / low / high"
-                    style={{
-                      width: 100,
-                      padding: "6px 10px",
-                      border: "1px solid #e2e8f0",
-                      borderRadius: 6,
-                      fontSize: 13,
-                    }}
-                  />
-                </label>
-              </div>
-              <div style={{ display: "flex", gap: 8 }}>
-              <button
-                type="button"
-                onClick={() => {
-                  const mods: { value?: string; unit?: string; reference_range?: string; interpretation?: string } = {};
-                  if (value.trim()) mods.value = value.trim();
-                  if (unit.trim()) mods.unit = unit.trim();
-                  if (referenceRange.trim()) mods.reference_range = referenceRange.trim();
-                  if (interpretation.trim()) mods.interpretation = interpretation.trim();
-                  onSelect(selectedResult, Object.keys(mods).length ? mods : undefined);
-                  onClose();
-                }}
-                style={{
-                  padding: "8px 16px",
-                  background: "#4f46e5",
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: 8,
-                  fontSize: 13,
-                  fontWeight: 600,
-                  cursor: "pointer",
-                }}
-              >
-                {confirmLabel}
-              </button>
-              <button
-                type="button"
-                onClick={() => setSelectedResult(null)}
-                style={{
-                  padding: "8px 16px",
-                  background: "#fff",
-                  color: "#64748b",
-                  border: "1px solid #e2e8f0",
-                  borderRadius: 8,
-                  fontSize: 13,
-                  cursor: "pointer",
-                }}
-              >
-                Cancel
-              </button>
-              </div>
-            </div>
-          </div>
+    <Dialog open onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogTitle>Search SNOMED terms</DialogTitle>
+
+      <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 1.5, p: 2 }}>
+        <TextField
+          autoFocus
+          fullWidth
+          size="small"
+          placeholder="Search SNOMED terms…"
+          value={query}
+          onChange={(e) => handleChange(e.target.value)}
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon fontSize="small" />
+                </InputAdornment>
+              ),
+            },
+          }}
+        />
+
+        {tags.length > 0 && (
+          <Stack direction="row" flexWrap="wrap" gap={0.5}>
+            {tags.map((tag) => (
+              <Chip
+                key={tag}
+                label={tag}
+                size="small"
+                variant={selectedTags.has(tag) ? "filled" : "outlined"}
+                color={selectedTags.has(tag) ? "primary" : "default"}
+                onClick={() => toggleTag(tag)}
+              />
+            ))}
+            {selectedTags.size > 0 && (
+              <Chip
+                label="Clear"
+                size="small"
+                variant="outlined"
+                onDelete={() => setSelectedTags(new Set())}
+                onClick={() => setSelectedTags(new Set())}
+              />
+            )}
+          </Stack>
         )}
-      </div>
-    </div>
+
+        {captureValueUnit && selectedResult && (
+          <Box sx={{ p: 1.5, bgcolor: "action.hover", borderRadius: 1 }}>
+            <Typography variant="subtitle2" sx={{ mb: 1 }}>
+              Add: {selectedResult.term}
+            </Typography>
+            <Stack direction="row" gap={0.75} flexWrap="wrap" sx={{ mb: 1 }}>
+              <Chip
+                label="Negated"
+                size="small"
+                variant={negated ? "filled" : "outlined"}
+                color={negated ? "error" : "default"}
+                onClick={() => setNegated(!negated)}
+              />
+              <Chip
+                label="Uncertain"
+                size="small"
+                variant={uncertain ? "filled" : "outlined"}
+                color={uncertain ? "warning" : "default"}
+                onClick={() => setUncertain(!uncertain)}
+              />
+              <Chip
+                label="Historical"
+                size="small"
+                variant={historical ? "filled" : "outlined"}
+                color={historical ? "info" : "default"}
+                onClick={() => setHistorical(!historical)}
+              />
+            </Stack>
+            <Stack direction="row" gap={1} flexWrap="wrap">
+              <TextField
+                size="small"
+                label="Value"
+                placeholder="e.g. 91 or < 0.2"
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
+                sx={{ width: 120 }}
+              />
+              <TextField
+                size="small"
+                label="Unit"
+                placeholder="e.g. fL"
+                value={unit}
+                onChange={(e) => setUnit(e.target.value)}
+                sx={{ width: 120 }}
+              />
+              <TextField
+                size="small"
+                label="Ref range"
+                placeholder="e.g. 80 - 99"
+                value={referenceRange}
+                onChange={(e) => setReferenceRange(e.target.value)}
+                sx={{ width: 130 }}
+              />
+              <TextField
+                size="small"
+                label="Interpretation"
+                placeholder="normal / low / high"
+                value={interpretation}
+                onChange={(e) => setInterpretation(e.target.value)}
+                sx={{ width: 140 }}
+              />
+            </Stack>
+          </Box>
+        )}
+
+        {loading && (
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1, py: 2, px: 1 }}>
+            <CircularProgress size={18} />
+            <Typography variant="body2" color="text.secondary">Searching…</Typography>
+          </Box>
+        )}
+
+        {!loading && results.length === 0 && query.length >= 2 && (
+          <Typography variant="body2" color="text.secondary" sx={{ py: 2, px: 1 }}>
+            No results
+          </Typography>
+        )}
+
+        {!loading && results.length > 0 && filteredResults.length === 0 && (
+          <Typography variant="body2" color="text.secondary" sx={{ py: 2, px: 1 }}>
+            No results for selected tags. Clear filters or choose different tags.
+          </Typography>
+        )}
+
+        {filteredResults.length > 0 && (
+          <List disablePadding sx={{ overflowY: "auto", maxHeight: 340 }}>
+            {filteredResults.map((r, i) => (
+              <ListItemButton
+                key={`${r.snomed_concept_id}-${i}`}
+                selected={selectedResult?.snomed_concept_id === r.snomed_concept_id}
+                onClick={() => handleResultClick(r)}
+                sx={{ alignItems: "flex-start", gap: 1, py: 1 }}
+              >
+                <ListItemText
+                  primary={r.term}
+                  secondary={
+                    <>
+                      SNOMED: {r.snomed_concept_id}
+                      {r.read_code && ` · Read: ${r.read_code}`}
+                      {r.icd10 && ` · ICD-10: ${r.icd10}`}
+                      {` · Score: ${Math.round((r.score ?? 0) * 100)}%`}
+                    </>
+                  }
+                  primaryTypographyProps={{ variant: "body2", fontWeight: 500 }}
+                  secondaryTypographyProps={{ variant: "caption", fontFamily: "monospace" }}
+                />
+                <Chip
+                  label={parseSemanticTag(r.term, r.semantic_tag ?? null)}
+                  size="small"
+                  color="primary"
+                  variant="outlined"
+                  sx={{ mt: 0.5, flexShrink: 0 }}
+                />
+              </ListItemButton>
+            ))}
+          </List>
+        )}
+      </DialogContent>
+
+      <DialogActions>
+        <Button variant="text" onClick={onClose}>Cancel</Button>
+        {captureValueUnit && (
+          <Button
+            variant="contained"
+            disabled={!selectedResult}
+            onClick={handleConfirm}
+          >
+            {confirmLabel}
+          </Button>
+        )}
+      </DialogActions>
+    </Dialog>
   );
 }

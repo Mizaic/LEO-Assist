@@ -1,0 +1,84 @@
+{
+  "metadata": {
+    "domain": "english_language_competency",
+    "total_terms": 7,
+    "successful_mappings": 7,
+    "failed_mappings": 0,
+    "llm_disambiguations": 5,
+    "generated_at": "2025-12-01T16:33:26.174275Z",
+    "enriched_with_synonyms": true,
+    "synonym_enrichment_date": "2025-12-06T08:05:51.066621",
+    "synonym_stats": {
+      "concepts_with_synonyms": 4,
+      "concepts_not_found": 0,
+      "average_synonyms_per_concept": 2.0
+    }
+  },
+  "mappings": {
+    "Is a native English speaker": {
+      "concept_id": 161147007,
+      "preferred_term": "Speaks English well (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8841903209686279,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Speaks English well",
+        "Speaks English well (finding)",
+        "fluent in English",
+        "speaks good English",
+        "good English",
+        "English fluent"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Speaks English well (finding)"
+    },
+    "English not mother tongue and patient not fluent in English": {
+      "concept_id": 161148002,
+      "preferred_term": "Speaks English poorly (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9675633907318115,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Speaks English poorly",
+        "Speaks English poorly (finding)",
+        "poor English",
+        "limited English",
+        "limited English proficiency",
+        "not fluent in English"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Speaks English poorly (finding)"
+    },
+    "English not mother tongue but communication possible because of mother tongue same as": {
+      "concept_id": 161140009,
+      "preferred_term": "English as a second language (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.917226005732812,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "English as a second language",
+        "English as a second language (finding)",
+        "English not first language",
+        "English second language",
+        "English additional language"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "English as a second language (finding)"
+    },
+    "Is a native Welsh speaker": {
+      "concept_id": 408532009,
+      "preferred_term": "Main spoken language Welsh (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8570070266723633,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Main spoken language Welsh",
+        "Main spoken language Welsh (finding)",
+        "Welsh speaker",
+        "primary language Welsh"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Main spoken language Welsh (finding)"
+    }
+  }
+}

@@ -1,0 +1,15 @@
+FROM python:3.12-slim
+
+WORKDIR /app
+
+COPY libs/ libs/
+COPY services/coding-worker/ services/coding-worker/
+
+RUN pip install --no-cache-dir \
+    fastapi>=0.115.0 uvicorn>=0.30.0 neo4j>=5.20.0 pydantic>=2.7.0 \
+    python-dotenv>=1.0.1 python-jose[cryptography] requests redis \
+    boto3>=1.35.0 langchain-aws langchain-openai azure-servicebus
+
+ENV PYTHONPATH=/app
+
+CMD ["python", "-m", "services.coding_worker.app.main"]

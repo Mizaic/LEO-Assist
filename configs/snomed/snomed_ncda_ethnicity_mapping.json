@@ -1,0 +1,253 @@
+{
+  "metadata": {
+    "domain": "ethnicity",
+    "total_terms": 21,
+    "successful_mappings": 21,
+    "failed_mappings": 0,
+    "llm_disambiguations": 20,
+    "generated_at": "2025-12-01T16:31:32.652784Z",
+    "enriched_with_synonyms": true,
+    "synonym_enrichment_date": "2025-12-06T08:05:50.812217",
+    "synonym_stats": {
+      "concepts_with_synonyms": 15,
+      "concepts_not_found": 0,
+      "average_synonyms_per_concept": 2.1
+    }
+  },
+  "mappings": {
+    "English / Welsh / Scottish / Northern Irish / British": {
+      "concept_id": 976631000000101,
+      "preferred_term": "White: English or Welsh or Scottish or Northern Irish or British - England and Wales ethnic category 2011 census (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8732340735742161,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "White: English or Welsh or Scottish or Northern Irish or British - England and Wales ethnic category 2011 census",
+        "White: English or Welsh or Scottish or Northern Irish or British - England and Wales ethnic category 2011 census (finding)",
+        "White British",
+        "White English/Welsh/Scottish/NI"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "White: English or Welsh or Scottish or Northern Irish or British - England and Wales ethnic category 2011 census (finding)"
+    },
+    "Irish": {
+      "concept_id": 186014006,
+      "preferred_term": "Irish (NMO) (ethnic group)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8594608848090544,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Irish (NMO)",
+        "Irish (NMO) (ethnic group)",
+        "White Irish",
+        "Irish ethnicity",
+        "Irish background"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Irish (NMO) (ethnic group)"
+    },
+    "Gypsy or Irish Traveller": {
+      "concept_id": 315283003,
+      "preferred_term": "Irish traveller (ethnic group)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8850081435661478,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Irish traveller",
+        "Irish traveller (ethnic group)",
+        "Irish traveller ethnicity"
+      ],
+      "guideline_synonym_count": 3,
+      "guideline_name": "Irish traveller (ethnic group)"
+    },
+    "Any other White": {
+      "concept_id": 976691000000100,
+      "preferred_term": "White: any other White background - England and Wales ethnic category 2011 census (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8519908402320593,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "White: any other White background - England and Wales ethnic category 2011 census",
+        "White: any other White background - England and Wales ethnic category 2011 census (finding)",
+        "other white background",
+        "white other",
+        "other white",
+        "white other background"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "White: any other White background - England and Wales ethnic category 2011 census (finding)"
+    },
+    "White and Black Caribbean": {
+      "concept_id": 92421000000102,
+      "preferred_term": "White and Black Caribbean - ethnic category 2001 census (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8869354724884033,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "White and Black Caribbean - ethnic category 2001 census",
+        "White and Black Caribbean - ethnic category 2001 census (finding)",
+        "mixed white black caribbean",
+        "white/black caribbean"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "White and Black Caribbean - ethnic category 2001 census (finding)"
+    },
+    "White and Black African": {
+      "concept_id": 315635008,
+      "preferred_term": "Black African and White (ethnic group)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9250364303588867,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Black African and White",
+        "Black African and White (ethnic group)",
+        "mixed white and black african"
+      ],
+      "guideline_synonym_count": 3,
+      "guideline_name": "Black African and White (ethnic group)"
+    },
+    "White and Asian": {
+      "concept_id": 92441000000109,
+      "preferred_term": "White and Asian - ethnic category 2001 census (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8882640612765573,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "White and Asian - ethnic category 2001 census",
+        "White and Asian - ethnic category 2001 census (finding)",
+        "mixed white asian",
+        "white/asian"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "White and Asian - ethnic category 2001 census (finding)"
+    },
+    "Indian": {
+      "concept_id": 186001005,
+      "preferred_term": "Indian (East Indian)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9117937088012695,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Indian",
+        "Indian (East Indian)",
+        "Indian (East Indian) (ethnic group)",
+        "British Indian",
+        "East Indian"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Indian (East Indian)"
+    },
+    "Pakistani": {
+      "concept_id": 186002003,
+      "preferred_term": "Pakistani (ethnic group)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9324913024902344,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Pakistani",
+        "Pakistani (ethnic group)",
+        "Pakistani ethnicity",
+        "Pakistani origin",
+        "Pakistani background",
+        "Pakistani heritage"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Pakistani (ethnic group)"
+    },
+    "Bangladeshi": {
+      "concept_id": 186003008,
+      "preferred_term": "Bangladeshi (ethnic group)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.9135746955871582,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Bangladeshi",
+        "Bangladeshi (ethnic group)",
+        "bangladeshi ethnicity",
+        "bangladeshi origin"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Bangladeshi (ethnic group)"
+    },
+    "Chinese": {
+      "concept_id": 33897005,
+      "preferred_term": "Chinese (ethnic group)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8933926584739158,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Chinese",
+        "Chinese (ethnic group)",
+        "Chinese ethnicity",
+        "Chinese background",
+        "Chinese origin",
+        "Chinese descent",
+        "Chinese heritage"
+      ],
+      "guideline_synonym_count": 7,
+      "guideline_name": "Chinese (ethnic group)"
+    },
+    "African": {
+      "concept_id": 18167009,
+      "preferred_term": "Black African (ethnic group)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8445630156632666,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Black African",
+        "Black African (ethnic group)",
+        "Black African, NOS",
+        "Blk African",
+        "Black Afr"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Black African (ethnic group)"
+    },
+    "Caribbean": {
+      "concept_id": 270463003,
+      "preferred_term": "Caribbean I./W.I./Guyana (NMO) (ethnic group)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8328180313110352,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Caribbean I./W.I./Guyana (NMO)",
+        "Caribbean I./W.I./Guyana (NMO) (ethnic group)",
+        "Afro-Caribbean",
+        "West Indian"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Caribbean I./W.I./Guyana (NMO) (ethnic group)"
+    },
+    "Any other Black / African / Caribbean background": {
+      "concept_id": 976931000000109,
+      "preferred_term": "Black or African or Caribbean or Black British: other Black or African or Caribbean background - England and Wales ethnic category 2011 census (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8764419607034402,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Black or African or Caribbean or Black British: other Black or African or Caribbean background - England and Wales ethnic category 2011 census",
+        "Black or African or Caribbean or Black British: other Black or African or Caribbean background - England and Wales ethnic category 2011 census (finding)",
+        "other Black background",
+        "other Black ethnicity"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Black or African or Caribbean or Black British: other Black or African or Caribbean background - England and Wales ethnic category 2011 census (finding)"
+    },
+    "Arab": {
+      "concept_id": 90027003,
+      "preferred_term": "Arabs (ethnic group)",
+      "semantic_tag": "Clinical_finding",
+      "score": 0.8738105297088623,
+      "llm_disambiguated": true,
+      "guideline_synonyms": [
+        "Arabs",
+        "Arabs (ethnic group)",
+        "arab ethnic group",
+        "arab background",
+        "arab heritage"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Arabs (ethnic group)"
+    }
+  }
+}

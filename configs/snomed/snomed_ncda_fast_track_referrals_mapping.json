@@ -1,0 +1,484 @@
+{
+  "metadata": {
+    "domain": "fast_track_referrals",
+    "total_terms": 28,
+    "successful_mappings": 28,
+    "failed_mappings": 0,
+    "llm_disambiguations": 0,
+    "generated_at": "2025-12-05T12:00:00.000000Z",
+    "focus": "Procedure concept type (Fast Track Referrals)",
+    "note": "Added shorter search terms to match GPconnect patterns. Cancer type often redacted.",
+    "enriched_with_synonyms": true,
+    "synonym_enrichment_date": "2025-12-06T08:06:05.679787",
+    "synonym_stats": {
+      "concepts_with_synonyms": 28,
+      "concepts_not_found": 0,
+      "average_synonyms_per_concept": 2.1
+    }
+  },
+  "mappings": {
+    "Fast track referral for suspected brain tumour (procedure)": {
+      "concept_id": 276581000000102,
+      "preferred_term": "Fast track referral for suspected brain tumour (procedure)",
+      "semantic_tag": "Procedure",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Fast track referral for suspected brain tumour",
+        "Fast track referral for suspected brain tumour (procedure)",
+        "2WW brain tumour referral",
+        "2ww brain referral",
+        "urgent brain tumour referral",
+        "fast track brain referral"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Fast track referral for suspected brain tumour (procedure)"
+    },
+    "Fast track referral for suspected brain": {
+      "concept_id": 276581000000102,
+      "preferred_term": "Fast track referral for suspected brain tumour (procedure)",
+      "semantic_tag": "Procedure",
+      "score": 0.95,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Fast track referral for suspected brain tumour",
+        "Fast track referral for suspected brain tumour (procedure)",
+        "2WW brain tumour referral",
+        "2ww brain referral",
+        "urgent brain tumour referral",
+        "fast track brain referral"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Fast track referral for suspected brain tumour (procedure)"
+    },
+    "Fast track referral for suspected breast cancer (procedure)": {
+      "concept_id": 276341000000100,
+      "preferred_term": "Fast track referral for suspected breast cancer (procedure)",
+      "semantic_tag": "Procedure",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Fast track referral for suspected breast cancer",
+        "Fast track referral for suspected breast cancer (procedure)",
+        "2WW breast referral",
+        "fast track breast referral",
+        "urgent breast cancer referral"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Fast track referral for suspected breast cancer (procedure)"
+    },
+    "Fast track referral for suspected breast": {
+      "concept_id": 276341000000100,
+      "preferred_term": "Fast track referral for suspected breast cancer (procedure)",
+      "semantic_tag": "Procedure",
+      "score": 0.95,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Fast track referral for suspected breast cancer",
+        "Fast track referral for suspected breast cancer (procedure)",
+        "2WW breast referral",
+        "fast track breast referral",
+        "urgent breast cancer referral"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Fast track referral for suspected breast cancer (procedure)"
+    },
+    "Fast track referral for suspected cancer due to non-site-specific symptoms (procedure)": {
+      "concept_id": 1556551000000104,
+      "preferred_term": "Fast track referral for suspected cancer due to non-site-specific symptoms (procedure)",
+      "semantic_tag": "Procedure",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Fast track referral for suspected cancer due to non-site-specific symptoms",
+        "Fast track referral for suspected cancer due to non-site-specific symptoms (procedure)",
+        "2WW NSS referral",
+        "NSS 2ww referral",
+        "fast track NSS referral"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Fast track referral for suspected cancer due to non-site-specific symptoms (procedure)"
+    },
+    "Fast track referral for suspected childrens tumour (procedure)": {
+      "concept_id": 276371000000106,
+      "preferred_term": "Fast track referral for suspected childrens tumour (procedure)",
+      "semantic_tag": "Procedure",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Fast track referral for suspected childrens tumour",
+        "Fast track referral for suspected childrens tumour (procedure)"
+      ],
+      "guideline_synonym_count": 2,
+      "guideline_name": "Fast track referral for suspected childrens tumour (procedure)"
+    },
+    "Fast track referral for suspected colorectal cancer (procedure)": {
+      "concept_id": 276401000000108,
+      "preferred_term": "Fast track referral for suspected colorectal cancer (procedure)",
+      "semantic_tag": "Procedure",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Fast track referral for suspected colorectal cancer",
+        "Fast track referral for suspected colorectal cancer (procedure)",
+        "fast track suspected colorectal",
+        "2WW LGI referral",
+        "2WW colorectal referral",
+        "2WW bowel cancer referral"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Fast track referral for suspected colorectal cancer (procedure)"
+    },
+    "Fast track referral for suspected colorectal": {
+      "concept_id": 276401000000108,
+      "preferred_term": "Fast track referral for suspected colorectal cancer (procedure)",
+      "semantic_tag": "Procedure",
+      "score": 0.95,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Fast track referral for suspected colorectal cancer",
+        "Fast track referral for suspected colorectal cancer (procedure)",
+        "2WW LGI referral",
+        "2WW colorectal referral",
+        "2WW bowel cancer referral"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Fast track referral for suspected colorectal cancer (procedure)"
+    },
+    "Fast track referral for suspected lower GI": {
+      "concept_id": 892201000000106,
+      "preferred_term": "Fast track referral for suspected lower gastrointestinal cancer (procedure)",
+      "semantic_tag": "Procedure",
+      "score": 0.95,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Fast track referral for suspected lower gastrointestinal cancer",
+        "Fast track referral for suspected lower gastrointestinal cancer (procedure)",
+        "Refer via 2WW LGI Pathway",
+        "Refer via Urgent Suspected Cancer LGI pathway",
+        "LGI 2ww referral"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Fast track referral for suspected lower gastrointestinal cancer (procedure)"
+    },
+    "Fast track referral for suspected gynaecological cancer (procedure)": {
+      "concept_id": 276311000000101,
+      "preferred_term": "Fast track referral for suspected gynaecological cancer (procedure)",
+      "semantic_tag": "Procedure",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Fast track referral for suspected gynaecological cancer",
+        "Fast track referral for suspected gynaecological cancer (procedure)",
+        "2WW gynae referral",
+        "2WW suspected gynae ca",
+        "2ww suspected gynae cancer",
+        "gynae 2ww referral"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Fast track referral for suspected gynaecological cancer (procedure)"
+    },
+    "Fast track referral for suspected gynaecological": {
+      "concept_id": 276311000000101,
+      "preferred_term": "Fast track referral for suspected gynaecological cancer (procedure)",
+      "semantic_tag": "Procedure",
+      "score": 0.95,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Fast track referral for suspected gynaecological cancer",
+        "Fast track referral for suspected gynaecological cancer (procedure)",
+        "2WW gynae referral",
+        "2WW suspected gynae ca",
+        "2ww suspected gynae cancer",
+        "gynae 2ww referral"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Fast track referral for suspected gynaecological cancer (procedure)"
+    },
+    "Fast track referral for suspected haematology malignancy (procedure)": {
+      "concept_id": 276461000000107,
+      "preferred_term": "Fast track referral for suspected haematology malignancy (procedure)",
+      "semantic_tag": "Procedure",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Fast track referral for suspected haematology malignancy",
+        "Fast track referral for suspected haematology malignancy (procedure)",
+        "2WW Haematology Triage",
+        "PRISM 2WW haematology",
+        "2WW haematology referral"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Fast track referral for suspected haematology malignancy (procedure)"
+    },
+    "Fast track referral for suspected haematology": {
+      "concept_id": 276461000000107,
+      "preferred_term": "Fast track referral for suspected haematology malignancy (procedure)",
+      "semantic_tag": "Procedure",
+      "score": 0.95,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Fast track referral for suspected haematology malignancy",
+        "Fast track referral for suspected haematology malignancy (procedure)",
+        "PRISM 2WW haematology",
+        "2WW haematology referral"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Fast track referral for suspected haematology malignancy (procedure)"
+    },
+    "Fast track referral for suspected head and neck cancer (procedure)": {
+      "concept_id": 280521000000108,
+      "preferred_term": "Fast track referral for suspected head and neck cancer (procedure)",
+      "semantic_tag": "Procedure",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Fast track referral for suspected head and neck cancer",
+        "Fast track referral for suspected head and neck cancer (procedure)",
+        "fast track suspected head and ne",
+        "refer to head and neck 2ww",
+        "H&N 2ww referral"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Fast track referral for suspected head and neck cancer (procedure)"
+    },
+    "Fast track referral for suspected head and neck": {
+      "concept_id": 280521000000108,
+      "preferred_term": "Fast track referral for suspected head and neck cancer (procedure)",
+      "semantic_tag": "Procedure",
+      "score": 0.95,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Fast track referral for suspected head and neck cancer",
+        "Fast track referral for suspected head and neck cancer (procedure)",
+        "H&N 2ww referral"
+      ],
+      "guideline_synonym_count": 3,
+      "guideline_name": "Fast track referral for suspected head and neck cancer (procedure)"
+    },
+    "Fast track referral for suspected lower gastrointestinal cancer (procedure)": {
+      "concept_id": 892201000000106,
+      "preferred_term": "Fast track referral for suspected lower gastrointestinal cancer (procedure)",
+      "semantic_tag": "Procedure",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Fast track referral for suspected lower gastrointestinal cancer",
+        "Fast track referral for suspected lower gastrointestinal cancer (procedure)",
+        "LGI 2ww referral"
+      ],
+      "guideline_synonym_count": 3,
+      "guideline_name": "Fast track referral for suspected lower gastrointestinal cancer (procedure)"
+    },
+    "Fast track referral for suspected lung cancer (procedure)": {
+      "concept_id": 276491000000101,
+      "preferred_term": "Fast track referral for suspected lung cancer (procedure)",
+      "semantic_tag": "Procedure",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Fast track referral for suspected lung cancer",
+        "Fast track referral for suspected lung cancer (procedure)",
+        "fast track suspected lung cancer",
+        "2WW lung cancer referral",
+        "urgent lung cancer referral",
+        "FT lung cancer referral",
+        "2ww suspected lung ca",
+        "fast track lung ca"
+      ],
+      "guideline_synonym_count": 8,
+      "guideline_name": "Fast track referral for suspected lung cancer (procedure)"
+    },
+    "Fast track referral for suspected lung": {
+      "concept_id": 276491000000101,
+      "preferred_term": "Fast track referral for suspected lung cancer (procedure)",
+      "semantic_tag": "Procedure",
+      "score": 0.95,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Fast track referral for suspected lung cancer",
+        "Fast track referral for suspected lung cancer (procedure)",
+        "2WW lung cancer referral",
+        "urgent lung cancer referral",
+        "FT lung cancer referral",
+        "2ww suspected lung ca",
+        "fast track lung ca"
+      ],
+      "guideline_synonym_count": 7,
+      "guideline_name": "Fast track referral for suspected lung cancer (procedure)"
+    },
+    "Fast track referral for suspected sarcoma (procedure)": {
+      "concept_id": 276521000000103,
+      "preferred_term": "Fast track referral for suspected sarcoma (procedure)",
+      "semantic_tag": "Procedure",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Fast track referral for suspected sarcoma",
+        "Fast track referral for suspected sarcoma (procedure)",
+        "fast track suspected gynaecologi",
+        "2WW sarcoma referral",
+        "FT sarcoma referral",
+        "urgent sarcoma referral",
+        "2WW sarcoma",
+        "sarcoma 2ww referral",
+        "sarcoma fast track",
+        "suspected sarcoma 2ww"
+      ],
+      "guideline_synonym_count": 10,
+      "guideline_name": "Fast track referral for suspected sarcoma (procedure)"
+    },
+    "Fast track referral for suspected sarcoma": {
+      "concept_id": 276521000000103,
+      "preferred_term": "Fast track referral for suspected sarcoma (procedure)",
+      "semantic_tag": "Procedure",
+      "score": 0.95,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Fast track referral for suspected sarcoma",
+        "Fast track referral for suspected sarcoma (procedure)",
+        "2WW sarcoma referral",
+        "FT sarcoma referral",
+        "urgent sarcoma referral",
+        "2WW sarcoma",
+        "sarcoma 2ww referral",
+        "sarcoma fast track",
+        "suspected sarcoma 2ww"
+      ],
+      "guideline_synonym_count": 9,
+      "guideline_name": "Fast track referral for suspected sarcoma (procedure)"
+    },
+    "Fast track referral for suspected skin cancer (procedure)": {
+      "concept_id": 276281000000104,
+      "preferred_term": "Fast track referral for suspected skin cancer (procedure)",
+      "semantic_tag": "Procedure",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Fast track referral for suspected skin cancer",
+        "Fast track referral for suspected skin cancer (procedure)",
+        "fast track suspected skin cancer",
+        "2WW suspected skin cancer",
+        "2 week wait skin cancer",
+        "urgent skin cancer referral"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Fast track referral for suspected skin cancer (procedure)"
+    },
+    "Fast track referral for suspected skin": {
+      "concept_id": 276281000000104,
+      "preferred_term": "Fast track referral for suspected skin cancer (procedure)",
+      "semantic_tag": "Procedure",
+      "score": 0.95,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Fast track referral for suspected skin cancer",
+        "Fast track referral for suspected skin cancer (procedure)",
+        "2WW suspected skin cancer",
+        "2 week wait skin cancer",
+        "urgent skin cancer referral"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Fast track referral for suspected skin cancer (procedure)"
+    },
+    "Fast track referral for suspected upper GI (gastrointestinal) cancer": {
+      "concept_id": 276551000000108,
+      "preferred_term": "Fast track referral for suspected upper GI (gastrointestinal) cancer",
+      "semantic_tag": "Procedure",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Fast track referral for suspected upper GI (gastrointestinal) cancer",
+        "Fast track referral for suspected upper GI cancer",
+        "Fast track referral for suspected upper gastrointestinal cancer",
+        "Fast track referral for suspected upper gastrointestinal cancer (procedure)",
+        "fast track suspected upper GI ca",
+        "Upper GI 2ww referral",
+        "2WW upper GI referral",
+        "upper GI 2WW"
+      ],
+      "guideline_synonym_count": 8,
+      "guideline_name": "Fast track referral for suspected upper GI (gastrointestinal) cancer"
+    },
+    "Fast track referral for suspected upper GI": {
+      "concept_id": 276551000000108,
+      "preferred_term": "Fast track referral for suspected upper GI (gastrointestinal) cancer",
+      "semantic_tag": "Procedure",
+      "score": 0.95,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Fast track referral for suspected upper GI (gastrointestinal) cancer",
+        "Fast track referral for suspected upper GI cancer",
+        "Fast track referral for suspected upper gastrointestinal cancer",
+        "Fast track referral for suspected upper gastrointestinal cancer (procedure)",
+        "2WW upper GI referral",
+        "upper GI 2WW"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Fast track referral for suspected upper GI (gastrointestinal) cancer"
+    },
+    "Fast track referral for suspected urological cancer (procedure)": {
+      "concept_id": 276431000000102,
+      "preferred_term": "Fast track referral for suspected urological cancer (procedure)",
+      "semantic_tag": "Procedure",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Fast track referral for suspected urological cancer",
+        "Fast track referral for suspected urological cancer (procedure)",
+        "fast track suspected urological",
+        "2WW urology referral"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Fast track referral for suspected urological cancer (procedure)"
+    },
+    "Fast track referral for suspected urological": {
+      "concept_id": 276431000000102,
+      "preferred_term": "Fast track referral for suspected urological cancer (procedure)",
+      "semantic_tag": "Procedure",
+      "score": 0.95,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Fast track referral for suspected urological cancer",
+        "Fast track referral for suspected urological cancer (procedure)",
+        "2WW urology referral"
+      ],
+      "guideline_synonym_count": 3,
+      "guideline_name": "Fast track referral for suspected urological cancer (procedure)"
+    },
+    "2WW referral": {
+      "concept_id": 1556551000000104,
+      "preferred_term": "Fast track referral for suspected cancer due to non-site-specific symptoms (procedure)",
+      "semantic_tag": "Procedure",
+      "score": 0.8,
+      "llm_disambiguated": true,
+      "note": "Generic 2WW match - LLM should determine cancer type from context",
+      "guideline_synonyms": [
+        "Fast track referral for suspected cancer due to non-site-specific symptoms",
+        "Fast track referral for suspected cancer due to non-site-specific symptoms (procedure)",
+        "2WW NSS referral",
+        "NSS 2ww referral",
+        "fast track NSS referral"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Fast track referral for suspected cancer due to non-site-specific symptoms (procedure)"
+    },
+    "Fast track referral for suspected": {
+      "concept_id": 1556551000000104,
+      "preferred_term": "Fast track referral for suspected cancer due to non-site-specific symptoms (procedure)",
+      "semantic_tag": "Procedure",
+      "score": 0.8,
+      "llm_disambiguated": true,
+      "note": "Generic match when cancer type is redacted - LLM should determine from context",
+      "guideline_synonyms": [
+        "Fast track referral for suspected cancer due to non-site-specific symptoms",
+        "Fast track referral for suspected cancer due to non-site-specific symptoms (procedure)",
+        "2WW NSS referral",
+        "NSS 2ww referral",
+        "fast track NSS referral"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Fast track referral for suspected cancer due to non-site-specific symptoms (procedure)"
+    }
+  }
+}

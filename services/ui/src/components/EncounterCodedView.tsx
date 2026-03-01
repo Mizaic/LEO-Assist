@@ -5,30 +5,20 @@ import { useRouter } from "next/navigation";
 import { addCodedLink, fetchEncounter, inferEncounter } from "@/lib/api";
 import type { CodedLink, Correction, EncounterSummary, TermSearchResult } from "@/lib/types";
 import CodedLinksSection from "./CodedLinksSection";
-
-/** Fixed colors per semantic tag - same tag always same color */
-const SEMANTIC_TAG_COLORS: Record<string, string> = {
-  situation: "#e0e7ff",       // indigo-100
-  clinicalfinding: "#d1fae5", // green-100
-  clinical_finding: "#d1fae5",
-  disease: "#fecaca",         // red-100
-  disorder: "#fecaca",
-  observableentity: "#fef3c7", // amber-100
-  observable_entity: "#fef3c7",
-  observable: "#fef3c7",
-  procedure: "#bfdbfe",       // blue-100
-  substance: "#ddd6fe",      // violet-100
-  medication: "#ddd6fe",
-  snomedconcept: "#dbeafe",   // blue-100 (default)
-  other: "#e2e8f0",          // slate-200
-};
-
-function colorForTag(tag: string | null | undefined): string {
-  const key = (tag ?? "snomedconcept").toLowerCase().replace(/[^a-z0-9]/g, "");
-  return SEMANTIC_TAG_COLORS[key] ?? SEMANTIC_TAG_COLORS.snomedconcept;
-}
 import CorrectionsLog from "./CorrectionsLog";
 import TermSearch from "./TermSearch";
+
+import Alert from "@mui/material/Alert";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import CircularProgress from "@mui/material/CircularProgress";
+import Divider from "@mui/material/Divider";
+import Paper from "@mui/material/Paper";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+
+import { themeForTag, renderNerSpans, type AnnotatedSpan } from "@/lib/nerAnnotation";
 
 interface Props {
   patientId: string;
@@ -57,22 +47,22 @@ export default function EncounterCodedView({ patientId, encounterId }: Props) {
     try {
       const result = await inferEncounter(patientId, encounterId, true);
       if (result.entities.length > 0) {
-        setInferResult(`${result.entities.length} entities inferred`);
+        setInferResult(`${result.entities.length} clinical terms extracted`);
       } else {
-        setInferResult(result.message ?? "No entities (model not yet built)");
+        setInferResult(result.message ?? "No clinical terms found (model not yet built)");
       }
       setRefreshTrigger((t) => t + 1);
     } catch (e) {
-      setInferResult(e instanceof Error ? e.message : "Inference failed");
+      setInferResult(e instanceof Error ? e.message : "Extraction failed");
     } finally {
       setInferring(false);
     }
   }
 
-  const highlightedText = useMemo(() => {
+  const annotatedSpans = useMemo((): AnnotatedSpan[] => {
     const text = encounter?.text ?? "";
-    if (!text || codedLinks.length === 0) return text;
-    const spans: { start: number; end: number; tag: string | null }[] = [];
+    if (!text || codedLinks.length === 0) return [];
+    const rawSpans: { start: number; end: number; tag: string | null }[] = [];
     const textLower = text.toLowerCase();
     for (const link of codedLinks) {
       const tag = link.semantic_tag ?? null;
@@ -88,7 +78,7 @@ export default function EncounterCodedView({ patientId, encounterId }: Props) {
         if (!needle || needle.length < 2) continue;
         let pos = 0;
         while ((pos = text.indexOf(needle, pos)) !== -1) {
-          spans.push({ start: pos, end: pos + needle.length, tag });
+          rawSpans.push({ start: pos, end: pos + needle.length, tag });
           pos += needle.length;
           found = true;
         }
@@ -96,37 +86,28 @@ export default function EncounterCodedView({ patientId, encounterId }: Props) {
         pos = 0;
         const needleLower = needle.toLowerCase();
         while ((pos = textLower.indexOf(needleLower, pos)) !== -1) {
-          spans.push({ start: pos, end: pos + needle.length, tag });
+          rawSpans.push({ start: pos, end: pos + needle.length, tag });
           pos += needle.length;
           found = true;
         }
         if (found) break;
       }
     }
-    spans.sort((a, b) => a.start - b.start);
-    const merged: { start: number; end: number; tag: string | null }[] = [];
-    for (const s of spans) {
+    rawSpans.sort((a, b) => a.start - b.start);
+    const merged: { start: number; end: number; tags: (string | null)[] }[] = [];
+    for (const s of rawSpans) {
       if (merged.length && s.start <= merged[merged.length - 1].end) {
         merged[merged.length - 1].end = Math.max(merged[merged.length - 1].end, s.end);
+        merged[merged.length - 1].tags.push(s.tag);
       } else {
-        merged.push({ ...s });
+        merged.push({ start: s.start, end: s.end, tags: [s.tag] });
       }
     }
-    if (merged.length === 0) return text;
-    const parts: React.ReactNode[] = [];
-    let i = 0;
-    for (const { start, end, tag } of merged) {
-      if (i < start) parts.push(text.slice(i, start));
-      const bg = colorForTag(tag);
-      parts.push(
-        <mark key={`${start}-${end}`} style={{ background: bg, borderRadius: 2, padding: "0 2px" }}>
-          {text.slice(start, end)}
-        </mark>
-      );
-      i = end;
-    }
-    if (i < text.length) parts.push(text.slice(i));
-    return parts.length === 1 && typeof parts[0] === "string" ? parts[0] : parts;
+    return merged.map(({ start, end, tags }) => ({
+      start,
+      end,
+      chips: tags.map((t) => themeForTag(t)),
+    }));
   }, [encounter?.text, codedLinks]);
 
   useEffect(() => {
@@ -162,16 +143,18 @@ export default function EncounterCodedView({ patientId, encounterId }: Props) {
     setSelection(null);
   }
 
-  function handleTermSelected(result: TermSearchResult, modifiers?: { value?: string; unit?: string; reference_range?: string; interpretation?: string }) {
+  function handleTermSelected(result: TermSearchResult, modifiers?: { value?: string; unit?: string; reference_range?: string; interpretation?: string }, context?: { negated?: boolean; uncertain?: boolean; historical?: boolean }) {
     const mods = modifiers && (modifiers.value || modifiers.unit || modifiers.reference_range || modifiers.interpretation)
       ? { value: modifiers.value, unit: modifiers.unit, reference_range: modifiers.reference_range, interpretation: modifiers.interpretation }
       : undefined;
+    const ctx = context && (context.negated || context.uncertain || context.historical) ? context : undefined;
     addCodedLink(patientId, encounterId, {
       concept_id: result.snomed_concept_id,
       term: result.term,
       read_code: result.read_code,
       evidence: pendingEvidence || result.term,
       modifiers: mods,
+      context: ctx,
     })
       .then(() => {
         setRefreshTrigger((t) => t + 1);
@@ -181,7 +164,7 @@ export default function EncounterCodedView({ patientId, encounterId }: Props) {
         ]);
       })
       .catch((e) =>
-        setError(e instanceof Error ? e.message : "Could not add coded link."),
+        setError(e instanceof Error ? e.message : "Could not add clinical code."),
       )
       .finally(() => {
         setShowTermSearch(false);
@@ -190,134 +173,154 @@ export default function EncounterCodedView({ patientId, encounterId }: Props) {
       });
   }
 
-  if (loading) return <div style={{ padding: 40, color: "#64748b" }}>Loading encounter…</div>;
-  if (error) return <div style={{ padding: 40, color: "#b91c1c" }}>{error}</div>;
+  if (loading) {
+    return (
+      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box sx={{ p: 5 }}>
+        <Alert severity="error">{error}</Alert>
+      </Box>
+    );
+  }
+
   if (!encounter) return null;
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", height: "100vh", overflow: "hidden" }}>
-      <div style={{ display: "flex", flexDirection: "column", overflow: "hidden" }}>
-        <div style={{
-          padding: "16px 24px",
-          borderBottom: "1px solid #e2e8f0",
-          background: "#fff",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}>
-          <div>
-            <button
-              onClick={() => router.push(`/patients/${patientId}`)}
-              style={{ background: "none", border: "none", color: "#4f46e5", cursor: "pointer", fontSize: 13, padding: 0, marginBottom: 4 }}
-            >
-              ← Back to encounters
-            </button>
-            <h1 style={{ fontFamily: "var(--font-heading)", fontSize: 20, fontWeight: 700 }}>
-              Encounter: {encounterId.slice(0, 8)}…
-            </h1>
-            <span style={{ color: "#64748b", fontSize: 13 }}>
-              Patient {patientId} · {encounter.date || "no date"} · {(encounter.coded_count ?? 0)} coded
-            </span>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
-            <div style={{ display: "flex", gap: 8 }}>
-              <button
-                onClick={handleRunInference}
-                disabled={inferring}
-                style={{
-                  padding: "8px 16px",
-                  border: "1px solid #16a34a",
-                  borderRadius: 8,
-                  background: "#fff",
-                  color: "#16a34a",
-                  fontSize: 13,
-                  fontWeight: 600,
-                  cursor: inferring ? "not-allowed" : "pointer",
-                }}
+    <Box sx={{ display: "grid", gridTemplateColumns: "1fr 340px", height: "100vh", overflow: "hidden" }}>
+      {/* Left column */}
+      <Box sx={{ display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        {/* Header */}
+        <Paper
+          square
+          elevation={0}
+          sx={{ px: 3, py: 2, borderBottom: 1, borderColor: "divider" }}
+        >
+          <Stack direction="row" justifyContent="space-between" alignItems="center">
+            <Box>
+              <Button
+                variant="text"
+                size="small"
+                startIcon={<ArrowBackIcon />}
+                onClick={() => router.push(`/patients/${patientId}`)}
+                sx={{ mb: 0.5, textTransform: "none" }}
               >
-                {inferring ? "Running…" : "Run inference"}
-              </button>
-              <button
-                onClick={() => {
-                  setTermSearchQuery(selection?.text ?? "");
-                  setPendingEvidence(selection?.text ?? "");
-                  setShowTermSearch(true);
-                  setSelection(null);
-                }}
-                style={{
-                  padding: "8px 16px",
-                  border: "1px solid #4f46e5",
-                  borderRadius: 8,
-                  background: "#fff",
-                  color: "#4f46e5",
-                  fontSize: 13,
-                  fontWeight: 600,
-                  cursor: "pointer",
-                }}
-              >
-                {selection ? `Code "${selection.text.slice(0, 20)}${selection.text.length > 20 ? "…" : ""}"` : "+ Add code"}
-              </button>
-            </div>
-            {inferResult && (
-              <span style={{ fontSize: 12, color: "#64748b" }}>{inferResult}</span>
-            )}
-          </div>
-        </div>
+                Back to encounters
+              </Button>
+              <Typography variant="h6" sx={{ fontFamily: "var(--font-heading)", fontWeight: 700 }}>
+                Encounter: {encounterId.slice(0, 8)}…
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Patient {patientId} · {encounter.date || "no date"} · {encounter.coded_count ?? 0} coded
+              </Typography>
+            </Box>
 
-        <div
-          style={{ flex: 1, overflowY: "auto", padding: 24, background: "#f8fafc" }}
+            <Stack alignItems="flex-end" spacing={0.5}>
+              <Stack direction="row" spacing={1}>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={handleRunInference}
+                  disabled={inferring}
+                  sx={{ textTransform: "none", fontWeight: 600 }}
+                  color="success"
+                >
+                  {inferring ? "Running…" : "Extract clinical terms"}
+                </Button>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={() => {
+                    setTermSearchQuery(selection?.text ?? "");
+                    setPendingEvidence(selection?.text ?? "");
+                    setShowTermSearch(true);
+                    setSelection(null);
+                  }}
+                  sx={{ textTransform: "none", fontWeight: 600 }}
+                >
+                  {selection
+                    ? `Code "${selection.text.slice(0, 20)}${selection.text.length > 20 ? "…" : ""}"`
+                    : "+ Add code"}
+                </Button>
+              </Stack>
+              {inferResult && (
+                <Typography variant="caption" color="text.secondary">
+                  {inferResult}
+                </Typography>
+              )}
+            </Stack>
+          </Stack>
+        </Paper>
+
+        {/* Text area */}
+        <Box
+          sx={{ flex: 1, overflowY: "auto", p: 3, bgcolor: "grey.50" }}
           onMouseUp={handleMouseUp}
           onClick={(e) => { if (e.target === e.currentTarget) setSelection(null); }}
         >
-          <div
+          <Paper
             ref={textRef}
-            style={{
-              background: "#fff",
-              borderRadius: 12,
-              border: "1px solid #e2e8f0",
-              padding: 24,
+            elevation={0}
+            sx={{
+              p: 3,
               fontSize: 15,
-              lineHeight: 1.8,
+              lineHeight: 3,
               fontFamily: "var(--font-body)",
               whiteSpace: "pre-wrap",
               wordBreak: "break-word",
               userSelect: "text",
+              border: 1,
+              borderColor: "divider",
+              borderRadius: 3,
             }}
           >
-            {highlightedText || "(No text)"}
-          </div>
+            {renderNerSpans(encounter?.text ?? "", annotatedSpans) ?? "(No text)"}
+          </Paper>
 
           {selection && (
-            <div
-              style={{
+            <Box
+              sx={{
                 position: "fixed",
                 top: selection.rect.top - 40,
                 left: selection.rect.left,
                 zIndex: 1000,
               }}
             >
-              <button
+              <Button
+                variant="contained"
+                size="small"
                 onClick={openCodeWithSelection}
-                style={{
-                  padding: "6px 12px",
-                  border: "none",
-                  borderRadius: 6,
-                  background: "#4f46e5",
-                  color: "#fff",
-                  fontSize: 12,
+                sx={{
+                  textTransform: "none",
                   fontWeight: 600,
-                  cursor: "pointer",
+                  fontSize: 12,
                   boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
                 }}
               >
-                Code selection
-              </button>
-            </div>
+                Assign code
+              </Button>
+            </Box>
           )}
-        </div>
-      </div>
+        </Box>
+      </Box>
 
-      <div style={{ borderLeft: "1px solid #e2e8f0", background: "#fff", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      {/* Right sidebar */}
+      <Paper
+        square
+        elevation={0}
+        sx={{
+          borderLeft: 1,
+          borderColor: "divider",
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+        }}
+      >
         <CodedLinksSection
           patientId={patientId}
           encounterId={encounterId}
@@ -325,13 +328,17 @@ export default function EncounterCodedView({ patientId, encounterId }: Props) {
           refreshTrigger={refreshTrigger}
           onLinksChange={setCodedLinks}
         />
-        <div style={{ borderTop: "1px solid #e2e8f0", flexShrink: 0, display: "flex", flexDirection: "column", minHeight: 0 }}>
-          <h3 style={{ fontSize: 14, fontWeight: 600, color: "#334155", padding: "12px 16px", borderBottom: "1px solid #e2e8f0" }}>
+        <Divider />
+        <Box sx={{ flexShrink: 0, display: "flex", flexDirection: "column", minHeight: 0 }}>
+          <Typography
+            variant="subtitle2"
+            sx={{ px: 2, py: 1.5, borderBottom: 1, borderColor: "divider", color: "text.primary" }}
+          >
             Corrections ({corrections.length})
-          </h3>
+          </Typography>
           <CorrectionsLog corrections={corrections} />
-        </div>
-      </div>
+        </Box>
+      </Paper>
 
       {showTermSearch && (
         <TermSearch
@@ -343,6 +350,6 @@ export default function EncounterCodedView({ patientId, encounterId }: Props) {
           onCorrection={(c) => setCorrections((prev) => [c, ...prev])}
         />
       )}
-    </div>
+    </Box>
   );
 }

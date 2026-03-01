@@ -6,8 +6,8 @@ Correctness is defined explicitly by RULES below, and each row is validated with
 
 Usage example:
 python scripts/validate_surface_forms_llm.py ^
-  --input services/terminology/data/training/surface_forms_4202301609.jsonl ^
-  --input services/terminology/data/training/surface_forms_4203796334.jsonl
+  --input services/terminology/data/training/surface_forms_9990000001.jsonl ^
+  --input services/terminology/data/training/surface_forms_9990000002.jsonl
 """
 
 from __future__ import annotations

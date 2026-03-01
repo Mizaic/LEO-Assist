@@ -41,6 +41,7 @@ def _normalize_record(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 def upsert_candidate(candidate: dict[str, Any], session) -> None:
+    llm_usage = candidate.get("llm_usage")
     payload = {
         "candidate_id": candidate["candidate_id"],
         "patient_id": candidate["patient_id"],
@@ -53,6 +54,7 @@ def upsert_candidate(candidate: dict[str, Any], session) -> None:
         "hard_fail_reasons": candidate["hard_fail_reasons"],
         "warning_reasons": candidate["warning_reasons"],
         "sentences_json": json.dumps(candidate["sentences"], ensure_ascii=False),
+        "llm_usage_json": json.dumps(llm_usage, ensure_ascii=False) if llm_usage else None,
     }
     session.run(UPSERT_CANDIDATE, **payload)
 
@@ -71,15 +73,20 @@ def upsert_candidate(candidate: dict[str, Any], session) -> None:
         )
 
 
-def create_review_task(candidate_id: str, session, priority: int = 50, warning_count: int = 0) -> str:
-    # Keep one mutable task per candidate (candidate is now per encounter).
+def create_review_task(
+    candidate_id: str,
+    session,
+    priority: int = 50,
+    warning_count: int = 0,
+    status: str = "pending",
+) -> str:
     task_id = str(uuid.uuid5(uuid.NAMESPACE_URL, f"review-task:{candidate_id}"))
     session.run(
         CREATE_REVIEW_TASK,
         candidate_id=candidate_id,
         task_id=task_id,
         priority=priority,
-        status="pending",
+        status=status,
         assigned_reviewer=None,
         warning_count=warning_count,
     )
