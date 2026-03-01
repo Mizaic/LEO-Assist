@@ -956,17 +956,24 @@ def _resolve_terms_via_api(terms: list[str]) -> dict[str, list]:
 
 
 def _suggest_alt_terms(term: str, entity_label: str) -> list[str]:
-    """Ask a small LLM for alternative SNOMED-friendly phrasings of a term."""
+    """Ask a small LLM for SNOMED-friendly alternative phrasings of a near-miss term.
+
+    The prompt explicitly allows an empty response so the LLM does not hallucinate
+    alternatives when none exist.
+    """
     system_prompt = (
         "You are a UK primary care clinical terminology assistant. "
-        "Suggest alternative phrasings to match clinical text to SNOMED CT concepts. "
+        "Your job is to suggest alternative phrasings that would match SNOMED CT concepts. "
+        "If the term is too vague, ambiguous, or product-specific to have useful SNOMED "
+        "alternatives, you MUST return an empty array []. "
         "Respond ONLY with a valid JSON array of strings -- no explanation, no markdown."
     )
     user_prompt = (
         f'Term: "{term}" (type: {entity_label})\n'
-        "Suggest 3 alternative phrasings: preferred SNOMED term, a common abbreviation, "
+        "Suggest up to 3 alternatives: the preferred SNOMED term, a common abbreviation, "
         "and one synonym a UK GP might write. "
-        'Output format: ["phrase1", "phrase2", "phrase3"]'
+        "If you cannot suggest meaningful alternatives, return []. "
+        'Output format: ["phrase1", "phrase2"] or []'
     )
     try:
         llm = create_llm(tier="small")
@@ -976,15 +983,19 @@ def _suggest_alt_terms(term: str, entity_label: str) -> list[str]:
             max_tokens=256,
             temperature=0.2,
         )
-        match = re.search(r"\[.*\]", response.text.strip(), re.DOTALL)
+        raw_text = response.text.strip()
+        match = re.search(r"\[.*\]", raw_text, re.DOTALL)
         if not match:
+            logger.debug("Alt-term LLM: no JSON array for %r -- response: %s", term, raw_text[:120])
             return []
         raw = json.loads(match.group())
         seen_lower = term.strip().lower()
-        return [
+        alts = [
             s.strip() for s in raw
             if isinstance(s, str) and s.strip() and s.strip().lower() != seen_lower
         ][:4]
+        logger.debug("Alt-term LLM: %r -> %r", term, alts)
+        return alts
     except Exception:
         logger.debug("Alt-term LLM call failed for %r", term, exc_info=True)
         return []
@@ -994,9 +1005,11 @@ def _try_alt_coding(term: str, entity_label: str) -> dict | None:
     """Try LLM-suggested alternatives for a low-confidence term.
 
     Returns the best candidate dict if any alternative scores >= threshold, else None.
+    Logs all alternatives and scores so decisions are auditable.
     """
     alt_terms = _suggest_alt_terms(term, entity_label)
     if not alt_terms:
+        logger.info("LLM-alt (verify): no alternatives suggested for %r (%s)", term, entity_label)
         return None
     results = _resolve_terms_via_api(alt_terms)
     best: dict | None = None
@@ -1005,9 +1018,20 @@ def _try_alt_coding(term: str, entity_label: str) -> dict | None:
         candidates = results.get(alt) or []
         top = candidates[0] if candidates and isinstance(candidates[0], dict) else {}
         score = _safe_float(top.get("score"))
+        logger.info(
+            "LLM-alt (verify): original=%r alt=%r -> concept=%r score=%s",
+            term, alt, top.get("snomed_concept_id", ""), score,
+        )
         if score >= _CODING_SCORE_THRESHOLD and score > best_score:
             best_score = score
             best = top
+    if best:
+        logger.info(
+            "LLM-alt (verify): RESOLVED %r -> %r (%.4f)",
+            term, best.get("snomed_term"), best_score,
+        )
+    else:
+        logger.info("LLM-alt (verify): no alternative cleared threshold for %r", term)
     return best
 
 

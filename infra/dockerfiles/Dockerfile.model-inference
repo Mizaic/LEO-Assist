@@ -28,7 +28,7 @@ COPY --from=build-venv /venv /venv
 COPY libs/ /app/libs/
 COPY services/model_inference/ /app/services/model_inference/
 WORKDIR /app
-ENV PYTHONPATH=/app
+ENV PYTHONPATH=/app:/app/services/model_inference
 ENV MODEL_STORE_CACHE_DIR=/var/model_cache
 USER appuser
 EXPOSE 8004

@@ -125,7 +125,7 @@ MATCH (cr:CodingReview {review_id: $review_id})
 SET cr.resolved            = true,
     cr.resolved_concept_id = $concept_id,
     cr.resolved_term       = $term,
-    cr.resolved_by         = 'auto_recheck',
+    cr.resolved_by         = $resolved_by,
     cr.resolved_at         = datetime(),
     cr.updated_at          = datetime()
 RETURN cr.review_id AS review_id
