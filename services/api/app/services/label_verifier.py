@@ -27,7 +27,7 @@ import time
 from typing import Any
 
 import httpx
-from libs.cypher.coding_review_queries import UPSERT_CODING_REVIEW
+from libs.cypher.coding_review_queries import GET_CODING_IGNORE_RULES, UPSERT_CODING_REVIEW
 from libs.cypher.label_verification_queries import (
     GET_HITL_REVIEWED_LABEL_IDS,
     RESOLVE_LABEL_VERIFICATION_REVIEW,
@@ -935,16 +935,118 @@ _CODEABLE_LABELS = frozenset({
 })
 
 _CODING_SCORE_THRESHOLD = float(os.getenv("CODING_REVIEW_SCORE_THRESHOLD", "0.70"))
+_CODING_ALT_LOW = float(os.getenv("CODING_ALT_THRESHOLD_LOW", "0.3"))
+_CODING_ALT_ENABLED = os.getenv("CODING_ALT_ENABLED", "true").lower() == "true"
+
+
+def _resolve_terms_via_api(terms: list[str]) -> dict[str, list]:
+    """POST a batch of terms to the terminology resolve endpoint."""
+    try:
+        with httpx.Client(timeout=10) as client:
+            resp = client.post(
+                f"{_TERMINOLOGY_API_URL}/terminology/resolve",
+                json={"terms": terms},
+            )
+            resp.raise_for_status()
+            payload = resp.json() if resp.content else {}
+            return (payload or {}).get("results") or {}
+    except Exception:
+        logger.debug("Coding check: terminology API call failed", exc_info=True)
+        return {}
+
+
+def _suggest_alt_terms(term: str, entity_label: str) -> list[str]:
+    """Ask a small LLM for alternative SNOMED-friendly phrasings of a term."""
+    system_prompt = (
+        "You are a UK primary care clinical terminology assistant. "
+        "Suggest alternative phrasings to match clinical text to SNOMED CT concepts. "
+        "Respond ONLY with a valid JSON array of strings -- no explanation, no markdown."
+    )
+    user_prompt = (
+        f'Term: "{term}" (type: {entity_label})\n'
+        "Suggest 3 alternative phrasings: preferred SNOMED term, a common abbreviation, "
+        "and one synonym a UK GP might write. "
+        'Output format: ["phrase1", "phrase2", "phrase3"]'
+    )
+    try:
+        llm = create_llm(tier="small")
+        response = llm.converse(
+            system=system_prompt,
+            messages=[{"role": "user", "content": user_prompt}],
+            max_tokens=256,
+            temperature=0.2,
+        )
+        match = re.search(r"\[.*\]", response.text.strip(), re.DOTALL)
+        if not match:
+            return []
+        raw = json.loads(match.group())
+        seen_lower = term.strip().lower()
+        return [
+            s.strip() for s in raw
+            if isinstance(s, str) and s.strip() and s.strip().lower() != seen_lower
+        ][:4]
+    except Exception:
+        logger.debug("Alt-term LLM call failed for %r", term, exc_info=True)
+        return []
+
+
+def _try_alt_coding(term: str, entity_label: str) -> dict | None:
+    """Try LLM-suggested alternatives for a low-confidence term.
+
+    Returns the best candidate dict if any alternative scores >= threshold, else None.
+    """
+    alt_terms = _suggest_alt_terms(term, entity_label)
+    if not alt_terms:
+        return None
+    results = _resolve_terms_via_api(alt_terms)
+    best: dict | None = None
+    best_score = 0.0
+    for alt in alt_terms:
+        candidates = results.get(alt) or []
+        top = candidates[0] if candidates and isinstance(candidates[0], dict) else {}
+        score = _safe_float(top.get("score"))
+        if score >= _CODING_SCORE_THRESHOLD and score > best_score:
+            best_score = score
+            best = top
+    return best
+
+
+def _build_review_item(
+    label_id: str,
+    idx: int,
+    entity_text: str,
+    entity_label: str,
+    coded: bool,
+    top: dict,
+    score: float | None,
+) -> dict[str, Any]:
+    """Assemble a coding review dict for the queue."""
+    concept_id = str(top.get("snomed_concept_id") or "")
+    return {
+        "review_id": f"coding:{label_id}:{idx}",
+        "label_id": label_id,
+        "entity_index": idx,
+        "entity_text": entity_text,
+        "entity_label": entity_label,
+        "coded": coded,
+        "snomed_concept_id": concept_id if coded else None,
+        "snomed_term": str(top.get("snomed_term") or "") if coded else None,
+        "score": score if coded else None,
+        "semantic_tag": str(top.get("semantic_tag") or "") if coded else None,
+    }
 
 
 def _check_terminology_coding(
     label_id: str,
     entities: list[dict[str, Any]],
+    ignore_texts: frozenset[str] = frozenset(),
 ) -> list[dict[str, Any]]:
     """Check each codeable entity against the terminology API.
 
-    Returns a list of coding review items for entities that are uncoded
-    or have low-confidence matches.
+    Returns coding review items for entities that are uncoded or low-confidence.
+    Entities matching a coding ignore rule are suppressed before queuing.
+    Near-miss entities (score >= _CODING_ALT_LOW) are tried against LLM
+    alternatives before being added to the queue.
     """
     codeable = [
         (i, e) for i, e in enumerate(entities)
@@ -956,47 +1058,32 @@ def _check_terminology_coding(
         return []
 
     terms = list({str(e.get("text", "")).strip() for _, e in codeable})
-    try:
-        with httpx.Client(timeout=10) as client:
-            response = client.post(
-                f"{_TERMINOLOGY_API_URL}/terminology/resolve",
-                json={"terms": terms},
-            )
-            response.raise_for_status()
-            payload = response.json() if response.content else {}
-    except Exception:
-        logger.debug("Coding check: terminology API call failed", exc_info=True)
-        return []
-
-    results_map = (payload or {}).get("results") or {}
+    results_map = _resolve_terms_via_api(terms)
     reviews: list[dict[str, Any]] = []
 
     for idx, ent in codeable:
         entity_text = str(ent.get("text", "")).strip()
         entity_label = str(ent.get("label", ""))
+        normalized = re.sub(r"\s+", " ", entity_text.lower())
+
+        if normalized in ignore_texts:
+            continue
+
         candidates = results_map.get(entity_text) or []
         top = candidates[0] if candidates and isinstance(candidates[0], dict) else {}
         concept_id = str(top.get("snomed_concept_id") or "")
-        snomed_term = str(top.get("snomed_term") or "")
         score = _safe_float(top.get("score"))
-        semantic_tag = str(top.get("semantic_tag") or "")
-
         coded = bool(concept_id)
+
         if coded and score >= _CODING_SCORE_THRESHOLD:
             continue
 
-        reviews.append({
-            "review_id": f"coding:{label_id}:{idx}",
-            "label_id": label_id,
-            "entity_index": idx,
-            "entity_text": entity_text,
-            "entity_label": entity_label,
-            "coded": coded,
-            "snomed_concept_id": concept_id if coded else None,
-            "snomed_term": snomed_term if coded else None,
-            "score": score if coded else None,
-            "semantic_tag": semantic_tag if coded else None,
-        })
+        if _CODING_ALT_ENABLED and coded and score is not None and score >= _CODING_ALT_LOW:
+            alt = _try_alt_coding(entity_text, entity_label)
+            if alt:
+                continue
+
+        reviews.append(_build_review_item(label_id, idx, entity_text, entity_label, coded, top, score))
 
     return reviews
 
@@ -1030,7 +1117,11 @@ class _LabelResult:
         self.error: bool = error
 
 
-def _process_label(label_row: dict, rules: list[PostProcessorRule]) -> _LabelResult:
+def _process_label(
+    label_row: dict,
+    rules: list[PostProcessorRule],
+    ignore_texts: frozenset[str] = frozenset(),
+) -> _LabelResult:
     """Call both LLM providers for one label and return a write-ready result.
 
     Runs inside the outer pool — spawns an inner 2-worker pool for the two
@@ -1204,7 +1295,7 @@ def _process_label(label_row: dict, rules: list[PostProcessorRule]) -> _LabelRes
         _link_observable_value_units(updated_entities)
         apply_context_detection(text, updated_entities)
 
-        result.coding_reviews = _check_terminology_coding(label_id, updated_entities)
+        result.coding_reviews = _check_terminology_coding(label_id, updated_entities, ignore_texts)
 
         total_entities = max(len(entities), 1)
         result.updated_entities = updated_entities
@@ -1246,6 +1337,12 @@ def run_verification() -> None:
     try:
         with fetch_client.session() as session:
             rules = parse_rules([dict(r) for r in session.run(GET_ACTIVE_POST_PROCESSOR_RULES)])
+            ignore_texts = frozenset(
+                str(r["entity_text"])
+                for r in session.run(GET_CODING_IGNORE_RULES)
+                if r.get("entity_text")
+            )
+            logger.info("Loaded %d coding ignore rules", len(ignore_texts))
             rows = session.run(GET_ALL_INCLUDED_LABELS_FOR_EXPORT)
             labels = [dict(r) for r in rows]
             if run_mode == "hitl_only":
@@ -1279,7 +1376,7 @@ def run_verification() -> None:
                 max_workers=_MAX_WORKERS,
                 thread_name_prefix="label-verify",
             ) as pool:
-                futures = {pool.submit(_process_label, row, rules): row for row in labels}
+                futures = {pool.submit(_process_label, row, rules, ignore_texts): row for row in labels}
                 last_progress_log_done = 0
 
                 for future in concurrent.futures.as_completed(futures):
