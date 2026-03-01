@@ -1,7 +1,7 @@
 name: CI - Build and Push Images
 
 on:
-  pull_request:
+  push:
     branches: [main]
 
 permissions:
