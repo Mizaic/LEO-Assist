@@ -44,12 +44,15 @@ from libs.cypher.training_label_queries import (
 from libs.cypher.coding_review_queries import (
     AUTO_RESOLVE_CODING_REVIEW,
     COUNT_CODING_REVIEW_PENDING,
+    DEACTIVATE_CODING_IGNORE_RULE,
+    GET_ALL_CODING_IGNORE_RULES,
     GET_CODING_REVIEW_QUEUE,
     GET_CODING_REVIEW_STATS,
     GET_PENDING_FOR_RECHECK,
     IGNORE_CODING_REVIEW,
     RESOLVE_CODING_REVIEW,
     UPDATE_CODING_REVIEW_FIELDS,
+    UPSERT_CODING_IGNORE_RULE,
 )
 from libs.cypher.label_verification_queries import (
     COUNT_VERIFICATION_HISTORY,
@@ -983,6 +986,7 @@ class ResolveCodingReviewRequest(BaseModel):
 
 class IgnoreCodingReviewRequest(BaseModel):
     reviewer: str = "operations_ui"
+    reason: str = ""
 
 
 @router.post("/coding-review/{review_id}/resolve")
@@ -1059,10 +1063,18 @@ def ignore_coding_review(
     body: IgnoreCodingReviewRequest,
     scope: CallerScope = Depends(get_caller_scope),
 ) -> dict[str, Any]:
-    """Mark a coding review as resolved by ignore rule."""
+    """Mark a coding review as ignored and create a persistent ignore rule.
+
+    Future verification runs will skip this term automatically.
+    """
     client = PatientGraphClient()
     try:
         with client.session() as session:
+            cr_row = session.run(
+                "MATCH (cr:CodingReview {review_id: $rid}) "
+                "RETURN cr.entity_text AS entity_text, cr.entity_label AS entity_label",
+                rid=review_id,
+            ).single()
             result = session.run(
                 IGNORE_CODING_REVIEW,
                 review_id=review_id,
@@ -1070,7 +1082,79 @@ def ignore_coding_review(
             ).single()
         if not result:
             raise HTTPException(status_code=404, detail="Coding review not found")
-        return {"review_id": result["review_id"], "status": "ignored"}
+    finally:
+        client.close()
+
+    if cr_row:
+        _write_coding_ignore_rule(
+            entity_text=str(cr_row["entity_text"] or ""),
+            entity_label=str(cr_row["entity_label"] or ""),
+            reason=body.reason,
+            created_by=body.reviewer,
+        )
+
+    return {"review_id": result["review_id"], "status": "ignored"}
+
+
+def _write_coding_ignore_rule(
+    entity_text: str,
+    entity_label: str,
+    reason: str,
+    created_by: str,
+) -> None:
+    """Upsert a CodingIgnoreRule so the term is suppressed in future runs."""
+    normalized = re.sub(r"\s+", " ", entity_text.strip().lower())
+    if not normalized:
+        return
+    rule_id = str(uuid.uuid4())
+    client = PatientGraphClient()
+    try:
+        with client.session() as session:
+            session.run(
+                UPSERT_CODING_IGNORE_RULE,
+                rule_id=rule_id,
+                entity_text=normalized,
+                entity_label=entity_label or None,
+                reason=reason or "ignored via coding review",
+                created_by=created_by,
+            )
+        logger.info("Coding ignore rule created: %r (label=%r)", normalized, entity_label)
+    except Exception:
+        logger.warning("Failed to write coding ignore rule for %r", normalized, exc_info=True)
+    finally:
+        client.close()
+
+
+@router.get("/coding-ignore-rules")
+def list_coding_ignore_rules(
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    """List all coding ignore rules (active and inactive)."""
+    client = PatientGraphClient()
+    try:
+        with client.session() as session:
+            rows = [dict(r) for r in session.run(GET_ALL_CODING_IGNORE_RULES)]
+        return {"rules": rows, "total": len(rows)}
+    finally:
+        client.close()
+
+
+@router.delete("/coding-ignore-rules/{rule_id}")
+def delete_coding_ignore_rule(
+    rule_id: str,
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    """Deactivate a coding ignore rule so the term can re-enter review."""
+    client = PatientGraphClient()
+    try:
+        with client.session() as session:
+            result = session.run(
+                DEACTIVATE_CODING_IGNORE_RULE,
+                rule_id=rule_id,
+            ).single()
+        if not result:
+            raise HTTPException(status_code=404, detail="Ignore rule not found")
+        return {"rule_id": result["rule_id"], "status": "deactivated"}
     finally:
         client.close()
 

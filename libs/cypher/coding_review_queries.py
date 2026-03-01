@@ -11,18 +11,19 @@ CodingReview nodes record:
 UPSERT_CODING_REVIEW = """
 MATCH (t:TrainingLabel {label_id: $label_id})
 MERGE (cr:CodingReview {review_id: $review_id})
-ON CREATE SET cr.created_at = datetime()
-SET cr.label_id        = $label_id,
-    cr.entity_index    = $entity_index,
-    cr.entity_text     = $entity_text,
-    cr.entity_label    = $entity_label,
-    cr.coded           = $coded,
+ON CREATE SET
+    cr.created_at = datetime(),
+    cr.resolved   = false
+SET cr.label_id          = $label_id,
+    cr.entity_index      = $entity_index,
+    cr.entity_text       = $entity_text,
+    cr.entity_label      = $entity_label,
+    cr.coded             = $coded,
     cr.snomed_concept_id = $snomed_concept_id,
-    cr.snomed_term     = $snomed_term,
-    cr.score           = $score,
-    cr.semantic_tag    = $semantic_tag,
-    cr.resolved        = false,
-    cr.updated_at      = datetime()
+    cr.snomed_term       = $snomed_term,
+    cr.score             = $score,
+    cr.semantic_tag      = $semantic_tag,
+    cr.updated_at        = datetime()
 MERGE (cr)-[:REVIEWS_CODING]->(t)
 RETURN cr.review_id AS review_id
 """
@@ -128,4 +129,55 @@ SET cr.resolved            = true,
     cr.resolved_at         = datetime(),
     cr.updated_at          = datetime()
 RETURN cr.review_id AS review_id
+"""
+
+# ---------------------------------------------------------------------------
+# CodingIgnoreRule -- persistent suppression rules for the coding review queue.
+# When a term is ignored via the review UI, a CodingIgnoreRule node is created
+# so future verification runs skip that term without re-queuing it.
+# ---------------------------------------------------------------------------
+
+UPSERT_CODING_IGNORE_RULE = """
+MERGE (r:CodingIgnoreRule {entity_text: $entity_text})
+ON CREATE SET r.rule_id = $rule_id, r.created_at = datetime()
+SET r.entity_label = $entity_label,
+    r.reason       = $reason,
+    r.created_by   = coalesce(r.created_by, $created_by),
+    r.active       = true,
+    r.updated_at   = datetime()
+RETURN r.rule_id AS rule_id, r.entity_text AS entity_text
+"""
+
+GET_CODING_IGNORE_RULES = """
+MATCH (r:CodingIgnoreRule)
+WHERE coalesce(r.active, true) = true
+RETURN
+    r.rule_id      AS rule_id,
+    r.entity_text  AS entity_text,
+    r.entity_label AS entity_label,
+    r.reason       AS reason,
+    r.created_by   AS created_by,
+    toString(r.created_at) AS created_at
+ORDER BY r.updated_at DESC
+"""
+
+GET_ALL_CODING_IGNORE_RULES = """
+MATCH (r:CodingIgnoreRule)
+RETURN
+    r.rule_id               AS rule_id,
+    coalesce(r.active, true) AS active,
+    r.entity_text           AS entity_text,
+    r.entity_label          AS entity_label,
+    r.reason                AS reason,
+    r.created_by            AS created_by,
+    toString(r.created_at)  AS created_at,
+    toString(r.updated_at)  AS updated_at
+ORDER BY r.updated_at DESC
+"""
+
+DEACTIVATE_CODING_IGNORE_RULE = """
+MATCH (r:CodingIgnoreRule {rule_id: $rule_id})
+SET r.active     = false,
+    r.updated_at = datetime()
+RETURN r.rule_id AS rule_id
 """
