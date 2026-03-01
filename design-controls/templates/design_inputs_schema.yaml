@@ -1,0 +1,390 @@
+# ============================================================================
+# DESIGN INPUTS SCHEMA - IEC 62304 / FDA 21 CFR Part 820 Compliant
+# ============================================================================
+# This schema defines the structure for Design Inputs documentation used in
+# the Autonomous eQMS Platform design controls process.
+#
+# Regulatory References:
+# - IEC 62304:2006 Section 5.2 (Software Requirements Analysis)
+# - FDA 21 CFR Part 820.30(c) (Design Input)
+# - ISO 13485:2016 Section 7.3.3 (Design and Development Inputs)
+#
+# Version: 1.0
+# Created: 2025-11-09
+# Owner: Quality & Engineering
+# ============================================================================
+
+meta:
+  schema_version: "1.0"
+  schema_name: "Design Inputs Schema"
+  purpose: "Define machine-readable structure for Design Inputs documentation"
+  intended_use: "All design_inputs.yaml files in design controls"
+  regulatory_compliance:
+    - "IEC 62304:2006 - Medical Device Software Lifecycle"
+    - "FDA 21 CFR Part 820.30 - Design Controls"
+    - "ISO 13485:2016 - Medical Device Quality Management"
+  change_history:
+    - version: "1.0"
+      date: "2025-11-09"
+      change: "Initial schema creation"
+      author: "Quality Engineering"
+
+# ============================================================================
+# SCHEMA DEFINITION
+# ============================================================================
+
+schema:
+  design_input:
+    description: "A single design input representing a specific requirement"
+    required: true
+    fields:
+      
+      # --- IDENTIFICATION ---
+      id:
+        type: string
+        required: true
+        format: "DI-{PROJECT}-###"
+        description: "Unique design input identifier"
+        example: "DI-PLATFORM-001"
+        pattern: "^DI-[A-Z]+-\\d{3}[a-z]?$"
+        note: "Letter suffix (a, b, c) allowed for granular breakdowns"
+        
+      type:
+        type: enum
+        required: true
+        values: ["Functional", "Interface", "Performance", "Security", "Safety", "Regulatory", "Data", "Reliability", "Process"]
+        description: "Type of design input per IEC 62304 (Process added for workflow-related requirements)"
+        
+      # --- CONTENT ---
+      derived_from:
+        type: array
+        required: true
+        item_type: string
+        format: "UN-{PROJECT}-###"
+        min_items: 1
+        description: "User Need(s) that this design input addresses"
+        example: ["UN-PLATFORM-001"]
+        
+      requirement:
+        type: string
+        required: true
+        min_length: 20
+        max_length: 2000
+        description: "Precise, testable requirement statement (SHALL language)"
+        example: "The system SHALL provide an OutcomeTracker class that captures agent execution context and stores it in Neo4j"
+        format_guidance: "Use 'The system SHALL...' format for requirements"
+        
+      rationale:
+        type: string
+        required: true
+        min_length: 30
+        max_length: 2000
+        description: "Why this design input exists, design decisions explained"
+        
+      # --- MACHINE SPEC (for AI code generation) ---
+      machine_spec:
+        type: object
+        required: false
+        description: "Machine-readable specification for AI code generation"
+        fields:
+          agent_prompt:
+            type: string
+            required: true
+            description: "Detailed prompt for AI agent to generate code"
+            
+          acceptance_criteria:
+            type: array
+            required: true
+            item_type: object
+            description: "Criteria that generated code must meet"
+            fields:
+              type:
+                type: enum
+                required: true
+                values: ["test", "inspection", "analysis", "demonstration"]
+              spec:
+                type: string
+                required: true
+                
+          constraints:
+            type: array
+            required: false
+            item_type: object
+            description: "Constraints on implementation"
+            fields:
+              type:
+                type: enum
+                required: true
+                values: ["performance", "security", "safety", "code_quality", "regulatory"]
+              spec:
+                type: string
+                required: true
+                
+          dependencies:
+            type: array
+            required: false
+            item_type: string
+            format: "DI-{PROJECT}-###"
+            description: "Other Design Inputs this depends on"
+            
+          downstream_impacts:
+            type: array
+            required: false
+            item_type: string
+            description: "Components that depend on this DI"
+            
+          technical_details:
+            type: object
+            required: true
+            fields:
+              language:
+                type: string
+                required: true
+                example: "Python, TypeScript"
+              framework:
+                type: string
+                required: false
+                example: "FastAPI, React"
+              libraries:
+                type: array
+                required: false
+                item_type: string
+              file_structure:
+                type: array
+                required: false
+                item_type: string
+                description: "Expected file paths"
+              estimated_loc:
+                type: integer
+                required: false
+                description: "Estimated lines of code (for planning)"
+                
+      # --- VERIFICATION ---
+      verification:
+        type: object
+        required: true
+        description: "How this design input will be verified"
+        fields:
+          method:
+            type: enum
+            required: true
+            values: ["Test", "Testing", "Inspection", "Analysis", "Demonstration"]
+            description: "Primary verification method per IEC 62304 (Test/Testing accepted interchangeably)"
+            
+          phase:
+            type: enum
+            required: true
+            values: ["IQ", "OQ", "PQ"]
+            description: "Qualification phase"
+            definitions:
+              IQ: "Installation Qualification"
+              OQ: "Operational Qualification"
+              PQ: "Performance Qualification"
+              
+          acceptance:
+            type: string
+            required: false
+            max_length: 500
+            description: "Brief acceptance statement for verification"
+            
+          test_protocol:
+            type: string
+            required: false
+            format: "VT-{PROJECT}-###"
+            description: "Reference to verification test protocol (singular)"
+            example: "VT-PLATFORM-001"
+            
+          test_protocols:
+            type: array
+            required: false
+            item_type: string
+            description: "References to verification test protocols (plural, alternative to test_protocol)"
+            example: ["VT-PLATFORM-001", "VT-PLATFORM-002"]
+            
+      # --- SAFETY CLASSIFICATION ---
+      safety_class:
+        type: enum
+        required: true
+        values: ["A", "B", "C"]
+        description: "IEC 62304 software safety classification"
+        definitions:
+          A: "No injury or damage to health is possible"
+          B: "Non-serious injury is possible"
+          C: "Death or serious injury is possible"
+          
+      # --- RISK LINKS ---
+      risks:
+        type: array
+        required: false
+        item_type: string
+        format: "R-{PROJECT}-###"
+        description: "Risks that this design input addresses/mitigates"
+        example: ["R-PLATFORM-001"]
+        
+      # --- CATEGORIZATION ---
+      tags:
+        type: array
+        required: true
+        item_type: string
+        min_items: 1
+        description: "Tags for categorization"
+        example: ["meta-learning", "data-collection", "foundation", "granular"]
+
+# ============================================================================
+# VALIDATION RULES
+# ============================================================================
+
+validation_rules:
+  - rule: "id_format"
+    description: "ID must follow pattern DI-{PROJECT}-### with zero-padded number"
+    
+  - rule: "shall_language"
+    description: "Requirements must use 'SHALL' for mandatory, 'SHOULD' for recommended"
+    
+  - rule: "derived_from_exists"
+    description: "All User Needs in derived_from array must exist"
+    
+  - rule: "verification_method_appropriate"
+    description: "Verification method must be appropriate for requirement type"
+    
+  - rule: "safety_class_justified"
+    description: "Class C requires safety_impact = 'high' or 'critical'"
+    
+  - rule: "granularity"
+    description: "Design Input should represent one class/module (100-300 LOC recommended)"
+    
+  - rule: "acceptance_criteria_complete"
+    description: "Machine_spec must have at least one acceptance criterion"
+    
+  - rule: "traceability_complete"
+    description: "Must trace to at least one User Need"
+
+# ============================================================================
+# GRANULARITY PRINCIPLE
+# ============================================================================
+
+granularity:
+  principle: "Each Design Input = one class/module, 100-300 LOC max"
+  rationale: |
+    Steve Jobs: "Focus and simplicity"
+    Elon Musk: "The best part is no part - delete unnecessary complexity"
+    
+  guidance:
+    too_large: "If estimated_loc > 300, consider breaking into multiple DIs with letter suffixes (DI-XXX-###a, ###b, ###c)"
+    too_small: "If estimated_loc < 50, consider combining with related DIs"
+    just_right: "100-300 LOC, single responsibility, clear purpose"
+    
+  examples:
+    good:
+      - "DI-PLATFORM-001: OutcomeTracker (~200 LOC) - single responsibility"
+      - "DI-PLATFORM-017: CursorAPIClient (~200 LOC) - focused API wrapper"
+    bad:
+      - "DI-XXX: Complete Meta-Learning System (2000+ LOC)" # Too broad, break down
+      - "DI-XXX: Calculate sum function (10 LOC)" # Too granular, combine
+
+# ============================================================================
+# USAGE EXAMPLES
+# ============================================================================
+
+examples:
+  - example_name: "Functional Design Input"
+    file_reference: "design_inputs.yaml - DI-PLATFORM-001 (OutcomeTracker)"
+    
+  - example_name: "Performance Design Input"
+    file_reference: "design_inputs.yaml - DI-PLATFORM-010 (Cycle Time)"
+    
+  - example_name: "Safety Design Input"
+    file_reference: "design_inputs.yaml - DI-PLATFORM-016 (Class C Safety Routing)"
+    
+  - example_name: "Security Design Input"
+    file_reference: "design_inputs.yaml - DI-PLATFORM-036 (Tenant Isolation)"
+
+# ============================================================================
+# TEMPLATE
+# ============================================================================
+
+template: |
+  - id: DI-PROJECT-###
+    type: Functional
+    derived_from: [UN-PROJECT-###]
+    requirement: "The system SHALL [specific, testable requirement]"
+    rationale: "Why this design input exists and design decisions made"
+    
+    machine_spec:
+      agent_prompt: |
+        Implement [ClassName] class (~XXX LOC).
+        
+        SINGLE PURPOSE: [One-sentence purpose]
+        
+        REQUIREMENTS:
+        1. [Specific requirement]
+        2. [Specific requirement]
+        
+        METHODS:
+        - method_name(): [Purpose]
+        
+        CODE CLARITY:
+        - [Clarity guideline]
+      
+      acceptance_criteria:
+        - type: "test"
+          spec: "[Testable criterion]"
+        - type: "test"
+          spec: "[Performance criterion with target]"
+      
+      constraints:
+        - type: "performance"
+          spec: "[Performance constraint]"
+      
+      dependencies: [DI-PROJECT-###]
+      
+      downstream_impacts:
+        - "[Component that depends on this]"
+      
+      technical_details:
+        language: "Python"
+        framework: "Framework name"
+        libraries: ["lib1", "lib2"]
+        file_structure:
+          - "path/to/implementation.py"
+          - "path/to/test_implementation.py"
+        estimated_loc: 200
+    
+    verification:
+      method: Test
+      phase: OQ
+      acceptance: "[Brief verification acceptance statement]"
+      test_protocol: VT-PROJECT-###
+    
+    safety_class: "B"
+    risks: [R-PROJECT-###]
+    tags: ["category", "type", "granular"]
+
+# ============================================================================
+# CHANGE CONTROL
+# ============================================================================
+
+change_control:
+  design_input_changes:
+    minor_changes: "Clarifications, typos - peer review sufficient"
+    major_changes: "Requirement changes - QM approval + impact analysis required"
+    new_design_inputs: "Must trace to approved User Need"
+    
+  impact_analysis:
+    required_when: "Changes to requirement, verification method, or safety class"
+    analysis_includes:
+      - "Downstream DI impacts"
+      - "Risk analysis updates needed"
+      - "Verification test updates needed"
+      - "Code changes required"
+      
+  version_control:
+    approach: "Git-based version control for all design_inputs.yaml"
+    branching: "Feature branches for new DIs, PRs for review"
+    approval: "QM approval required before merge to main"
+
+
+
+
+
+

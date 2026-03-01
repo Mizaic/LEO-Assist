@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import Cookie, Depends, Header, HTTPException, Query
+from fastapi import Cookie, Depends, HTTPException
 
 from libs.auth.org_scope import CallerScope, resolve_caller_scope
 from libs.neo4j_client.client import PatientGraphClient
@@ -40,28 +40,27 @@ def get_user_email(session_data: dict = Depends(get_session_data)) -> str:
 
 
 def get_caller_scope_from_request(
-    x_user_email: Annotated[str | None, Header(alias="X-User-Email")] = None,
-    email: Annotated[str | None, Query()] = None,
-    leo_session: Annotated[str | None, Cookie(alias=COOKIE_NAME)] = None,
+    session_data: dict = Depends(get_session_data),
 ) -> CallerScope:
-    """Resolve caller scope from header/query, with session-cookie fallback.
+    """Resolve caller org scope from the authenticated session cookie only.
 
-    This keeps org scoping working for direct UI rewrites (e.g. /api/training/*)
-    that do not pass X-User-Email but do include the auth session cookie.
+    GAP-001: X-User-Email header and ?email= query param removed.
+    Caller identity is taken solely from the server-side session to prevent
+    header spoofing.
     """
-    caller_email = (x_user_email or email or "").strip().lower()
-    if not caller_email and leo_session:
-        session_data = load_session(leo_session) or {}
-        caller_email = (session_data.get("email") or "").strip().lower()
-
+    caller_email = (session_data.get("email") or "").strip().lower()
     if not caller_email:
-        raise HTTPException(
-            status_code=401,
-            detail="Caller identity required: set X-User-Email header or ?email= param",
-        )
+        raise HTTPException(status_code=401, detail="No user email in session")
 
     client = PatientGraphClient()
     try:
         return resolve_caller_scope(client, caller_email)
     finally:
         client.close()
+
+
+def require_admin(scope: CallerScope = Depends(get_caller_scope_from_request)) -> CallerScope:
+    """Dependency that raises 403 unless the caller is a platform admin (GAP-003)."""
+    if not scope.is_admin:
+        raise HTTPException(status_code=403, detail="Platform admin access required")
+    return scope

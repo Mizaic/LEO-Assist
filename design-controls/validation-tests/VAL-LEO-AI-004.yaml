@@ -1,0 +1,156 @@
+# -- VAL-LEO-AI-004 -- Dashboard and Analytics Validation
+# IEC 62304 Validation Test Protocol
+# Schema: design-controls/templates/validation_test_schema.yaml
+
+- id: "VAL-LEO-AI-004"
+  version: "1.0"
+  status: "draft"
+
+  traceability:
+    user_needs:
+      - "UN-LEO-AI-019"
+      - "UN-LEO-AI-008"
+    design_inputs:
+      - "DI-LEO-AI-027"
+      - "DI-LEO-AI-028"
+    risks: []
+    verification_tests:
+      - "VT-LEO-AI-017"
+
+  metadata:
+    title: "Dashboard and Analytics Validation"
+    validation_phase: "alpha"
+    test_type: "usability"
+    automation_level: "manual"
+    participants:
+      user_type: "internal_qa"
+      count: 5
+      selection_criteria: "QA staff with experience in clinical quality improvement dashboards and data interpretation"
+    created_by: "Quality Engineer"
+    created_date: "2026-03-01"
+
+  test_environment:
+    environment_name: "staging"
+    prerequisites:
+      - "All linked verification tests (VT-LEO-AI-017) have passed"
+      - "Staging environment deployed with analytics dashboard UI"
+      - "Dashboard populated with realistic audit data from at least 3 completed pipeline runs"
+      - "Multiple clinical pathways represented in the data (>= 3 pathway types)"
+      - "Participants briefed on dashboard layout and available filters"
+    infrastructure: "Azure Container Apps staging environment with analytics API, dashboard UI, and Redis cache"
+
+  user_scenarios:
+    - scenario_id: "SCENARIO-001"
+      scenario_name: "Quality improvement lead navigates dashboard to identify pathway performance issues"
+      user_role: "Quality Improvement Lead"
+      user_goal: "Use the dashboard to identify which clinical pathways have performance issues and need attention"
+      preconditions:
+        - "Dashboard loaded with data covering >= 3 clinical pathways"
+        - "At least one pathway has metrics below target thresholds"
+        - "User is logged in with quality-lead role"
+      steps:
+        - step_number: 1
+          action: "Open the analytics dashboard and view the pathway performance overview"
+          expected_result: "Dashboard loads and displays aggregate metrics for all pathways"
+          success_criteria: "Dashboard renders within 3 seconds; all pathway cards are visible"
+        - step_number: 2
+          action: "Identify which pathways are performing below target by reviewing metric indicators"
+          expected_result: "Pathways below target are visually highlighted (e.g. colour-coded status)"
+          success_criteria: "User correctly identifies the underperforming pathway(s) within 30 seconds"
+        - step_number: 3
+          action: "Apply a date range filter to view performance for the last quarter"
+          expected_result: "Dashboard updates to show metrics for the selected period only"
+          success_criteria: "Filter applies within 2 seconds; displayed data matches the selected date range"
+        - step_number: 4
+          action: "Sort pathways by a specific metric (e.g. referral timeliness) to rank performance"
+          expected_result: "Pathways are reordered by the selected metric"
+          success_criteria: "Sort completes within 1 second; ordering is correct"
+      postconditions:
+        - "User has identified underperforming pathways and can articulate which metrics are below target"
+      success_metrics:
+        - metric: "Task completion rate"
+          target: ">= 90% of participants identify all underperforming pathways"
+          measurement_method: "Observer records whether participant correctly identifies target pathways"
+        - metric: "Time to identify issues"
+          target: "<= 2 minutes from dashboard load to issue identification"
+          measurement_method: "Observer records elapsed time from first page load to correct identification"
+        - metric: "Dashboard load time"
+          target: "<= 3 seconds"
+          measurement_method: "Browser performance timing from navigation start to content paint"
+      evidence_to_capture:
+        - "Screen recordings of participant dashboard navigation"
+        - "Time-on-task measurements per participant"
+        - "Observer notes on navigation patterns and difficulties"
+
+    - scenario_id: "SCENARIO-002"
+      scenario_name: "Quality improvement lead drills down from aggregate metric to individual patient episodes"
+      user_role: "Quality Improvement Lead"
+      user_goal: "Navigate from a high-level pathway metric down to the individual patient episodes that contribute to that metric"
+      preconditions:
+        - "Dashboard shows aggregate metrics for at least one pathway"
+        - "Pathway data includes >= 20 patient episodes"
+        - "User has already identified an underperforming metric (from SCENARIO-001 or equivalent)"
+      steps:
+        - step_number: 1
+          action: "Click on an underperforming metric to view its breakdown"
+          expected_result: "Metric detail view shows contributing factors and trend over time"
+          success_criteria: "Detail view loads within 3 seconds; trend chart is visible"
+        - step_number: 2
+          action: "Drill down to the list of patient episodes contributing to the metric"
+          expected_result: "Episode list displays with patient identifiers (pseudonymised), key dates, and individual scores"
+          success_criteria: "Episode list loads within 3 seconds; list is sortable and filterable"
+        - step_number: 3
+          action: "Select an individual patient episode to view its full timeline"
+          expected_result: "Patient episode view shows encounters, codes, anchors, and stage-by-stage outcomes"
+          success_criteria: "Episode detail loads within 3 seconds; all pipeline stage outputs are visible"
+        - step_number: 4
+          action: "Navigate back to the aggregate view to confirm the drill-down path"
+          expected_result: "User returns to the pathway overview without losing filter context"
+          success_criteria: "Navigation preserves previously applied filters and selections"
+      postconditions:
+        - "User has traced a metric from aggregate level to individual patient episode and back"
+      success_metrics:
+        - metric: "Drill-down task completion rate"
+          target: ">= 90% of participants complete the full drill-down path"
+          measurement_method: "Observer records whether participant reaches the episode detail view"
+        - metric: "Navigation consistency"
+          target: "100% of participants retain filter state on back-navigation"
+          measurement_method: "Observer verifies filter state after back-navigation"
+        - metric: "Page load times during drill-down"
+          target: "<= 3 seconds per page transition"
+          measurement_method: "Browser performance timing for each navigation step"
+      evidence_to_capture:
+        - "Screen recordings of drill-down navigation"
+        - "Page load time measurements per transition"
+        - "Observer notes on navigation clarity and any confusion points"
+
+  acceptance_criteria:
+    - criterion: "Task completion rate"
+      target: ">= 90% of participants complete all assigned tasks"
+      measurement_method: "Observer records task completion per participant across both scenarios"
+    - criterion: "Dashboard load time"
+      target: "<= 3 seconds for initial load and all drill-down transitions"
+      measurement_method: "Browser performance timing measurements"
+    - criterion: "User satisfaction"
+      target: ">= 4 out of 5 average satisfaction rating"
+      measurement_method: "Post-session usability survey (5-point Likert scale)"
+
+  user_feedback:
+    feedback_methods: ["survey", "observation"]
+    usability_metrics:
+      task_completion_target: ">=90%"
+      time_on_task_target: "Issue identification within 2 minutes; full drill-down within 3 minutes"
+
+  evidence_bundle:
+    bundle_id: "VAL-004-EXEC-ALPHA-placeholder"
+    blob_path: "/evidence-bundles/LEO-AI/validation/VAL-LEO-AI-004/"
+    artifacts:
+      - type: "usability_test_recording"
+        description: "Screen recordings of participant dashboard sessions"
+      - type: "task_completion_data"
+        description: "Per-participant task completion status and time-on-task measurements"
+      - type: "user_satisfaction_survey"
+        description: "Post-session usability survey responses (5-point Likert scale)"
+    immutability: true
+
+  execution_history: []

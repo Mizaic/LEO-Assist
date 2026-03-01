@@ -1,0 +1,96 @@
+# -- UN-LEO-AI-019 -- Dashboard and Analytics
+# IEC 62304 / ISO 13485 User Need
+# Schema: design-controls/templates/user_needs_schema.yaml
+
+- id: "UN-LEO-AI-019"
+  title: "System provides visual dashboards showing population-level pathway metrics and trends"
+  description: |
+    Quality improvement leads need visual dashboards showing population-level
+    pathway metrics, organisation benchmarks, and improvement trends over time.
+    Dashboards must display waiting time performance against national targets
+    (FDS, DTT, RTT), pathway volume and status breakdowns, alert summaries,
+    screening uptake rates, and IMD (Index of Multiple Deprivation) analysis.
+    Dashboards support drill-down from organisation level to individual patient
+    episodes.
+
+  stakeholder:
+    type: "end_user"
+    role: "Quality Improvement Lead"
+    organization: "NHS Primary Care Organisation"
+
+  priority: "MUST"
+
+  rationale: |
+    Audit data is only valuable when it is accessible and actionable. Quality
+    improvement leads need at-a-glance views of performance to identify areas
+    for improvement, track progress, and report to commissioners. Without
+    dashboards, teams must export data and build their own reports, which is
+    time-consuming and inconsistent across organisations.
+
+  benefit: "At-a-glance performance visibility with drill-down capability, replacing manual report building"
+
+  use_case: |
+    1. Quality improvement lead logs into the platform and navigates to the
+       dashboard view.
+    2. Lead selects an audit programme and a reporting period using
+       configurable date range controls.
+    3. System displays summary cards showing waiting time performance against
+       FDS 28-day, DTT 31-day, and RTT 62-day national targets.
+    4. Lead clicks on a pathway volume chart to view status breakdowns
+       (open, breached, completed within target).
+    5. Lead drills down from the organisation-level view to a specific
+       Primary Care Network (PCN) to compare practice-level performance.
+    6. Lead selects an individual patient episode from the drill-down list
+       to view its full pathway timeline.
+    7. Lead exports a PDF report summarising organisation performance for
+       a commissioner meeting.
+
+  current_solution: "Manual export of audit data to spreadsheets followed by custom chart building in Excel or Power BI"
+
+  pain_points:
+    - "Manual report building takes hours and must be repeated for each reporting period"
+    - "No standardised dashboard layout across organisations leads to inconsistent reporting"
+    - "Drill-down from aggregate metrics to individual episodes requires switching between multiple tools"
+    - "IMD deprivation analysis requires joining audit data with external datasets manually"
+
+  acceptance_criteria:
+    - "System shall display pathway metrics dashboards with configurable date ranges"
+    - "System shall show performance against national waiting time targets"
+    - "System shall support benchmarking across organisations, PCNs, and ICBs"
+    - "System shall enable drill-down from aggregate metrics to individual episodes"
+    - "System shall display IMD deprivation analysis"
+    - "Dashboard page load time shall be <=3 seconds"
+
+  success_metrics:
+    - metric: "Dashboard load time"
+      target: "<=3 seconds"
+      baseline: "Manual report generation: 2-4 hours"
+    - metric: "User satisfaction"
+      target: ">=4 out of 5"
+      baseline: "No current dashboard tooling"
+    - metric: "Report generation time"
+      target: "<=10 seconds"
+      baseline: "Manual Excel report: 1-2 hours"
+
+  regulatory_impact: "low"
+  safety_impact: "none"
+
+  derived_from:
+    - "Intended Use Statement DC-IU-001 Section 2.5"
+    - "NHS NCDA programme reporting requirements"
+    - "Commissioner performance reporting requirements"
+
+  related_standards:
+    - "IEC 62304:2006"
+    - "ISO 13485:2016"
+    - "IEC 62366-1:2015"
+
+  metadata:
+    created_by: "Quality Engineering"
+    created_date: "2026-03-01"
+    status: "draft"
+
+  design_inputs: []
+  validation_tests: []
+
+  tags: ["dashboard", "analytics", "ui", "reporting"]

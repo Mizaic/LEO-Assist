@@ -1,0 +1,79 @@
+# -- DI-LEO-AI-019 -- Job Handler (Message Bus Consumer)
+# IEC 62304 / ISO 13485 Design Input
+# Schema: design-controls/templates/design_inputs_schema.yaml
+
+- id: "DI-LEO-AI-019"
+  type: "Functional"
+  derived_from: ["UN-LEO-AI-012"]
+  requirement: "The system SHALL consume pipeline job messages from the message bus (Azure Service Bus / Redis Streams), dispatch them to the appropriate worker service, track job state, and publish progress events"
+  rationale: "Asynchronous job processing via message bus enables horizontal scaling of compute-intensive pipeline steps. Job state tracking enables restart on failure and progress monitoring."
+
+  machine_spec:
+    agent_prompt: |
+      Implement job handler and progress publisher (~200 LOC).
+
+      SINGLE PURPOSE: Consume pipeline job messages from the message bus,
+      dispatch to workers, track job state, and publish progress events.
+
+      REQUIREMENTS:
+      1. Consume job messages from Azure Service Bus or Redis Streams
+      2. Dispatch jobs to the appropriate worker service based on job type
+      3. Track job state transitions (queued, running, completed, failed)
+      4. Publish progress events for monitoring and UI updates
+      5. Support job restart on failure with idempotent processing
+      6. Handle message acknowledgement and dead-letter routing
+
+      METHODS:
+      - consume_jobs(): Listen for and process incoming job messages
+      - dispatch_job(job): Route job to correct worker handler
+      - update_state(job_id, state): Persist job state transition
+      - publish_progress(job_id, progress): Emit progress event
+      - restart_failed(job_id): Re-enqueue a failed job
+
+      CODE CLARITY:
+      - Message bus adapter abstracted behind interface for testability
+      - Job state machine is explicit with valid transitions defined
+      - All state transitions logged for audit trail
+
+    acceptance_criteria:
+      - type: "test"
+        spec: "Jobs consumed from message bus and dispatched to correct worker"
+      - type: "test"
+        spec: "Job state tracked through all lifecycle transitions"
+      - type: "test"
+        spec: "Failed jobs can be restarted without duplicate processing"
+      - type: "test"
+        spec: "Progress events published for each state transition"
+
+    constraints:
+      - type: "performance"
+        spec: "Job dispatch latency <= 500ms from message receipt"
+      - type: "safety"
+        spec: "No job silently dropped -- all failures routed to dead-letter queue"
+
+    dependencies: []
+
+    downstream_impacts:
+      - "services/coding_worker -- consumes coding pipeline jobs"
+      - "services/analysis_worker -- consumes analysis pipeline jobs"
+      - "services/ui -- displays job progress to users"
+
+    technical_details:
+      language: "Python"
+      libraries: ["redis", "azure-servicebus"]
+      file_structure:
+        - "services/coding_worker/app/services/job_handler.py"
+        - "services/analysis_worker/app/services/job_handler.py"
+        - "services/coding_worker/app/services/progress_publisher.py"
+        - "libs/message_bus/azure_adapter.py"
+      estimated_loc: 200
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: "Jobs consumed, dispatched, and tracked correctly; failed jobs can be restarted"
+    test_protocol: "VT-LEO-AI-019"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-015"]
+  tags: ["message-bus", "worker", "async", "pipeline"]

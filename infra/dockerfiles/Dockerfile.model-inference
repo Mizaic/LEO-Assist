@@ -1,0 +1,36 @@
+# -- NER Model Inference Service -------------------------------------------
+# No model files in the image. The model is downloaded from Azure Blob
+# Storage at startup based on CODING_MODEL_VERSION. To update the model:
+#   1. Train and upload: python scripts/upload_model.py --version 1.3
+#   2. Update CODING_MODEL_VERSION env var on the running container (or /reload)
+#   3. No image rebuild required.
+#
+# libgomp1 required at runtime by spaCy/thinc (OpenMP). Cannot use distroless.
+
+# -- Build stage: compile C extensions, install deps into /venv ------------
+FROM python:3.11-slim-bookworm AS build
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential gcc libgomp1 && \
+    rm -rf /var/lib/apt/lists/*
+RUN python -m venv /venv && /venv/bin/pip install --upgrade pip setuptools wheel
+
+FROM build AS build-venv
+COPY services/model_inference/requirements.txt /requirements.txt
+RUN /venv/bin/pip install --disable-pip-version-check --no-cache-dir -r /requirements.txt
+
+# -- Runtime: slim with only libgomp, no build tools, non-root user --------
+FROM python:3.11-slim-bookworm
+RUN apt-get update && apt-get install -y --no-install-recommends libgomp1 && \
+    rm -rf /var/lib/apt/lists/* && \
+    useradd --no-create-home --shell /sbin/nologin appuser && \
+    mkdir -p /var/model_cache && chown appuser /var/model_cache
+COPY --from=build-venv /venv /venv
+COPY libs/ /app/libs/
+COPY services/model_inference/ /app/services/model_inference/
+WORKDIR /app
+ENV PYTHONPATH=/app
+ENV MODEL_STORE_CACHE_DIR=/var/model_cache
+USER appuser
+EXPOSE 8004
+ENTRYPOINT ["/venv/bin/uvicorn", "services.model_inference.app.main:app", \
+            "--host", "0.0.0.0", "--port", "8004"]

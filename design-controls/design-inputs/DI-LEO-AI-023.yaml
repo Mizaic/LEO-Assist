@@ -1,0 +1,77 @@
+# -- DI-LEO-AI-023 -- Dual Neo4j Database Architecture
+# IEC 62304 / ISO 13485 Design Input
+# Schema: design-controls/templates/design_inputs_schema.yaml
+
+- id: "DI-LEO-AI-023"
+  type: "Data"
+  derived_from: ["UN-LEO-AI-015"]
+  requirement: "The system SHALL maintain physically separate Neo4j database instances for patient clinical data (Patient graph) and terminology/coding reference data (Coding graph), with independent connection configurations and no cross-database query capability at the application layer"
+  rationale: "Physical separation of patient data and terminology data reduces data breach blast radius, simplifies access control, and enables terminology data sharing without patient data exposure. This is the primary data governance control."
+
+  machine_spec:
+    agent_prompt: |
+      Implement dual Neo4j database client (~150 LOC).
+
+      SINGLE PURPOSE: Provide separate Neo4j connection managers for
+      Patient graph and Coding graph with no cross-database queries.
+
+      REQUIREMENTS:
+      1. Maintain independent connection pools for Patient and Coding graphs
+      2. Configure each connection via separate environment variables
+      3. Prevent cross-database queries at the application layer
+      4. Provide typed client interfaces (PatientGraphClient, CodingGraphClient)
+      5. Support connection health checks for each database independently
+      6. Log all database connections with graph identifier for audit
+
+      METHODS:
+      - get_patient_client(): Return Patient graph connection
+      - get_coding_client(): Return Coding graph connection
+      - health_check(graph): Verify database connectivity
+      - close_all(): Gracefully close all connections
+
+      CODE CLARITY:
+      - Each graph client is a separate class with its own config
+      - No shared session or transaction across graphs
+      - Connection parameters loaded from environment, not hard-coded
+
+    acceptance_criteria:
+      - type: "test"
+        spec: "Patient data stored only in Patient graph"
+      - type: "test"
+        spec: "Coding graph contains no patient-identifiable data"
+      - type: "test"
+        spec: "No cross-database queries possible at application layer"
+      - type: "test"
+        spec: "Independent health checks for each database"
+
+    constraints:
+      - type: "security"
+        spec: "Patient graph credentials separate from Coding graph credentials"
+      - type: "safety"
+        spec: "No patient data leaks into terminology graph"
+
+    dependencies: []
+
+    downstream_impacts:
+      - "services/api -- uses Patient graph for clinical data"
+      - "services/terminology_api -- uses Coding graph for terminology"
+      - "services/coding_worker -- reads Coding graph, writes Patient graph"
+
+    technical_details:
+      language: "Python"
+      framework: "FastAPI"
+      libraries: ["neo4j"]
+      file_structure:
+        - "libs/neo4j_client/client.py"
+        - "services/api/app/db/neo4j_client.py"
+      estimated_loc: 150
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: "Patient data stored only in Patient graph; Coding graph contains no patient-identifiable data; no cross-database queries possible"
+    test_protocol: "VT-LEO-AI-023"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-008", "R-LEO-AI-009"]
+  tags: ["data-governance", "neo4j", "database-separation", "security"]

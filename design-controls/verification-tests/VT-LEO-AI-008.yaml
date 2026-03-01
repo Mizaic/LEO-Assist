@@ -1,0 +1,115 @@
+# -- VT-LEO-AI-008 -- Quality and Metrics Verification
+# IEC 62304 Verification Test Protocol
+# Schema: design-controls/templates/verification_test_schema.yaml
+
+- id: "VT-LEO-AI-008"
+  version: "1.0"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-012", "DI-LEO-AI-013"]
+    risks: ["R-LEO-AI-007"]
+    user_needs: ["UN-LEO-AI-007", "UN-LEO-AI-008"]
+
+  metadata:
+    title: "Quality and Metrics Verification"
+    description: >
+      Verifies that the quality analysis module correctly detects quality
+      issues in clinical episodes, computes duration calculations accurately,
+      and flags target breaches. All calculations are deterministic so 100%
+      pass rate is expected.
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    test_file_path: "tests/unit/test_quality_metrics.py"
+    created_by: "Quality Engineer"
+    created_date: "2026-03-01"
+
+  test_environment:
+    environment_type: "ci_cd"
+    prerequisites:
+      - "Python 3.12 installed with project dependencies"
+      - "Quality rule definitions loaded"
+      - "Target threshold configuration accessible"
+    test_data:
+      data_type: "fixture"
+      cleanup_required: true
+
+  test_cases:
+    - case_id: "VT-008-TC-001"
+      case_name: "Quality issues detected in test episodes"
+      priority: "critical"
+      preconditions:
+        - "Quality rules configured (e.g. missing diagnosis code, incomplete referral)"
+        - "Test episodes with known quality issues available"
+      test_steps:
+        - step_number: 1
+          action: "Submit an episode with a missing diagnosis code"
+          expected_result: "Quality issue flagged with type='missing_diagnosis'"
+          verification_method: "Assert issue list contains the expected quality issue type"
+        - step_number: 2
+          action: "Submit an episode with no quality issues"
+          expected_result: "No quality issues flagged"
+          verification_method: "Assert issue list is empty"
+        - step_number: 3
+          action: "Submit an episode with multiple quality issues"
+          expected_result: "All quality issues are flagged"
+          verification_method: "Assert issue list contains all expected issue types"
+      acceptance_criteria:
+        - "All known quality issues are detected"
+        - "No false-positive quality issues raised"
+
+    - case_id: "VT-008-TC-002"
+      case_name: "Duration calculations correct"
+      priority: "critical"
+      preconditions:
+        - "Test episodes with known milestone dates available"
+      test_steps:
+        - step_number: 1
+          action: "Compute referral-to-diagnosis duration for an episode with known dates"
+          expected_result: "Duration matches the expected value (in days)"
+          verification_method: "Assert computed duration == expected duration"
+        - step_number: 2
+          action: "Compute end-to-end episode duration for multiple episodes"
+          expected_result: "All durations match the expected values"
+          verification_method: "Assert each computed duration matches the expected value within zero tolerance"
+      acceptance_criteria:
+        - "All duration calculations are exact (zero tolerance)"
+        - "Edge cases (same-day events, weekends) handled correctly"
+
+    - case_id: "VT-008-TC-003"
+      case_name: "Target breaches flagged correctly"
+      priority: "critical"
+      preconditions:
+        - "Target thresholds configured (e.g. referral-to-treatment <= 62 days)"
+      test_steps:
+        - step_number: 1
+          action: "Submit an episode where referral-to-treatment is 70 days (exceeds 62-day target)"
+          expected_result: "Target breach flagged"
+          verification_method: "Assert breach alert is generated with breach_days=8"
+        - step_number: 2
+          action: "Submit an episode where referral-to-treatment is 55 days (within target)"
+          expected_result: "No target breach flagged"
+          verification_method: "Assert no breach alert for this episode"
+        - step_number: 3
+          action: "Submit an episode exactly on the target boundary (62 days)"
+          expected_result: "Boundary case handled according to configuration (inclusive or exclusive)"
+          verification_method: "Assert result matches the configured boundary rule"
+      acceptance_criteria:
+        - "All breaches are detected"
+        - "No false breach alerts for within-target episodes"
+        - "Boundary cases handled consistently"
+
+  pass_fail_criteria:
+    pass_threshold: "100% all (deterministic calculations)"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["test_report", "code_coverage"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-008/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history: []

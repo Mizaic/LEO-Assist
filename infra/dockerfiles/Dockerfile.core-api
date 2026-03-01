@@ -1,14 +1,26 @@
-FROM python:3.12-slim
+# -- Build stage: compile C extensions, install deps into /venv ------------
+# libgomp1 required at runtime by spaCy/thinc (OpenMP). Cannot use distroless.
+FROM python:3.11-slim-bookworm AS build
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential gcc libgomp1 && \
+    rm -rf /var/lib/apt/lists/*
+RUN python -m venv /venv && /venv/bin/pip install --upgrade pip setuptools wheel
 
+FROM build AS build-venv
+COPY services/api/requirements.txt /requirements.txt
+RUN /venv/bin/pip install --disable-pip-version-check --no-cache-dir -r /requirements.txt
+
+# -- Runtime: slim with only libgomp, no build tools, non-root user --------
+FROM python:3.11-slim-bookworm
+RUN apt-get update && apt-get install -y --no-install-recommends libgomp1 && \
+    rm -rf /var/lib/apt/lists/* && \
+    useradd --no-create-home --shell /sbin/nologin appuser
+COPY --from=build-venv /venv /venv
+COPY libs/ /app/libs/
+COPY services/api/ /app/services/api/
 WORKDIR /app
-
-COPY libs/ libs/
-COPY services/api/ services/api/
-
-RUN pip install --no-cache-dir -r services/api/requirements.txt \
-    && pip install python-jose[cryptography] requests redis azure-servicebus
-
 ENV PYTHONPATH=/app
+USER appuser
 EXPOSE 8000
-
-CMD ["uvicorn", "services.api.app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+ENTRYPOINT ["/venv/bin/uvicorn", "services.api.app.main:app", \
+            "--host", "0.0.0.0", "--port", "8000"]

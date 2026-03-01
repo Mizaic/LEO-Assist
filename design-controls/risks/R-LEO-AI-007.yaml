@@ -1,0 +1,61 @@
+# -- R-LEO-AI-007 -- Systematic Domain Miscoding
+# ISO 14971 / IEC 62304 Risk
+# Schema: design-controls/templates/risks_schema.yaml
+
+- id: "R-LEO-AI-007"
+  title: "Entire clinical domain consistently miscoded, masking pathway failures"
+
+  hazard:
+    description: "NLP pipeline or terminology configuration causes an entire clinical domain to be systematically miscoded"
+    category: "software_defect"
+
+  hazardous_situation: "All encounters in a clinical domain (e.g. all referrals, all treatments) are consistently miscoded in the same way, making the error difficult to detect through individual case review"
+
+  harm:
+    description: "Systematic miscoding could mask genuine pathway failures, leading to incorrect audit conclusions and misdirected quality improvement at population level"
+    severity: "serious"
+
+  initial_risk_estimate:
+    severity: 3
+    probability: 2
+    detectability: 3
+    rpn: 18
+    risk_level: "medium"
+
+  mitigation_measures:
+    - control_type: "protective_measure"
+      description: "Gold-standard regression testing across all clinical domains detects systematic accuracy changes"
+      implemented_by: []
+      verified_by: []
+      effectiveness: "highly_effective"
+    - control_type: "protective_measure"
+      description: "Cross-domain quality sampling compares coding patterns across domains"
+      implemented_by: []
+      verified_by: []
+      effectiveness: "effective"
+    - control_type: "protective_measure"
+      description: "Comparison against external audit data sources for cross-validation"
+      implemented_by: []
+      verified_by: []
+      effectiveness: "effective"
+
+  residual_risk_estimate:
+    severity: 3
+    probability: 1
+    detectability: 2
+    rpn: 6
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: "Gold-standard regression testing with per-domain accuracy metrics detects systematic miscoding before deployment. Cross-domain sampling and external data comparison provide independent verification. Probability of undetected systematic miscoding reduced to improbable."
+
+  monitoring:
+    monitoring_plan: "Per-domain accuracy monitoring and cross-validation"
+    metrics: ["Per-domain F1 scores", "Cross-domain coding pattern deviation", "External audit data concordance"]
+    review_frequency: "Monthly"
+
+  metadata:
+    identified_by: "Risk Management Team"
+    identified_date: "2026-03-01"
+    status: "analyzed"
+
+  tags: ["clinical-risk", "systematic-error", "domain-coding"]

@@ -1,0 +1,92 @@
+# -- UN-LEO-AI-008 -- Metrics Calculation
+# IEC 62304 / ISO 13485 User Need
+# Schema: design-controls/templates/user_needs_schema.yaml
+
+- id: "UN-LEO-AI-008"
+  title: "System calculates pathway durations against programme-defined waiting time targets"
+  description: |
+    Quality improvement leads need the system to calculate pathway
+    durations between milestones and compare them against programme-defined
+    targets such as the NHS Faster Diagnosis Standard (FDS) 28 days,
+    Decision-to-Treat (DTT) 31 days, and Referral-to-Treatment (RTT)
+    62 days. The system must identify breaches, calculate organisation-level
+    performance, and support benchmarking.
+
+  stakeholder:
+    type: "end_user"
+    role: "Quality Improvement Lead"
+    organization: "NHS Primary Care Organisation"
+
+  priority: "MUST"
+
+  rationale: |
+    Pathway duration metrics are the primary output of national clinical
+    audit programmes. Manual calculation from episode data is error-prone
+    and cannot handle the volume needed for population-level reporting.
+    Automated metrics enable real-time performance monitoring.
+
+  benefit: "Accurate, automated calculation of waiting time metrics across entire patient populations"
+
+  use_case: |
+    1. Quality improvement lead selects a validated patient cohort for
+       metrics calculation.
+    2. System reads programme-defined milestone pairs and target durations
+       from the programme configuration.
+    3. System calculates the duration between each milestone pair for
+       every episode in the cohort.
+    4. System compares each duration against the programme-defined target
+       and flags breaches.
+    5. System aggregates performance metrics at organisation, Primary Care
+       Network (PCN), and Integrated Care Board (ICB) level.
+    6. Quality improvement lead reviews organisation-level performance
+       dashboards showing breach rates and trends.
+    7. Lead exports metrics for submission to the national audit programme.
+
+  current_solution: "Manual spreadsheet calculation by audit coordinators using exported episode data"
+
+  pain_points:
+    - "Manual duration calculation is error-prone with complex date logic"
+    - "Aggregation across organisations requires merging multiple spreadsheets"
+    - "No real-time visibility into breach rates during the reporting period"
+    - "Target definitions change between programmes and require manual updates"
+
+  acceptance_criteria:
+    - "System shall calculate durations between configured milestone pairs"
+    - "System shall compare durations against programme-defined targets"
+    - "System shall flag target breaches"
+    - "System shall aggregate metrics at organisation, PCN, and ICB level"
+    - "System shall support configurable target definitions per programme"
+
+  success_metrics:
+    - metric: "Calculation accuracy"
+      target: "100% (deterministic calculation)"
+      baseline: "Manual spreadsheet: estimated 95-98%"
+    - metric: "Processing time per episode"
+      target: "<=1 second"
+      baseline: "Manual calculation: 5-10 minutes per episode"
+    - metric: "Aggregation time per organisation"
+      target: "<=30 seconds"
+      baseline: "Manual aggregation: 2-4 hours"
+
+  regulatory_impact: "medium"
+  safety_impact: "low"
+
+  derived_from:
+    - "Intended Use Statement DC-IU-001 Section 2.4"
+    - "NHS Faster Diagnosis Standard requirements"
+    - "NHS NCDA programme reporting requirements"
+
+  related_standards:
+    - "IEC 62304:2006"
+    - "ISO 13485:2016"
+    - "NHS Faster Diagnosis Standard"
+
+  metadata:
+    created_by: "Quality Engineering"
+    created_date: "2026-03-01"
+    status: "draft"
+
+  design_inputs: []
+  validation_tests: []
+
+  tags: ["metrics", "waiting-times", "core-capability", "pipeline", "nhs-targets"]

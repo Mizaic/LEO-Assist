@@ -1,0 +1,106 @@
+# -- VT-LEO-AI-001 -- Encounter Shortlisting Verification
+# IEC 62304 Verification Test Protocol
+# Schema: design-controls/templates/verification_test_schema.yaml
+
+- id: "VT-LEO-AI-001"
+  version: "1.0"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-001", "DI-LEO-AI-002"]
+    risks: ["R-LEO-AI-002"]
+    user_needs: ["UN-LEO-AI-001"]
+
+  metadata:
+    title: "Encounter Shortlisting Verification"
+    description: >
+      Verifies that the encounter shortlisting pipeline correctly retrieves
+      and filters clinical encounters using hybrid retrieval (vector + keyword)
+      and domain scoping. Confirms recall against a gold-standard labelled
+      dataset meets the required threshold.
+    test_level: "integration"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    test_file_path: "tests/integration/test_encounter_shortlisting.py"
+    created_by: "Quality Engineer"
+    created_date: "2026-03-01"
+
+  test_environment:
+    environment_type: "ci_cd"
+    prerequisites:
+      - "Python 3.12 installed with project dependencies"
+      - "Vector store seeded with test encounter embeddings"
+      - "Gold-standard labelled encounter dataset available"
+    test_data:
+      data_type: "fixture"
+      cleanup_required: true
+
+  test_cases:
+    - case_id: "VT-001-TC-001"
+      case_name: "Hybrid retrieval returns relevant encounters"
+      priority: "critical"
+      preconditions:
+        - "Vector store contains at least 500 test encounters"
+        - "Keyword index is up to date"
+      test_steps:
+        - step_number: 1
+          action: "Submit a clinical query with known relevant encounters to the shortlisting service"
+          expected_result: "Service returns a ranked list of encounters"
+          verification_method: "Assert returned encounter IDs include all expected relevant encounters"
+        - step_number: 2
+          action: "Inspect result set for both vector and keyword match contributions"
+          expected_result: "Results contain encounters matched by vector similarity and keyword overlap"
+          verification_method: "Assert match metadata includes both retrieval strategies"
+      acceptance_criteria:
+        - "All known relevant encounters appear in the result set"
+        - "Hybrid retrieval produces results within 5 seconds"
+
+    - case_id: "VT-001-TC-002"
+      case_name: "Domain scoping filters correctly"
+      priority: "high"
+      preconditions:
+        - "Encounters span multiple clinical domains in the test dataset"
+      test_steps:
+        - step_number: 1
+          action: "Submit a query scoped to a specific clinical domain (e.g. respiratory)"
+          expected_result: "Only encounters within the specified domain are returned"
+          verification_method: "Assert all returned encounters belong to the requested domain"
+        - step_number: 2
+          action: "Submit the same query without domain scoping"
+          expected_result: "Encounters from multiple domains are returned"
+          verification_method: "Assert result set contains encounters from at least two domains"
+      acceptance_criteria:
+        - "Domain filter excludes all out-of-scope encounters"
+        - "Unscoped query returns cross-domain results"
+
+    - case_id: "VT-001-TC-003"
+      case_name: "Recall >= 95% against gold-standard data"
+      priority: "critical"
+      preconditions:
+        - "Gold-standard dataset with labelled relevant encounters is loaded"
+      test_steps:
+        - step_number: 1
+          action: "Run shortlisting across all queries in the gold-standard dataset"
+          expected_result: "Recall metric computed across all queries"
+          verification_method: "Assert recall >= 0.95"
+        - step_number: 2
+          action: "Log per-query recall values for audit trail"
+          expected_result: "Per-query metrics recorded"
+          verification_method: "Verify metrics file is written and contains one entry per query"
+      acceptance_criteria:
+        - "Overall recall >= 95%"
+        - "No individual query has recall below 80%"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 95% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["test_report", "code_coverage"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-001/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history: []

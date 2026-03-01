@@ -1,0 +1,95 @@
+# -- UN-LEO-AI-002 -- SNOMED CT Coding
+# IEC 62304 / ISO 13485 User Need
+# Schema: design-controls/templates/user_needs_schema.yaml
+
+- id: "UN-LEO-AI-002"
+  title: "System assigns SNOMED CT codes to free-text encounter narratives using NLP"
+  description: |
+    Clinical coders need the system to assign standardised SNOMED CT
+    codes to free-text encounter narratives using a spaCy-based NLP
+    pipeline with biomedical NER (scispaCy), UMLS entity linking,
+    negation detection (negspaCy), context classification
+    (patient/family/resolved/plan), and confidence scoring. LLM
+    disambiguation is used as fallback for low-confidence or ambiguous
+    cases only. Each coding proposal includes the matched SNOMED
+    concept, confidence score, context, and source text span.
+
+  stakeholder:
+    type: "end_user"
+    role: "Clinical Coder / Human Reviewer"
+    organization: "NHS Primary Care Organisation"
+
+  priority: "MUST"
+
+  rationale: |
+    Manual SNOMED coding is the bottleneck in clinical audit. A single
+    encounter can take 5-15 minutes to code manually. Inconsistency
+    between coders introduces noise into audit data. Automated NLP
+    coding with human review provides consistency and speed while
+    maintaining quality.
+
+  benefit: "Reduces coding time from 5-15 minutes to seconds per encounter, with consistent application of terminology"
+
+  use_case: |
+    1. Shortlisted encounters from the retrieval stage arrive at the
+       coding worker queue.
+    2. System extracts clinical entities from encounter free text using
+       biomedical NER (scispaCy).
+    3. System links extracted entities to SNOMED CT concepts via UMLS.
+    4. System applies negation detection and context classification to
+       each entity.
+    5. System assigns confidence scores to each coding proposal.
+    6. Low-confidence or ambiguous cases are routed to LLM fallback for
+       disambiguation.
+    7. All coding proposals are presented to a human reviewer for
+       acceptance, rejection, or correction.
+
+  current_solution: "Manual SNOMED coding by trained clinical coders using terminology browsers and code lookup tools"
+
+  pain_points:
+    - "Manual coding takes 5-15 minutes per encounter"
+    - "Inconsistency between coders"
+    - "Specialist terminology knowledge required"
+    - "Throughput limits population-scale audit"
+
+  acceptance_criteria:
+    - "System shall extract clinical entities from free-text using NER"
+    - "System shall link entities to SNOMED CT via UMLS with confidence scores"
+    - "System shall detect negation and context (patient/family/resolved/plan)"
+    - "System shall use LLM fallback only for confidence below threshold"
+    - "System shall achieve F1 score >=0.85 for SNOMED coding against gold-standard labelled data"
+    - "All coding proposals shall require human review before acceptance"
+
+  success_metrics:
+    - metric: "F1 score"
+      target: ">=0.85 against gold-standard labels"
+      baseline: "Manual coding: variable, estimated 0.80-0.90"
+    - metric: "Coding time per encounter"
+      target: "<=5 seconds"
+      baseline: "Manual coding: 5-15 minutes per encounter"
+    - metric: "Human reviewer agreement rate"
+      target: ">=90%"
+      baseline: "N/A"
+
+  regulatory_impact: "high"
+  safety_impact: "medium"
+
+  derived_from:
+    - "Intended Use Statement DC-IU-001 Section 2.1.2"
+    - "NHS NCDA programme requirements"
+    - "SNOMED CT UK Clinical Edition usage requirements"
+
+  related_standards:
+    - "IEC 62304:2006"
+    - "ISO 13485:2016"
+    - "SNOMED CT UK Clinical Edition"
+
+  metadata:
+    created_by: "Quality Engineering"
+    created_date: "2026-03-01"
+    status: "draft"
+
+  design_inputs: []
+  validation_tests: []
+
+  tags: ["snomed-coding", "nlp", "core-capability", "pipeline"]

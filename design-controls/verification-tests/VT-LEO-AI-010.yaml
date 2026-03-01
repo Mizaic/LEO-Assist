@@ -1,0 +1,112 @@
+# -- VT-LEO-AI-010 -- Review UI Verification
+# IEC 62304 Verification Test Protocol
+# Schema: design-controls/templates/verification_test_schema.yaml
+
+- id: "VT-LEO-AI-010"
+  version: "1.0"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-016"]
+    risks: ["R-LEO-AI-006"]
+    user_needs: ["UN-LEO-AI-010"]
+
+  metadata:
+    title: "Review UI Verification"
+    description: >
+      Verifies that the review user interface correctly displays source text
+      and AI-generated proposals, allows reviewers to confirm, edit, or reject
+      proposals, and shows confidence scores and context flags to support
+      informed decision-making.
+    test_level: "system"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "semi-automated"
+    automation_framework: "Playwright"
+    test_file_path: "tests/e2e/test_review_ui.spec.ts"
+    created_by: "Quality Engineer"
+    created_date: "2026-03-01"
+
+  test_environment:
+    environment_type: "staging"
+    prerequisites:
+      - "UI application deployed to staging environment"
+      - "Review service API running and accessible"
+      - "Test reviewer account provisioned"
+      - "Review queue seeded with test proposals"
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: true
+
+  test_cases:
+    - case_id: "VT-010-TC-001"
+      case_name: "Review interface displays source text and proposals"
+      priority: "critical"
+      preconditions:
+        - "Test reviewer is logged in"
+        - "Review queue contains at least 3 pending proposals"
+      test_steps:
+        - step_number: 1
+          action: "Navigate to the review queue page"
+          expected_result: "Review queue page loads and displays the list of pending proposals"
+          verification_method: "Assert the page contains a list with at least 3 proposal items"
+        - step_number: 2
+          action: "Click on a proposal to open the detail view"
+          expected_result: "Detail view displays the original source text and the AI-generated SNOMED proposal"
+          verification_method: "Assert source text panel and proposal panel are both visible and contain content"
+      acceptance_criteria:
+        - "Source text is displayed in full alongside the AI proposal"
+        - "Proposal includes the SNOMED code description and concept ID"
+
+    - case_id: "VT-010-TC-002"
+      case_name: "Reviewer can confirm, edit, and reject"
+      priority: "critical"
+      preconditions:
+        - "Detail view is open for a pending proposal"
+      test_steps:
+        - step_number: 1
+          action: "Click the Confirm button on a pending proposal"
+          expected_result: "Proposal status updates to approved and a success notification is shown"
+          verification_method: "Assert status badge changes to 'approved' and toast notification appears"
+        - step_number: 2
+          action: "Open another pending proposal and click Edit, change the SNOMED code, then save"
+          expected_result: "Edited proposal is saved with the new SNOMED code and status='approved'"
+          verification_method: "Assert the updated SNOMED code is displayed and status is 'approved'"
+        - step_number: 3
+          action: "Open another pending proposal, click Reject, enter a rationale, and submit"
+          expected_result: "Proposal status updates to rejected with the rationale recorded"
+          verification_method: "Assert status badge changes to 'rejected' and rationale is visible"
+      acceptance_criteria:
+        - "Confirm, edit, and reject actions all function correctly"
+        - "Each action updates the proposal status immediately in the UI"
+
+    - case_id: "VT-010-TC-003"
+      case_name: "Confidence scores and context flags visible"
+      priority: "high"
+      preconditions:
+        - "Detail view is open for a proposal with a confidence score and context flags"
+      test_steps:
+        - step_number: 1
+          action: "Inspect the proposal detail view for confidence score display"
+          expected_result: "Confidence score is displayed as a percentage or decimal value"
+          verification_method: "Assert confidence score element is visible and contains a numeric value"
+        - step_number: 2
+          action: "Inspect the proposal detail view for context flags (e.g. negation, historical)"
+          expected_result: "Context flags are displayed as labelled badges or indicators"
+          verification_method: "Assert context flag elements are visible and match the expected flags for this proposal"
+      acceptance_criteria:
+        - "Confidence score is visible and readable"
+        - "Context flags are clearly displayed and accurate"
+        - "Low-confidence proposals are visually distinguished (e.g. highlighted)"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 95% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["test_report", "screenshot"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-010/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history: []

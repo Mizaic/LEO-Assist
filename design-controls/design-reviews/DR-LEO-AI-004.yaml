@@ -1,0 +1,111 @@
+# -- DR-LEO-AI-004 -- Verification Review
+# ISO 13485 Design Review
+# Schema: design-controls/templates/design_review_schema.yaml
+
+- id: "DR-LEO-AI-004"
+  title: "Phase 4 Verification Review - Test Protocols and Coverage"
+  version: "1.0"
+  phase: "verification"
+
+  scope:
+    description: |
+      Review of 20 Verification Tests (VT-LEO-AI-001 to 020) for test coverage,
+      adequacy of test cases, and traceability to Design Inputs. This review
+      assesses whether the verification strategy provides sufficient evidence
+      that Design Outputs meet Design Inputs.
+    modules:
+      - "Pipeline Verification (VT-001 to VT-008)"
+      - "UI Verification (VT-010)"
+      - "Security Verification (VT-012, VT-014, VT-019)"
+      - "Integration Verification (VT-011, VT-013, VT-015, VT-016)"
+      - "Performance Verification (VT-018)"
+    change_summary: "Initial verification review - all test protocols assessed"
+
+  scheduling:
+    planned_date: "2026-05-01"
+    duration_minutes: 90
+    location: "Microsoft Teams - Design Review Channel"
+
+  participants:
+    - user_id: "quality_lead"
+      name: "Quality Lead"
+      role: "chair"
+      function: "Quality Assurance"
+      attendance: "present"
+    - user_id: "eng_lead"
+      name: "Engineering Lead"
+      role: "presenter"
+      function: "Engineering"
+      attendance: "present"
+    - user_id: "clinical_lead"
+      name: "Clinical Lead"
+      role: "clinical"
+      function: "Clinical Safety"
+      attendance: "present"
+
+  items_reviewed:
+    - entity_type: "verification_test"
+      entity_id: "VT-LEO-AI-002"
+      review_status: "approved"
+      comments: "NLP entity extraction test protocol is comprehensive with adequate gold-standard dataset coverage"
+    - entity_type: "verification_test"
+      entity_id: "VT-LEO-AI-006"
+      review_status: "approved"
+      comments: "Safety-net verification is on the critical path. Test cases cover all NG12 rule triggers."
+    - entity_type: "verification_test"
+      entity_id: "VT-LEO-AI-012"
+      review_status: "approved"
+      comments: "Security verification covers RBAC, tenant isolation, and authentication flows"
+    - entity_type: "verification_test"
+      entity_id: "VT-LEO-AI-018"
+      review_status: "approved_minor"
+      comments: "Add detailed load test parameters including concurrent user counts and sustained duration"
+      action_required: true
+
+  review_criteria:
+    - criterion: "All design inputs have linked verification tests"
+      category: "traceability"
+      result: "pass"
+      evidence: "Traceability matrix shows all 35 Design Inputs map to at least one Verification Test"
+    - criterion: "Test cases adequate for safety class B"
+      category: "safety"
+      result: "pass"
+      evidence: "Safety-critical paths have dedicated test protocols with boundary and negative test cases"
+    - criterion: "Automation coverage sufficient"
+      category: "completeness"
+      result: "pass"
+      evidence: "18 of 20 verification tests are fully automated; 2 require manual clinical review steps"
+    - criterion: "Evidence requirements defined"
+      category: "completeness"
+      result: "pass"
+      evidence: "All test protocols specify pass/fail criteria, evidence artefacts, and reporting format"
+
+  action_items: []
+
+  decision:
+    overall_result: "approved"
+    rationale: "Verification test protocols provide adequate coverage of all Design Inputs. Automation level appropriate for Class B. Evidence requirements well-defined."
+    next_phase: "validation"
+
+  minutes:
+    agenda:
+      - "Review of pipeline verification tests (VT-001 to VT-008)"
+      - "Review of UI and integration verification (VT-010, VT-011, VT-013)"
+      - "Review of security verification (VT-012, VT-014, VT-019)"
+      - "Review of performance verification (VT-018)"
+      - "Traceability and coverage assessment"
+      - "Action items and decision"
+    discussion_notes: |
+      The team reviewed all 20 Verification Test protocols. Coverage analysis
+      confirmed that every Design Input has at least one linked Verification
+      Test. The clinical lead confirmed that safety-critical tests (safety
+      netting, HITL override) include sufficient boundary and negative test
+      cases. Performance test VT-018 was flagged for needing more detailed load
+      test parameters. The team approved the verification strategy and agreed
+      to proceed to validation planning.
+
+  status: "draft"
+
+  metadata:
+    created_by: "quality_lead"
+    created_date: "2026-03-01"

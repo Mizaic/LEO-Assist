@@ -1,0 +1,150 @@
+# -- VT-LEO-AI-015 -- FHIR R4 Conformance Verification
+# IEC 62304 Verification Test Protocol
+# Schema: design-controls/templates/verification_test_schema.yaml
+
+- id: "VT-LEO-AI-015"
+  version: "1.0"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-031", "DI-LEO-AI-032"]
+    risks: []
+    user_needs: ["UN-LEO-AI-022"]
+
+  metadata:
+    title: "FHIR R4 Conformance Verification"
+    description: "Verifies that the FHIR API conforms to the R4 specification for Measure, MeasureReport, and Library resources, including CRUD operations and resource validation."
+    test_level: "integration"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    created_by: "Quality Engineer"
+    created_date: "2026-03-01"
+
+  test_environment:
+    environment_type: "ci_cd"
+    prerequisites:
+      - "FHIR API service running"
+      - "Neo4j database available for FHIR resource storage"
+      - "FHIR R4 validation library available"
+    test_data:
+      data_type: "fixture"
+      cleanup_required: true
+
+  test_cases:
+    - case_id: "VT-015-TC-001"
+      case_name: "Measure CRUD operations"
+      priority: "critical"
+      preconditions:
+        - "FHIR API is running and accessible"
+        - "No pre-existing test Measure resources"
+      test_steps:
+        - step_number: 1
+          action: "POST a valid Measure resource to the FHIR API"
+          expected_result: "HTTP 201 Created returned with Location header"
+          verification_method: "Assert status code is 201 and Location header contains the new resource ID"
+        - step_number: 2
+          action: "GET the created Measure resource by ID"
+          expected_result: "Measure resource returned with all fields matching the original POST body"
+          verification_method: "Assert response body matches the submitted resource"
+        - step_number: 3
+          action: "PUT an updated Measure resource"
+          expected_result: "HTTP 200 OK returned with updated resource"
+          verification_method: "Assert status code is 200 and updated fields are persisted"
+        - step_number: 4
+          action: "DELETE the Measure resource by ID"
+          expected_result: "HTTP 204 No Content returned"
+          verification_method: "Assert status code is 204 and subsequent GET returns 404"
+      acceptance_criteria:
+        - "All CRUD operations return correct FHIR-compliant status codes"
+        - "Created resources are retrievable by ID"
+        - "Updated resources reflect the changes"
+        - "Deleted resources are no longer accessible"
+
+    - case_id: "VT-015-TC-002"
+      case_name: "MeasureReport generation"
+      priority: "critical"
+      preconditions:
+        - "At least one Measure resource exists"
+        - "Pipeline has produced analysis results for the Measure"
+      test_steps:
+        - step_number: 1
+          action: "Request MeasureReport generation for a given Measure and reporting period"
+          expected_result: "MeasureReport resource returned with status 'complete'"
+          verification_method: "Assert response contains a valid MeasureReport with status 'complete'"
+        - step_number: 2
+          action: "Validate the MeasureReport contains required population groups and scores"
+          expected_result: "Population groups match the Measure definition"
+          verification_method: "Assert each population group from the Measure is present in the report"
+        - step_number: 3
+          action: "Validate MeasureReport against FHIR R4 schema"
+          expected_result: "No validation errors"
+          verification_method: "Assert FHIR validator returns zero errors"
+      acceptance_criteria:
+        - "MeasureReport is generated from pipeline analysis results"
+        - "Report structure matches the FHIR R4 MeasureReport spec"
+        - "Population groups and scores are accurate"
+
+    - case_id: "VT-015-TC-003"
+      case_name: "Library CRUD operations"
+      priority: "high"
+      preconditions:
+        - "FHIR API is running and accessible"
+        - "No pre-existing test Library resources"
+      test_steps:
+        - step_number: 1
+          action: "POST a valid Library resource with CQL content"
+          expected_result: "HTTP 201 Created returned"
+          verification_method: "Assert status code is 201"
+        - step_number: 2
+          action: "GET the created Library resource by ID"
+          expected_result: "Library resource returned with CQL content intact"
+          verification_method: "Assert response body contains the original CQL content"
+        - step_number: 3
+          action: "PUT an updated Library resource with modified CQL"
+          expected_result: "HTTP 200 OK returned with updated content"
+          verification_method: "Assert updated CQL content is persisted"
+        - step_number: 4
+          action: "DELETE the Library resource"
+          expected_result: "HTTP 204 No Content returned"
+          verification_method: "Assert status code is 204"
+      acceptance_criteria:
+        - "Library resources support full CRUD lifecycle"
+        - "CQL content is stored and retrieved without corruption"
+
+    - case_id: "VT-015-TC-004"
+      case_name: "FHIR resource validation against R4 spec"
+      priority: "high"
+      preconditions:
+        - "FHIR API is running"
+        - "FHIR R4 validator is configured"
+      test_steps:
+        - step_number: 1
+          action: "POST a Measure resource with a missing required field"
+          expected_result: "HTTP 422 Unprocessable Entity returned with OperationOutcome"
+          verification_method: "Assert status code is 422 and response contains OperationOutcome with error details"
+        - step_number: 2
+          action: "POST a Measure resource with an invalid data type in a field"
+          expected_result: "HTTP 422 Unprocessable Entity returned with OperationOutcome"
+          verification_method: "Assert status code is 422"
+        - step_number: 3
+          action: "POST a valid Measure resource"
+          expected_result: "HTTP 201 Created returned"
+          verification_method: "Assert status code is 201 and no validation errors"
+      acceptance_criteria:
+        - "Invalid resources are rejected with informative error messages"
+        - "Valid resources pass validation and are persisted"
+        - "OperationOutcome provides actionable details on validation failures"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 95% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["test_report", "code_coverage"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-015/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history: []

@@ -1,0 +1,98 @@
+# -- UN-LEO-AI-016 -- Cancer Referral Quality Review (DES Paragraph 28)
+# IEC 62304 / ISO 13485 User Need
+# Schema: design-controls/templates/user_needs_schema.yaml
+
+- id: "UN-LEO-AI-016"
+  title: "System reviews referral quality against NICE Guideline NG12 cancer referral criteria"
+  description: |
+    Clinical audit teams need to review the quality of cancer referrals
+    against NICE Guideline NG12 (Suspected cancer -- recognition and
+    referral). The system shall identify patients with cancer-relevant
+    symptoms and assess whether referrals met the two-week-wait criteria,
+    whether appropriate investigations were ordered, and whether referral
+    pathways aligned with NG12 recommendations. This supports the Network
+    Contract DES requirement for explicit expectations around reviewing
+    referral quality against NICE Guideline NG12.
+
+  stakeholder:
+    type: "end_user"
+    role: "Clinical Audit Team Member"
+    organization: "NHS Primary Care Network"
+
+  priority: "MUST"
+
+  rationale: |
+    The updated Network Contract DES (paragraph 28) introduces explicit
+    expectations around reviewing referral quality against NICE Guideline
+    NG12. Primary Care Networks need tools to systematically assess
+    referral quality across their patient population rather than relying
+    on ad-hoc case review. Poor referral quality leads to delayed
+    diagnosis and poorer patient outcomes.
+
+  benefit: "Systematic, population-level referral quality review against NG12, replacing ad-hoc manual case review"
+
+  use_case: |
+    1. PCN Clinical Director configures a cancer referral quality
+       programme targeting NG12 compliance.
+    2. System retrieves encounters with cancer-relevant symptom codes
+       for the target patient cohort.
+    3. System identifies referral events and matches them against NG12
+       two-week-wait criteria for the relevant cancer type.
+    4. System flags referrals that deviate from NG12 recommendations,
+       annotating each deviation with the specific guideline section.
+    5. System generates a referral quality report at practice and PCN
+       level, showing compliance rates and deviation patterns.
+    6. Clinical audit team reviews flagged deviations and identifies
+       improvement actions.
+    7. Results feed into the PCN quality improvement plan for DES
+       reporting.
+
+  current_solution: "Ad-hoc manual case review of cancer referrals using spreadsheets and clinical system searches"
+
+  pain_points:
+    - "Manual case review cannot achieve population-level coverage"
+    - "No systematic mapping of referrals to NG12 guideline sections"
+    - "Inconsistent assessment criteria between reviewers"
+    - "DES reporting relies on anecdotal evidence rather than structured data"
+
+  acceptance_criteria:
+    - "System shall identify patients with cancer-relevant symptoms from coded encounters"
+    - "System shall match referral patterns against NG12 two-week-wait criteria"
+    - "System shall flag referrals that deviate from NG12 recommendations"
+    - "System shall generate referral quality reports at PCN and practice level"
+    - "System shall link deviations to specific NG12 guideline sections"
+    - "System shall support all cancer types covered by NG12"
+
+  success_metrics:
+    - metric: "NG12 rule coverage"
+      target: ">=95% of NG12 guideline sections"
+      baseline: "Current: ad-hoc, estimated 20-30% coverage"
+    - metric: "Referral assessment accuracy"
+      target: ">=90% agreement with clinical expert review"
+      baseline: "Current: not measured"
+    - metric: "Report generation time"
+      target: "<=60 seconds per PCN"
+      baseline: "Current: manual compilation, 2-4 weeks"
+
+  regulatory_impact: "high"
+  safety_impact: "high"
+
+  derived_from:
+    - "Intended Use Statement DC-IU-001 Section 2.3"
+    - "Network Contract DES Paragraph 28"
+    - "NICE Guideline NG12"
+
+  related_standards:
+    - "IEC 62304:2006"
+    - "ISO 13485:2016"
+    - "NICE NG12"
+
+  metadata:
+    created_by: "Quality Engineering"
+    created_date: "2026-03-01"
+    status: "draft"
+
+  design_inputs: []
+  validation_tests: []
+
+  tags: ["ng12", "cancer-referral", "des-paragraph-28", "ncda", "clinical-safety"]

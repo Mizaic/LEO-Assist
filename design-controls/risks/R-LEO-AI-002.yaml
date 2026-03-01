@@ -1,0 +1,56 @@
+# -- R-LEO-AI-002 -- Missed Clinical Entity
+# ISO 14971 / IEC 62304 Risk
+# Schema: design-controls/templates/risks_schema.yaml
+
+- id: "R-LEO-AI-002"
+  title: "NLP pipeline fails to extract relevant clinical entity from encounter text"
+
+  hazard:
+    description: "NLP pipeline fails to identify a clinically relevant entity in free text"
+    category: "software_defect"
+
+  hazardous_situation: "A relevant clinical entity (symptom, diagnosis, referral) is present in the encounter text but not extracted by the NLP pipeline, causing it to be omitted from the coded record and potentially missed during pathway analysis"
+
+  harm:
+    description: "Missed entities could cause incomplete clinical episodes, incorrect pathway durations, or failure to trigger safety-net alerts"
+    severity: "serious"
+
+  initial_risk_estimate:
+    severity: 3
+    probability: 3
+    detectability: 2
+    rpn: 18
+    risk_level: "medium"
+
+  mitigation_measures:
+    - control_type: "protective_measure"
+      description: "Human reviewer sees full de-identified encounter text alongside coded entities and can add missed entities manually"
+      implemented_by: []
+      verified_by: []
+      effectiveness: "highly_effective"
+    - control_type: "protective_measure"
+      description: "Recall monitoring against gold-standard data with threshold >= 0.90"
+      implemented_by: []
+      verified_by: []
+      effectiveness: "effective"
+
+  residual_risk_estimate:
+    severity: 3
+    probability: 1
+    detectability: 2
+    rpn: 6
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: "Human reviewers see full source text and can identify entities missed by the NLP pipeline. Gold-standard regression testing catches systematic recall degradation."
+
+  monitoring:
+    monitoring_plan: "Monitor entity recall metrics and reviewer entity addition rates"
+    metrics: ["Entity recall rate", "Reviewer entity addition rate"]
+    review_frequency: "Monthly"
+
+  metadata:
+    identified_by: "Risk Management Team"
+    identified_date: "2026-03-01"
+    status: "analyzed"
+
+  tags: ["clinical-risk", "nlp", "entity-extraction"]

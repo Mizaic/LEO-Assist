@@ -1,0 +1,129 @@
+# -- VT-LEO-AI-009 -- Review Service Verification
+# IEC 62304 Verification Test Protocol
+# Schema: design-controls/templates/verification_test_schema.yaml
+
+- id: "VT-LEO-AI-009"
+  version: "1.0"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-015"]
+    risks: ["R-LEO-AI-006"]
+    user_needs: ["UN-LEO-AI-010"]
+
+  metadata:
+    title: "Review Service Verification"
+    description: >
+      Verifies that the human-in-the-loop review service correctly queues
+      AI-generated proposals for review, processes confirm and reject actions,
+      records rejection rationale, and prevents unapproved items from being
+      finalised.
+    test_level: "integration"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    test_file_path: "tests/integration/test_review_service.py"
+    created_by: "Quality Engineer"
+    created_date: "2026-03-01"
+
+  test_environment:
+    environment_type: "ci_cd"
+    prerequisites:
+      - "Python 3.12 installed with project dependencies"
+      - "Review queue database seeded with test proposals"
+      - "Authentication tokens for test reviewer accounts available"
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: true
+
+  test_cases:
+    - case_id: "VT-009-TC-001"
+      case_name: "Proposals queued for review"
+      priority: "critical"
+      preconditions:
+        - "Pipeline has generated at least 5 AI proposals"
+      test_steps:
+        - step_number: 1
+          action: "Submit AI-generated proposals to the review service"
+          expected_result: "Each proposal appears in the review queue with status='pending'"
+          verification_method: "Query the review queue and assert all submitted proposals are present with pending status"
+        - step_number: 2
+          action: "Verify proposals include source text, SNOMED code, and confidence score"
+          expected_result: "Each queued proposal contains the required fields"
+          verification_method: "Assert each proposal object has non-null source_text, snomed_code, and confidence fields"
+      acceptance_criteria:
+        - "All submitted proposals appear in the review queue"
+        - "Each proposal contains the required metadata"
+
+    - case_id: "VT-009-TC-002"
+      case_name: "Confirm action accepted"
+      priority: "critical"
+      preconditions:
+        - "Review queue contains at least one pending proposal"
+        - "Test reviewer is authenticated"
+      test_steps:
+        - step_number: 1
+          action: "Reviewer confirms a pending proposal"
+          expected_result: "Proposal status changes to 'approved'"
+          verification_method: "Query the proposal and assert status='approved'"
+        - step_number: 2
+          action: "Verify the approved proposal records the reviewer identity and timestamp"
+          expected_result: "Proposal includes reviewer_id and approved_at fields"
+          verification_method: "Assert reviewer_id matches the test reviewer and approved_at is set"
+      acceptance_criteria:
+        - "Confirmed proposals are marked as approved"
+        - "Reviewer identity and timestamp are recorded"
+
+    - case_id: "VT-009-TC-003"
+      case_name: "Reject action records rationale"
+      priority: "critical"
+      preconditions:
+        - "Review queue contains at least one pending proposal"
+        - "Test reviewer is authenticated"
+      test_steps:
+        - step_number: 1
+          action: "Reviewer rejects a pending proposal with rationale 'Incorrect SNOMED mapping'"
+          expected_result: "Proposal status changes to 'rejected'"
+          verification_method: "Query the proposal and assert status='rejected'"
+        - step_number: 2
+          action: "Verify the rejection rationale is recorded"
+          expected_result: "Proposal includes rejection_reason='Incorrect SNOMED mapping'"
+          verification_method: "Assert rejection_reason field matches the provided rationale"
+      acceptance_criteria:
+        - "Rejected proposals are marked as rejected"
+        - "Rejection rationale is persisted and retrievable"
+
+    - case_id: "VT-009-TC-004"
+      case_name: "Unapproved items cannot be finalised"
+      priority: "critical"
+      preconditions:
+        - "Review queue contains proposals in pending and rejected states"
+      test_steps:
+        - step_number: 1
+          action: "Attempt to finalise a proposal with status='pending'"
+          expected_result: "Finalisation is rejected with an error"
+          verification_method: "Assert HTTP 403 or equivalent business rule error is returned"
+        - step_number: 2
+          action: "Attempt to finalise a proposal with status='rejected'"
+          expected_result: "Finalisation is rejected with an error"
+          verification_method: "Assert HTTP 403 or equivalent business rule error is returned"
+        - step_number: 3
+          action: "Finalise a proposal with status='approved'"
+          expected_result: "Finalisation succeeds"
+          verification_method: "Assert status changes to 'finalised' and no error is returned"
+      acceptance_criteria:
+        - "Only approved proposals can be finalised"
+        - "Pending and rejected proposals are blocked from finalisation"
+
+  pass_fail_criteria:
+    pass_threshold: "100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["test_report", "code_coverage"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-009/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history: []

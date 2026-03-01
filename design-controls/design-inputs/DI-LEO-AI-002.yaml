@@ -1,0 +1,73 @@
+# -- DI-LEO-AI-002 -- Domain Configuration Registry
+# IEC 62304 / ISO 13485 Design Input
+# Schema: design-controls/templates/design_inputs_schema.yaml
+
+- id: "DI-LEO-AI-002"
+  type: "Functional"
+  derived_from: ["UN-LEO-AI-001", "UN-LEO-AI-011"]
+  requirement: "The system SHALL load clinical domain definitions from programme configuration stored in Neo4j and use them to scope encounter shortlisting to programme-relevant clinical areas"
+  rationale: "Domain configuration drives which clinical areas are searched during shortlisting. Externalising domain definitions as data enables programme-agnostic operation."
+
+  machine_spec:
+    agent_prompt: |
+      Implement domain configuration registry (~200 LOC).
+
+      SINGLE PURPOSE: Load and serve clinical domain definitions from
+      Neo4j programme configuration to scope shortlisting queries.
+
+      REQUIREMENTS:
+      1. Load domain definitions from Neo4j programme config nodes
+      2. Parse domain concept sets (SNOMED value sets, keywords, embeddings)
+      3. Cache loaded domains for pipeline lifetime
+      4. Provide domain lookup by programme ID and domain name
+      5. Validate domain config completeness on load
+
+      METHODS:
+      - load_domains(programme_id): Fetch all domains for programme
+      - get_domain(domain_name): Return single domain definition
+      - list_domains(): Return all loaded domain names
+      - validate_config(): Check required fields present
+
+      CODE CLARITY:
+      - Domain definitions are data, not code
+      - Clear error messages when domain config is missing or invalid
+      - Type-safe domain model using Pydantic
+
+    acceptance_criteria:
+      - type: "test"
+        spec: "All configured domains loaded and applied during shortlisting"
+      - type: "test"
+        spec: "Missing domain config raises clear validation error"
+      - type: "test"
+        spec: "Domain lookup returns correct concept sets per programme"
+
+    constraints:
+      - type: "code_quality"
+        spec: "Domain definitions validated on load -- fail fast on bad config"
+      - type: "performance"
+        spec: "Domain loading completes in <= 2 seconds for any programme"
+
+    dependencies: []
+
+    downstream_impacts:
+      - "DI-LEO-AI-001 -- hybrid retrieval depends on domain definitions"
+      - "services/analysis_worker -- analysers use domain config for rule scoping"
+
+    technical_details:
+      language: "Python"
+      framework: "FastAPI"
+      libraries: ["neo4j"]
+      file_structure:
+        - "libs/domain_config/registry.py"
+        - "libs/domains/ncda_concept_sets.py"
+      estimated_loc: 200
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: "All configured domains loaded and applied during shortlisting"
+    test_protocol: "VT-LEO-AI-002"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-025"]
+  tags: ["domain-config", "programme-config", "shortlisting"]

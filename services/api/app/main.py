@@ -24,12 +24,19 @@ try:
 except ImportError:
     pass
 
-from fastapi import FastAPI
+import os
+
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 from libs.auth.org_scope import get_caller_scope
 
 from app import config  # noqa: F401 - loads secrets/.env
 from app.deps import get_caller_scope_from_request
+
+limiter = Limiter(key_func=get_remote_address)
 from app.routers.agent import router as agent_router
 from app.routers.anchor_review import router as anchor_review_router
 from app.routers.audit import router as audit_router
@@ -67,17 +74,45 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# In this API service, allow org-scope identity to come from session cookie as
-# a fallback for direct browser routes that do not inject X-User-Email.
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# In this API service, allow org-scope identity to come from session cookie
+# (GAP-001: X-User-Email header removed as an identity source).
 app.dependency_overrides[get_caller_scope] = get_caller_scope_from_request
 
+_default_origins = "http://localhost:3000,http://127.0.0.1:3000"
+_allowed_origins = [
+    o.strip()
+    for o in os.getenv("ALLOWED_ORIGINS", _default_origins).split(",")
+    if o.strip()
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=_allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def require_xhr_for_mutations(request: Request, call_next):
+    """Block cross-origin form submissions on state-changing endpoints (GAP-009).
+
+    Browsers set X-Requested-With: XMLHttpRequest for fetch/XHR but not for
+    plain form POSTs. This prevents CSRF via legacy form submissions.
+    Skip for GET, HEAD, OPTIONS, and auth/OAuth routes.
+    """
+    safe_methods = {"GET", "HEAD", "OPTIONS"}
+    skip_prefixes = ("/auth/", "/health")
+    if (
+        request.method not in safe_methods
+        and not any(request.url.path.startswith(p) for p in skip_prefixes)
+        and request.headers.get("X-Requested-With", "").lower() != "xmlhttprequest"
+    ):
+        return Response(status_code=403, content="CSRF check failed: X-Requested-With header required")
+    return await call_next(request)
 
 app.include_router(agent_router)
 app.include_router(anchor_review_router)

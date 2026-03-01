@@ -1,0 +1,112 @@
+# -- VT-LEO-AI-011 -- Pipeline Orchestration Verification
+# IEC 62304 Verification Test Protocol
+# Schema: design-controls/templates/verification_test_schema.yaml
+
+- id: "VT-LEO-AI-011"
+  version: "1.0"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-018", "DI-LEO-AI-019"]
+    risks: ["R-LEO-AI-015"]
+    user_needs: ["UN-LEO-AI-012"]
+
+  metadata:
+    title: "Pipeline Orchestration Verification"
+    description: "Verifies that the analysis pipeline orchestrator executes steps in the correct order, handles conditional branching, and supports restart of failed steps."
+    test_level: "integration"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    created_by: "Quality Engineer"
+    created_date: "2026-03-01"
+
+  test_environment:
+    environment_type: "ci_cd"
+    prerequisites:
+      - "Pipeline orchestrator service running"
+      - "Message bus available (Azure Service Bus or local emulator)"
+      - "Redis checkpoint store available"
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: true
+
+  test_cases:
+    - case_id: "VT-011-TC-001"
+      case_name: "Pipeline steps executed in correct order"
+      priority: "critical"
+      preconditions:
+        - "Pipeline definition loaded with three sequential steps"
+        - "All downstream workers available"
+      test_steps:
+        - step_number: 1
+          action: "Submit a pipeline run with steps A, B, C defined in sequence"
+          expected_result: "Pipeline run accepted and queued"
+          verification_method: "Assert HTTP 202 returned with run ID"
+        - step_number: 2
+          action: "Wait for pipeline run to complete"
+          expected_result: "All three steps complete in order A -> B -> C"
+          verification_method: "Assert checkpoint timestamps show A < B < C"
+        - step_number: 3
+          action: "Retrieve the pipeline execution log"
+          expected_result: "Log entries confirm sequential execution"
+          verification_method: "Assert log contains step completion events in order"
+      acceptance_criteria:
+        - "Steps execute in the defined sequence"
+        - "No step begins before its predecessor completes"
+        - "Pipeline status is 'completed' after all steps finish"
+
+    - case_id: "VT-011-TC-002"
+      case_name: "Conditional branching works"
+      priority: "high"
+      preconditions:
+        - "Pipeline definition includes a conditional branch based on step A output"
+      test_steps:
+        - step_number: 1
+          action: "Submit a pipeline run where step A output triggers branch path X"
+          expected_result: "Branch path X is selected"
+          verification_method: "Assert checkpoint records show path X steps executed"
+        - step_number: 2
+          action: "Submit a pipeline run where step A output triggers branch path Y"
+          expected_result: "Branch path Y is selected"
+          verification_method: "Assert checkpoint records show path Y steps executed"
+      acceptance_criteria:
+        - "Correct branch is selected based on step output"
+        - "Unselected branch steps are skipped"
+        - "Pipeline completes successfully on both paths"
+
+    - case_id: "VT-011-TC-003"
+      case_name: "Failed step can be restarted"
+      priority: "critical"
+      preconditions:
+        - "Pipeline definition with three steps where step B is configured to fail on first attempt"
+      test_steps:
+        - step_number: 1
+          action: "Submit a pipeline run that will fail at step B"
+          expected_result: "Pipeline status is 'failed' with step B marked as failed"
+          verification_method: "Assert pipeline status API returns 'failed' and step B checkpoint shows error"
+        - step_number: 2
+          action: "Fix the failure condition and restart the pipeline from step B"
+          expected_result: "Pipeline resumes from step B without re-running step A"
+          verification_method: "Assert step A checkpoint is reused and step B executes fresh"
+        - step_number: 3
+          action: "Wait for pipeline to complete"
+          expected_result: "Steps B and C complete successfully"
+          verification_method: "Assert pipeline status is 'completed'"
+      acceptance_criteria:
+        - "Failed pipeline can be restarted from the failed step"
+        - "Previously completed steps are not re-executed"
+        - "Pipeline reaches 'completed' status after restart"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 95% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["test_report", "code_coverage"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-011/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history: []

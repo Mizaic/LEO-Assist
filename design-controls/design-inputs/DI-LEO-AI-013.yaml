@@ -1,0 +1,75 @@
+# -- DI-LEO-AI-013 -- KPI Calculator
+# IEC 62304 / ISO 13485 Design Input
+# Schema: design-controls/templates/design_inputs_schema.yaml
+
+- id: "DI-LEO-AI-013"
+  type: "Functional"
+  derived_from: ["UN-LEO-AI-008"]
+  requirement: "The system SHALL calculate pathway durations between configured milestone pairs, compare them against programme-defined targets (FDS 28 days, DTT 31 days, RTT 62 days), flag breaches, and aggregate metrics at organisation, PCN, and ICB level"
+  rationale: "Pathway duration metrics are the primary output of national clinical audit programmes. Automated calculation ensures accuracy and enables real-time performance monitoring across the entire patient population."
+
+  machine_spec:
+    agent_prompt: |
+      Implement the KPICalculator class (~200 LOC).
+
+      SINGLE PURPOSE: Calculate pathway duration metrics, compare against
+      programme targets, flag breaches, and aggregate results at multiple
+      organisation levels.
+
+      REQUIREMENTS:
+      1. Calculate duration in days between configured milestone pairs
+         (e.g. referral-to-first-seen, diagnosis-to-treatment).
+      2. Compare each duration against programme-defined targets
+         (FDS 28 days, DTT 31 days, RTT 62 days).
+      3. Flag breaches where duration exceeds target.
+      4. Aggregate metrics at organisation, PCN, and ICB level.
+      5. Support configurable milestone pairs and targets per programme.
+
+      METHODS:
+      - calculate(episode): Calculate all KPIs for a single episode.
+      - calculate_duration(start_milestone, end_milestone): Compute days between milestones.
+      - check_breach(duration, target): Determine if target was breached.
+      - aggregate(org_level, episodes): Aggregate metrics at the specified level.
+
+      CODE CLARITY:
+      - Duration calculations must be deterministic (no rounding ambiguity).
+      - Use guard clauses to flatten nesting.
+      - Keep functions under 30 lines.
+
+    acceptance_criteria:
+      - type: "test"
+        spec: "Duration calculations 100% accurate (deterministic) against manual verification"
+      - type: "test"
+        spec: "Aggregations match manual verification at all organisation levels"
+      - type: "test"
+        spec: "Breach flags correctly applied for all target types"
+
+    constraints:
+      - type: "performance"
+        spec: "KPI calculation for a single episode completes in < 500ms"
+      - type: "code_quality"
+        spec: "Functions <= 30 LOC; cyclomatic complexity <= 10"
+
+    dependencies: []
+
+    downstream_impacts:
+      - "reporting_dashboard"
+      - "interpretation_service"
+
+    technical_details:
+      language: "Python"
+      framework: "FastAPI"
+      libraries: ["neo4j"]
+      file_structure:
+        - "services/analysis_worker/app/analyzers/kpi_calculator.py"
+      estimated_loc: 200
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: "Duration calculations 100% accurate (deterministic); aggregations match manual verification"
+    test_protocol: "VT-LEO-AI-013"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-021"]
+  tags: ["kpi", "metrics", "waiting-times", "nhs-targets", "analysis"]

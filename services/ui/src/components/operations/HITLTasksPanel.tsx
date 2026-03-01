@@ -2,6 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
   Alert,
   Box,
   Button,
@@ -22,6 +25,8 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import TabFlowDiagram, { type TabStage } from "@/components/operations/TabFlowDiagram";
 
 interface HITLTask {
   task_id: string;
@@ -46,6 +51,109 @@ const STATUS_COLOURS: Record<string, "warning" | "success" | "error" | "default"
   resolved: "success",
   dismissed: "default",
   escalated: "error",
+};
+
+const EXCLUSION_STAGES: TabStage[] = [
+  {
+    id: "ex1", num: 1,
+    label: "Conflict Found",
+    tooltip: "The system spots a problem with a patient's exclusion -- for example, a rule was applied that may not be correct for this patient.",
+    detailIn: "Patient episode data and exclusion rules",
+    detailOut: "A conflict record that needs a human to check",
+  },
+  {
+    id: "ex2", num: 2,
+    label: "Task Created",
+    tooltip: "A task is added to this queue so a reviewer can look at it. It is given a priority number -- higher priority means it needs checking first.",
+    detailIn: "The conflict record",
+    detailOut: "A task in the queue with a reason and priority",
+  },
+  {
+    id: "ex3", num: 3,
+    label: "You Review It",
+    tooltip: "You open the task and read the reason the system flagged it. You can see the patient, the episode, and what went wrong.",
+    detailIn: "The task with patient and episode details",
+    detailOut: "Your understanding of the conflict",
+  },
+  {
+    id: "ex4", num: 4,
+    label: "You Decide",
+    tooltip: "You pick one of three outcomes: resolved (fixed), dismissed (not a real problem), or escalated (needs senior review).",
+    detailIn: "Your decision and a short note explaining it",
+    detailOut: "An outcome: resolved, dismissed, or escalated",
+    branches: [
+      {
+        label: "Escalated",
+        description: "If you escalate, the task stays flagged for a senior reviewer to look at",
+      },
+    ],
+  },
+  {
+    id: "ex5", num: 5,
+    label: "Case Closed",
+    tooltip: "The outcome and your notes are saved. The task is removed from the pending queue and logged for audit.",
+    detailIn: "Your decision and reviewer ID",
+    detailOut: "A closed task saved to the audit log",
+  },
+];
+
+const PEER_REVIEW_STAGES: TabStage[] = [
+  {
+    id: "pr1", num: 1,
+    label: "1 in 10 Chosen",
+    tooltip: "One in every ten coded notes is picked at random for a second opinion. This is a mandatory quality check.",
+    detailIn: "All approved coding outputs from the pipeline",
+    detailOut: "A random 10% sample selected for review",
+  },
+  {
+    id: "pr2", num: 2,
+    label: "Task Created",
+    tooltip: "A peer review task is added to this queue for a second reviewer to check. It includes the note and the original coding.",
+    detailIn: "The sampled coding output",
+    detailOut: "A peer review task in the queue",
+  },
+  {
+    id: "pr3", num: 3,
+    label: "Second Opinion",
+    tooltip: "A different person (not the original coder) reads the note and the coding to check if it looks right.",
+    detailIn: "The original coded note and the reviewer's judgement",
+    detailOut: "Agreement or a flag that something needs fixing",
+  },
+  {
+    id: "pr4", num: 4,
+    label: "They Agree or Flag",
+    tooltip: "The reviewer marks the coding as correct, or flags a problem with a short note explaining what is wrong.",
+    detailIn: "The reviewer's notes",
+    detailOut: "A resolved outcome or an escalation",
+    branches: [
+      {
+        label: "Problem found",
+        description: "If a mistake is found, the task can be escalated for correction before the data is used",
+      },
+    ],
+  },
+  {
+    id: "pr5", num: 5,
+    label: "Quality Logged",
+    tooltip: "The result is saved. It counts towards the overall quality audit for the pipeline.",
+    detailIn: "The peer review outcome",
+    detailOut: "A closed task saved to the audit log",
+  },
+];
+
+const STAGE_CONFIG: Record<string, { stages: TabStage[]; color: string; lightColor: string; label: string }> = {
+  exclusion_conflict: {
+    stages: EXCLUSION_STAGES,
+    color: "#F59E0B",
+    lightColor: "#FFFBEB",
+    label: "Exclusion Conflicts",
+  },
+  peer_review: {
+    stages: PEER_REVIEW_STAGES,
+    color: "#6366F1",
+    lightColor: "#EEF2FF",
+    label: "Peer Review",
+  },
 };
 
 export default function HITLTasksPanel({
@@ -112,8 +220,29 @@ export default function HITLTasksPanel({
     }
   };
 
+  const diagramConfig = STAGE_CONFIG[taskType];
+
   return (
-    <Box sx={{ maxWidth: 1200, mx: "auto", px: 3 }}>
+    <Box sx={{ maxWidth: 1200, mx: "auto", px: 3, py: 3 }}>
+      {/* How this works */}
+      {diagramConfig && (
+        <Accordion variant="outlined" disableGutters sx={{ mb: 3 }}>
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+              How this tab works
+            </Typography>
+          </AccordionSummary>
+          <AccordionDetails sx={{ pt: 0 }}>
+            <TabFlowDiagram
+              stages={diagramConfig.stages}
+              color={diagramConfig.color}
+              lightColor={diagramConfig.lightColor}
+              trackLabel={diagramConfig.label}
+            />
+          </AccordionDetails>
+        </Accordion>
+      )}
+
       <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1}>
         <Box>
           <Typography variant="h6" fontWeight={600}>

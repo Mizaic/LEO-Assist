@@ -1,0 +1,107 @@
+# -- DO-LEO-AI-002 -- NLP Entity Extraction Pipeline
+# ISO 13485 / IEC 62304 Design Output
+# Schema: design-controls/templates/design_outputs_schema.yaml
+
+- id: "DO-LEO-AI-002"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-003", "DI-LEO-AI-005"]
+    user_needs: ["UN-LEO-AI-002"]
+    risks_addressed: ["R-LEO-AI-001", "R-LEO-AI-002", "R-LEO-AI-003", "R-LEO-AI-013", "R-LEO-AI-017"]
+    verification_tests: ["VT-LEO-AI-002"]
+    validation_tests: []
+
+  specification:
+    title: "NLP Entity Extraction Pipeline"
+    description: |
+      Extracts clinical entities from free-text encounter narratives using a
+      spaCy-based NLP pipeline with biomedical NER (scispaCy, medspaCy).
+      Produces structured entity records with span offsets, confidence scores,
+      entity types, negation status, and inter-entity relations. Supports a
+      pluggable extractor registry for domain-specific extraction strategies.
+    purpose: "Provide accurate, traceable entity extraction from clinical text as the foundation for downstream SNOMED coding and analysis"
+    technical_approach: "Composable pipeline using spaCy/scispaCy biomedical NER models, negation detection via negspaCy, and a registry pattern for pluggable extractors"
+    acceptance_criteria:
+      - criterion: "Entity extraction F1 meets threshold on gold-standard data"
+        type: "functional"
+        measurement: "pytest with gold-standard labelled dataset"
+        target: ">= 0.85 F1"
+      - criterion: "All entities include span offsets, confidence, and type"
+        type: "functional"
+        measurement: "Schema validation in unit tests"
+        target: "100% of entities pass schema validation"
+      - criterion: "Single encounter extraction within time limit"
+        type: "performance"
+        measurement: "Wall-clock timing in integration tests"
+        target: "<= 2 seconds per encounter"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/coding_worker/app/pipeline/pipeline_service.py"
+        description: "Main NLP pipeline orchestrator that runs extraction stages"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/coding_worker/app/pipeline/extractor_registry.py"
+        description: "Registry for pluggable entity extractors"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "libs/ner/context_detector.py"
+        description: "Context and negation detection for extracted entities"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "libs/ner/relation_builder.py"
+        description: "Builds relations between co-occurring entities"
+        storage_location: "git"
+    technical_details:
+      language: ["Python 3.11"]
+      framework: ["FastAPI"]
+      libraries:
+        - name: "spacy"
+          version: "3.x"
+          purpose: "Core NLP pipeline framework"
+        - name: "scispacy"
+          version: "0.5.x"
+          purpose: "Biomedical NER models"
+        - name: "medspacy"
+          version: "1.x"
+          purpose: "Clinical NLP components"
+        - name: "negspacy"
+          version: "1.x"
+          purpose: "Negation detection"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions: ["Entity span offset accuracy", "Negation detection", "Confidence scoring"]
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false
+
+  production_information:
+    deployment_instructions: "Deployed as part of the coding-worker container via Azure Container Apps"
+
+  documentation:
+    design_documentation: []
+    inline_documentation:
+      follows_standards: true
+
+  approval:
+    created_by: "Engineering Team"
+    created_date: "2026-03-01"
+
+  version_history:
+    - version: "1.0.0"
+      date: "2026-03-01"
+      changes: "Initial creation"
+      reason: "Implement DI-LEO-AI-003 and DI-LEO-AI-005"
+      author: "Engineering Team"
+      approval_status: "draft"
+
+  metadata:
+    tags: ["nlp", "ner", "entity-extraction", "coding-pipeline"]
+    priority: "high"
+    complexity: "complex"
