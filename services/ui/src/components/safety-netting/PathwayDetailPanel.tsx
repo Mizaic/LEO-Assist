@@ -17,7 +17,7 @@ import type { PathwayRisk } from "@/lib/pathwayRisk";
 import type { SafetyNetWorklistRow } from "@/components/safety-netting/PatientPathwayWorklist";
 import { daysBetween } from "@/lib/pathwayRisk";
 
-const SEVERITY_COLORS: Record<string, "error" | "warning" | "info" | "default"> = {
+const SEVERITY_COLORS: Record<string, "error" | "warning" | "info"> = {
   critical: "error",
   high: "error",
   alert: "error",

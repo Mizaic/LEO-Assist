@@ -35,7 +35,14 @@ const ANALYTICS_BASE = PROXY_BASE;
 const FHIR_BASE = PROXY_BASE;
 
 async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(url, { ...init, credentials: "include" as RequestCredentials });
+  const res = await fetch(url, {
+    ...init,
+    credentials: "include" as RequestCredentials,
+    headers: {
+      "X-Requested-With": "XMLHttpRequest",
+      ...(init?.headers ?? {}),
+    },
+  });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error((err as { detail?: string }).detail || `Request failed (${res.status})`);

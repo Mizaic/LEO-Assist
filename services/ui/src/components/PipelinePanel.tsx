@@ -235,7 +235,14 @@ export default function PipelinePanel({
   const [busyAction, setBusyAction] = useState<ActionKind | null>(null);
 
   const jsonFetch = async <T,>(url: string, options?: RequestInit): Promise<T> => {
-    const r = await fetch(url, { credentials: "include", ...options });
+    const r = await fetch(url, {
+      credentials: "include",
+      ...options,
+      headers: {
+        "X-Requested-With": "XMLHttpRequest",
+        ...(options?.headers ?? {}),
+      },
+    });
     if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
     return r.json() as Promise<T>;
   };

@@ -85,7 +85,7 @@ export default function DiagnosedByTypeChart({ data }: { data: DataItem[] }) {
         />
             <YAxis tick={{ fontSize: 11, fill: "#374151" }} allowDecimals={false} />
             <Tooltip
-              formatter={(v: number) => [v, "Confirmed diagnoses"]}
+              formatter={(value) => [value ?? 0, "Confirmed diagnoses"]}
             />
             <Bar dataKey="count" name="Confirmed diagnoses" radius={[3, 3, 0, 0]}>
               {chartData.map((_, i) => (

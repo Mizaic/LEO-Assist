@@ -17,11 +17,18 @@ import {
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import TabFlowDiagram, { type TabStage } from "@/components/operations/TabFlowDiagram";
+import TermSearch from "@/components/TermSearch";
+import type { TermSearchResult } from "@/lib/types";
 
 const jsonFetch = async <T,>(url: string, init?: RequestInit): Promise<T> => {
   const res = await fetch(url, {
     ...init,
-    headers: { "Content-Type": "application/json", ...init?.headers },
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Requested-With": "XMLHttpRequest",
+      ...init?.headers,
+    },
   });
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
   return res.json() as Promise<T>;
@@ -59,13 +66,6 @@ interface QueueResponse {
   total_pages: number;
   pending: number;
   stats: CodingStats;
-}
-
-interface TermCandidate {
-  snomed_concept_id: string;
-  snomed_term: string;
-  score: number;
-  semantic_tag: string;
 }
 
 const CODING_STAGES: TabStage[] = [
@@ -128,12 +128,15 @@ export default function CodingReviewPanel() {
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [resolvingId, setResolvingId] = useState<string | null>(null);
+  const [creatingRuleId, setCreatingRuleId] = useState<string | null>(null);
 
-  const [lookupResults, setLookupResults] = useState<Record<string, TermCandidate[]>>({});
-  const [lookupLoading, setLookupLoading] = useState<Record<string, boolean>>({});
   const [manualConceptId, setManualConceptId] = useState<Record<string, string>>({});
   const [manualTerm, setManualTerm] = useState<Record<string, string>>({});
+  const [manualSpanText, setManualSpanText] = useState<Record<string, string>>({});
+  const [contextContains, setContextContains] = useState<Record<string, string>>({});
+  const [searchReviewId, setSearchReviewId] = useState<string | null>(null);
 
   const fetchQueue = useCallback(async () => {
     setLoading(true);
@@ -155,32 +158,25 @@ export default function CodingReviewPanel() {
     fetchQueue();
   }, [fetchQueue]);
 
-  const handleLookup = async (item: CodingReviewItem) => {
-    setLookupLoading((prev) => ({ ...prev, [item.review_id]: true }));
-    try {
-      const data = await jsonFetch<{ results: Record<string, TermCandidate[]> }>(
-        "/api/terminology/resolve",
-        { method: "POST", body: JSON.stringify({ terms: [item.entity_text] }) }
-      );
-      const candidates = data.results?.[item.entity_text] ?? [];
-      setLookupResults((prev) => ({ ...prev, [item.review_id]: candidates }));
-    } catch {
-      setLookupResults((prev) => ({ ...prev, [item.review_id]: [] }));
-    } finally {
-      setLookupLoading((prev) => ({ ...prev, [item.review_id]: false }));
-    }
+  const handleSelectTermSearchResult = (reviewId: string, result: TermSearchResult) => {
+    setManualConceptId((prev) => ({ ...prev, [reviewId]: result.snomed_concept_id }));
+    setManualTerm((prev) => ({ ...prev, [reviewId]: result.term }));
+    setSearchReviewId(null);
   };
 
-  const handleSelectCandidate = (reviewId: string, candidate: TermCandidate) => {
-    setManualConceptId((prev) => ({ ...prev, [reviewId]: candidate.snomed_concept_id }));
-    setManualTerm((prev) => ({ ...prev, [reviewId]: candidate.snomed_term }));
-  };
+  const getSpanText = (item: CodingReviewItem): string =>
+    (manualSpanText[item.review_id] ?? item.entity_text ?? "").trim();
 
   const handleResolve = async (item: CodingReviewItem) => {
     const conceptId = manualConceptId[item.review_id] || item.snomed_concept_id || "";
     const term = manualTerm[item.review_id] || item.snomed_term || "";
+    const resolvedSpanText = getSpanText(item);
     if (!conceptId || !term) {
       setError("Select or enter a SNOMED concept before resolving");
+      return;
+    }
+    if (!resolvedSpanText) {
+      setError("Entity span cannot be empty");
       return;
     }
     setResolvingId(item.review_id);
@@ -190,6 +186,7 @@ export default function CodingReviewPanel() {
         body: JSON.stringify({
           resolved_concept_id: conceptId,
           resolved_term: term,
+          resolved_entity_text: resolvedSpanText,
           reviewer: "operations_ui",
         }),
       });
@@ -203,6 +200,53 @@ export default function CodingReviewPanel() {
       setError(e instanceof Error ? e.message : "Failed to resolve coding review");
     } finally {
       setResolvingId(null);
+    }
+  };
+
+  const handleCreateIgnoreRule = async (item: CodingReviewItem) => {
+    const spanText = getSpanText(item);
+    if (!spanText) {
+      setError("Entity text cannot be empty to create an ignore rule");
+      return;
+    }
+
+    const contextPhrase = (contextContains[item.review_id] ?? "").trim();
+    const escaped = contextPhrase.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const contextRegex = contextPhrase ? `(?i)${escaped}` : null;
+
+    setCreatingRuleId(item.review_id);
+    try {
+      await jsonFetch("/api/training/post-processor-rules", {
+        method: "POST",
+        body: JSON.stringify({
+          action: "suppress",
+          match_text: spanText,
+          match_label: item.entity_label,
+          context_regex: contextRegex,
+          priority: 50,
+          notes: `Created from coding review ${item.review_id}`,
+          created_by: "operations_ui",
+          active: true,
+        }),
+      });
+      await jsonFetch(`/api/training/coding-review/${item.review_id}/ignore`, {
+        method: "POST",
+        body: JSON.stringify({ reviewer: "operations_ui" }),
+      });
+      // Hide the current queue item immediately after rule creation so users
+      // can continue working without manually refreshing.
+      setItems((prev) => prev.filter((i) => i.review_id !== item.review_id));
+      setStats((s) => ({
+        ...s,
+        pending: Math.max(0, s.pending - 1),
+        uncoded: item.coded ? s.uncoded : Math.max(0, s.uncoded - 1),
+        low_confidence: item.coded ? Math.max(0, s.low_confidence - 1) : s.low_confidence,
+      }));
+      setSuccess("Ignore rule created. Re-run label verification to apply it to new items.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not create ignore rule");
+    } finally {
+      setCreatingRuleId(null);
     }
   };
 
@@ -255,6 +299,11 @@ export default function CodingReviewPanel() {
           {error}
         </Alert>
       )}
+      {success && (
+        <Alert severity="success" onClose={() => setSuccess(null)} sx={{ mb: 2 }}>
+          {success}
+        </Alert>
+      )}
 
       {loading && (
         <Paper variant="outlined" sx={{ p: 3, textAlign: "center", mb: 2 }}>
@@ -264,10 +313,9 @@ export default function CodingReviewPanel() {
 
       <Stack spacing={2}>
         {items.map((item) => {
-          const candidates = lookupResults[item.review_id] ?? [];
-          const isLookingUp = lookupLoading[item.review_id] ?? false;
           const selectedConcept = manualConceptId[item.review_id] || "";
           const selectedTerm = manualTerm[item.review_id] || "";
+          const selectedSpanText = manualSpanText[item.review_id] ?? item.entity_text;
 
           return (
             <Paper key={item.review_id} variant="outlined" sx={{ p: 2 }}>
@@ -290,7 +338,7 @@ export default function CodingReviewPanel() {
 
               <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
                 <Typography variant="subtitle2">Entity:</Typography>
-                <Chip label={item.entity_text} color="primary" size="small" />
+                <Chip label={selectedSpanText} color="primary" size="small" />
                 {item.snomed_concept_id && (
                   <Typography variant="caption" color="text.secondary">
                     Best match: {item.snomed_term} ({item.snomed_concept_id}) score={item.score?.toFixed(2)}
@@ -299,45 +347,51 @@ export default function CodingReviewPanel() {
               </Stack>
 
               <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
+                <TextField
+                  size="small"
+                  label="Entity span"
+                  value={selectedSpanText}
+                  onChange={(e) =>
+                    setManualSpanText((prev) => ({ ...prev, [item.review_id]: e.target.value }))
+                  }
+                  helperText="Edit to increase or trim the extracted span"
+                  sx={{ minWidth: 320, flex: 1 }}
+                />
                 <Button
                   size="small"
                   variant="outlined"
-                  onClick={() => handleLookup(item)}
-                  disabled={isLookingUp}
+                  onClick={() => setSearchReviewId(item.review_id)}
                 >
-                  {isLookingUp ? "Searching..." : "Search terminology"}
+                  Search terminology
                 </Button>
               </Stack>
 
-              {candidates.length > 0 && (
-                <Stack spacing={0.5} sx={{ mb: 1, pl: 1 }}>
-                  {candidates.slice(0, 5).map((c) => (
-                    <Stack
-                      key={c.snomed_concept_id}
-                      direction="row"
-                      spacing={1}
-                      alignItems="center"
-                      sx={{
-                        cursor: "pointer",
-                        p: 0.5,
-                        borderRadius: 1,
-                        bgcolor: selectedConcept === c.snomed_concept_id ? "primary.50" : "transparent",
-                        "&:hover": { bgcolor: "grey.100" },
-                      }}
-                      onClick={() => handleSelectCandidate(item.review_id, c)}
-                    >
-                      <Typography variant="body2" sx={{ fontWeight: selectedConcept === c.snomed_concept_id ? 700 : 400 }}>
-                        {c.snomed_term}
-                      </Typography>
-                      <Chip label={c.snomed_concept_id} size="small" variant="outlined" />
-                      <Chip label={c.semantic_tag} size="small" />
-                      <Typography variant="caption" color="text.secondary">
-                        score={c.score.toFixed(2)}
-                      </Typography>
-                    </Stack>
-                  ))}
-                </Stack>
-              )}
+              <Stack
+                direction={{ xs: "column", md: "row" }}
+                spacing={1}
+                alignItems={{ xs: "stretch", md: "center" }}
+                sx={{ mb: 1 }}
+              >
+                <TextField
+                  size="small"
+                  label="Context contains (optional)"
+                  value={contextContains[item.review_id] ?? ""}
+                  onChange={(e) =>
+                    setContextContains((prev) => ({ ...prev, [item.review_id]: e.target.value }))
+                  }
+                  helperText='Example: "await chest xray"'
+                  sx={{ minWidth: 260, flex: 1 }}
+                />
+                <Button
+                  size="small"
+                  variant="outlined"
+                  color="error"
+                  onClick={() => handleCreateIgnoreRule(item)}
+                  disabled={creatingRuleId === item.review_id}
+                >
+                  {creatingRuleId === item.review_id ? "Creating rule..." : "Create ignore rule"}
+                </Button>
+              </Stack>
 
               <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
                 <TextField
@@ -387,6 +441,20 @@ export default function CodingReviewPanel() {
           Next
         </Button>
       </Stack>
+
+      {searchReviewId && (
+        <TermSearch
+          initialQuery={
+            (() => {
+              const active = items.find((i) => i.review_id === searchReviewId);
+              return active ? getSpanText(active) : "";
+            })()
+          }
+          onSelect={(result) => handleSelectTermSearchResult(searchReviewId, result)}
+          onClose={() => setSearchReviewId(null)}
+          onCorrection={() => undefined}
+        />
+      )}
     </Box>
   );
 }

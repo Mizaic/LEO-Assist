@@ -910,7 +910,7 @@ export function QueryBuilder({
                               <CartesianGrid strokeDasharray={chartTheme.grid.strokeDasharray} stroke={chartTheme.grid.stroke} />
                               <XAxis dataKey="name" tick={{ fontSize: 11 }} />
                               <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `${v}%`} domain={[0, 100]} />
-                              <Tooltip formatter={(v: number, name: string) => [`${v}%`, name]} />
+                              <Tooltip formatter={(value, name) => [`${value ?? 0}%`, name]} />
                               <Legend />
                               {stackKeys.map((key, i) => (
                                 <Bar key={key} dataKey={key} stackId="a" fill={getSeriesColor(i)} radius={i === stackKeys.length - 1 ? chartTheme.bar.radius : 0} />

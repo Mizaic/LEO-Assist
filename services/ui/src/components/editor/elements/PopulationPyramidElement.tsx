@@ -133,10 +133,10 @@ export function PopulationPyramidElement({ element }: PopulationPyramidElementPr
                 />
                 <YAxis dataKey="ageBand" type="category" width={60} tickMargin={5} />
                 <Tooltip
-                  formatter={((value: number, name: string) => [
-                    Math.abs(value),
+                  formatter={(value, name) => [
+                    Math.abs(Number(value ?? 0)),
                     name === 'male' ? 'Male' : 'Female',
-                  ]) as any}
+                  ]}
                 />
                 <Legend verticalAlign="bottom" height={24} />
                 <ReferenceLine x={0} stroke="#000" />
