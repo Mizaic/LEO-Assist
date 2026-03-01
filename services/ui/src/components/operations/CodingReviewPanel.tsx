@@ -16,6 +16,7 @@ import {
   Typography,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import RefreshIcon from "@mui/icons-material/Refresh";
 import TabFlowDiagram, { type TabStage } from "@/components/operations/TabFlowDiagram";
 import TermSearch from "@/components/TermSearch";
 import type { TermSearchResult } from "@/lib/types";
@@ -137,6 +138,9 @@ export default function CodingReviewPanel() {
   const [manualSpanText, setManualSpanText] = useState<Record<string, string>>({});
   const [contextContains, setContextContains] = useState<Record<string, string>>({});
   const [searchReviewId, setSearchReviewId] = useState<string | null>(null);
+  const [lastChecked, setLastChecked] = useState<Date | null>(null);
+  const [rechecking, setRechecking] = useState(false);
+  const [recheckResult, setRecheckResult] = useState<{ rechecked: number; auto_resolved: number } | null>(null);
 
   const fetchQueue = useCallback(async () => {
     setLoading(true);
@@ -147,12 +151,30 @@ export default function CodingReviewPanel() {
       setItems(data.items);
       setStats(data.stats);
       setTotalPages(data.total_pages);
+      setLastChecked(new Date());
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load coding review queue");
     } finally {
       setLoading(false);
     }
   }, [page, pageSize]);
+
+  const recheckList = useCallback(async () => {
+    setRechecking(true);
+    setRecheckResult(null);
+    try {
+      const result = await jsonFetch<{ rechecked: number; auto_resolved: number }>(
+        "/api/training/coding-review/recheck",
+        { method: "POST" }
+      );
+      setRecheckResult(result);
+      setPage(1);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Recheck failed. The terminology server may be unavailable.");
+    } finally {
+      setRechecking(false);
+    }
+  }, []);
 
   useEffect(() => {
     fetchQueue();
@@ -285,14 +307,37 @@ export default function CodingReviewPanel() {
         </AccordionDetails>
       </Accordion>
 
-      <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mb: 2 }}>
+      <Stack direction="row" spacing={1} flexWrap="wrap" alignItems="center" sx={{ mb: 2 }}>
         {summaryChips.map((chip) => (
           <Chip key={chip.label} label={chip.label} color={chip.color} size="small" />
         ))}
-        <Button size="small" variant="outlined" onClick={fetchQueue}>
-          Refresh
+        <Button
+          size="small"
+          variant="contained"
+          startIcon={rechecking ? <CircularProgress size={14} color="inherit" /> : <RefreshIcon />}
+          onClick={recheckList}
+          disabled={rechecking || loading}
+        >
+          {rechecking ? "Rechecking..." : "Recheck list"}
         </Button>
+        {lastChecked && (
+          <Typography variant="caption" color="text.secondary">
+            Last checked {lastChecked.toLocaleTimeString()}
+          </Typography>
+        )}
       </Stack>
+
+      {recheckResult && (
+        <Alert
+          severity={recheckResult.auto_resolved > 0 ? "success" : "info"}
+          onClose={() => setRecheckResult(null)}
+          sx={{ mb: 2 }}
+        >
+          {recheckResult.auto_resolved > 0
+            ? `${recheckResult.auto_resolved} item${recheckResult.auto_resolved !== 1 ? "s" : ""} resolved automatically. ${recheckResult.rechecked - recheckResult.auto_resolved} still need review.`
+            : `Checked ${recheckResult.rechecked} item${recheckResult.rechecked !== 1 ? "s" : ""}. None resolved automatically - the list is up to date.`}
+        </Alert>
+      )}
 
       {error && (
         <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>

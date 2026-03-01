@@ -42,11 +42,14 @@ from libs.cypher.training_label_queries import (
     UPDATE_TRAINING_LABEL_ENTITIES,
 )
 from libs.cypher.coding_review_queries import (
+    AUTO_RESOLVE_CODING_REVIEW,
     COUNT_CODING_REVIEW_PENDING,
     GET_CODING_REVIEW_QUEUE,
     GET_CODING_REVIEW_STATS,
+    GET_PENDING_FOR_RECHECK,
     IGNORE_CODING_REVIEW,
     RESOLVE_CODING_REVIEW,
+    UPDATE_CODING_REVIEW_FIELDS,
 )
 from libs.cypher.label_verification_queries import (
     COUNT_VERIFICATION_HISTORY,
@@ -1070,6 +1073,106 @@ def ignore_coding_review(
         return {"review_id": result["review_id"], "status": "ignored"}
     finally:
         client.close()
+
+
+_RECHECK_BATCH_LIMIT = 500
+_RECHECK_THRESHOLD = float(__import__("os").getenv("CODING_REVIEW_SCORE_THRESHOLD", "0.70"))
+_TERMINOLOGY_URL = __import__("os").getenv("TERMINOLOGY_API_URL", "http://localhost:8001").rstrip("/")
+
+
+def _call_terminology_batch(terms: list[str]) -> dict[str, list]:
+    """POST a batch of terms to the terminology resolve endpoint.
+
+    Returns the results map keyed by term text, or raises HTTPException on failure.
+    """
+    import httpx
+
+    try:
+        with httpx.Client(timeout=30) as http:
+            resp = http.post(f"{_TERMINOLOGY_URL}/terminology/resolve", json={"terms": terms})
+            resp.raise_for_status()
+            return (resp.json() or {}).get("results") or {}
+    except Exception:
+        logger.warning("Terminology API unavailable during recheck", exc_info=True)
+        raise HTTPException(status_code=503, detail="Terminology server unavailable. Try again shortly.")
+
+
+def _apply_recheck_results(
+    session,
+    pending: list[dict],
+    results_map: dict,
+) -> int:
+    """Update each CodingReview node with fresh scores; auto-resolve those above threshold.
+
+    Returns the count of items auto-resolved by this run.
+    """
+    auto_resolved = 0
+    for item in pending:
+        entity_text = item.get("entity_text", "")
+        candidates = results_map.get(entity_text) or []
+        top = candidates[0] if candidates and isinstance(candidates[0], dict) else {}
+        concept_id = str(top.get("snomed_concept_id") or "")
+        term = str(top.get("snomed_term") or "")
+        raw_score = top.get("score")
+        score = float(raw_score) if raw_score is not None else None
+        semantic_tag = str(top.get("semantic_tag") or "")
+        coded = bool(concept_id)
+
+        session.run(
+            UPDATE_CODING_REVIEW_FIELDS,
+            review_id=item["review_id"],
+            coded=coded,
+            snomed_concept_id=concept_id if coded else None,
+            snomed_term=term if coded else None,
+            score=score if coded else None,
+            semantic_tag=semantic_tag if coded else None,
+        )
+
+        if coded and score is not None and score >= _RECHECK_THRESHOLD:
+            session.run(
+                AUTO_RESOLVE_CODING_REVIEW,
+                review_id=item["review_id"],
+                concept_id=concept_id,
+                term=term,
+            )
+            auto_resolved += 1
+
+    return auto_resolved
+
+
+@router.post("/coding-review/recheck")
+def recheck_coding_review(
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    """Re-run terminology resolution for all pending coding review items.
+
+    Calls the terminology API with the current entity texts.
+    Items whose new score clears the confidence threshold are auto-resolved.
+    Returns the count of items rechecked and auto-resolved.
+    """
+    client = PatientGraphClient()
+    try:
+        with client.session() as session:
+            rows = session.run(GET_PENDING_FOR_RECHECK, limit=_RECHECK_BATCH_LIMIT)
+            pending = [dict(r) for r in rows]
+    finally:
+        client.close()
+
+    if not pending:
+        return {"rechecked": 0, "auto_resolved": 0}
+
+    terms = list({r["entity_text"] for r in pending if r.get("entity_text")})
+    results_map = _call_terminology_batch(terms)
+
+    client = PatientGraphClient()
+    try:
+        with client.session() as session:
+            auto_resolved = _apply_recheck_results(session, pending, results_map)
+    finally:
+        client.close()
+
+    logger.info("Coding review recheck: %d rechecked, %d auto-resolved", len(pending), auto_resolved)
+    return {"rechecked": len(pending), "auto_resolved": auto_resolved}
 
 
 @router.get("/coding-review/stats")
