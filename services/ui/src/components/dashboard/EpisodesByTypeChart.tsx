@@ -100,7 +100,10 @@ export default function EpisodesByTypeChart({ data }: { data: DataItem[] }) {
         />
             <YAxis tick={{ fontSize: 11, fill: "#374151" }} allowDecimals={false} />
             <Tooltip
-              formatter={(v: number, name: string) => [v, name === "open" ? "Active referrals" : "Closed referrals"]}
+              formatter={(value, name) => [
+                value ?? 0,
+                name === "open" ? "Active referrals" : "Closed referrals",
+              ]}
             />
             <Legend
               wrapperStyle={{ fontSize: 12, paddingTop: 8 }}

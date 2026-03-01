@@ -45,6 +45,19 @@ class TestDetectAssertion:
         end = start + len("infection")
         assert detect_assertion(text, start, end) == "absent"
 
+    def test_negation_scope_covers_slash_separated_list(self) -> None:
+        """GP pattern: 'no X/ Y/ Z' means all listed items are negated."""
+        text = "No red flags - no weight loss/ haematemesis/ jaundice/ fever/ malaena"
+        entities = [
+            ("weight loss", text.index("weight loss"), text.index("weight loss") + len("weight loss")),
+            ("haematemesis", text.index("haematemesis"), text.index("haematemesis") + len("haematemesis")),
+            ("jaundice", text.index("jaundice"), text.index("jaundice") + len("jaundice")),
+            ("fever", text.index("fever"), text.index("fever") + len("fever")),
+            ("malaena", text.index("malaena"), text.index("malaena") + len("malaena")),
+        ]
+        for name, start, end in entities:
+            assert detect_assertion(text, start, end) == "absent", f"{name} should be absent"
+
     def test_historical_detected(self) -> None:
         text = "History of previous DVT."
         start = text.index("DVT")

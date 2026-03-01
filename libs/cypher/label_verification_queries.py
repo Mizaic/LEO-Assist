@@ -103,11 +103,44 @@ SKIP $skip
 LIMIT $limit
 """
 
+GET_VERIFICATION_HISTORY = """
+MATCH (r:LabelVerificationReview)-[:REVIEWS_LABEL]->(t:TrainingLabel)
+WHERE coalesce(r.resolved, false) = true
+  AND t.include = true
+RETURN
+    r.review_id               AS review_id,
+    r.label_id                AS label_id,
+    r.entity_index            AS entity_index,
+    r.entity_text             AS entity_text,
+    r.current_label           AS current_label,
+    r.model_a_label           AS model_a_label,
+    r.model_a_rationale       AS model_a_rationale,
+    r.model_b_label           AS model_b_label,
+    r.model_b_rationale       AS model_b_rationale,
+    r.resolved_label          AS resolved_label,
+    r.resolved_by             AS resolved_by,
+    toString(r.resolved_at)   AS resolved_at,
+    toString(r.created_at)    AS created_at,
+    t.text                    AS text,
+    t.entities_json           AS entities_json,
+    t.source                  AS source
+ORDER BY r.resolved_at DESC, r.review_id ASC
+SKIP $skip
+LIMIT $limit
+"""
+
 COUNT_VERIFICATION_QUEUE_PENDING = """
 MATCH (r:LabelVerificationReview)-[:REVIEWS_LABEL]->(t:TrainingLabel)
 WHERE coalesce(r.resolved, false) = false
   AND t.include = true
 RETURN count(r) AS pending
+"""
+
+COUNT_VERIFICATION_HISTORY = """
+MATCH (r:LabelVerificationReview)-[:REVIEWS_LABEL]->(t:TrainingLabel)
+WHERE coalesce(r.resolved, false) = true
+  AND t.include = true
+RETURN count(r) AS total
 """
 
 GET_VERIFICATION_STATS = """

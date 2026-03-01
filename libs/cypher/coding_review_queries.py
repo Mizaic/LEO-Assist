@@ -38,6 +38,16 @@ SET cr.resolved             = true,
 RETURN cr.review_id AS review_id
 """
 
+IGNORE_CODING_REVIEW = """
+MATCH (cr:CodingReview {review_id: $review_id})
+SET cr.resolved             = true,
+    cr.resolved_by          = $reviewer,
+    cr.resolved_term        = coalesce(cr.resolved_term, "__ignored_by_rule__"),
+    cr.resolved_at          = datetime(),
+    cr.updated_at           = datetime()
+RETURN cr.review_id AS review_id
+"""
+
 GET_CODING_REVIEW_QUEUE = """
 MATCH (cr:CodingReview)-[:REVIEWS_CODING]->(t:TrainingLabel)
 WHERE cr.resolved = false

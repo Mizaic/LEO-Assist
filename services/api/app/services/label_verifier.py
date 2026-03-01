@@ -949,6 +949,7 @@ def _check_terminology_coding(
     codeable = [
         (i, e) for i, e in enumerate(entities)
         if str(e.get("label", "")) in _CODEABLE_LABELS
+        and str(e.get("assertion", "present")).strip().lower() != "absent"
         and str(e.get("text", "")).strip()
     ]
     if not codeable:

@@ -34,6 +34,9 @@ interface LabelVerificationReview {
   text: string;
   entities_json?: string;
   source: string;
+  resolved_label?: string | null;
+  resolved_by?: string | null;
+  resolved_at?: string | null;
 }
 
 interface VerificationStats {
@@ -59,11 +62,11 @@ interface VerifyAllStatus {
 interface QueueResponse {
   reviews: LabelVerificationReview[];
   total: number;
-  pending: number;
+  pending?: number;
   page: number;
   page_size: number;
   total_pages: number;
-  stats: VerificationStats;
+  stats?: VerificationStats;
 }
 
 interface LabelEntity {
@@ -107,7 +110,12 @@ const VALID_ENTITY_LABELS = [
 async function jsonFetch<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, {
     ...init,
-    headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Requested-With": "XMLHttpRequest",
+      ...(init?.headers ?? {}),
+    },
   });
   if (!res.ok) {
     const text = await res.text().catch(() => res.statusText);
@@ -165,6 +173,7 @@ const LABEL_STAGES: TabStage[] = [
 ];
 
 export default function LabelVerificationPanel() {
+  const [viewMode, setViewMode] = useState<"queue" | "history">("queue");
   const [reviews, setReviews] = useState<LabelVerificationReview[]>([]);
   const [stats, setStats] = useState<VerificationStats>({
     total_labels: 0,
@@ -197,8 +206,12 @@ export default function LabelVerificationPanel() {
   const fetchQueue = useCallback(async () => {
     setLoading(true);
     try {
+      const endpoint =
+        viewMode === "history"
+          ? `/api/training/labels/verification-history?page=${page}&page_size=${pageSize}`
+          : `/api/training/labels/verification-queue?page=${page}&page_size=${pageSize}`;
       const data = await jsonFetch<QueueResponse>(
-        `/api/training/labels/verification-queue?page=${page}&page_size=${pageSize}`
+        endpoint
       );
       setReviews(data.reviews);
       setStats(
@@ -212,9 +225,11 @@ export default function LabelVerificationPanel() {
       );
       setPendingCount(data.pending ?? 0);
       setTotalPages(Math.max(1, data.total_pages ?? 1));
-      const status = await jsonFetch<VerifyAllStatus>("/api/training/labels/verify-all/status");
-      setVerifyStatus(status);
-      setAutoResolvedCount(status.auto_resolved ?? 0);
+      if (viewMode === "queue") {
+        const status = await jsonFetch<VerifyAllStatus>("/api/training/labels/verify-all/status");
+        setVerifyStatus(status);
+        setAutoResolvedCount(status.auto_resolved ?? 0);
+      }
 
       const nextSelected: Record<string, string> = {};
       const nextSpans: Record<string, string> = {};
@@ -246,15 +261,19 @@ export default function LabelVerificationPanel() {
       setNewSpanText(nextNewSpanText);
       setNewSpanLabel(nextNewSpanLabel);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not load verification queue");
+      setError(e instanceof Error ? e.message : "Could not load label review data");
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize]);
+  }, [page, pageSize, viewMode]);
 
   useEffect(() => {
     fetchQueue();
   }, [fetchQueue]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [viewMode]);
 
   const handleResolve = async (review: LabelVerificationReview) => {
     const resolvedLabel = selectedLabels[review.review_id] || review.current_label;
@@ -332,33 +351,39 @@ export default function LabelVerificationPanel() {
   };
 
   const summaryChips = useMemo(
-    () => [
-      { label: `Total labels: ${stats.total_labels.toLocaleString()}` },
-      { label: `Verified: ${stats.verified_labels.toLocaleString()}` },
-      { label: `Agreements: ${stats.agreements.toLocaleString()}` },
-      { label: `Disagreements: ${stats.disagreements.toLocaleString()}` },
-      { label: `Pending HITL: ${pendingCount.toLocaleString()}`, color: "warning" as const },
-      { label: `Auto-resolved: ${autoResolvedCount.toLocaleString()}`, color: "success" as const },
-      ...(verifyStatus?.status === "running" || verifyStatus?.status === "stopping"
+    () =>
+      viewMode === "history"
         ? [
-            { label: `Progress: ${(verifyStatus.progress_pct ?? 0).toFixed(1)}%`, color: "primary" as const },
-            { label: `Remaining: ${(verifyStatus.remaining ?? 0).toLocaleString()}`, color: "primary" as const },
-            {
-              label: `ETA: ${typeof verifyStatus.eta_seconds === "number" ? `${Math.max(0, Math.round(verifyStatus.eta_seconds / 60))}m` : "unknown"}`,
-              color: "primary" as const,
-            },
-            {
-              label: `Finish: ${
-                typeof verifyStatus.eta_at === "number"
-                  ? new Date(verifyStatus.eta_at * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-                  : "unknown"
-              }`,
-              color: "primary" as const,
-            },
+            { label: `History items: ${reviews.length.toLocaleString()}` },
+            { label: `Page: ${page} / ${totalPages}` },
           ]
-        : []),
-    ],
-    [autoResolvedCount, pendingCount, stats, verifyStatus]
+        : [
+            { label: `Total labels: ${stats.total_labels.toLocaleString()}` },
+            { label: `Verified: ${stats.verified_labels.toLocaleString()}` },
+            { label: `Agreements: ${stats.agreements.toLocaleString()}` },
+            { label: `Disagreements: ${stats.disagreements.toLocaleString()}` },
+            { label: `Pending HITL: ${pendingCount.toLocaleString()}`, color: "warning" as const },
+            { label: `Auto-resolved: ${autoResolvedCount.toLocaleString()}`, color: "success" as const },
+            ...(verifyStatus?.status === "running" || verifyStatus?.status === "stopping"
+              ? [
+                  { label: `Progress: ${(verifyStatus.progress_pct ?? 0).toFixed(1)}%`, color: "primary" as const },
+                  { label: `Remaining: ${(verifyStatus.remaining ?? 0).toLocaleString()}`, color: "primary" as const },
+                  {
+                    label: `ETA: ${typeof verifyStatus.eta_seconds === "number" ? `${Math.max(0, Math.round(verifyStatus.eta_seconds / 60))}m` : "unknown"}`,
+                    color: "primary" as const,
+                  },
+                  {
+                    label: `Finish: ${
+                      typeof verifyStatus.eta_at === "number"
+                        ? new Date(verifyStatus.eta_at * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+                        : "unknown"
+                    }`,
+                    color: "primary" as const,
+                  },
+                ]
+              : []),
+          ],
+    [autoResolvedCount, page, pendingCount, reviews.length, stats, totalPages, verifyStatus, viewMode]
   );
 
   const parseEntities = (raw?: string): LabelEntity[] => {
@@ -465,12 +490,13 @@ export default function LabelVerificationPanel() {
     }
   };
 
-  const handleStartVerification = async (mode: "all" | "hitl_only", resetPending = false) => {
+  const handleStartVerification = async (mode: "all" | "hitl_only" | "resume", resetPending = false) => {
     setStartingVerify(true);
     try {
+      const apiMode = mode === "resume" ? "hitl_only" : mode;
       await jsonFetch("/api/training/labels/verify-all", {
         method: "POST",
-        body: JSON.stringify({ mode, reset_pending: resetPending }),
+        body: JSON.stringify({ mode: apiMode, reset_pending: resetPending }),
       });
       await fetchQueue();
     } catch (e) {
@@ -526,6 +552,20 @@ export default function LabelVerificationPanel() {
       )}
 
       <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mb: 2 }}>
+        <Button
+          variant={viewMode === "queue" ? "contained" : "outlined"}
+          size="small"
+          onClick={() => setViewMode("queue")}
+        >
+          Pending
+        </Button>
+        <Button
+          variant={viewMode === "history" ? "contained" : "outlined"}
+          size="small"
+          onClick={() => setViewMode("history")}
+        >
+          History
+        </Button>
         {summaryChips.map((chip) => (
           <Chip key={chip.label} label={chip.label} color={chip.color ?? "default"} size="small" />
         ))}
@@ -535,6 +575,8 @@ export default function LabelVerificationPanel() {
         <Button variant="outlined" size="small" onClick={fetchQueue} disabled={loading}>
           Refresh
         </Button>
+        {viewMode === "queue" && (
+          <>
         <Button
           variant="outlined"
           size="small"
@@ -568,6 +610,8 @@ export default function LabelVerificationPanel() {
         >
           Stop verify
         </Button>
+          </>
+        )}
       </Stack>
 
       {loading && (
@@ -579,7 +623,7 @@ export default function LabelVerificationPanel() {
       {!loading && reviews.length === 0 && (
         <Paper variant="outlined" sx={{ p: 3, textAlign: "center", mb: 2 }}>
           <Typography variant="body2" color="text.secondary">
-            No pending disagreements.
+            {viewMode === "history" ? "No resolved items in history yet." : "No pending disagreements."}
           </Typography>
         </Paper>
       )}
@@ -693,11 +737,20 @@ export default function LabelVerificationPanel() {
               </Paper>
             </Stack>
 
-            <Stack
-              direction={{ xs: "column", md: "row" }}
-              spacing={1}
-              alignItems={{ xs: "stretch", md: "center" }}
-            >
+            {viewMode === "history" && (
+              <Alert severity="info" sx={{ mb: 1.25 }}>
+                Resolved as <strong>{review.resolved_label ?? "unknown"}</strong>
+                {review.resolved_by ? ` by ${review.resolved_by}` : ""}
+                {review.resolved_at ? ` on ${new Date(review.resolved_at).toLocaleString()}` : ""}.
+              </Alert>
+            )}
+
+            {viewMode === "queue" && (
+              <Stack
+                direction={{ xs: "column", md: "row" }}
+                spacing={1}
+                alignItems={{ xs: "stretch", md: "center" }}
+              >
               <TextField
                 size="small"
                 label="Span text"
@@ -763,7 +816,8 @@ export default function LabelVerificationPanel() {
               >
                 {submittingReviewId === review.review_id ? "Submitting..." : "Submit"}
               </Button>
-            </Stack>
+              </Stack>
+            )}
           </Paper>
         ))}
       </Stack>

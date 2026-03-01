@@ -71,7 +71,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchSession = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/auth/session`, { credentials: "include" });
+      // Use the Next.js-proxied path (same origin) so the leo_session cookie is
+      // always sent. The rewrite in next.config.mjs forwards this to core-api.
+      const res = await fetch(`/auth/session`, { credentials: "include" });
       const data = res.ok ? await res.json() : null;
       if (data?.user != null) {
         setSession({
@@ -98,12 +100,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const currentPath = typeof window !== "undefined" ? window.location.pathname : "";
     const isPublicPath = currentPath === "/" || currentPath === "/sign-in" || currentPath.startsWith("/auth/callback");
     const next = isPublicPath ? "/dashboard" : currentPath || "/dashboard";
-    window.location.href = `${API_BASE}/auth/login?next_url=${encodeURIComponent(next)}`;
+    // Use same-origin path so the nonce cookie is set on localhost:3000.
+    window.location.href = `/auth/login?next_url=${encodeURIComponent(next)}`;
   }, []);
 
   const signOut = useCallback(async () => {
     try {
-      await fetch(`${API_BASE}/auth/logout`, { method: "POST", credentials: "include" });
+      await fetch(`/auth/logout`, { method: "POST", credentials: "include" });
     } finally {
       setSession(null);
       setStatus("unauthenticated");

@@ -15,7 +15,7 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import Response
 import httpx
 
-from app.deps import get_access_token, get_user_email
+from app.deps import get_access_token
 
 logger = logging.getLogger(__name__)
 
@@ -31,17 +31,27 @@ async def _proxy_request(
     path: str,
     base: str,
     token: str,
-    user_email: str,
     request: Request,
 ) -> httpx.Response:
-    """Forward request to upstream with Bearer token."""
+    """Forward request to upstream with Bearer token and session header.
+
+    GAP-001: X-User-Email removed. X-Leo-Session forwarded so downstream
+    services can resolve org scope from the shared Redis session store.
+    """
     url = f"{base.rstrip('/')}{path}"
     headers = dict(request.headers)
-    for h in ("host", "cookie", "content-length", "transfer-encoding", "connection"):
+    is_core_target = base.rstrip("/").lower() == CORE_API_BASE.rstrip("/").lower()
+    blocked_headers = ("host", "content-length", "transfer-encoding", "connection")
+    # Core API proxy calls rely on the browser session cookie for
+    # get_caller_scope_from_request. Keep cookie only for same-core proxying.
+    if not is_core_target:
+        blocked_headers = blocked_headers + ("cookie",)
+    for h in blocked_headers:
         headers.pop(h, None)
     headers["Authorization"] = f"Bearer {token}"
-    # Org-scoped downstream APIs require caller identity for access resolution.
-    headers["X-User-Email"] = user_email
+    session_id = request.cookies.get("leo_session", "")
+    if session_id:
+        headers["X-Leo-Session"] = session_id
     body = await request.body() if method in ("POST", "PUT", "PATCH") else None
     async with httpx.AsyncClient(timeout=60) as client:
         return await client.request(method, url, headers=headers, content=body)
@@ -57,13 +67,12 @@ async def proxy_benchmarks(
     path: str,
     request: Request,
     token: Annotated[str, Depends(get_access_token)],
-    user_email: Annotated[str, Depends(get_user_email)],
 ):
     """Proxy to FHIR API benchmarks (BenchmarkSet, BenchmarkRule, upload, etc.)."""
     full_path = f"/benchmarks/{path}" if not path.startswith("/") else f"/{path}"
     if request.url.query:
         full_path = f"{full_path}?{request.url.query}"
-    resp = await _proxy_request(request.method, full_path, FHIR_BASE, token, user_email, request)
+    resp = await _proxy_request(request.method, full_path, FHIR_BASE, token, request)
     return Response(
         content=resp.content,
         status_code=resp.status_code,
@@ -77,13 +86,12 @@ async def proxy_fhir(
     path: str,
     request: Request,
     token: Annotated[str, Depends(get_access_token)],
-    user_email: Annotated[str, Depends(get_user_email)],
 ):
     """Proxy to FHIR API."""
     full_path = f"/fhir/{path}" if not path.startswith("/") else f"/{path}"
     if request.url.query:
         full_path = f"{full_path}?{request.url.query}"
-    resp = await _proxy_request(request.method, full_path, FHIR_BASE, token, user_email, request)
+    resp = await _proxy_request(request.method, full_path, FHIR_BASE, token, request)
     return Response(
         content=resp.content,
         status_code=resp.status_code,
@@ -97,13 +105,12 @@ async def proxy_analytics(
     path: str,
     request: Request,
     token: Annotated[str, Depends(get_access_token)],
-    user_email: Annotated[str, Depends(get_user_email)],
 ):
     """Proxy to Analytics API."""
     full_path = f"/analytics/{path}" if not path.startswith("/") else f"/{path}"
     if request.url.query:
         full_path = f"{full_path}?{request.url.query}"
-    resp = await _proxy_request(request.method, full_path, ANALYTICS_BASE, token, user_email, request)
+    resp = await _proxy_request(request.method, full_path, ANALYTICS_BASE, token, request)
     return Response(
         content=resp.content,
         status_code=resp.status_code,
@@ -117,13 +124,12 @@ async def proxy_pipeline(
     path: str,
     request: Request,
     token: Annotated[str, Depends(get_access_token)],
-    user_email: Annotated[str, Depends(get_user_email)],
 ):
     """Proxy pipeline endpoints to Core API (avoids client-side /api/proxy prefix mismatch)."""
     full_path = f"/pipeline/{path}" if not path.startswith("/") else f"/{path}"
     if request.url.query:
         full_path = f"{full_path}?{request.url.query}"
-    resp = await _proxy_request(request.method, full_path, CORE_API_BASE, token, user_email, request)
+    resp = await _proxy_request(request.method, full_path, CORE_API_BASE, token, request)
     return Response(
         content=resp.content,
         status_code=resp.status_code,

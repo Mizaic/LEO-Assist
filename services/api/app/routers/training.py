@@ -45,11 +45,14 @@ from libs.cypher.coding_review_queries import (
     COUNT_CODING_REVIEW_PENDING,
     GET_CODING_REVIEW_QUEUE,
     GET_CODING_REVIEW_STATS,
+    IGNORE_CODING_REVIEW,
     RESOLVE_CODING_REVIEW,
 )
 from libs.cypher.label_verification_queries import (
+    COUNT_VERIFICATION_HISTORY,
     COUNT_VERIFICATION_QUEUE_PENDING,
     DELETE_ALL_VERIFICATION_REVIEWS_FOR_INCLUDED,
+    GET_VERIFICATION_HISTORY,
     GET_LABEL_VERIFIER_SCORECARD,
     GET_LABEL_VERIFIER_SCORECARD_BREAKDOWN,
     GET_VERIFICATION_QUEUE,
@@ -435,6 +438,32 @@ def get_verification_queue(
             "page_size": page_size,
             "total_pages": max(1, -(-total // page_size)),
             "stats": dict(stats_row) if stats_row else {},
+        }
+    finally:
+        client.close()
+
+
+@router.get("/labels/verification-history")
+def get_verification_history(
+    scope: CallerScope = Depends(get_caller_scope),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=25, le=500),
+) -> dict[str, Any]:
+    """Return resolved label-verification reviews so users can audit past decisions."""
+    skip = (page - 1) * page_size
+    client = PatientGraphClient()
+    try:
+        with client.session() as session:
+            rows = session.run(GET_VERIFICATION_HISTORY, skip=skip, limit=page_size)
+            reviews = [dict(r) for r in rows]
+            total_row = session.run(COUNT_VERIFICATION_HISTORY).single()
+        total = int(total_row["total"] if total_row else 0)
+        return {
+            "reviews": reviews,
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+            "total_pages": max(1, -(-total // page_size)),
         }
     finally:
         client.close()
@@ -945,6 +974,11 @@ def coding_review_queue(
 class ResolveCodingReviewRequest(BaseModel):
     resolved_concept_id: str
     resolved_term: str
+    resolved_entity_text: str | None = None
+    reviewer: str = "operations_ui"
+
+
+class IgnoreCodingReviewRequest(BaseModel):
     reviewer: str = "operations_ui"
 
 
@@ -972,6 +1006,9 @@ def resolve_coding_review(
                 review_id=review_id,
             ).single()
             entity_text = str(cr_row["entity_text"]) if cr_row else ""
+            resolved_entity_text = (body.resolved_entity_text or "").strip()
+            if resolved_entity_text:
+                entity_text = resolved_entity_text
 
             result = session.run(
                 RESOLVE_CODING_REVIEW,
@@ -1011,6 +1048,28 @@ def resolve_coding_review(
             )
 
     return {"review_id": result["review_id"], "status": "resolved", "surface_form_created": bool(entity_text)}
+
+
+@router.post("/coding-review/{review_id}/ignore")
+def ignore_coding_review(
+    review_id: str,
+    body: IgnoreCodingReviewRequest,
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    """Mark a coding review as resolved by ignore rule."""
+    client = PatientGraphClient()
+    try:
+        with client.session() as session:
+            result = session.run(
+                IGNORE_CODING_REVIEW,
+                review_id=review_id,
+                reviewer=body.reviewer,
+            ).single()
+        if not result:
+            raise HTTPException(status_code=404, detail="Coding review not found")
+        return {"review_id": result["review_id"], "status": "ignored"}
+    finally:
+        client.close()
 
 
 @router.get("/coding-review/stats")

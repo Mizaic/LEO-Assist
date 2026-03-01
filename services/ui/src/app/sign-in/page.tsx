@@ -2,7 +2,7 @@
 
 import { useAuth } from "@/lib/authContext";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
@@ -17,7 +17,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   missing_code: "Sign-in was cancelled or incomplete.",
 };
 
-export default function SignInPage() {
+function SignInContent() {
   const { session, status, signIn } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -85,5 +85,19 @@ export default function SignInPage() {
         Back to home
       </Link>
     </Box>
+  );
+}
+
+export default function SignInPage() {
+  return (
+    <Suspense
+      fallback={
+        <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh" }}>
+          <CircularProgress />
+        </Box>
+      }
+    >
+      <SignInContent />
+    </Suspense>
   );
 }

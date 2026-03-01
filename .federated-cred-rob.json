@@ -1,0 +1,7 @@
+{
+  "name": "leo-ai-ci-rob-branch",
+  "issuer": "https://token.actions.githubusercontent.com",
+  "subject": "repo:Healthcare-Copilot/LEO-AI-CORE:ref:refs/heads/rob",
+  "description": "GitHub Actions CI for rob branch",
+  "audiences": ["api://AzureADTokenExchange"]
+}
