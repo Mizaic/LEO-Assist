@@ -38,7 +38,7 @@ import logging
 from dataclasses import dataclass, field
 from typing import Any
 
-from services.coding_worker.app.pipeline.extractor_contract import (
+from libs.ner.extractor_contract import (
     CONTRACT_VERSION,
     ExtractionItem,
 )
