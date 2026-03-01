@@ -1,15 +1,15 @@
-# Primary Care Audit - Local Development Startup
+# LEO-AI-CORE - Local Development Startup
 # Creates / activates .venv, installs all deps, starts every microservice.
 #
 # Usage:
-#   .\scripts\start_primary_care.ps1                            # full stack — ALL services including inference + training worker
-#   .\scripts\start_primary_care.ps1 -SkipInstall               # skip pip/npm install
-#   .\scripts\start_primary_care.ps1 -NoWorkers                 # skip background coding/analysis workers
-#   .\scripts\start_primary_care.ps1 -NoModelInference          # skip NER inference service
-#   .\scripts\start_primary_care.ps1 -NoTrainingWorker          # skip NER training worker
-#   .\scripts\start_primary_care.ps1 -Services api,ui           # named subset (others skipped)
-#   .\scripts\start_primary_care.ps1 -CodingWorkers 1           # single coding worker (debug)
-#   .\scripts\start_primary_care.ps1 -AnalysisWorkers 1         # single analysis worker (debug)
+#   .\scripts\start_leo-ai-core.ps1                            # full stack — ALL services including inference + training worker
+#   .\scripts\start_leo-ai-core.ps1 -SkipInstall               # skip pip/npm install
+#   .\scripts\start_leo-ai-core.ps1 -NoWorkers                 # skip background coding/analysis workers
+#   .\scripts\start_leo-ai-core.ps1 -NoModelInference          # skip NER inference service
+#   .\scripts\start_leo-ai-core.ps1 -NoTrainingWorker          # skip NER training worker
+#   .\scripts\start_leo-ai-core.ps1 -Services api,ui           # named subset (others skipped)
+#   .\scripts\start_leo-ai-core.ps1 -CodingWorkers 1           # single coding worker (debug)
+#   .\scripts\start_leo-ai-core.ps1 -AnalysisWorkers 1         # single analysis worker (debug)
 #
 # Model inference service:
 #   Starts by default. Downloads the active NER model from Azure Blob at startup.
@@ -54,7 +54,7 @@ $TrainingWorkerReq  = Join-Path $TrainingWorkerDir "requirements.txt"
 $ModelCacheDir      = Join-Path $RepoRoot ".model_cache"
 
 Write-Host ""
-Write-Host "  Primary Care Audit - Local Dev Startup" -ForegroundColor Cyan
+Write-Host "  LEO-AI-CORE - Local Dev Startup" -ForegroundColor Cyan
 Write-Host ""
 
 # -- Secrets ---------------------------------------------------------------
