@@ -46,6 +46,7 @@ from libs.cypher.coding_review_queries import (
     COUNT_CODING_REVIEW_PENDING,
     DEACTIVATE_CODING_IGNORE_RULE,
     GET_ALL_CODING_IGNORE_RULES,
+    GET_CODING_IGNORE_RULES,
     GET_CODING_REVIEW_QUEUE,
     GET_CODING_REVIEW_STATS,
     GET_PENDING_FOR_RECHECK,
@@ -1160,103 +1161,361 @@ def delete_coding_ignore_rule(
 
 
 _RECHECK_BATCH_LIMIT = 500
+_RECHECK_TERM_CHUNK = int(__import__("os").getenv("RECHECK_TERM_CHUNK", "50"))
 _RECHECK_THRESHOLD = float(__import__("os").getenv("CODING_REVIEW_SCORE_THRESHOLD", "0.70"))
+_RECHECK_ALT_LOW = float(__import__("os").getenv("CODING_ALT_THRESHOLD_LOW", "0.3"))
 _TERMINOLOGY_URL = __import__("os").getenv("TERMINOLOGY_API_URL", "http://localhost:8001").rstrip("/")
 
+# ---------------------------------------------------------------------------
+# Recheck job state (module-level, updated by background thread)
+# ---------------------------------------------------------------------------
+_recheck_lock = threading.Lock()
+_recheck_state: dict[str, Any] = {"status": "idle"}
 
-def _call_terminology_batch(terms: list[str]) -> dict[str, list]:
-    """POST a batch of terms to the terminology resolve endpoint.
 
-    Returns the results map keyed by term text, or raises HTTPException on failure.
-    """
+def _get_recheck_state() -> dict[str, Any]:
+    with _recheck_lock:
+        return dict(_recheck_state)
+
+
+def _set_recheck_state(**kwargs: Any) -> None:
+    with _recheck_lock:
+        _recheck_state.update(kwargs)
+
+
+def _call_terminology_chunk(terms: list[str]) -> dict[str, list]:
+    """POST a single chunk of terms; return results map or empty dict on failure."""
     import httpx
 
     try:
-        with httpx.Client(timeout=30) as http:
+        with httpx.Client(timeout=60) as http:
             resp = http.post(f"{_TERMINOLOGY_URL}/terminology/resolve", json={"terms": terms})
             resp.raise_for_status()
             return (resp.json() or {}).get("results") or {}
     except Exception:
-        logger.warning("Terminology API unavailable during recheck", exc_info=True)
-        raise HTTPException(status_code=503, detail="Terminology server unavailable. Try again shortly.")
+        logger.warning("Terminology chunk call failed (%d terms)", len(terms), exc_info=True)
+        return {}
 
 
-def _apply_recheck_results(
-    session,
-    pending: list[dict],
-    results_map: dict,
-) -> int:
-    """Update each CodingReview node with fresh scores; auto-resolve those above threshold.
+def _call_terminology_batch(terms: list[str]) -> dict[str, list]:
+    """POST terms to the terminology resolve endpoint in chunks to avoid timeouts."""
+    merged: dict[str, list] = {}
+    for i in range(0, len(terms), _RECHECK_TERM_CHUNK):
+        chunk = terms[i: i + _RECHECK_TERM_CHUNK]
+        merged.update(_call_terminology_chunk(chunk))
+    return merged
 
-    Returns the count of items auto-resolved by this run.
+
+def _load_ignore_texts(session) -> frozenset[str]:
+    """Return a frozenset of normalised entity texts from active CodingIgnoreRules."""
+    return frozenset(
+        str(r["entity_text"])
+        for r in session.run(GET_CODING_IGNORE_RULES)
+        if r.get("entity_text")
+    )
+
+
+def _recheck_suggest_alts(term: str, entity_label: str) -> list[str]:
+    """Ask a small LLM for SNOMED-friendly alternative phrasings of a near-miss term.
+
+    The prompt explicitly allows an empty response so the LLM does not hallucinate
+    alternatives when none exist.
     """
-    auto_resolved = 0
-    for item in pending:
-        entity_text = item.get("entity_text", "")
-        candidates = results_map.get(entity_text) or []
-        top = candidates[0] if candidates and isinstance(candidates[0], dict) else {}
-        concept_id = str(top.get("snomed_concept_id") or "")
-        term = str(top.get("snomed_term") or "")
-        raw_score = top.get("score")
-        score = float(raw_score) if raw_score is not None else None
-        semantic_tag = str(top.get("semantic_tag") or "")
-        coded = bool(concept_id)
+    import json as _json
 
+    from libs.llm_client.factory import create_llm
+
+    system = (
+        "You are a UK primary care clinical terminology assistant. "
+        "Your job is to suggest alternative phrasings that would match SNOMED CT concepts. "
+        "If the term is too vague, ambiguous, or product-specific to have useful SNOMED "
+        "alternatives, you MUST return an empty array []. "
+        "Respond ONLY with a valid JSON array of strings -- no explanation, no markdown."
+    )
+    user = (
+        f'Term: "{term}" (type: {entity_label})\n'
+        "Suggest up to 3 alternatives: the preferred SNOMED term, a common abbreviation, "
+        "and one synonym a UK GP might write. "
+        "If you cannot suggest meaningful alternatives, return []. "
+        'Output format: ["phrase1", "phrase2"] or []'
+    )
+    try:
+        response = create_llm(tier="small").converse(
+            system=system,
+            messages=[{"role": "user", "content": user}],
+            max_tokens=256,
+            temperature=0.2,
+        )
+        raw_text = response.text.strip()
+        match = re.search(r"\[.*\]", raw_text, re.DOTALL)
+        if not match:
+            logger.info(
+                "RECHECK: [LLM_SUGGEST] term=%r label=%s -- no JSON array in response: %s",
+                term, entity_label, raw_text[:120],
+            )
+            return []
+        raw = _json.loads(match.group())
+        seen = term.strip().lower()
+        alts = [s.strip() for s in raw if isinstance(s, str) and s.strip().lower() != seen][:4]
+        logger.info("RECHECK: [LLM_SUGGEST] term=%r label=%s -> alts=%r", term, entity_label, alts)
+        return alts
+    except Exception:
+        logger.warning("RECHECK: [LLM_SUGGEST] LLM call failed for term=%r", term, exc_info=True)
+        return []
+
+
+def _recheck_alt_coding(term: str, entity_label: str) -> tuple[dict, str] | None:
+    """Try LLM-suggested alternatives for a near-miss term.
+
+    Returns (best_candidate, alt_term_used) if any alternative scores >= threshold,
+    else None. Logs all alternatives tried and their scores for audit.
+    """
+    alt_terms = _recheck_suggest_alts(term, entity_label)
+    if not alt_terms:
+        logger.info("RECHECK: [LLM_ALT] term=%r label=%s -- LLM returned no alternatives", term, entity_label)
+        return None
+
+    results = _call_terminology_batch(alt_terms)
+    best: dict | None = None
+    best_alt = ""
+    best_score = 0.0
+
+    for alt in alt_terms:
+        candidates = results.get(alt) or []
+        top = candidates[0] if candidates and isinstance(candidates[0], dict) else {}
+        score = float(top.get("score") or 0)
+        concept_id = top.get("snomed_concept_id", "")
+        snomed_term = top.get("snomed_term", "")
+        logger.info(
+            "RECHECK: [LLM_ALT_PROBE] original=%r alt=%r -> concept=%r snomed=%r score=%.4f",
+            term, alt, concept_id, snomed_term, score,
+        )
+        if score >= _RECHECK_THRESHOLD and score > best_score:
+            best_score = score
+            best = top
+            best_alt = alt
+
+    if best:
+        logger.info(
+            "RECHECK: [LLM_ALT_RESOLVED] term=%r via alt=%r -> concept=%r snomed=%r score=%.4f",
+            term, best_alt, best.get("snomed_concept_id"), best.get("snomed_term"), best_score,
+        )
+        return best, best_alt
+
+    logger.info("RECHECK: [LLM_ALT_NO_MATCH] term=%r -- no alternative cleared threshold=%.2f", term, _RECHECK_THRESHOLD)
+    return None
+
+
+def _apply_recheck_item(
+    session,
+    item: dict,
+    results_map: dict,
+    ignore_texts: frozenset[str],
+    try_alternatives: bool,
+) -> bool:
+    """Process one pending review item. Returns True if auto-resolved."""
+    entity_text = item.get("entity_text", "")
+    entity_label = item.get("entity_label", "")
+    review_id = item.get("review_id", "")
+    normalized = re.sub(r"\s+", " ", entity_text.lower())
+
+    if normalized in ignore_texts:
+        logger.info(
+            "RECHECK: [IGNORED] term=%r label=%s review=%s -- matched ignore rule",
+            entity_text, entity_label, review_id,
+        )
         session.run(
-            UPDATE_CODING_REVIEW_FIELDS,
-            review_id=item["review_id"],
-            coded=coded,
-            snomed_concept_id=concept_id if coded else None,
-            snomed_term=term if coded else None,
-            score=score if coded else None,
-            semantic_tag=semantic_tag if coded else None,
+            AUTO_RESOLVE_CODING_REVIEW,
+            review_id=review_id,
+            concept_id="__ignored__",
+            term="__ignored_by_rule__",
+            resolved_by="ignore_rule",
+        )
+        return True
+
+    candidates = results_map.get(entity_text) or []
+    top = candidates[0] if candidates and isinstance(candidates[0], dict) else {}
+    concept_id = str(top.get("snomed_concept_id") or "")
+    term = str(top.get("snomed_term") or "")
+    score = float(top.get("score") or 0) if top.get("score") is not None else None
+    semantic_tag = str(top.get("semantic_tag") or "")
+    coded = bool(concept_id)
+    resolved_by = "auto_recheck"
+
+    if not coded:
+        logger.info(
+            "RECHECK: [UNCODED] term=%r label=%s review=%s -- terminology returned no concept",
+            entity_text, entity_label, review_id,
+        )
+    elif score is not None and score >= _RECHECK_THRESHOLD:
+        logger.info(
+            "RECHECK: [DIRECT] term=%r label=%s -> concept=%r snomed=%r score=%.4f review=%s",
+            entity_text, entity_label, concept_id, term, score, review_id,
+        )
+    elif try_alternatives and score is not None and score >= _RECHECK_ALT_LOW:
+        logger.info(
+            "RECHECK: [NEAR_MISS] term=%r label=%s score=%.4f -- trying LLM alternatives review=%s",
+            entity_text, entity_label, score, review_id,
+        )
+        alt_result = _recheck_alt_coding(entity_text, entity_label)
+        if alt_result:
+            best, alt_term = alt_result
+            top = best
+            concept_id = str(best.get("snomed_concept_id") or "")
+            term = str(best.get("snomed_term") or "")
+            score = float(best.get("score") or 0)
+            semantic_tag = str(best.get("semantic_tag") or "")
+            coded = bool(concept_id)
+            resolved_by = f"llm_alt:{alt_term[:80]}"
+    else:
+        logger.info(
+            "RECHECK: [LOW_SCORE] term=%r label=%s score=%s -- below alt threshold, staying in queue review=%s",
+            entity_text, entity_label, f"{score:.4f}" if score is not None else "None", review_id,
         )
 
-        if coded and score is not None and score >= _RECHECK_THRESHOLD:
-            session.run(
-                AUTO_RESOLVE_CODING_REVIEW,
-                review_id=item["review_id"],
-                concept_id=concept_id,
-                term=term,
-            )
-            auto_resolved += 1
+    session.run(
+        UPDATE_CODING_REVIEW_FIELDS,
+        review_id=review_id,
+        coded=coded,
+        snomed_concept_id=concept_id if coded else None,
+        snomed_term=term if coded else None,
+        score=score if coded else None,
+        semantic_tag=semantic_tag if coded else None,
+    )
 
-    return auto_resolved
+    if coded and score is not None and score >= _RECHECK_THRESHOLD:
+        session.run(
+            AUTO_RESOLVE_CODING_REVIEW,
+            review_id=review_id,
+            concept_id=concept_id,
+            term=term,
+            resolved_by=resolved_by,
+        )
+        logger.info(
+            "RECHECK: [FINALISED] term=%r -> concept=%r snomed=%r score=%.4f method=%r review=%s",
+            entity_text, concept_id, term, score, resolved_by, review_id,
+        )
+        return True
+
+    logger.info(
+        "RECHECK: [PENDING] term=%r label=%s -- not resolved, remains in queue review=%s",
+        entity_text, entity_label, review_id,
+    )
+    return False
+
+
+def _run_recheck_job(try_alternatives: bool, ignore_texts: frozenset[str]) -> None:
+    """Background worker: process all pending coding review items in batches."""
+    total_rechecked = 0
+    total_auto_resolved = 0
+    batch_num = 0
+
+    logger.info(
+        "RECHECK: [START] mode=%s ignore_rules=%d",
+        "llm_assisted" if try_alternatives else "quick",
+        len(ignore_texts),
+    )
+
+    try:
+        while True:
+            client = PatientGraphClient()
+            try:
+                with client.session() as session:
+                    rows = session.run(GET_PENDING_FOR_RECHECK, limit=_RECHECK_BATCH_LIMIT)
+                    pending = [dict(r) for r in rows]
+            finally:
+                client.close()
+
+            if not pending:
+                break
+
+            batch_num += 1
+            unique_terms = list({r["entity_text"] for r in pending if r.get("entity_text")})
+            logger.info(
+                "RECHECK: [BATCH %d] fetched=%d items, unique_terms=%d -- requesting terminology API",
+                batch_num, len(pending), len(unique_terms),
+            )
+
+            results_map = _call_terminology_batch(unique_terms)
+            logger.info(
+                "RECHECK: [BATCH %d] terminology returned %d results",
+                batch_num, len(results_map),
+            )
+
+            batch_resolved = 0
+            client = PatientGraphClient()
+            try:
+                with client.session() as session:
+                    for item in pending:
+                        if _apply_recheck_item(session, item, results_map, ignore_texts, try_alternatives):
+                            batch_resolved += 1
+            finally:
+                client.close()
+
+            total_rechecked += len(pending)
+            total_auto_resolved += batch_resolved
+            _set_recheck_state(rechecked=total_rechecked, auto_resolved=total_auto_resolved)
+            logger.info(
+                "RECHECK: [BATCH %d DONE] resolved=%d/%d (running total: %d/%d resolved)",
+                batch_num, batch_resolved, len(pending), total_auto_resolved, total_rechecked,
+            )
+
+            if len(pending) < _RECHECK_BATCH_LIMIT:
+                break
+
+        _set_recheck_state(status="done")
+        logger.info(
+            "RECHECK: [COMPLETE] batches=%d total_items=%d resolved=%d remaining=%d",
+            batch_num, total_rechecked, total_auto_resolved, total_rechecked - total_auto_resolved,
+        )
+
+    except Exception:
+        logger.exception("RECHECK: [FAILED] job raised an unhandled exception")
+        _set_recheck_state(status="failed")
 
 
 @router.post("/coding-review/recheck")
 def recheck_coding_review(
+    try_alternatives: bool = False,
     scope: CallerScope = Depends(get_caller_scope),
 ) -> dict[str, Any]:
-    """Re-run terminology resolution for all pending coding review items.
+    """Start a background coding review recheck.
 
-    Calls the terminology API with the current entity texts.
-    Items whose new score clears the confidence threshold are auto-resolved.
-    Returns the count of items rechecked and auto-resolved.
+    Returns immediately with status 'started'. Poll
+    GET /training/coding-review/recheck/status for progress.
+    Set try_alternatives=true to enable the LLM alternative-term loop for near-misses.
     """
-    client = PatientGraphClient()
-    try:
-        with client.session() as session:
-            rows = session.run(GET_PENDING_FOR_RECHECK, limit=_RECHECK_BATCH_LIMIT)
-            pending = [dict(r) for r in rows]
-    finally:
-        client.close()
-
-    if not pending:
-        return {"rechecked": 0, "auto_resolved": 0}
-
-    terms = list({r["entity_text"] for r in pending if r.get("entity_text")})
-    results_map = _call_terminology_batch(terms)
+    with _recheck_lock:
+        if _recheck_state.get("status") == "running":
+            return {"status": "already_running", **_recheck_state}
 
     client = PatientGraphClient()
     try:
         with client.session() as session:
-            auto_resolved = _apply_recheck_results(session, pending, results_map)
+            ignore_texts = _load_ignore_texts(session)
     finally:
         client.close()
 
-    logger.info("Coding review recheck: %d rechecked, %d auto-resolved", len(pending), auto_resolved)
-    return {"rechecked": len(pending), "auto_resolved": auto_resolved}
+    _set_recheck_state(
+        status="running",
+        try_alternatives=try_alternatives,
+        rechecked=0,
+        auto_resolved=0,
+    )
+
+    thread = threading.Thread(
+        target=_run_recheck_job,
+        args=(try_alternatives, ignore_texts),
+        daemon=True,
+    )
+    thread.start()
+    return {"status": "started", "try_alternatives": try_alternatives}
+
+
+@router.get("/coding-review/recheck/status")
+def recheck_status(scope: CallerScope = Depends(get_caller_scope)) -> dict[str, Any]:
+    """Return the current state of the background coding review recheck job."""
+    return _get_recheck_state()
 
 
 @router.get("/coding-review/stats")
