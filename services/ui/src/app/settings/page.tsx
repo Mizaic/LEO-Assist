@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { useRouter } from "next/navigation";
 import { useOrg } from "@/context/OrgContext";
 import Box from "@mui/material/Box";
@@ -13,7 +14,16 @@ import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import TextFieldsOutlinedIcon from "@mui/icons-material/TextFieldsOutlined";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 
-const SETTINGS_CARDS = [
+interface SettingsCard {
+  id: string;
+  title: string;
+  description: string;
+  icon: React.ReactElement;
+  path: string;
+  disabled?: boolean;
+}
+
+const SETTINGS_CARDS: SettingsCard[] = [
   {
     id: "domains",
     title: "Domain Configuration",
