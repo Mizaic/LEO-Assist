@@ -28,11 +28,14 @@ from typing import Any, Callable, Optional
 
 import httpx
 
+from libs.cypher.coding_review_queries import UPSERT_CODING_SUGGESTION
 from libs.cypher.post_processor_rule_queries import GET_ACTIVE_POST_PROCESSOR_RULES
 from libs.cypher.documents_queries import write_documents_from_sentences_payload
+from libs.llm_client.escalation import escalate_coding
 from libs.ner.context_detector import detect_assertion, normalize_situation_lookup
 from libs.ner.observable_post_processor import normalize_observable_entities
 from libs.ner.post_processor_rules import apply_rules_to_entities, parse_rules, PostProcessorRule
+from libs.ner.schema_mapper import LABEL_TO_SNOMED_TAG
 from services.coding_worker.app.pipeline.extractor_contract import (
     CONTRACT_VERSION,
     ExtractionItem,
@@ -50,6 +53,43 @@ logger = logging.getLogger(__name__)
 _BATCH_SIZE = 5
 _READ_CODE_RE = re.compile(r"\(([A-Za-z0-9.]{3,8})\)")
 TERMINOLOGY_API_URL = os.getenv("TERMINOLOGY_API_URL", "http://localhost:8001")
+
+
+_SURFACE_FORM_SCORE_THRESHOLD = float(
+    os.getenv("PIPELINE_SURFACE_FORM_SCORE_THRESHOLD", "0.50")
+)
+_SURFACE_FORM_AUTO_THRESHOLD = float(
+    os.getenv("PIPELINE_SURFACE_FORM_AUTO_CONFIDENCE", "0.90")
+)
+_SURFACE_FORM_SUGGEST_ENABLED = (
+    os.getenv("PIPELINE_SURFACE_FORM_SUGGEST", "true").lower() == "true"
+)
+_CODEABLE_LABELS = frozenset({
+    "disorder", "finding", "procedure", "observable_entity", "substance",
+    "medicinal_product", "clinical_drug", "situation", "body_structure",
+    "morphologic_abnormality", "regime_therapy", "assessment_scale",
+    "tumor_staging", "organism", "occupation", "physical_object",
+})
+
+
+def _build_expected_tags(
+    items: list[ExtractionItem],
+) -> dict[str, str]:
+    """Map each unique normalised term to its SNOMED semantic tag.
+
+    When the same term appears with different NER labels, the first occurrence
+    wins.  Modifier labels (X_TEMPORAL, X_DOSAGE, etc.) are skipped because
+    they have no corresponding SNOMED semantic tag.
+    """
+    tags: dict[str, str] = {}
+    for item in items:
+        key = item.normalized
+        if key in tags:
+            continue
+        snomed_tag = LABEL_TO_SNOMED_TAG.get(item.semantic_tag)
+        if snomed_tag:
+            tags[key] = snomed_tag
+    return tags
 
 
 @dataclass
@@ -269,7 +309,11 @@ class CodingPipeline:
 
         # Phase 2: terminology resolution
         t_resolve = time.monotonic()
-        resolved = await self._resolve_via_api([item.normalized for item in all_items])
+        tag_map = _build_expected_tags(all_items)
+        resolved = await self._resolve_via_api(
+            [item.normalized for item in all_items],
+            expected_tags=tag_map,
+        )
         resolve_latency_ms = round((time.monotonic() - t_resolve) * 1000)
 
         coded_count = sum(1 for k in resolved if resolved[k])
@@ -283,6 +327,8 @@ class CodingPipeline:
             "reject_count": reject_count,
             "resolve_latency_ms": resolve_latency_ms,
         })
+
+        self._suggest_surface_forms(all_items, resolved, dry_run)
 
         sentences_payload = self._build_sentences_payload(
             sentences, extracted, resolved, extractor
@@ -512,24 +558,111 @@ class CodingPipeline:
     # Terminology resolution
     # ------------------------------------------------------------------
 
-    async def _resolve_via_api(self, terms: list[str]) -> dict[str, list[dict[str, Any]]]:
+    async def _resolve_via_api(
+        self,
+        terms: list[str],
+        expected_tags: dict[str, str] | None = None,
+    ) -> dict[str, list[dict[str, Any]]]:
         if not terms:
             return {}
         unique = list(dict.fromkeys(terms))
+        body: dict[str, Any] = {"terms": unique}
+        if expected_tags:
+            body["expected_tags"] = expected_tags
         try:
             async with httpx.AsyncClient(timeout=60.0) as client:
                 resp = await client.post(
                     f"{TERMINOLOGY_API_URL}/terminology/resolve",
-                    json={"terms": unique},
+                    json=body,
                 )
                 resp.raise_for_status()
                 data = resp.json()
                 return data.get("results", {})
         except Exception:
             logger.warning(
-                "Terminology API call failed — returning empty results", exc_info=True
+                "Terminology API call failed -- returning empty results",
+                exc_info=True,
             )
             return {}
+
+    def _suggest_surface_forms(
+        self,
+        all_items: list[ExtractionItem],
+        resolved: dict[str, list[dict[str, Any]]],
+        dry_run: bool,
+    ) -> int:
+        """Suggest surface forms for entities with no or low-confidence coding.
+
+        High-confidence suggestions (>= _SURFACE_FORM_AUTO_THRESHOLD) are
+        stored as ``pending_review`` CodingSuggestion nodes.  All suggestions
+        are batched by unique term so repeated occurrences increment a counter
+        rather than creating duplicates.
+
+        Returns the number of suggestions created.
+        """
+        if not _SURFACE_FORM_SUGGEST_ENABLED or dry_run:
+            return 0
+
+        seen: set[str] = set()
+        suggestions = 0
+
+        for item in all_items:
+            if item.semantic_tag not in _CODEABLE_LABELS:
+                continue
+            if item.assertion == "absent":
+                continue
+            key = item.normalized
+            if key in seen:
+                continue
+            seen.add(key)
+
+            candidates = resolved.get(key, [])
+            top = candidates[0] if candidates else {}
+            score = float(top.get("score", 0.0)) if top else 0.0
+
+            if score >= _SURFACE_FORM_SCORE_THRESHOLD:
+                continue
+
+            esc = escalate_coding(
+                entity_text=item.text,
+                entity_label=item.semantic_tag,
+                encounter_text="",
+                confidence_threshold=_SURFACE_FORM_AUTO_THRESHOLD,
+                start_tier="small",
+            )
+            if not esc.concept_term:
+                continue
+
+            status = (
+                "pending_review"
+                if esc.confidence >= _SURFACE_FORM_AUTO_THRESHOLD
+                else "low_confidence"
+            )
+            try:
+                with self.patient_client.session() as session:
+                    session.run(
+                        UPSERT_CODING_SUGGESTION,
+                        entity_text=item.text,
+                        entity_label=item.semantic_tag,
+                        suggested_term=esc.concept_term,
+                        confidence=esc.confidence,
+                        model_tier=esc.model_tier,
+                        model_id=esc.model_id,
+                        status=status,
+                    )
+                suggestions += 1
+            except Exception:
+                logger.debug(
+                    "Failed to write CodingSuggestion for %r", item.text,
+                    exc_info=True,
+                )
+
+        if suggestions:
+            logger.info(
+                "Pipeline surface form suggestions: %d new suggestions created",
+                suggestions,
+            )
+        return suggestions
 
     # ------------------------------------------------------------------
     # Payload building

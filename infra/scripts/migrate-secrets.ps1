@@ -24,16 +24,35 @@ $KvName = "leoai-$Environment-kv"
 
 # -- Secret name mapping: KV secret name -> env var in source file ---------
 $SecretMap = [ordered]@{
-    'neo4j-patient-uri'       = 'NEO4J_URI'
-    'neo4j-patient-password'  = 'NEO4J_PASSWORD'
-    'neo4j-knowledge-uri'     = 'KNOWLEDGE_GRAPH_NEO4J_URI'
-    'neo4j-knowledge-password'= 'KNOWLEDGE_GRAPH_NEO4J_PASSWORD'
-    'aws-access-key-id'       = 'AWS_ACCESS_KEY_ID'
-    'aws-secret-access-key'   = 'AWS_SECRET_ACCESS_KEY'
-    'azure-ad-client-id'      = 'AZURE_AD_CLIENT_ID'
-    'service-auth-secret'     = 'SERVICE_AUTH_SECRET'
-    'redis-url'               = 'REDIS_URL'
-    'azure-openai-api-key'    = 'AZURE_OPENAI_API_KEY'
+    # Core infrastructure
+    'neo4j-patient-uri'                  = 'NEO4J_URI'
+    'neo4j-patient-password'             = 'NEO4J_PASSWORD'
+    'neo4j-knowledge-uri'                = 'KNOWLEDGE_GRAPH_NEO4J_URI'
+    'neo4j-knowledge-password'           = 'KNOWLEDGE_GRAPH_NEO4J_PASSWORD'
+    'neo4j-guideline-uri'                = 'GUIDELINE_NEO4J_URI'
+    'neo4j-guideline-password'           = 'GUIDELINE_NEO4J_PASSWORD'
+    'redis-url'                          = 'REDIS_URL'
+    # Azure
+    'azure-ad-client-id'                 = 'AZURE_AD_CLIENT_ID'
+    'azure-ad-client-secret'             = 'AZURE_AD_CLIENT_SECRET'
+    'azure-ad-tenant-id'                 = 'AZURE_AD_TENANT_ID'
+    'azure-openai-api-key'               = 'AZURE_OPENAI_API_KEY'
+    'azure-openai-endpoint'              = 'AZURE_OPENAI_ENDPOINT'
+    'azure-storage-connection-string'    = 'AZURE_STORAGE_CONNECTION_STRING'
+    'azure-service-bus-connection-string'= 'AZURE_SERVICE_BUS_CONNECTION_STRING'
+    # AWS Bedrock
+    'aws-access-key-id'                  = 'AWS_ACCESS_KEY_ID'
+    'aws-secret-access-key'              = 'AWS_SECRET_ACCESS_KEY'
+    'aws-big-model'                      = 'AWS_BIG_MODEL'
+    'aws-small-model'                    = 'AWS_SMALL_MODEL'
+    'aws-max-model'                      = 'AWS_MAX_MODEL'
+    # Terminology & clinical APIs
+    'snomed-api-key'                     = 'SNOMED_API_KEY'
+    'umls-api-key'                       = 'UMLS_API_KEY'
+    'nhs-trud-api-key'                   = 'NHS_TRUD_API_KEY'
+    # Auth
+    'auth-secret'                        = 'AUTH_SECRET'
+    'service-auth-secret'                = 'SERVICE_AUTH_SECRET'
 }
 
 # -- Parse source .env file ------------------------------------------------

@@ -13,8 +13,6 @@ param imageTag string = 'latest'
 // Non-secret config (safe to store in version control)
 param neo4jUser string
 param neo4jKnowledgeUser string
-param azureAdTenantId string
-param awsBedrockModel string
 param awsDefaultRegion string
 param azureOpenAiBigModel string
 param azureOpenAiSmallModel string
@@ -27,10 +25,16 @@ param modelStoreModelName string
 param hitlLowConfidenceThreshold string
 param hitlPeerReviewRate string
 param modelMinPrecision string
+param modelMinRecall string = '0.75'
 param sbMaxLockRenewalSeconds string
 param allowedOrigins string
 param cookieSecure string
 param sessionTtlHours string
+param snomedTerminologyServer string = ''
+// The public URL of the UI (e.g. https://leo-dev.healthcarecopilot.ai).
+// Controls OAuth post-login redirects, the auth callback URI sent to Entra,
+// and the sign-in link in invite emails. Must match an Entra redirect URI.
+param frontendUrl string
 
 // Shared resources live in the leo-ai platform RG
 param acrResourceGroup string = 'leo-ai'
@@ -115,8 +119,6 @@ module containerApps 'modules/container-apps.bicep' = {
     imageTag: imageTag
     neo4jUser: neo4jUser
     neo4jKnowledgeUser: neo4jKnowledgeUser
-    azureAdTenantId: azureAdTenantId
-    awsBedrockModel: awsBedrockModel
     awsDefaultRegion: awsDefaultRegion
     azureOpenAiBigModel: azureOpenAiBigModel
     azureOpenAiSmallModel: azureOpenAiSmallModel
@@ -128,10 +130,13 @@ module containerApps 'modules/container-apps.bicep' = {
     hitlLowConfidenceThreshold: hitlLowConfidenceThreshold
     hitlPeerReviewRate: hitlPeerReviewRate
     modelMinPrecision: modelMinPrecision
+    modelMinRecall: modelMinRecall
     sbMaxLockRenewalSeconds: sbMaxLockRenewalSeconds
     allowedOrigins: allowedOrigins
     cookieSecure: cookieSecure
     sessionTtlHours: sessionTtlHours
+    snomedTerminologyServer: snomedTerminologyServer
+    frontendUrl: frontendUrl
   }
 }
 

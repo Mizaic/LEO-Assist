@@ -84,8 +84,11 @@ if (Test-Path $masterEnv) {
     Write-Host "         Create secrets\.env or set environment variables manually." -ForegroundColor Yellow
 }
 
-# Always override MODEL_REGISTRY_STORE_PATH with the resolved absolute path so
-# every child process finds the file regardless of its working directory.
+# Model registry: use Neo4j by default. Set MODEL_REGISTRY_STORE=json for file-based.
+if (-not [System.Environment]::GetEnvironmentVariable("MODEL_REGISTRY_STORE", 'Process')) {
+    [System.Environment]::SetEnvironmentVariable("MODEL_REGISTRY_STORE", "neo4j", 'Process')
+}
+# Fallback path when MODEL_REGISTRY_STORE=json
 $absRegistryPath = Join-Path $ModelCacheDir "model_registry.json"
 [System.Environment]::SetEnvironmentVariable("MODEL_REGISTRY_STORE_PATH", $absRegistryPath, 'Process')
 

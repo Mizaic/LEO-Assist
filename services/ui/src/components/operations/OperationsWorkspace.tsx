@@ -1,90 +1,231 @@
 "use client";
 
-import { useState } from "react";
-import { Box, Tab, Tabs, Typography } from "@mui/material";
-import PipelinePanel from "@/components/PipelinePanel";
-import ClassificationReviewPanel from "@/components/classification-review/ClassificationReviewPanel";
-import AnchorReviewPanel from "@/components/anchor-review/AnchorReviewPanel";
-import HITLTasksPanel from "@/components/operations/HITLTasksPanel";
-import ModelLifecyclePanel from "@/components/operations/ModelLifecyclePanel";
-import CodingReviewPanel from "@/components/operations/CodingReviewPanel";
-import LabelVerificationPanel from "@/components/operations/LabelVerificationPanel";
-import TrainingDataPanel from "@/components/operations/TrainingDataPanel";
+import { useCallback, useEffect, useState } from "react";
+import Badge from "@mui/material/Badge";
+import Box from "@mui/material/Box";
+import Chip from "@mui/material/Chip";
+import Skeleton from "@mui/material/Skeleton";
+import Stack from "@mui/material/Stack";
+import Tab from "@mui/material/Tab";
+import Tabs from "@mui/material/Tabs";
+import Typography from "@mui/material/Typography";
+import StatusDot from "./StatusDot";
+import ReviewSection from "./ReviewSection";
+import RunSection from "./RunSection";
+import TrainSection from "./TrainSection";
+import DeploySection from "./DeploySection";
 
-type OperationsTab =
-  | "pipeline"
-  | "classification"
-  | "anchor"
-  | "exclusion_conflict"
-  | "peer_review"
-  | "training"
-  | "label_review"
-  | "coding_review"
-  | "models";
+// -- Types -------------------------------------------------------------------
 
-const TAB_LABELS: Record<OperationsTab, string> = {
-  pipeline: "Pipeline",
-  classification: "Classification Review",
-  anchor: "Anchor Review",
-  exclusion_conflict: "Exclusion Conflicts",
-  peer_review: "Peer Review",
-  training: "Training Data",
-  label_review: "Label Review",
-  coding_review: "Coding Review",
-  models: "Model Deployment",
+interface QuickStats {
+  pendingReview: number;
+  resolvedToday: number;
+  modelVersion: string;
+  modelHealth: "ok" | "warn" | "error" | "neutral";
+}
+
+type TabKey = "run" | "review" | "train" | "deploy";
+
+const TAB_ORDER: TabKey[] = ["run", "review", "train", "deploy"];
+
+const TAB_LABELS: Record<TabKey, string> = {
+  run: "Run pipeline",
+  review: "Review",
+  train: "Train",
+  deploy: "Deploy",
 };
 
-export default function OperationsWorkspace({
-  initialTab = "pipeline",
-}: {
-  initialTab?: OperationsTab;
-}) {
-  const [tab, setTab] = useState<OperationsTab>(initialTab);
-  const navigateTab = (t: string) => setTab(t as OperationsTab);
+// -- Fetch helpers -----------------------------------------------------------
+
+async function fetchJson<T>(url: string): Promise<T> {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`${res.status}`);
+  return res.json() as Promise<T>;
+}
+
+async function loadQuickStats(): Promise<QuickStats> {
+  const [metrics, model] = await Promise.allSettled([
+    fetchJson<{ metrics_by_stage: Record<string, Record<string, number>> }>(
+      "/api/operations/metrics",
+    ),
+    fetchJson<{
+      active_model: { model_version: string; status: string } | null;
+    }>("/api/model-registry/status"),
+  ]);
+
+  let pending = 0;
+  let resolved = 0;
+  if (metrics.status === "fulfilled") {
+    for (const stage of Object.values(metrics.value.metrics_by_stage)) {
+      pending += stage.pending ?? 0;
+      resolved += (stage.resolved ?? 0) + (stage.dismissed ?? 0);
+    }
+  }
+
+  let version = "--";
+  let health: QuickStats["modelHealth"] = "neutral";
+  if (model.status === "fulfilled" && model.value.active_model) {
+    version = `v${model.value.active_model.model_version}`;
+    const s = model.value.active_model.status;
+    health = s === "active" ? "ok" : s === "canary" ? "warn" : "neutral";
+  }
+
+  return {
+    pendingReview: pending,
+    resolvedToday: resolved,
+    modelVersion: version,
+    modelHealth: health,
+  };
+}
+
+// -- Component ---------------------------------------------------------------
+
+interface Props {
+  initialTab?: TabKey;
+}
+
+export default function OperationsWorkspace({ initialTab = "review" }: Props) {
+  const [tab, setTab] = useState<TabKey>(initialTab);
+  const [stats, setStats] = useState<QuickStats | null>(null);
+
+  const refresh = useCallback(() => {
+    loadQuickStats().then(setStats).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    refresh();
+    const id = setInterval(refresh, 30_000);
+    return () => clearInterval(id);
+  }, [refresh]);
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      const idx = parseInt(e.key, 10) - 1;
+      if (idx >= 0 && idx < TAB_ORDER.length) {
+        setTab(TAB_ORDER[idx]);
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   return (
-    <Box sx={{ py: 2 }}>
-      <Box sx={{ maxWidth: 1200, mx: "auto", px: 3 }}>
-        <Typography variant="h5" sx={{ fontWeight: 700, mb: 1 }}>
-          Operations
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Unified workspace for coding, review, exclusion conflicts, peer-review, and model deployment.
-        </Typography>
+    <Box sx={{ minHeight: "100%", bgcolor: "background.default" }}>
+      {/* -- Header --------------------------------------------------------- */}
+      <Box
+        component="header"
+        sx={{
+          position: "sticky",
+          top: 0,
+          zIndex: 10,
+          bgcolor: "background.paper",
+          borderBottom: 1,
+          borderColor: "divider",
+          px: 3,
+          py: 1.5,
+        }}
+      >
+        <Stack
+          direction="row"
+          alignItems="center"
+          justifyContent="space-between"
+          flexWrap="wrap"
+          gap={1}
+        >
+          <Typography component="h1" variant="h5" sx={{ fontWeight: 700 }}>
+            Operations
+          </Typography>
+
+          {/* Quick-stat chips */}
+          <Stack direction="row" gap={1} flexWrap="wrap" aria-label="Quick stats">
+            {stats ? (
+              <>
+                <Chip
+                  icon={<StatusDot variant={stats.pendingReview > 0 ? "warn" : "ok"} size={8} />}
+                  label={`${stats.pendingReview} to review`}
+                  size="small"
+                  variant="outlined"
+                />
+                <Chip
+                  icon={<StatusDot variant="ok" size={8} />}
+                  label={`${stats.resolvedToday} resolved`}
+                  size="small"
+                  variant="outlined"
+                />
+                <Chip
+                  icon={<StatusDot variant={stats.modelHealth} size={8} />}
+                  label={`Model ${stats.modelVersion}`}
+                  size="small"
+                  variant="outlined"
+                />
+              </>
+            ) : (
+              <>
+                <Skeleton width={100} height={24} />
+                <Skeleton width={90} height={24} />
+                <Skeleton width={80} height={24} />
+              </>
+            )}
+          </Stack>
+        </Stack>
+
+        {/* -- Tabs --------------------------------------------------------- */}
         <Tabs
           value={tab}
-          onChange={(_, v) => setTab(v as OperationsTab)}
-          sx={{ mb: 2, borderBottom: 1, borderColor: "divider" }}
-          variant="scrollable"
-          scrollButtons="auto"
+          onChange={(_, v) => setTab(v)}
+          sx={{ mt: 0.5 }}
+          aria-label="Operations sections"
         >
-          {(Object.keys(TAB_LABELS) as OperationsTab[]).map((t) => (
-            <Tab key={t} value={t} label={TAB_LABELS[t]} />
+          {TAB_ORDER.map((key, i) => (
+            <Tab
+              key={key}
+              value={key}
+              label={
+                key === "review" && stats ? (
+                  <Badge
+                    badgeContent={stats.pendingReview}
+                    color="warning"
+                    max={999}
+                    sx={{ "& .MuiBadge-badge": { fontSize: 11 } }}
+                  >
+                    {TAB_LABELS[key]}
+                  </Badge>
+                ) : (
+                  TAB_LABELS[key]
+                )
+              }
+              id={`ops-tab-${key}`}
+              aria-controls={`ops-panel-${key}`}
+              sx={{
+                textTransform: "none",
+                fontWeight: 600,
+                minHeight: 40,
+                "&::after": {
+                  content: `"${i + 1}"`,
+                  ml: 0.75,
+                  fontSize: 11,
+                  color: "text.disabled",
+                },
+              }}
+            />
           ))}
         </Tabs>
       </Box>
 
-      {tab === "pipeline" && <PipelinePanel onNavigateTab={navigateTab} />}
-      {tab === "classification" && <ClassificationReviewPanel />}
-      {tab === "anchor" && <AnchorReviewPanel />}
-      {tab === "exclusion_conflict" && (
-        <HITLTasksPanel
-          taskType="exclusion_conflict"
-          title="Exclusion Conflicts"
-          description="Encounters where two LLM models disagreed on cancer exclusion / confirmation. Reviewer must assign a definitive outcome."
-        />
-      )}
-      {tab === "peer_review" && (
-        <HITLTasksPanel
-          taskType="peer_review"
-          title="Peer Review (10% sample)"
-          description="Mandatory 10% peer-review sample of approved coding outputs."
-        />
-      )}
-      {tab === "training" && <TrainingDataPanel />}
-      {tab === "label_review" && <LabelVerificationPanel />}
-      {tab === "coding_review" && <CodingReviewPanel />}
-      {tab === "models" && <ModelLifecyclePanel />}
+      {/* -- Content -------------------------------------------------------- */}
+      <Box sx={{ px: 3, py: 2.5, maxWidth: 960, mx: "auto" }}>
+        <Box
+          role="tabpanel"
+          id={`ops-panel-${tab}`}
+          aria-labelledby={`ops-tab-${tab}`}
+        >
+          {tab === "run" && <RunSection />}
+          {tab === "review" && <ReviewSection onStatsChange={refresh} />}
+          {tab === "train" && <TrainSection />}
+          {tab === "deploy" && <DeploySection />}
+        </Box>
+      </Box>
     </Box>
   );
 }

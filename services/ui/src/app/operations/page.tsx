@@ -1,5 +1,5 @@
 import OperationsWorkspace from "@/components/operations/OperationsWorkspace";
 
 export default function OperationsPage() {
-  return <OperationsWorkspace initialTab="pipeline" />;
+  return <OperationsWorkspace initialTab="review" />;
 }

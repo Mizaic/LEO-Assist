@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.39.26.7824",
-      "templateHash": "4384005767385675372"
+      "templateHash": "12878672519034464581"
     }
   },
   "parameters": {
@@ -24,12 +24,6 @@
       "type": "string"
     },
     "neo4jKnowledgeUser": {
-      "type": "string"
-    },
-    "azureAdTenantId": {
-      "type": "string"
-    },
-    "awsBedrockModel": {
       "type": "string"
     },
     "awsDefaultRegion": {
@@ -68,6 +62,10 @@
     "modelMinPrecision": {
       "type": "string"
     },
+    "modelMinRecall": {
+      "type": "string",
+      "defaultValue": "0.75"
+    },
     "sbMaxLockRenewalSeconds": {
       "type": "string"
     },
@@ -78,6 +76,13 @@
       "type": "string"
     },
     "sessionTtlHours": {
+      "type": "string"
+    },
+    "snomedTerminologyServer": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "frontendUrl": {
       "type": "string"
     },
     "acrResourceGroup": {
@@ -533,12 +538,6 @@
           "neo4jKnowledgeUser": {
             "value": "[parameters('neo4jKnowledgeUser')]"
           },
-          "azureAdTenantId": {
-            "value": "[parameters('azureAdTenantId')]"
-          },
-          "awsBedrockModel": {
-            "value": "[parameters('awsBedrockModel')]"
-          },
           "awsDefaultRegion": {
             "value": "[parameters('awsDefaultRegion')]"
           },
@@ -572,6 +571,9 @@
           "modelMinPrecision": {
             "value": "[parameters('modelMinPrecision')]"
           },
+          "modelMinRecall": {
+            "value": "[parameters('modelMinRecall')]"
+          },
           "sbMaxLockRenewalSeconds": {
             "value": "[parameters('sbMaxLockRenewalSeconds')]"
           },
@@ -583,6 +585,12 @@
           },
           "sessionTtlHours": {
             "value": "[parameters('sessionTtlHours')]"
+          },
+          "snomedTerminologyServer": {
+            "value": "[parameters('snomedTerminologyServer')]"
+          },
+          "frontendUrl": {
+            "value": "[parameters('frontendUrl')]"
           }
         },
         "template": {
@@ -592,7 +600,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.39.26.7824",
-              "templateHash": "16465446574708624417"
+              "templateHash": "9554456972871650536"
             }
           },
           "parameters": {
@@ -631,12 +639,6 @@
             "neo4jKnowledgeUser": {
               "type": "string"
             },
-            "azureAdTenantId": {
-              "type": "string"
-            },
-            "awsBedrockModel": {
-              "type": "string"
-            },
             "awsDefaultRegion": {
               "type": "string"
             },
@@ -670,6 +672,10 @@
             "modelMinPrecision": {
               "type": "string"
             },
+            "modelMinRecall": {
+              "type": "string",
+              "defaultValue": "0.75"
+            },
             "sbMaxLockRenewalSeconds": {
               "type": "string"
             },
@@ -681,6 +687,13 @@
             },
             "sessionTtlHours": {
               "type": "string"
+            },
+            "frontendUrl": {
+              "type": "string"
+            },
+            "snomedTerminologyServer": {
+              "type": "string",
+              "defaultValue": ""
             }
           },
           "variables": {
@@ -708,6 +721,10 @@
                 "value": "[parameters('sbNamespaceFqdn')]"
               },
               {
+                "name": "OPENAI_API_TYPE",
+                "value": "azure"
+              },
+              {
                 "name": "AZURE_OPENAI_ENDPOINT",
                 "value": "[parameters('aoaiEndpoint')]"
               },
@@ -724,16 +741,40 @@
                 "value": "[parameters('azureOpenAiApiVersion')]"
               },
               {
-                "name": "AZURE_AD_TENANT_ID",
-                "value": "[parameters('azureAdTenantId')]"
-              },
-              {
-                "name": "AWS_BEDROCK_MODEL",
-                "value": "[parameters('awsBedrockModel')]"
-              },
-              {
                 "name": "AWS_DEFAULT_REGION",
                 "value": "[parameters('awsDefaultRegion')]"
+              },
+              {
+                "name": "PIPELINE_MODEL_PROVIDER",
+                "value": "aws"
+              },
+              {
+                "name": "PIPELINE_MODEL_TIER",
+                "value": "small"
+              },
+              {
+                "name": "CODING_EXTRACTOR_BACKEND",
+                "value": "[parameters('codingExtractorBackend')]"
+              },
+              {
+                "name": "CODING_EXTRACTOR_STRICT",
+                "value": "[parameters('codingExtractorStrict')]"
+              },
+              {
+                "name": "CODING_MODEL_PROVIDER",
+                "value": "service"
+              },
+              {
+                "name": "CODING_MODEL_NAME",
+                "value": "[parameters('modelStoreModelName')]"
+              },
+              {
+                "name": "CODING_MODEL_TIMEOUT_MS",
+                "value": "10000"
+              },
+              {
+                "name": "CODING_MODEL_MAX_RETRIES",
+                "value": "2"
               },
               {
                 "name": "MODEL_STORE_CONTAINER",
@@ -742,6 +783,110 @@
               {
                 "name": "MODEL_STORE_MODEL_NAME",
                 "value": "[parameters('modelStoreModelName')]"
+              },
+              {
+                "name": "MODEL_REGISTRY_STORE",
+                "value": "neo4j"
+              },
+              {
+                "name": "MODEL_MIN_PRECISION",
+                "value": "[parameters('modelMinPrecision')]"
+              },
+              {
+                "name": "MODEL_MIN_RECALL",
+                "value": "[parameters('modelMinRecall')]"
+              },
+              {
+                "name": "MODEL_CANARY_MIN_PRECISION",
+                "value": "[parameters('modelMinPrecision')]"
+              },
+              {
+                "name": "MODEL_CANARY_MIN_RECALL",
+                "value": "[parameters('modelMinRecall')]"
+              },
+              {
+                "name": "MODEL_REQUIRED_SCHEMA_VERSION",
+                "value": "1.0"
+              },
+              {
+                "name": "MODEL_REQUIRED_DEID_VERSION",
+                "value": "1.0"
+              },
+              {
+                "name": "MODEL_REQUIRED_LABEL_VERSION",
+                "value": "1.0"
+              },
+              {
+                "name": "HITL_LOW_CONFIDENCE_THRESHOLD",
+                "value": "[parameters('hitlLowConfidenceThreshold')]"
+              },
+              {
+                "name": "HITL_PEER_REVIEW_RATE",
+                "value": "[parameters('hitlPeerReviewRate')]"
+              },
+              {
+                "name": "LABEL_VERIFY_WORKERS",
+                "value": "50"
+              },
+              {
+                "name": "LABEL_VERIFY_ADAPTIVE_MIN_CONCURRENCY",
+                "value": "20"
+              },
+              {
+                "name": "LABEL_VERIFY_ADAPTIVE_MAX_CONCURRENCY",
+                "value": "120"
+              },
+              {
+                "name": "LABEL_VERIFY_ADAPTIVE_INITIAL_CONCURRENCY",
+                "value": "60"
+              },
+              {
+                "name": "TRAINING_HF_BASE_MODEL",
+                "value": "emilyalsentzer/Bio_ClinicalBERT"
+              },
+              {
+                "name": "TRAINING_FROZEN_COMPONENTS",
+                "value": "transformer"
+              },
+              {
+                "name": "TRAINING_MAX_CONCURRENT_JOBS",
+                "value": "1"
+              },
+              {
+                "name": "TRAINING_JOB_TIMEOUT_S",
+                "value": "43200"
+              },
+              {
+                "name": "TRAINING_MIN_LABEL_COUNT",
+                "value": "50"
+              },
+              {
+                "name": "TRAINING_USE_GPU",
+                "value": "false"
+              },
+              {
+                "name": "HF_HOME",
+                "value": "/var/model_cache/hf_cache"
+              },
+              {
+                "name": "VECTOR_MODEL",
+                "value": "emilyalsentzer/Bio_ClinicalBERT"
+              },
+              {
+                "name": "VECTOR_DIMENSION",
+                "value": "768"
+              },
+              {
+                "name": "VECTOR_DEVICE",
+                "value": "cpu"
+              },
+              {
+                "name": "SNOMED_TERMINOLOGY_SERVER",
+                "value": "[parameters('snomedTerminologyServer')]"
+              },
+              {
+                "name": "NCDA_CONFIG_DIR",
+                "value": "configs/snomed"
               },
               {
                 "name": "COOKIE_SECURE",
@@ -753,6 +898,10 @@
               },
               {
                 "name": "ALLOWED_ORIGINS",
+                "value": "[parameters('allowedOrigins')]"
+              },
+              {
+                "name": "CORS_ORIGINS",
                 "value": "[parameters('allowedOrigins')]"
               },
               {
@@ -772,8 +921,36 @@
                 "secretRef": "neo4j-knowledge-password"
               },
               {
+                "name": "GUIDELINE_NEO4J_URI",
+                "secretRef": "neo4j-guideline-uri"
+              },
+              {
+                "name": "GUIDELINE_NEO4J_PASSWORD",
+                "secretRef": "neo4j-guideline-password"
+              },
+              {
                 "name": "REDIS_URL",
                 "secretRef": "redis-url"
+              },
+              {
+                "name": "AZURE_AD_TENANT_ID",
+                "secretRef": "azure-ad-tenant-id"
+              },
+              {
+                "name": "AZURE_AD_CLIENT_SECRET",
+                "secretRef": "azure-ad-client-secret"
+              },
+              {
+                "name": "AZURE_OPENAI_API_KEY",
+                "secretRef": "azure-openai-api-key"
+              },
+              {
+                "name": "AZURE_STORAGE_CONNECTION_STRING",
+                "secretRef": "azure-storage-connection-string"
+              },
+              {
+                "name": "AZURE_SERVICE_BUS_CONNECTION_STRING",
+                "secretRef": "azure-service-bus-connection-string"
               },
               {
                 "name": "AWS_ACCESS_KEY_ID",
@@ -784,8 +961,52 @@
                 "secretRef": "aws-secret-access-key"
               },
               {
-                "name": "AZURE_OPENAI_API_KEY",
-                "secretRef": "azure-openai-api-key"
+                "name": "AWS_BIG_MODEL",
+                "secretRef": "aws-big-model"
+              },
+              {
+                "name": "AWS_SMALL_MODEL",
+                "secretRef": "aws-small-model"
+              },
+              {
+                "name": "AWS_MAX_MODEL",
+                "secretRef": "aws-max-model"
+              },
+              {
+                "name": "SNOMED_API_KEY",
+                "secretRef": "snomed-api-key"
+              },
+              {
+                "name": "UMLS_API_KEY",
+                "secretRef": "umls-api-key"
+              },
+              {
+                "name": "NHS_TRUD_API_KEY",
+                "secretRef": "nhs-trud-api-key"
+              },
+              {
+                "name": "AZURE_AD_CLIENT_ID",
+                "secretRef": "azure-ad-client-id"
+              },
+              {
+                "name": "ANALYTICS_API_APP_ID",
+                "secretRef": "analytics-api-app-id"
+              },
+              {
+                "name": "FHIR_API_APP_ID",
+                "secretRef": "fhir-api-app-id"
+              },
+              {
+                "name": "MODEL_INFERENCE_APP_ID",
+                "secretRef": "model-inference-app-id"
+              },
+              {
+                "name": "TERMINOLOGY_API_APP_ID",
+                "secretRef": "terminology-api-app-id"
+              },
+              {
+                "name": "AUTH_SECRET",
+                "secretRef": "auth-secret"
               },
               {
                 "name": "SERVICE_AUTH_SECRET",
@@ -814,8 +1035,43 @@
                 "identity": "[parameters('managedIdentityId')]"
               },
               {
+                "name": "neo4j-guideline-uri",
+                "keyVaultUrl": "[format('{0}secrets/neo4j-guideline-uri', parameters('kvUri'))]",
+                "identity": "[parameters('managedIdentityId')]"
+              },
+              {
+                "name": "neo4j-guideline-password",
+                "keyVaultUrl": "[format('{0}secrets/neo4j-guideline-password', parameters('kvUri'))]",
+                "identity": "[parameters('managedIdentityId')]"
+              },
+              {
                 "name": "redis-url",
                 "keyVaultUrl": "[format('{0}secrets/redis-url', parameters('kvUri'))]",
+                "identity": "[parameters('managedIdentityId')]"
+              },
+              {
+                "name": "azure-ad-client-secret",
+                "keyVaultUrl": "[format('{0}secrets/azure-ad-client-secret', parameters('kvUri'))]",
+                "identity": "[parameters('managedIdentityId')]"
+              },
+              {
+                "name": "azure-ad-tenant-id",
+                "keyVaultUrl": "[format('{0}secrets/azure-ad-tenant-id', parameters('kvUri'))]",
+                "identity": "[parameters('managedIdentityId')]"
+              },
+              {
+                "name": "azure-openai-api-key",
+                "keyVaultUrl": "[format('{0}secrets/azure-openai-api-key', parameters('kvUri'))]",
+                "identity": "[parameters('managedIdentityId')]"
+              },
+              {
+                "name": "azure-storage-connection-string",
+                "keyVaultUrl": "[format('{0}secrets/azure-storage-connection-string', parameters('kvUri'))]",
+                "identity": "[parameters('managedIdentityId')]"
+              },
+              {
+                "name": "azure-service-bus-connection-string",
+                "keyVaultUrl": "[format('{0}secrets/azure-service-bus-connection-string', parameters('kvUri'))]",
                 "identity": "[parameters('managedIdentityId')]"
               },
               {
@@ -829,8 +1085,63 @@
                 "identity": "[parameters('managedIdentityId')]"
               },
               {
-                "name": "azure-openai-api-key",
-                "keyVaultUrl": "[format('{0}secrets/azure-openai-api-key', parameters('kvUri'))]",
+                "name": "aws-big-model",
+                "keyVaultUrl": "[format('{0}secrets/aws-big-model', parameters('kvUri'))]",
+                "identity": "[parameters('managedIdentityId')]"
+              },
+              {
+                "name": "aws-small-model",
+                "keyVaultUrl": "[format('{0}secrets/aws-small-model', parameters('kvUri'))]",
+                "identity": "[parameters('managedIdentityId')]"
+              },
+              {
+                "name": "aws-max-model",
+                "keyVaultUrl": "[format('{0}secrets/aws-max-model', parameters('kvUri'))]",
+                "identity": "[parameters('managedIdentityId')]"
+              },
+              {
+                "name": "snomed-api-key",
+                "keyVaultUrl": "[format('{0}secrets/snomed-api-key', parameters('kvUri'))]",
+                "identity": "[parameters('managedIdentityId')]"
+              },
+              {
+                "name": "umls-api-key",
+                "keyVaultUrl": "[format('{0}secrets/umls-api-key', parameters('kvUri'))]",
+                "identity": "[parameters('managedIdentityId')]"
+              },
+              {
+                "name": "nhs-trud-api-key",
+                "keyVaultUrl": "[format('{0}secrets/nhs-trud-api-key', parameters('kvUri'))]",
+                "identity": "[parameters('managedIdentityId')]"
+              },
+              {
+                "name": "azure-ad-client-id",
+                "keyVaultUrl": "[format('{0}secrets/azure-ad-client-id', parameters('kvUri'))]",
+                "identity": "[parameters('managedIdentityId')]"
+              },
+              {
+                "name": "analytics-api-app-id",
+                "keyVaultUrl": "[format('{0}secrets/analytics-api-app-id', parameters('kvUri'))]",
+                "identity": "[parameters('managedIdentityId')]"
+              },
+              {
+                "name": "fhir-api-app-id",
+                "keyVaultUrl": "[format('{0}secrets/fhir-api-app-id', parameters('kvUri'))]",
+                "identity": "[parameters('managedIdentityId')]"
+              },
+              {
+                "name": "model-inference-app-id",
+                "keyVaultUrl": "[format('{0}secrets/model-inference-app-id', parameters('kvUri'))]",
+                "identity": "[parameters('managedIdentityId')]"
+              },
+              {
+                "name": "terminology-api-app-id",
+                "keyVaultUrl": "[format('{0}secrets/terminology-api-app-id', parameters('kvUri'))]",
+                "identity": "[parameters('managedIdentityId')]"
+              },
+              {
+                "name": "auth-secret",
+                "keyVaultUrl": "[format('{0}secrets/auth-secret', parameters('kvUri'))]",
                 "identity": "[parameters('managedIdentityId')]"
               },
               {
@@ -908,7 +1219,7 @@
                         "cpu": "[json('0.5')]",
                         "memory": "1Gi"
                       },
-                      "env": "[union(variables('sharedEnv'), createArray(createObject('name', 'NEO4J_USER', 'value', parameters('neo4jUser')), createObject('name', 'TERMINOLOGY_API_URL', 'value', variables('termApiUrl')), createObject('name', 'FHIR_API_URL', 'value', variables('fhirApiUrl')), createObject('name', 'ANALYTICS_API_URL', 'value', variables('analyticsApiUrl')), createObject('name', 'CODING_MODEL_ENDPOINT', 'value', variables('modelInferenceUrl')), createObject('name', 'CODING_EXTRACTOR_BACKEND', 'value', parameters('codingExtractorBackend')), createObject('name', 'CODING_EXTRACTOR_STRICT', 'value', parameters('codingExtractorStrict')), createObject('name', 'HITL_LOW_CONFIDENCE_THRESHOLD', 'value', parameters('hitlLowConfidenceThreshold')), createObject('name', 'HITL_PEER_REVIEW_RATE', 'value', parameters('hitlPeerReviewRate')), createObject('name', 'MODEL_MIN_PRECISION', 'value', parameters('modelMinPrecision'))))]"
+                      "env": "[union(variables('sharedEnv'), createArray(createObject('name', 'NEO4J_USER', 'value', parameters('neo4jUser')), createObject('name', 'TERMINOLOGY_API_URL', 'value', variables('termApiUrl')), createObject('name', 'FHIR_API_URL', 'value', variables('fhirApiUrl')), createObject('name', 'ANALYTICS_API_URL', 'value', variables('analyticsApiUrl')), createObject('name', 'CODING_MODEL_ENDPOINT', 'value', variables('modelInferenceUrl')), createObject('name', 'SB_MAX_LOCK_RENEWAL_SECONDS', 'value', parameters('sbMaxLockRenewalSeconds')), createObject('name', 'FRONTEND_URL', 'value', parameters('frontendUrl')), createObject('name', 'AUTH_REDIRECT_URI', 'value', format('{0}/auth/callback', parameters('frontendUrl'))), createObject('name', 'MAIL_FROM_ADDRESS', 'value', 'leo.support@healthcarecopilot.ai')))]"
                     }
                   ],
                   "scale": {
@@ -947,16 +1258,7 @@
                         "cpu": "[json('0.25')]",
                         "memory": "0.5Gi"
                       },
-                      "env": [
-                        {
-                          "name": "NEXT_PUBLIC_API_BASE",
-                          "value": "[format('https://{0}', reference(resourceId('Microsoft.App/containerApps', 'core-api'), '2024-03-01').configuration.ingress.fqdn)]"
-                        },
-                        {
-                          "name": "NODE_ENV",
-                          "value": "production"
-                        }
-                      ]
+                      "env": "[union(variables('sharedEnv'), createArray(createObject('name', 'INTERNAL_API_BASE', 'value', 'http://core-api'), createObject('name', 'TERMINOLOGY_API_URL', 'value', variables('termApiUrl')), createObject('name', 'TRAINING_WORKER_URL', 'value', 'http://training-worker'), createObject('name', 'NODE_ENV', 'value', 'production'), createObject('name', 'AUTH_URL', 'value', parameters('frontendUrl')), createObject('name', 'NEXT_PUBLIC_API_BASE', 'value', '')))]"
                     }
                   ],
                   "scale": {
@@ -966,8 +1268,7 @@
                 }
               },
               "dependsOn": [
-                "[resourceId('Microsoft.App/managedEnvironments', variables('caeName'))]",
-                "[resourceId('Microsoft.App/containerApps', 'core-api')]"
+                "[resourceId('Microsoft.App/managedEnvironments', variables('caeName'))]"
               ]
             },
             {
@@ -1186,7 +1487,7 @@
                         "cpu": "[json('0.5')]",
                         "memory": "1Gi"
                       },
-                      "env": "[union(variables('sharedEnv'), createArray(createObject('name', 'NEO4J_USER', 'value', parameters('neo4jUser')), createObject('name', 'TERMINOLOGY_API_URL', 'value', variables('termApiUrl')), createObject('name', 'CODING_MODEL_ENDPOINT', 'value', variables('modelInferenceUrl')), createObject('name', 'CODING_EXTRACTOR_BACKEND', 'value', parameters('codingExtractorBackend')), createObject('name', 'SB_MAX_LOCK_RENEWAL_SECONDS', 'value', parameters('sbMaxLockRenewalSeconds'))))]"
+                      "env": "[union(variables('sharedEnv'), createArray(createObject('name', 'NEO4J_USER', 'value', parameters('neo4jUser')), createObject('name', 'TERMINOLOGY_API_URL', 'value', variables('termApiUrl')), createObject('name', 'CODING_MODEL_ENDPOINT', 'value', variables('modelInferenceUrl')), createObject('name', 'SB_MAX_LOCK_RENEWAL_SECONDS', 'value', parameters('sbMaxLockRenewalSeconds'))))]"
                     }
                   ],
                   "scale": {
@@ -1239,7 +1540,7 @@
                         "cpu": "[json('0.5')]",
                         "memory": "1Gi"
                       },
-                      "env": "[union(variables('sharedEnv'), createArray(createObject('name', 'NEO4J_USER', 'value', parameters('neo4jUser')), createObject('name', 'SB_MAX_LOCK_RENEWAL_SECONDS', 'value', parameters('sbMaxLockRenewalSeconds'))))]"
+                      "env": "[union(variables('sharedEnv'), createArray(createObject('name', 'NEO4J_USER', 'value', parameters('neo4jUser')), createObject('name', 'SB_MAX_LOCK_RENEWAL_SECONDS', 'value', parameters('sbMaxLockRenewalSeconds')), createObject('name', 'ANALYTICS_API_URL', 'value', variables('analyticsApiUrl'))))]"
                     }
                   ],
                   "scale": {
@@ -1303,10 +1604,6 @@
     "kvUri": {
       "type": "string",
       "value": "[reference(resourceId('Microsoft.Resources/deployments', 'keyvault'), '2025-04-01').outputs.kvUri.value]"
-    },
-    "redisHostname": {
-      "type": "string",
-      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'redis'), '2025-04-01').outputs.redisHostname.value]"
     },
     "sbNamespaceFqdn": {
       "type": "string",

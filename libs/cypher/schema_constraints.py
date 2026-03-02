@@ -25,6 +25,16 @@ PATIENT_SCHEMA_CONSTRAINTS = [
     # Post-M1 labels
     "CREATE INDEX safety_net_alert_id IF NOT EXISTS FOR (n:SafetyNetAlert) ON (n.alert_id)",
     "CREATE INDEX episode_of_care_id IF NOT EXISTS FOR (n:EpisodeOfCare) ON (n.episode_id)",
+    # Model registry (NER pipeline manifests)
+    "CREATE CONSTRAINT model_version_id IF NOT EXISTS FOR (m:ModelVersion) REQUIRE m.version IS UNIQUE",
+    "CREATE CONSTRAINT model_registry_config_id IF NOT EXISTS FOR (c:ModelRegistryConfig) REQUIRE c.id IS UNIQUE",
+    # Tenant management
+    "CREATE CONSTRAINT group_id IF NOT EXISTS FOR (g:Group) REQUIRE g.id IS UNIQUE",
+    "CREATE CONSTRAINT role_name IF NOT EXISTS FOR (r:Role) REQUIRE r.name IS UNIQUE",
+    "CREATE CONSTRAINT system_config_id IF NOT EXISTS FOR (sc:SystemConfig) REQUIRE sc.id IS UNIQUE",
+    "CREATE CONSTRAINT practitioner_id IF NOT EXISTS FOR (pr:Practitioner) REQUIRE pr.id IS UNIQUE",
+    "CREATE INDEX practitioner_email IF NOT EXISTS FOR (pr:Practitioner) ON (pr.email)",
+    "CREATE INDEX group_org_id IF NOT EXISTS FOR (g:Group) ON (g.org_id)",
 ]
 
 CODING_SCHEMA_CONSTRAINTS: list[str] = [
