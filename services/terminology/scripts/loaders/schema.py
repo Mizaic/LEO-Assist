@@ -56,6 +56,20 @@ def _vector_index_stmt() -> tuple[str, str]:
     return index_name, stmt
 
 
+def _surface_form_vector_index_stmt() -> tuple[str, str]:
+    dim = int(os.environ.get("VECTOR_DIMENSION", "768"))
+    index_name = "surface_form_embedding_idx"
+    stmt = (
+        f"CREATE VECTOR INDEX {index_name} IF NOT EXISTS "
+        "FOR (s:SurfaceForm) ON (s.embedding) "
+        "OPTIONS {indexConfig: {"
+        f"`vector.dimensions`: {dim}, "
+        "`vector.similarity_function`: 'cosine'"
+        "}}"
+    )
+    return index_name, stmt
+
+
 async def ensure_schema(driver: AsyncDriver) -> None:
     """Create all constraints and indexes. Idempotent."""
     async with driver.session() as session:
@@ -74,5 +88,9 @@ async def ensure_schema(driver: AsyncDriver) -> None:
         vector_name, vector_stmt = _vector_index_stmt()
         logger.info("Schema: vector %s", vector_name)
         await session.run(vector_stmt)
+
+        sf_vector_name, sf_vector_stmt = _surface_form_vector_index_stmt()
+        logger.info("Schema: vector %s", sf_vector_name)
+        await session.run(sf_vector_stmt)
 
     logger.info("Schema setup complete")

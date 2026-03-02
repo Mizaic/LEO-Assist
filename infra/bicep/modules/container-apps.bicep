@@ -187,7 +187,9 @@ resource ui 'Microsoft.App/containerApps@2024-03-01' = {
         image: usePlaceholder ? placeholderImage : '${acrLoginServer}/ui:${imageTag}'
         resources: { cpu: json('0.25'), memory: '0.5Gi' }
         env: [
-          { name: 'NEXT_PUBLIC_API_BASE', value: 'https://${coreApi.properties.configuration.ingress.fqdn}' }
+          { name: 'INTERNAL_API_BASE', value: 'http://core-api' }
+          { name: 'TERMINOLOGY_API_URL', value: termApiUrl }
+          { name: 'TRAINING_WORKER_URL', value: 'http://training-worker' }
           { name: 'NODE_ENV', value: 'production' }
         ]
       }]

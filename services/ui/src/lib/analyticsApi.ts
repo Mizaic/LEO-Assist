@@ -4,28 +4,8 @@
  */
 
 function resolveApiBase(): string {
-  const envBase =
-    typeof process !== "undefined" && process.env?.NEXT_PUBLIC_API_BASE
-      ? process.env.NEXT_PUBLIC_API_BASE.replace(/\/+$/, "")
-      : "http://localhost:8000";
-
-  if (typeof window === "undefined") return envBase;
-
-  try {
-    const parsed = new URL(envBase);
-    const uiHost = window.location.hostname;
-    const loopbackHosts = new Set(["localhost", "127.0.0.1"]);
-
-    // Align loopback host with the UI origin to keep auth cookies first-party.
-    if (loopbackHosts.has(parsed.hostname) && loopbackHosts.has(uiHost) && parsed.hostname !== uiHost) {
-      parsed.hostname = uiHost;
-      return parsed.toString().replace(/\/+$/, "");
-    }
-  } catch {
-    // Keep env value if parsing fails.
-  }
-
-  return envBase;
+  if (typeof window !== "undefined") return window.location.origin;
+  return (process.env.INTERNAL_API_BASE || "http://localhost:8000").replace(/\/+$/, "");
 }
 
 const API_BASE = resolveApiBase();
