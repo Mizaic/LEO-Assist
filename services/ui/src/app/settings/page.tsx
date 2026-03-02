@@ -13,6 +13,7 @@ import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import TextFieldsOutlinedIcon from "@mui/icons-material/TextFieldsOutlined";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import HubOutlinedIcon from "@mui/icons-material/HubOutlined";
 
 interface SettingsCard {
   id: string;
@@ -41,6 +42,14 @@ const SETTINGS_CARDS: SettingsCard[] = [
     path: "/settings/surface-forms",
   },
   {
+    id: "terminology",
+    title: "Terminology data",
+    description:
+      "Check for new SNOMED CT and dm+d releases from NHS TRUD. Download and load them into the knowledge graph. Platform admins only.",
+    icon: <HubOutlinedIcon sx={{ fontSize: 40, color: "primary.main" }} />,
+    path: "/settings/terminology",
+  },
+  {
     id: "tenant",
     title: "Tenant Management",
     description:
@@ -54,7 +63,8 @@ export default function SettingsPage() {
   const router = useRouter();
   const { isPlatformAdmin } = useOrg();
 
-  const cards = SETTINGS_CARDS.filter((c) => c.id !== "tenant" || isPlatformAdmin);
+  const adminOnly = new Set(["tenant", "terminology"]);
+  const cards = SETTINGS_CARDS.filter((c) => !adminOnly.has(c.id) || isPlatformAdmin);
 
   return (
     <Box sx={{ p: 3, maxWidth: 1000, mx: "auto" }}>
