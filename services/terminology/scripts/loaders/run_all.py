@@ -75,6 +75,8 @@ async def run_phase_1(driver, files: SnomedFiles) -> None:
 
     await _load_if_found(load_concepts, driver, files.int_concept(), "INT Concepts")
     await _load_if_found(load_concepts, driver, files.ukcl_concept(), "UKCL Concepts")
+    await _load_if_found(load_concepts, driver, files.uked_concept(), "UKED Concepts")
+    await _load_if_found(load_concepts, driver, files.ukcr_concept(), "UKCR Concepts")
 
     await _load_if_found(
         load_descriptions,
@@ -87,6 +89,18 @@ async def run_phase_1(driver, files: SnomedFiles) -> None:
         driver,
         files.ukcl_description(),
         "UKCL Descriptions",
+    )
+    await _load_if_found(
+        load_descriptions,
+        driver,
+        files.uked_description(),
+        "UKED Descriptions",
+    )
+    await _load_if_found(
+        load_descriptions,
+        driver,
+        files.ukcr_description(),
+        "UKCR Descriptions",
     )
 
     await _load_if_found(
@@ -101,6 +115,12 @@ async def run_phase_1(driver, files: SnomedFiles) -> None:
         files.uked_language(),
         "UKED Language",
     )
+    await _load_if_found(
+        load_language_refset,
+        driver,
+        files.ukcr_language(),
+        "UKCR Language",
+    )
 
     await _load_if_found(
         load_relationships,
@@ -113,6 +133,18 @@ async def run_phase_1(driver, files: SnomedFiles) -> None:
         driver,
         files.ukcl_relationship(),
         "UKCL Relationships",
+    )
+    await _load_if_found(
+        load_relationships,
+        driver,
+        files.uked_relationship(),
+        "UKED Relationships",
+    )
+    await _load_if_found(
+        load_relationships,
+        driver,
+        files.ukcr_relationship(),
+        "UKCR Relationships",
     )
 
 
@@ -135,10 +167,34 @@ async def run_phase_2(driver, files: SnomedFiles) -> None:
         "UKCL ExtendedMap (ICD-10 UK)",
     )
     await _load_if_found(
+        load_extended_map,
+        driver,
+        files.uked_extended_map(),
+        "UKED ExtendedMap (ICD-10 UK Edition)",
+    )
+    await _load_if_found(
+        load_extended_map,
+        driver,
+        files.ukcr_extended_map(),
+        "UKCR ExtendedMap (ICD-10 UK Clinical Refsets)",
+    )
+    await _load_if_found(
         load_simple_map,
         driver,
         files.int_simple_map(),
         "INT SimpleMap (CTV3)",
+    )
+    await _load_if_found(
+        load_simple_map,
+        driver,
+        files.uked_simple_map(),
+        "UKED SimpleMap (CTV3 UK Edition)",
+    )
+    await _load_if_found(
+        load_simple_map,
+        driver,
+        files.ukcr_simple_map(),
+        "UKCR SimpleMap (CTV3 UK Clinical Refsets)",
     )
 
 

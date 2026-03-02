@@ -1,7 +1,7 @@
 """Proxy endpoints: forward requests to FHIR API, Analytics API, and Core API with Bearer token.
 
-Frontend calls /api/proxy/fhir/*, /api/proxy/benchmarks/*, /api/proxy/analytics/*, and
-/api/proxy/pipeline/* with session cookie.
+Frontend calls /api/proxy/fhir/*, /api/proxy/benchmarks/*, /api/proxy/analytics/*,
+/api/proxy/pipeline/*, and /api/proxy/anchor-review/* with session cookie.
 Backend adds Authorization header and forwards to upstream services.
 """
 
@@ -127,6 +127,25 @@ async def proxy_pipeline(
 ):
     """Proxy pipeline endpoints to Core API (avoids client-side /api/proxy prefix mismatch)."""
     full_path = f"/pipeline/{path}" if not path.startswith("/") else f"/{path}"
+    if request.url.query:
+        full_path = f"{full_path}?{request.url.query}"
+    resp = await _proxy_request(request.method, full_path, CORE_API_BASE, token, request)
+    return Response(
+        content=resp.content,
+        status_code=resp.status_code,
+        headers=_copy_headers(resp),
+        media_type=resp.headers.get("content-type"),
+    )
+
+
+@router.api_route("/anchor-review/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
+async def proxy_anchor_review(
+    path: str,
+    request: Request,
+    token: Annotated[str, Depends(get_access_token)],
+):
+    """Proxy anchor-review endpoints to Core API (same-origin, adds Bearer from session)."""
+    full_path = f"/anchor-review/{path}" if not path.startswith("/") else f"/{path}"
     if request.url.query:
         full_path = f"{full_path}?{request.url.query}"
     resp = await _proxy_request(request.method, full_path, CORE_API_BASE, token, request)

@@ -7,11 +7,7 @@ param imageTag = 'latest'
 param neo4jUser = 'neo4j'
 param neo4jKnowledgeUser = 'neo4j'
 
-// Azure AD
-param azureAdTenantId = ''   // fill in: az account show --query tenantId -o tsv
-
-// AWS Bedrock
-param awsBedrockModel = 'arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-5-20250929-v1:0'
+// AWS Bedrock (model ARNs stored in Key Vault as aws-big-model / aws-small-model / aws-max-model)
 param awsDefaultRegion = 'eu-west-2'
 
 // Azure OpenAI - endpoint hosted in EU, key migrated via migrate-secrets.ps1
@@ -32,11 +28,21 @@ param modelStoreModelName = 'medspacy_clinical_ner'
 param hitlLowConfidenceThreshold = '0.5'
 param hitlPeerReviewRate = '0.10'
 param modelMinPrecision = '0.80'
+param modelMinRecall = '0.75'
 
 // Service Bus
 param sbMaxLockRenewalSeconds = '14400'
 
 // Security
-param allowedOrigins = 'https://ui.dev.leoai.example.com,http://localhost:3000'
+param allowedOrigins = 'https://atlas-dev.healthcarecopilot.ai,http://localhost:3000'
 param cookieSecure = 'true'
 param sessionTtlHours = '12'
+
+// SNOMED terminology server (set to your NHS SNOMED endpoint or leave blank to use local TRUD data)
+param snomedTerminologyServer = ''
+
+// Public URL of the UI for this environment.
+// - Must match an Entra app registration redirect URI (add /auth/callback suffix).
+// - Controls OAuth post-login redirects, the auth callback sent to Entra,
+//   and the sign-in link in invite emails.
+param frontendUrl = 'https://atlas-dev.healthcarecopilot.ai'

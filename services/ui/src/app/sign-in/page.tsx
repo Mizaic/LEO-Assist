@@ -15,6 +15,9 @@ const ERROR_MESSAGES: Record<string, string> = {
     "Azure AD is issuing v1.0 tokens. Set accessTokenAcceptedVersion: 2 in the app manifest.",
   token_exchange_failed: "Token exchange failed. Please try again.",
   missing_code: "Sign-in was cancelled or incomplete.",
+  mfa_required:
+    "Two-step login (MFA) is required for this system. " +
+    "Please sign in again and complete the Microsoft Authenticator check.",
 };
 
 function SignInContent() {

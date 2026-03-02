@@ -64,6 +64,12 @@ SET r.resolved                = true,
     r.resolved_at             = datetime(),
     r.model_a_was_correct     = $model_a_was_correct,
     r.model_b_was_correct     = $model_b_was_correct,
+    r.resolved_model_tier     = CASE WHEN $reviewer STARTS WITH 'auto_triage:escalation:'
+                                     THEN substring($reviewer, 22)
+                                     ELSE null END,
+    r.resolved_method         = CASE WHEN $reviewer STARTS WITH 'auto_triage:'
+                                     THEN substring($reviewer, 12)
+                                     ELSE 'human' END,
     r.updated_at              = datetime(),
     t.entities_json           = $entities_json,
     t.updated_at              = datetime(),

@@ -47,10 +47,24 @@ def get_caller_scope_from_request(
     GAP-001: X-User-Email header and ?email= query param removed.
     Caller identity is taken solely from the server-side session to prevent
     header spoofing.
+
+    Platform admin status is taken from the session (set at login from the
+    Analytics API / Neo4j). For non-admin users, org scope is resolved live
+    from Neo4j so org membership changes take effect immediately.
     """
     caller_email = (session_data.get("email") or "").strip().lower()
     if not caller_email:
         raise HTTPException(status_code=401, detail="No user email in session")
+
+    # Fast path: session records admin status set at login time.
+    if session_data.get("is_platform_admin") is True:
+        return CallerScope(
+            email=caller_email,
+            is_admin=True,
+            org_ids=[],
+            scope_type=None,
+            primary_org_id=None,
+        )
 
     client = PatientGraphClient()
     try:
