@@ -11,6 +11,7 @@ import {
   ButtonGroup,
   Chip,
   CircularProgress,
+  Divider,
   Menu,
   MenuItem,
   Paper,
@@ -147,6 +148,7 @@ export default function CodingReviewPanel() {
   const [recheckMode, setRecheckMode] = useState<"quick" | "llm" | null>(null);
   const [recheckMenuOpen, setRecheckMenuOpen] = useState(false);
   const recheckAnchorRef = useRef<HTMLDivElement>(null);
+  const [llmLimit, setLlmLimit] = useState<number>(200);
   const [recheckResult, setRecheckResult] = useState<{
     rechecked: number;
     auto_resolved: number;
@@ -185,14 +187,16 @@ export default function CodingReviewPanel() {
     setRecheckMode(tryAlternatives ? "llm" : "quick");
     setRecheckResult(null);
     try {
+      const limit = tryAlternatives && llmLimit > 0 ? llmLimit : 0;
+      const qs = `try_alternatives=${tryAlternatives}&item_limit=${limit}`;
       await jsonFetch<{ status: string }>(
-        `/api/training/coding-review/recheck?try_alternatives=${tryAlternatives}`,
+        `/api/training/coding-review/recheck?${qs}`,
         { method: "POST" }
       );
     } catch (e) {
       stopRechecking(e instanceof Error ? e.message : "Recheck failed. The terminology server may be unavailable.");
     }
-  }, [stopRechecking]);
+  }, [stopRechecking, llmLimit]);
 
   // Poll recheck status every 2 s while a job is running.
   useEffect(() => {
@@ -435,6 +439,20 @@ export default function CodingReviewPanel() {
           >
             LLM-assisted recheck
           </MenuItem>
+          <Divider />
+          <Box sx={{ px: 2, py: 1 }}>
+            <TextField
+              label="LLM item limit"
+              helperText="0 = process all"
+              type="number"
+              size="small"
+              value={llmLimit}
+              onChange={(e) => setLlmLimit(Math.max(0, parseInt(e.target.value, 10) || 0))}
+              inputProps={{ min: 0, step: 50 }}
+              sx={{ width: 140 }}
+              onClick={(e) => e.stopPropagation()}
+            />
+          </Box>
         </Menu>
         {lastChecked && (
           <Typography variant="caption" color="text.secondary">

@@ -352,6 +352,10 @@ def _get_model_store_cls():
 def _get_model_registry_cls():
     global _model_registry_cls
     if _model_registry_cls is None:
-        from libs.model_registry import ModelRegistry
-        _model_registry_cls = ModelRegistry
+        if os.getenv("MODEL_REGISTRY_STORE", "").strip().lower() == "neo4j":
+            from libs.model_registry.neo4j_registry import Neo4jModelRegistry
+            _model_registry_cls = Neo4jModelRegistry
+        else:
+            from libs.model_registry import ModelRegistry
+            _model_registry_cls = ModelRegistry
     return _model_registry_cls

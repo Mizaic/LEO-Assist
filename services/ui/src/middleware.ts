@@ -37,6 +37,7 @@ const EXACT_ROUTES: Record<string, () => string> = {
   "/auth/login": () => `${coreApi()}/auth/login`,
   "/auth/logout": () => `${coreApi()}/auth/logout`,
   "/auth/session": () => `${coreApi()}/auth/session`,
+  "/api/patients": () => `${coreApi()}/patients`,
 };
 
 interface PrefixRule {
@@ -45,6 +46,8 @@ interface PrefixRule {
 }
 
 const PREFIX_RULES: PrefixRule[] = [
+  { prefix: "/api/admin/", rewrite: (r) => `${coreApi()}/admin/${r}` },
+  { prefix: "/api/mail/", rewrite: (r) => `${coreApi()}/mail/${r}` },
   { prefix: "/api/proxy/", rewrite: (r) => `${coreApi()}/api/proxy/${r}` },
   { prefix: "/api/patients/", rewrite: (r) => `${coreApi()}/patients/${r}` },
   { prefix: "/api/pipeline/", rewrite: (r) => `${coreApi()}/pipeline/${r}` },
@@ -67,18 +70,26 @@ const PREFIX_RULES: PrefixRule[] = [
   },
 ];
 
+function proxyRewrite(request: NextRequest, dest: string): NextResponse {
+  // Forward X-Requested-With so the Core API CSRF check passes.
+  // The browser fetch API does not set this header automatically.
+  const headers = new Headers(request.headers);
+  headers.set("X-Requested-With", "XMLHttpRequest");
+  return NextResponse.rewrite(new URL(dest), { request: { headers } });
+}
+
 export function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
 
   const exactDest = EXACT_ROUTES[pathname];
   if (exactDest) {
-    return NextResponse.rewrite(new URL(exactDest() + search));
+    return proxyRewrite(request, exactDest() + search);
   }
 
   for (const rule of PREFIX_RULES) {
     if (pathname.startsWith(rule.prefix)) {
       const rest = pathname.slice(rule.prefix.length);
-      return NextResponse.rewrite(new URL(rule.rewrite(rest) + search));
+      return proxyRewrite(request, rule.rewrite(rest) + search);
     }
   }
 
@@ -87,6 +98,8 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
+    "/api/admin/:path*",
+    "/api/mail/:path*",
     "/auth/login",
     "/auth/logout",
     "/auth/session",

@@ -34,9 +34,17 @@ import LibraryBooksOutlinedIcon from "@mui/icons-material/LibraryBooksOutlined";
 import SportsEsportsOutlinedIcon from "@mui/icons-material/SportsEsportsOutlined";
 import LogoutIcon from "@mui/icons-material/Logout";
 import MenuIcon from "@mui/icons-material/Menu";
+import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettingsOutlined";
 import BusinessOutlinedIcon from "@mui/icons-material/BusinessOutlined";
+import MailOutlineIcon from "@mui/icons-material/MailOutline";
 import { useAuth } from "@/lib/authContext";
+import { useIdleLogout } from "@/lib/useIdleLogout";
 import Avatar from "@mui/material/Avatar";
+import Button from "@mui/material/Button";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import DialogTitle from "@mui/material/DialogTitle";
 import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
 import { useOrg } from "@/context/OrgContext";
@@ -51,6 +59,7 @@ type NavItem = {
   icon: React.ReactElement;
   badgeKey?: string;
   activePrefix?: string[];
+  adminOnly?: boolean;
 };
 
 const NAV_ITEMS: NavItem[] = [
@@ -65,6 +74,8 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Operations", path: "/operations", icon: <SettingsOutlinedIcon />, badgeKey: "reviewQueue" },
   { label: "Games", path: "/games", icon: <SportsEsportsOutlinedIcon /> },
   { label: "Gold Dataset", path: "/gold-dataset", icon: <LibraryBooksOutlinedIcon /> },
+  { label: "Tenant", path: "/tenant", icon: <AdminPanelSettingsOutlinedIcon />, adminOnly: true },
+  { label: "Support Mail", path: "/mail", icon: <MailOutlineIcon />, adminOnly: true },
   { label: "Domain Config", path: "/settings", icon: <TuneOutlinedIcon /> },
 ];
 
@@ -82,6 +93,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const [reviewBadge, setReviewBadge] = useState<number>(0);
+
+  const idleMinutes = status === "authenticated" ? (session?.idleTimeoutMinutes ?? 0) : 0;
+  const { isWarning, keepAlive } = useIdleLogout(idleMinutes, signOut);
 
   const refreshReviewBadge = useCallback(async () => {
     try {
@@ -103,6 +117,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }, [status, refreshReviewBadge]);
 
   const badgeCounts: Record<string, number> = { reviewQueue: reviewBadge };
+
+  const visibleNavItems = NAV_ITEMS.filter((item) => !item.adminOnly || isPlatformAdmin);
 
   const isEditor = isEditorRoute(pathname);
   // Listing public exceptions is safer than enumerating every protected path.
@@ -164,7 +180,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       </Tooltip>
       <Divider sx={{ width: "80%", mb: 1 }} />
       <List sx={{ p: 0, width: "100%" }}>
-        {NAV_ITEMS.map((item) => {
+        {visibleNavItems.map((item) => {
           const isActive = pathname
             ? (item.activePrefix
                 ? item.activePrefix.some((p) => pathname === p || pathname.startsWith(p + "/"))
@@ -273,7 +289,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <Divider />
 
       <List sx={{ px: 1, pt: 1 }}>
-        {NAV_ITEMS.map((item) => {
+        {visibleNavItems.map((item) => {
           const isActive = pathname
             ? (item.activePrefix
                 ? item.activePrefix.some((p) => pathname === p || pathname.startsWith(p + "/"))
@@ -347,6 +363,22 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <Box sx={{ display: "flex", minHeight: "100vh" }}>
+      {/* Idle timeout warning dialog */}
+      <Dialog open={isWarning} disableEscapeKeyDown>
+        <DialogTitle>Are you still there?</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2">
+            You have not done anything for a while. You will be signed out in 2 minutes.
+          </Typography>
+          <Typography variant="body2" sx={{ mt: 1, color: "text.secondary" }}>
+            Click &ldquo;Stay signed in&rdquo; to keep working.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => signOut()} color="error">Sign out now</Button>
+          <Button variant="contained" onClick={keepAlive}>Stay signed in</Button>
+        </DialogActions>
+      </Dialog>
       {isMobile && (
         <AppBar
           position="fixed"

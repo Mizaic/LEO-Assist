@@ -15,6 +15,15 @@ GET  /health                       — service health
 
 from __future__ import annotations
 
+from pathlib import Path
+from dotenv import load_dotenv
+from libs.keyvault.loader import load_keyvault_secrets
+
+_ROOT = Path(__file__).resolve().parents[3]
+load_dotenv(_ROOT / "secrets" / ".env.config", override=False)
+load_dotenv(_ROOT / "secrets" / ".env", override=False)
+load_keyvault_secrets()
+
 import json
 import logging
 import os

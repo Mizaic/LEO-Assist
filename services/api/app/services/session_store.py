@@ -79,7 +79,9 @@ def _redis_op(fn, *args, **kwargs):
         from redis.exceptions import TimeoutError as RedisTimeoutError
 
         if isinstance(exc, (RedisConnectionError, RedisTimeoutError)):
-            logger.warning("[Auth] Redis transient error (%s); will reconnect on next call", exc)
+            logger.warning(
+                "[Auth] Redis transient error (%s); will reconnect on next call", exc
+            )
             _redis_client = None
         else:
             logger.error("[Auth] Redis unexpected error: %s", exc)
@@ -98,10 +100,10 @@ def _require_redis():
     return r
 
 
-def save_session(session_id: str, data: dict[str, Any]) -> None:
+def save_session(session_id: str, data: dict[str, Any], ttl_seconds: int = SESSION_TTL) -> None:
     r = _require_redis()
     key = f"{SESSION_PREFIX}{session_id}"
-    result = _redis_op(r.setex, key, SESSION_TTL, json.dumps(data, default=str))
+    result = _redis_op(r.setex, key, ttl_seconds, json.dumps(data, default=str))
     if result is None:
         raise HTTPException(status_code=503, detail="Session store unavailable")
 
@@ -122,3 +124,72 @@ def delete_session(session_id: str) -> None:
     r = _get_redis()
     if r:
         _redis_op(r.delete, f"{SESSION_PREFIX}{session_id}")
+
+
+def list_all_sessions() -> list[dict[str, Any]]:
+    """List all active sessions. Returns list of {session_id, email, ttl_seconds}.
+
+    Requires Redis. Returns [] if Redis unavailable.
+    """
+    r = _get_redis()
+    if not r:
+        return []
+    result = []
+    try:
+        for key in r.scan_iter(match=f"{SESSION_PREFIX}*", count=100):
+            session_id = key[len(SESSION_PREFIX) :]
+            raw = _redis_op(r.get, key)
+            ttl = _redis_op(r.ttl, key) or 0
+            email = None
+            if raw:
+                try:
+                    data = json.loads(raw)
+                    email = (data.get("email") or "").strip().lower()
+                except json.JSONDecodeError:
+                    pass
+            result.append(
+                {"session_id": session_id, "email": email or "", "ttl_seconds": ttl}
+            )
+    except Exception as exc:
+        logger.warning("[Auth] list_all_sessions failed: %s", exc)
+    return result
+
+
+def delete_sessions_by_email(email: str) -> int:
+    """Delete all sessions for the given email. Returns count deleted."""
+    email = (email or "").strip().lower()
+    if not email:
+        return 0
+    r = _get_redis()
+    if not r:
+        return 0
+    deleted = 0
+    try:
+        for key in r.scan_iter(match=f"{SESSION_PREFIX}*", count=100):
+            raw = _redis_op(r.get, key)
+            if raw:
+                try:
+                    data = json.loads(raw)
+                    if (data.get("email") or "").strip().lower() == email:
+                        _redis_op(r.delete, key)
+                        deleted += 1
+                except json.JSONDecodeError:
+                    pass
+    except Exception as exc:
+        logger.warning("[Auth] delete_sessions_by_email failed: %s", exc)
+    return deleted
+
+
+def delete_all_sessions() -> int:
+    """Delete all sessions. Returns count deleted."""
+    r = _get_redis()
+    if not r:
+        return 0
+    deleted = 0
+    try:
+        for key in r.scan_iter(match=f"{SESSION_PREFIX}*", count=100):
+            _redis_op(r.delete, key)
+            deleted += 1
+    except Exception as exc:
+        logger.warning("[Auth] delete_all_sessions failed: %s", exc)
+    return deleted

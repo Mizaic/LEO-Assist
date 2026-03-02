@@ -540,6 +540,36 @@ export default function ModelLifecyclePanel() {
                     </Typography>
                   </Paper>
                 </Stack>
+                {/* Error from a failed gold run */}
+                {goldJob?.version === canaryVersion.model_version &&
+                  goldJob.status === "failed" && (
+                    <Alert severity="error" sx={{ mb: 2 }}>
+                      Gold test failed: {goldJob.message}
+                    </Alert>
+                  )}
+
+                {/* Progress bar while a gold run is active for this version */}
+                {goldJobId &&
+                  goldJob?.version === canaryVersion.model_version &&
+                  (goldJob.status === "accepted" || goldJob.status === "running") && (
+                    <Box sx={{ mb: 2 }}>
+                      <Typography variant="body2" sx={{ mb: 0.75 }}>
+                        {goldJob.phase === "downloading_model"
+                          ? "Downloading model artifact..."
+                          : goldJob.phase === "loading_gold_data"
+                            ? "Loading gold patient data..."
+                            : goldJob.phase === "scoring"
+                              ? `Scoring patients${goldJob.progress != null ? ` -- ${Math.round(goldJob.progress * 100)}% done` : "..."}`
+                              : goldJob.message ?? "Running gold test..."}
+                      </Typography>
+                      <LinearProgress
+                        variant={goldJob.progress != null ? "determinate" : "indeterminate"}
+                        value={(goldJob.progress ?? 0) * 100}
+                        aria-label="Gold test progress"
+                      />
+                    </Box>
+                  )}
+
                 {goldJob?.status === "completed" && goldJob.metrics?.per_label?.length ? (
                   <Accordion disableGutters>
                     <AccordionSummary expandIcon={<ExpandMoreIcon />}>

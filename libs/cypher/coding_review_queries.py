@@ -122,12 +122,20 @@ RETURN cr.review_id AS review_id
 
 AUTO_RESOLVE_CODING_REVIEW = """
 MATCH (cr:CodingReview {review_id: $review_id})
-SET cr.resolved            = true,
-    cr.resolved_concept_id = $concept_id,
-    cr.resolved_term       = $term,
-    cr.resolved_by         = $resolved_by,
-    cr.resolved_at         = datetime(),
-    cr.updated_at          = datetime()
+SET cr.resolved              = true,
+    cr.resolved_concept_id   = $concept_id,
+    cr.resolved_term         = $term,
+    cr.resolved_by           = $resolved_by,
+    cr.resolved_at           = datetime(),
+    cr.updated_at            = datetime(),
+    cr.resolved_model_tier   = CASE WHEN $resolved_by STARTS WITH 'escalation:'
+                                    THEN substring($resolved_by, 12)
+                                    ELSE null END,
+    cr.resolved_method       = CASE WHEN $resolved_by STARTS WITH 'escalation:'
+                                    THEN 'model_escalation'
+                                    WHEN $resolved_by STARTS WITH 'cascade:'
+                                    THEN 'cascade'
+                                    ELSE 'auto_recheck' END
 RETURN cr.review_id AS review_id
 """
 
@@ -180,4 +188,78 @@ MATCH (r:CodingIgnoreRule {rule_id: $rule_id})
 SET r.active     = false,
     r.updated_at = datetime()
 RETURN r.rule_id AS rule_id
+"""
+
+# ---------------------------------------------------------------------------
+# CodingSuggestion -- auto-generated surface form suggestions from the pipeline.
+# Grouped by entity_text so a HITL operator sees one row per root cause.
+# ---------------------------------------------------------------------------
+
+UPSERT_CODING_SUGGESTION = """
+MERGE (s:CodingSuggestion {entity_text: $entity_text})
+ON CREATE SET
+    s.created_at          = datetime(),
+    s.occurrence_count    = 1
+ON MATCH SET
+    s.occurrence_count    = coalesce(s.occurrence_count, 0) + 1
+SET s.entity_label        = $entity_label,
+    s.suggested_term      = $suggested_term,
+    s.confidence          = $confidence,
+    s.model_tier          = $model_tier,
+    s.model_id            = $model_id,
+    s.status              = coalesce(s.status, $status),
+    s.updated_at          = datetime()
+RETURN
+    s.entity_text         AS entity_text,
+    s.occurrence_count    AS occurrence_count,
+    s.status              AS status
+"""
+
+# ---------------------------------------------------------------------------
+# Batch deduplication -- group pending reviews by entity_text so the HITL
+# operator resolves one root cause instead of N identical symptoms.
+# ---------------------------------------------------------------------------
+
+GROUP_CODING_REVIEWS_BY_ENTITY = """
+MATCH (cr:CodingReview)-[:REVIEWS_CODING]->(t:TrainingLabel)
+WHERE cr.resolved = false
+  AND t.include = true
+WITH cr.entity_text AS entity_text,
+     cr.entity_label AS entity_label,
+     count(cr) AS review_count,
+     max(cr.score) AS best_score,
+     collect(cr.review_id)[0] AS sample_review_id,
+     min(cr.coded) AS any_uncoded
+RETURN entity_text,
+       entity_label,
+       review_count,
+       best_score,
+       sample_review_id,
+       any_uncoded
+ORDER BY review_count DESC, best_score ASC
+SKIP $skip
+LIMIT $limit
+"""
+
+COUNT_CODING_REVIEW_GROUPS = """
+MATCH (cr:CodingReview)-[:REVIEWS_CODING]->(t:TrainingLabel)
+WHERE cr.resolved = false
+  AND t.include = true
+WITH cr.entity_text AS entity_text
+RETURN count(DISTINCT entity_text) AS group_count
+"""
+
+BATCH_RESOLVE_BY_ENTITY_TEXT = """
+MATCH (cr:CodingReview)-[:REVIEWS_CODING]->(t:TrainingLabel)
+WHERE cr.resolved = false
+  AND t.include = true
+  AND cr.entity_text = $entity_text
+SET cr.resolved            = true,
+    cr.resolved_concept_id = $resolved_concept_id,
+    cr.resolved_term       = $resolved_term,
+    cr.resolved_by         = $reviewer,
+    cr.resolved_at         = datetime(),
+    cr.updated_at          = datetime(),
+    cr.resolved_method     = 'batch_resolve'
+RETURN count(cr) AS resolved_count
 """
