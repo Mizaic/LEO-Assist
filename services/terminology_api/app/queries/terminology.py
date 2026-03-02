@@ -91,6 +91,18 @@ ORDER BY best_score DESC
 LIMIT $k
 """
 
+VECTOR_SURFACE_FORM_QUERY = """
+CALL db.index.vector.queryNodes($index_name, $k, $embedding) YIELD node, score
+MATCH (node:SurfaceForm)-[:MAPS_TO]->(c:Concept)
+WHERE c.active = true
+OPTIONAL MATCH (c)-[:MAPS_TO_READ]->(rd:ReadCode)
+WITH c, max(score) AS best_score, collect(DISTINCT rd.code) AS read_codes
+RETURN c.id AS concept_id, c.fsn AS fsn, c.semantic_tag AS semantic_tag,
+       read_codes, best_score AS score
+ORDER BY best_score DESC
+LIMIT $k
+"""
+
 UPSERT_SURFACE_FORMS = """
 UNWIND $rows AS r
 MATCH (c:Concept {id: r.concept_id})

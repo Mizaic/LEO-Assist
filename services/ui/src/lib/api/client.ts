@@ -1,25 +1,8 @@
 import type { OperationOutcome } from '@/lib/types/fhir';
 
 function resolveApiBaseUrl(): string {
-  const envBase = process.env.NEXT_PUBLIC_API_BASE?.replace(/\/+$/, '');
-  if (!envBase) return 'http://localhost:8000';
-  if (typeof window === 'undefined') return envBase;
-
-  try {
-    const parsed = new URL(envBase);
-    const uiHost = window.location.hostname;
-    const loopbackHosts = new Set(['localhost', '127.0.0.1']);
-
-    // Keep backend host aligned with current UI host on loopback to avoid SameSite cookie drops.
-    if (loopbackHosts.has(parsed.hostname) && loopbackHosts.has(uiHost) && parsed.hostname !== uiHost) {
-      parsed.hostname = uiHost;
-      return parsed.toString().replace(/\/+$/, '');
-    }
-  } catch {
-    // Fall back to env value if URL parsing fails.
-  }
-
-  return envBase;
+  if (typeof window !== 'undefined') return window.location.origin;
+  return (process.env.INTERNAL_API_BASE || 'http://localhost:8000').replace(/\/+$/, '');
 }
 
 const API_BASE_URL = resolveApiBaseUrl();

@@ -4,7 +4,7 @@
  */
 import { NextResponse } from "next/server";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000";
+const API_BASE = (process.env.INTERNAL_API_BASE ?? "http://localhost:8000").replace(/\/+$/, "");
 
 export async function GET() {
   return NextResponse.redirect(`${API_BASE}/auth/login?next_url=/dashboard`);
