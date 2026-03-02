@@ -20,8 +20,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE?.replace(/\/+$/, "") ||
-  "http://localhost:8000";
+  (process.env.INTERNAL_API_BASE ?? "http://localhost:8000").replace(/\/+$/, "");
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;

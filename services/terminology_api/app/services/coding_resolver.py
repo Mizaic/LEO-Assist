@@ -17,6 +17,7 @@ from services.terminology_api.app.queries.terminology import (
     FULLTEXT_QUERY,
     FULLTEXT_SURFACE_FORM_QUERY,
     VECTOR_QUERY,
+    VECTOR_SURFACE_FORM_QUERY,
 )
 
 logger = logging.getLogger(__name__)
@@ -100,6 +101,7 @@ class CodingResolver:
         w_lexical: float = 0.6,
         w_vector: float = 0.4,
         vector_index_name: str = "term_embedding_idx",
+        surface_form_vector_index_name: str = "surface_form_embedding_idx",
         embedder: Any | None = None,
     ) -> None:
         self.k_exact = k_exact
@@ -108,8 +110,10 @@ class CodingResolver:
         self.w_lexical = w_lexical
         self.w_vector = w_vector
         self.vector_index_name = vector_index_name
+        self.surface_form_vector_index_name = surface_form_vector_index_name
         self._embedder = embedder
         self._vector_index_ok: bool | None = None
+        self._surface_form_vector_ok: bool | None = None
         self._surface_form_fulltext_ok: bool | None = None
         self._surface_form_exact_ok: bool | None = None
 
@@ -134,7 +138,7 @@ class CodingResolver:
 
         resolved = sum(1 for v in results.values() if v)
         branches = "exact+fulltext"
-        if self._vector_index_ok:
+        if self._vector_index_ok or self._surface_form_vector_ok:
             branches += "+vector"
         logger.info("Hybrid resolution (%s): %d/%d terms resolved", branches, resolved, len(unique_texts))
 
@@ -210,7 +214,7 @@ class CodingResolver:
                     if "no such fulltext schema index" in str(exc).lower():
                         self._surface_form_fulltext_ok = False
 
-        # Branch 3: vector
+        # Branch 3: vector (Term)
         if embedding and self._vector_index_ok is not False:
             try:
                 for rec in session.run(
@@ -223,18 +227,42 @@ class CodingResolver:
                 if "no such vector schema index" in str(exc).lower():
                     self._vector_index_ok = False
 
+        # Branch 4: vector (SurfaceForm)
+        if embedding and self._surface_form_vector_ok is not False:
+            try:
+                for rec in session.run(
+                    VECTOR_SURFACE_FORM_QUERY,
+                    index_name=self.surface_form_vector_index_name,
+                    k=self.k_vector,
+                    embedding=embedding,
+                ):
+                    push(dict(rec), "vector")
+                if self._surface_form_vector_ok is None:
+                    self._surface_form_vector_ok = True
+            except Exception as exc:
+                if "no such vector schema index" in str(exc).lower():
+                    self._surface_form_vector_ok = False
+
         if not merged:
             return []
 
-        max_lex = max(v["lexical_raw"] for v in merged.values()) or 1.0
-        max_vec = max(v["vector_raw"] for v in merged.values()) or 1.0
+        max_lex_raw = max(v["lexical_raw"] for v in merged.values())
+        max_vec_raw = max(v["vector_raw"] for v in merged.values())
+        max_lex = max_lex_raw or 1.0
+        max_vec = max_vec_raw or 1.0
         expected_group = TAG_GROUPS.get(expected_tag, "") if expected_tag else ""
 
         scored: list[tuple[float, dict[str, Any]]] = []
         for c in merged.values():
             lex_norm = c["lexical_raw"] / max_lex if max_lex else 0.0
             vec_norm = c["vector_raw"] / max_vec if max_vec else 0.0
-            fused = (self.w_lexical * lex_norm) + (self.w_vector * vec_norm)
+            # Avoid capping confidence at w_lexical when vector branch is absent.
+            if max_vec_raw <= 0:
+                fused = lex_norm
+            elif max_lex_raw <= 0:
+                fused = vec_norm
+            else:
+                fused = (self.w_lexical * lex_norm) + (self.w_vector * vec_norm)
 
             if expected_tag:
                 candidate_tag = (c.get("semantic_tag") or "").lower()

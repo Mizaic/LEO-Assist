@@ -13,8 +13,10 @@ from pydantic import BaseModel, Field
 
 from libs.neo4j_client.client import KnowledgeGraphClient
 from services.terminology_api.app.services.coding_resolver import CodingResolver
+from services.terminology_api.app.services.text_embedder import TerminologyTextEmbedder
 
 router = APIRouter()
+_embedder = TerminologyTextEmbedder()
 
 
 class ResolveRequest(BaseModel):
@@ -40,7 +42,7 @@ def resolve_terms(body: ResolveRequest):
     """Resolve clinical terms to SNOMED codes using hybrid retrieval."""
     client = KnowledgeGraphClient()
     try:
-        resolver = CodingResolver()
+        resolver = CodingResolver(embedder=_embedder)
         with client.session() as session:
             raw = resolver.resolve_candidates(
                 body.terms,
