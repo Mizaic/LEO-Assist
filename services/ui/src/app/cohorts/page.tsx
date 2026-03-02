@@ -109,11 +109,8 @@ export default function CohortsPage() {
   const handleRunDetection = async (cohortId: string) => {
     try {
       const patients = await resolveCohort(cohortId);
-      const API_BASE =
-        typeof process !== "undefined" && process.env?.NEXT_PUBLIC_API_BASE
-          ? process.env.NEXT_PUBLIC_API_BASE
-          : "http://localhost:8000";
-      await fetch(`${API_BASE}/pipeline/run`, {
+      const base = window.location.origin;
+      await fetch(`${base}/api/pipeline/run`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ cohort_id: cohortId }),

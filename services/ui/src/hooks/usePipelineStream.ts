@@ -65,9 +65,9 @@ export interface UsePipelineStreamReturn extends PipelineStreamState {
 }
 
 const API_BASE =
-  typeof process !== "undefined" && process.env?.NEXT_PUBLIC_API_BASE
-    ? process.env.NEXT_PUBLIC_API_BASE
-    : "http://localhost:8000";
+  typeof window !== "undefined"
+    ? window.location.origin
+    : (process.env.INTERNAL_API_BASE || "http://localhost:8000").replace(/\/+$/, "");
 
 const EMPTY_LIVE: PipelineRunResponse = {
   run_id: "starting",
