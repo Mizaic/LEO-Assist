@@ -86,6 +86,37 @@ _LABEL_NORMALISATION: dict[str, str] = {
     "context_dependent": "situation",
 }
 
+# Canonical NER label -> SNOMED semantic tag (inverse of _LABEL_NORMALISATION
+# for the subset that differs between our underscore schema and SNOMED's
+# space-separated convention).  Used by the pipeline and label verifier to
+# pass expected_tags into the terminology resolver so it can boost/penalise
+# candidates by semantic tag.
+LABEL_TO_SNOMED_TAG: dict[str, str] = {
+    "disorder": "disorder",
+    "finding": "finding",
+    "situation": "situation",
+    "procedure": "procedure",
+    "substance": "substance",
+    "product": "product",
+    "regime_therapy": "regime/therapy",
+    "medicinal_product": "medicinal product",
+    "clinical_drug": "clinical drug",
+    "observable_entity": "observable entity",
+    "qualifier_value": "qualifier value",
+    "body_structure": "body structure",
+    "assessment_scale": "assessment scale",
+    "staging_scale": "staging scale",
+    "tumor_staging": "tumor staging",
+    "record_artifact": "record artifact",
+    "physical_object": "physical object",
+    "morphologic_abnormality": "morphologic abnormality",
+    "organism": "organism",
+    "occupation": "occupation",
+    "attribute": "attribute",
+    "environment": "environment",
+    "event": "event",
+}
+
 # Canonical relation type enum
 VALID_RELATION_TYPES: frozenset[str] = frozenset(
     {

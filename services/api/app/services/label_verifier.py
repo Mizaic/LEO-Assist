@@ -39,11 +39,13 @@ from libs.cypher.training_label_queries import (
     GET_ALL_INCLUDED_LABELS_FOR_EXPORT,
     UPDATE_TRAINING_LABEL_ENTITIES,
 )
+from libs.llm_client.escalation import escalate_label
 from libs.llm_client.factory import LLMResponse, create_llm
 from libs.neo4j_client.client import PatientGraphClient
 from libs.ner.context_detector import apply_context_detection
 from libs.ner.observable_post_processor import normalize_observable_entities
 from libs.ner.post_processor_rules import apply_rules_to_entities, parse_rules, PostProcessorRule
+from libs.ner.schema_mapper import LABEL_TO_SNOMED_TAG
 from libs.prompts.registry import get_prompt
 
 logger = logging.getLogger(__name__)
@@ -846,12 +848,16 @@ def _auto_triage_disagreement(
     """Try to auto-resolve a disagreement via terminology API then LLM tie-break."""
     target_labels = {model_a_label, model_b_label}
 
-    # 1) Terminology resolution path.
+    # 1) Terminology resolution path (with expected_tags for better ranking).
+    resolve_body: dict[str, Any] = {"terms": [entity_text]}
+    snomed_tag = LABEL_TO_SNOMED_TAG.get(current_label)
+    if snomed_tag:
+        resolve_body["expected_tags"] = {entity_text: snomed_tag}
     try:
         with httpx.Client(timeout=8) as client:
             response = client.post(
                 f"{_TERMINOLOGY_API_URL}/terminology/resolve",
-                json={"terms": [entity_text]},
+                json=resolve_body,
             )
             response.raise_for_status()
             payload = response.json() if response.content else {}
@@ -880,50 +886,31 @@ def _auto_triage_disagreement(
                 "reason": f"top semantic tag {top_tag!r} score={top_score:.2f}",
             }
 
-    # 2) LLM tie-break path.
-    try:
-        client = create_llm(provider="aws", tier="small")
-        response: LLMResponse = client.converse(
-            system=get_prompt("label_disambiguation", version=1),
-            messages=[
-                {
-                    "role": "user",
-                    "content": json.dumps(
-                        {
-                            "entity_text": entity_text,
-                            "encounter_text": encounter_text,
-                            "current_label": current_label,
-                            "model_a_label": model_a_label,
-                            "model_a_rationale": model_a_rationale,
-                            "model_b_label": model_b_label,
-                            "model_b_rationale": model_b_rationale,
-                            "allowed_labels": sorted(VALID_ENTITY_LABELS),
-                        }
-                    ),
-                }
-            ],
-            temperature=0.0,
-            max_tokens=350,
-        )
-        parsed = _parse_model_json(response.text)
-    except Exception:
-        logger.warning("Auto-triage LLM tie-break failed for %r", entity_text, exc_info=True)
-        parsed = {}
-
-    resolved_label = _normalise_label(str(parsed.get("resolved_label", current_label)), current_label)
-    confidence = _safe_float(parsed.get("confidence"))
-    reason = str(parsed.get("reason", ""))[:500]
-    logger.debug(
-        "Auto-triage LLM tie-break: entity=%r resolved=%r conf=%.2f targets=%r threshold=%.2f",
-        entity_text, resolved_label, confidence, target_labels, _AUTO_TRIAGE_LLM_THRESHOLD,
+    # 2) Model escalation path (small -> big -> max).
+    esc = escalate_label(
+        entity_text=entity_text,
+        encounter_text=encounter_text,
+        current_label=current_label,
+        model_a_label=model_a_label,
+        model_b_label=model_b_label,
+        model_a_rationale=model_a_rationale,
+        model_b_rationale=model_b_rationale,
+        allowed_labels=sorted(VALID_ENTITY_LABELS),
+        system_prompt=get_prompt("label_disambiguation", version=1),
+        confidence_threshold=_AUTO_TRIAGE_LLM_THRESHOLD,
+        start_tier="small",
     )
-    if resolved_label in target_labels and confidence >= _AUTO_TRIAGE_LLM_THRESHOLD:
-        return {
-            "resolved_label": resolved_label,
-            "confidence": confidence,
-            "method": "llm_tiebreak",
-            "reason": reason,
-        }
+    if esc.resolved and esc.label:
+        resolved_label = _normalise_label(esc.label, current_label)
+        if resolved_label in target_labels:
+            return {
+                "resolved_label": resolved_label,
+                "confidence": esc.confidence,
+                "method": f"escalation:{esc.model_tier}",
+                "reason": esc.rationale,
+                "model_tier": esc.model_tier,
+                "model_id": esc.model_id,
+            }
     return None
 
 
@@ -939,13 +926,19 @@ _CODING_ALT_LOW = float(os.getenv("CODING_ALT_THRESHOLD_LOW", "0.3"))
 _CODING_ALT_ENABLED = os.getenv("CODING_ALT_ENABLED", "true").lower() == "true"
 
 
-def _resolve_terms_via_api(terms: list[str]) -> dict[str, list]:
+def _resolve_terms_via_api(
+    terms: list[str],
+    expected_tags: dict[str, str] | None = None,
+) -> dict[str, list]:
     """POST a batch of terms to the terminology resolve endpoint."""
+    body: dict[str, Any] = {"terms": terms}
+    if expected_tags:
+        body["expected_tags"] = expected_tags
     try:
         with httpx.Client(timeout=10) as client:
             resp = client.post(
                 f"{_TERMINOLOGY_API_URL}/terminology/resolve",
-                json={"terms": terms},
+                json=body,
             )
             resp.raise_for_status()
             payload = resp.json() if resp.content else {}
@@ -1082,7 +1075,14 @@ def _check_terminology_coding(
         return []
 
     terms = list({str(e.get("text", "")).strip() for _, e in codeable})
-    results_map = _resolve_terms_via_api(terms)
+    tag_map: dict[str, str] = {}
+    for _, ent in codeable:
+        txt = str(ent.get("text", "")).strip()
+        if txt not in tag_map:
+            snomed_tag = LABEL_TO_SNOMED_TAG.get(str(ent.get("label", "")))
+            if snomed_tag:
+                tag_map[txt] = snomed_tag
+    results_map = _resolve_terms_via_api(terms, expected_tags=tag_map or None)
     reviews: list[dict[str, Any]] = []
 
     for idx, ent in codeable:

@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useOrg } from "@/context/OrgContext";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import Card from "@mui/material/Card";
@@ -30,17 +31,20 @@ const SETTINGS_CARDS = [
     path: "/settings/surface-forms",
   },
   {
-    id: "general",
-    title: "General Settings",
-    description: "Application preferences, organisation defaults, and system configuration.",
-    icon: <SettingsOutlinedIcon sx={{ fontSize: 40, color: "text.secondary" }} />,
-    path: null,
-    disabled: true,
+    id: "tenant",
+    title: "Tenant Management",
+    description:
+      "Manage organisations, users, groups, roles, and auth settings. Platform admins only.",
+    icon: <SettingsOutlinedIcon sx={{ fontSize: 40, color: "primary.main" }} />,
+    path: "/tenant",
   },
 ];
 
 export default function SettingsPage() {
   const router = useRouter();
+  const { isPlatformAdmin } = useOrg();
+
+  const cards = SETTINGS_CARDS.filter((c) => c.id !== "tenant" || isPlatformAdmin);
 
   return (
     <Box sx={{ p: 3, maxWidth: 1000, mx: "auto" }}>
@@ -52,7 +56,7 @@ export default function SettingsPage() {
       </Typography>
 
       <Grid container spacing={2}>
-        {SETTINGS_CARDS.map((card) => (
+        {cards.map((card) => (
           <Grid key={card.id} size={{ xs: 12, sm: 6 }}>
             <Card
               sx={{

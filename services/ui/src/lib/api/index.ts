@@ -1,4 +1,5 @@
 export { api, apiFetch, ApiError } from './client';
+export * from './admin';
 export * from './benchmarks';
 export * from './measures';
 export * from './libraries';

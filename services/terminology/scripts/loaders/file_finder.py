@@ -16,6 +16,7 @@ SNOMED_BASE = "trud-snomed-uk-clinical-edition"
 INT_DIR_PREFIX = "SnomedCT_InternationalRF2_PRODUCTION_"
 UKCL_DIR_PREFIX = "SnomedCT_UKClinicalRF2_PRODUCTION_"
 UKED_DIR_PREFIX = "SnomedCT_UKEditionRF2_PRODUCTION_"
+UKCR_DIR_PREFIX = "SnomedCT_UKClinicalRefsetsRF2_PRODUCTION_"
 
 
 def _find_one(base: Path, pattern: str) -> Path | None:
@@ -30,6 +31,9 @@ def _find_one(base: Path, pattern: str) -> Path | None:
 
 def _snomed_dir(external: Path, prefix: str) -> Path | None:
     base = external / SNOMED_BASE
+    if not base.exists():
+        logger.warning("SNOMED base directory not found: %s", base)
+        return None
     for d in sorted(base.iterdir()):
         if d.is_dir() and d.name.startswith(prefix):
             return d
@@ -92,6 +96,50 @@ class SnomedFiles:
         d = self._snap_refset_lang(UKED_DIR_PREFIX)
         return _find_one(d, "der2_cRefset_LanguageUKEDSnapshot-en_*.txt") if d else None
 
+    def uked_concept(self) -> Path | None:
+        d = self._snap_term(UKED_DIR_PREFIX)
+        return _find_one(d, "sct2_Concept_UKEDSnapshot_*.txt") if d else None
+
+    def uked_description(self) -> Path | None:
+        d = self._snap_term(UKED_DIR_PREFIX)
+        return _find_one(d, "sct2_Description_UKEDSnapshot-en_*.txt") if d else None
+
+    def uked_relationship(self) -> Path | None:
+        d = self._snap_term(UKED_DIR_PREFIX)
+        return _find_one(d, "sct2_Relationship_UKEDSnapshot_*.txt") if d else None
+
+    def uked_simple_map(self) -> Path | None:
+        d = self._snap_refset_map(UKED_DIR_PREFIX)
+        return _find_one(d, "der2_sRefset_SimpleMapUKEDSnapshot_*.txt") if d else None
+
+    def uked_extended_map(self) -> Path | None:
+        d = self._snap_refset_map(UKED_DIR_PREFIX)
+        return _find_one(d, "der2_iisssciRefset_ExtendedMapUKEDSnapshot_*.txt") if d else None
+
+    def ukcr_concept(self) -> Path | None:
+        d = self._snap_term(UKCR_DIR_PREFIX)
+        return _find_one(d, "sct2_Concept_UKCRSnapshot_*.txt") if d else None
+
+    def ukcr_description(self) -> Path | None:
+        d = self._snap_term(UKCR_DIR_PREFIX)
+        return _find_one(d, "sct2_Description_UKCRSnapshot-en_*.txt") if d else None
+
+    def ukcr_relationship(self) -> Path | None:
+        d = self._snap_term(UKCR_DIR_PREFIX)
+        return _find_one(d, "sct2_Relationship_UKCRSnapshot_*.txt") if d else None
+
+    def ukcr_language(self) -> Path | None:
+        d = self._snap_refset_lang(UKCR_DIR_PREFIX)
+        return _find_one(d, "der2_cRefset_LanguageUKCRSnapshot-en_*.txt") if d else None
+
+    def ukcr_simple_map(self) -> Path | None:
+        d = self._snap_refset_map(UKCR_DIR_PREFIX)
+        return _find_one(d, "der2_sRefset_SimpleMapUKCRSnapshot_*.txt") if d else None
+
+    def ukcr_extended_map(self) -> Path | None:
+        d = self._snap_refset_map(UKCR_DIR_PREFIX)
+        return _find_one(d, "der2_iisssciRefset_ExtendedMapUKCRSnapshot_*.txt") if d else None
+
     def int_extended_map(self) -> Path | None:
         d = self._snap_refset_map(INT_DIR_PREFIX)
         return _find_one(d, "der2_iisssccRefset_ExtendedMapSnapshot_INT_*.txt") if d else None
@@ -108,15 +156,26 @@ class SnomedFiles:
         return {
             "int_concept": self.int_concept(),
             "ukcl_concept": self.ukcl_concept(),
+            "uked_concept": self.uked_concept(),
+            "ukcr_concept": self.ukcr_concept(),
             "int_description": self.int_description(),
             "ukcl_description": self.ukcl_description(),
+            "uked_description": self.uked_description(),
+            "ukcr_description": self.ukcr_description(),
             "int_relationship": self.int_relationship(),
             "ukcl_relationship": self.ukcl_relationship(),
+            "uked_relationship": self.uked_relationship(),
+            "ukcr_relationship": self.ukcr_relationship(),
             "ukcl_language": self.ukcl_language(),
             "uked_language": self.uked_language(),
+            "ukcr_language": self.ukcr_language(),
             "int_extended_map": self.int_extended_map(),
             "ukcl_extended_map": self.ukcl_extended_map(),
+            "uked_extended_map": self.uked_extended_map(),
+            "ukcr_extended_map": self.ukcr_extended_map(),
             "int_simple_map": self.int_simple_map(),
+            "uked_simple_map": self.uked_simple_map(),
+            "ukcr_simple_map": self.ukcr_simple_map(),
         }
 
 

@@ -31,6 +31,8 @@ from app import config  # noqa: F401 - loads secrets/.env
 from app.deps import get_caller_scope_from_request
 
 limiter = Limiter(key_func=get_remote_address)
+from app.routers.admin import router as admin_router
+from app.routers.mail_router import router as mail_router
 from app.routers.agent import router as agent_router
 from app.routers.anchor_review import router as anchor_review_router
 from app.routers.audit import router as audit_router
@@ -50,14 +52,31 @@ from app.routers.terminology import router as terminology_router
 @asynccontextmanager
 async def lifespan(app: object):
     import threading
+
+    from app.db.neo4j_client import PatientGraphClient
     from app.services.pipeline_service import PipelineService
+    from app.services.tenant_seed import seed_tenant_defaults
 
     def _preload():
         PipelineService.preload_embedder()
 
-    t = threading.Thread(target=_preload, daemon=True)
-    t.start()
-    # Don't block startup — embedder loads in background; pipeline will wait if needed
+    def _tenant_seed():
+        try:
+            client = PatientGraphClient()
+            client.initialize_schema()
+            seed_tenant_defaults(client)
+            client.close()
+        except Exception as exc:
+            import logging
+            logging.getLogger(__name__).warning(
+                "[Tenant] Seed failed (non-fatal): %s", exc
+            )
+
+    t1 = threading.Thread(target=_preload, daemon=True)
+    t1.start()
+    t2 = threading.Thread(target=_tenant_seed, daemon=True)
+    t2.start()
+    # Don't block startup; embedder loads in background; pipeline will wait if needed
     yield
 
 
@@ -119,6 +138,8 @@ async def require_xhr_for_mutations(request: Request, call_next):
         return Response(status_code=403, content="CSRF check failed: X-Requested-With header required")
     return await call_next(request)
 
+app.include_router(admin_router)
+app.include_router(mail_router)
 app.include_router(agent_router)
 app.include_router(anchor_review_router)
 app.include_router(auth_router)

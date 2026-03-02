@@ -359,11 +359,11 @@ export async function searchTerms(
       semantic_tag?: string;
       score?: number;
     }>
-  >(`${API_BASE}/terminology/search?${params}`);
+  >(`${API_BASE}/api/terminology/search?${params}`);
 }
 
 export async function fetchSemanticTags() {
-  return fetchJson<string[]>(`${API_BASE}/terminology/semantic-tags`);
+  return fetchJson<string[]>(`${API_BASE}/api/terminology/semantic-tags`);
 }
 
 export interface SurfaceFormItem {
@@ -398,12 +398,12 @@ export async function fetchSurfaceForms(
   const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
   if (q) params.set("q", q);
   if (conceptId) params.set("concept_id", conceptId);
-  return fetchJson<SurfaceFormsPage>(`${API_BASE}/terminology/surface-forms?${params}`);
+  return fetchJson<SurfaceFormsPage>(`${API_BASE}/api/terminology/surface-forms?${params}`);
 }
 
 export async function deleteSurfaceForm(normalized: string) {
   return fetchJson<{ deleted: string }>(
-    `${API_BASE}/terminology/surface-forms/${encodeURIComponent(normalized)}`,
+    `${API_BASE}/api/terminology/surface-forms/${encodeURIComponent(normalized)}`,
     { method: "DELETE" },
   );
 }
@@ -422,12 +422,12 @@ export interface SurfaceFormDuplicate {
 }
 
 export async function fetchSurfaceFormDuplicates() {
-  return fetchJson<SurfaceFormDuplicate[]>(`${API_BASE}/terminology/surface-forms/duplicates`);
+  return fetchJson<SurfaceFormDuplicate[]>(`${API_BASE}/api/terminology/surface-forms/duplicates`);
 }
 
 export async function deduplicateSurfaceForms() {
   return fetchJson<{ duplicates_removed: number }>(
-    `${API_BASE}/terminology/surface-forms/deduplicate`,
+    `${API_BASE}/api/terminology/surface-forms/deduplicate`,
     { method: "POST" },
   );
 }
@@ -435,7 +435,7 @@ export async function deduplicateSurfaceForms() {
 export async function deleteSurfaceFormMapping(normalized: string, conceptId: string) {
   const params = new URLSearchParams({ concept_id: conceptId });
   return fetchJson<{ normalized: string; concept_id: string; removed: number }>(
-    `${API_BASE}/terminology/surface-forms/${encodeURIComponent(normalized)}?${params}`,
+    `${API_BASE}/api/terminology/surface-forms/${encodeURIComponent(normalized)}?${params}`,
     { method: "DELETE" },
   );
 }
@@ -447,7 +447,7 @@ export async function upsertSurfaceFormMapping(
   options?: { confidence?: number; provenance?: string; source?: string },
 ) {
   return fetchJson<{ normalized: string; form: string; concept_id: string; concept_fsn: string }>(
-    `${API_BASE}/terminology/surface-forms/upsert-mapping`,
+    `${API_BASE}/api/terminology/surface-forms/upsert-mapping`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -495,20 +495,20 @@ export async function fetchGroupedSurfaceForms(
 ): Promise<ConceptGroupsPage> {
   const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
   if (q) params.set("q", q);
-  return fetchJson<ConceptGroupsPage>(`${API_BASE}/terminology/surface-forms/grouped?${params}`);
+  return fetchJson<ConceptGroupsPage>(`${API_BASE}/api/terminology/surface-forms/grouped?${params}`);
 }
 
 export async function keepSurfaceFormMapping(normalized: string, conceptId: string) {
   const params = new URLSearchParams({ keep_concept_id: conceptId });
   return fetchJson<{ normalized: string; kept_concept_id: string; removed: number }>(
-    `${API_BASE}/terminology/surface-forms/${encodeURIComponent(normalized)}?${params}`,
+    `${API_BASE}/api/terminology/surface-forms/${encodeURIComponent(normalized)}?${params}`,
     { method: "DELETE" },
   );
 }
 
 export async function suggestAliases(conceptId: string): Promise<string[]> {
   const result = await fetchJson<{ suggestions: string[]; concept_id: string }>(
-    `${API_BASE}/terminology/concepts/${encodeURIComponent(conceptId)}/suggest-aliases`,
+    `${API_BASE}/api/terminology/concepts/${encodeURIComponent(conceptId)}/suggest-aliases`,
     { method: "POST" },
   );
   return result.suggestions;
@@ -535,5 +535,5 @@ export async function fetchDescendants(
       surface_form_count: number;
       surface_forms: string[];
     }>
-  >(`${API_BASE}/terminology/concepts/${conceptId}/descendants?${params}`);
+  >(`${API_BASE}/api/terminology/concepts/${conceptId}/descendants?${params}`);
 }

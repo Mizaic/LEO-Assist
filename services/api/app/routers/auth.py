@@ -41,6 +41,28 @@ TOKEN_URL = f"https://login.microsoftonline.com/{TENANT_ID}/oauth2/v2.0/token"
 ANALYTICS_BASE = os.getenv("ANALYTICS_API_BASE", "http://localhost:8003")
 
 
+def _get_session_config() -> tuple[int, int, bool]:
+    """Return (session_ttl_seconds, idle_timeout_minutes, require_mfa) from Neo4j SystemConfig.
+
+    Falls back to env-var defaults when Neo4j is unreachable so login never fails.
+    """
+    try:
+        from libs.neo4j_client.client import PatientGraphClient
+        from libs.cypher.admin_queries import GET_SYSTEM_CONFIG
+        client = PatientGraphClient()
+        rows = client.run(GET_SYSTEM_CONFIG, id="auth")
+        client.close()
+        if rows:
+            r = rows[0]
+            ttl_h = int(r.get("session_ttl_hours") or 168)
+            idle_m = int(r.get("idle_timeout_minutes") or 30)
+            mfa = bool(r.get("require_mfa", False))
+            return ttl_h * 3600, idle_m, mfa
+    except Exception as exc:
+        logger.warning("Could not read session config from Neo4j: %s", exc)
+    return SESSION_TTL, int(os.getenv("IDLE_TIMEOUT_MINUTES", "30")), False
+
+
 def _fetch_org_context(email: str) -> tuple[bool, list[dict]]:
     """Fetch org context from Analytics API. Returns (is_platform_admin, organizations)."""
     try:
@@ -157,14 +179,18 @@ def callback(
 
     email = None
     name = None
+    id_claims: dict = {}
     if id_token:
         try:
             payload_b64 = id_token.split(".")[1]
             payload_b64 += "=" * (4 - len(payload_b64) % 4)
-            claims = base64.urlsafe_b64decode(payload_b64)
-            data = json.loads(claims)
-            email = data.get("preferred_username") or data.get("upn") or data.get("email")
-            name = data.get("name")
+            id_claims = json.loads(base64.urlsafe_b64decode(payload_b64))
+            email = (
+                id_claims.get("preferred_username")
+                or id_claims.get("upn")
+                or id_claims.get("email")
+            )
+            name = id_claims.get("name")
         except Exception:
             pass
 
@@ -172,6 +198,29 @@ def callback(
         email = "unknown"
 
     is_admin, organizations = _fetch_org_context(email)
+    session_ttl_secs, idle_mins, require_mfa = _get_session_config()
+
+    # App-level MFA backstop: verify the `amr` (Authentication Methods References)
+    # claim in the ID token includes "mfa".
+    #
+    # If a Conditional Access Policy in Entra already enforces MFA, this claim
+    # will ALWAYS contain "mfa" -- the check passes silently.
+    # If Conditional Access is not yet configured, this rejects any login where
+    # the user skipped MFA (e.g. password-only) when require_mfa=True.
+    if require_mfa:
+        amr = id_claims.get("amr", [])
+        if isinstance(amr, str):
+            amr = [amr]
+        if "mfa" not in amr:
+            logger.warning(
+                "Login blocked: MFA required but not completed by %s (amr=%s)",
+                email,
+                amr,
+            )
+            return RedirectResponse(
+                url=f"{FRONTEND_URL}/sign-in?error=mfa_required",
+                status_code=302,
+            )
 
     session_id = create_session_id()
     save_session(
@@ -182,7 +231,9 @@ def callback(
             "name": name or email,
             "is_platform_admin": is_admin,
             "organizations": organizations,
+            "idle_timeout_minutes": idle_mins,
         },
+        ttl_seconds=session_ttl_secs,
     )
 
     normalized_state = state if state.startswith("/") else f"/{state.lstrip('/')}"
@@ -197,7 +248,7 @@ def callback(
         httponly=True,
         secure=cookie_secure,
         samesite="lax",
-        max_age=SESSION_TTL,
+        max_age=session_ttl_secs,
         path="/",
     )
     return resp
@@ -232,4 +283,5 @@ def get_session(request: Request):
         },
         "isPlatformAdmin": data.get("is_platform_admin", False),
         "organizations": data.get("organizations", []),
+        "idleTimeoutMinutes": data.get("idle_timeout_minutes", 30),
     }

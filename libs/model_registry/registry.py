@@ -18,8 +18,9 @@ via POST /reload so the new model is hot-swapped without restarting.
 Environment variables
 ---------------------
 MODEL_REGISTRY_STORE_PATH   Path to JSON persistence file (optional).
-                            In production use a shared store (Redis / Neo4j).
-                            Defaults to an in-memory dict.
+                            If unset, defaults to .model_cache/model_registry.json
+                            under repo root (local dev). In production use a shared
+                            store (Redis / Neo4j).
 CODING_MODEL_ENDPOINT       Inference service base URL for /reload calls.
                             Defaults to http://localhost:8004.
 MODEL_RELOAD_TIMEOUT_S      Seconds to wait for /reload to complete (default 120).
@@ -40,7 +41,19 @@ import httpx
 
 logger = logging.getLogger(__name__)
 
-_REGISTRY_STORE_PATH = os.getenv("MODEL_REGISTRY_STORE_PATH", "")
+
+def _default_registry_path() -> str:
+    """Local dev fallback: .model_cache/model_registry.json under repo root."""
+    try:
+        repo_root = Path(__file__).resolve().parent.parent.parent
+        return str(repo_root / ".model_cache" / "model_registry.json")
+    except Exception:
+        return ""
+
+
+_REGISTRY_STORE_PATH = (
+    os.getenv("MODEL_REGISTRY_STORE_PATH", "").strip() or _default_registry_path()
+)
 _INFERENCE_ENDPOINT = os.getenv("CODING_MODEL_ENDPOINT", "http://localhost:8004")
 _RELOAD_TIMEOUT_S = float(os.getenv("MODEL_RELOAD_TIMEOUT_S", "120"))
 
@@ -397,13 +410,13 @@ class ModelRegistry:
         if not _REGISTRY_STORE_PATH:
             return
         try:
+            p = Path(_REGISTRY_STORE_PATH)
+            p.parent.mkdir(parents=True, exist_ok=True)
             data = {
                 "active_version": self._active_version,
                 "records": {v: r.to_dict() for v, r in self._records.items()},
             }
-            Path(_REGISTRY_STORE_PATH).write_text(
-                json.dumps(data, indent=2), encoding="utf-8"
-            )
+            p.write_text(json.dumps(data, indent=2), encoding="utf-8")
         except Exception:
             logger.warning("ModelRegistry: failed to persist to %s", _REGISTRY_STORE_PATH,
                            exc_info=True)
@@ -413,6 +426,10 @@ class ModelRegistry:
             return
         p = Path(_REGISTRY_STORE_PATH)
         if not p.exists():
+            logger.info(
+                "ModelRegistry: no existing store at %s (will persist on first save)",
+                _REGISTRY_STORE_PATH,
+            )
             return
         try:
             data = json.loads(p.read_text(encoding="utf-8"))
@@ -435,8 +452,17 @@ _registry: Optional[ModelRegistry] = None
 
 
 def get_registry() -> ModelRegistry:
-    """Return the module-level ModelRegistry singleton."""
+    """Return the module-level ModelRegistry singleton.
+
+    Uses Neo4j when MODEL_REGISTRY_STORE=neo4j; otherwise JSON file.
+    """
     global _registry
     if _registry is None:
-        _registry = ModelRegistry()
+        store = os.getenv("MODEL_REGISTRY_STORE", "").strip().lower()
+        if store == "neo4j":
+            from libs.model_registry.neo4j_registry import Neo4jModelRegistry
+            _registry = Neo4jModelRegistry()
+            logger.info("ModelRegistry: using Neo4j backend (Patient Graph)")
+        else:
+            _registry = ModelRegistry()
     return _registry

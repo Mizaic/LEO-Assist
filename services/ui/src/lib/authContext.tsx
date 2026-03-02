@@ -33,6 +33,7 @@ export interface Session {
   user: { email?: string; name?: string; image?: string };
   isPlatformAdmin: boolean;
   organizations: OrgInfo[];
+  idleTimeoutMinutes: number;
 }
 
 interface AuthContextValue {
@@ -60,6 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           user: data.user,
           isPlatformAdmin: data.isPlatformAdmin ?? false,
           organizations: data.organizations ?? [],
+          idleTimeoutMinutes: data.idleTimeoutMinutes ?? 30,
         });
         setStatus("authenticated");
       } else {
