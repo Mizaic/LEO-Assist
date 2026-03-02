@@ -1,5 +1,5 @@
 /**
- * Runtime proxy middleware.
+ * Runtime proxy (formerly middleware.ts, renamed to proxy.ts for Next.js 16).
  *
  * Replaces the build-time rewrites that were previously in next.config.mjs.
  * Reads backend URLs from runtime env vars so the same Docker image works
@@ -72,13 +72,12 @@ const PREFIX_RULES: PrefixRule[] = [
 
 function proxyRewrite(request: NextRequest, dest: string): NextResponse {
   // Forward X-Requested-With so the Core API CSRF check passes.
-  // The browser fetch API does not set this header automatically.
   const headers = new Headers(request.headers);
   headers.set("X-Requested-With", "XMLHttpRequest");
   return NextResponse.rewrite(new URL(dest), { request: { headers } });
 }
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
 
   const exactDest = EXACT_ROUTES[pathname];
