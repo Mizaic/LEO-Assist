@@ -52,10 +52,28 @@ repository. This should be added as a controlled QMS artefact.
 
 For the NCDA launch programme, the cohort is defined as patients
 registered in English primary care with suspected or confirmed cancer
-across all cancer types in the NCDA value sets. Domain configuration
-lives in:
+across all cancer types in the NCDA value sets.
 
-- `configs/snomed/*.json` -- SNOMED value sets for 20+ clinical domains
+Domain configuration has been migrated to Neo4j. The primary source of
+truth is FHIR ValueSet resources stored in the Knowledge Graph:
+
+- `DomainRegistry.from_fhir()` (`libs/domain_config/registry.py`) loads
+  domain definitions from `ncda-*` ValueSet nodes at startup, parsing
+  `compose.include.concept` entries and `/domain-config` extensions for
+  milestone types, time windows, and semantic tags.
+- `AuditDomain` nodes linked to ValueSet subdomains via `HAS_SUBDOMAIN`
+  (`services/analytics_api/app/routers/domains.py`) allow runtime CRUD
+  of domain configuration through the Analytics API.
+- `seed_fhir_config.py` seeds the initial ValueSet nodes into Neo4j.
+- Fallback: when FHIR data is unavailable, `DomainRegistry.from_defaults()`
+  loads from predefined Python configs; JSON mapping files in
+  `configs/snomed/` serve as a secondary reference.
+- `expand_domains_with_kg()` (`libs/ner/domain_loader.py`) enriches each
+  domain's surface forms by querying Term and SurfaceForm nodes from the
+  Knowledge Graph, adding SNOMED descendants and HITL-approved mappings.
+
+Additional cohort evidence:
+
 - `design-controls/intended-use.md` Section 4 -- intended patient population
 - `services/analytics_api/app/data/nhs_screening_cohorts.json` -- screening cohort presets
 
@@ -197,8 +215,9 @@ Implemented in `services/coding_worker/app/pipeline/sentence_splitter.py`:
 - **Encounter text classification:** `libs/classifiers/` with
   `encounter_rules.json` -- rule-based + model-based filtering of
   admin, admission, workflow entries (documented in V3 validation report)
-- **Domain filtering:** `configs/snomed/*.json` define which SNOMED
-  domains are in scope per programme
+- **Domain filtering:** FHIR ValueSet resources in Neo4j define which
+  SNOMED domains are in scope per programme (see Section 1.3); fallback
+  JSON files in `configs/snomed/` serve as secondary reference
 - **Exclusion detection:** `libs/exclusion_detector/` identifies
   clinical exclusion patterns
 
@@ -235,7 +254,58 @@ Implemented in `services/coding_worker/app/pipeline/sentence_splitter.py`:
 | ACA internal-ingress (internal services not externally addressable) | `DC-TM-SEC-001` T-ACA-001 |
 | Encryption at rest (AES-256) and in transit (TLS 1.2+) | `UN-LEO-AI-021.yaml`                  |
 
-### 3.6  Retention and deletion dates
+### 3.6  SurfaceForm writeback (learning loop lineage)
+
+SurfaceForm nodes in the Knowledge Graph are the central mechanism by
+which HITL corrections feed back into the terminology resolver. Each
+SurfaceForm records a human-approved mapping from a clinical surface
+form (e.g. "CXR", "2WW referral") to a SNOMED concept, with full
+provenance.
+
+**Creation pathways:**
+
+| Source                       | Trigger                                              | Evidence                                                    |
+| ---------------------------- | ---------------------------------------------------- | ----------------------------------------------------------- |
+| HITL writeback               | Reviewer approves an EncounterCandidate              | `services/terminology_api/app/services/writeback_service.py` |
+| Coding review recheck        | Auto-resolved LLM terms persisted with source tag    | `services/api/app/routers/training.py` (`_writeback_recheck_surface_form`) |
+| Manual mapping               | User creates mapping via API                         | `POST /terminology/surface-forms/upsert-mapping`            |
+| NCDA preapproved load        | Bulk load of guideline synonyms                      | `scripts/load_preapproved_surface_forms.py`                 |
+
+**Storage schema (Knowledge Graph -- no patient data):**
+
+- Node: `(:SurfaceForm {form, normalized, source, status, created_by, created_at, last_seen_at})`
+- Relationship: `(SurfaceForm)-[:MAPS_TO {confidence, approved_by, approved_at, provenance}]->(Concept)`
+- Constraints: unique on `normalized`, fulltext index on `form`, vector index on `embedding`
+- Evidence: `libs/cypher/schema_constraints.py`, `services/terminology/scripts/loaders/schema.py`
+
+**Usage in runtime pipeline:**
+
+The hybrid coding resolver (`services/terminology_api/app/services/coding_resolver.py`)
+uses SurfaceForm in four search branches:
+
+1. **Exact match** on `SurfaceForm.normalized`
+2. **Fulltext search** via `surface_form_fulltext` index
+3. **Vector search** via `surface_form_embedding_idx`
+4. **Term-based search** (fallback when no SurfaceForm nodes exist)
+
+SurfaceForm matches receive a 1.2x score boost, reflecting the higher
+trust of human-approved mappings over automated term matches.
+
+**Domain expansion:**
+
+`expand_domains_with_kg()` (`libs/ner/domain_loader.py`) queries both
+Term and SurfaceForm nodes to enrich each domain's surface form set.
+This means HITL corrections on one patient propagate as improved
+recognition across all future patients in the same domain.
+
+**Lineage significance:**
+
+Every SurfaceForm carries `approved_by`, `approved_at`, `source`, and
+`provenance` on the MAPS_TO relationship, creating a complete audit
+trail from the original encounter text through HITL review to the
+terminology enrichment that improves future coding runs.
+
+### 3.7  Retention and deletion dates
 
 | Parameter                | Value             | Evidence                                    |
 | ------------------------ | ----------------- | ------------------------------------------- |
@@ -370,7 +440,8 @@ validation execution.
 | Gold-standard accuracy (F1)  | `VT-LEO-AI-002.yaml` (per-entity-type metrics), `.cursor/rules/code-quality.mdc` (gold-standard labelled dataset for precision/recall/F1) |
 | Regression blocking          | Deploys blocked if accuracy drops below baseline |
 | Model lifecycle gates         | Offline validation -> canary -> promotion with precision/recall thresholds at each stage |
-| HITL correction feedback     | Terminology writeback of approved surface-form-to-SNOMED mappings enriches the resolver for future runs |
+| HITL correction feedback     | Terminology writeback creates SurfaceForm nodes in the Knowledge Graph (see Section 3.6); approved mappings receive a 1.2x score boost in the hybrid resolver, measurably improving resolution for future coding runs |
+| SurfaceForm growth tracking  | `writeback_service.py` returns count of written SurfaceForm nodes; domain expansion stats tracked in `DomainSearchConfig.stats` (`surface_form_count_before_kg`, `surface_form_count_after_kg`, `surface_forms_added_from_kg`) |
 
 ---
 
@@ -417,7 +488,15 @@ Quick reference to all artefacts cited in this document.
 | `services/api/app/services/export_service.py`          | De-id, Lineage       |
 | `scripts/generate_exclusion_training.py`               | Labelling, Synthetic |
 | `docs/nlp-pipeline/V3-TRAINING-PIPELINE-VALIDATION-REPORT.md` | Synthetic/HITL |
-| `configs/snomed/*.json`                                | Source               |
+| `libs/domain_config/registry.py`                       | Source, Lineage      |
+| `libs/ner/domain_loader.py`                            | Lineage              |
+| `services/terminology_api/app/services/writeback_service.py` | Lineage, HITL  |
+| `services/terminology_api/app/services/coding_resolver.py` | Lineage, HITL    |
+| `services/terminology_api/app/queries/terminology.py`  | Lineage              |
+| `services/analytics_api/app/routers/domains.py`        | Source               |
+| `scripts/seed_fhir_config.py`                          | Source               |
+| `scripts/load_preapproved_surface_forms.py`            | Lineage, HITL        |
+| `configs/snomed/*.json`                                | Source (fallback)    |
 | `tests/test_sentence_splitter.py`                      | Lineage              |
 
 ---
