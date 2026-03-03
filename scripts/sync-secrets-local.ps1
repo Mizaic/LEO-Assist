@@ -6,6 +6,7 @@
 #
 # Usage (first time and whenever secrets rotate):
 #   .\scripts\sync-secrets-local.ps1 -Environment dev
+#   .\scripts\sync-secrets-local.ps1 -Environment dev -VaultName kv-atlas-dev-4697
 #   .\scripts\sync-secrets-local.ps1 -Environment dev -OutFile secrets\.env.secrets
 #
 # Requirements: az CLI logged in, Key Vault Secrets User role on the vault.
@@ -14,13 +15,15 @@ param(
     [ValidateSet('dev', 'val', 'prod')]
     [string]$Environment,
 
+    [string]$VaultName = '',
     [string]$OutFile = 'secrets\.env.secrets'
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-$KvName = "leoai-$Environment-kv"
+$KvName = if ($VaultName) { $VaultName } else { "leoai-$Environment-kv" }
+Write-Host "  Pulling from vault: $KvName"
 
 # KV secret name -> env var name
 $SecretMap = [ordered]@{

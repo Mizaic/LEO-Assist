@@ -3,6 +3,10 @@ const API_BASE =
     ? window.location.origin
     : (process.env.INTERNAL_API_BASE || "http://localhost:8000").replace(/\/+$/, "");
 
+// Core API paths (patients, review, exports, pipeline, games) must use /api prefix
+// in browser so Next.js proxy rewrites to backend. Terminology/training already use /api/.
+const CORE_PATH = typeof window !== "undefined" ? "/api" : "";
+
 function formatApiError(detail: string | undefined, status: number): string {
   if (detail && detail.length > 0) return detail;
   if (status === 404) return "Not found. Check the ID or return to the list.";
@@ -35,7 +39,7 @@ export async function fetchPatients() {
       reviewed_count?: number;
       progress?: number;
     }>
-  >(`${API_BASE}/patients`);
+  >(`${API_BASE}${CORE_PATH}/patients`);
 }
 
 export async function fetchPatient(patientId: string) {
@@ -44,13 +48,13 @@ export async function fetchPatient(patientId: string) {
     encounter_count: number;
     gender?: string;
     birth_date?: string;
-  }>(`${API_BASE}/patients/${patientId}`);
+  }>(`${API_BASE}${CORE_PATH}/patients/${patientId}`);
 }
 
 export async function fetchPatientEncounters(patientId: string, limit = 500) {
   return fetchJson<
     Array<{ encounter_id: string; date: string; text?: string; coded_count: number; flags?: string }>
-  >(`${API_BASE}/patients/${patientId}/encounters?limit=${limit}`);
+  >(`${API_BASE}${CORE_PATH}/patients/${patientId}/encounters?limit=${limit}`);
 }
 
 export async function fetchEncounter(patientId: string, encounterId: string) {
@@ -59,7 +63,7 @@ export async function fetchEncounter(patientId: string, encounterId: string) {
     date: string;
     text: string;
     coded_count: number;
-  }>(`${API_BASE}/patients/${patientId}/encounters/${encounterId}`);
+  }>(`${API_BASE}${CORE_PATH}/patients/${patientId}/encounters/${encounterId}`);
 }
 
 export async function fetchEncounterCodedLinks(
@@ -67,7 +71,7 @@ export async function fetchEncounterCodedLinks(
   encounterId: string,
 ) {
   return fetchJson<import("@/lib/types").CodedLink[]>(
-    `${API_BASE}/patients/${patientId}/encounters/${encounterId}/coded-links`,
+    `${API_BASE}${CORE_PATH}/patients/${patientId}/encounters/${encounterId}/coded-links`,
   );
 }
 
@@ -85,7 +89,7 @@ export async function addCodedLink(
   },
 ) {
   return fetchJson<{ added: boolean; concept_id: string }>(
-    `${API_BASE}/patients/${patientId}/encounters/${encounterId}/coded-links`,
+    `${API_BASE}${CORE_PATH}/patients/${patientId}/encounters/${encounterId}/coded-links`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -100,7 +104,7 @@ export async function deleteCodedLink(
   conceptId: string,
 ) {
   return fetchJson<{ deleted: boolean }>(
-    `${API_BASE}/patients/${patientId}/encounters/${encounterId}/coded-links/${conceptId}`,
+    `${API_BASE}${CORE_PATH}/patients/${patientId}/encounters/${encounterId}/coded-links/${conceptId}`,
     { method: "DELETE" },
   );
 }
@@ -118,7 +122,7 @@ export async function recodeCodedLink(
   },
 ) {
   return fetchJson<{ recode: boolean; new_concept_id: string }>(
-    `${API_BASE}/patients/${patientId}/encounters/${encounterId}/coded-links/${conceptId}`,
+    `${API_BASE}${CORE_PATH}/patients/${patientId}/encounters/${encounterId}/coded-links/${conceptId}`,
     {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -134,7 +138,7 @@ export async function updateCodedLinkModifiers(
   modifiers: { value?: string | number; unit?: string; reference_range?: string; interpretation?: string },
 ) {
   return fetchJson<{ concept_id: string; modifiers: Record<string, unknown> }>(
-    `${API_BASE}/patients/${patientId}/encounters/${encounterId}/coded-links/${conceptId}/modifiers`,
+    `${API_BASE}${CORE_PATH}/patients/${patientId}/encounters/${encounterId}/coded-links/${conceptId}/modifiers`,
     {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -145,14 +149,14 @@ export async function updateCodedLinkModifiers(
 
 export async function resetPatient(patientId: string) {
   return fetchJson<{ patient_id: string; links_deleted: number }>(
-    `${API_BASE}/patients/${patientId}/reset`,
+    `${API_BASE}${CORE_PATH}/patients/${patientId}/reset`,
     { method: "POST" },
   );
 }
 
 export async function resetReviewQueue(patientId: string) {
   return fetchJson<{ patient_id: string; deleted: number }>(
-    `${API_BASE}/patients/${patientId}/reset-review-queue`,
+    `${API_BASE}${CORE_PATH}/patients/${patientId}/reset-review-queue`,
     { method: "POST" },
   );
 }
@@ -163,7 +167,7 @@ export async function syncGoldToPatient(patientId: string) {
     encounters_synced: number;
     links_created: number;
     surface_forms_written?: number;
-  }>(`${API_BASE}/patients/${patientId}/sync-gold`, { method: "POST" });
+  }>(`${API_BASE}${CORE_PATH}/patients/${patientId}/sync-gold`, { method: "POST" });
 }
 
 export async function exportMedSpaCyTraining(body: {
@@ -176,7 +180,7 @@ export async function exportMedSpaCyTraining(body: {
     kb_count: number;
     encounter_count: number;
     export_path?: string;
-  }>(`${API_BASE}/exports/medspacy-training`, {
+  }>(`${API_BASE}${CORE_PATH}/exports/medspacy-training`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -189,7 +193,7 @@ export async function cleanPatients(body: {
   return fetchJson<{
     patients_cleaned: number;
     totals: Record<string, number>;
-  }>(`${API_BASE}/pipeline/clean-patients`, {
+  }>(`${API_BASE}${CORE_PATH}/pipeline/clean-patients`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ patient_ids: body.patient_ids }),
@@ -214,7 +218,7 @@ export async function inferEncounter(
     }>;
     written: boolean;
     message?: string;
-  }>(`${API_BASE}/patients/${patientId}/encounters/${encounterId}/infer`, {
+  }>(`${API_BASE}${CORE_PATH}/patients/${patientId}/encounters/${encounterId}/infer`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ dry_run: dryRun }),
@@ -242,7 +246,7 @@ export async function fetchTasks(
       created_at: string;
       updated_at: string;
     }>
-  >(`${API_BASE}/review/tasks?${params}`);
+  >(`${API_BASE}${CORE_PATH}/review/tasks?${params}`);
 }
 
 export async function fetchTaskDetail(taskId: string) {
@@ -259,7 +263,7 @@ export async function fetchTaskDetail(taskId: string) {
       updated_at: string;
     };
     candidate: import("../types").EncounterCandidate;
-  }>(`${API_BASE}/review/tasks/${taskId}`);
+  }>(`${API_BASE}${CORE_PATH}/review/tasks/${taskId}`);
 }
 
 export async function submitDecision(
@@ -276,7 +280,7 @@ export async function submitDecision(
     candidate_id: string;
     status: string;
     approval_event_id: string;
-  }>(`${API_BASE}/review/tasks/${taskId}/decision`, {
+  }>(`${API_BASE}${CORE_PATH}/review/tasks/${taskId}/decision`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -302,7 +306,7 @@ export async function submitGameScore(body: {
   score: number;
   level?: number;
 }) {
-  return fetchJson<GameScore>(`${API_BASE}/games/scores`, {
+  return fetchJson<GameScore>(`${API_BASE}${CORE_PATH}/games/scores`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -311,7 +315,7 @@ export async function submitGameScore(body: {
 
 export async function fetchLeaderboard(game: GameName, limit = 10) {
   return fetchJson<GameScore[]>(
-    `${API_BASE}/games/leaderboard?game=${game}&limit=${limit}`,
+    `${API_BASE}${CORE_PATH}/games/leaderboard?game=${game}&limit=${limit}`,
   );
 }
 
@@ -333,7 +337,7 @@ export async function searchPatientEncounters(
 ) {
   const params = new URLSearchParams({ q, mode, limit: String(limit) });
   return fetchJson<EncounterSearchResult[]>(
-    `${API_BASE}/patients/${patientId}/encounters/search?${params}`,
+    `${API_BASE}${CORE_PATH}/patients/${patientId}/encounters/search?${params}`,
   );
 }
 
@@ -357,6 +361,7 @@ export async function searchTerms(
       term: string;
       read_code?: string;
       semantic_tag?: string;
+      module_id?: string;
       score?: number;
     }>
   >(`${API_BASE}/api/terminology/search?${params}`);
@@ -536,4 +541,71 @@ export async function fetchDescendants(
       surface_forms: string[];
     }>
   >(`${API_BASE}/api/terminology/concepts/${conceptId}/descendants?${params}`);
+}
+
+export interface AskLeoResult {
+  concept_term: string | null;
+  confidence: number;
+  rationale: string;
+  model_tier: string;
+  resolved: boolean;
+}
+
+export async function askLeoRank(
+  entityText: string,
+  encounterText: string,
+  candidates: Array<{ snomed_concept_id: string; term: string }>,
+  tier: "small" | "big" | "max" = "small",
+): Promise<{ selected_index: number; reason: string }> {
+  return fetchJson(`${API_BASE}/api/training/coding-review/ask-leo-rank`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      entity_text: entityText,
+      encounter_text: encounterText,
+      candidates,
+      tier,
+    }),
+  });
+}
+
+export async function askLeoSmart(
+  entityText: string,
+  encounterText: string,
+  initialCandidates: Array<Record<string, unknown>>,
+  semanticTags: string[] = [],
+  tier: "small" | "big" | "max" = "small",
+): Promise<import("@/lib/types").AskLeoSmartResult> {
+  return fetchJson(
+    `${API_BASE}/api/training/coding-review/ask-leo-smart`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        entity_text: entityText,
+        encounter_text: encounterText,
+        initial_candidates: initialCandidates,
+        semantic_tags: semanticTags,
+        tier,
+      }),
+    },
+  );
+}
+
+export async function askLeo(
+  entityText: string,
+  entityLabel: string,
+  tier: "small" | "big" | "max" = "small",
+  encounterText = "",
+): Promise<AskLeoResult> {
+  return fetchJson<AskLeoResult>(`${API_BASE}/api/training/coding-review/ask-leo`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      entity_text: entityText,
+      entity_label: entityLabel,
+      tier,
+      encounter_text: encounterText,
+    }),
+  });
 }

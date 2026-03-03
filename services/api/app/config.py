@@ -13,7 +13,7 @@ from libs.keyvault.loader import load_keyvault_secrets
 ROOT = Path(__file__).resolve().parents[3]
 # Load local .env files as fallback (no-op if files absent).
 # Config-only values (.env.config) first, then full secrets file for legacy local dev.
-load_dotenv(ROOT / "secrets" / ".env.config", override=False)
+load_dotenv(ROOT / "secrets" / ".env.config", override=True)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
 # Key Vault values override .env when AZURE_KEYVAULT_URL is set.
 load_keyvault_secrets()

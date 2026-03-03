@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
@@ -25,6 +24,9 @@ export interface ReviewItem {
   explanation: string;
   taskType?: string;
   reason?: string;
+  suggestedSemanticTag?: string;
+  /** A sample encounter text from the training label - used to extract unit context. */
+  sampleEncounterText?: string;
 }
 
 type TypeLabel = { text: string; color: "warning" | "info" | "error" | "default" };
@@ -42,7 +44,7 @@ function typeLabel(item: ReviewItem): TypeLabel {
   return map[item.taskType ?? ""] ?? { text: "Review needed", color: "default" };
 }
 
-// -- Helpers for plain-language questions ------------------------------------
+// -- Plain-language question builders ----------------------------------------
 
 export function buildQuestion(item: ReviewItem): string {
   if (item.kind === "coding" && item.uncoded) {
@@ -98,6 +100,11 @@ export default function ReviewCard({
   const [termOpen, setTermOpen] = useState(false);
   const label = typeLabel(item);
 
+  const hintTags =
+    item.entityLabel || item.suggestedSemanticTag
+      ? [item.entityLabel.replace(/_/g, " ") || item.suggestedSemanticTag!]
+      : undefined;
+
   return (
     <>
       <Card sx={{ animation: "cardIn 0.2s ease" }}>
@@ -105,11 +112,7 @@ export default function ReviewCard({
           <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 2 }}>
             <Chip label={label.text} color={label.color} size="small" />
             {item.count > 1 && (
-              <Chip
-                label={`${item.count} records`}
-                size="small"
-                variant="outlined"
-              />
+              <Chip label={`${item.count} records`} size="small" variant="outlined" />
             )}
             {item.entityLabel && (
               <Chip
@@ -124,37 +127,25 @@ export default function ReviewCard({
           <Typography variant="h6" sx={{ mb: 1, fontWeight: 600 }}>
             {item.question}
           </Typography>
-          <Typography
-            variant="body1"
-            color="text.secondary"
-            sx={{ mb: 3, lineHeight: 1.6 }}
-          >
+          <Typography variant="body1" color="text.secondary" sx={{ mb: 3, lineHeight: 1.6 }}>
             {item.explanation}
           </Typography>
 
-          {/* Actions */}
           {item.kind === "coding" ? (
-            <CodingActions
-              item={item}
-              busy={busy}
-              onSearch={() => setTermOpen(true)}
-              onSkip={onSkip}
-            />
+            <CodingActions item={item} busy={busy} onSearch={() => setTermOpen(true)} onSkip={onSkip} />
           ) : (
-            <HitlActions
-              item={item}
-              busy={busy}
-              onResolve={onResolveHitl}
-              onSkip={onSkip}
-            />
+            <HitlActions item={item} busy={busy} onResolve={onResolveHitl} onSkip={onSkip} />
           )}
         </CardContent>
       </Card>
 
-      {/* Terminology search dialog */}
       {termOpen && (
         <TermSearch
           initialQuery={item.entityText}
+          hintTags={hintTags}
+          entityText={item.entityText}
+          entityLabel={item.entityLabel.replace(/_/g, " ")}
+          initialEvidence={item.sampleEncounterText}
           onSelect={(r) => {
             setTermOpen(false);
             onResolveCoding(item, r);
@@ -182,12 +173,7 @@ function CodingActions({
 }) {
   return (
     <Stack direction="row" gap={1}>
-      <Button
-        variant="contained"
-        onClick={onSearch}
-        disabled={busy}
-        fullWidth
-      >
+      <Button variant="contained" onClick={onSearch} disabled={busy} fullWidth>
         {item.uncoded ? "Search for the right code" : "Search for a better code"}
       </Button>
       <Button variant="outlined" onClick={onSkip} disabled={busy}>
@@ -234,3 +220,4 @@ function HitlActions({
     </Stack>
   );
 }
+

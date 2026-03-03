@@ -92,7 +92,7 @@
     created_date: "2026-03-01"
     status: "draft"
 
-  design_inputs: []
-  validation_tests: []
+  design_inputs: ["DI-LEO-AI-008", "DI-LEO-AI-024"]
+  validation_tests: ["VAL-LEO-AI-003"]
 
   tags: ["ng12", "cancer-referral", "des-paragraph-28", "ncda", "clinical-safety"]

@@ -31,6 +31,8 @@ interface CodingGroup {
   best_score: number | null;
   sample_review_id: string;
   any_uncoded: boolean;
+  suggested_semantic_tag: string | null;
+  sample_encounter_text: string | null;
 }
 
 interface HitlTask {
@@ -54,6 +56,8 @@ function codingGroupToItem(g: CodingGroup): ReviewItem {
     uncoded: g.any_uncoded,
     question: "",
     explanation: "",
+    suggestedSemanticTag: g.suggested_semantic_tag ?? undefined,
+    sampleEncounterText: g.sample_encounter_text ?? undefined,
   };
   base.question = buildQuestion(base);
   base.explanation = buildExplanation(base);
@@ -156,6 +160,7 @@ export default function ReviewSection({ onStatsChange }: Props) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             entity_text: item.entityText,
+            entity_label: item.entityLabel,
             resolved_concept_id: result.snomed_concept_id,
             resolved_term: result.term,
             reviewer: "operations_ui",
