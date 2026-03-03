@@ -2067,8 +2067,9 @@ unresolved_items:
       credential_note: "All 3 secrets expire within 4 months — rotation plan needed"
     findings:
       implicit_grant:
-        issue: "enableAccessTokenIssuance=true on Mizaic Atlas"
-        recommendation: "Disable implicit access token grant — use auth code + PKCE instead (NextAuth uses auth code flow by default)"
+        issue: "enableAccessTokenIssuance was true on Mizaic Atlas"
+        status: "FIXED 2026-03-03 — set to false via az ad app update"
+        verification: "az ad app show confirms enableAccessTokenIssuance=false, enableIdTokenIssuance=false"
       redirect_uris:
         issue: "6 of 11 redirect URIs are localhost; localhost URIs co-exist with production callbacks"
         details:
