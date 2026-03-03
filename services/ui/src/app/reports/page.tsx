@@ -7,7 +7,7 @@ import { ReportList } from "@/components/reports/ReportList";
 
 export default function ReportsPage() {
   return (
-    <Suspense fallback={<Box sx={{ display: "flex", justifyContent: "center", p: 6 }}><CircularProgress /></Box>}>
+    <Suspense fallback={<Box sx={{ display: "flex", justifyContent: "center", p: 6 }}><CircularProgress aria-label="Loading" /></Box>}>
       <ReportList />
     </Suspense>
   );

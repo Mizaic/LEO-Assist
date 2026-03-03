@@ -1,0 +1,258 @@
+# -- VT-LEO-AI-037 -- Lab Value Diagnostic Inference Prevention Verification
+# IEC 62304 Verification Test Protocol
+# Schema: design-controls/templates/verification_test_schema.yaml
+
+- id: "VT-LEO-AI-037"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-044"]
+    risks: ["R-LEO-AI-029", "R-LEO-AI-030"]
+    user_needs: ["UN-LEO-AI-001"]
+
+  metadata:
+    title: "Lab Value Diagnostic Inference Prevention Verification"
+    description: >
+      Verifies that the coding pipeline does not infer diagnoses from lab
+      result values. Covers the critical eGFR/CKD-EPI scenario, general
+      lab-to-diagnosis inference suppression, legitimate disorder preservation,
+      and the batch filtering API.
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    test_file_paths:
+      - "tests/test_lab_value_guard.py"
+      - "tests/test_escalation.py"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites:
+      - "Python 3.13+"
+      - "pytest installed"
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    # -- Lab result sentence detection (8 cases) --
+
+    - case_id: "VT-037-TC-001"
+      case_name: "eGFR with CKD-EPI formula detected as lab result"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call is_lab_result_sentence with 'eGFR using creatinine (CKD-EPI) per 1.73 square metres (XacUK) 69 mL/min'"
+          expected_result: "Returns True"
+          verification_method: "Automated test"
+      acceptance_criteria:
+        - "eGFR with numeric value and unit is identified as lab result"
+
+    - case_id: "VT-037-TC-002"
+      case_name: "Plain diagnosis text not detected as lab result"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call is_lab_result_sentence with 'Patient has type 2 diabetes mellitus'"
+          expected_result: "Returns False"
+          verification_method: "Automated test"
+      acceptance_criteria:
+        - "Non-lab text is not incorrectly flagged"
+
+    # -- CKD-EPI formula suppression (6 cases) --
+
+    - case_id: "VT-037-TC-003"
+      case_name: "CKD disorder extracted from CKD-EPI formula suppressed"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call should_suppress_disorder with entity_text='CKD', semantic_tag='disorder', normalized='chronic kidney disease stage 1', sentence containing 'CKD-EPI'"
+          expected_result: "Returns True"
+          verification_method: "Automated test"
+      acceptance_criteria:
+        - "CKD disorder inferred from CKD-EPI formula name is suppressed"
+
+    - case_id: "VT-037-TC-004"
+      case_name: "Observable entity from same sentence NOT suppressed"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call should_suppress_disorder with entity_text='eGFR...', semantic_tag='observable entity'"
+          expected_result: "Returns False"
+          verification_method: "Automated test"
+      acceptance_criteria:
+        - "Observable entities are never suppressed by the guard"
+
+    # -- General inference suppression (4 cases) --
+
+    - case_id: "VT-037-TC-005"
+      case_name: "Diabetes inferred from HbA1c suppressed"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call should_suppress_disorder with entity='diabetes mellitus', sentence='HbA1c 48 mmol/mol'"
+          expected_result: "Returns True"
+          verification_method: "Automated test"
+      acceptance_criteria:
+        - "Diabetes inferred from HbA1c value is suppressed"
+
+    - case_id: "VT-037-TC-006"
+      case_name: "Hyponatraemia inferred from sodium suppressed"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call should_suppress_disorder with entity='hyponatraemia', sentence='Sodium 129 mmol/L'"
+          expected_result: "Returns True"
+          verification_method: "Automated test"
+      acceptance_criteria:
+        - "Hyponatraemia inferred from sodium value is suppressed"
+
+    - case_id: "VT-037-TC-007"
+      case_name: "Anaemia inferred from haemoglobin suppressed"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call should_suppress_disorder with entity='anaemia', sentence='Haemoglobin concentration (Xa96v) 106 g/L [130-180]'"
+          expected_result: "Returns True"
+          verification_method: "Automated test"
+      acceptance_criteria:
+        - "Anaemia inferred from haemoglobin value is suppressed"
+
+    - case_id: "VT-037-TC-008"
+      case_name: "Disorder with numeric_value/unit fields from lab sentence suppressed"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call should_suppress_disorder with entity_numeric_value='69', entity_unit='mL/min'"
+          expected_result: "Returns True"
+          verification_method: "Automated test"
+      acceptance_criteria:
+        - "Any disorder entity carrying measurement fields from a lab sentence is suppressed"
+
+    # -- Legitimate disorder preservation (6 cases) --
+
+    - case_id: "VT-037-TC-009"
+      case_name: "Explicit diagnosis with lab value NOT suppressed"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call should_suppress_disorder with sentence='Diagnosis: chronic kidney disease stage 3, eGFR 43 mL/min'"
+          expected_result: "Returns False"
+          verification_method: "Automated test"
+      acceptance_criteria:
+        - "Explicit diagnoses alongside lab values are preserved"
+
+    - case_id: "VT-037-TC-010"
+      case_name: "Disorder in non-lab sentence NOT suppressed"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call should_suppress_disorder with sentence='Patient has type 2 diabetes mellitus'"
+          expected_result: "Returns False"
+          verification_method: "Automated test"
+      acceptance_criteria:
+        - "Disorders from non-lab sentences are never suppressed"
+
+    - case_id: "VT-037-TC-011"
+      case_name: "CKD as standalone diagnosis NOT suppressed"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call should_suppress_disorder with sentence='CKD stage 3, under renal team'"
+          expected_result: "Returns False"
+          verification_method: "Automated test"
+      acceptance_criteria:
+        - "CKD stated as a diagnosis (not from CKD-EPI) is preserved"
+
+    # -- Batch filtering (3 cases) --
+
+    - case_id: "VT-037-TC-012"
+      case_name: "filter_inferred_diagnoses removes disorder and keeps observable"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call filter_inferred_diagnoses with eGFR sentence containing one observable and one disorder entity"
+          expected_result: "Returns list with 1 entity (observable only)"
+          verification_method: "Automated test"
+      acceptance_criteria:
+        - "Batch filtering correctly removes inferred disorders while keeping observables"
+
+    - case_id: "VT-037-TC-013"
+      case_name: "filter_inferred_diagnoses preserves all entities in non-lab sentences"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call filter_inferred_diagnoses with non-lab sentence containing two disorder entities"
+          expected_result: "Returns list with 2 entities (both preserved)"
+          verification_method: "Automated test"
+      acceptance_criteria:
+        - "Non-lab sentences are unaffected by the guard"
+
+    # -- Escalation prompt lab-value rules (3 cases) --
+
+    - case_id: "VT-037-TC-014"
+      case_name: "Candidates system prompt contains lab-value inference rule"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Check _CANDIDATES_SYSTEM contains 'Do NOT infer diagnoses from lab values' and 'CKD-EPI'"
+          expected_result: "Both strings present in prompt"
+          verification_method: "Automated test"
+      acceptance_criteria:
+        - "Escalation candidate picker prompt includes lab-value guard rule"
+
+    - case_id: "VT-037-TC-015"
+      case_name: "Candidates system prompt contains intended-use boundary"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Check _CANDIDATES_SYSTEM contains 'CODING tool'"
+          expected_result: "String present in prompt"
+          verification_method: "Automated test"
+      acceptance_criteria:
+        - "Escalation prompt includes intended-use boundary statement"
+
+    - case_id: "VT-037-TC-016"
+      case_name: "Freeform escalation prompt contains lab-value inference rule"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call escalate_coding and verify system prompt contains 'Do NOT infer diagnoses from lab values' and 'CKD-EPI'"
+          expected_result: "Both strings present in system prompt"
+          verification_method: "Automated test"
+      acceptance_criteria:
+        - "Freeform coding escalation prompt includes lab-value guard rule"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["test_report"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-037/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - execution_id: "VT-037-EXEC-001"
+      date: "2026-03-03"
+      executor: "automated_pytest"
+      environment: "development"
+      result: "pass"
+      cases_executed: 32
+      cases_passed: 32
+      cases_failed: 0
+      duration_seconds: 1
+      notes: "All 32 test cases pass across 6 test classes (lab_value_guard + precision_gates CKD-EPI)"
+    - execution_id: "VT-037-EXEC-002"
+      date: "2026-03-03"
+      executor: "automated_pytest"
+      environment: "development"
+      result: "pass"
+      cases_executed: 35
+      cases_passed: 35
+      cases_failed: 0
+      duration_seconds: 1
+      notes: "Extended to 35 test cases: added 3 escalation prompt lab-value rule verification tests (test_escalation.py::TestPromptLabValueRules)"

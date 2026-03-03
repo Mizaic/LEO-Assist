@@ -169,7 +169,7 @@ export function MeasureEditor({ measureId }: MeasureEditorProps) {
   };
 
   if (loading) {
-    return <Box sx={{ display: 'flex', justifyContent: 'center', p: 6 }}><CircularProgress /></Box>;
+    return <Box sx={{ display: 'flex', justifyContent: 'center', p: 6 }}><CircularProgress aria-label="Loading" /></Box>;
   }
 
   return (

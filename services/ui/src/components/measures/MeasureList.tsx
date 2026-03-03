@@ -98,7 +98,7 @@ export function MeasureList() {
   return (
     <Box sx={{ p: 3 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h5" sx={{ fontWeight: 600 }}>Measures</Typography>
+        <Typography variant="h5" component="h1" sx={{ fontWeight: 600 }}>Measures</Typography>
         <Button variant="contained" startIcon={<AddOutlined />} onClick={() => router.push('/measures/new')}>
           Create Measure
         </Button>
@@ -124,7 +124,7 @@ export function MeasureList() {
 
       <Paper sx={{ borderRadius: 1, overflow: 'hidden', bgcolor: 'background.paper' }}>
         {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', p: 6 }}><CircularProgress /></Box>
+          <Box sx={{ display: 'flex', justifyContent: 'center', p: 6 }}><CircularProgress aria-label="Loading" /></Box>
         ) : measures.length === 0 ? (
           <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', p: 6, color: 'text.secondary' }}>
             <Typography>No measures found</Typography>
@@ -152,7 +152,7 @@ export function MeasureList() {
                     <TableCell>{getStatusChip(measure.status)}</TableCell>
                     <TableCell>{measure.library?.[0]?.replace('Library/', '') || '-'}</TableCell>
                     <TableCell>
-                      <IconButton size="small" onClick={(e) => { setMenuAnchor(e.currentTarget); setMenuMeasure(measure); }}>
+                      <IconButton aria-label="Measure actions" size="small" onClick={(e) => { setMenuAnchor(e.currentTarget); setMenuMeasure(measure); }}>
                         <MoreHorizOutlined />
                       </IconButton>
                     </TableCell>

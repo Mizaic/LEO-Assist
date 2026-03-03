@@ -7,6 +7,7 @@ import Grid from "@mui/material/Grid";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import Skeleton from "@mui/material/Skeleton";
+import Alert from "@mui/material/Alert";
 import Chip from "@mui/material/Chip";
 import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
@@ -39,23 +40,31 @@ export default function DashboardPage() {
   const [alerts, setAlerts] = useState<Array<any>>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [sectionErrors, setSectionErrors] = useState<Record<string, string>>({});
 
   const load = useCallback(async (from: string | undefined, to: string | undefined) => {
     setLoading(true);
     setError(null);
+    setSectionErrors({});
     try {
-      const [ep, diag, kpi, safetyNetAlerts] = await Promise.all([
-        fetchEpisodeSummary(orgId, from, to).catch(() => []),
-        fetchDiagnosedSummary(orgId, from, to).catch(() => []),
-        fetchKPIBenchmarks(orgId).catch(() => []),
-        fetchSafetyNetAlerts(orgId).catch(() => []),
+      const [epResult, diagResult, kpiResult, alertResult] = await Promise.allSettled([
+        fetchEpisodeSummary(orgId, from, to),
+        fetchDiagnosedSummary(orgId, from, to),
+        fetchKPIBenchmarks(orgId),
+        fetchSafetyNetAlerts(orgId),
       ]);
-      setEpisodes(ep);
-      setDiagnosed(diag);
-      setKpis(kpi?.[0] ?? null);
-      setAlerts(safetyNetAlerts);
+      const errors: Record<string, string> = {};
+      if (epResult.status === "fulfilled") setEpisodes(epResult.value);
+      else errors.episodes = "Unable to load referral data.";
+      if (diagResult.status === "fulfilled") setDiagnosed(diagResult.value);
+      else errors.diagnosed = "Unable to load cancer diagnosis data.";
+      if (kpiResult.status === "fulfilled") setKpis(kpiResult.value?.[0] ?? null);
+      else errors.kpis = "Unable to load waiting times.";
+      if (alertResult.status === "fulfilled") setAlerts(alertResult.value);
+      else errors.alerts = "Unable to load safety alerts.";
+      if (Object.keys(errors).length > 0) setSectionErrors(errors);
     } catch (e: any) {
-      setError(e.message);
+      setError(e.message ?? "Something went wrong loading the data.");
     } finally {
       setLoading(false);
     }
@@ -169,9 +178,14 @@ export default function DashboardPage() {
       </Box>
 
       {error && (
-        <Typography role="alert" color="error" sx={{ mb: 2 }}>
+        <Alert role="alert" severity="error" sx={{ mb: 2 }}>
           Something went wrong loading the data. Please refresh and try again.
-        </Typography>
+        </Alert>
+      )}
+      {Object.keys(sectionErrors).length > 0 && !error && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          Some data could not be loaded. Sections with errors are marked below.
+        </Alert>
       )}
 
       {/* ── Summary cards ───────────────────────────────────────────── */}
@@ -224,6 +238,12 @@ export default function DashboardPage() {
               </Typography>
               {loading ? (
                 <Skeleton variant="rectangular" height={280} aria-label="Loading referrals chart" />
+              ) : sectionErrors.episodes ? (
+                <Alert severity="error">{sectionErrors.episodes}</Alert>
+              ) : episodes.length === 0 ? (
+                <Typography variant="body2" color="text.secondary" sx={{ py: 4, textAlign: "center" }}>
+                  No referral data for the selected period.
+                </Typography>
               ) : (
                 <EpisodesByTypeChart data={episodes} />
               )}
@@ -241,6 +261,12 @@ export default function DashboardPage() {
               </Typography>
               {loading ? (
                 <Skeleton variant="rectangular" height={280} aria-label="Loading confirmed cancers chart" />
+              ) : sectionErrors.diagnosed ? (
+                <Alert severity="error">{sectionErrors.diagnosed}</Alert>
+              ) : diagnosed.length === 0 ? (
+                <Typography variant="body2" color="text.secondary" sx={{ py: 4, textAlign: "center" }}>
+                  No confirmed cancer data for the selected period.
+                </Typography>
               ) : (
                 <DiagnosedByTypeChart data={diagnosed} />
               )}
@@ -260,10 +286,13 @@ export default function DashboardPage() {
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2, fontSize: "0.8rem" }}>
                 Average number of days between key stages of the cancer pathway
               </Typography>
-              {loading
-                ? <Skeleton variant="rectangular" height={240} aria-label="Loading waiting times" />
-                : <KPICards kpis={kpis} />
-              }
+              {loading ? (
+                <Skeleton variant="rectangular" height={240} aria-label="Loading waiting times" />
+              ) : sectionErrors.kpis ? (
+                <Alert severity="error">{sectionErrors.kpis}</Alert>
+              ) : (
+                <KPICards kpis={kpis} />
+              )}
             </CardContent>
           </Card>
         </Grid>
@@ -278,6 +307,12 @@ export default function DashboardPage() {
               </Typography>
               {loading ? (
                 <Skeleton variant="rectangular" height={200} aria-label="Loading safety alerts" />
+              ) : sectionErrors.alerts ? (
+                <Alert severity="error">{sectionErrors.alerts}</Alert>
+              ) : alerts.length === 0 ? (
+                <Typography variant="body2" color="text.secondary" sx={{ py: 4, textAlign: "center" }}>
+                  No safety alerts for the selected period.
+                </Typography>
               ) : (
                 <SafetyNetAlertsSummary alerts={alerts.slice(0, 8)} />
               )}

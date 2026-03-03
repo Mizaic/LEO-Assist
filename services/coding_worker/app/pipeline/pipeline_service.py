@@ -28,12 +28,17 @@ from typing import Any, Callable, Optional
 
 import httpx
 
+from libs.coding_engine.tier_classifier import TierDecision, classify_tier
+from libs.cypher.coding_decision_queries import UPSERT_CODING_DECISION
 from libs.cypher.coding_review_queries import UPSERT_CODING_SUGGESTION
 from libs.cypher.post_processor_rule_queries import GET_ACTIVE_POST_PROCESSOR_RULES
 from libs.cypher.documents_queries import write_documents_from_sentences_payload
 from libs.llm_client.escalation import escalate_coding
-from libs.ner.context_detector import detect_assertion, normalize_situation_lookup
+from libs.ner.context_detector import normalize_situation_lookup
+from libs.ner.context_engine import detect_assertions_for_encounter
+from libs.ner.lab_value_guard import should_suppress_disorder
 from libs.ner.observable_post_processor import normalize_observable_entities
+from libs.ner.scope_guard import reclassify_assertion
 from libs.ner.post_processor_rules import apply_rules_to_entities, parse_rules, PostProcessorRule
 from libs.ner.schema_mapper import LABEL_TO_SNOMED_TAG
 from services.coding_worker.app.pipeline.extractor_contract import (
@@ -124,9 +129,15 @@ class CodingPipeline:
     pipeline logic itself.
     """
 
-    def __init__(self, patient_client, knowledge_client) -> None:
+    def __init__(
+        self,
+        patient_client,
+        knowledge_client,
+        coding_mode: str = "hitl",
+    ) -> None:
         self.patient_client = patient_client
         self.knowledge_client = knowledge_client
+        self.coding_mode = coding_mode
         self.splitter = SentenceSplitter()
         # Provider is lazily initialised on first run so the progress_hook
         # can be forwarded for fallback events.
@@ -289,9 +300,11 @@ class CodingPipeline:
             })
             return
 
+        extracted = self._suppress_inferred_diagnoses(sentences, extracted)
+        extracted = self._apply_scope_guard(sentences, extracted)
         extracted = self._apply_post_processor_rules(deidentified, extracted)
         extracted = self._apply_observable_post_processing(deidentified, extracted)
-        extracted = self._apply_context_detection(deidentified, extracted)
+        extracted, context_detection_failed = self._apply_context_detection(deidentified, extracted)
 
         all_items = [item for items in extracted.values() for item in items]
         extract_latency_ms = round((time.monotonic() - t_extract) * 1000)
@@ -305,6 +318,7 @@ class CodingPipeline:
             "model_version": extractor.model_version,
             "entity_count": len(all_items),
             "extract_latency_ms": extract_latency_ms,
+            "context_detection_failed": context_detection_failed,
         })
 
         # Phase 2: terminology resolution
@@ -328,11 +342,25 @@ class CodingPipeline:
             "resolve_latency_ms": resolve_latency_ms,
         })
 
-        self._suggest_surface_forms(all_items, resolved, dry_run)
+        is_autonomous = self.coding_mode == "autonomous"
+
+        if not is_autonomous:
+            self._suggest_surface_forms(all_items, resolved, dry_run)
 
         sentences_payload = self._build_sentences_payload(
             sentences, extracted, resolved, extractor
         )
+
+        # Autonomous mode: filter out Tier 3 items and log CodingDecision nodes
+        if is_autonomous and not dry_run:
+            self._write_coding_decisions(
+                encounter_id, patient_id, sentences_payload,
+            )
+            for sentence in sentences_payload:
+                sentence["terms"] = [
+                    t for t in sentence.get("terms", [])
+                    if t.get("tier_decision") != "not_coded"
+                ]
 
         # Persistence
         t_persist = time.monotonic()
@@ -375,6 +403,98 @@ class CodingPipeline:
             for item in items:
                 by_sentence.setdefault(item.sentence_id, []).append(item)
         return by_sentence
+
+    def _suppress_inferred_diagnoses(
+        self,
+        sentences: list[SentenceChunk],
+        extracted: dict[str, list[ExtractionItem]],
+    ) -> dict[str, list[ExtractionItem]]:
+        """Remove disorder entities whose evidence is a lab result, not a diagnosis.
+
+        Clinical safety guard: lab values (eGFR, creatinine, HbA1c, etc.)
+        must be coded as observable entities only.  If the LLM infers a
+        disorder from a numeric measurement (e.g. CKD stage 1 from eGFR 69),
+        this guard suppresses it before terminology resolution.
+        """
+        sentence_map = {s.sentence_id: s.text for s in sentences}
+        output: dict[str, list[ExtractionItem]] = {}
+        suppressed = 0
+        for sentence_id, items in extracted.items():
+            sentence_text = sentence_map.get(sentence_id, "")
+            kept: list[ExtractionItem] = []
+            for item in items:
+                if should_suppress_disorder(
+                    entity_text=item.text,
+                    entity_semantic_tag=item.semantic_tag,
+                    entity_normalized=item.normalized,
+                    sentence_text=sentence_text,
+                    entity_numeric_value=item.numeric_value,
+                    entity_unit=item.unit,
+                ):
+                    suppressed += 1
+                else:
+                    kept.append(item)
+            output[sentence_id] = kept
+        if suppressed:
+            logger.info(
+                "Lab-value guard: suppressed %d disorder(s) inferred from lab results",
+                suppressed,
+            )
+        return output
+
+    def _apply_scope_guard(
+        self,
+        sentences: list[SentenceChunk],
+        extracted: dict[str, list[ExtractionItem]],
+    ) -> dict[str, list[ExtractionItem]]:
+        """Enforce intended-use boundaries on extracted entities.
+
+        Reclassifies assertions for entities in safety-netting text,
+        treatment recommendation context, or hedged diagnostic language.
+        Runs before ConText so that MedSpaCy can further tighten assertions.
+        """
+        sentence_map = {s.sentence_id: s.text for s in sentences}
+        output: dict[str, list[ExtractionItem]] = {}
+        reclassified = 0
+        for sentence_id, items in extracted.items():
+            sentence_text = sentence_map.get(sentence_id, "")
+            updated: list[ExtractionItem] = []
+            for item in items:
+                new_assertion = reclassify_assertion(
+                    entity_semantic_tag=item.semantic_tag,
+                    entity_assertion=item.assertion,
+                    sentence_text=sentence_text,
+                )
+                if new_assertion is not None:
+                    item = ExtractionItem(
+                        sentence_id=item.sentence_id,
+                        text=item.text,
+                        span_start=item.span_start,
+                        span_end=item.span_end,
+                        semantic_tag=item.semantic_tag,
+                        assertion=new_assertion,
+                        confidence=item.confidence,
+                        normalized=item.normalized,
+                        source_meta=item.source_meta,
+                        relations=item.relations,
+                        numeric_value=item.numeric_value,
+                        unit=item.unit,
+                        reference_range=item.reference_range,
+                        source=item.source,
+                        model_name=item.model_name,
+                        model_version=item.model_version,
+                        contract_version=item.contract_version,
+                    )
+                    reclassified += 1
+                updated.append(item)
+            output[sentence_id] = updated
+        if reclassified:
+            logger.info(
+                "Scope guard: reclassified %d entit(ies) "
+                "(safety-netting / recommendation / hedged diagnosis)",
+                reclassified,
+            )
+        return output
 
     def _load_post_processor_rules(self) -> list[PostProcessorRule]:
         if self._post_rules is not None:
@@ -501,58 +621,61 @@ class CodingPipeline:
         self,
         encounter_text: str,
         extracted: dict[str, list[ExtractionItem]],
-    ) -> dict[str, list[ExtractionItem]]:
-        """Detect family-history / negation / historical context and set assertion.
+    ) -> tuple[dict[str, list[ExtractionItem]], bool]:
+        """Detect context assertions via MedSpaCy ConText and set assertion.
 
         Also normalizes lookup terms for situation entities whose freeform
-        text won't resolve via terminology API.
+        text won't resolve via the terminology API directly.
+
+        Returns:
+            Tuple of (updated extracted dict, context_detection_failed flag).
         """
+        all_items = [item for items in extracted.values() for item in items]
+        assertions, failed = detect_assertions_for_encounter(encounter_text, all_items)
+        assertion_map = {
+            id(item): assertions[i] for i, item in enumerate(all_items)
+        }
+
         output: dict[str, list[ExtractionItem]] = {}
         for sentence_id, items in extracted.items():
-            transformed: list[ExtractionItem] = []
-            for item in items:
-                new_assertion = item.assertion or "present"
-                new_normalized = item.normalized
+            output[sentence_id] = [
+                self._update_item_context(item, assertion_map[id(item)])
+                for item in items
+            ]
+        return output, failed
 
-                if new_assertion == "present":
-                    detected = detect_assertion(
-                        encounter_text, item.span_start, item.span_end,
-                    )
-                    if detected != "present":
-                        new_assertion = detected
+    def _update_item_context(
+        self, item: ExtractionItem, new_assertion: str
+    ) -> ExtractionItem:
+        """Return item updated with assertion and situation normalisation."""
+        new_normalized = item.normalized
+        if item.semantic_tag == "situation":
+            canonical = normalize_situation_lookup(item.text)
+            if canonical:
+                new_normalized = canonical
 
-                if item.semantic_tag == "situation":
-                    canonical = normalize_situation_lookup(item.text)
-                    if canonical:
-                        new_normalized = canonical
+        if new_assertion == (item.assertion or "present") and new_normalized == item.normalized:
+            return item
 
-                if new_assertion == item.assertion and new_normalized == item.normalized:
-                    transformed.append(item)
-                    continue
-
-                transformed.append(
-                    ExtractionItem(
-                        sentence_id=item.sentence_id,
-                        text=item.text,
-                        span_start=item.span_start,
-                        span_end=item.span_end,
-                        semantic_tag=item.semantic_tag,
-                        assertion=new_assertion,
-                        confidence=item.confidence,
-                        normalized=new_normalized,
-                        source_meta=item.source_meta,
-                        relations=item.relations,
-                        numeric_value=item.numeric_value,
-                        unit=item.unit,
-                        reference_range=item.reference_range,
-                        source=item.source,
-                        model_name=item.model_name,
-                        model_version=item.model_version,
-                        contract_version=item.contract_version,
-                    )
-                )
-            output[sentence_id] = transformed
-        return output
+        return ExtractionItem(
+            sentence_id=item.sentence_id,
+            text=item.text,
+            span_start=item.span_start,
+            span_end=item.span_end,
+            semantic_tag=item.semantic_tag,
+            assertion=new_assertion,
+            confidence=item.confidence,
+            normalized=new_normalized,
+            source_meta=item.source_meta,
+            relations=item.relations,
+            numeric_value=item.numeric_value,
+            unit=item.unit,
+            reference_range=item.reference_range,
+            source=item.source,
+            model_name=item.model_name,
+            model_version=item.model_version,
+            contract_version=item.contract_version,
+        )
 
     # ------------------------------------------------------------------
     # Terminology resolution
@@ -609,7 +732,10 @@ class CodingPipeline:
         for item in all_items:
             if item.semantic_tag not in _CODEABLE_LABELS:
                 continue
-            if item.assertion == "absent":
+            if item.assertion in {
+                "absent", "declined", "cancelled",
+                "hypothetical", "possible", "family", "historical",
+            }:
                 continue
             key = item.normalized
             if key in seen:
@@ -685,6 +811,15 @@ class CodingPipeline:
                 # Extract modifiers from source_meta (populated by LLM provider)
                 source_meta = item.source_meta or {}
                 modifiers = source_meta.get("modifiers", {})
+                score = float(best.get("score", 0.0) or 0.0)
+                sf_status = str(best.get("surface_form_status", "") or "")
+                tier_decision = classify_tier(
+                    assertion=item.assertion or "present",
+                    context_failed=False,
+                    terminology_score=score,
+                    surface_form_status=sf_status,
+                    coding_mode=self.coding_mode,
+                )
                 terms_data.append({
                     "term_id": f"{sentence.sentence_id}_t{term_counter}",
                     "text": item.text,
@@ -694,22 +829,24 @@ class CodingPipeline:
                         "snomed_concept_id": best.get("snomed_concept_id"),
                         "read_code": best.get("read_code"),
                         "snomed_term": best.get("snomed_term"),
-                        "score": best.get("score", 0.0),
+                        "score": score,
                         "source": "terminology_api",
                     },
                     "semantic_tag": item.semantic_tag,
                     "assertion": item.assertion,
                     "confidence": item.confidence,
                     "modifiers": modifiers,
-                    # Structured measurement fields (observable entities)
                     "numeric_value": item.numeric_value,
                     "unit": item.unit,
                     "reference_range": item.reference_range,
-                    # Provenance from the extractor
                     "extraction_source": item.source,
                     "extraction_model_name": item.model_name,
                     "extraction_model_version": item.model_version,
                     "contract_version": item.contract_version,
+                    "decision_tier": tier_decision.tier,
+                    "audit_flag": tier_decision.decision == "coded_with_flag",
+                    "tier_reason": tier_decision.reason,
+                    "tier_decision": tier_decision.decision,
                 })
                 term_counter += 1
             payload.append({
@@ -758,6 +895,45 @@ class CodingPipeline:
                 extractor.model_name,
                 extractor.model_version,
             )
+
+    def _write_coding_decisions(
+        self,
+        encounter_id: str,
+        patient_id: str,
+        sentences_payload: list[dict[str, Any]],
+    ) -> None:
+        """Write CodingDecision audit nodes for all terms in autonomous mode."""
+        import hashlib
+        pid_hash = hashlib.sha256(patient_id.encode()).hexdigest()
+        with self.patient_client.session() as session:
+            idx = 0
+            for sentence in sentences_payload:
+                for term in sentence.get("terms", []):
+                    decision_id = f"dec:{encounter_id}:{idx}"
+                    try:
+                        session.run(
+                            UPSERT_CODING_DECISION,
+                            decision_id=decision_id,
+                            encounter_id=encounter_id,
+                            patient_id_hash=pid_hash,
+                            entity_text=term.get("text", ""),
+                            entity_label=term.get("semantic_tag", ""),
+                            assertion=term.get("assertion", "present"),
+                            tier=term.get("decision_tier"),
+                            decision=term.get("tier_decision", ""),
+                            reason=term.get("tier_reason", ""),
+                            terminology_score=float(
+                                (term.get("coding") or {}).get("score", 0.0) or 0.0
+                            ),
+                            consensus_verdict="",
+                            model_ids="",
+                        )
+                    except Exception:
+                        logger.warning(
+                            "Failed to write CodingDecision for %s idx=%d",
+                            encounter_id, idx, exc_info=True,
+                        )
+                    idx += 1
 
     # ------------------------------------------------------------------
     # Neo4j fetches

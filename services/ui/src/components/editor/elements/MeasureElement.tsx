@@ -129,7 +129,7 @@ export function MeasureElement({ element }: MeasureElementProps) {
     return (
       <Box sx={containerSx}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}>
-          <CircularProgress size={24} />
+          <CircularProgress aria-label="Loading" size={24} />
         </Box>
       </Box>
     );

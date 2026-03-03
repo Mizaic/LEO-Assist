@@ -162,7 +162,7 @@ export default function AuthConfig() {
 
       {loading ? (
         <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
-          <CircularProgress />
+          <CircularProgress aria-label="Loading" />
         </Box>
       ) : (
         <Box sx={{ display: "flex", flexDirection: "column", gap: 4 }}>

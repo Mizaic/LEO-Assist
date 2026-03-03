@@ -21,6 +21,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from libs.llm_client.factory import LLMResponse, create_llm
+from libs.llm_client.prompt_safety import INJECTION_GUARD, cap_llm_response, sanitise_for_prompt
 
 logger = logging.getLogger(__name__)
 
@@ -33,11 +34,15 @@ _JSON_OBJECT_RE = re.compile(r"\{.*\}", re.DOTALL)
 class CandidatesResult:
     """Outcome of asking LEO to pick from a real SNOMED candidate list."""
 
-    action: str = "ambiguous"  # "pick" | "search" | "ambiguous"
+    action: str = "ambiguous"  # "pick" | "search" | "ambiguous" | "not_codeable"
     selected_index: int = 0
     alternative_query: str = ""
     reason: str = ""
     model_id: str = ""
+    # Assertion override: "declined", "cancelled", or "refuted" when LEO detects
+    # the patient declined/cancelled or an initial impression was overridden.
+    # "present" in all other cases.
+    assertion: str = "present"
 
 
 @dataclass
@@ -57,6 +62,7 @@ class EscalationResult:
 
 
 def _parse_json(text: str) -> dict[str, Any]:
+    text = cap_llm_response(text, max_chars=1000)
     text = text.strip()
     text = re.sub(r"^```(?:json)?\s*", "", text)
     text = re.sub(r"\s*```$", "", text)
@@ -202,7 +208,7 @@ def escalate_coding(
     Returns the model's best suggestion with concept_id, concept_term,
     and confidence.
     """
-    system_prompt = (
+    system_prompt = INJECTION_GUARD + (
         "You are a UK primary care SNOMED CT coding specialist.\n\n"
         "Given a clinical entity extracted from a GP record, suggest the "
         "best matching SNOMED CT Fully Specified Name (FSN).\n\n"
@@ -230,7 +236,13 @@ def escalate_coding(
         "'serum' in reason and output 'plasma' as concept_term.\n"
         "7. Prefer UK SNOMED CT edition concepts where they exist.\n"
         "8. Return the FSN including its semantic tag in parentheses, "
-        "e.g. 'Serum urea level (observable entity)'.\n\n"
+        "e.g. 'Serum urea level (observable entity)'.\n"
+        "9. CRITICAL -- Do NOT infer diagnoses from lab values. A lab result "
+        "(eGFR, HbA1c, creatinine, sodium, haemoglobin, etc.) is an observation, "
+        "NOT a diagnosis. 'CKD-EPI' is a formula name, not CKD. If the entity "
+        "text is a lab measurement, suggest an observable entity FSN, not a "
+        "disorder. Set confidence below 0.3 and explain that a lab value alone "
+        "does not constitute a diagnosis.\n\n"
         "Respond ONLY with a JSON object:\n"
         '{"concept_term": "<FSN>", "confidence": 0.0-1.0, "reason": "<brief>"}\n\n'
         "If you cannot confidently identify the concept, set confidence "
@@ -251,9 +263,9 @@ def escalate_coding(
                         "role": "user",
                         "content": json.dumps(
                             {
-                                "entity_text": entity_text,
+                                "entity_text": sanitise_for_prompt(entity_text, max_chars=200),
                                 "entity_label": entity_label,
-                                "encounter_text": encounter_text[:2000],
+                                "encounter_text": sanitise_for_prompt(encounter_text, max_chars=2000),
                             }
                         ),
                     }
@@ -310,13 +322,16 @@ def escalate_coding(
     return best
 
 
-_CANDIDATES_SYSTEM = (
+_CANDIDATES_SYSTEM = INJECTION_GUARD + (
     "You are a UK primary care SNOMED CT coding specialist.\n\n"
     "You are given real SNOMED CT concepts retrieved from the terminology index. "
-    "Choose one of three actions:\n"
-    "  pick      - select the best concept from the list by its index\n"
-    "  search    - none fit; suggest a better plain-English search query\n"
-    "  ambiguous - the correct code cannot be determined from the evidence\n\n"
+    "Choose one of four actions:\n"
+    "  pick          - select the best concept from the list by its index\n"
+    "  search        - none fit; suggest a better plain-English search query\n"
+    "  ambiguous     - the correct code cannot be determined from the evidence\n"
+    "  not_codeable  - the encounter text shows this specific entity should NOT "
+    "be coded at all (procedure not yet performed, ruled out, no evidence of, "
+    "negated existence)\n\n"
     "RULES:\n"
     "1. Never invent or guess SNOMED concept IDs. Only reference the indexed "
     "concepts by number.\n"
@@ -328,11 +343,48 @@ _CANDIDATES_SYSTEM = (
     "5. UK convention: biochemistry is serum-based unless specimen type is "
     "explicitly stated otherwise.\n"
     "6. For action 'search', the query must be plain English with no SNOMED IDs "
-    "-- the system will search the terminology index with it.\n\n"
-    "Respond ONLY with JSON, one of:\n"
+    "-- the system will search the terminology index with it.\n"
+    "7. When a patient DECLINED, REFUSED, or CANCELLED a procedure, referral, "
+    "appointment, or investigation: code the UNDERLYING clinical procedure or "
+    "referral using its normal SNOMED concept -- do NOT search for "
+    "'patient declined X'. Add \"assertion\":\"declined\" (or \"cancelled\") to "
+    "your JSON response. The system stores the code with a declined/cancelled "
+    "assertion on the relationship so the clinical record shows it was offered "
+    "but not accepted. Example: 'patient declined lymph node biopsy' -> pick or "
+    "search for 'Biopsy of lymph node' with assertion 'declined'.\n"
+    "7b. When a clinical impression was OVERRIDDEN by subsequent investigation "
+    "(e.g. 'initially suggested Barrett's oesophagus, but biopsy confirmed "
+    "cancer'), the overridden entity is 'refuted'. Add \"assertion\":\"refuted\" "
+    "for the initial impression that was superseded. The CONFIRMED finding "
+    "should remain 'present'. Example: 'thought to be eczema but biopsy "
+    "confirmed psoriasis' -> eczema gets assertion 'refuted'.\n"
+    "8. Use 'not_codeable' ONLY when the entity truly did not occur and there is "
+    "no clinical event to record: procedure is still awaiting / pending / not yet "
+    "done, condition explicitly ruled out, or finding explicitly negated "
+    "(e.g. 'no evidence of X', 'biopsy not performed', 'awaiting biopsy'). "
+    "State the reason clearly.\n"
+    "9. CRITICAL -- Do NOT infer diagnoses from lab values:\n"
+    "   A lab result (eGFR, creatinine, HbA1c, sodium, haemoglobin, etc.) is an "
+    "observation, NOT a diagnosis. If the encounter text is a lab result line "
+    "(e.g. 'eGFR using creatinine (CKD-EPI) ... 69 mL/min'), do NOT pick a "
+    "disorder concept such as 'Chronic kidney disease stage 1'. Instead use "
+    "'not_codeable' and explain that a lab value is an observation and does not "
+    "constitute a diagnosis. 'CKD-EPI' is a formula name (Chronic Kidney Disease "
+    "Epidemiology Collaboration), NOT a diagnosis of CKD.\n"
+    "   Similarly, do NOT infer diabetes from HbA1c, hyponatraemia from sodium, "
+    "anaemia from haemoglobin, etc. Only code a disorder if the encounter text "
+    "explicitly states a diagnosis.\n"
+    "10. This system is a CODING tool. You code what is written. You do NOT make "
+    "diagnoses, recommend treatment, or interpret clinical results.\n\n"
+    "Respond ONLY with JSON. Include 'assertion' only when it differs from "
+    "'present' (i.e. set it to 'declined', 'cancelled', or 'refuted' per rules 7/7b):\n"
     '  {"action":"pick","selected_index":<int>,"reason":"<one sentence>"}\n'
+    '  {"action":"pick","selected_index":<int>,"reason":"<one sentence>","assertion":"declined"}\n'
+    '  {"action":"pick","selected_index":<int>,"reason":"<one sentence>","assertion":"refuted"}\n'
     '  {"action":"search","query":"<plain English>","reason":"<one sentence>"}\n'
-    '  {"action":"ambiguous","reason":"<one sentence explaining ambiguity>"}'
+    '  {"action":"search","query":"<plain English>","reason":"<one sentence>","assertion":"declined"}\n'
+    '  {"action":"ambiguous","reason":"<one sentence explaining ambiguity>"}\n'
+    '  {"action":"not_codeable","reason":"<one sentence: why no clinical event to record>"}'
 )
 
 
@@ -358,8 +410,8 @@ def escalate_coding_from_candidates(
 
     numbered = _format_candidates(candidates)
     user_msg = json.dumps({
-        "entity_text": entity_text,
-        "encounter_text": encounter_text[:1500],
+        "entity_text": sanitise_for_prompt(entity_text, max_chars=200),
+        "encounter_text": sanitise_for_prompt(encounter_text, max_chars=1500),
         "candidates": numbered,
     })
 
@@ -382,6 +434,9 @@ def escalate_coding_from_candidates(
     action = str(parsed.get("action", "ambiguous")).strip()
     reason = str(parsed.get("reason", ""))[:400]
 
+    raw_assertion = str(parsed.get("assertion", "present")).strip().lower()
+    assertion = raw_assertion if raw_assertion in {"declined", "cancelled", "refuted"} else "present"
+
     if action == "pick":
         idx = int(parsed.get("selected_index", 0))
         if not (0 <= idx < len(candidates)):
@@ -391,6 +446,7 @@ def escalate_coding_from_candidates(
             selected_index=idx,
             reason=reason,
             model_id=response.model_id,
+            assertion=assertion,
         )
     if action == "search":
         query = str(parsed.get("query", "")).strip()
@@ -399,5 +455,71 @@ def escalate_coding_from_candidates(
             alternative_query=query,
             reason=reason,
             model_id=response.model_id,
+            assertion=assertion,
+        )
+    if action == "not_codeable":
+        return CandidatesResult(
+            action="not_codeable",
+            reason=reason,
+            model_id=response.model_id,
         )
     return CandidatesResult(action="ambiguous", reason=reason, model_id=response.model_id)
+
+
+# -- Dual-model consensus verification for autonomous coding ----------------
+
+_VERIFY_SYSTEM = (
+    "You are a UK primary care SNOMED CT coding specialist.\n\n"
+    "A terminology index matched an entity from a GP encounter to a SNOMED "
+    "concept. Your task: decide whether the match is CORRECT.\n\n"
+    "Return exactly one verdict:\n"
+    "  correct   -- the SNOMED concept accurately represents the entity in "
+    "this clinical context\n"
+    "  incorrect -- the concept does not match; explain briefly\n"
+    "  uncertain -- insufficient context to decide\n\n"
+    "Respond ONLY with JSON:\n"
+    '{"verdict": "<correct|incorrect|uncertain>", "reason": "<one sentence>"}'
+)
+
+
+def _parse_verify_verdict(text: str) -> str:
+    parsed = _parse_json(text)
+    v = str(parsed.get("verdict", "")).strip().lower()
+    return v if v in {"correct", "incorrect", "uncertain"} else ""
+
+
+def verify_coding_consensus(
+    *,
+    entity_text: str,
+    encounter_text: str,
+    snomed_term: str,
+    snomed_concept_id: str,
+    coding_mode: str = "hitl",
+) -> str:
+    """Verify a terminology match using dual-model consensus.
+
+    Returns 'correct', 'incorrect', or 'uncertain'.
+    In autonomous mode, failure defaults to 'uncertain' (do not auto-code).
+    In HITL mode, failure defaults to 'correct' (let human review).
+    """
+    from libs.llm_client.consensus import run_consensus
+
+    fail_v = "uncertain" if coding_mode == "autonomous" else "correct"
+    user_msg = json.dumps({
+        "entity_text": entity_text,
+        "encounter_text": encounter_text[:1500],
+        "matched_concept": f"{snomed_term} (SNOMED: {snomed_concept_id})",
+    })
+
+    result = run_consensus(
+        system_prompt=_VERIFY_SYSTEM,
+        user_msg=user_msg,
+        parse_fn=_parse_verify_verdict,
+        fail_verdict=fail_v,
+        max_tokens=150,
+    )
+    logger.info(
+        "verify_coding_consensus entity=%r verdict=%s agreed=%s",
+        entity_text, result.verdict, result.agreed,
+    )
+    return result.verdict

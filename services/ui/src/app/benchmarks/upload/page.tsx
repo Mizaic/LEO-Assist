@@ -10,7 +10,7 @@ export default function BenchmarkUploadPage() {
     <Suspense
       fallback={
         <Box sx={{ display: "flex", justifyContent: "center", p: 6 }}>
-          <CircularProgress />
+          <CircularProgress aria-label="Loading" />
         </Box>
       }
     >

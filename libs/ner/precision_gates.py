@@ -122,6 +122,12 @@ _FIT_NOTE_CONTEXT_RE = re.compile(
     re.IGNORECASE,
 )
 
+_CKD_EPI_FORMULA_RE = re.compile(r"\bCKD[- ]?EPI\b", re.IGNORECASE)
+_CKD_ENTITY_TERMS = frozenset({
+    "ckd", "chronic kidney disease", "kidney disease", "renal disease",
+    "renal failure", "kidney failure", "nephropathy", "renal impairment",
+})
+
 _URL_RE = re.compile(r"https?://[^\s]+", re.IGNORECASE)
 
 # Location/organisation names that must not be tagged as clinical entities
@@ -220,6 +226,13 @@ def check_entity(
         # Block semantic-only global FP terms
         if etext in GLOBAL_FP_SURFACE_FORMS and not _has_malignancy_signal(sentence_text.lower()):
             reasons.append("generic_fp_surface_form_without_malignancy_context")
+
+    # ---- Lab-value diagnostic inference hardening ----
+
+    if label == "disorder" or label == "finding":
+        # CKD extracted from CKD-EPI formula name (not a diagnosis)
+        if etext in _CKD_ENTITY_TERMS and _CKD_EPI_FORMULA_RE.search(context):
+            reasons.append("ckd_extracted_from_ckd_epi_formula")
 
     # ---- General cross-domain hardening ----
 

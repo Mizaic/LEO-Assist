@@ -69,11 +69,11 @@ export default function DiagnosedByTypeChart({ data }: { data: DataItem[] }) {
 
   return (
     <Box sx={{ position: "relative" }}>
-      {/* Screen-reader summary — width/height must be explicit px strings; MUI treats numeric 1 as 100% */}
-      <Box component="p" sx={{ position: "absolute", width: "1px", height: "1px", overflow: "hidden", clip: "rect(0,0,0,0)", whiteSpace: "nowrap" }}>
-        Bar chart: Confirmed cancers by type. Total {total} confirmed diagnoses. Top types: {summary}.
-      </Box>
-      <Box role="img" aria-hidden="true" sx={{ overflow: "hidden" }}>
+      <Box
+        role="img"
+        aria-label={`Bar chart: Confirmed cancers by type. Total ${total} confirmed diagnoses. Top types: ${summary}.`}
+        sx={{ overflow: "hidden" }}
+      >
         <ResponsiveContainer width="99%" height={280}>
           <BarChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />

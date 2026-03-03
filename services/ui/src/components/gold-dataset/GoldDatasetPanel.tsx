@@ -184,7 +184,7 @@ export default function GoldDatasetPanel() {
       {/* Header */}
       <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 3 }}>
         <Box>
-          <Typography variant="h5" sx={{ fontWeight: 700 }}>
+          <Typography variant="h5" component="h1" sx={{ fontWeight: 700 }}>
             Gold Dataset &amp; Extraction Scorecard
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
@@ -196,7 +196,7 @@ export default function GoldDatasetPanel() {
             <Tooltip title="Export all approved candidates as MedSpaCy .jsonl training files">
               <Button
                 variant="outlined"
-                startIcon={exporting ? <CircularProgress size={14} /> : <DownloadIcon />}
+                startIcon={exporting ? <CircularProgress aria-label="Loading" size={14} /> : <DownloadIcon />}
                 disabled={exporting}
                 onClick={downloadTrainingData}
                 size="small"
@@ -207,7 +207,7 @@ export default function GoldDatasetPanel() {
           )}
           <Button
             variant={stats ? "text" : "contained"}
-            startIcon={loading ? <CircularProgress size={14} /> : <AssessmentOutlinedIcon />}
+            startIcon={loading ? <CircularProgress aria-label="Loading" size={14} /> : <AssessmentOutlinedIcon />}
             disabled={loading}
             onClick={load}
             size="small"

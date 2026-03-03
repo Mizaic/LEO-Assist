@@ -7,6 +7,7 @@ import { CacheProvider } from "@emotion/react";
 import { ThemeProvider } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
 import theme from "@/theme";
+import { SnackbarProvider } from "@/context/SnackbarContext";
 
 export default function ThemeRegistry({ children }: { children: React.ReactNode }) {
   const [{ cache, flush }] = React.useState(() => {
@@ -49,7 +50,7 @@ export default function ThemeRegistry({ children }: { children: React.ReactNode 
     <CacheProvider value={cache}>
       <ThemeProvider theme={theme}>
         <CssBaseline />
-        {children}
+        <SnackbarProvider>{children}</SnackbarProvider>
       </ThemeProvider>
     </CacheProvider>
   );

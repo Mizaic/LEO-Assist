@@ -340,8 +340,14 @@ export default function ModelLifecyclePanel() {
     }
   }
 
+  const [rejectConfirmVersion, setRejectConfirmVersion] = useState<string | null>(null);
+
+  function requestReject(version: string) {
+    setRejectConfirmVersion(version);
+  }
+
   async function reject(version: string) {
-    if (!window.confirm(`Reject v${version}? This marks the version deprecated.`)) return;
+    setRejectConfirmVersion(null);
     setBusyAction(`reject:${version}`);
     setError(null);
     try {
@@ -459,7 +465,7 @@ export default function ModelLifecyclePanel() {
                 onClick={() => setRollbackConfirmOpen(true)}
                 disabled={busyAction === "rollback"}
               >
-                {busyAction === "rollback" ? <CircularProgress size={16} /> : `Rollback to v${active.rollback_target_version}`}
+                {busyAction === "rollback" ? <CircularProgress aria-label="Loading" size={16} /> : `Rollback to v${active.rollback_target_version}`}
               </Button>
             )}
           </Stack>
@@ -504,7 +510,7 @@ export default function ModelLifecyclePanel() {
                   onClick={() => runGoldTest(ready.model_version)}
                   disabled={busyAction === `run-gold:${ready.model_version}` || !!goldJobId}
                 >
-                  {busyAction === `run-gold:${ready.model_version}` ? <CircularProgress size={16} /> : "Run gold patient test"}
+                  {busyAction === `run-gold:${ready.model_version}` ? <CircularProgress aria-label="Loading" size={16} /> : "Run gold patient test"}
                 </Button>
               </>
             )}
@@ -620,7 +626,7 @@ export default function ModelLifecyclePanel() {
                         disabled={!canaryPass || busyAction === `promote:${canaryVersion.model_version}`}
                         onClick={() => promote(canaryVersion.model_version)}
                       >
-                        {busyAction === `promote:${canaryVersion.model_version}` ? <CircularProgress size={16} /> : "Promote to live"}
+                        {busyAction === `promote:${canaryVersion.model_version}` ? <CircularProgress aria-label="Loading" size={16} /> : "Promote to live"}
                       </Button>
                     </span>
                   </Tooltip>
@@ -643,16 +649,16 @@ export default function ModelLifecyclePanel() {
                       onClick={() => runGoldTest(canaryVersion.model_version)}
                       disabled={busyAction === `run-gold:${canaryVersion.model_version}` || !!goldJobId}
                     >
-                      {busyAction === `run-gold:${canaryVersion.model_version}` ? <CircularProgress size={16} /> : "Re-run gold test"}
+                      {busyAction === `run-gold:${canaryVersion.model_version}` ? <CircularProgress aria-label="Loading" size={16} /> : "Re-run gold test"}
                     </Button>
                   )}
                   <Button
                     variant="outlined"
                     color="error"
-                    onClick={() => reject(canaryVersion.model_version)}
+                    onClick={() => requestReject(canaryVersion.model_version)}
                     disabled={busyAction === `reject:${canaryVersion.model_version}`}
                   >
-                    {busyAction === `reject:${canaryVersion.model_version}` ? <CircularProgress size={16} /> : "Reject this version"}
+                    {busyAction === `reject:${canaryVersion.model_version}` ? <CircularProgress aria-label="Loading" size={16} /> : "Reject this version"}
                   </Button>
                 </Stack>
                 <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
@@ -746,7 +752,7 @@ export default function ModelLifecyclePanel() {
             disabled={busyAction === `promote:${canaryVersion?.model_version}`}
             onClick={() => canaryVersion && promote(canaryVersion.model_version, true)}
           >
-            {busyAction === `promote:${canaryVersion?.model_version}` ? <CircularProgress size={16} /> : "Confirm force promote"}
+            {busyAction === `promote:${canaryVersion?.model_version}` ? <CircularProgress aria-label="Loading" size={16} /> : "Confirm force promote"}
           </Button>
         </DialogActions>
       </Dialog>
@@ -765,6 +771,21 @@ export default function ModelLifecyclePanel() {
           <Button onClick={() => setRollbackConfirmOpen(false)}>Cancel</Button>
           <Button color="warning" variant="contained" onClick={rollback}>
             Confirm rollback
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={!!rejectConfirmVersion} onClose={() => setRejectConfirmVersion(null)}>
+        <DialogTitle>Reject model version?</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2">
+            Reject v{rejectConfirmVersion}? This marks the version as deprecated and cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setRejectConfirmVersion(null)}>Cancel</Button>
+          <Button color="error" variant="contained" onClick={() => rejectConfirmVersion && reject(rejectConfirmVersion)}>
+            Reject
           </Button>
         </DialogActions>
       </Dialog>

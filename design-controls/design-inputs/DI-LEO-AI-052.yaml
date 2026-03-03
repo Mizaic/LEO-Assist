@@ -1,0 +1,144 @@
+# -- DI-LEO-AI-052 -- Security Gap Remediation: Batch 1 (Identity, Auth, Session, CORS, Rate Limiting)
+- id: "DI-LEO-AI-052"
+  title: "Security Gap Remediation — Batch 1"
+  version: "1.0"
+  status: "approved"
+  date: "2026-03-03"
+  derived_from: ["R-LEO-AI-030", "R-LEO-AI-031"]
+  risk_references:
+    - "GAP-001: Identity accepted from unauthenticated X-User-Email header (Critical)"
+    - "GAP-003: Unauthenticated model registry endpoints (Critical)"
+    - "GAP-005: Session cookie secure flag hardcoded False (High)"
+    - "GAP-006: No rate limiting on any endpoint (High)"
+    - "GAP-007: Inter-service communication without authentication (High)"
+    - "GAP-009: No CSRF protection (Medium)"
+    - "GAP-010: OAuth state parameter not CSRF-protected (Medium)"
+    - "GAP-011: Excessive session TTL without rotation (Medium)"
+    - "GAP-013: CORS origins not configurable for production (Medium)"
+    - "GAP-015: User-configurable rules without change control (Medium)"
+    - "GAP-016: Autonomous mode fail-closed behavior not guaranteed (Medium)"
+
+  requirements:
+    - id: "DI-052-001"
+      title: "Session-Only Identity (GAP-001)"
+      description: >
+        The system MUST NOT accept caller identity from HTTP headers or query
+        parameters. Identity MUST be resolved exclusively from server-side
+        session data stored in Redis.
+      acceptance_criteria:
+        - "X-User-Email header parameter removed from get_caller_scope_from_request"
+        - "?email= query parameter removed from all identity resolution paths"
+        - "get_caller_scope in libs/auth/org_scope.py uses X-Leo-Session (session token) only"
+        - "main.py dependency_overrides replaces get_caller_scope with get_caller_scope_from_request"
+
+    - id: "DI-052-002"
+      title: "Model Registry Admin Guard (GAP-003)"
+      description: >
+        All mutating model registry endpoints MUST require platform admin
+        authorisation via Depends(require_admin). Read-only endpoints MAY
+        remain unauthenticated.
+      acceptance_criteria:
+        - "register, upload, validate, canary/start, canary/result, promote, rollback, reject require Depends(require_admin)"
+        - "Read endpoints (status, versions, inference/health) remain open"
+        - "Non-admin callers receive HTTP 403"
+
+    - id: "DI-052-003"
+      title: "Cookie Secure Flag Configurable (GAP-005)"
+      description: >
+        The session cookie secure flag MUST be configurable via COOKIE_SECURE
+        environment variable, defaulting to true.
+      acceptance_criteria:
+        - "COOKIE_SECURE env var controls secure flag on leo_session and leo_oauth_nonce cookies"
+        - "Default value is 'true' (secure)"
+        - "All Bicep parameter files set COOKIE_SECURE to 'true'"
+
+    - id: "DI-052-004"
+      title: "Rate Limiting (GAP-006)"
+      description: >
+        The Core API MUST enforce per-IP rate limiting on all endpoints
+        to mitigate denial-of-service attacks.
+      acceptance_criteria:
+        - "slowapi Limiter configured in main.py with per-IP key function"
+        - "RateLimitExceeded handler returns appropriate HTTP error"
+        - "slowapi listed as dependency in services/api/requirements.txt"
+
+    - id: "DI-052-005"
+      title: "Inter-Service Authentication (GAP-007)"
+      description: >
+        Internal service-to-service calls MUST be authenticated using a
+        shared secret Bearer token with timing-safe comparison.
+      acceptance_criteria:
+        - "SERVICE_AUTH_SECRET env var configures the shared secret"
+        - "verify_service_token dependency uses hmac.compare_digest for timing-safe comparison"
+        - "Missing or incorrect token returns HTTP 401 when secret is configured"
+        - "Auth is a no-op when SECRET is empty (local dev only)"
+
+    - id: "DI-052-006"
+      title: "XHR Mutation Guard (GAP-009)"
+      description: >
+        All state-changing HTTP methods (POST, PUT, PATCH, DELETE) MUST
+        require an X-Requested-With: XMLHttpRequest header, except for
+        auth and health endpoints.
+      acceptance_criteria:
+        - "Middleware blocks non-GET/HEAD/OPTIONS without X-Requested-With header"
+        - "Auth routes (/auth/) and /health exempted"
+        - "Session cookies set with SameSite=lax"
+
+    - id: "DI-052-007"
+      title: "OAuth Nonce Cookie (GAP-010)"
+      description: >
+        The OAuth login flow MUST use a cryptographic nonce cookie to
+        prevent CSRF attacks on the callback endpoint.
+      acceptance_criteria:
+        - "leo_oauth_nonce cookie set at /auth/login with httponly, secure, samesite=lax"
+        - "max_age=600 (10 minutes)"
+        - "/auth/callback rejects requests without matching nonce cookie"
+        - "Missing nonce redirects to sign-in with csrf_nonce_missing error"
+
+    - id: "DI-052-008"
+      title: "Configurable Session TTL (GAP-011)"
+      description: >
+        Session TTL MUST be configurable via SESSION_TTL_HOURS environment
+        variable and per-tenant SystemConfig, with Redis as mandatory session store.
+      acceptance_criteria:
+        - "SESSION_TTL_HOURS env var controls default TTL"
+        - "SystemConfig per-tenant override via Neo4j"
+        - "Redis failure raises HTTPException(503) — fail-closed"
+        - "Bicep parameters: dev/val 12h, prod 24h"
+
+    - id: "DI-052-009"
+      title: "Configurable CORS Origins (GAP-013)"
+      description: >
+        CORS allowed origins MUST be configurable via the ALLOWED_ORIGINS
+        environment variable, with per-environment Bicep parameters restricting
+        to deployment domains.
+      acceptance_criteria:
+        - "ALLOWED_ORIGINS env var parsed as comma-separated list"
+        - "CORSMiddleware configured with parsed origins"
+        - "Dev includes localhost; val/prod restricted to healthcarecopilot.ai domain"
+
+    - id: "DI-052-010"
+      title: "Admin Guards on Rule CRUD (GAP-015)"
+      description: >
+        Post-processor rule and context rule creation, update, and deactivation
+        endpoints MUST require platform admin authorisation. User-supplied
+        regex patterns MUST be validated for safety (ReDoS detection).
+      acceptance_criteria:
+        - "POST/PATCH /training/post-processor-rules require Depends(require_admin)"
+        - "POST /training/context-rules requires Depends(require_admin)"
+        - "PATCH /training/context-rules/{id}/deactivate requires Depends(require_admin)"
+        - "_validate_regex rejects patterns exceeding max length (200 chars)"
+        - "_validate_regex detects catastrophic backtracking via timeout probe"
+        - "Context rule literal length capped at 200 chars"
+        - "created_by field uses scope.email, not request body"
+
+    - id: "DI-052-011"
+      title: "Autonomous Mode Fail-Closed (GAP-016)"
+      description: >
+        When dual-provider LLM consensus fails in autonomous mode, the
+        disorder verifier MUST return UNCERTAIN (not 'not_disorder') so
+        entities are not suppressed without human review.
+      acceptance_criteria:
+        - "_fail_verdict_for_mode('autonomous') returns DisorderVerdict.UNCERTAIN"
+        - "LLM response capped at 1000 chars to prevent response-stuffing"
+        - "Autonomous mode does not code entities without confirmation on failure"

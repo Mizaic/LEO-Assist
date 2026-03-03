@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Query
+import re
+
+from fastapi import APIRouter, HTTPException, Query
 
 from libs.neo4j_client.client import KnowledgeGraphClient
 from services.terminology_api.app.queries.terminology import (
@@ -12,6 +14,19 @@ from services.terminology_api.app.queries.terminology import (
 
 router = APIRouter()
 
+# Characters that carry special meaning in the Lucene query-parser syntax.
+# The SNOMED full-text index uses a standard analyser that already strips these
+# during ingestion, so replacing them with spaces produces equivalent results
+# while avoiding TokenMgrError / parse failures on inputs like
+# "protein/creatinine ratio" (/ opens a regex literal in Lucene).
+_LUCENE_SPECIAL = re.compile(r'[+\-!&|(){}\[\]^"~*?:\\/]')
+
+
+def _sanitize_lucene_query(q: str) -> str:
+    """Replace Lucene special chars with spaces to prevent query-parse errors."""
+    sanitized = _LUCENE_SPECIAL.sub(" ", q)
+    return re.sub(r" +", " ", sanitized).strip()
+
 
 @router.get("/search")
 def search_terms(
@@ -20,12 +35,15 @@ def search_terms(
     semantic_tag: list[str] | None = Query(default=None),
 ):
     """Fulltext search across SNOMED Terms in the Knowledge Graph."""
+    safe_q = _sanitize_lucene_query(q)
+    if not safe_q:
+        raise HTTPException(status_code=422, detail="Query is empty after sanitisation")
     client = KnowledgeGraphClient()
     try:
         if semantic_tag:
             return client.run(
-                TERMINOLOGY_SEARCH_FILTERED, q=q, limit=limit, tags=semantic_tag
+                TERMINOLOGY_SEARCH_FILTERED, q=safe_q, limit=limit, tags=semantic_tag
             )
-        return client.run(TERMINOLOGY_SEARCH, q=q, limit=limit)
+        return client.run(TERMINOLOGY_SEARCH, q=safe_q, limit=limit)
     finally:
         client.close()

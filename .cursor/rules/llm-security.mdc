@@ -1,0 +1,102 @@
+---
+description: LLM security standards — prompt injection defence, input sanitisation, output validation, and safe consensus patterns. Apply whenever creating or modifying any LLM call (AWS Bedrock, Azure OpenAI, or any future provider).
+globs: libs/llm_client/**/*.py,services/*/app/**/*.py,libs/coding_engine/**/*.py
+alwaysApply: false
+---
+
+# LLM Security Standards
+
+This codebase processes UK NHS clinical text (UK GDPR Article 9 special category data) via external LLMs (AWS Bedrock, Azure OpenAI). All LLM call sites must follow these rules.
+
+## 1. Always Use `prompt_safety` Utilities
+
+Import from `libs.llm_client.prompt_safety` before any LLM call:
+
+```python
+from libs.llm_client.prompt_safety import INJECTION_GUARD, sanitise_for_prompt
+```
+
+## 2. System Prompt — Prepend INJECTION_GUARD
+
+```python
+# ❌ BAD
+_SYSTEM_PROMPT = "You are a clinical coder..."
+
+# ✅ GOOD
+_SYSTEM_PROMPT = INJECTION_GUARD + "You are a clinical coder..."
+```
+
+`INJECTION_GUARD` instructs the model to ignore instruction-like content inside data blocks.
+
+## 3. User Message — Sanitise All Clinical Text
+
+Clinical text from GP records MUST pass through `sanitise_for_prompt()` before embedding:
+
+```python
+# ❌ BAD
+user_msg = json.dumps({"encounter_text": encounter_text[:2000], "entity": entity_text})
+
+# ✅ GOOD
+user_msg = json.dumps({
+    "encounter_text": sanitise_for_prompt(encounter_text, max_chars=2000),
+    "entity_text": sanitise_for_prompt(entity_text, max_chars=200),
+})
+```
+
+Never interpolate raw clinical text into f-strings that form part of the system prompt.
+
+## 4. Output Validation — Reject Oversized or Invalid Responses
+
+All `parse_fn` / verdict parsers must:
+- Cap the raw response length before parsing (`if len(raw) > 1000: return ""`)
+- Return `""` (triggering `fail_verdict`) for anything outside the valid set
+- Never accept a model response that includes instruction-like content as a verdict
+
+```python
+def _parse_verdict(text: str) -> str:
+    if len(text) > 1000:
+        return ""
+    # ... normal parsing ...
+    return v if v in _VALID_VERDICTS else ""
+```
+
+## 5. Consensus Arbitrator — Alert on Third Verdict
+
+When the arbitrator returns a verdict that matches **neither** of the two panel models, log a warning and route to HITL:
+
+```python
+if arb_verdict not in (aws_verdict, azure_verdict):
+    logger.warning(
+        "consensus.arbitrator_third_verdict aws=%s azure=%s arb=%s entity=%r",
+        aws_verdict, azure_verdict, arb_verdict, ...
+    )
+```
+
+## 6. Fail-Safe Defaults
+
+| Mode | Fail verdict | Rationale |
+|------|-------------|-----------|
+| HITL | Conservative (human will review) | `active_diagnosis`, `correct` |
+| Autonomous | `uncertain` / `review` — **never a suppressive verdict** | Suppress nothing without human confirmation |
+
+**Do not** use `"not_disorder"` or `"incorrect"` as a fail_verdict — these silently drop clinical entities.
+
+## 7. New LLM Call Checklist
+
+Before merging any new LLM call site:
+
+- [ ] `INJECTION_GUARD` prepended to system prompt
+- [ ] All clinical text through `sanitise_for_prompt()`
+- [ ] `parse_fn` has response length cap
+- [ ] Valid verdict set is a `frozenset`, not a list
+- [ ] `fail_verdict` is conservative (not suppressive) in autonomous mode
+- [ ] `max_tokens` set (never default/unlimited)
+- [ ] Clinical text truncated before embedding (default 2000 chars)
+- [ ] Call is covered by a unit test that mocks the LLM and tests the fail_verdict path
+
+## 8. User-Supplied Rules (Context Rules, Post-Processor Rules)
+
+Any endpoint that persists user-supplied regex or NLP rules MUST:
+- Validate regex safety server-side via `_validate_regex()` in `training.py`
+- Require **admin role** (`Depends(require_admin)`) for creation and deactivation
+- Log the creating user via `scope.email`, not the request body's `created_by` field

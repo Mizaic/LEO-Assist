@@ -138,3 +138,39 @@ describe("AppShell — Tenant Switcher", () => {
     expect(screen.getByText("sign-in-page")).toBeInTheDocument();
   });
 });
+
+describe("AppShell — Accessibility", () => {
+  beforeEach(() => {
+    mockPathname = "/dashboard";
+    mockOrgCtx = {
+      currentOrg: null,
+      organizations: ORGS,
+      isPlatformAdmin: true,
+      switchOrg: mockSwitchOrg,
+      viewAll: true,
+      setViewAll: jest.fn(),
+    };
+  });
+
+  it("main content has id='main-content'", () => {
+    renderShell();
+    expect(document.getElementById("main-content")).toBeInTheDocument();
+  });
+
+  it("navigation is wrapped in nav landmark", () => {
+    renderShell();
+    expect(screen.getByRole("navigation", { name: "Main navigation" })).toBeInTheDocument();
+  });
+
+  it("active nav item has aria-current='page'", () => {
+    mockPathname = "/dashboard";
+    renderShell();
+    const overviewLink = screen.getByRole("link", { name: "Overview" });
+    expect(overviewLink).toHaveAttribute("aria-current", "page");
+  });
+
+  it("sign out button has aria-label", () => {
+    renderShell();
+    expect(screen.getByRole("button", { name: /sign out/i })).toBeInTheDocument();
+  });
+});

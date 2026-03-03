@@ -1,0 +1,89 @@
+# -- DI-LEO-AI-040 -- CodingMode Pipeline Routing
+# IEC 62304 / ISO 13485 Design Input
+# Schema: design-controls/templates/design_inputs_schema.yaml
+
+- id: "DI-LEO-AI-040"
+  type: "Safety"
+  derived_from: ["UN-LEO-AI-002"]
+  requirement: "The system SHALL support two operating modes controlled by the CODING_MODE environment variable: HITL (human-in-the-loop, default) runs the tier classifier and exposes tier reasoning in the review queue UI; AUTONOMOUS codes, flags, or skips items based on tier classification and writes CodingDecision audit nodes -- with an invalid or missing CODING_MODE always defaulting to HITL as a fail-safe. In HITL mode, reviewer tier override decisions are tracked to enable safety layer calibration."
+  rationale: "The pipeline must behave differently depending on whether a human reviewer is available. HITL mode is the safe default where all uncertain items are surfaced for human review. Autonomous mode enables post-deployment operation without human review but requires the full tier classification and audit trail as compensating controls. Defaulting to HITL on misconfiguration prevents accidental autonomous operation."
+
+  machine_spec:
+    agent_prompt: |
+      Implement CodingMode pipeline routing (~50 LOC changes).
+
+      SINGLE PURPOSE: Wire the CodingMode enum and tier classifier into
+      the pipeline so that entities are routed differently based on mode.
+
+      REQUIREMENTS:
+      1. CodingMode enum with HITL and AUTONOMOUS values.
+      2. CODING_MODE env var parsed at startup; invalid values default to HITL.
+      3. Pipeline _build_sentences_payload calls classify_tier for each entity.
+      4. Each term in the payload gets decision_tier, audit_flag, tier_reason,
+         and tier_decision attributes.
+      5. In autonomous mode: _write_coding_decisions creates CodingDecision
+         audit nodes for every term.
+      6. In autonomous mode: Tier 3 terms filtered out of sentences_payload
+         before persistence (not_coded items are not written to the graph).
+      7. In HITL mode: tier fields (decision_tier, tier_reason, tier_decision)
+         written to CodingReview nodes so the reviewer can see confidence
+         reasoning and the system can track override decisions.
+      8. Reviewer override tracked: when a reviewer resolves a CodingReview
+         item, record reviewer_tier_override=true if their decision differs
+         from the tier classifier recommendation.
+      9. Override rate per tier monitored as calibration signal for the safety
+         layer thresholds.
+
+    acceptance_criteria:
+      - type: "test"
+        spec: "CodingMode enum has hitl and autonomous values"
+      - type: "test"
+        spec: "Invalid CODING_MODE env var defaults to HITL"
+      - type: "test"
+        spec: "Missing CODING_MODE env var defaults to HITL"
+      - type: "test"
+        spec: "Present assertion + high score gets Tier 1 in payload"
+      - type: "test"
+        spec: "Absent assertion gets Tier 3 in payload"
+      - type: "test"
+        spec: "Medium score in autonomous mode gets audit_flag=True"
+      - type: "test"
+        spec: "_write_coding_decisions creates one decision per term"
+      - type: "test"
+        spec: "Decision ID format is dec:{encounter_id}:{index}"
+      - type: "test"
+        spec: "Neo4j write failure in _write_coding_decisions does not crash pipeline"
+
+    constraints:
+      - type: "safety"
+        spec: "Default MUST be HITL -- misconfiguration must never result in autonomous operation"
+      - type: "safety"
+        spec: "CodingDecision write failures must be swallowed with logging -- a failed audit write must not prevent the pipeline from completing"
+      - type: "code_quality"
+        spec: "CodingMode is a str enum for easy comparison and serialisation"
+
+    dependencies: ["DI-LEO-AI-038", "DI-LEO-AI-039"]
+
+    downstream_impacts:
+      - "all pipeline consumers"
+      - "review_service"
+      - "audit_dashboard"
+
+    technical_details:
+      language: "Python"
+      framework: "FastAPI"
+      libraries: ["neo4j"]
+      file_structure:
+        - "services/api/app/config.py"
+        - "services/coding_worker/app/pipeline/pipeline_service.py"
+      estimated_loc: 50
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: "CodingMode enum, env var parsing, tier integration, audit writes, exception safety all verified"
+    test_protocol: "VT-LEO-AI-025"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-001", "R-LEO-AI-026", "R-LEO-AI-030"]
+  tags: ["coding-mode", "pipeline-routing", "hitl", "autonomous-coding", "intended-use-enforcement"]

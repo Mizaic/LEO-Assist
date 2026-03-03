@@ -1,0 +1,65 @@
+---
+description: Dual-path consistency — NER runtime pipeline AND /operations Ask LEO must stay in sync
+alwaysApply: true
+---
+
+# Dual-path architecture: runtime NER + operations Ask LEO
+
+This codebase has TWO parallel code paths that process clinical entities.
+Any change to assertions, semantic tags, safety guards, or LLM prompt rules
+MUST be applied to BOTH paths or the system will behave inconsistently.
+
+## Path 1 — NER runtime pipeline (coding worker)
+
+Processes encounters at ingestion time.
+
+| Layer | File |
+|-------|------|
+| LLM extraction prompt | `libs/prompts/extraction_v1.py` |
+| Assertion validation | `services/coding_worker/app/pipeline/llm_extractor.py` (`_VALID_ASSERTIONS`) |
+| Schema mapping | `libs/ner/schema_mapper.py` (assertion allowlist in `_map_entity`) |
+| Extractor contract | `libs/ner/extractor_contract.py` |
+| Lab-value guard | `libs/ner/lab_value_guard.py` |
+| Scope guard | `libs/ner/scope_guard.py` |
+| ConText engine | `libs/ner/context_engine.py` |
+| Tier classifier | `libs/coding_engine/tier_classifier.py` (`_AUTO_CODE_BLOCKED`) |
+| Pipeline orchestrator | `services/coding_worker/app/pipeline/pipeline_service.py` |
+
+## Path 2 — /operations Ask LEO (review UI)
+
+Processes CodingReview nodes when a reviewer clicks "Ask LEO".
+
+| Layer | File |
+|-------|------|
+| Escalation prompts | `libs/llm_client/escalation.py` (`_CANDIDATES_SYSTEM`, `escalate_coding`) |
+| Ask LEO smart endpoint | `services/api/app/routers/training.py` (`ask_leo_smart`) |
+| Ask LEO rank endpoint | `services/api/app/routers/training.py` (`ask_leo_rank_candidates`, inline prompt) |
+| Disorder verifier | `libs/llm_client/disorder_verifier.py` (`_SYSTEM_PROMPT`) |
+| Assertion notes | `services/api/app/routers/training.py` (`_ASSERTION_NOTES`) |
+| Assertion validation | `services/api/app/routers/training.py` (`_VALID_ASSERTIONS`) |
+| Label verifier | `services/api/app/services/label_verifier.py` (`_AUTO_CODE_BLOCKED`, `_ASSERTION_QUEUE_SET`) |
+
+## Shared graph + UI
+
+| Layer | File |
+|-------|------|
+| Document writes | `libs/cypher/documents_queries.py` (`_NON_PRESENT`, `_assertion_context`) |
+| Coding review queries | `libs/cypher/coding_review_queries.py` (assertion filters) |
+| UI assertion options | `services/ui/src/components/operations/CodingReviewCasesModal.tsx` (`ASSERTION_OPTIONS`) |
+| UI assertion chips | `services/ui/src/lib/types.ts` (`ASSERTION_CHIP`), `services/ui/src/components/AssertionChip.tsx` |
+| Training adapter | `libs/model_registry/training_adapter.py` (`_VALID_ASSERTIONS`) |
+
+## Checklist for ANY assertion / safety-guard / prompt change
+
+1. Update the runtime extraction prompt (`libs/prompts/extraction_v1.py`)
+2. Update the escalation prompts (`libs/llm_client/escalation.py`)
+3. Update the ask-leo-rank inline prompt (`training.py`)
+4. Update ALL `_VALID_ASSERTIONS` sets (at least 3 locations)
+5. Update `_AUTO_CODE_BLOCKED` sets (at least 2 locations)
+6. Update `_ASSERTION_QUEUE_SET` if the assertion needs human review
+7. Update `_assertion_context()` in `documents_queries.py`
+8. Update `_NON_PRESENT` if the assertion should block patient-level shortcuts
+9. Update assertion review queue Cypher filters if needed
+10. Update UI: `ASSERTION_OPTIONS`, `ASSERTION_CHIP`, `AssertionChip.tsx`
+11. Update ConText engine if the assertion can be detected from text patterns
+12. Add tests covering both paths

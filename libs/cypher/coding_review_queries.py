@@ -23,6 +23,12 @@ SET cr.label_id          = $label_id,
     cr.snomed_term       = $snomed_term,
     cr.score             = $score,
     cr.semantic_tag      = $semantic_tag,
+    cr.assertion         = CASE WHEN coalesce(cr.assertion_override, false) = true
+                                THEN cr.assertion
+                                ELSE $assertion END,
+    cr.decision_tier     = $decision_tier,
+    cr.tier_reason       = $tier_reason,
+    cr.tier_decision     = $tier_decision,
     cr.updated_at        = datetime()
 MERGE (cr)-[:REVIEWS_CODING]->(t)
 RETURN cr.review_id AS review_id
@@ -30,12 +36,21 @@ RETURN cr.review_id AS review_id
 
 RESOLVE_CODING_REVIEW = """
 MATCH (cr:CodingReview {review_id: $review_id})
-SET cr.resolved             = true,
-    cr.resolved_concept_id  = $resolved_concept_id,
-    cr.resolved_term        = $resolved_term,
-    cr.resolved_by          = $reviewer,
-    cr.resolved_at          = datetime(),
-    cr.updated_at           = datetime()
+SET cr.resolved               = true,
+    cr.resolved_concept_id    = $resolved_concept_id,
+    cr.resolved_term          = $resolved_term,
+    cr.resolved_by            = $reviewer,
+    cr.resolved_at            = datetime(),
+    cr.updated_at             = datetime(),
+    cr.resolved_assertion     = coalesce($resolved_assertion, 'present'),
+    cr.reviewer_tier_override = CASE
+        WHEN cr.decision_tier = 1
+             AND $resolved_concept_id <> coalesce(cr.snomed_concept_id, '')
+        THEN true
+        WHEN cr.decision_tier = 3
+        THEN true
+        ELSE false
+    END
 RETURN cr.review_id AS review_id
 """
 
@@ -64,6 +79,10 @@ RETURN
     cr.snomed_term        AS snomed_term,
     cr.score              AS score,
     cr.semantic_tag       AS semantic_tag,
+    coalesce(cr.assertion, 'present') AS assertion,
+    cr.decision_tier      AS decision_tier,
+    cr.tier_reason        AS tier_reason,
+    cr.tier_decision      AS tier_decision,
     toString(cr.created_at) AS created_at,
     t.text                AS encounter_text,
     t.source              AS source
@@ -88,8 +107,12 @@ WITH
     sum(CASE WHEN cr.coded = false THEN 1 ELSE 0 END) AS uncoded,
     sum(CASE WHEN cr.resolved = true THEN 1 ELSE 0 END) AS resolved,
     sum(CASE WHEN cr.resolved = false THEN 1 ELSE 0 END) AS pending,
-    sum(CASE WHEN cr.score IS NOT NULL AND cr.score < 0.7 THEN 1 ELSE 0 END) AS low_confidence
-RETURN total, coded, uncoded, resolved, pending, low_confidence
+    sum(CASE WHEN cr.score IS NOT NULL AND cr.score < 0.7 THEN 1 ELSE 0 END) AS low_confidence,
+    sum(CASE WHEN coalesce(cr.assertion, 'present') IN ['possible', 'historical', 'family', 'refuted']
+                  AND cr.resolved = false
+                  AND coalesce(cr.assertion_override, false) = false
+             THEN 1 ELSE 0 END) AS assertion_flagged
+RETURN total, coded, uncoded, resolved, pending, low_confidence, assertion_flagged
 """
 
 DELETE_ALL_CODING_REVIEWS = """
@@ -118,6 +141,15 @@ SET cr.coded             = $coded,
     cr.semantic_tag      = $semantic_tag,
     cr.updated_at        = datetime()
 RETURN cr.review_id AS review_id
+"""
+
+UPDATE_ENTITY_LABEL_FOR_TEXT = """
+MATCH (cr:CodingReview)
+WHERE cr.entity_text = $entity_text
+  AND cr.resolved = false
+SET cr.entity_label = $entity_label,
+    cr.updated_at   = datetime()
+RETURN count(cr) AS updated_count
 """
 
 AUTO_RESOLVE_CODING_REVIEW = """
@@ -231,7 +263,11 @@ WITH cr.entity_text AS entity_text,
      collect(cr.review_id)[0] AS sample_review_id,
      min(cr.coded) AS any_uncoded,
      collect(cr.semantic_tag)[0] AS suggested_semantic_tag,
-     collect(t.text)[0] AS sample_encounter_text
+     collect(t.text)[0] AS sample_encounter_text,
+     collect(DISTINCT coalesce(cr.assertion, 'present'))[0] AS assertion,
+     min(coalesce(cr.decision_tier, 2)) AS decision_tier,
+     collect(cr.tier_reason)[0] AS tier_reason,
+     collect(cr.tier_decision)[0] AS tier_decision
 RETURN entity_text,
        entity_label,
        review_count,
@@ -239,10 +275,33 @@ RETURN entity_text,
        sample_review_id,
        any_uncoded,
        suggested_semantic_tag,
-       sample_encounter_text
-ORDER BY review_count DESC, best_score ASC
+       sample_encounter_text,
+       assertion,
+       decision_tier,
+       tier_reason,
+       tier_decision
+ORDER BY decision_tier ASC, review_count DESC, best_score ASC
 SKIP $skip
 LIMIT $limit
+"""
+
+GET_CODING_REVIEW_FOR_ENTITY = """
+MATCH (cr:CodingReview)-[:REVIEWS_CODING]->(t:TrainingLabel)
+WHERE cr.resolved = false
+  AND t.include = true
+  AND cr.entity_text = $entity_text
+RETURN
+    cr.review_id          AS review_id,
+    cr.label_id           AS label_id,
+    cr.entity_text        AS entity_text,
+    cr.entity_label       AS entity_label,
+    cr.snomed_concept_id  AS snomed_concept_id,
+    cr.snomed_term        AS snomed_term,
+    cr.score              AS score,
+    coalesce(cr.assertion, 'present') AS assertion,
+    t.text                AS encounter_text,
+    t.source              AS source
+ORDER BY cr.coded ASC, cr.score ASC
 """
 
 COUNT_CODING_REVIEW_GROUPS = """
@@ -258,12 +317,155 @@ MATCH (cr:CodingReview)-[:REVIEWS_CODING]->(t:TrainingLabel)
 WHERE cr.resolved = false
   AND t.include = true
   AND cr.entity_text = $entity_text
-SET cr.resolved            = true,
-    cr.resolved_concept_id = $resolved_concept_id,
-    cr.resolved_term       = $resolved_term,
-    cr.resolved_by         = $reviewer,
-    cr.resolved_at         = datetime(),
-    cr.updated_at          = datetime(),
-    cr.resolved_method     = 'batch_resolve'
+SET cr.resolved               = true,
+    cr.resolved_concept_id    = $resolved_concept_id,
+    cr.resolved_term          = $resolved_term,
+    cr.resolved_by            = $reviewer,
+    cr.resolved_at            = datetime(),
+    cr.updated_at             = datetime(),
+    cr.resolved_method        = 'batch_resolve',
+    cr.resolved_assertion     = coalesce($resolved_assertion, 'present'),
+    cr.reviewer_tier_override = CASE
+        WHEN cr.decision_tier = 1
+             AND $resolved_concept_id <> coalesce(cr.snomed_concept_id, '')
+        THEN true
+        WHEN cr.decision_tier = 3
+        THEN true
+        ELSE false
+    END
 RETURN count(cr) AS resolved_count
+"""
+
+UPDATE_ASSERTION_FOR_REVIEW = """
+MATCH (cr:CodingReview {review_id: $review_id})
+SET cr.assertion          = $assertion,
+    cr.assertion_override = true,
+    cr.updated_at         = datetime()
+RETURN cr.review_id AS review_id
+"""
+
+# ---------------------------------------------------------------------------
+# ContextRule -- user-defined ConText rules stored in Neo4j.
+# At startup the coding worker loads these and appends them to the MedSpaCy
+# ConText pipeline, allowing admins to teach new patterns without a deploy.
+# ---------------------------------------------------------------------------
+
+UPSERT_CONTEXT_RULE = """
+MERGE (r:ContextRule {rule_id: $rule_id})
+ON CREATE SET r.created_at = datetime()
+SET r.literal      = $literal,
+    r.category     = $category,
+    r.direction    = $direction,
+    r.max_scope    = $max_scope,
+    r.description  = $description,
+    r.example      = $example,
+    r.created_by   = coalesce(r.created_by, $created_by),
+    r.org_id       = $org_id,
+    r.active       = true,
+    r.updated_at   = datetime()
+RETURN r.rule_id AS rule_id
+"""
+
+GET_CONTEXT_RULES = """
+MATCH (r:ContextRule)
+WHERE ($active_only = false OR coalesce(r.active, true) = true)
+  AND ($org_id IS NULL OR r.org_id = $org_id)
+RETURN
+    r.rule_id      AS rule_id,
+    r.literal      AS literal,
+    r.category     AS category,
+    r.direction    AS direction,
+    r.max_scope    AS max_scope,
+    r.description  AS description,
+    r.example      AS example,
+    r.created_by   AS created_by,
+    r.org_id       AS org_id,
+    coalesce(r.active, true) AS active,
+    toString(r.created_at) AS created_at,
+    toString(r.updated_at) AS updated_at
+ORDER BY r.created_at DESC
+"""
+
+DEACTIVATE_CONTEXT_RULE = """
+MATCH (r:ContextRule {rule_id: $rule_id})
+SET r.active     = false,
+    r.updated_at = datetime()
+RETURN r.rule_id AS rule_id
+"""
+
+# ---------------------------------------------------------------------------
+# Assertion review queue -- items with non-present, non-auto-resolved assertions
+# that require explicit human confirmation before coding.
+# ---------------------------------------------------------------------------
+
+GET_ASSERTION_REVIEW_QUEUE = """
+MATCH (cr:CodingReview)-[:REVIEWS_CODING]->(t:TrainingLabel)
+WHERE cr.resolved = false
+  AND t.include = true
+  AND coalesce(cr.assertion, 'present') IN ['possible', 'historical', 'family', 'refuted']
+  AND coalesce(cr.assertion_override, false) = false
+WITH cr.entity_text  AS entity_text,
+     cr.entity_label AS entity_label,
+     count(cr)       AS review_count,
+     cr.assertion    AS assertion,
+     collect(cr.review_id)[0]  AS sample_review_id,
+     collect(t.text)[0]        AS sample_encounter_text
+RETURN entity_text,
+       entity_label,
+       review_count,
+       assertion,
+       sample_review_id,
+       sample_encounter_text
+ORDER BY assertion, review_count DESC
+SKIP $skip LIMIT $limit
+"""
+
+COUNT_ASSERTION_REVIEW_GROUPS = """
+MATCH (cr:CodingReview)-[:REVIEWS_CODING]->(t:TrainingLabel)
+WHERE cr.resolved = false
+  AND t.include = true
+  AND coalesce(cr.assertion, 'present') IN ['possible', 'historical', 'family', 'refuted']
+  AND coalesce(cr.assertion_override, false) = false
+RETURN count(DISTINCT cr.entity_text) AS group_count
+"""
+
+# ---------------------------------------------------------------------------
+# Calibration -- override rates per decision tier.
+# Used by VAL-LEO-AI-013 to monitor safety layer threshold calibration.
+# ---------------------------------------------------------------------------
+
+GET_ENCOUNTER_SIBLINGS = """
+MATCH (cr:CodingReview)-[:REVIEWS_CODING]->(t:TrainingLabel)
+WHERE t.label_id IN $label_ids
+  AND t.include = true
+RETURN
+    t.label_id                             AS label_id,
+    cr.review_id                           AS review_id,
+    cr.entity_text                         AS entity_text,
+    cr.entity_label                        AS entity_label,
+    cr.snomed_concept_id                   AS snomed_concept_id,
+    cr.snomed_term                         AS snomed_term,
+    cr.score                               AS score,
+    coalesce(cr.assertion, 'present')      AS assertion,
+    cr.resolved                            AS resolved,
+    cr.resolved_concept_id                 AS resolved_concept_id,
+    cr.resolved_term                       AS resolved_term
+ORDER BY t.label_id, cr.entity_text
+"""
+
+GET_TIER_OVERRIDE_STATS = """
+MATCH (cr:CodingReview)-[:REVIEWS_CODING]->(t:TrainingLabel)
+WHERE cr.resolved = true
+  AND t.include = true
+  AND cr.decision_tier IS NOT NULL
+WITH cr.decision_tier AS tier,
+     count(cr) AS total_resolved,
+     sum(CASE WHEN coalesce(cr.reviewer_tier_override, false) = true THEN 1 ELSE 0 END) AS overrides
+RETURN tier,
+       total_resolved,
+       overrides,
+       CASE WHEN total_resolved > 0
+            THEN round(100.0 * overrides / total_resolved, 1)
+            ELSE 0.0 END AS override_pct
+ORDER BY tier ASC
 """

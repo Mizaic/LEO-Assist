@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
@@ -21,6 +22,7 @@ import UploadOutlined from '@mui/icons-material/UploadOutlined';
 import DeleteOutlined from '@mui/icons-material/DeleteOutlined';
 import EditOutlined from '@mui/icons-material/EditOutlined';
 import PlayArrowOutlined from '@mui/icons-material/PlayArrowOutlined';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import { getBenchmarkSets, getBenchmarkRules, deleteBenchmarkSet, deleteBenchmarkRule, runBenchmarkRule } from '@/lib/api';
 import type { BenchmarkSet, BenchmarkRule } from '@/lib/api/benchmarks';
 
@@ -29,6 +31,9 @@ export function BenchmarkSetList() {
   const [sets, setSets] = useState<BenchmarkSet[]>([]);
   const [rules, setRules] = useState<BenchmarkRule[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [confirmDeleteSet, setConfirmDeleteSet] = useState<string | null>(null);
+  const [confirmDeleteRule, setConfirmDeleteRule] = useState<string | null>(null);
 
   useEffect(() => {
     load();
@@ -49,22 +54,22 @@ export function BenchmarkSetList() {
   };
 
   const handleDeleteSet = async (id: string) => {
-    if (!confirm('Delete this benchmark set and all its values?')) return;
+    setConfirmDeleteSet(null);
     try {
       await deleteBenchmarkSet(id);
       load();
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Failed to delete');
+      setError(e instanceof Error ? e.message : 'Failed to delete');
     }
   };
 
   const handleDeleteRule = async (id: string) => {
-    if (!confirm('Delete this benchmark rule?')) return;
+    setConfirmDeleteRule(null);
     try {
       await deleteBenchmarkRule(id);
       load();
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Failed to delete');
+      setError(e instanceof Error ? e.message : 'Failed to delete');
     }
   };
 
@@ -73,14 +78,14 @@ export function BenchmarkSetList() {
       await runBenchmarkRule(id);
       load();
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Failed to run');
+      setError(e instanceof Error ? e.message : 'Failed to run rule');
     }
   };
 
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', p: 6 }}>
-        <CircularProgress />
+        <CircularProgress aria-label="Loading" />
       </Box>
     );
   }
@@ -88,7 +93,7 @@ export function BenchmarkSetList() {
   return (
     <Box sx={{ p: 3, maxWidth: 1000 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h5" sx={{ fontWeight: 600 }}>
+        <Typography variant="h5" component="h1" sx={{ fontWeight: 600 }}>
           Benchmarks
         </Typography>
         <Box sx={{ display: 'flex', gap: 1 }}>
@@ -104,6 +109,12 @@ export function BenchmarkSetList() {
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
         Upload benchmark data (e.g. NCDA, PHE) or create rules to compute benchmarks from your patient graph.
       </Typography>
+
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+          {error}
+        </Alert>
+      )}
 
       <Card sx={{ mb: 3 }}>
         <CardContent>
@@ -132,7 +143,7 @@ export function BenchmarkSetList() {
                       </TableCell>
                       <TableCell>{s.audit_year ?? '-'}</TableCell>
                       <TableCell align="right">
-                        <IconButton size="small" onClick={() => handleDeleteSet(s.id)} color="error" title="Delete">
+                        <IconButton size="small" onClick={() => setConfirmDeleteSet(s.id)} color="error" aria-label="Delete benchmark set">
                           <DeleteOutlined fontSize="small" />
                         </IconButton>
                       </TableCell>
@@ -172,13 +183,13 @@ export function BenchmarkSetList() {
                       </TableCell>
                       <TableCell>{r.last_run_at ? new Date(r.last_run_at).toLocaleDateString() : '-'}</TableCell>
                       <TableCell align="right">
-                        <IconButton size="small" onClick={() => handleRunRule(r.id)} title="Run now">
+                        <IconButton size="small" onClick={() => handleRunRule(r.id)} title="Run now" aria-label="Run now">
                           <PlayArrowOutlined fontSize="small" />
                         </IconButton>
-                        <IconButton size="small" onClick={() => router.push(`/benchmarks/rules/${r.id}`)} title="Edit">
+                        <IconButton size="small" onClick={() => router.push(`/benchmarks/rules/${r.id}`)} title="Edit" aria-label="Edit">
                           <EditOutlined fontSize="small" />
                         </IconButton>
-                        <IconButton size="small" onClick={() => handleDeleteRule(r.id)} color="error" title="Delete">
+                        <IconButton size="small" onClick={() => setConfirmDeleteRule(r.id)} color="error" aria-label="Delete benchmark rule">
                           <DeleteOutlined fontSize="small" />
                         </IconButton>
                       </TableCell>
@@ -190,6 +201,26 @@ export function BenchmarkSetList() {
           )}
         </CardContent>
       </Card>
+      {confirmDeleteSet && (
+        <ConfirmDialog
+          title="Delete benchmark set?"
+          body="This will permanently delete the benchmark set and all its values."
+          confirmLabel="Delete"
+          variant="danger"
+          onConfirm={() => handleDeleteSet(confirmDeleteSet)}
+          onCancel={() => setConfirmDeleteSet(null)}
+        />
+      )}
+      {confirmDeleteRule && (
+        <ConfirmDialog
+          title="Delete benchmark rule?"
+          body="This will permanently delete the benchmark rule."
+          confirmLabel="Delete"
+          variant="danger"
+          onConfirm={() => handleDeleteRule(confirmDeleteRule)}
+          onCancel={() => setConfirmDeleteRule(null)}
+        />
+      )}
     </Box>
   );
 }

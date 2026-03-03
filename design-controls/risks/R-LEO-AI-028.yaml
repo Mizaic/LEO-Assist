@@ -1,0 +1,139 @@
+# -- R-LEO-AI-028 -- UI Use Errors: Unconfirmed Destructive Actions and Silent Failures
+# ISO 14971 / IEC 62304 / IEC 62366-1 Risk
+# Schema: design-controls/templates/risks_schema.yaml
+
+- id: "R-LEO-AI-028"
+  title: "UI use errors from unconfirmed destructive actions, silent error swallowing, and accessibility barriers"
+
+  hazard:
+    description: >
+      The clinical coding review UI presents multiple interaction patterns where
+      a reasonable user could take an unintended destructive action, miss a system
+      failure, or be unable to access critical functionality due to accessibility
+      barriers.
+    category: "use_error"
+
+  hazardous_situation: >
+    (1) A reviewer accidentally clicks 'Remove' on a clinical code, 'Create
+    ignore rule', 'Dismiss', or 'Reset all' without a confirmation step,
+    immediately executing an irreversible or difficult-to-reverse action.
+    (2) Dashboard and operations workspace silently swallow API failures,
+    showing empty data indistinguishable from 'no data available', causing
+    reviewers to believe the system is healthy when it is not.
+    (3) A keyboard user triggers 'reject' by pressing R while focused anywhere
+    on the page, without a confirmation dialog.
+    (4) Screen reader users cannot navigate the application due to missing
+    landmarks, headings, labels, and ARIA attributes.
+
+  harm:
+    description: >
+      (1) Accidental deletion of correct clinical codes or creation of overly
+      broad suppress rules could cause under-coding that distorts audit data.
+      (2) Silent API failures could cause reviewers to skip the review queue,
+      believing it is empty when the system has actually failed to load.
+      (3) Accidental rejection of correct coding proposals causes rework and
+      delayed patient data availability.
+      (4) Accessibility barriers prevent staff who use assistive technology
+      from performing their clinical coding duties.
+    severity: "serious"
+
+  initial_risk_estimate:
+    severity: 3
+    probability: 3
+    detectability: 3
+    rpn: 27
+    risk_level: "high"
+
+  mitigation_measures:
+    - control_type: "protective_measure"
+      description: >
+        ConfirmDialog gates: All 5 unguarded destructive actions (remove clinical
+        code, create ignore rule, create suppress rule, reset all verifications,
+        dismiss review item) now require user confirmation via ConfirmDialog with
+        variant='danger' before executing.
+      implemented_by: ["DI-LEO-AI-043"]
+      verified_by: ["VT-LEO-AI-036"]
+      effectiveness: "highly_effective"
+    - control_type: "protective_measure"
+      description: >
+        Keyboard reject confirmation: The R/r keyboard shortcut for reject now
+        opens a ConfirmDialog instead of immediately executing. The keydown guard
+        now covers input, textarea, select, contentEditable, and [role='combobox'].
+      implemented_by: ["DI-LEO-AI-043"]
+      verified_by: ["VT-LEO-AI-036"]
+      effectiveness: "highly_effective"
+    - control_type: "protective_measure"
+      description: >
+        Error surfacing: Dashboard uses Promise.allSettled with per-section error
+        states. Operations workspace shows 'Stats unavailable' after 3 failures.
+        Cohorts page checks res.ok. No .catch(() => []) patterns remain.
+      implemented_by: ["DI-LEO-AI-043"]
+      verified_by: ["VT-LEO-AI-036"]
+      effectiveness: "highly_effective"
+    - control_type: "protective_measure"
+      description: >
+        Accessibility remediation: Semantic headings (h1), nav landmarks,
+        aria-current, skip navigation, WCAG AA contrast, aria-labels on all
+        interactive elements, and screen reader compatibility across 20+
+        components.
+      implemented_by: ["DI-LEO-AI-043"]
+      verified_by: ["VT-LEO-AI-036"]
+      effectiveness: "highly_effective"
+    - control_type: "protective_measure"
+      description: >
+        Next.js error boundaries: global-error.tsx, error.tsx, not-found.tsx,
+        and loading.tsx provide recovery UI for unhandled errors and missing
+        routes.
+      implemented_by: ["DI-LEO-AI-043"]
+      verified_by: ["VT-LEO-AI-036"]
+      effectiveness: "effective"
+    - control_type: "preventive_control"
+      description: >
+        .cursor/rules/ui-safety.mdc rule enforces all safety, accessibility,
+        and usability standards on every future edit to services/ui/src/**/*.tsx,
+        preventing regression.
+      implemented_by: [".cursor/rules/ui-safety.mdc"]
+      verified_by: []
+      effectiveness: "effective"
+
+  residual_risk_estimate:
+    severity: 3
+    probability: 1
+    detectability: 1
+    rpn: 3
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      All destructive actions are now gated by confirmation dialogs. All API
+      errors are surfaced to the user. Keyboard shortcuts for destructive actions
+      require confirmation. WCAG 2.2 Level AA compliance achieved. Error
+      boundaries provide recovery paths. The .cursor rule prevents regression
+      in future development. Residual risk arises only from direct API access
+      (which is not user-facing) or components not yet written (which the
+      cursor rule will catch).
+
+  monitoring:
+    monitoring_plan: >
+      Monitor for new components introduced without ConfirmDialog on destructive
+      actions, new fetch calls without error handling, and new inputs without
+      aria-labels. Enforce via CI linting and cursor rule.
+    metrics:
+      - "Number of destructive actions without ConfirmDialog (target: 0)"
+      - "Number of .catch(() => []) or .catch(() => {}) patterns (target: 0)"
+      - "WCAG Level AA conformance rate on automated accessibility scan"
+      - "User-reported usability issues per sprint"
+    review_frequency: "Monthly"
+
+  metadata:
+    identified_by: "Usability Engineering Audit (DC-UE-001)"
+    identified_date: "2026-03-03"
+    status: "analyzed"
+
+  tags:
+    - "use-error"
+    - "destructive-action"
+    - "accessibility"
+    - "wcag"
+    - "iec-62366"
+    - "patient-safety"
+    - "ui-safety"

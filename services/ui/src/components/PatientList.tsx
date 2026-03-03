@@ -47,7 +47,7 @@ export default function PatientList() {
 
   return (
     <Box sx={{ maxWidth: 960, mx: "auto", p: 3 }}>
-      <Typography variant="h4" sx={{ mb: 3 }}>
+      <Typography variant="h4" component="h1" sx={{ mb: 3 }}>
         Patients
       </Typography>
 

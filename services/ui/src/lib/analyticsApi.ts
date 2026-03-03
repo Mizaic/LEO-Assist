@@ -2,6 +2,7 @@
  * API client for Analytics API and FHIR API.
  * Uses backend proxy (session cookie auth). Token stays server-side.
  */
+import type { TimelineEvent } from "@/lib/types";
 
 function resolveApiBase(): string {
   if (typeof window !== "undefined") return window.location.origin;
@@ -500,6 +501,14 @@ export async function removeConceptFromSubdomain(
   return fetchJson<SubdomainDetail>(
     `${ANALYTICS_BASE}/analytics/domains/${encodeURIComponent(domainId)}/subdomains/${encodeURIComponent(subdomainName)}/concepts/${conceptId}`,
     { method: "DELETE" },
+  );
+}
+
+// -- Patient coding timeline --
+
+export async function fetchPatientCodingTimeline(patientId: string): Promise<TimelineEvent[]> {
+  return fetchJson<TimelineEvent[]>(
+    `${PROXY_BASE}/patients/${encodeURIComponent(patientId)}/timeline`,
   );
 }
 

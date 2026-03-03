@@ -1,0 +1,83 @@
+# -- R-LEO-AI-029 -- False Diagnosis Inferred from Lab Values
+# ISO 14971 / IEC 62304 Risk
+# Schema: design-controls/templates/risks_schema.yaml
+
+- id: "R-LEO-AI-029"
+  title: "LLM infers a diagnosis from a lab value instead of coding the observation"
+
+  hazard:
+    description: "The LLM extraction step interprets a lab result (e.g. eGFR 69 mL/min) as evidence of a disorder (e.g. CKD stage 1) rather than coding only the observable entity and its numeric value"
+    category: "software_defect"
+
+  hazardous_situation: "A lab result line such as 'eGFR using creatinine (CKD-EPI) per 1.73 square metres (XacUK) 69 mL/min' is processed by the extraction pipeline. The LLM returns a disorder entity (e.g. chronic kidney disease stage 1) inferred from the numeric value, and the terminology resolver matches it to a SNOMED disorder concept. The inferred diagnosis is then presented to the clinician as a coding suggestion or, in autonomous mode, persisted directly to the patient graph"
+
+  harm:
+    description: "A false diagnosis is attributed to the patient. In HITL mode this wastes reviewer time and erodes trust. In autonomous mode the false diagnosis enters the clinical record and could influence care decisions, audit outcomes, and quality measures"
+    severity: "serious"
+
+  initial_risk_estimate:
+    severity: 4
+    probability: 4
+    detectability: 3
+    rpn: 48
+    risk_level: "high"
+
+  mitigation_measures:
+    - control_type: "inherent_safety"
+      description: "Extraction prompt explicitly forbids diagnostic inference from lab values: eGFR, HbA1c, sodium, creatinine etc. must be tagged 'observable entity' only. 'CKD-EPI' is identified as a formula name, not a diagnosis"
+      implemented_by: ["DI-LEO-AI-044"]
+      verified_by: ["VT-LEO-AI-037"]
+      effectiveness: "effective"
+    - control_type: "protective_measure"
+      description: "Lab-value guard: deterministic post-extraction filter suppresses any disorder entity whose evidence text is a lab result line and whose normalised term matches a known lab-to-diagnosis inference pattern"
+      implemented_by: ["DI-LEO-AI-044"]
+      verified_by: ["VT-LEO-AI-037"]
+      effectiveness: "highly_effective"
+    - control_type: "protective_measure"
+      description: "Terminology resolver tag-group penalty: when the expected tag is 'observable entity', disorder candidates receive a 0.5x score penalty, reducing the chance of a disorder outranking the correct observable concept"
+      implemented_by: ["DI-LEO-AI-035"]
+      verified_by: []
+      effectiveness: "effective"
+
+    - control_type: "protective_measure"
+      description: "Scope guard: deterministic post-extraction filter that reclassifies entities from safety-netting, treatment recommendation, and hedged diagnostic contexts. Prevents speculative diagnoses from being coded as present, complementing the lab-value guard"
+      implemented_by: ["DI-LEO-AI-048"]
+      verified_by: ["VT-LEO-AI-040"]
+      effectiveness: "effective"
+    - control_type: "protective_measure"
+      description: "Escalation/Ask LEO prompts contain explicit rule 9 forbidding diagnostic inference from lab values and rule 10 stating the system is a coding tool. The ask-leo-smart endpoint includes a deterministic pre-check that short-circuits lab-value disorder cases before the LLM is called"
+      implemented_by: ["DI-LEO-AI-044"]
+      verified_by: ["VT-LEO-AI-037"]
+      effectiveness: "highly_effective"
+
+  residual_risk_estimate:
+    severity: 4
+    probability: 1
+    detectability: 1
+    rpn: 4
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: "Four layered controls reduce probability to improbable: the prompt rule prevents the LLM from generating inferred diagnoses, the deterministic lab-value guard catches any that slip through, the scope guard reclassifies hedged/speculative diagnoses to non-present assertions, and the resolver tag-group penalty further down-ranks disorder candidates when an observable entity is expected. All four would need to fail simultaneously for a false diagnosis to reach the user"
+
+  monitoring:
+    monitoring_plan: "Track lab-value guard suppression counts and review any disorder entities coded from sentences containing lab measurements"
+    metrics:
+      - "Lab-value guard suppression rate per pipeline run"
+      - "Disorder entities linked to lab-result sentences (should be zero)"
+      - "CKD/eGFR false-positive rate in coding review"
+    review_frequency: "Weekly during initial deployment, then monthly"
+
+  metadata:
+    identified_by: "Clinical Safety Review"
+    identified_date: "2026-03-03"
+    status: "analyzed"
+
+  related_risks: ["R-LEO-AI-030", "R-LEO-AI-033"]
+  related_risk_rationale: >
+    This risk is a concrete instance of R-LEO-AI-030 (operation beyond intended
+    purpose).  Inferring a diagnosis from a lab value transforms the system from
+    a retrospective coding tool into a diagnostic reasoning tool, which exceeds
+    the intended use (DC-IU-001 Section 7) and may push the product into a
+    higher-risk SaMD classification.
+
+  tags: ["clinical-risk", "false-diagnosis", "lab-value-inference", "safety-critical", "egfr", "intended-use-enforcement"]

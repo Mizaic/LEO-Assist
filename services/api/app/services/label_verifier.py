@@ -39,10 +39,13 @@ from libs.cypher.training_label_queries import (
     GET_ALL_INCLUDED_LABELS_FOR_EXPORT,
     UPDATE_TRAINING_LABEL_ENTITIES,
 )
+from libs.coding_engine.tier_classifier import classify_tier
+from libs.llm_client.disorder_verifier import DisorderVerdict, verify_disorder
 from libs.llm_client.escalation import escalate_label
 from libs.llm_client.factory import LLMResponse, create_llm
 from libs.neo4j_client.client import PatientGraphClient
-from libs.ner.context_detector import apply_context_detection
+from libs.ner.context_engine import apply_context_detection_to_dicts as apply_context_detection
+from libs.ner.lab_value_guard import should_suppress_disorder
 from libs.ner.observable_post_processor import normalize_observable_entities
 from libs.ner.post_processor_rules import apply_rules_to_entities, parse_rules, PostProcessorRule
 from libs.ner.schema_mapper import LABEL_TO_SNOMED_TAG
@@ -61,6 +64,7 @@ _AUTO_TRIAGE_TERM_THRESHOLD = float(os.getenv("AUTO_TRIAGE_TERM_THRESHOLD", "0.8
 _AUTO_TRIAGE_LLM_THRESHOLD = float(os.getenv("AUTO_TRIAGE_LLM_THRESHOLD", "0.80"))
 _LLM_RETRIES = int(os.getenv("LABEL_VERIFY_LLM_RETRIES", "4"))
 _LLM_BACKOFF_BASE_S = float(os.getenv("LABEL_VERIFY_LLM_BACKOFF_BASE_S", "0.6"))
+_CODING_MODE = os.getenv("CODING_MODE", "hitl").strip().lower()
 
 
 def _env_int(name: str, default: int, *, minimum: int = 1) -> int:
@@ -490,9 +494,22 @@ _EPISODE_MARKER_TEXTS = frozenset({
 })
 
 _LIFESTYLE_FACTOR_TEXTS = frozenset({
-    "diet", "alcohol", "exercise", "weight", "smoking", "drives",
+    "diet", "alcohol", "exercise", "weight", "bmi", "smoking", "drives",
     "sleep", "caffeine",
 })
+
+_LIFESTYLE_SEP_RE = re.compile(r"[\s/&,]+")
+
+
+def _is_lifestyle_topic_list(text: str) -> bool:
+    """Return True if every token in text is a lifestyle factor keyword.
+
+    Handles spans like "Weight & Diet", "Diet / BMI / Weight / Smoking",
+    and conjunctions joined by '/', '&', ',', or 'and'.
+    """
+    tokens = [t for t in _LIFESTYLE_SEP_RE.split(text.lower()) if t and t != "and"]
+    return bool(tokens) and all(t in _LIFESTYLE_FACTOR_TEXTS for t in tokens)
+
 
 _UNCERTAINTY_MARKER_RE = re.compile(r"^\?{1,4}$")
 
@@ -623,8 +640,11 @@ def _normalise_entity_types(updated_entities: list[dict[str, Any]]) -> None:
         if label == "X_PATHWAY_MILESTONE" and ent.get("label") == "X_PATHWAY_MILESTONE":
             ent["label"] = "procedure"
 
-        # 6) Lifestyle factors as attribute → finding.
-        if label == "attribute" and lowered in _LIFESTYLE_FACTOR_TEXTS:
+        # 6) Lifestyle factor topic headings as attribute or bare observable_entity
+        # → finding. Catches single tokens ("Weight"), conjunctions ("Weight &
+        # Diet"), and slash-lists ("Diet / BMI / Weight / Smoking"). These have
+        # no associated value so they are topics, not measurements.
+        if label in {"attribute", "observable_entity"} and _is_lifestyle_topic_list(text):
             ent["label"] = "finding"
 
         # 7) Smoking consumption frequency as X_DOSAGE → qualifier_value.
@@ -808,7 +828,7 @@ def _deterministic_resolve(
         if _is_smoking_status_text(text):
             return {"resolved_label": "finding", "confidence": 0.99,
                     "method": "deterministic_rule", "reason": "smoking status"}
-        if lowered in _LIFESTYLE_FACTOR_TEXTS:
+        if _is_lifestyle_topic_list(text):
             return {"resolved_label": "finding", "confidence": 0.99,
                     "method": "deterministic_rule", "reason": "lifestyle factor"}
 
@@ -1036,6 +1056,11 @@ def _build_review_item(
     coded: bool,
     top: dict,
     score: float | None,
+    assertion: str = "present",
+    *,
+    decision_tier: int | None = None,
+    tier_reason: str | None = None,
+    tier_decision: str | None = None,
 ) -> dict[str, Any]:
     """Assemble a coding review dict for the queue."""
     concept_id = str(top.get("snomed_concept_id") or "")
@@ -1050,6 +1075,10 @@ def _build_review_item(
         "snomed_term": str(top.get("snomed_term") or "") if coded else None,
         "score": score if coded else None,
         "semantic_tag": str(top.get("semantic_tag") or "") if coded else None,
+        "assertion": assertion,
+        "decision_tier": decision_tier,
+        "tier_reason": tier_reason,
+        "tier_decision": tier_decision,
     }
 
 
@@ -1065,10 +1094,11 @@ def _check_terminology_coding(
     Near-miss entities (score >= _CODING_ALT_LOW) are tried against LLM
     alternatives before being added to the queue.
     """
+    _AUTO_CODE_BLOCKED = {"absent", "refuted", "declined", "cancelled", "hypothetical", "possible", "historical", "family"}
     codeable = [
         (i, e) for i, e in enumerate(entities)
         if str(e.get("label", "")) in _CODEABLE_LABELS
-        and str(e.get("assertion", "present")).strip().lower() != "absent"
+        and str(e.get("assertion", "present")).strip().lower() not in _AUTO_CODE_BLOCKED
         and str(e.get("text", "")).strip()
     ]
     if not codeable:
@@ -1107,9 +1137,88 @@ def _check_terminology_coding(
             if alt:
                 continue
 
-        reviews.append(_build_review_item(label_id, idx, entity_text, entity_label, coded, top, score))
+        assertion = str(ent.get("assertion") or "present")
+        surface_form_status = str(ent.get("surface_form_status") or "")
+        tier = classify_tier(
+            assertion=assertion,
+            context_failed=bool(ent.get("context_failed")),
+            terminology_score=score or 0.0,
+            surface_form_status=surface_form_status,
+            coding_mode=_CODING_MODE,
+        )
+        reviews.append(
+            _build_review_item(
+                label_id, idx, entity_text, entity_label, coded, top, score, assertion,
+                decision_tier=tier.tier,
+                tier_reason=tier.reason,
+                tier_decision=tier.decision,
+            )
+        )
 
     return reviews
+
+
+_ASSERTION_QUEUE_SET = {"possible", "historical", "family", "declined", "cancelled", "refuted"}
+
+
+def _apply_disorder_gate(
+    text: str,
+    entities: list[dict[str, Any]],
+    coding_mode: str = "hitl",
+) -> None:
+    """Run LLM disorder gate on present-assertion disorder entities.
+
+    Mutates entities in place: suppresses informational mentions and
+    re-tags historical/uncertain verdicts so they enter the assertion queue.
+    """
+    for ent in entities:
+        if str(ent.get("label", "")) != "disorder":
+            continue
+        assertion = str(ent.get("assertion") or "present").strip().lower()
+        if assertion != "present":
+            continue
+        verdict = verify_disorder(
+            str(ent.get("text", "")), text, coding_mode=coding_mode,
+        )
+        if verdict == DisorderVerdict.INFORMATIONAL:
+            ent["__suppress__"] = True
+        elif verdict == DisorderVerdict.HISTORICAL:
+            ent["assertion"] = "historical"
+        elif verdict == DisorderVerdict.UNCERTAIN:
+            ent["assertion"] = "possible"
+
+
+def _build_assertion_review_items(
+    label_id: str,
+    entities: list[dict[str, Any]],
+    ignore_texts: frozenset[str],
+) -> list[dict[str, Any]]:
+    """Build CodingReview queue entries for assertion-gated entities.
+
+    Entities with possible/historical/family assertions are not auto-coded
+    but still need a review card so a clinician can confirm or recode them.
+    """
+    items: list[dict[str, Any]] = []
+    for idx, ent in enumerate(entities):
+        if str(ent.get("label", "")) not in _CODEABLE_LABELS:
+            continue
+        assertion = str(ent.get("assertion") or "present").strip().lower()
+        if assertion not in _ASSERTION_QUEUE_SET:
+            continue
+        entity_text = str(ent.get("text", "")).strip()
+        if not entity_text:
+            continue
+        normalized = re.sub(r"\s+", " ", entity_text.lower())
+        if normalized in ignore_texts:
+            continue
+        items.append(
+            _build_review_item(
+                label_id, idx, entity_text,
+                str(ent.get("label", "")),
+                False, {}, None, assertion,
+            )
+        )
+    return items
 
 
 # ---------------------------------------------------------------------------
@@ -1319,7 +1428,26 @@ def _process_label(
         _link_observable_value_units(updated_entities)
         apply_context_detection(text, updated_entities)
 
-        result.coding_reviews = _check_terminology_coding(label_id, updated_entities, ignore_texts)
+        # Layer 2: disorder gate -- re-classify or suppress informational mentions
+        _apply_disorder_gate(text, updated_entities, coding_mode=_CODING_MODE)
+        updated_entities[:] = [e for e in updated_entities if not e.get("__suppress__")]
+
+        # Layer 3: lab-value guard -- suppress disorders inferred from lab results
+        for ent in updated_entities:
+            if should_suppress_disorder(
+                entity_text=str(ent.get("text", "")),
+                entity_semantic_tag=str(ent.get("label", "")),
+                entity_normalized=str(ent.get("text", "")),
+                sentence_text=text,
+                entity_numeric_value=str(ent.get("value", "") or ""),
+                entity_unit=str(ent.get("unit", "") or ""),
+            ):
+                ent["__suppress__"] = True
+        updated_entities[:] = [e for e in updated_entities if not e.get("__suppress__")]
+
+        coding_reviews = _check_terminology_coding(label_id, updated_entities, ignore_texts)
+        assertion_reviews = _build_assertion_review_items(label_id, updated_entities, ignore_texts)
+        result.coding_reviews = coding_reviews + assertion_reviews
 
         total_entities = max(len(entities), 1)
         result.updated_entities = updated_entities
@@ -1462,6 +1590,10 @@ def run_verification() -> None:
                             snomed_term=cr.get("snomed_term"),
                             score=cr.get("score"),
                             semantic_tag=cr.get("semantic_tag"),
+                            assertion=cr.get("assertion", "present"),
+                            decision_tier=cr.get("decision_tier"),
+                            tier_reason=cr.get("tier_reason"),
+                            tier_decision=cr.get("tier_decision"),
                         )
 
                     session.run(

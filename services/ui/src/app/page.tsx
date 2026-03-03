@@ -56,7 +56,7 @@ export default function Home() {
   if (status === "loading") {
     return (
       <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh" }}>
-        <CircularProgress />
+        <CircularProgress aria-label="Loading" />
       </Box>
     );
   }

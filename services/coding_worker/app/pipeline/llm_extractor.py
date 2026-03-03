@@ -17,16 +17,21 @@ from libs.prompts.registry import get_prompt
 logger = logging.getLogger(__name__)
 
 _VALID_ASSERTIONS = frozenset(
-    {"present", "absent", "possible", "historical", "hypothetical", "family"}
+    {
+        "present", "absent", "refuted", "possible", "historical",
+        "hypothetical", "family", "declined", "cancelled",
+    }
 )
 
 _ASSERTION_TO_CONTEXT: dict[str, dict[str, object]] = {
-    "present": {"negated": False, "uncertain": False, "historical": False, "subject": "patient", "temporality": "present"},
-    "absent": {"negated": True, "uncertain": False, "historical": False, "subject": "patient", "temporality": "present"},
-    "possible": {"negated": False, "uncertain": True, "historical": False, "subject": "patient", "temporality": "hypothetical"},
-    "historical": {"negated": False, "uncertain": False, "historical": True, "subject": "patient", "temporality": "past"},
-    "hypothetical": {"negated": False, "uncertain": False, "historical": False, "subject": "patient", "temporality": "hypothetical"},
-    "family": {"negated": False, "uncertain": False, "historical": False, "subject": "family", "temporality": "unknown"},
+    "present":     {"negated": False, "uncertain": False, "historical": False, "subject": "patient",  "temporality": "present",     "declined": False, "cancelled": False},
+    "absent":      {"negated": True,  "uncertain": False, "historical": False, "subject": "patient",  "temporality": "present",     "declined": False, "cancelled": False},
+    "possible":    {"negated": False, "uncertain": True,  "historical": False, "subject": "patient",  "temporality": "hypothetical", "declined": False, "cancelled": False},
+    "historical":  {"negated": False, "uncertain": False, "historical": True,  "subject": "patient",  "temporality": "past",         "declined": False, "cancelled": False},
+    "hypothetical":{"negated": False, "uncertain": False, "historical": False, "subject": "patient",  "temporality": "hypothetical", "declined": False, "cancelled": False},
+    "family":      {"negated": False, "uncertain": False, "historical": False, "subject": "family",   "temporality": "unknown",      "declined": False, "cancelled": False},
+    "declined":    {"negated": False, "uncertain": False, "historical": False, "subject": "patient",  "temporality": "present",     "declined": True,  "cancelled": False},
+    "cancelled":   {"negated": False, "uncertain": False, "historical": False, "subject": "patient",  "temporality": "present",     "declined": False, "cancelled": True},
 }
 
 

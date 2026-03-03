@@ -119,6 +119,8 @@ export default function TabFlowDiagram({
           viewBox={`0 0 ${VB_W} ${VB_H}`}
           width="100%"
           style={{ display: "block" }}
+          role="img"
+          aria-label={`${trackLabel} pipeline flow diagram`}
         >
           <defs>
             <filter
@@ -405,7 +407,7 @@ function DetailCard({
               />
             </Box>
           </Stack>
-          <IconButton size="small" onClick={onClose}>
+          <IconButton aria-label="Close" size="small" onClick={onClose}>
             <CloseIcon fontSize="small" />
           </IconButton>
         </Stack>

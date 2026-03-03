@@ -17,7 +17,7 @@ function EditorContent({ params }: PageProps) {
 
 export default function MeasureEditorPage(props: PageProps) {
   return (
-    <Suspense fallback={<Box sx={{ display: "flex", justifyContent: "center", p: 6 }}><CircularProgress /></Box>}>
+    <Suspense fallback={<Box sx={{ display: "flex", justifyContent: "center", p: 6 }}><CircularProgress aria-label="Loading" /></Box>}>
       <EditorContent {...props} />
     </Suspense>
   );

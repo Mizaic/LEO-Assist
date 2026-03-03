@@ -13,6 +13,7 @@ import Typography from "@mui/material/Typography";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import CloseIcon from "@mui/icons-material/Close";
+import { useSnackbar } from "@/context/SnackbarContext";
 import { CTX_FLAGS } from "@/lib/types";
 import type { EncounterTerm, TermContext, Correction } from "@/lib/types";
 
@@ -52,6 +53,7 @@ export default function EntityCard({
   onCorrection,
   onSelectGroupTerm,
 }: Props) {
+  const { showSnackbar } = useSnackbar();
   const [flags, setFlags] = useState(deriveFlags(term.context));
   const groupIndex = group.length > 1 ? group.findIndex((t) => t.term_id === term.term_id) : -1;
   const hasGroup = group.length > 1;
@@ -112,7 +114,7 @@ export default function EntityCard({
             {term.extraction_method}
           </Typography>
         </Box>
-        <IconButton size="small" onClick={onClose} sx={{ color: "text.disabled" }}>
+        <IconButton aria-label="Close" size="small" onClick={onClose} sx={{ color: "text.disabled" }}>
           <CloseIcon fontSize="small" />
         </IconButton>
       </Box>
@@ -123,6 +125,7 @@ export default function EntityCard({
           sx={{ alignItems: "center", mb: 1, gap: 0.5 }}
         >
           <IconButton
+            aria-label="Previous concept"
             size="small"
             disabled={groupIndex <= 0}
             onClick={() => onSelectGroupTerm?.(group[groupIndex - 1].term_id)}
@@ -133,6 +136,7 @@ export default function EntityCard({
             Concept {groupIndex + 1} of {group.length}
           </Typography>
           <IconButton
+            aria-label="Next concept"
             size="small"
             disabled={groupIndex >= group.length - 1}
             onClick={() => onSelectGroupTerm?.(group[groupIndex + 1].term_id)}
@@ -234,6 +238,7 @@ export default function EntityCard({
               detail: "Entity removed",
               time: new Date().toISOString(),
             });
+            showSnackbar("Entity removed", { severity: "success" });
           }}
           sx={{ flex: 1, fontWeight: 600, textTransform: "none" }}
         >

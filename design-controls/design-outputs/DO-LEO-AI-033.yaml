@@ -1,0 +1,148 @@
+# -- DO-LEO-AI-033 -- Suggest-Aliases LLM Endpoint and Model Inference Reload Safeguard
+# ISO 13485 / IEC 62304 Design Output
+# Schema: design-controls/templates/design_outputs_schema.yaml
+
+- id: "DO-LEO-AI-033"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "released"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-050"]
+    user_needs: []
+    risks_addressed: ["R-LEO-AI-034"]
+    verification_tests: ["VT-LEO-AI-042"]
+
+  specification:
+    title: "Suggest-Aliases LLM Endpoint (Concepts Router) and Model Inference Reload Safeguard"
+    description: |
+      Two changes delivered together as software improvements:
+
+      ── 1. Suggest-Aliases Endpoint ──────────────────────────────────────
+
+      New endpoint added to services/terminology_api/app/routers/concepts.py:
+
+        POST /terminology/concepts/{concept_id}/suggest-aliases
+
+      Behaviour:
+        1. Queries Knowledge Graph for concept FSN, semantic_tag, and
+           collect(sf.form) (existing aliases) using GET_CONCEPT_FOR_SUGGESTION.
+        2. Calls create_llm(tier="small") → Claude Haiku via AWS Bedrock.
+        3. System prompt constrains output to UK primary care clinical
+           shorthand, abbreviations, and spelling variants.
+        4. User prompt includes concept FSN, SNOMED ID, semantic tag, and
+           existing aliases (no patient data, no encounter text).
+        5. Parses JSON array from LLM response using re.search(r"\\[.*\\]").
+        6. Filters out suggestions already in existing_aliases (case-insensitive).
+        7. Returns up to 10 suggestions: {suggestions: [...], concept_id: ...}
+        8. On any exception: logs WARNING, returns {suggestions: [], ...}
+           (graceful degradation — does not raise HTTP 500).
+
+      404 is returned if the concept is not found or inactive.
+
+      Privacy guarantee: only concept metadata is transmitted to the LLM.
+      The Cypher query (GET_CONCEPT_FOR_SUGGESTION) selects c.fsn,
+      c.semantic_tag, and collect(sf.form) only.
+
+      ── 2. Model Inference Reload Safeguard ──────────────────────────────
+
+      Problem: On service startup, the lifespan handler calls
+      _loader.load_version(version) in a background thread.  If the model
+      registry's _signal_reload fires a POST /reload before startup
+      completes, two concurrent 382 MB blob downloads begin.  The second
+      download races the first's tar.extractall, causing intermittent
+      BlobNotFound or extraction errors.
+
+      Fix applied in two files:
+
+      services/model_inference/app/model_loader.py:
+        - Added _load_lock = threading.Lock() alongside the existing _lock.
+        - load_version() acquires _load_lock before downloading, serialising
+          all concurrent calls.
+        - Inside _load_lock, re-checks _active_version under _lock: if the
+          version was loaded by another thread while waiting, returns
+          immediately without downloading.
+
+      services/model_inference/app/main.py:
+        - /reload fast-path: if _loader.active_version == req.version, return
+          {active_version, elapsed_ms: 0} immediately without spawning a
+          thread, before any lock acquisition.
+
+      This fix is documented as a software problem resolution per IEC 62304
+      Clause 9 (see DC-PR-001 entry PR-2026-003).
+
+    acceptance_criteria:
+      - criterion: "Suggest-aliases returns non-empty list for a concept with an active model"
+        type: "functional"
+        measurement: "Test"
+        target: "VT-LEO-AI-042 TC-001"
+      - criterion: "Suggestions do not include existing aliases (case-insensitive dedup)"
+        type: "functional"
+        measurement: "Test"
+        target: "VT-LEO-AI-042 TC-002"
+      - criterion: "404 returned for unknown concept_id"
+        type: "functional"
+        measurement: "Test"
+        target: "VT-LEO-AI-042 TC-003"
+      - criterion: "LLM exception returns {suggestions: [], concept_id} with HTTP 200"
+        type: "functional"
+        measurement: "Test"
+        target: "VT-LEO-AI-042 TC-004"
+      - criterion: "GET_CONCEPT_FOR_SUGGESTION Cypher selects only FSN, semantic_tag, aliases — no patient data fields"
+        type: "privacy"
+        measurement: "Code review"
+        target: "Cypher reviewed and confirmed"
+      - criterion: "Concurrent load_version calls for same version result in exactly one blob download"
+        type: "reliability"
+        measurement: "Test"
+        target: "Unit test with threading.Thread x2"
+      - criterion: "/reload with already-active version returns elapsed_ms=0 without download"
+        type: "reliability"
+        measurement: "Test"
+        target: "Unit test"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/terminology_api/app/routers/concepts.py"
+        description: "Added suggest_aliases_for_concept endpoint; added GET_CONCEPT_FOR_SUGGESTION import; added json, logging, re imports"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/terminology_api/app/queries/terminology.py"
+        description: "GET_CONCEPT_FOR_SUGGESTION Cypher query (concept FSN, semantic_tag, existing aliases)"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/model_inference/app/model_loader.py"
+        description: "_load_lock threading.Lock added; load_version serialised with idempotency check inside lock"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/model_inference/app/main.py"
+        description: "/reload idempotency fast-path: returns immediately if active_version == req.version"
+        storage_location: "git"
+    technical_details:
+      language: "Python"
+      framework: "FastAPI / threading"
+      key_functions:
+        - "suggest_aliases_for_concept"
+        - "ModelLoader.load_version (with _load_lock)"
+        - "reload_model (fast-path)"
+      key_constants: []
+      key_imports:
+        - "libs.llm_client.factory.create_llm"
+        - "threading.Lock"
+        - "json, re, logging"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Graceful LLM degradation: exception returns empty list, never 500, so surface forms page remains usable"
+      - "_load_lock: prevents concurrent blob downloads that caused BlobNotFound race condition"
+      - "/reload fast-path: prevents duplicate 382 MB download on startup+signal_reload race"
+    risk_control_measures:
+      - "LLM prompt contains no PHI fields — privacy guarantee enforced at query layer"
+      - "_load_lock.acquire() before download ensures single-writer semantics on local cache"
+      - "Re-check _active_version under _lock after acquiring _load_lock prevents redundant spaCy load"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false

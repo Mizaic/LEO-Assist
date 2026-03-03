@@ -175,6 +175,7 @@ export default function RunSection() {
             value={patientIds}
             onChange={(e) => setPatientIds(e.target.value)}
             disabled={running}
+            aria-label="Patient IDs, one per line"
             sx={{ mb: 2 }}
           />
 

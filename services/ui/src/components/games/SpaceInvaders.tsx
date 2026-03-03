@@ -1061,6 +1061,8 @@ export default function SpaceInvaders() {
       />
       {gameOver ? (
         <button
+          type="button"
+          aria-label="Play again"
           onClick={reset}
           style={{
             background: "linear-gradient(135deg, #6366f1, #8b5cf6)",

@@ -123,8 +123,13 @@ def test_gap003_require_admin_passes_for_admin():
 # ---------------------------------------------------------------------------
 
 def test_gap004_writeback_has_service_auth_dependency():
-    """writeback router must declare verify_service_token as a dependency."""
+    """writeback router must declare verify_service_token as a dependency.
+
+    Checks both route-level dependencies and endpoint function signature
+    parameter-level Depends, since FastAPI supports both styles.
+    """
     import inspect
+    from fastapi import Depends
     sys.path.insert(0, str(__import__("pathlib").Path(__file__).parent.parent))
     mock_mods = {
         "libs.neo4j_client.client": MagicMock(),
@@ -133,13 +138,28 @@ def test_gap004_writeback_has_service_auth_dependency():
     for mod, m in mock_mods.items():
         sys.modules.setdefault(mod, m)
 
-    from services.terminology_api.app.routers.writeback import router
+    from services.terminology_api.app.routers.writeback import router, trigger_writeback
+    from libs.auth.service_auth import verify_service_token
+
+    # Check route-level dependencies
     routes = {r.path: r for r in router.routes}
     writeback_route = routes.get("/writeback")
     assert writeback_route is not None
-    dep_callables = [d.dependency for d in writeback_route.dependencies]
-    from libs.auth.service_auth import verify_service_token
-    assert verify_service_token in dep_callables, "verify_service_token must be a dependency of /writeback"
+    route_dep_callables = [d.dependency for d in (writeback_route.dependencies or [])]
+
+    # Also check endpoint function signature (parameter-level Depends)
+    sig = inspect.signature(trigger_writeback)
+    param_dep_callables = [
+        p.default.dependency
+        for p in sig.parameters.values()
+        if isinstance(p.default, type(Depends(lambda: None)))
+    ]
+
+    all_dep_callables = route_dep_callables + param_dep_callables
+    assert verify_service_token in all_dep_callables, (
+        "verify_service_token must be a dependency of /writeback "
+        f"(route deps: {route_dep_callables}, param deps: {param_dep_callables})"
+    )
 
 
 # ---------------------------------------------------------------------------

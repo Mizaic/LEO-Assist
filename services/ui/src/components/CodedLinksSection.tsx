@@ -27,6 +27,8 @@ import {
   updateCodedLinkModifiers,
 } from "@/lib/api";
 import type { CodedLink, Correction, TermSearchResult } from "@/lib/types";
+import AssertionChip from "./AssertionChip";
+import ConfirmDialog from "./ConfirmDialog";
 import TermSearch from "./TermSearch";
 
 interface Props {
@@ -55,6 +57,7 @@ export default function CodedLinksSection({
   const [modRange, setModRange] = useState("");
   const [modInterp, setModInterp] = useState("");
   const [modSaving, setModSaving] = useState(false);
+  const [confirmRemove, setConfirmRemove] = useState<CodedLink | null>(null);
   const refresh = refreshTrigger ?? 0;
 
   useEffect(() => {
@@ -254,6 +257,7 @@ export default function CodedLinksSection({
                     secondaryAction={
                       <Stack direction="row" spacing={0.5}>
                         <IconButton
+                          aria-label="Edit measurements"
                           size="small"
                           onClick={() => openModEditor(link)}
                           title="Edit measurements"
@@ -261,6 +265,7 @@ export default function CodedLinksSection({
                           <ScienceIcon fontSize="small" />
                         </IconButton>
                         <IconButton
+                          aria-label="Recode"
                           size="small"
                           onClick={() => setRecodeTarget(link)}
                           title="Recode"
@@ -270,9 +275,9 @@ export default function CodedLinksSection({
                         <IconButton
                           size="small"
                           color="error"
-                          onClick={() => handleRemove(link)}
+                          onClick={() => setConfirmRemove(link)}
                           disabled={removing === link.concept_id}
-                          title="Remove"
+                          aria-label={`Remove ${link.term ?? link.concept_id}`}
                         >
                           <DeleteIcon fontSize="small" />
                         </IconButton>
@@ -281,8 +286,20 @@ export default function CodedLinksSection({
                     sx={{ px: 2, alignItems: "flex-start" }}
                   >
                     <ListItemText
-                      primary={link.term ?? link.concept_id}
-                      primaryTypographyProps={{ variant: "body2", fontWeight: 500, color: "text.secondary" }}
+                      primary={
+                        <Stack direction="row" spacing={0.75} alignItems="center" flexWrap="wrap">
+                          <Typography component="span" variant="body2" sx={{ fontWeight: 500, color: "text.secondary" }}>
+                            {link.term ?? link.concept_id}
+                          </Typography>
+                          <AssertionChip
+                            assertion={
+                              link.assertion ??
+                              (link.context as Record<string, unknown> | undefined)?.assertion as string | undefined
+                            }
+                          />
+                        </Stack>
+                      }
+                      primaryTypographyProps={{ component: "div" }}
                       secondary={
                         <Box component="span">
                           {Boolean(
@@ -343,6 +360,17 @@ export default function CodedLinksSection({
                 }
               : undefined
           }
+        />
+      )}
+
+      {confirmRemove && (
+        <ConfirmDialog
+          title="Remove clinical code?"
+          body={`This will permanently delete "${confirmRemove.term ?? confirmRemove.concept_id}" (${confirmRemove.concept_id}) from this encounter.`}
+          confirmLabel="Remove"
+          variant="danger"
+          onConfirm={() => { handleRemove(confirmRemove); setConfirmRemove(null); }}
+          onCancel={() => setConfirmRemove(null)}
         />
       )}
 

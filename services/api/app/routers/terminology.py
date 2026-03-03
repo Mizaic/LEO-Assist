@@ -26,7 +26,7 @@ from app.models.neo4j_schema import (
     DEDUPLICATE_SURFACE_FORM_RELS,
     AUDIT_SURFACE_FORM_DUPLICATES,
 )
-from app.services.terminology_writeback_service import writeback_approved_terms
+from services.terminology_api.app.services.writeback_service import writeback_approved_terms
 
 
 router = APIRouter(prefix="/terminology", tags=["terminology"])
@@ -103,7 +103,7 @@ def trigger_writeback(body: WritebackRequest | None = None):
         with patient_client.session() as patient_session, coding_client.session() as coding_session:
             result = writeback_approved_terms(
                 patient_session=patient_session,
-                coding_session=coding_session,
+                knowledge_session=coding_session,
                 patient_id=body.patient_id if body else None,
             )
         return WritebackResponse(**result)

@@ -20,16 +20,31 @@ export interface CodedLink {
   semantic_tag?: string;
   /** DOCUMENTS relationship: evidence text from encounter */
   evidence?: string;
-  /** DOCUMENTS relationship: extraction confidence (0–1) */
+  /** DOCUMENTS relationship: extraction confidence (0-1) */
   confidence?: number;
   /** DOCUMENTS relationship: domain (e.g. clinical_finding) */
   domain?: string;
   /** DOCUMENTS relationship: negated, uncertain, historical, etc. */
   context?: Record<string, unknown>;
+  /** Assertion parsed from context.assertion (present/absent/possible/historical/hypothetical/family/declined/cancelled) */
+  assertion?: string;
   /** DOCUMENTS relationship: value, unit, reference_range, interpretation */
   modifiers?: Record<string, unknown>;
   /** DOCUMENTS relationship: when the link was coded */
   coded_at?: string;
+}
+
+export interface TimelineEvent {
+  encounter_date: string;
+  encounter_id: string;
+  concept_id: string;
+  term: string;
+  semantic_tag: string;
+  read_code?: string;
+  assertion: string;
+  confidence?: number;
+  domain?: string;
+  decision_tier?: number;
 }
 
 export interface TermSearchResult {
@@ -143,7 +158,7 @@ export interface ReviewTaskDetail {
 }
 
 export interface AskLeoSmartResult {
-  /** Verified SNOMED concept chosen from real search results. Null when ambiguous. */
+  /** Verified SNOMED concept chosen from real search results. Null when ambiguous or not codeable. */
   matched_candidate: TermSearchResult | null;
   /** LEO's explanation for the choice or the reason for ambiguity. */
   reason: string;
@@ -151,13 +166,68 @@ export interface AskLeoSmartResult {
   is_ambiguous: boolean;
   /** Search query LEO generated for the second-pass search, if one was performed. */
   alternative_query_used: string | null;
+  /**
+   * Set when LEO detected the entity should not be coded -- e.g. procedure awaiting,
+   * informational mention, negated existence. Mutually exclusive with matched_candidate.
+   */
+  assertion_warning: string | null;
+  /**
+   * Assertion override from LEO. "declined", "cancelled", or "refuted" when the
+   * patient declined/cancelled or an initial impression was overridden by investigation.
+   * "present" in all other cases.
+   */
+  assertion: string;
 }
 
 export const CTX_FLAGS: Array<{ key: string; short: string; label: string; color: string }> = [
   { key: "negated", short: "Neg", label: "Negated", color: "#dc2626" },
+  { key: "declined", short: "Dec", label: "Declined", color: "#b91c1c" },
   { key: "uncertain", short: "Unc", label: "Uncertain", color: "#f59e0b" },
   { key: "historical", short: "Hist", label: "Historical", color: "#8b5cf6" },
   { key: "family", short: "Fam", label: "Family history", color: "#06b6d4" },
-  { key: "hypothetical", short: "Hyp", label: "Hypothetical", color: "#6366f1" },
+  { key: "hypothetical", short: "Plan", label: "Planned / awaiting", color: "#6366f1" },
   { key: "resolved", short: "Res", label: "Resolved", color: "#059669" },
 ];
+
+/** Decision tier from the safety layer classifier (1 = auto-code, 2 = review, 3 = safety gate). */
+export type DecisionTier = 1 | 2 | 3;
+
+/** Tier metadata attached to a CodingReview item. */
+export interface TierInfo {
+  decision_tier: DecisionTier | null;
+  tier_reason: string | null;
+  tier_decision: string | null;
+}
+
+/** Human-readable labels and colours for each tier. */
+export const TIER_META: Record<
+  number,
+  { label: string; color: "success" | "warning" | "error"; description: string }
+> = {
+  1: {
+    label: "Tier 1",
+    color: "success",
+    description: "High confidence. The system would auto-code this in autonomous mode.",
+  },
+  2: {
+    label: "Tier 2",
+    color: "warning",
+    description: "Medium confidence. Needs human check before coding.",
+  },
+  3: {
+    label: "Tier 3",
+    color: "error",
+    description: "Safety gate. The system blocked this item -- review the reason below.",
+  },
+};
+
+/** Maps an assertion string to a display chip colour (MUI color prop). */
+export const ASSERTION_CHIP: Record<string, { label: string; color: "error" | "warning" | "info" | "default" | "primary" | "success" }> = {
+  absent:      { label: "Negated",         color: "error"   },
+  refuted:     { label: "Refuted",         color: "error"   },
+  declined:    { label: "Declined",        color: "error"   },
+  possible:    { label: "Uncertain",       color: "warning" },
+  historical:  { label: "Historical",      color: "info"    },
+  family:      { label: "Family history",  color: "default" },
+  hypothetical:{ label: "Planned / awaiting", color: "primary" },
+};

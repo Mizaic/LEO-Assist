@@ -149,7 +149,7 @@ export default function SafetyNettingPage() {
   return (
     <Box sx={{ display: "flex", flexDirection: "column", height: "100vh" }}>
       <Box sx={{ px: { xs: 2, md: 3.5 }, pt: 3, pb: 1.5 }}>
-        <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5 }}>
+        <Typography variant="h5" component="h1" sx={{ fontWeight: 700, mb: 0.5 }}>
           Safety Netting
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>
@@ -202,7 +202,7 @@ export default function SafetyNettingPage() {
                 height: "100%",
               }}
             >
-              <CircularProgress size={22} />
+              <CircularProgress aria-label="Loading" size={22} />
             </Box>
           ) : (
             <PatientPathwayWorklist

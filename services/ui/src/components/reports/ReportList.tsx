@@ -120,7 +120,7 @@ export function ReportList() {
   return (
     <Box sx={{ p: 3 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h5" sx={{ fontWeight: 600 }}>Reports</Typography>
+        <Typography variant="h5" component="h1" sx={{ fontWeight: 600 }}>Reports</Typography>
         <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
           <Button variant="outlined" startIcon={<DeleteOutlined />} disabled={selectedReportIds.length === 0}
             onClick={() => { setDeleteMode('bulk'); setReportToDelete(null); setDeleteDialogOpen(true); }}
@@ -146,7 +146,7 @@ export function ReportList() {
 
       <Paper sx={{ borderRadius: 1, overflow: 'hidden', bgcolor: 'background.paper' }}>
         {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', p: 6 }}><CircularProgress /></Box>
+          <Box sx={{ display: 'flex', justifyContent: 'center', p: 6 }}><CircularProgress aria-label="Loading" /></Box>
         ) : reports.length === 0 ? (
           <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', p: 6, color: 'text.secondary' }}>
             <Typography>No reports found</Typography>
@@ -192,7 +192,7 @@ export function ReportList() {
                     <TableCell>{getStatusChip(report.status)}</TableCell>
                     <TableCell>{formatDate(report.date)}</TableCell>
                     <TableCell>
-                      <IconButton size="small" onClick={(e) => { setMenuAnchor(e.currentTarget); setMenuReport(report); }}>
+                      <IconButton aria-label="Report actions" size="small" onClick={(e) => { setMenuAnchor(e.currentTarget); setMenuReport(report); }}>
                         <MoreHorizOutlined />
                       </IconButton>
                     </TableCell>

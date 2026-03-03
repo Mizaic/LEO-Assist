@@ -21,7 +21,7 @@ export default function GamesPage() {
 
   return (
     <Box sx={{ maxWidth: 1200, mx: "auto", py: 4, px: 3 }}>
-      <Typography variant="h5" sx={{ fontWeight: 700, mb: 1 }}>
+      <Typography variant="h5" component="h1" sx={{ fontWeight: 700, mb: 1 }}>
         Games
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>

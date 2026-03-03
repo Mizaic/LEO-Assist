@@ -1,5 +1,5 @@
 {
-  "active_version": null,
+  "active_version": "0.9",
   "records": {
     "20260301-025308": {
       "model_name": "medspacy_clinical_ner",
@@ -37,6 +37,25 @@
       "rollback_target_version": null,
       "registered_at": "2026-03-02T07:46:59.922540+00:00",
       "promoted_at": null,
+      "notes": ""
+    },
+    "0.9": {
+      "model_name": "medspacy_clinical_ner",
+      "model_version": "0.9",
+      "model_path": "/models/v1.0",
+      "training_dataset_version": "20260101",
+      "schema_version": "1.0",
+      "deid_version": "1.0",
+      "artifact_uri": "",
+      "status": "promoted",
+      "offline_precision": 0.82,
+      "offline_recall": 0.78,
+      "canary_precision": 0.81,
+      "canary_recall": 0.76,
+      "canary_cohort": "canary_cohort",
+      "rollback_target_version": null,
+      "registered_at": "2026-03-03T18:33:31.366906+00:00",
+      "promoted_at": "2026-03-03T18:33:31.369366+00:00",
       "notes": ""
     }
   }

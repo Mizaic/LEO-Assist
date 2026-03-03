@@ -76,7 +76,7 @@ def _extract_surface_form_rows(
                     "confidence": float(coding.get("score", 0.9)),
                     "approved_by": reviewer,
                     "source": "hitl_approved",
-                    "status": "approved",
+                    "status": "pending",
                     "provenance": "hitl_gold_sync",
                 })
 

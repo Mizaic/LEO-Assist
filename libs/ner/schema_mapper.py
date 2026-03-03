@@ -243,7 +243,10 @@ def _map_entity(
         return None, reasons
 
     assertion = raw_entity.get("assertion", "present")
-    if assertion not in ("present", "absent", "possible", "historical", "family", "hypothetical"):
+    if assertion not in (
+        "present", "absent", "refuted", "possible", "historical",
+        "family", "hypothetical", "declined", "cancelled",
+    ):
         assertion = "present"
 
     eid = raw_entity.get("entity_id") or _stable_entity_id(document_id, start, end, label)
