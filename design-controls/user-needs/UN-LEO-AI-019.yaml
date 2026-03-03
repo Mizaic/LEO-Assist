@@ -8,10 +8,13 @@
     Quality improvement leads need visual dashboards showing population-level
     pathway metrics, organisation benchmarks, and improvement trends over time.
     Dashboards must display waiting time performance against national targets
-    (FDS, DTT, RTT), pathway volume and status breakdowns, alert summaries,
-    screening uptake rates, and IMD (Index of Multiple Deprivation) analysis.
-    Dashboards support drill-down from organisation level to individual patient
-    episodes.
+    (FDS, DTT, RTT), Primary Care Interval (PCI), Diagnostic Interval (DI),
+    pathway volume and status breakdowns, alert summaries, screening uptake
+    rates, and IMD (Index of Multiple Deprivation) analysis.
+    A persistent sidebar benchmark panel displays the published NCDA national
+    and regional findings (e.g. the 2018 England cycle results) alongside the
+    organisation's own metrics, enabling direct comparison. Dashboards support
+    drill-down from organisation level to individual patient episodes.
 
   stakeholder:
     type: "end_user"
@@ -52,10 +55,14 @@
     - "No standardised dashboard layout across organisations leads to inconsistent reporting"
     - "Drill-down from aggregate metrics to individual episodes requires switching between multiple tools"
     - "IMD deprivation analysis requires joining audit data with external datasets manually"
+    - "Comparing practice performance against national NCDA findings requires manually looking up published reports"
 
   acceptance_criteria:
     - "System shall display pathway metrics dashboards with configurable date ranges"
-    - "System shall show performance against national waiting time targets"
+    - "System shall show performance against national waiting time targets (FDS, DTT, RTT)"
+    - "System shall display NCDA-defined interval metrics (PCI, DI) on the dashboard"
+    - "System shall display a persistent sidebar benchmark panel showing published NCDA national and regional findings"
+    - "Sidebar benchmark values shall be updatable when new national NCDA cycle data is published"
     - "System shall support benchmarking across organisations, PCNs, and ICBs"
     - "System shall enable drill-down from aggregate metrics to individual episodes"
     - "System shall display IMD deprivation analysis"
@@ -79,6 +86,7 @@
     - "Intended Use Statement DC-IU-001 Section 2.5"
     - "NHS NCDA programme reporting requirements"
     - "Commissioner performance reporting requirements"
+    - "NCDA 2018 national published findings (CRUK / NHS England)"
 
   related_standards:
     - "IEC 62304:2006"
@@ -90,7 +98,7 @@
     created_date: "2026-03-01"
     status: "draft"
 
-  design_inputs: []
-  validation_tests: []
+  design_inputs: ["DI-LEO-AI-027", "DI-LEO-AI-028"]
+  validation_tests: ["VAL-LEO-AI-004"]
 
   tags: ["dashboard", "analytics", "ui", "reporting"]

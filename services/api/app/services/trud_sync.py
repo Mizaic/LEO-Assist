@@ -15,6 +15,7 @@ import asyncio
 import json
 import logging
 import os
+import re
 import tempfile
 import time
 import urllib.request
@@ -97,35 +98,104 @@ def get_neo4j_counts() -> dict:
     return counts
 
 
-def _local_dirs(dest_dir: str, external: Path) -> list[str]:
-    """Return sorted dated directory names found under dest_dir."""
-    pkg_dir = external / dest_dir
+def _snomed_local_date(external: Path) -> str | None:
+    """Return the most recent 8-digit date found across all SNOMED dated dirs.
+
+    e.g. SnomedCT_UKClinicalRF2_PRODUCTION_20260211T000001Z -> '20260211'
+    Returns as 'YYYY-MM-DD' or None if no dated directories exist.
+    """
+    pkg_dir = external / PACKAGES["snomed"]["dest"]
     if not pkg_dir.exists():
-        return []
-    return sorted(d.name for d in pkg_dir.iterdir() if d.is_dir())
+        return None
+    dates = []
+    for d in pkg_dir.iterdir():
+        if not d.is_dir():
+            continue
+        m = re.search(r"(\d{8})", d.name)
+        if m:
+            dates.append(m.group(1))
+    if not dates:
+        return None
+    raw = max(dates)
+    return f"{raw[:4]}-{raw[4:6]}-{raw[6:]}"
+
+
+def _dmd_local_date(external: Path) -> str | None:
+    """Return the date embedded in dm+d XML filenames as 'YYYY-MM-DD'.
+
+    NHS BSA filenames use format: f_vtm2_<ver>DDMMYY.xml
+    e.g. f_vtm2_3190226.xml -> last 6 digits = 190226 -> 2026-02-19
+    """
+    pkg_dir = external / PACKAGES["dmd"]["dest"]
+    if not pkg_dir.exists():
+        return None
+    for f in sorted(pkg_dir.glob("f_vtm2_*.xml"), reverse=True):
+        m = re.search(r"_(\d+)\.xml$", f.name)
+        if m:
+            digits = m.group(1)[-6:]  # last 6 digits = DDMMYY
+            if len(digits) == 6:
+                return f"20{digits[4:]}-{digits[2:4]}-{digits[:2]}"
+    return None
+
+
+def _trud_release_date_in_name(release_name: str) -> str | None:
+    """Extract an 8-digit date from a TRUD release name.
+
+    e.g. 'SNOMEDCT2_41.5.0_20260211000001' -> '20260211'
+    Returns 'YYYY-MM-DD' or None.
+    """
+    m = re.search(r"(\d{8})", release_name or "")
+    if not m:
+        return None
+    raw = m.group(1)
+    return f"{raw[:4]}-{raw[4:6]}-{raw[6:]}"
+
+
+def _snomed_up_to_date(local_date: str | None, release: dict | None) -> bool:
+    """True when the local SNOMED date matches the date embedded in the TRUD release name."""
+    if not local_date or not release:
+        return False
+    trud_name_date = _trud_release_date_in_name(release.get("name", ""))
+    return bool(trud_name_date and local_date == trud_name_date)
+
+
+def _dmd_up_to_date(local_date: str | None, release: dict | None) -> bool:
+    """True when the local dm+d date is >= the TRUD release date."""
+    if not local_date or not release:
+        return False
+    trud_date = release.get("releaseDate", "")
+    return bool(trud_date and local_date >= trud_date)
+
+
+def _package_status(key: str, external: Path, release: dict | None) -> dict:
+    """Build the status dict for one package."""
+    if key == "snomed":
+        local_date = _snomed_local_date(external)
+        up_to_date = _snomed_up_to_date(local_date, release)
+    else:
+        local_date = _dmd_local_date(external)
+        up_to_date = _dmd_up_to_date(local_date, release)
+
+    return {
+        "label": PACKAGES[key]["label"],
+        "local_version": local_date,
+        "trud_version": release.get("name") if release else None,
+        "trud_date": release.get("releaseDate") if release else None,
+        "trud_size_mb": (
+            round(release.get("archiveFileSizeBytes", 0) / 1024 / 1024)
+            if release
+            else None
+        ),
+        "up_to_date": up_to_date,
+    }
 
 
 def get_status(external: Path) -> dict:
-    """Return TRUD release info and Neo4j counts for the status card."""
-    packages = {}
-    for key, meta in PACKAGES.items():
-        release = get_trud_release(meta["item_id"])
-        local_dirs = _local_dirs(meta["dest"], external)
-        local_ver = local_dirs[-1] if local_dirs else None
-        trud_date = release.get("releaseDate", "") if release else ""
-        up_to_date = bool(local_ver and trud_date and trud_date.replace("-", "") in local_ver)
-        packages[key] = {
-            "label": meta["label"],
-            "local_version": local_ver,
-            "trud_version": release.get("name") if release else None,
-            "trud_date": trud_date or None,
-            "trud_size_mb": (
-                round(release.get("archiveFileSizeBytes", 0) / 1024 / 1024)
-                if release
-                else None
-            ),
-            "up_to_date": up_to_date,
-        }
+    """Return TRUD release info and Neo4j counts for the status page."""
+    packages = {
+        key: _package_status(key, external, get_trud_release(meta["item_id"]))
+        for key, meta in PACKAGES.items()
+    }
     return {"packages": packages, "neo4j": get_neo4j_counts()}
 
 

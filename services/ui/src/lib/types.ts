@@ -37,6 +37,7 @@ export interface TermSearchResult {
   term: string;
   read_code?: string;
   semantic_tag?: string;
+  module_id?: string;
   score?: number;
   icd10?: string;
 }
@@ -139,6 +140,17 @@ export interface EncounterCandidate {
 export interface ReviewTaskDetail {
   task: ReviewTaskSummary;
   candidate: EncounterCandidate;
+}
+
+export interface AskLeoSmartResult {
+  /** Verified SNOMED concept chosen from real search results. Null when ambiguous. */
+  matched_candidate: TermSearchResult | null;
+  /** LEO's explanation for the choice or the reason for ambiguity. */
+  reason: string;
+  /** True when LEO could not determine the correct code from available evidence. */
+  is_ambiguous: boolean;
+  /** Search query LEO generated for the second-pass search, if one was performed. */
+  alternative_query_used: string | null;
 }
 
 export const CTX_FLAGS: Array<{ key: string; short: string; label: string; color: string }> = [
