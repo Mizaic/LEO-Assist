@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -72,36 +72,65 @@ function VersionChip({ pkg }: { pkg: PackageStatus }) {
         label="Up to date"
         color="success"
         size="small"
+        sx={{ flexShrink: 0 }}
       />
     );
   }
   if (!pkg.local_version) {
-    return <Chip label="Not downloaded" color="warning" size="small" />;
+    return (
+      <Chip
+        label="Not on disk"
+        color="default"
+        size="small"
+        sx={{ flexShrink: 0 }}
+      />
+    );
   }
-  return <Chip label="Update available" color="warning" size="small" icon={<WarningAmberIcon />} />;
+  return (
+    <Chip
+      label="Update available"
+      color="warning"
+      size="small"
+      icon={<WarningAmberIcon />}
+      sx={{ flexShrink: 0 }}
+    />
+  );
 }
 
-function PackageCard({ pkg, pkgKey }: { pkg: PackageStatus; pkgKey: string }) {
+function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <Paper variant="outlined" sx={{ p: 2, flex: 1, minWidth: 260 }}>
-      <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+    <Box sx={{ display: "flex", gap: 1, alignItems: "baseline" }}>
+      <Typography variant="body2" color="text.secondary" sx={{ minWidth: 100 }}>
+        {label}
+      </Typography>
+      <Typography variant="body2" sx={{ fontWeight: 500 }}>
+        {value}
+      </Typography>
+    </Box>
+  );
+}
+
+function PackageCard({ pkg }: { pkg: PackageStatus }) {
+  return (
+    <Paper variant="outlined" sx={{ p: 2, flex: 1, minWidth: 0 }}>
+      <Stack direction="row" alignItems="flex-start" justifyContent="space-between" mb={1.5} gap={1}>
+        <Typography variant="subtitle1" sx={{ fontWeight: 600, lineHeight: 1.3 }}>
           {pkg.label}
         </Typography>
         <VersionChip pkg={pkg} />
       </Stack>
-      <Stack spacing={0.5}>
-        <Typography variant="body2" color="text.secondary">
-          On disk: <strong>{pkg.local_version ?? "none"}</strong>
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          TRUD latest: <strong>{pkg.trud_version ?? "--"}</strong>
-          {pkg.trud_date ? ` (${pkg.trud_date})` : ""}
-        </Typography>
+      <Stack spacing={0.75}>
+        <Row label="On disk" value={pkg.local_version ?? <em style={{ opacity: 0.5 }}>not downloaded</em>} />
+        <Row
+          label="TRUD latest"
+          value={
+            pkg.trud_version
+              ? `${pkg.trud_version}${pkg.trud_date ? ` — ${pkg.trud_date}` : ""}`
+              : "--"
+          }
+        />
         {pkg.trud_size_mb != null && (
-          <Typography variant="body2" color="text.secondary">
-            Download size: <strong>{pkg.trud_size_mb} MB</strong>
-          </Typography>
+          <Row label="Download" value={`${pkg.trud_size_mb} MB`} />
         )}
       </Stack>
     </Paper>
@@ -329,9 +358,19 @@ export default function TerminologyPage() {
         <Typography color="text.primary">Terminology data</Typography>
       </Breadcrumbs>
 
-      <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5 }}>
-        Terminology data
-      </Typography>
+      <Stack direction="row" alignItems="center" justifyContent="space-between" mb={0.5}>
+        <Typography variant="h5" sx={{ fontWeight: 700 }}>
+          Terminology data
+        </Typography>
+        <Button
+          variant="outlined"
+          size="small"
+          onClick={fetchStatus}
+          disabled={loadingStatus}
+        >
+          Refresh
+        </Button>
+      </Stack>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
         Check for new SNOMED CT and dm+d releases from NHS TRUD. Download and load them into the
         knowledge graph without leaving this page.
@@ -353,7 +392,7 @@ export default function TerminologyPage() {
           <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
             {PACKAGE_KEYS.map((key) =>
               status.packages[key] ? (
-                <PackageCard key={key} pkgKey={key} pkg={status.packages[key]} />
+                <PackageCard key={key} pkg={status.packages[key]} />
               ) : null
             )}
           </Stack>

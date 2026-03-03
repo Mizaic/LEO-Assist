@@ -4,15 +4,17 @@
 #
 # Usage:
 #   .\infra\scripts\migrate-secrets.ps1 -Environment dev
+#   .\infra\scripts\migrate-secrets.ps1 -Environment dev -VaultName kv-atlas-dev-4697
 #   .\infra\scripts\migrate-secrets.ps1 -Environment dev -SourceFile secrets\.env
 #   .\infra\scripts\migrate-secrets.ps1 -Environment dev -WhatIf
 #
-# Requires: az CLI logged in with Key Vault Secrets Officer on leoai-{env}-kv
+# Requires: az CLI logged in with Key Vault Secrets Officer on the target vault
 param(
     [Parameter(Mandatory)]
     [ValidateSet('dev', 'val', 'prod')]
     [string]$Environment,
 
+    [string]$VaultName = '',
     [string]$SourceFile = 'secrets\.env',
     [switch]$WhatIf
 )
@@ -20,7 +22,8 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-$KvName = "leoai-$Environment-kv"
+$KvName = if ($VaultName) { $VaultName } else { "leoai-$Environment-kv" }
+Write-Host "  Target vault: $KvName"
 
 # -- Secret name mapping: KV secret name -> env var in source file ---------
 $SecretMap = [ordered]@{
@@ -103,17 +106,17 @@ foreach ($kvName2 in $SecretMap.Keys) {
         continue
     }
 
-    try {
-        az keyvault secret set `
-            --vault-name $KvName `
-            --name $kvName2 `
-            --value $value `
-            --output none
+    $result = az keyvault secret set `
+        --vault-name $KvName `
+        --name $kvName2 `
+        --value $value `
+        --output none 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        Write-Warning "  ERROR $kvName2 (exit $LASTEXITCODE): $result"
+        $errors++
+    } else {
         Write-Host "  OK    $kvName2"
         $success++
-    } catch {
-        Write-Warning "  ERROR $kvName2 : $_"
-        $errors++
     }
 }
 

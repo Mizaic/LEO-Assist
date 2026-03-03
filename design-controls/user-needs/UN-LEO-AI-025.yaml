@@ -1,0 +1,124 @@
+# -- UN-LEO-AI-025 -- Avoidable Delay Assessment
+# IEC 62304 / ISO 13485 User Need
+# Schema: design-controls/templates/user_needs_schema.yaml
+
+- id: "UN-LEO-AI-025"
+  title: "System flags possible avoidable delays for clinician agree/disagree review"
+  description: |
+    Clinical audit teams need the system to identify episodes where an
+    avoidable delay in cancer diagnosis is highly possible, based on
+    pathway analysis (e.g. repeated consultations before referral,
+    referral not made despite guideline-relevant symptoms, prolonged
+    primary care interval). The system presents each flagged episode
+    with supporting evidence and asks the reviewing clinician to record
+    a structured judgment: agree that a delay was avoidable, disagree,
+    or uncertain -- each with a free-text comment field. The recorded
+    judgment becomes the GP-assessed avoidable delay value in the NCDA
+    proforma output. No automated determination is accepted without
+    clinician sign-off.
+
+  stakeholder:
+    type: "end_user"
+    role: "GP / Clinical Audit Reviewer"
+    organization: "NHS GP Practice"
+
+  priority: "MUST"
+
+  rationale: |
+    GP-assessed avoidable delay is a mandatory NCDA data field. The 2018
+    national cycle found that 23% of cancer patients had a GP-assessed
+    avoidable delay. Without structured support, the assessment relies
+    entirely on individual clinician recall and judgment, which is
+    inconsistent and time-consuming. The system can surface the evidence
+    needed for the judgment (consultation count, symptom-to-referral gap,
+    guideline deviations) so the clinician decision is informed and
+    documented. The final assessment remains a human clinical judgment
+    -- the system does not record a delay as avoidable without explicit
+    clinician agreement.
+
+  benefit: |
+    Consistent, evidence-supported avoidable delay assessments that meet
+    NCDA requirements, with a documented clinician decision trail replacing
+    subjective recall
+
+  use_case: |
+    1. Pipeline completes episode analysis. System evaluates the episode
+       against avoidable delay indicators: repeated consultations before
+       referral, prolonged primary care interval, guideline deviations,
+       absent safety-net documentation.
+    2. System classifies each episode as: avoidable delay highly possible,
+       unlikely, or insufficient data.
+    3. Episodes flagged as "highly possible" enter the avoidable delay
+       review queue.
+    4. Reviewing GP opens a flagged episode. System presents the supporting
+       evidence: consultation timeline, PCI duration, NG12 deviations, and
+       the specific indicators that triggered the flag.
+    5. GP selects one of three structured responses:
+       - Agree -- avoidable delay occurred
+       - Disagree -- no avoidable delay
+       - Uncertain -- insufficient information to judge
+    6. GP adds a free-text comment (mandatory if disagreeing with a
+       high-confidence flag; optional otherwise).
+    7. System records the GP judgment, comment, reviewer identity, and
+       timestamp as the NCDA avoidable delay assessment for the episode.
+    8. Recorded assessments are included in the NCDA proforma output
+       (UN-LEO-AI-024) under the GP-assessed avoidable delay field.
+    9. Episodes flagged as "unlikely" are pre-populated with "disagree"
+       but remain editable if the GP wishes to override.
+
+  current_solution: |
+    GP manually reviews each cancer patient record and completes the
+    avoidable delay field in the NCDA paper or online proforma from
+    memory, with no structured evidence summary or decision support.
+
+  pain_points:
+    - "Avoidable delay assessment from memory is inconsistent between GPs"
+    - "No structured summary of evidence to support the judgment"
+    - "Assessment is the most cognitively demanding part of NCDA data collection"
+    - "No audit trail linking the recorded judgment to the evidence reviewed"
+
+  acceptance_criteria:
+    - "System shall evaluate episodes against configurable avoidable delay indicators"
+    - "System shall classify episodes as highly possible, unlikely, or insufficient data"
+    - "System shall present supporting evidence when displaying a flagged episode"
+    - "System shall capture a structured clinician response: agree, disagree, or uncertain"
+    - "System shall require a free-text comment when overriding a high-confidence flag"
+    - "No avoidable delay determination shall be recorded without clinician sign-off"
+    - "Recorded judgment shall include reviewer identity and timestamp for audit trail"
+    - "Assessments shall feed into the NCDA proforma output (UN-LEO-AI-024)"
+
+  success_metrics:
+    - metric: "Flag precision"
+      target: ">=80% of highly-possible flags agreed by reviewing clinician"
+      baseline: "Manual assessment: no automated flagging baseline"
+    - metric: "Assessment completion rate"
+      target: "100% of audited episodes have a recorded clinician judgment"
+      baseline: "Manual NCDA completion: estimated 70-80% field completion rate"
+    - metric: "Assessment time per episode"
+      target: "<=3 minutes with system-presented evidence"
+      baseline: "Manual assessment from memory: 5-10 minutes per episode"
+
+  regulatory_impact: "high"
+  safety_impact: "high"
+
+  derived_from:
+    - "Intended Use Statement DC-IU-001 Section 2.1 (NCDA launch configuration)"
+    - "NCDA proforma -- GP-assessed avoidable delay field"
+    - "NCDA 2018 national findings: 23% of patients had GP-assessed avoidable delay"
+
+  related_standards:
+    - "IEC 62304:2006"
+    - "ISO 13485:2016"
+    - "ISO 14971:2019"
+    - "DCB0129 - Clinical Risk Management"
+    - "NICE NG12 - Suspected cancer: recognition and referral"
+
+  metadata:
+    created_by: "Quality Engineering"
+    created_date: "2026-03-02"
+    status: "draft"
+
+  design_inputs: []
+  validation_tests: []
+
+  tags: ["avoidable-delay", "ncda", "clinician-review", "hitl", "clinical-safety"]

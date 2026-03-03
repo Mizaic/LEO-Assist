@@ -655,6 +655,12 @@ export default function CodingReviewPanel() {
               return active ? getSpanText(active) : "";
             })()
           }
+          hintTags={
+            (() => {
+              const active = items.find((i) => i.review_id === searchReviewId);
+              return active?.semantic_tag ? [active.semantic_tag] : undefined;
+            })()
+          }
           onSelect={(result) => handleSelectTermSearchResult(searchReviewId, result)}
           onClose={() => setSearchReviewId(null)}
           onCorrection={() => undefined}
