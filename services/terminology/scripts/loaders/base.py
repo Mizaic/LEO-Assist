@@ -17,7 +17,10 @@ from neo4j import AsyncDriver, AsyncSession
 
 logger = logging.getLogger(__name__)
 
-csv.field_size_limit(sys.maxsize)
+try:
+    csv.field_size_limit(sys.maxsize)
+except OverflowError:
+    csv.field_size_limit(2**31 - 1)
 
 BATCH_SIZE = 5_000
 

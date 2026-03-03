@@ -229,13 +229,17 @@ WITH cr.entity_text AS entity_text,
      count(cr) AS review_count,
      max(cr.score) AS best_score,
      collect(cr.review_id)[0] AS sample_review_id,
-     min(cr.coded) AS any_uncoded
+     min(cr.coded) AS any_uncoded,
+     collect(cr.semantic_tag)[0] AS suggested_semantic_tag,
+     collect(t.text)[0] AS sample_encounter_text
 RETURN entity_text,
        entity_label,
        review_count,
        best_score,
        sample_review_id,
-       any_uncoded
+       any_uncoded,
+       suggested_semantic_tag,
+       sample_encounter_text
 ORDER BY review_count DESC, best_score ASC
 SKIP $skip
 LIMIT $limit

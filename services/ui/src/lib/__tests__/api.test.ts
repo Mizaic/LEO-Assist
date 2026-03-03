@@ -22,7 +22,12 @@ import {
   searchTerms,
 } from "../api";
 
-const BASE = "http://localhost:8000";
+// In browser (jsdom): legacy uses origin + /api so Next.js proxy rewrites to core API.
+// In Node: legacy uses INTERNAL_API_BASE (or localhost:8000) directly.
+const BASE =
+  typeof window !== "undefined"
+    ? `${window.location.origin}/api`
+    : "http://localhost:8000";
 
 function mockFetchOk(data: unknown) {
   (global.fetch as jest.Mock).mockResolvedValueOnce({
@@ -86,14 +91,14 @@ describe("GET API functions", () => {
   it("fetchPatients calls /patients", async () => {
     mockFetchOk([{ patient_id: "P1", encounter_count: 3 }]);
     const result = await fetchPatients();
-    expect(global.fetch).toHaveBeenCalledWith(`${BASE}/patients`, undefined);
+    expect(global.fetch).toHaveBeenCalledWith(`${BASE}/patients`, expect.any(Object));
     expect(result).toEqual([{ patient_id: "P1", encounter_count: 3 }]);
   });
 
   it("fetchPatient calls /patients/:id", async () => {
     mockFetchOk({ patient_id: "P1", encounter_count: 5 });
     await fetchPatient("P1");
-    expect(global.fetch).toHaveBeenCalledWith(`${BASE}/patients/P1`, undefined);
+    expect(global.fetch).toHaveBeenCalledWith(`${BASE}/patients/P1`, expect.any(Object));
   });
 
   it("fetchPatientEncounters includes limit param", async () => {
@@ -101,7 +106,7 @@ describe("GET API functions", () => {
     await fetchPatientEncounters("P1", 100);
     expect(global.fetch).toHaveBeenCalledWith(
       `${BASE}/patients/P1/encounters?limit=100`,
-      undefined,
+      expect.any(Object),
     );
   });
 
@@ -110,7 +115,7 @@ describe("GET API functions", () => {
     await fetchPatientEncounters("P1");
     expect(global.fetch).toHaveBeenCalledWith(
       `${BASE}/patients/P1/encounters?limit=500`,
-      undefined,
+      expect.any(Object),
     );
   });
 
@@ -119,7 +124,7 @@ describe("GET API functions", () => {
     await fetchEncounter("P1", "E1");
     expect(global.fetch).toHaveBeenCalledWith(
       `${BASE}/patients/P1/encounters/E1`,
-      undefined,
+      expect.any(Object),
     );
   });
 
@@ -128,7 +133,7 @@ describe("GET API functions", () => {
     await fetchEncounterCodedLinks("P1", "E1");
     expect(global.fetch).toHaveBeenCalledWith(
       `${BASE}/patients/P1/encounters/E1/coded-links`,
-      undefined,
+      expect.any(Object),
     );
   });
 
@@ -137,7 +142,7 @@ describe("GET API functions", () => {
     await fetchTaskDetail("T1");
     expect(global.fetch).toHaveBeenCalledWith(
       `${BASE}/review/tasks/T1`,
-      undefined,
+      expect.any(Object),
     );
   });
 
@@ -164,7 +169,7 @@ describe("GET API functions", () => {
     await fetchLeaderboard("snake", 5);
     expect(global.fetch).toHaveBeenCalledWith(
       `${BASE}/games/leaderboard?game=snake&limit=5`,
-      undefined,
+      expect.any(Object),
     );
   });
 
@@ -182,7 +187,7 @@ describe("GET API functions", () => {
     mockFetchOk([]);
     await searchTerms("chest pain", 10);
     const url = (global.fetch as jest.Mock).mock.calls[0][0] as string;
-    expect(url).toContain("q=chest%20pain");
+    expect(url).toMatch(/q=chest(%20|\+)pain/);
     expect(url).toContain("limit=10");
   });
 });

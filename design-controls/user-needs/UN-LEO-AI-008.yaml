@@ -7,10 +7,16 @@
   description: |
     Quality improvement leads need the system to calculate pathway
     durations between milestones and compare them against programme-defined
-    targets such as the NHS Faster Diagnosis Standard (FDS) 28 days,
+    targets. For the NCDA programme this includes the Primary Care Interval
+    (PCI -- time from first symptom presentation to referral), the
+    Diagnostic Interval (DI -- time from first presentation to cancer
+    diagnosis), the NHS Faster Diagnosis Standard (FDS) 28 days,
     Decision-to-Treat (DTT) 31 days, and Referral-to-Treatment (RTT)
-    62 days. The system must identify breaches, calculate organisation-level
-    performance, and support benchmarking.
+    62 days. Interval measures and targets are defined as configurable
+    Measures in the programme configuration and can be extended to support
+    future programmes. The system must identify breaches, calculate
+    consultation counts between first symptom presentation and referral,
+    and aggregate performance at organisation, PCN, and ICB level.
 
   stakeholder:
     type: "end_user"
@@ -46,16 +52,21 @@
 
   pain_points:
     - "Manual duration calculation is error-prone with complex date logic"
+    - "PCI and DI are not calculated by the national NCDA -- practices cannot derive them from raw proforma data"
+    - "Pre-referral consultation count requires manual tallying from record review"
     - "Aggregation across organisations requires merging multiple spreadsheets"
     - "No real-time visibility into breach rates during the reporting period"
     - "Target definitions change between programmes and require manual updates"
 
   acceptance_criteria:
     - "System shall calculate durations between configured milestone pairs"
-    - "System shall compare durations against programme-defined targets"
+    - "System shall calculate NCDA-defined intervals: Primary Care Interval (PCI) and Diagnostic Interval (DI)"
+    - "System shall calculate pre-referral consultation count as a configurable Measure"
+    - "System shall compare durations against programme-defined targets (FDS 28, DTT 31, RTT 62)"
     - "System shall flag target breaches"
     - "System shall aggregate metrics at organisation, PCN, and ICB level"
-    - "System shall support configurable target definitions per programme"
+    - "System shall support configurable Measure definitions per programme without code changes"
+    - "All interval definitions and target values shall be stored as programme configuration data"
 
   success_metrics:
     - metric: "Calculation accuracy"
@@ -75,6 +86,7 @@
     - "Intended Use Statement DC-IU-001 Section 2.4"
     - "NHS Faster Diagnosis Standard requirements"
     - "NHS NCDA programme reporting requirements"
+    - "NCDA interval definitions: Primary Care Interval (PCI) and Diagnostic Interval (DI)"
 
   related_standards:
     - "IEC 62304:2006"
@@ -86,7 +98,7 @@
     created_date: "2026-03-01"
     status: "draft"
 
-  design_inputs: []
-  validation_tests: []
+  design_inputs: ["DI-LEO-AI-013"]
+  validation_tests: ["VAL-LEO-AI-001", "VAL-LEO-AI-004"]
 
   tags: ["metrics", "waiting-times", "core-capability", "pipeline", "nhs-targets"]
