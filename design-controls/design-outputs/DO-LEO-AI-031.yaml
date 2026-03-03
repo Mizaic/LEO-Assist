@@ -1,0 +1,100 @@
+# -- DO-LEO-AI-031 -- Admin Guard and ReDoS-Safe Regex Validation for Clinical Rules
+# ISO 13485 / IEC 62304 Design Output
+# Schema: design-controls/templates/design_outputs_schema.yaml
+
+- id: "DO-LEO-AI-031"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "released"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-046"]
+    user_needs: []
+    risks_addressed: ["R-LEO-AI-031", "R-LEO-AI-027"]
+    verification_tests: ["VT-LEO-AI-039"]
+
+  specification:
+    title: "Admin Guard and ReDoS-Safe Regex Validation in Training Router"
+    description: |
+      Hardened services/api/app/routers/training.py implementing four
+      security controls for clinical rule mutation endpoints:
+
+      1. ADMIN-ONLY ACCESS: All four mutation endpoints now carry
+         Depends(require_admin) as a FastAPI parameter dependency:
+           - POST   /training/post-processor-rules
+           - PATCH  /training/post-processor-rules/{rule_id}
+           - POST   /training/context-rules
+           - PATCH  /training/context-rules/{rule_id}/deactivate
+         Non-admin requests return HTTP 403 before any business logic runs.
+
+      2. REDOS-SAFE REGEX VALIDATION: _validate_regex(pattern, max_length=200)
+         is called for all user-supplied context_regex inputs:
+           - Length check: > 200 chars -> HTTP 422
+           - Syntax check: re.compile() failure -> HTTP 422
+           - ReDoS probe: subprocess.run() with two pathological probe strings
+             (_REDOS_PROBE_LOWER = "a"*38, _REDOS_PROBE_SIMPLE = "a"*50+"b")
+             and 0.5s OS-level timeout -> HTTP 422 on TimeoutExpired
+
+      3. LITERAL VALIDATION: ConText rule literals capped at 200 characters;
+         empty strings rejected with HTTP 422.
+
+      4. AUDIT TRAIL HARDENING: created_by is always set from scope.email
+         (server-verified session identity), never from the request body.
+
+    acceptance_criteria:
+      - criterion: "Require_admin present on all four mutation endpoints"
+        type: "security"
+        measurement: "Test"
+        target: "FastAPI parameter inspection confirms require_admin dependency"
+      - criterion: "ReDoS patterns rejected"
+        type: "security"
+        measurement: "Test"
+        target: "Known catastrophic backtracking patterns raise HTTP 422"
+      - criterion: "Invalid regex rejected"
+        type: "functional"
+        measurement: "Test"
+        target: "Syntactically invalid patterns raise HTTP 422"
+      - criterion: "Long regex rejected"
+        type: "functional"
+        measurement: "Test"
+        target: "Patterns > 200 chars raise HTTP 422"
+      - criterion: "Valid regex accepted"
+        type: "functional"
+        measurement: "Test"
+        target: "Safe patterns pass without error"
+      - criterion: "Empty/long literal rejected"
+        type: "functional"
+        measurement: "Test"
+        target: "Empty or > 200 char literals raise HTTP 422"
+      - criterion: "created_by derived from session"
+        type: "security"
+        measurement: "Test"
+        target: "session.run receives created_by == scope.email, ignoring request body"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/api/app/routers/training.py"
+        description: "_validate_regex function, require_admin dependencies on mutation endpoints, created_by audit hardening, literal length validation"
+        storage_location: "git"
+    technical_details:
+      language: "Python"
+      framework: "FastAPI"
+      key_functions: ["_validate_regex", "create_context_rule", "create_post_processor_rule", "update_post_processor_rule", "deactivate_context_rule"]
+      key_constants: ["_REDOS_PROBE_LOWER", "_REDOS_PROBE_SIMPLE"]
+      key_imports: ["subprocess", "sys", "re", "app.deps.require_admin"]
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "require_admin: prevents non-privileged users from creating clinical rules"
+      - "_validate_regex: prevents pipeline DoS from pathological regex inputs"
+      - "created_by from scope.email: ensures audit trail cannot be spoofed"
+    risk_control_measures:
+      - "subprocess.run timeout kills the OS process if regex engine hangs (GIL bypass)"
+      - "Two probe strings catch different categories of catastrophic backtracking"
+      - "Length limit prevents excessively complex patterns before compilation"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: true

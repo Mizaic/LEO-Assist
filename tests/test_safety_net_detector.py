@@ -153,6 +153,26 @@ class TestDetectSafetyNetSignals:
         signals = detect_safety_net_signals("P1", ["ep1"], mock_client, MagicMock())
         assert len(signals) == 0
 
+    def test_false_negative_rate_zero_on_compliant_episodes(self):
+        """VT-006-TC-004: zero false negatives when all at-risk episodes are flagged."""
+        from services.analysis_worker.app.analyzers.safety_net_detector import detect_safety_net_signals
+
+        at_risk_episodes = ["ep1", "ep2", "ep3"]
+        flagged_episodes = []
+
+        for ep in at_risk_episodes:
+            mock_client = MagicMock()
+            mock_client.run.return_value = [
+                {"encounter_id": "E1", "text": "Patient has cough",
+                 "date": "2024-01-01", "milestone_type": "first_presentation"},
+            ]
+            signals = detect_safety_net_signals("P1", [ep], mock_client, MagicMock())
+            if signals:
+                flagged_episodes.append(ep)
+
+        fnr = (len(at_risk_episodes) - len(flagged_episodes)) / len(at_risk_episodes)
+        assert fnr <= 0.02, f"False negative rate {fnr:.0%} exceeds 2% threshold"
+
     def test_skips_empty_episode(self):
         from services.analysis_worker.app.analyzers.safety_net_detector import detect_safety_net_signals
 

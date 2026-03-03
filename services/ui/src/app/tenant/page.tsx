@@ -39,7 +39,7 @@ export default function TenantPage() {
 
   return (
     <Box sx={{ p: 3, maxWidth: 1200, mx: "auto" }}>
-      <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5 }}>
+      <Typography variant="h5" component="h1" sx={{ fontWeight: 700, mb: 0.5 }}>
         Tenant Management
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>

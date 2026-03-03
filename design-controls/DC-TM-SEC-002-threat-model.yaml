@@ -1,0 +1,2216 @@
+# =============================================================================
+# DC-TM-SEC-002 — Security Threat Model (Revision 2)
+# Primary Care Clinical Pathway Audit Platform
+# =============================================================================
+#
+# Document ID:    DC-TM-SEC-002
+# Version:        2.0.0
+# Status:         Draft
+# Date:           2026-03-03
+# Supersedes:     DC-TM-SEC-001 v1.0.0 (2026-03-01)
+# Standard:       IEC 81001-5-1:2021, ISO 14971:2019 (via AAMI TIR57)
+# Classification: QMS — Design Controls
+#
+# Regulatory scope:
+#   - UK Medical Devices Regulations 2002 (as amended) — UKCA Class I
+#   - ISO 13485:2016 — Quality Management System
+#   - IEC 62304:2006/AMD1:2015 — Software Lifecycle Processes
+#   - IEC 81001-5-1:2021 — Health Software Security Lifecycle
+#   - ISO 14971:2019 — Risk Management
+#   - UK GDPR / Data Protection Act 2018 — Article 9 special category data
+#   - NHS Data Security and Protection Toolkit (DSPT)
+#   - NCSC Secure by Design Principles
+#   - NCSC Cyber Assessment Framework (CAF)
+#
+# System classification:
+#   IEC 62304 Software Safety Class: B (per DC-SC-001)
+#   Data classification: Clinical (special category), PII, Operational
+#   Deployment: Cloud-hosted SaaS, multi-tenant NHS trust access
+#
+# Cross-references:
+#   - DC-SC-001  Software Safety Classification
+#   - DC-RM-001  Risk Management
+#   - DC-SOUP-001 SOUP List
+#   - DC-TM-SEC-001 (predecessor)
+#
+# Change summary (v1 → v2):
+#   - GAP-001 resolved: X-User-Email header and ?email= removed; session-only identity
+#   - GAP-003 partially resolved: model registry mutating routes require platform admin
+#   - GAP-005 resolved: COOKIE_SECURE configurable, defaults to true
+#   - GAP-006 resolved: slowapi rate limiting added
+#   - GAP-007 resolved: SERVICE_AUTH_SECRET shared-secret inter-service auth
+#   - GAP-009 partially resolved: X-Requested-With header required for mutations
+#   - GAP-010 resolved: OAuth nonce cookie for CSRF protection
+#   - GAP-011 partially resolved: SESSION_TTL_HOURS configurable (12-24h in prod/val)
+#   - GAP-013 resolved: ALLOWED_ORIGINS configurable via environment
+#   - New component: Dual-model consensus engine (AWS + Azure + arbitrator)
+#   - New component: Disorder verifier (clinical entity classification via LLM)
+#   - New component: Context engine (medspaCy ConText assertion detection)
+#   - New component: Tier classifier (auto-code vs HITL routing)
+#   - New component: CodingDecision audit trail (Neo4j)
+#   - New component: Context rules CRUD (user-configurable ConText rules)
+#   - New component: Post-processor rules (regex-based entity suppression)
+#   - New component: Patient coding timeline (UI)
+#   - Session store hardened: Redis required (503 on failure, no in-memory fallback)
+#   - ACA infrastructure: mTLS peer encryption, Key Vault secret references
+# =============================================================================
+
+system_context:
+  product: "Primary Care Clinical Pathway Audit Platform"
+  iec_62304_class: "B"
+  data_classifications:
+    - "Clinical (UK GDPR Article 9 special category)"
+    - "PII (NHS patient records)"
+    - "Operational (system configuration, model artifacts)"
+  deployment: >
+    Azure Container Apps (ACA) per-environment (leo-ai-dev, leo-ai-val, leo-ai-prod).
+    Shared ACR (leo-ai RG). Neo4j Aura (external). Azure Managed Redis (per-env).
+    Azure Service Bus Standard (per-env). AWS Bedrock. Azure OpenAI (per-env).
+    All secrets in Azure Key Vault (per-env). All services use a single
+    user-assigned Managed Identity per environment. ACA peer traffic encryption
+    (mTLS) enabled. Distroless runtime images. Non-root containers.
+
+  trust_zones:
+    - id: ZONE_A
+      name: "Internet"
+      services: [core-api, ui]
+      ingress: external
+      controls: [TLS 1.3, Entra ID OAuth, cookie session, nonce CSRF, XHR mutation guard, slowapi rate limiting]
+    - id: ZONE_B
+      name: "ACA internal network"
+      services: [terminology-api, fhir-api, analytics-api, model-inference, training-worker, coding-worker, analysis-worker]
+      ingress: internal
+      controls: [ACA mTLS peer-traffic-encryption, SERVICE_AUTH_SECRET Bearer token, Managed Identity service token]
+    - id: ZONE_C
+      name: "Azure PaaS"
+      services: [Key Vault, Service Bus, Blob Storage, Redis, Azure OpenAI]
+      controls: [Managed Identity, RBAC, TLS 1.2+]
+    - id: ZONE_D
+      name: "External SaaS"
+      services: [Neo4j Aura, AWS Bedrock]
+      controls: [TLS 1.3, Bolt+TLS, IAM key]
+
+  services:
+    - {name: "core-api", port: 8000, exposure: "external", framework: "FastAPI 0.115+", trust_zone: "ZONE_A/ZONE_B"}
+    - {name: "terminology-api", port: 8001, exposure: "internal", framework: "FastAPI", trust_zone: "ZONE_B"}
+    - {name: "fhir-api", port: 8002, exposure: "internal", framework: "FastAPI", trust_zone: "ZONE_B"}
+    - {name: "analytics-api", port: 8003, exposure: "internal", framework: "FastAPI", trust_zone: "ZONE_B"}
+    - {name: "model-inference", port: 8004, exposure: "internal", framework: "FastAPI", trust_zone: "ZONE_B"}
+    - {name: "training-worker", port: 8005, exposure: "internal", framework: "FastAPI", trust_zone: "ZONE_B"}
+    - {name: "coding-worker", port: null, exposure: "none", framework: "async message consumer", trust_zone: "ZONE_B"}
+    - {name: "analysis-worker", port: null, exposure: "none", framework: "async message consumer", trust_zone: "ZONE_B"}
+    - {name: "ui", port: 3000, exposure: "external", framework: "Next.js 16", trust_zone: "ZONE_A"}
+
+  data_stores:
+    - {name: "Neo4j Patient Graph", type: "graph database", data: "Patient, Encounter, clinical text, review tasks, CodingDecision audit, ContextRule, PostProcessorRule", trust_zone: "ZONE_D"}
+    - {name: "Neo4j Knowledge Graph", type: "graph database", data: "SNOMED terminology, FHIR resources, SurfaceForm mappings", trust_zone: "ZONE_D"}
+    - {name: "Azure Managed Redis", type: "key-value", data: "OAuth sessions, pipeline progress, LLM cache, checkpoints", trust_zone: "ZONE_C", note: "Managed Identity + rediss:// URL; session store requires Redis (503 on failure)"}
+
+  external_services:
+    - {name: "Azure AD v2.0", purpose: "OAuth authentication"}
+    - {name: "AWS Bedrock", purpose: "Primary LLM (Claude Haiku, Sonnet, Opus)", data_sent: "de-identified clinical text, entity text"}
+    - {name: "Azure OpenAI", purpose: "Secondary LLM (GPT-5 mini)", data_sent: "de-identified clinical text, entity text"}
+    - {name: "Azure Blob Storage (leoaimodels)", purpose: "NER model artifact storage", trust_zone: "ZONE_C"}
+    - {name: "Azure Service Bus", purpose: "Async job messaging (coding-jobs, analysis-jobs queues)", trust_zone: "ZONE_C"}
+    - {name: "Azure Key Vault", purpose: "Centralised secret management (per-env)", trust_zone: "ZONE_C"}
+    - {name: "Azure Container Registry (leoaicr)", purpose: "Docker image registry (shared, leo-ai RG)", trust_zone: "ZONE_C"}
+
+  aca_threat_reclassifications:
+    - id: T-ACA-001
+      description: "ACA internal network lateral movement"
+      pre_aca_risk: HIGH
+      post_aca_risk: LOW
+      controls: ["ACA internal-ingress (no external DNS)", "ACA mTLS peer encryption", "SERVICE_AUTH_SECRET Bearer token (GAP-007 resolved)", "Managed Identity service token"]
+    - id: T-ACA-002
+      description: "Container image supply chain attack"
+      pre_aca_risk: MEDIUM
+      post_aca_risk: LOW
+      controls: ["Distroless runtime images (no shell, no apt)", "Multi-stage builds (build tools stripped)", "Non-root appuser", "ACR with Managed Identity pull (no admin credentials)"]
+    - id: T-ACA-003
+      description: "Secret exfiltration via environment variables or .env files"
+      pre_aca_risk: HIGH
+      post_aca_risk: LOW
+      controls: ["Azure Key Vault secret references (secrets never in plain env config)", "Managed Identity (no connection strings in code)", "Distroless images (no shell to exec-into)", "Non-root containers"]
+
+# =============================================================================
+# PHASE 1–2: COMPONENT ANALYSIS AND THREATS
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# COMPONENT 1: AUTH SUBSYSTEM
+# ---------------------------------------------------------------------------
+component_1_auth:
+  name: "Auth Subsystem"
+  purpose: "OAuth 2.0 authentication via Azure AD, session management, org-scoped authorization"
+  iec_62304_contribution: "B"
+  trust_boundaries:
+    - "Internet → Core API (OAuth flow)"
+    - "Core API → Redis (session storage)"
+    - "Core API → Neo4j (org scope resolution)"
+    - "Core API → Analytics API (org context fetch)"
+  data_assets: "PII (email, name, org), Azure AD access tokens, session IDs"
+  network_exposure: "Public"
+  authentication_context: "Azure AD OAuth 2.0 authorization code flow"
+
+  phase_1_reconnaissance:
+    entry_points:
+      - id: "AUTH-EP-001"
+        type: "HTTP GET"
+        path: "/auth/login"
+        file: "services/api/app/routers/auth.py"
+        line: 85
+        authentication: "none"
+        description: "Initiates OAuth flow; generates nonce cookie; redirects to Azure AD"
+      - id: "AUTH-EP-002"
+        type: "HTTP GET"
+        path: "/auth/callback"
+        file: "services/api/app/routers/auth.py"
+        line: 117
+        authentication: "none (OAuth callback); nonce cookie validated"
+        description: "Handles OAuth code exchange, validates nonce, creates session"
+      - id: "AUTH-EP-003"
+        type: "HTTP POST"
+        path: "/auth/logout"
+        file: "services/api/app/routers/auth.py"
+        line: 257
+        authentication: "session cookie"
+        description: "Clears session and cookie"
+      - id: "AUTH-EP-004"
+        type: "HTTP GET"
+        path: "/auth/session"
+        file: "services/api/app/routers/auth.py"
+        line: 268
+        authentication: "session cookie (optional)"
+        description: "Returns current user info; returns null user if unauthenticated"
+      - id: "AUTH-EP-005"
+        type: "FastAPI dependency"
+        path: "get_caller_scope_from_request"
+        file: "services/api/app/deps.py"
+        line: 42
+        authentication: "session cookie only (GAP-001 resolved)"
+        description: "Resolves caller identity and org scope from authenticated session"
+
+    data_flows:
+      - id: "AUTH-DF-001"
+        description: "OAuth authorization code flow"
+        source: "Browser"
+        steps:
+          - "Browser → /auth/login → generates nonce, sets leo_oauth_nonce cookie → 302 redirect to Azure AD"
+          - "Azure AD → /auth/callback with ?code= (cleartext over HTTPS)"
+          - "Callback validates nonce cookie is present (CSRF check)"
+          - "Core API → Azure AD token endpoint (HTTPS POST with client_secret)"
+          - "Azure AD → access_token + id_token (JWT, cleartext in memory)"
+          - "Core API verifies id_token via JWKS (jose.jwt.decode RS256 — GAP-002 resolved 2026-03-03)"
+          - "Core API checks MFA claim (amr) when require_mfa=True in SystemConfig"
+          - "Core API → Analytics API GET /analytics/auth/org-context (org/admin enrichment)"
+          - "Core API → Redis SET auth:session:{session_id} (JSON with access_token)"
+          - "Core API → Browser SET-COOKIE leo_session={session_id} (httponly, samesite=lax, secure=COOKIE_SECURE env)"
+        encryption_transit: "HTTPS to Azure AD; inter-service depends on ACA mTLS + SERVICE_AUTH_SECRET"
+        encryption_rest: "Redis — Azure Managed Redis with TLS"
+        crosses_trust_boundary: true
+        clinical_decision_pathway: false
+
+      - id: "AUTH-DF-002"
+        description: "Org scope resolution"
+        source: "Any authenticated request"
+        steps:
+          - "Request arrives with leo_session cookie"
+          - "get_caller_scope_from_request loads session from Redis"
+          - "Email extracted from server-side session data (not from headers — GAP-001 resolved)"
+          - "PatientGraphClient opens Neo4j session"
+          - "Cypher query: MATCH (pr:Practitioner {email: $email})"
+          - "Expands org hierarchy: GPPractice → ICB → CancerAlliance"
+          - "Returns CallerScope(email, is_admin, org_ids)"
+        encryption_transit: "bolt+s:// to Neo4j Aura (TLS 1.3)"
+        encryption_rest: "Neo4j Aura encrypts at rest"
+        crosses_trust_boundary: true
+        clinical_decision_pathway: false
+
+    trust_boundary_analysis:
+      - boundary: "Internet → Core API (OAuth callback)"
+        authentication_present: "yes — OAuth authorization code + nonce cookie"
+        authentication_citation: "services/api/app/routers/auth.py:117-254"
+        authorisation_enforcement: "no — callback is open, relies on Azure AD code validity"
+        input_validation:
+          code_parameter: "checked for presence (line 129) but not validated beyond exchange"
+          nonce_cookie: "validated present (line 133); missing nonce → redirect with csrf_nonce_missing error"
+          error_parameter: "reflected to frontend URL (line 128)"
+          state_parameter: "normalized; must start with '/'; restricted redirect targets (line 239-241)"
+
+      - boundary: "Core API → Redis (session store)"
+        authentication_present: "yes — Redis URL via Managed Identity (Azure Managed Redis)"
+        authentication_citation: "services/api/app/services/session_store.py:33-70"
+        authorisation_enforcement: "no — any process with Redis URL has full access"
+        input_validation: "session_id is cryptographically random (secrets.token_urlsafe(32), line 92)"
+
+      - boundary: "Caller identity resolution"
+        authentication_present: "yes — session cookie validated against Redis"
+        authentication_citation: "services/api/app/deps.py:42-73"
+        authorisation_enforcement: "yes — org scope restricts data visibility"
+        authorisation_citation: "libs/auth/org_scope.py:65-135, 220-242"
+        input_validation: "email extracted from server-side session (no user-controllable identity input)"
+
+    secrets_usage:
+      - secret: "AZURE_AD_CLIENT_SECRET"
+        storage: "environment variable (Key Vault reference in ACA)"
+        rotation_evidence: "undocumented"
+        scope: ["services/api/app/routers/auth.py:32"]
+
+      - secret: "AZURE_AD_CLIENT_ID"
+        storage: "environment variable (Key Vault reference)"
+        rotation_evidence: "undocumented"
+        scope: ["services/api/app/routers/auth.py:31"]
+
+      - secret: "AZURE_AD_TENANT_ID"
+        storage: "environment variable (Key Vault reference)"
+        rotation_evidence: "undocumented"
+        scope: ["services/api/app/routers/auth.py:30"]
+
+      - secret: "Session ID (leo_session cookie)"
+        storage: "browser cookie + Redis key"
+        rotation_evidence: "none — no rotation on use; configurable TTL (12-24h in prod/val)"
+        scope: ["services/api/app/services/session_store.py:21-23"]
+
+      - secret: "Azure AD access_token"
+        storage: "Redis (auth:session:{session_id} JSON field)"
+        rotation_evidence: "none — token stored at login, never refreshed"
+        scope: ["services/api/app/routers/auth.py:226-237"]
+
+      - secret: "OAuth nonce (leo_oauth_nonce cookie)"
+        storage: "browser cookie"
+        rotation_evidence: "per-login; 600s max_age"
+        scope: ["services/api/app/routers/auth.py:91,105-113"]
+
+    existing_controls:
+      - control: "Cryptographically random session IDs"
+        citation: "services/api/app/services/session_store.py:91-92"
+        description: "secrets.token_urlsafe(32) — 256 bits of entropy"
+      - control: "HttpOnly cookie"
+        citation: "services/api/app/routers/auth.py:248"
+        description: "Session cookie inaccessible to JavaScript"
+      - control: "SameSite=lax cookie"
+        citation: "services/api/app/routers/auth.py:250"
+        description: "Mitigates cross-site POST CSRF"
+      - control: "Secure cookie flag (configurable)"
+        citation: "services/api/app/routers/auth.py:244,249"
+        description: "COOKIE_SECURE env var; defaults to true; all deployed envs set to true"
+      - control: "v2.0 token enforcement"
+        citation: "services/api/app/routers/auth.py:160-178"
+        description: "Rejects Azure AD v1.0 tokens (sts.windows.net issuer)"
+      - control: "OAuth nonce cookie (CSRF)"
+        citation: "services/api/app/routers/auth.py:91,105-113,133-136"
+        description: "Cryptographic nonce set at /login, validated at /callback (GAP-010)"
+      - control: "MFA enforcement"
+        citation: "services/api/app/routers/auth.py:210-223"
+        description: "App-level MFA backstop; checks amr claim for 'mfa' when require_mfa=True in SystemConfig"
+      - control: "Session-only identity (GAP-001)"
+        citation: "services/api/app/deps.py:42-73"
+        description: "X-User-Email header and ?email= query param removed; identity from session only"
+      - control: "Configurable session TTL"
+        citation: "services/api/app/services/session_store.py:21-22"
+        description: "SESSION_TTL_HOURS env var; 12h in dev/val, 24h in prod (down from 168h default)"
+      - control: "Redis required for sessions"
+        citation: "services/api/app/services/session_store.py:95-100"
+        description: "Session store raises 503 if Redis unavailable (no in-memory fallback)"
+      - control: "Org-scoped data access"
+        citation: "libs/auth/org_scope.py:65-135"
+        description: "Non-admin users restricted to their org hierarchy"
+      - control: "Patient-in-scope check"
+        citation: "libs/auth/org_scope.py:220-242"
+        description: "Verifies patient GP is within caller's org_ids"
+      - control: "Rate limiting"
+        citation: "services/api/app/main.py:33,91-92"
+        description: "slowapi Limiter with per-IP rate limiting"
+      - control: "XHR mutation guard (CSRF)"
+        citation: "services/api/app/main.py:124-140"
+        description: "X-Requested-With: XMLHttpRequest required for POST/PUT/PATCH/DELETE"
+
+  phase_2_threats:
+    - id: "AUTH-S-001"
+      element: "libs/auth/org_scope.py:196-217"
+      threat: "Identity spoofing via X-User-Email header"
+      status: "RESOLVED in v2"
+      resolution: >
+        X-User-Email header and ?email= query parameter removed from
+        get_caller_scope (libs/auth/org_scope.py:196-217) and
+        get_caller_scope_from_request (services/api/app/deps.py:42-73).
+        Identity is now derived solely from the server-side session cookie.
+        The get_caller_scope function now accepts only X-Leo-Session header
+        (for internal service-to-service calls) and validates it against Redis.
+      resolution_date: "2026-03-02"
+      resolution_files:
+        - "libs/auth/org_scope.py"
+        - "services/api/app/deps.py"
+        - "services/api/app/main.py"
+      residual_risk: >
+        X-Leo-Session header is accepted by get_caller_scope for internal
+        service-to-service calls. An attacker with network access to an internal
+        service could forge this header, but this requires breaching ACA internal
+        network + SERVICE_AUTH_SECRET (GAP-007 resolved).
+      original_severity: "Critical"
+      residual_severity: "Low"
+
+    - id: "AUTH-S-002"
+      element: "services/api/app/deps.py"
+      threat: "Identity spoofing via email query parameter"
+      status: "RESOLVED in v2"
+      resolution: >
+        The ?email= query parameter is no longer accepted.
+        get_caller_scope_from_request reads email from session data only.
+      resolution_date: "2026-03-02"
+      resolution_files: ["services/api/app/deps.py"]
+      original_severity: "Critical"
+      residual_severity: "Closed"
+
+    - id: "AUTH-T-001"
+      element: "services/api/app/routers/auth.py:164-178"
+      threat: "Token tampering — no JWT signature verification"
+      status: "OPEN"
+      attack_vector: "Attacker intercepts or forges a JWT with valid-looking claims (correct email, tenant, issuer) but invalid signature. The callback handler decodes it via base64 without verifying against Azure AD JWKS."
+      prerequisites: "Ability to inject a forged JWT into the token exchange response (MITM on token endpoint) or forge a token that Azure AD returns"
+      threat_actors: ["external_targeted", "supply_chain"]
+      evidence:
+        file: "services/api/app/routers/auth.py"
+        line: 167
+        snippet: "payload_b64 = token.split('.')[1]"
+      impact:
+        confidentiality: "High"
+        integrity: "High"
+        availability: "None"
+        clinical_safety: "Medium"
+        patient_data_exposure: true
+      likelihood: "Medium"
+      likelihood_rationale: "The token exchange happens over HTTPS to Azure AD, making MITM difficult. However, the absence of signature verification means any code path that processes existing tokens is vulnerable. The stored access_token in Redis is never re-validated."
+      existing_controls: "HTTPS to Azure AD token endpoint; v2.0 issuer check; nonce cookie CSRF"
+      gaps: "No JWKS-based cryptographic signature verification of id_token or access_token. python-jose[cryptography] is in requirements but not used for token validation."
+      confidence: "Confirmed"
+      regulatory_impact:
+        - standard: "IEC 81001-5-1"
+          clause: "5.3.3"
+          nature: "Cryptographic verification of authentication tokens not implemented"
+        - standard: "NCSC CAF"
+          clause: "B2.a"
+          nature: "Identity verification does not use cryptographic methods"
+
+    - id: "AUTH-T-002"
+      element: "services/api/app/routers/auth.py:85-114"
+      threat: "OAuth state parameter tampering — open redirect"
+      status: "RESOLVED in v2"
+      resolution: >
+        Nonce cookie (leo_oauth_nonce) set at /login, validated at /callback.
+        State parameter redirect targets restricted: /sign-in and /auth/callback
+        redirect to /dashboard. State must start with '/'.
+      resolution_date: "2026-03-02"
+      resolution_files: ["services/api/app/routers/auth.py"]
+      original_severity: "Medium"
+      residual_severity: "Low"
+      residual_risk: "Path-based phishing within the frontend domain remains theoretically possible but nonce prevents CSRF-style attacks."
+
+    - id: "AUTH-R-001"
+      element: "services/api/app/routers/auth.py"
+      threat: "Repudiation — no audit trail for authentication events"
+      status: "OPEN"
+      attack_vector: "Attacker authenticates, performs malicious actions, and there is no durable audit log of when sessions were created, by whom, or when they expired."
+      prerequisites: "Valid or spoofed identity"
+      threat_actors: ["malicious_insider", "compromised_nhs_endpoint"]
+      evidence:
+        file: "services/api/app/routers/auth.py"
+        line: 226
+        snippet: "save_session(session_id, {...})"
+      impact:
+        confidentiality: "None"
+        integrity: "Medium"
+        availability: "None"
+        clinical_safety: "Low"
+        patient_data_exposure: false
+      likelihood: "Medium"
+      likelihood_rationale: "Authentication events are logged via Python logging (logger.info/warning) but not persisted to a durable audit store. Log retention depends on infrastructure configuration."
+      existing_controls: "Python logging captures auth events; ACA container logs routed to Azure Monitor"
+      gaps: "No durable, tamper-evident audit log for authentication events. No session creation/destruction events written to a persistent store."
+      confidence: "Confirmed"
+      regulatory_impact:
+        - standard: "IEC 62304"
+          clause: "5.2"
+          nature: "Insufficient audit trail for security-relevant events"
+        - standard: "IEC 81001-5-1"
+          clause: "5.4.2"
+          nature: "Security event logging not persisted to durable store"
+
+    - id: "AUTH-I-001"
+      element: "services/api/app/routers/auth.py:244-249"
+      threat: "Session cookie transmitted over HTTP (secure=False)"
+      status: "RESOLVED in v2"
+      resolution: >
+        COOKIE_SECURE env var introduced, defaults to 'true'. All deployed
+        environments (dev, val, prod) set cookieSecure='true' in Bicep parameters.
+      resolution_date: "2026-03-02"
+      resolution_files:
+        - "services/api/app/routers/auth.py"
+        - "infra/bicep/parameters/dev.bicepparam"
+        - "infra/bicep/parameters/val.bicepparam"
+        - "infra/bicep/parameters/prod.bicepparam"
+      original_severity: "High"
+      residual_severity: "Closed"
+
+    - id: "AUTH-I-002"
+      element: "services/api/app/services/session_store.py:21-22"
+      threat: "Excessive session lifetime enables persistent access from stolen cookie"
+      status: "PARTIALLY RESOLVED in v2"
+      resolution: >
+        SESSION_TTL_HOURS now configurable via env var. Dev/val: 12h. Prod: 24h.
+        SystemConfig in Neo4j can override per-tenant. Down from hardcoded 168h (7 days).
+      residual_risk: >
+        No session rotation on activity. No sliding renewal with new session ID.
+        No IP or user-agent binding. No concurrent session limits.
+        A stolen session cookie is valid for up to 24h in production.
+      original_severity: "Medium"
+      residual_severity: "Low"
+
+    - id: "AUTH-D-001"
+      element: "services/api/app/services/session_store.py:95-100"
+      threat: "Redis session store denial of service — in-memory fallback"
+      status: "RESOLVED in v2"
+      resolution: >
+        In-memory fallback removed. Session store now raises HTTP 503 when Redis
+        is unavailable (_require_redis, line 95-100). This prevents degraded
+        authentication modes. Retry with exponential backoff handles transient
+        Redis errors (lines 52-54).
+      resolution_date: "2026-03-02"
+      resolution_files: ["services/api/app/services/session_store.py"]
+      original_severity: "Low"
+      residual_severity: "Closed"
+      note: "Users cannot authenticate during Redis outage — acceptable fail-closed behavior."
+
+    - id: "AUTH-E-001"
+      element: "libs/auth/org_scope.py:88-97"
+      threat: "Privilege escalation via platform admin flag"
+      status: "MITIGATED in v2"
+      resolution: >
+        AUTH-S-001/AUTH-S-002 resolved — identity spoofing via header/query param no longer
+        possible. Admin status checked from session (set at login) or live from Neo4j.
+        The chained attack path (spoof email → gain admin) is broken.
+      residual_risk: >
+        Admin status cached in session. If a Practitioner's is_platform_admin flag
+        is changed in Neo4j during an active session, the change takes effect only
+        at next login. Session revocation (delete_sessions_by_email) exists but
+        requires manual invocation.
+      original_severity: "Critical"
+      residual_severity: "Low"
+
+# ---------------------------------------------------------------------------
+# COMPONENT 2: CORE API GATEWAY
+# ---------------------------------------------------------------------------
+component_2_core_api:
+  name: "Core API Gateway"
+  purpose: "Central FastAPI application serving all HTTP endpoints and proxying to internal services"
+  iec_62304_contribution: "B"
+  trust_boundaries:
+    - "UI → Core API"
+    - "Core API → Terminology/FHIR/Analytics APIs (proxy)"
+  data_assets: "All data types — clinical, PII, operational"
+  network_exposure: "Public"
+  authentication_context: "Session cookie (via deps.py); XHR mutation guard; slowapi rate limiting"
+
+  phase_1_reconnaissance:
+    entry_points:
+      - id: "API-EP-001"
+        type: "HTTP GET"
+        path: "/health"
+        file: "services/api/app/main.py"
+        line: 161
+        authentication: "none"
+      - id: "API-EP-002"
+        type: "HTTP wildcard"
+        path: "/api/proxy/{benchmarks,fhir,analytics,pipeline}/*"
+        file: "services/api/app/routers/proxy.py"
+        authentication: "session cookie (get_access_token, get_user_email)"
+      - id: "API-EP-003"
+        type: "HTTP multiple"
+        path: "/model-registry/*"
+        file: "services/api/app/routers/model_registry.py"
+        authentication: "mutating routes require platform admin (require_admin); read routes open"
+      - id: "API-EP-004"
+        type: "HTTP multiple"
+        path: "/terminology/*"
+        file: "services/api/app/routers/terminology.py"
+        authentication: "none (GAP-004 still open)"
+      - id: "API-EP-005"
+        type: "HTTP multiple"
+        path: "/games/*"
+        file: "services/api/app/routers/games.py"
+        authentication: "none"
+      - id: "API-EP-006"
+        type: "HTTP multiple"
+        path: "/training/*"
+        file: "services/api/app/routers/training.py"
+        authentication: "session cookie (get_caller_scope)"
+      - id: "API-EP-007"
+        type: "HTTP multiple"
+        path: "/patients/*"
+        file: "services/api/app/routers/patients.py"
+        authentication: "session cookie (get_caller_scope) + require_patient_in_scope"
+
+    trust_boundary_analysis:
+      - boundary: "CORS policy"
+        authentication_present: "N/A"
+        authorisation_enforcement: "configurable origins"
+        input_validation:
+          origins: "ALLOWED_ORIGINS env var (GAP-013 resolved); dev includes localhost; prod restricted to healthcarecopilot.ai domain"
+          credentials: "true"
+          methods: "['*']"
+          headers: "['*']"
+        citation: "services/api/app/main.py:98-110"
+
+    existing_controls:
+      - control: "CORS middleware with configurable origins"
+        citation: "services/api/app/main.py:98-110"
+      - control: "Proxy router requires session authentication"
+        citation: "services/api/app/routers/proxy.py"
+      - control: "Proxy strips dangerous headers (host, cookie, transfer-encoding)"
+        citation: "services/api/app/routers/proxy.py"
+      - control: "slowapi rate limiting"
+        citation: "services/api/app/main.py:33,91-92"
+      - control: "XHR mutation guard"
+        citation: "services/api/app/main.py:124-140"
+      - control: "Request ID / correlation ID logging"
+        citation: "services/api/app/main.py:113-121"
+
+  phase_2_threats:
+    - id: "API-S-001"
+      element: "services/api/app/routers/model_registry.py"
+      threat: "Unauthenticated model lifecycle manipulation"
+      status: "PARTIALLY RESOLVED in v2"
+      resolution: >
+        Mutating routes (register, upload, validate, canary/start, canary/result,
+        promote, rollback, reject) now require Depends(require_admin) — platform
+        admin only (GAP-003 partial). Read routes (GET /status, /versions, /versions/{v},
+        /inference/health, canary jobs) remain unauthenticated.
+      resolution_date: "2026-03-02"
+      resolution_files: ["services/api/app/routers/model_registry.py", "services/api/app/deps.py"]
+      residual_risk: >
+        Read-only model metadata (version list, status, inference health) is
+        accessible without authentication. This leaks model version names,
+        training metadata, and precision/recall metrics. Low confidentiality impact
+        but provides reconnaissance information for a targeted attacker.
+      original_severity: "Critical"
+      residual_severity: "Low"
+
+    - id: "API-S-002"
+      element: "services/api/app/routers/terminology.py"
+      threat: "Unauthenticated terminology writeback"
+      status: "OPEN"
+      attack_vector: "POST /terminology/writeback, POST /terminology/surface-forms/upsert-mapping, DELETE /terminology/surface-forms/* have no authentication. An attacker can inject incorrect SurfaceForm→SNOMED mappings into the Knowledge Graph."
+      prerequisites: "Network access to Core API port 8000"
+      threat_actors: ["external_targeted", "supply_chain"]
+      evidence:
+        file: "services/api/app/routers/terminology.py"
+        line: 32
+        snippet: "router = APIRouter(prefix='/terminology', tags=['terminology']) — no Depends() on any route"
+      impact:
+        confidentiality: "None"
+        integrity: "High"
+        availability: "None"
+        clinical_safety: "High"
+        patient_data_exposure: false
+      likelihood: "Medium"
+      likelihood_rationale: "SurfaceForm mappings have a 1.2x boost weight, not authoritative. But systematic manipulation could bias coding at population level. XHR mutation guard (GAP-009) blocks form-based CSRF but not direct API calls."
+      existing_controls: "SurfaceForm provides 1.2x suggestion boost, not authoritative resolution; XHR mutation guard"
+      gaps: "No authentication on write endpoints for terminology data"
+      confidence: "Confirmed"
+      regulatory_impact:
+        - standard: "IEC 81001-5-1"
+          clause: "5.3.6"
+          nature: "Write access to clinical terminology data without authentication"
+
+    - id: "API-T-001"
+      element: "services/api/app/main.py:98-110"
+      threat: "CORS misconfiguration for production deployment"
+      status: "RESOLVED in v2"
+      resolution: >
+        ALLOWED_ORIGINS env var configurable per environment. Dev: atlas-dev.healthcarecopilot.ai + localhost.
+        Val: atlas-val.healthcarecopilot.ai. Prod: leo-ai-audit.healthcarecopilot.ai.
+      resolution_date: "2026-03-02"
+      resolution_files: ["services/api/app/main.py", "infra/bicep/parameters/*.bicepparam"]
+      original_severity: "Medium"
+      residual_severity: "Closed"
+
+    - id: "API-D-001"
+      element: "services/api/app/main.py:33,91-92"
+      threat: "No rate limiting on API endpoints"
+      status: "RESOLVED in v2"
+      resolution: "slowapi Limiter with get_remote_address key function added. Rate limit exceeded returns standard 429."
+      resolution_date: "2026-03-02"
+      resolution_files: ["services/api/app/main.py"]
+      original_severity: "High"
+      residual_severity: "Closed"
+      note: "Per-endpoint rate limit configuration should be documented and tuned for production load."
+
+    - id: "API-T-002"
+      element: "services/api/app/routers/proxy.py"
+      threat: "Proxy forwards access token and user context to internal services"
+      status: "IMPROVED in v2"
+      resolution: >
+        Proxy no longer forwards X-User-Email header. Uses X-Leo-Session instead.
+        Internal services validate SERVICE_AUTH_SECRET Bearer token (GAP-007).
+      residual_risk: "Forwarded access token still has full user permissions. No token scoping for internal calls."
+      original_severity: "Low"
+      residual_severity: "Low"
+
+# ---------------------------------------------------------------------------
+# COMPONENT 3: PATIENT DATA SERVICE
+# ---------------------------------------------------------------------------
+component_3_patient_data:
+  name: "Patient Data Service"
+  purpose: "CRUD operations for patient encounters, coded links, review workflows, timeline"
+  iec_62304_contribution: "B"
+  trust_boundaries: ["Core API → Neo4j Patient Graph"]
+  data_assets: "Clinical (encounter text, coded concepts), PII (patient demographics)"
+  network_exposure: "Internal (via Core API)"
+
+  phase_2_threats:
+    - id: "PAT-S-001"
+      element: "services/api/app/routers/patients.py"
+      threat: "Patient data accessible via spoofed identity"
+      status: "RESOLVED in v2"
+      resolution: >
+        AUTH-S-001/AUTH-S-002 resolved — identity spoofing no longer possible.
+        Patient endpoints use get_caller_scope (session-only) + require_patient_in_scope.
+        The chained attack path is broken.
+      original_severity: "High"
+      residual_severity: "Closed"
+
+    - id: "PAT-T-001"
+      element: "libs/cypher/documents_queries.py"
+      threat: "Cypher label injection via semantic tag"
+      status: "MITIGATED"
+      evidence:
+        file: "libs/cypher/documents_queries.py"
+        snippet: "_build_upsert_query uses f-string for label/rel_type but both from fixed _LABEL_BY_TAG and _REL_BY_LABEL maps"
+      impact:
+        confidentiality: "None"
+        integrity: "None"
+        availability: "None"
+        clinical_safety: "None"
+        patient_data_exposure: false
+      likelihood: "Low"
+      likelihood_rationale: "semantic_tag normalized to alphanumeric, then looked up in hardcoded _LABEL_BY_TAG map; unknown tags → 'SnomedConcept'. Both label and rel_type come from fixed maps."
+      existing_controls: "_LABEL_BY_TAG normalization; _REL_BY_LABEL fixed maps; all other Cypher parameters use $param"
+      gaps: "Pattern of f-string label interpolation is fragile; any future extension of the maps with user input would create injection risk"
+      confidence: "Investigate"
+
+    - id: "PAT-I-001"
+      element: "services/api/app/routers/patients.py"
+      threat: "Patient ID and encounter ID format not validated"
+      status: "NEW in v2"
+      attack_vector: "patient_id and encounter_id path parameters are used in Cypher queries and HTTP URLs without format or length validation. Excessively long or malformed IDs could cause unexpected Neo4j behavior."
+      prerequisites: "Authenticated session"
+      threat_actors: ["malicious_insider"]
+      evidence:
+        file: "services/api/app/routers/patients.py"
+        snippet: "patient_id: str path parameter used directly in Cypher and Terminology API calls"
+      impact:
+        confidentiality: "None"
+        integrity: "Low"
+        availability: "Low"
+        clinical_safety: "None"
+        patient_data_exposure: false
+      likelihood: "Low"
+      likelihood_rationale: "All Cypher queries use parameterized $pid. Requires authentication. Primarily a defense-in-depth concern."
+      existing_controls: "Cypher parameterization; authentication required"
+      gaps: "No format validation (e.g., max length, allowed characters) on patient_id/encounter_id"
+      confidence: "Probable"
+
+# ---------------------------------------------------------------------------
+# COMPONENT 4: CODING PIPELINE
+# ---------------------------------------------------------------------------
+component_4_coding_pipeline:
+  name: "Coding Pipeline"
+  purpose: "Extract clinical entities from encounter text via NER, resolve to SNOMED, apply tier classification, persist DOCUMENTS links and CodingDecision audit trail"
+  iec_62304_contribution: "B"
+  trust_boundaries:
+    - "Service Bus → Coding Worker"
+    - "Coding Worker → AWS Bedrock (escalation, consensus)"
+    - "Coding Worker → Azure OpenAI (consensus)"
+    - "Coding Worker → Terminology API"
+    - "Coding Worker → Neo4j Patient Graph"
+  data_assets: "Clinical text (de-identified), SNOMED codes, extraction results, CodingDecision audit records"
+  network_exposure: "Internal"
+
+  phase_2_threats:
+    - id: "COD-T-001"
+      element: "services/coding_worker/app/services/job_handler.py"
+      threat: "Unvalidated message body — arbitrary patient processing"
+      status: "RESOLVED"
+      resolution_date: "2026-03-03"
+      resolution: >
+        CodingJobMessage Pydantic model validates patient_id (required, max 128 chars,
+        [a-zA-Z0-9_\\-] only), encounter_id (optional, same constraint), mode (Literal union),
+        dry_run (bool). handle_coding_job() calls model_validate() before any pipeline code.
+        Malformed messages logged at ERROR and dropped silently to prevent poison-pill loops.
+      resolution_files:
+        - "services/coding_worker/app/services/job_handler.py"
+      design_controls: ["DI-LEO-AI-051", "DO-LEO-AI-034", "VT-LEO-AI-044"]
+      attack_vector: "Messages from Azure Service Bus are deserialized and patient_id, encounter_id, mode, dry_run are read directly from the body without schema validation."
+      prerequisites: "Access to Azure Service Bus queue (Managed Identity or connection string)"
+      threat_actors: ["supply_chain", "malicious_insider"]
+      evidence:
+        file: "services/coding_worker/app/services/job_handler.py"
+        snippet: "body = msg.body; patient_id = body.get('patient_id')"
+      impact:
+        confidentiality: "Medium"
+        integrity: "Medium"
+        availability: "Low"
+        clinical_safety: "Medium"
+        patient_data_exposure: false
+      likelihood: "Low"
+      likelihood_rationale: "Requires Azure Service Bus access (Managed Identity). Worker does validate mode against rejection list."
+      existing_controls: "Pydantic schema validation; format validation on IDs; Azure Service Bus authentication via Managed Identity; ACA network isolation"
+
+    - id: "COD-I-001"
+      element: "services/coding_worker/app/pipeline/pipeline_service.py"
+      threat: "Clinical text sent to external LLM providers"
+      status: "OPEN (expanded in v2)"
+      attack_vector: >
+        De-identified encounter text is now sent to multiple LLM providers via the
+        consensus engine: AWS Bedrock (Haiku + Sonnet) and Azure OpenAI (GPT-5 mini)
+        in parallel. The escalation path can invoke Opus (AWS) for complex cases.
+        The disorder verifier sends entity_text + encounter_text[:2000] to both providers.
+        This significantly expands the LLM exposure surface compared to v1.
+      prerequisites: "Standard system operation"
+      threat_actors: ["supply_chain"]
+      evidence:
+        file: "libs/llm_client/consensus.py"
+        snippet: "fut_aws = pool.submit(_call_provider, 'aws', 'small', ...); fut_azure = pool.submit(_call_provider, 'azure', 'small', ...)"
+      impact:
+        confidentiality: "Medium"
+        integrity: "None"
+        availability: "None"
+        clinical_safety: "None"
+        patient_data_exposure: true
+      likelihood: "Medium"
+      likelihood_rationale: "De-identification is regex-based and cannot catch all PII. The consensus pattern sends clinical text to 2-3 LLMs per operation (up from 1 in v1)."
+      existing_controls: "Regex-based de-identification; encounter_text truncated to 2000 chars in disorder verifier; AWS Bedrock and Azure OpenAI data processing agreements"
+      gaps: "De-identification not validated for completeness; no PHI detection audit before LLM submission; clinical text exposure surface has grown 2-3x with consensus pattern"
+      confidence: "Confirmed"
+
+    - id: "COD-I-002"
+      element: "services/coding_worker/app/pipeline/pipeline_service.py"
+      threat: "Terminology resolution via unauthenticated HTTP"
+      status: "PARTIALLY RESOLVED in v2"
+      resolution: >
+        SERVICE_AUTH_SECRET Bearer token added for inter-service calls (GAP-007).
+        ACA mTLS peer encryption provides transport security.
+      residual_risk: "If SERVICE_AUTH_SECRET is empty (local dev), auth is bypassed."
+      original_severity: "Low"
+      residual_severity: "Low"
+
+# ---------------------------------------------------------------------------
+# COMPONENT 5: TERMINOLOGY RESOLUTION
+# ---------------------------------------------------------------------------
+component_5_terminology:
+  name: "Terminology Resolution"
+  purpose: "Hybrid SNOMED CT terminology search and code resolution"
+  iec_62304_contribution: "B"
+  trust_boundaries: ["Coding Worker → Terminology API", "Terminology API → Neo4j Knowledge Graph"]
+  data_assets: "Clinical terms, SNOMED concepts, SurfaceForm mappings"
+  network_exposure: "Internal"
+
+  phase_2_threats:
+    - id: "TERM-T-001"
+      element: "services/terminology_api/app/services/coding_resolver.py"
+      threat: "Lucene fulltext injection"
+      status: "MITIGATED"
+      evidence:
+        file: "services/terminology_api/app/services/coding_resolver.py"
+        snippet: "_escape_lucene() escapes special characters"
+      impact:
+        confidentiality: "Low"
+        integrity: "Low"
+        availability: "Low"
+        clinical_safety: "None"
+        patient_data_exposure: false
+      likelihood: "Low"
+      existing_controls: "_escape_lucene(); search router replaces Lucene special chars with spaces (services/terminology_api/app/routers/search.py); limit 1-50"
+      gaps: "Escaping function should be fuzz-tested"
+      confidence: "Investigate"
+
+# ---------------------------------------------------------------------------
+# COMPONENT 6: TRAINING & LABEL VERIFICATION
+# ---------------------------------------------------------------------------
+component_6_training:
+  name: "Training & Label Verification"
+  purpose: "NER training data management, dual-model label verification, model training pipeline, coding review queue"
+  iec_62304_contribution: "B"
+  trust_boundaries:
+    - "Core API → Neo4j (training labels)"
+    - "Label Verifier → AWS Bedrock + Azure OpenAI"
+    - "Training Worker → Azure Blob Storage"
+  data_assets: "De-identified training labels, model artifacts, evaluation metrics, coding review decisions"
+  network_exposure: "Internal"
+
+  phase_2_threats:
+    - id: "TRN-I-001"
+      element: "services/api/app/services/label_verifier.py"
+      threat: "Training label text sent to dual LLM providers"
+      status: "OPEN (expanded in v2)"
+      attack_vector: "Label verification sends encounter text to both AWS Bedrock and Azure OpenAI simultaneously. High concurrency (LABEL_VERIFY_WORKERS default 50) amplifies exposure."
+      prerequisites: "Label verification triggered"
+      threat_actors: ["supply_chain"]
+      existing_controls: "De-identification; patient_id_hash not raw ID"
+      gaps: "No additional PHI check before LLM submission; high parallelism increases API cost and rate-limit risk"
+      confidence: "Confirmed"
+
+    - id: "TRN-T-001"
+      element: "services/api/app/routers/training.py"
+      threat: "Model training with tampered labels"
+      status: "IMPROVED in v2"
+      resolution: "AUTH-S-001 resolved — bulk import now requires authenticated session. CallerScope dependency is real authentication."
+      residual_risk: "Source string validation is still a simple allowlist check. No integrity verification (checksums/signatures) on imported entities."
+      original_severity: "Medium"
+      residual_severity: "Low"
+
+# ---------------------------------------------------------------------------
+# COMPONENT 7: ANALYSIS WORKER
+# ---------------------------------------------------------------------------
+component_7_analysis:
+  name: "Analysis Worker"
+  purpose: "Post-coding clinical analysis — anchor detection, episode building, safety-net detection, KPI calculation"
+  iec_62304_contribution: "B"
+  trust_boundaries:
+    - "Service Bus → Analysis Worker"
+    - "Analysis Worker → Azure OpenAI"
+    - "Analysis Worker → Neo4j Patient Graph"
+  data_assets: "Clinical text, episode data, safety-net alerts, KPI metrics"
+  network_exposure: "Internal"
+
+  phase_2_threats:
+    - id: "ANL-I-001"
+      element: "services/analysis_worker/app/analyzers/episode_builder.py"
+      threat: "Full encounter text sent to Azure OpenAI for episode classification"
+      status: "OPEN"
+      existing_controls: "De-identification applied upstream; ACA network isolation"
+      gaps: "No independent de-identification check before analysis LLM calls"
+      confidence: "Probable"
+
+    - id: "ANL-T-001"
+      element: "services/analysis_worker/app/services/job_handler.py"
+      threat: "Unvalidated analysis message body"
+      status: "OPEN"
+      existing_controls: "Azure Service Bus authentication via Managed Identity"
+      gaps: "No Pydantic schema validation on message body"
+      confidence: "Probable"
+
+# ---------------------------------------------------------------------------
+# COMPONENT 8: FHIR & ANALYTICS APIs
+# ---------------------------------------------------------------------------
+component_8_fhir_analytics:
+  name: "FHIR & Analytics APIs"
+  purpose: "FHIR R4B measure evaluation, benchmark management, org context, cohort analytics"
+  iec_62304_contribution: "B"
+  trust_boundaries: ["Core API proxy → FHIR/Analytics APIs", "APIs → Neo4j"]
+  data_assets: "Aggregate clinical metrics, org structure, benchmark data"
+  network_exposure: "Internal"
+
+  phase_2_threats:
+    - id: "FHIR-S-001"
+      element: "services/fhir_api/app/main.py"
+      threat: "No authentication on FHIR API endpoints"
+      status: "PARTIALLY RESOLVED in v2"
+      resolution: "SERVICE_AUTH_SECRET Bearer token required for inter-service calls (GAP-007). ACA internal ingress prevents external access."
+      residual_risk: "A compromised internal container could still call FHIR API without the forwarded user context."
+      original_severity: "Low"
+      residual_severity: "Low"
+
+    - id: "ANLAPI-S-001"
+      element: "services/analytics_api/app/routers/org_context.py"
+      threat: "Org context endpoint returns admin status by email without user authentication"
+      status: "PARTIALLY RESOLVED in v2"
+      resolution: "SERVICE_AUTH_SECRET Bearer token required. ACA internal ingress prevents external access."
+      residual_risk: "Internal callers can still query admin status for any email."
+      original_severity: "Low"
+      residual_severity: "Low"
+
+# ---------------------------------------------------------------------------
+# COMPONENT 9: UI FRONTEND
+# ---------------------------------------------------------------------------
+component_9_ui:
+  name: "UI Frontend"
+  purpose: "Next.js web application for clinical audit workflows, coding review, context rules management, patient timeline"
+  iec_62304_contribution: "B"
+  trust_boundaries: ["Browser → Core API"]
+  data_assets: "Session cookie, clinical data displayed in browser"
+  network_exposure: "Public"
+
+  phase_2_threats:
+    - id: "UI-T-001"
+      element: "services/ui/src/lib/authContext.tsx"
+      threat: "No CSRF protection for state-changing operations"
+      status: "PARTIALLY RESOLVED in v2"
+      resolution: >
+        XHR mutation guard added to Core API (services/api/app/main.py:124-140).
+        POST/PUT/PATCH/DELETE requests require X-Requested-With: XMLHttpRequest header.
+        SameSite=lax cookie prevents cross-site form submissions.
+      residual_risk: "No per-request CSRF token. XHR header can be set by JavaScript on same-origin pages."
+      original_severity: "Low"
+      residual_severity: "Low"
+
+    - id: "UI-I-001"
+      element: "services/ui/src/lib/api/legacy.ts"
+      threat: "Clinical data exposed in browser memory"
+      status: "OPEN"
+      existing_controls: "Session timeout (12-24h); org-scoped data access; no persistent client-side storage of clinical data"
+      gaps: "No Content-Security-Policy header; no Subresource Integrity on scripts; clinical data cached in React state"
+      confidence: "Probable"
+
+    - id: "UI-I-002"
+      element: "services/ui/src/lib/api/legacy.ts"
+      threat: "Hardcoded localhost API base URL"
+      status: "NEW in v2"
+      attack_vector: "INTERNAL_API_BASE defaults to 'http://localhost:8000'. In production, this must be overridden by the Next.js server environment. If misconfigured, API calls will fail silently or route to an unintended service."
+      prerequisites: "Deployment with default configuration"
+      threat_actors: ["configuration_error"]
+      impact:
+        confidentiality: "None"
+        integrity: "None"
+        availability: "Medium"
+        clinical_safety: "None"
+        patient_data_exposure: false
+      likelihood: "Low"
+      likelihood_rationale: "Standard Next.js server-side rendering pattern. Must be configured at deployment."
+      existing_controls: "Server-side only (not exposed to browser)"
+      gaps: "No startup validation that INTERNAL_API_BASE is set to a non-localhost value in production"
+      confidence: "Probable"
+
+# ---------------------------------------------------------------------------
+# COMPONENT 10: NEO4J & REDIS CLIENTS
+# ---------------------------------------------------------------------------
+component_10_data_clients:
+  name: "Neo4j & Redis Clients"
+  purpose: "Database connection management for Patient Graph, Knowledge Graph, and Redis"
+  iec_62304_contribution: "B"
+  trust_boundaries: ["Application tier → Data tier"]
+  data_assets: "Database credentials, all data in transit"
+  network_exposure: "Internal"
+
+  phase_2_threats:
+    - id: "DB-I-001"
+      element: "libs/neo4j_client/client.py"
+      threat: "Credentials in process memory"
+      status: "IMPROVED in v2"
+      resolution: "Production uses Azure Key Vault secret references injected by ACA. Distroless images prevent shell access."
+      residual_risk: "Credentials are still in-memory at runtime. Standard for containerized applications."
+      original_severity: "Low"
+      residual_severity: "Low"
+
+    - id: "DB-I-002"
+      element: "docker-compose.yml"
+      threat: "Hardcoded development credentials in docker-compose"
+      status: "OPEN (accepted risk)"
+      existing_controls: "docker-compose is dev-only; production uses Neo4j Aura with Key Vault credentials"
+      confidence: "Probable"
+
+# ---------------------------------------------------------------------------
+# COMPONENT 11: LLM CLIENT & MESSAGE BUS
+# ---------------------------------------------------------------------------
+component_11_llm_bus:
+  name: "LLM Client & Message Bus"
+  purpose: "Unified LLM provider abstraction; dual-model consensus; async message bus for job distribution"
+  iec_62304_contribution: "B"
+  trust_boundaries:
+    - "Application → AWS Bedrock"
+    - "Application → Azure OpenAI"
+    - "Application → Azure Service Bus"
+  data_assets: "Clinical text (sent to LLMs), API keys, message payloads"
+  network_exposure: "Internal → External"
+
+  phase_2_threats:
+    - id: "LLM-I-001"
+      element: "libs/llm_client/cache.py"
+      threat: "LLM response cache stores clinical data in process memory"
+      status: "OPEN"
+      existing_controls: "Cache is in-process only; max_size limits growth"
+      gaps: "No encryption of cached data; default TTL is 0 (no expiration)"
+      confidence: "Probable"
+
+    - id: "BUS-T-001"
+      element: "libs/message_bus/azure_adapter.py"
+      threat: "Message bus messages not integrity-protected"
+      status: "OPEN"
+      existing_controls: "Azure Service Bus authentication via Managed Identity; AMQP TLS"
+      gaps: "No message-level signing or integrity verification"
+      confidence: "Probable"
+
+# ---------------------------------------------------------------------------
+# COMPONENT 12: NER, PROMPTS & DE-IDENTIFICATION
+# ---------------------------------------------------------------------------
+component_12_ner_deidentification:
+  name: "NER Processing, Prompts & De-identification"
+  purpose: "Entity extraction schema mapping, prompt management, PII removal, context detection"
+  iec_62304_contribution: "B"
+  trust_boundaries: ["None (in-process)"]
+  data_assets: "Clinical text, PII, extraction prompts"
+  network_exposure: "Isolated"
+
+  phase_2_threats:
+    - id: "DEID-I-001"
+      element: "libs/utils/deidentify.py"
+      threat: "Incomplete PII removal — regex-based de-identification has known gaps"
+      status: "OPEN"
+      existing_controls: "Comprehensive regex patterns; detect_phi() audit function"
+      gaps: "No NER-based name detection; no validation of de-identification completeness"
+      confidence: "Confirmed"
+
+    - id: "DEID-I-002"
+      element: "libs/utils/deidentify.py:46-52"
+      threat: "Deployment-specific organisation names hardcoded"
+      status: "OPEN"
+      existing_controls: "Current deployment organisations listed in _LOCAL_ORGS"
+      gaps: "Organisation list not configurable via environment; requires code change per deployment"
+      confidence: "Confirmed"
+
+    - id: "NER-T-001"
+      element: "libs/prompts/extraction_v1.py"
+      threat: "Prompt injection via clinical text"
+      status: "IMPROVED in v2"
+      resolution: >
+        Classification step replaced with rule-based spaCy PhraseMatcher (libs/classifiers/encounter_textcat.py).
+        NER extraction path (ModelExtractorProvider) does not use an LLM.
+        LLM extraction path is still available as configurable provider but not active by default.
+      residual_risk: "LLM extraction path available when configured; consensus engine embeds entity_text in prompts for disorder verification and coding consensus."
+      original_severity: "Low"
+      residual_severity: "Low"
+
+# ---------------------------------------------------------------------------
+# COMPONENT 13: DUAL-MODEL CONSENSUS ENGINE (NEW in v2)
+# ---------------------------------------------------------------------------
+component_13_consensus:
+  name: "Dual-Model Consensus Engine"
+  purpose: "Run clinical verification queries against two LLMs (Haiku + GPT-5 mini) in parallel with Sonnet arbitration on disagreement"
+  iec_62304_contribution: "B"
+  trust_boundaries:
+    - "Application → AWS Bedrock (Haiku, Sonnet)"
+    - "Application → Azure OpenAI (GPT-5 mini)"
+  data_assets: "Clinical text (entity_text, encounter_text), SNOMED codes, verification verdicts"
+  network_exposure: "Internal → External"
+  source_files:
+    - "libs/llm_client/consensus.py (~196 lines)"
+    - "libs/llm_client/disorder_verifier.py (~143 lines)"
+    - "libs/llm_client/escalation.py (~484 lines) — verify_coding_consensus function"
+
+  phase_2_threats:
+    - id: "CONS-I-001"
+      element: "libs/llm_client/consensus.py"
+      threat: "Clinical text sent to multiple LLM providers simultaneously"
+      status: "NEW in v2"
+      attack_vector: >
+        The consensus engine sends clinical text (entity_text, encounter_text) to
+        both AWS Bedrock and Azure OpenAI in parallel. On disagreement, a third call
+        goes to Sonnet (AWS). This triples the data exposure surface compared to
+        single-model calls. The disorder verifier sends encounter_text[:2000] +
+        entity_text to both providers. The coding consensus verifier sends
+        encounter_text[:1500] + entity_text + SNOMED candidates to both providers.
+      prerequisites: "Standard system operation — consensus runs on every entity requiring verification"
+      threat_actors: ["supply_chain"]
+      evidence:
+        file: "libs/llm_client/consensus.py"
+        line: 84
+        snippet: "fut_aws = pool.submit(_call_provider, 'aws', 'small', ...); fut_azure = pool.submit(_call_provider, 'azure', 'small', ...)"
+      impact:
+        confidentiality: "Medium"
+        integrity: "None"
+        availability: "None"
+        clinical_safety: "None"
+        patient_data_exposure: true
+      likelihood: "Medium"
+      likelihood_rationale: "Standard operation. Every entity that enters Tier 2 or requires disorder verification triggers dual-model calls."
+      existing_controls: "De-identification upstream; encounter_text truncation (2000 chars in disorder verifier, 1500 in coding consensus); AWS/Azure DPAs"
+      gaps: "No per-call PHI audit; data sent to two separate cloud jurisdictions (AWS US, Azure UK); no data minimization beyond truncation"
+      confidence: "Confirmed"
+      regulatory_impact:
+        - standard: "UK GDPR"
+          clause: "Article 28, Article 44-49"
+          nature: "Clinical text sent to multiple third-party processors; cross-border transfer considerations for AWS"
+        - standard: "DSPT"
+          clause: "Assertion 3.4"
+          nature: "Data sharing with multiple external processors"
+
+    - id: "CONS-T-001"
+      element: "libs/llm_client/consensus.py:146-195"
+      threat: "Arbitrator override of correct clinical verdict"
+      status: "NEW in v2"
+      attack_vector: >
+        When Haiku and GPT-5 mini disagree, Sonnet arbitrates with the same prompt.
+        Sonnet's verdict is accepted unconditionally. If Sonnet produces an incorrect
+        verdict (e.g., classifying an active disorder as informational), this
+        overrides a potentially correct small-model verdict.
+      prerequisites: "Model disagreement on clinical entity classification"
+      threat_actors: ["N/A — systemic AI reliability risk"]
+      evidence:
+        file: "libs/llm_client/consensus.py"
+        line: 152
+        snippet: "arb_resp = _call_provider('aws', 'big', system_prompt, user_msg, max_tokens)"
+      impact:
+        confidentiality: "None"
+        integrity: "Medium"
+        availability: "None"
+        clinical_safety: "Medium"
+        patient_data_exposure: false
+      likelihood: "Low"
+      likelihood_rationale: "Sonnet is a more capable model; arbitration errors should be rare but cannot be eliminated. Incorrect disorder classification could suppress clinically relevant entities."
+      existing_controls: "fail_verdict returns conservative default (e.g., 'review' for HITL mode); CodingDecision audit trail records all verdicts and model IDs"
+      gaps: "No human review step for arbitrated verdicts in autonomous mode; no monitoring of disagreement rates or arbitration accuracy"
+      confidence: "Probable"
+      regulatory_impact:
+        - standard: "IEC 62304"
+          clause: "5.5"
+          nature: "AI-driven clinical classification without deterministic verification"
+        - standard: "ISO 14971"
+          clause: "5.5"
+          nature: "Risk control relies on third-party AI model accuracy"
+
+    - id: "CONS-T-002"
+      element: "libs/llm_client/consensus.py:111-117"
+      threat: "Dual provider failure falls back to fail_verdict without human review"
+      status: "NEW in v2"
+      attack_vector: >
+        If both AWS and Azure calls fail (network, timeout, rate limit), the consensus
+        engine returns fail_verdict. For disorder verification in HITL mode this is 'review'
+        (safe), but in autonomous mode it is 'not_disorder' which suppresses the entity
+        entirely without any human review.
+      prerequisites: "Both LLM providers unavailable simultaneously"
+      threat_actors: ["external_targeted", "configuration_error"]
+      evidence:
+        file: "libs/llm_client/disorder_verifier.py"
+        snippet: "fail_verdict_for_mode: autonomous='not_disorder', hitl='review'"
+      impact:
+        confidentiality: "None"
+        integrity: "Medium"
+        availability: "None"
+        clinical_safety: "Medium"
+        patient_data_exposure: false
+      likelihood: "Low"
+      likelihood_rationale: "Simultaneous failure of both providers is unlikely. However, a targeted DoS against LLM endpoints could trigger this path."
+      existing_controls: "60s timeout per provider; CodingDecision audit records failure"
+      gaps: "Autonomous mode fail_verdict silently suppresses entities; no alerting on dual-provider failure"
+      confidence: "Probable"
+
+# ---------------------------------------------------------------------------
+# COMPONENT 14: CONTEXT ENGINE & TIER CLASSIFIER (NEW in v2)
+# ---------------------------------------------------------------------------
+component_14_context_tier:
+  name: "Context Engine & Tier Classifier"
+  purpose: "MedSpaCy ConText assertion detection (negation, historical, hypothetical) and tier-based routing (auto-code vs HITL vs review)"
+  iec_62304_contribution: "B"
+  trust_boundaries: ["None (in-process)"]
+  data_assets: "Clinical text, entity assertions, tier classifications"
+  network_exposure: "Isolated"
+  source_files:
+    - "libs/ner/context_engine.py (~234 lines)"
+    - "libs/ner/resources/uk_primary_care_context_rules.json (~39 lines)"
+    - "libs/coding_engine/tier_classifier.py (~115 lines)"
+
+  phase_2_threats:
+    - id: "CTX-T-001"
+      element: "libs/ner/context_engine.py"
+      threat: "Incorrect assertion detection leads to clinical entity suppression"
+      status: "NEW in v2"
+      attack_vector: >
+        The context engine uses rule-based assertion detection (medspaCy ConText).
+        Incorrect negation or historical detection suppresses entities that should be
+        coded, or codes entities that should not be (e.g., 'family history of cancer'
+        coded as present cancer). Assertion values feed directly into the tier
+        classifier which determines auto-code vs HITL routing.
+      prerequisites: "Clinical text with ambiguous context modifiers"
+      threat_actors: ["N/A — systemic NLP accuracy risk"]
+      evidence:
+        file: "libs/ner/context_engine.py"
+        snippet: "On error, marks entities as 'possible' (safe fallback)"
+      impact:
+        confidentiality: "None"
+        integrity: "Medium"
+        availability: "None"
+        clinical_safety: "High"
+        patient_data_exposure: false
+      likelihood: "Medium"
+      likelihood_rationale: "Rule-based context detection has known limitations with complex sentence structures. UK primary care free-text is often abbreviated and non-standard."
+      existing_controls: "Error fallback to 'possible'; custom UK primary care rules (declined, cancelled, historical); entities with non-present assertions routed to Tier 2/3 (HITL review)"
+      gaps: "No quantified accuracy metrics for assertion detection on UK primary care text; no ongoing monitoring of assertion error rates"
+      confidence: "Probable"
+      regulatory_impact:
+        - standard: "IEC 62304"
+          clause: "5.5"
+          nature: "NLP-driven clinical classification without quantified accuracy"
+
+    - id: "TIER-T-001"
+      element: "libs/coding_engine/tier_classifier.py"
+      threat: "Tier classification thresholds determine clinical safety boundary"
+      status: "NEW in v2"
+      attack_vector: >
+        The tier classifier routes entities to Tier 1 (auto-code), Tier 2 (HITL review),
+        or Tier 3 (manual review). Threshold values (_TIER1_SCORE_THRESHOLD=0.95,
+        _TIER2_SCORE_THRESHOLD=0.70) are hardcoded. An incorrect threshold could
+        auto-code entities that should be reviewed, or overwhelm reviewers with
+        unnecessary Tier 2/3 items.
+      prerequisites: "N/A — systemic calibration risk"
+      threat_actors: ["N/A — configuration risk"]
+      evidence:
+        file: "libs/coding_engine/tier_classifier.py"
+        snippet: "_TIER1_SCORE_THRESHOLD = 0.95; _TIER2_SCORE_THRESHOLD = 0.70"
+      impact:
+        confidentiality: "None"
+        integrity: "Medium"
+        availability: "None"
+        clinical_safety: "High"
+        patient_data_exposure: false
+      likelihood: "Low"
+      likelihood_rationale: "Thresholds are conservative (95% for auto-code). Non-present assertions automatically block Tier 1. Disorder verifier verdict gates auto-coding."
+      existing_controls: "High Tier 1 threshold (0.95); _AUTO_CODE_BLOCKED set for non-present/uncertain assertions; disorder verifier gate; HITL mode blocks all auto-coding"
+      gaps: "Thresholds hardcoded; no mechanism to tune per deployment; no ongoing threshold calibration against clinical outcomes"
+      confidence: "Probable"
+      regulatory_impact:
+        - standard: "IEC 62304"
+          clause: "5.3"
+          nature: "Clinical safety thresholds not configurable or validated per deployment"
+        - standard: "ISO 14971"
+          clause: "5.5"
+          nature: "Risk control thresholds require ongoing calibration"
+
+# ---------------------------------------------------------------------------
+# COMPONENT 15: CONTEXT RULES & POST-PROCESSOR RULES (NEW in v2)
+# ---------------------------------------------------------------------------
+component_15_rules_crud:
+  name: "Context Rules & Post-Processor Rules"
+  purpose: "User-configurable ConText rules for assertion detection and regex-based entity suppression/relabeling rules"
+  iec_62304_contribution: "B"
+  trust_boundaries: ["UI → Core API → Neo4j"]
+  data_assets: "Rule definitions (literals, regex patterns, categories)"
+  network_exposure: "Internal (via Core API)"
+  source_files:
+    - "services/api/app/routers/training.py — context-rules and post-processor-rules endpoints"
+    - "services/ui/src/app/settings/context-rules/page.tsx (~301 lines)"
+    - "services/ui/src/components/operations/CodingReviewCasesModal.tsx (~527 lines)"
+
+  phase_2_threats:
+    - id: "RULE-T-001"
+      element: "services/api/app/routers/training.py — context_regex in PostProcessorRuleRequest"
+      threat: "Regex injection via user-supplied post-processor rules"
+      status: "NEW in v2"
+      attack_vector: >
+        Users can create post-processor rules with a context_regex field. This regex
+        is stored in Neo4j and applied to encounter text during pipeline execution.
+        A malicious or poorly formed regex could cause ReDoS (catastrophic backtracking)
+        or match unintended text patterns, suppressing clinically relevant entities.
+      prerequisites: "Authenticated session with access to coding review or settings UI"
+      threat_actors: ["malicious_insider", "configuration_error"]
+      evidence:
+        file: "services/api/app/routers/training.py"
+        snippet: "context_regex in PostProcessorRuleRequest and ContextRuleRequest"
+      impact:
+        confidentiality: "None"
+        integrity: "Medium"
+        availability: "Medium"
+        clinical_safety: "Medium"
+        patient_data_exposure: false
+      likelihood: "Low"
+      likelihood_rationale: "Requires authenticated access. UI escapes the contextPhrase for regex, but the backend does not validate regex safety (ReDoS patterns, excessive complexity)."
+      existing_controls: "Authentication required; UI escapes context phrases for regex; rules stored in Neo4j with created_by attribution"
+      gaps: "No server-side regex validation (max length, complexity, ReDoS detection); no regex timeout; context_regex applied to all future pipeline runs"
+      confidence: "Probable"
+      regulatory_impact:
+        - standard: "IEC 81001-5-1"
+          clause: "5.6.1"
+          nature: "User-supplied regex not validated for safety"
+
+    - id: "RULE-T-002"
+      element: "services/ui/src/app/settings/context-rules/page.tsx"
+      threat: "Context rules can alter clinical assertion detection"
+      status: "NEW in v2"
+      attack_vector: >
+        Users can create ConText rules (literal phrases with category, direction, scope)
+        that are persisted to Neo4j and loaded by the context engine. A malicious rule
+        (e.g., negation rule matching a common clinical phrase) could systematically
+        suppress entities system-wide.
+      prerequisites: "Authenticated session"
+      threat_actors: ["malicious_insider"]
+      evidence:
+        file: "services/ui/src/app/settings/context-rules/page.tsx"
+        snippet: "POST /api/training/context-rules with literal, category, direction, maxScope"
+      impact:
+        confidentiality: "None"
+        integrity: "High"
+        availability: "None"
+        clinical_safety: "High"
+        patient_data_exposure: false
+      likelihood: "Low"
+      likelihood_rationale: "Requires authenticated session. Impact is population-wide if rule matches common text."
+      existing_controls: "Authentication required; rules have category/direction/scope constraints; maxScope 1-20"
+      gaps: "No admin-only restriction on rule creation; no approval workflow for new rules; no impact analysis before rule activation; no audit of rule changes"
+      confidence: "Probable"
+      regulatory_impact:
+        - standard: "IEC 62304"
+          clause: "5.5"
+          nature: "User-modifiable clinical detection rules without change control"
+        - standard: "ISO 14971"
+          clause: "7"
+          nature: "Risk control modification without documented review"
+
+# ---------------------------------------------------------------------------
+# COMPONENT 16: CODING DECISION AUDIT TRAIL (NEW in v2)
+# ---------------------------------------------------------------------------
+component_16_coding_decisions:
+  name: "CodingDecision Audit Trail"
+  purpose: "Persistent audit trail of all coding decisions (tier, verdict, model IDs, assertion, action)"
+  iec_62304_contribution: "B"
+  trust_boundaries: ["Coding Worker → Neo4j Patient Graph"]
+  data_assets: "CodingDecision nodes: entity_text, entity_label, patient_id_hash, encounter_id, SNOMED data, tier, verdict, model IDs"
+  network_exposure: "Internal"
+  source_files:
+    - "libs/cypher/coding_decision_queries.py (~57 lines)"
+
+  phase_2_threats:
+    - id: "CD-I-001"
+      element: "libs/cypher/coding_decision_queries.py"
+      threat: "CodingDecision stores patient_id without hashing"
+      status: "NEW in v2"
+      attack_vector: >
+        The UPSERT_CODING_DECISION query stores patient_id_hash but the field name
+        suggests hashing while the pipeline passes the raw patient_id from the
+        encounter. If the field actually contains raw patient IDs, the audit trail
+        contains directly identifiable patient data alongside clinical entity text.
+      prerequisites: "Access to Neo4j Patient Graph"
+      threat_actors: ["malicious_insider"]
+      evidence:
+        file: "libs/cypher/coding_decision_queries.py"
+        snippet: "patient_id_hash: $patient_id_hash"
+      impact:
+        confidentiality: "Medium"
+        integrity: "None"
+        availability: "None"
+        clinical_safety: "None"
+        patient_data_exposure: true
+      likelihood: "Low"
+      likelihood_rationale: "Requires Neo4j access. The field is intended to be hashed but implementation should be verified."
+      existing_controls: "Neo4j access controlled by credentials (Key Vault); ACA network isolation"
+      gaps: "Verify that patient_id_hash is actually hashed, not raw patient_id"
+      confidence: "Investigate"
+
+# ---------------------------------------------------------------------------
+# COMPONENT 17: SERVICE-TO-SERVICE AUTH (NEW in v2)
+# ---------------------------------------------------------------------------
+component_17_service_auth:
+  name: "Service-to-Service Authentication"
+  purpose: "Shared-secret inter-service authentication for internal API calls"
+  iec_62304_contribution: "B"
+  trust_boundaries: ["Core API → Internal services (terminology, fhir, analytics)"]
+  data_assets: "SERVICE_AUTH_SECRET"
+  network_exposure: "Internal"
+  source_files:
+    - "libs/auth/service_auth.py (~39 lines)"
+
+  phase_2_threats:
+    - id: "SVC-S-001"
+      element: "libs/auth/service_auth.py:20-21"
+      threat: "Service auth bypassed when SERVICE_AUTH_SECRET is empty"
+      status: "NEW in v2"
+      attack_vector: >
+        When SERVICE_AUTH_SECRET env var is not set, verify_service_token returns
+        without checking. This is intentional for local development but creates a
+        risk if a deployed environment fails to set the secret.
+      prerequisites: "Deployment without SERVICE_AUTH_SECRET configured"
+      threat_actors: ["configuration_error"]
+      evidence:
+        file: "libs/auth/service_auth.py"
+        line: 20
+        snippet: "expected = os.environ.get('SERVICE_AUTH_SECRET', ''); if not expected: return"
+      impact:
+        confidentiality: "Medium"
+        integrity: "Medium"
+        availability: "None"
+        clinical_safety: "Low"
+        patient_data_exposure: false
+      likelihood: "Low"
+      likelihood_rationale: "ACA Bicep templates include service-auth-secret as a Key Vault reference. Missing only if Key Vault secret is not provisioned."
+      existing_controls: "ACA internal ingress (not externally addressable); Key Vault secret reference in Bicep"
+      gaps: "No startup check that SERVICE_AUTH_SECRET is set in non-dev environments; hmac.compare_digest used (good) but single shared secret for all services"
+      confidence: "Probable"
+      regulatory_impact:
+        - standard: "IEC 81001-5-1"
+          clause: "5.3.5"
+          nature: "Inter-service authentication can be silently disabled"
+
+# =============================================================================
+# PHASE 3: ATTACK PATH SYNTHESIS
+# =============================================================================
+
+attack_chains:
+  - id: "CHAIN-001"
+    name: "Identity spoofing to full patient data exfiltration"
+    status: "BROKEN in v2"
+    original_steps:
+      - step: 1
+        threat_ref: "AUTH-S-001"
+        action: "Attacker sets X-User-Email header to a known practitioner email"
+      - step: 2
+        threat_ref: "AUTH-E-001"
+        action: "If admin email used, attacker gains is_admin=True"
+      - step: 3
+        threat_ref: "PAT-S-001"
+        action: "Attacker lists all patients"
+    resolution: "AUTH-S-001 resolved — X-User-Email header no longer accepted. Identity from session only."
+    residual_attack_path: >
+      An attacker would need to: (1) steal a session cookie (requires HTTPS interception
+      or XSS, mitigated by HttpOnly + Secure + SameSite), or (2) compromise the Redis
+      session store (requires Key Vault credential + network access).
+    original_severity: "Critical"
+    residual_severity: "Low"
+
+  - id: "CHAIN-002"
+    name: "Unauthenticated model supply chain compromise"
+    status: "PARTIALLY BROKEN in v2"
+    original_steps:
+      - step: 1
+        threat_ref: "API-S-001"
+        action: "Attacker calls POST /model-registry/register"
+    resolution: "Mutating model registry endpoints now require platform admin authentication."
+    residual_attack_path: >
+      Attacker would need: (1) a valid admin session cookie, and (2) admin account in
+      Neo4j. Read-only model metadata still accessible without auth (reconnaissance).
+    original_severity: "Critical"
+    residual_severity: "Low"
+
+  - id: "CHAIN-003"
+    name: "Identity spoofing to training data poisoning"
+    status: "BROKEN in v2"
+    resolution: "AUTH-S-001 resolved — bulk import requires authenticated session with real CallerScope."
+    original_severity: "High"
+    residual_severity: "Low"
+
+  - id: "CHAIN-004"
+    name: "Terminology poisoning via unauthenticated endpoints"
+    status: "OPEN"
+    steps:
+      - step: 1
+        threat_ref: "API-S-002"
+        action: "Attacker calls POST /terminology/surface-forms/upsert-mapping to inject false SNOMED mappings"
+      - step: 2
+        action: "SurfaceForm MAPS_TO relationships bias terminology resolution"
+      - step: 3
+        action: "Future coding operations use biased mappings"
+    note: "XHR mutation guard (GAP-009) blocks browser-based CSRF but not direct API calls. Terminology endpoints still lack authentication."
+    overall_severity: "Medium"
+    clinical_safety_impact: "Biased SNOMED coding at population level"
+
+  - id: "CHAIN-005"
+    name: "Session theft via insecure cookie to persistent access"
+    status: "BROKEN in v2"
+    resolution: >
+      Cookie secure flag now defaults to true (all environments). Session TTL reduced
+      to 12-24h (from 168h). HTTPS enforced in all deployed environments.
+    original_severity: "High"
+    residual_severity: "Low"
+
+  - id: "CHAIN-006"
+    name: "Context rule poisoning for systematic entity suppression (NEW)"
+    status: "NEW in v2"
+    steps:
+      - step: 1
+        action: "Authenticated user creates a ConText rule matching a common clinical phrase as 'negated'"
+      - step: 2
+        action: "Context engine applies the rule to all future encounters"
+      - step: 3
+        action: "Entities matching the phrase are systematically marked as 'absent' and suppressed from coding"
+      - step: 4
+        action: "Population-level audit data becomes biased (relevant diagnoses not coded)"
+    objective: "Suppress specific clinical entities across all patients"
+    blast_radius: "All patients with encounters containing the targeted phrase"
+    controls_traversed: "Authentication (valid session required); no admin restriction; no approval workflow"
+    overall_severity: "Medium"
+    clinical_safety_impact: "Systematic suppression of clinically relevant entities"
+
+  - id: "CHAIN-007"
+    name: "LLM dual-provider failure in autonomous mode (NEW)"
+    status: "NEW in v2"
+    steps:
+      - step: 1
+        action: "Both AWS Bedrock and Azure OpenAI become unavailable (network, rate limit, outage)"
+      - step: 2
+        threat_ref: "CONS-T-002"
+        action: "Consensus engine returns fail_verdict"
+      - step: 3
+        action: "In autonomous mode, disorder verifier fail_verdict='not_disorder' suppresses entity"
+      - step: 4
+        action: "Clinically relevant entities silently dropped without review"
+    objective: "N/A — failure mode chain"
+    blast_radius: "All entities processed during dual-provider outage"
+    controls_traversed: "CodingDecision audit records 'both providers failed' but no alerting"
+    overall_severity: "Medium"
+    clinical_safety_impact: "Entities silently suppressed in autonomous mode during LLM outage"
+
+# =============================================================================
+# PHASE 4: GAP ANALYSIS AND CONSOLIDATION
+# =============================================================================
+
+gaps:
+  - id: "GAP-001"
+    title: "Identity accepted from unauthenticated HTTP header"
+    category: "Authentication"
+    severity: "Critical"
+    status: "RESOLVED"
+    resolution_date: "2026-03-02"
+    resolution: "X-User-Email header and ?email= query parameter removed. Identity from session cookie only."
+    resolution_files: ["libs/auth/org_scope.py", "services/api/app/deps.py", "services/api/app/main.py"]
+    verification: "get_caller_scope accepts X-Leo-Session only; get_caller_scope_from_request reads from session; main.py overrides get_caller_scope with get_caller_scope_from_request"
+    design_controls: ["DI-LEO-AI-052", "DO-LEO-AI-035", "VT-LEO-AI-045"]
+
+  - id: "GAP-002"
+    title: "No JWT signature verification on Azure AD tokens"
+    category: "Authentication"
+    severity: "High"
+    status: "RESOLVED"
+    resolution_date: "2026-03-03"
+    resolution: >
+      _verify_id_token() added using jose.jwt.decode with RS256, audience=CLIENT_ID,
+      issuer=v2.0 endpoint. JWKS fetched from Azure AD discovery endpoint with 1-hour
+      in-process cache and stale-fallback on network failure. JWTError raises HTTP 401
+      and emits security.token_rejected audit event. Insecure base64 decode removed.
+    resolution_files:
+      - "services/api/app/routers/auth.py"
+    design_controls: ["DI-LEO-AI-051", "DO-LEO-AI-034", "VT-LEO-AI-044"]
+
+  - id: "GAP-003"
+    title: "Unauthenticated model registry endpoints"
+    category: "Authentication"
+    severity: "Critical"
+    status: "PARTIALLY RESOLVED"
+    resolution_date: "2026-03-02"
+    resolution: "Mutating routes require Depends(require_admin). Read routes (status, versions, inference health) remain open."
+    resolution_files: ["services/api/app/routers/model_registry.py", "services/api/app/deps.py"]
+    remaining_risk: "Model metadata leakage via unauthenticated read endpoints"
+    remaining_severity: "Low"
+    design_controls: ["DI-LEO-AI-052", "DO-LEO-AI-035", "VT-LEO-AI-045"]
+
+  - id: "GAP-004"
+    title: "Unauthenticated terminology write endpoints"
+    category: "Authentication"
+    severity: "High"
+    status: "RESOLVED"
+    resolution_date: "2026-03-03"
+    resolution: >
+      verify_service_token (SERVICE_AUTH_SECRET Bearer token) added as Depends to:
+      POST /surface-forms/upsert-mapping, DELETE /surface-forms/{normalized:path},
+      POST /surface-forms/deduplicate. The /writeback endpoint already had this guard.
+      GET read endpoints left open for internal use. Returns HTTP 401 on invalid token.
+    resolution_files:
+      - "services/terminology_api/app/routers/surface_forms.py"
+    design_controls: ["DI-LEO-AI-051", "DO-LEO-AI-034", "VT-LEO-AI-044"]
+
+  - id: "GAP-005"
+    title: "Session cookie secure flag hardcoded False"
+    category: "Encryption"
+    severity: "High"
+    status: "RESOLVED"
+    resolution_date: "2026-03-02"
+    resolution: "COOKIE_SECURE env var; defaults to 'true'; all environments set to 'true' in Bicep parameters."
+    resolution_files: ["services/api/app/routers/auth.py", "infra/bicep/parameters/*.bicepparam"]
+    design_controls: ["DI-LEO-AI-052", "DO-LEO-AI-035", "VT-LEO-AI-045"]
+
+  - id: "GAP-006"
+    title: "No rate limiting on any endpoint"
+    category: "Configuration"
+    severity: "High"
+    status: "RESOLVED"
+    resolution_date: "2026-03-02"
+    resolution: "slowapi Limiter with per-IP rate limiting added to main.py."
+    resolution_files: ["services/api/app/main.py"]
+    design_controls: ["DI-LEO-AI-052", "DO-LEO-AI-035", "VT-LEO-AI-045"]
+
+  - id: "GAP-007"
+    title: "Inter-service communication without authentication"
+    category: "Authentication"
+    severity: "High"
+    status: "RESOLVED"
+    resolution_date: "2026-03-02"
+    resolution: "SERVICE_AUTH_SECRET shared-secret Bearer token for inter-service calls. hmac.compare_digest for timing-safe comparison. Key Vault secret reference in ACA."
+    resolution_files: ["libs/auth/service_auth.py", "infra/bicep/modules/container-apps.bicep"]
+    remaining_risk: "Auth bypassed when SECRET is empty (local dev). Single shared secret for all services."
+    design_controls: ["DI-LEO-AI-052", "DO-LEO-AI-035", "VT-LEO-AI-045"]
+
+  - id: "GAP-008"
+    title: "Incomplete de-identification before LLM submission"
+    category: "Data Protection"
+    severity: "High"
+    status: "PARTIALLY RESOLVED"
+    resolution_date: "2026-03-03"
+    resolution: >
+      Optional spaCy NER second pass added to deidentify_text(ner=True).
+      Enabled via DEIDENTIFY_NER_MODEL env var. Lazy-loaded model catches
+      PERSON entities in free narrative missed by regex. Model load failures
+      logged at WARNING and gracefully degrade (regex-only fallback).
+    remaining_risk: >
+      NER pass is opt-in; deployment must set DEIDENTIFY_NER_MODEL to activate.
+      PHI audit log (post-de-id check) not yet implemented.
+    resolution_files:
+      - "libs/utils/deidentify.py"
+    design_controls: ["DI-LEO-AI-051", "DO-LEO-AI-034", "VT-LEO-AI-044"]
+
+  - id: "GAP-009"
+    title: "No CSRF protection"
+    category: "Configuration"
+    severity: "Medium"
+    status: "PARTIALLY RESOLVED"
+    resolution_date: "2026-03-02"
+    resolution: "XHR mutation guard (X-Requested-With header required for POST/PUT/PATCH/DELETE). SameSite=lax cookie."
+    resolution_files: ["services/api/app/main.py"]
+    remaining_risk: "No per-request CSRF token. XHR header can be set by JS on same-origin."
+    design_controls: ["DI-LEO-AI-052", "DO-LEO-AI-035", "VT-LEO-AI-045"]
+
+  - id: "GAP-010"
+    title: "OAuth state parameter not CSRF-protected"
+    category: "Authentication"
+    severity: "Medium"
+    status: "RESOLVED"
+    resolution_date: "2026-03-02"
+    resolution: "Nonce cookie (leo_oauth_nonce) set at /login, validated at /callback. 600s max_age."
+    resolution_files: ["services/api/app/routers/auth.py"]
+    design_controls: ["DI-LEO-AI-052", "DO-LEO-AI-035", "VT-LEO-AI-045"]
+
+  - id: "GAP-011"
+    title: "Excessive session TTL without rotation"
+    category: "Configuration"
+    severity: "Medium"
+    status: "PARTIALLY RESOLVED"
+    resolution_date: "2026-03-02"
+    resolution: "SESSION_TTL_HOURS configurable. Dev/val: 12h. Prod: 24h. SystemConfig per-tenant override. Redis required (503 on failure)."
+    resolution_files: ["services/api/app/services/session_store.py", "services/api/app/routers/auth.py"]
+    remaining_risk: "No sliding session renewal with new session ID. No IP/user-agent binding. No concurrent session limits."
+    design_controls: ["DI-LEO-AI-052", "DO-LEO-AI-035", "VT-LEO-AI-045"]
+
+  - id: "GAP-012"
+    title: "No durable security audit log"
+    category: "Logging"
+    severity: "High"
+    status: "PARTIALLY RESOLVED"
+    resolution_date: "2026-03-03"
+    resolution: >
+      libs/audit/security_log.py created with typed emit_* functions writing
+      single-line JSON to 'security.audit' logger at WARNING level.
+      Events wired in auth.py: login success/failure/MFA-block, logout,
+      token rejection. All records include ts, event, email, ip.
+      Production deployments should configure the security.audit logger handler
+      to write to an append-only destination (Azure Monitor / Log Analytics).
+    remaining_risk: >
+      authz.denied events not yet wired to require_admin dependency.
+      data.access events for patient record reads not yet instrumented.
+      Log sink (Azure Monitor integration) is an ops deployment task.
+    resolution_files:
+      - "libs/audit/security_log.py"
+      - "services/api/app/routers/auth.py"
+    design_controls: ["DI-LEO-AI-051", "DO-LEO-AI-034", "VT-LEO-AI-044"]
+
+  - id: "GAP-013"
+    title: "CORS origins not configurable for production"
+    category: "Configuration"
+    severity: "Medium"
+    status: "RESOLVED"
+    resolution_date: "2026-03-02"
+    resolution: "ALLOWED_ORIGINS env var; per-env Bicep parameters restrict to deployment domain."
+    resolution_files: ["services/api/app/main.py", "infra/bicep/parameters/*.bicepparam"]
+    design_controls: ["DI-LEO-AI-052", "DO-LEO-AI-035", "VT-LEO-AI-045"]
+
+  - id: "GAP-014"
+    title: "Deployment-specific de-identification config hardcoded"
+    category: "Configuration"
+    severity: "Medium"
+    status: "RESOLVED"
+    resolution_date: "2026-03-03"
+    resolution: >
+      DEIDENTIFY_LOCAL_ORGS env var (pipe-separated) now overrides the built-in
+      _BUILTIN_ORGS tuple at module load time. Falls back to built-in list when
+      env var is absent or empty. Bicep parameters can pass deployment-specific org names.
+    resolution_files:
+      - "libs/utils/deidentify.py"
+    design_controls: ["DI-LEO-AI-051", "DO-LEO-AI-034", "VT-LEO-AI-044"]
+
+  - id: "GAP-015"
+    title: "User-configurable rules without change control"
+    category: "Clinical Safety"
+    severity: "Medium"
+    status: "PARTIALLY RESOLVED"
+    resolution_date: "2026-03-03"
+    affected_threats: ["RULE-T-001", "RULE-T-002"]
+    evidence:
+      file: "services/api/app/routers/training.py"
+      snippet: "Context rules and post-processor rules CRUD endpoints"
+    resolution: >
+      Post-processor rule creation/update and context rule creation/deactivation
+      now require Depends(require_admin). ReDoS detection via _validate_regex
+      with timeout probe rejects catastrophic backtracking patterns. Regex max
+      length enforced (200 chars). Context rule literal max length enforced.
+    remaining_risk: >
+      Coding ignore rules (ignore_coding_review, delete_coding_ignore_rule) still
+      use Depends(get_caller_scope) — any authenticated user can create/delete.
+      No approval workflow or durable audit log for rule changes.
+    resolution_files:
+      - "services/api/app/routers/training.py"
+    design_controls: ["DI-LEO-AI-052", "DO-LEO-AI-035", "VT-LEO-AI-045"]
+    regulatory_impact:
+      - standard: "IEC 62304"
+        clause: "5.5"
+      - standard: "ISO 14971"
+        clause: "7"
+    exploitability: "Moderate (requires authentication)"
+
+  - id: "GAP-016"
+    title: "Autonomous mode fail-closed behavior not guaranteed"
+    category: "Clinical Safety"
+    severity: "Medium"
+    status: "RESOLVED"
+    resolution_date: "2026-03-03"
+    affected_threats: ["CONS-T-002"]
+    evidence:
+      file: "libs/llm_client/disorder_verifier.py"
+      snippet: "fail_verdict for autonomous mode is 'not_disorder' (entity suppressed)"
+    resolution: >
+      _fail_verdict_for_mode('autonomous') now returns DisorderVerdict.UNCERTAIN
+      instead of 'not_disorder'. In autonomous mode, consensus failure results in
+      UNCERTAIN verdict — entity is not coded without confirmation (fail-closed).
+      LLM response capped at 1000 chars to prevent response-stuffing attacks.
+    resolution_files:
+      - "libs/llm_client/disorder_verifier.py"
+      - "libs/llm_client/escalation.py"
+    design_controls: ["DI-LEO-AI-052", "DO-LEO-AI-035", "VT-LEO-AI-045"]
+    regulatory_impact:
+      - standard: "IEC 81001-5-1"
+        clause: "5.5.2"
+      - standard: "IEC 62304"
+        clause: "5.5"
+    exploitability: "N/A — failure mode"
+
+  - id: "GAP-017"
+    title: "Expanded LLM data exposure via consensus pattern (NEW)"
+    category: "Data Protection"
+    severity: "Medium"
+    status: "NEW"
+    affected_threats: ["CONS-I-001", "COD-I-001", "TRN-I-001"]
+    evidence:
+      file: "libs/llm_client/consensus.py"
+      snippet: "Dual-model calls to AWS + Azure in parallel; Sonnet arbitration on disagreement"
+    remediation: "Conduct Data Protection Impact Assessment for dual-provider pattern. Confirm both providers' data processing agreements cover clinical text. Implement per-call PHI audit. Consider data minimization (send only entity text, not encounter context, where possible)."
+    regulatory_impact:
+      - standard: "UK GDPR"
+        clause: "Article 35"
+      - standard: "DSPT"
+        clause: "Assertion 3.4"
+    exploitability: "N/A — architectural pattern"
+
+# ---------------------------------------------------------------------------
+# REGULATORY TRACEABILITY
+# ---------------------------------------------------------------------------
+regulatory_trace:
+  - standard: "IEC 62304"
+    clause: "5.2"
+    requirement: "Software requirements analysis — traceability and audit"
+    status: "Partially conforming"
+    related_findings: ["AUTH-R-001", "GAP-012"]
+    note: "CodingDecision audit trail added for clinical decisions; auth event audit still missing"
+
+  - standard: "IEC 62304"
+    clause: "5.3"
+    requirement: "Software architecture"
+    status: "Partially conforming"
+    related_findings: ["TIER-T-001"]
+    note: "Tier thresholds should be configurable and validated per deployment"
+
+  - standard: "IEC 62304"
+    clause: "5.5"
+    requirement: "Software unit implementation and verification"
+    status: "Partially conforming"
+    related_findings: ["CTX-T-001", "RULE-T-002", "GAP-015"]
+    note: "GAP-003 partially resolved. GAP-016 resolved (fail-closed). GAP-015 partially resolved (admin guards + ReDoS validation; coding ignore rules still user-accessible)."
+
+  - standard: "IEC 62304"
+    clause: "5.8"
+    requirement: "Software release — access control and integrity"
+    status: "Conforming"
+    related_findings: ["API-S-001"]
+    note: "GAP-003 resolved for mutating model registry routes (admin required)"
+
+  - standard: "IEC 81001-5-1"
+    clause: "5.3.2"
+    requirement: "Authentication"
+    status: "Partially conforming"
+    related_findings: ["API-S-002"]
+    note: "GAP-001 resolved; GAP-003 partially resolved (read routes open). GAP-004 resolved (2026-03-03, verify_service_token on mutating surface-form endpoints)."
+
+  - standard: "IEC 81001-5-1"
+    clause: "5.3.3"
+    requirement: "Cryptographic controls — token verification"
+    status: "Conforming"
+    related_findings: []
+    note: "GAP-002 resolved (2026-03-03). id_token verified via jose.jwt.decode RS256 against Azure AD JWKS. VT-LEO-AI-044 confirms."
+
+  - standard: "IEC 81001-5-1"
+    clause: "5.3.4"
+    requirement: "Session management"
+    status: "Partially conforming"
+    related_findings: ["GAP-011"]
+    note: "GAP-010, GAP-011 partially resolved (configurable TTL, nonce); no sliding renewal"
+
+  - standard: "IEC 81001-5-1"
+    clause: "5.3.5"
+    requirement: "Communication security"
+    status: "Conforming"
+    related_findings: []
+    note: "GAP-005, GAP-007, GAP-013 resolved. ACA mTLS + service auth + configurable CORS + secure cookies."
+
+  - standard: "IEC 81001-5-1"
+    clause: "5.3.6"
+    requirement: "Authorisation"
+    status: "Partially conforming"
+    related_findings: ["API-S-002"]
+    note: "GAP-004 resolved (2026-03-03). GAP-003 read routes still open. Coding ignore rules not admin-restricted (GAP-015 remaining risk)."
+
+  - standard: "IEC 81001-5-1"
+    clause: "5.3.7"
+    requirement: "Secrets management"
+    status: "Conforming"
+    related_findings: []
+    note: "Key Vault secret references in ACA; Managed Identity; no connection strings in code"
+
+  - standard: "IEC 81001-5-1"
+    clause: "5.4.2"
+    requirement: "Security event logging"
+    status: "Partially conforming"
+    related_findings: ["AUTH-R-001", "GAP-012"]
+    note: "GAP-012 partially resolved (2026-03-03). security.audit logger with typed emit_* functions. Remaining: authz.denied not wired to require_admin; data.access events not instrumented; log sink (Azure Monitor) is ops task."
+
+  - standard: "IEC 81001-5-1"
+    clause: "5.5.1"
+    requirement: "Resilience — DoS protection"
+    status: "Conforming"
+    related_findings: []
+    note: "GAP-006 resolved (slowapi rate limiting)"
+
+  - standard: "IEC 81001-5-1"
+    clause: "5.5.2"
+    requirement: "Degraded mode security"
+    status: "Conforming"
+    related_findings: []
+    note: "GAP-016 resolved (2026-03-03). Session store fail-closed (503). Autonomous mode fail-closed (UNCERTAIN verdict on dual-provider failure). VT-LEO-AI-045 confirms."
+
+  - standard: "IEC 81001-5-1"
+    clause: "5.6.1"
+    requirement: "Input validation"
+    status: "Partially conforming"
+    related_findings: ["ANL-T-001"]
+    note: "COD-T-001 resolved (Pydantic schema validation, VT-LEO-AI-044). GAP-015 partially resolved (_validate_regex with ReDoS detection). Message bus analytics payloads still unvalidated."
+
+  - standard: "IEC 81001-5-1"
+    clause: "5.6.2"
+    requirement: "Cross-site request protection"
+    status: "Partially conforming"
+    related_findings: ["GAP-009"]
+    note: "XHR mutation guard + SameSite=lax; no per-request CSRF token"
+
+  - standard: "IEC 81001-5-1"
+    clause: "5.7.1"
+    requirement: "Software supply chain integrity"
+    status: "Conforming"
+    related_findings: []
+    note: "GAP-003 resolved for model registry mutations; distroless images; ACR with Managed Identity"
+
+  - standard: "UK GDPR"
+    clause: "Article 9(2)"
+    requirement: "Lawful processing of special category data"
+    status: "Conforming"
+    related_findings: []
+    note: "GAP-001 resolved; patient data now requires authenticated session"
+
+  - standard: "UK GDPR"
+    clause: "Article 28"
+    requirement: "Processor agreements for third-party data processing"
+    status: "Insufficient evidence"
+    related_findings: ["CONS-I-001", "GAP-017"]
+    note: "Expanded LLM exposure via consensus pattern; DPIA needed"
+
+  - standard: "UK GDPR"
+    clause: "Article 32(1)(a)"
+    requirement: "Encryption of personal data"
+    status: "Conforming"
+    related_findings: []
+    note: "GAP-005 resolved (secure cookies); ACA mTLS; TLS to all external services"
+
+  - standard: "UK GDPR"
+    clause: "Article 32(1)(b)"
+    requirement: "Ongoing confidentiality of processing systems"
+    status: "Conforming"
+    related_findings: []
+    note: "GAP-001 resolved; session-only identity; org-scoped access"
+
+  - standard: "UK GDPR"
+    clause: "Article 35"
+    requirement: "Data Protection Impact Assessment"
+    status: "Insufficient evidence"
+    related_findings: ["CONS-I-001", "GAP-008", "GAP-017"]
+    note: "DPIA needed for expanded dual-provider LLM pattern"
+
+  - standard: "DSPT"
+    clause: "Assertion 3.3"
+    requirement: "Personal data adequately protected"
+    status: "Partially conforming"
+    related_findings: ["DEID-I-001", "GAP-008"]
+    note: "De-identification regex gaps remain; expanded LLM exposure"
+
+  - standard: "DSPT"
+    clause: "Assertion 3.4"
+    requirement: "Data sharing with third parties documented"
+    status: "Insufficient evidence"
+    related_findings: ["CONS-I-001", "GAP-017"]
+
+  - standard: "DSPT"
+    clause: "Assertion 4.2.2"
+    requirement: "Session management"
+    status: "Partially conforming"
+    related_findings: ["GAP-011"]
+    note: "Configurable TTL (12-24h); no sliding renewal"
+
+  - standard: "DSPT"
+    clause: "Assertion 4.3.1"
+    requirement: "Access control"
+    status: "Conforming"
+    related_findings: []
+    note: "GAP-001 resolved; session-only identity"
+
+  - standard: "DSPT"
+    clause: "Assertion 6.3"
+    requirement: "Audit trail"
+    status: "Partially conforming"
+    related_findings: ["GAP-012"]
+    note: "CodingDecision audit trail added. GAP-012 partially resolved (security.audit logger wired for login/logout/token events). authz.denied and data.access events not yet instrumented."
+
+  - standard: "NCSC CAF"
+    clause: "B2.a"
+    requirement: "Identity and access management"
+    status: "Conforming"
+    related_findings: []
+    note: "GAP-001 resolved (session-only identity). GAP-002 resolved (2026-03-03, JWKS JWT verification). VT-LEO-AI-044 confirms."
+
+  - standard: "ISO 14971"
+    clause: "5.5"
+    requirement: "Risk control verification"
+    status: "Partially conforming"
+    related_findings: ["TIER-T-001", "GAP-015"]
+    note: "Model registry protected (GAP-003). GAP-015 partially resolved (admin + ReDoS). Coding ignore rules still user-accessible."
+
+  - standard: "ISO 14971"
+    clause: "7"
+    requirement: "Production and post-production activities"
+    status: "Partially conforming"
+    related_findings: ["GAP-015"]
+    note: "Post-processor and context rules admin-restricted. Coding ignore rules modifiable without admin review."
+
+# ---------------------------------------------------------------------------
+# UNRESOLVED ITEMS
+# ---------------------------------------------------------------------------
+unresolved_items:
+  - type: "RESOLVED"
+    description: "Verify that patient_id_hash in CodingDecision is actually hashed, not raw patient_id"
+    impact: "Audit trail may contain directly identifiable patient data"
+    resolution: "VT-LEO-AI-044 (VT-044-029/030/031) confirms SHA-256 hashing. Production Neo4j migration of existing raw IDs is an ops task tracked in DPIA-001."
+
+  - type: "RESOLVED"
+    description: "Verify SERVICE_AUTH_SECRET is set in all deployed environments"
+    impact: "Inter-service auth silently disabled if secret missing"
+    resolution: "container-apps.bicep maps SERVICE_AUTH_SECRET from Key Vault. migrate-secrets.ps1 auto-generates if missing. tests/test_infra_security.py confirms."
+
+  - type: "TODO:VERIFY"
+    description: "Verify Azure AD DPIA covers dual-provider consensus pattern (AWS + Azure)"
+    impact: "Clinical text sent to two separate cloud providers without documented DPIA"
+    note: "DPIA-001-dual-provider-llm.md exists as v0.1-draft. Awaiting DPO sign-off."
+
+  - type: "RESOLVED"
+    description: "Infrastructure WAF/reverse proxy configuration"
+    impact: "Rate limiting, IP filtering, and TLS termination may exist at infrastructure layer"
+    resolution: >
+      Verified 2026-03-03 via DNS + HTTP probe. healthcarecopilot.ai zone is
+      Cloudflare-proxied (CF IPs 104.26.14.136, 104.26.15.136, 172.67.73.125;
+      CF-RAY header confirmed on prod). Production (leo-ai-audit.healthcarecopilot.ai)
+      returns: Server: cloudflare, Strict-Transport-Security: max-age=15552000,
+      X-Content-Type-Options: nosniff, Referrer-Policy: strict-origin-when-cross-origin,
+      Permissions-Policy: camera=(), microphone=(self), geolocation=(), interest-cohort=().
+      Cloudflare provides TLS termination, DDoS protection, and managed WAF at edge.
+      Wrangler CLI not authenticated — WAF rule-set detail (OWASP CRS level,
+      rate limiting thresholds, bot management) requires Cloudflare dashboard review.
+    remaining_actions:
+      - "Confirm WAF managed ruleset is enabled (OWASP Core, Cloudflare Managed)"
+      - "Confirm rate limiting rules match application-level slowapi thresholds"
+      - "Document Cloudflare plan tier (Free/Pro/Business/Enterprise) for NHS DSPT evidence"
+
+  - type: "PARTIALLY RESOLVED"
+    description: "Azure AD app registration configuration — accessTokenAcceptedVersion, redirect URIs"
+    impact: "Token validation scope and OAuth flow security depend on Azure AD configuration"
+    resolution: >
+      Verified 2026-03-03 via az ad app show. Primary app registration is
+      "Mizaic Atlas" (c97f7ad9-845f-420c-ae3f-fa5c5d815bcd) — the actual
+      AZURE_AD_CLIENT_ID used by the platform. 19 additional legacy LEO
+      registrations exist under tenant ceb47133-88ce-4455-b7ef-99dbd161c637.
+    primary_app:
+      display_name: "Mizaic Atlas"
+      app_id: "c97f7ad9-845f-420c-ae3f-fa5c5d815bcd"
+      sign_in_audience: "AzureADMultipleOrgs"
+      access_token_accepted_version: 2  # GOOD — v2 tokens enforced
+      id_token_issuance: false  # GOOD — not used
+      credentials:
+        - "atlas-dev — expires 2026-07-27"
+        - "Atlas — expires 2026-07-11"
+        - "secret 1 — expires 2026-06-10"
+      credential_note: "All 3 secrets expire within 4 months — rotation plan needed"
+    findings:
+      implicit_grant:
+        issue: "enableAccessTokenIssuance=true on Mizaic Atlas"
+        recommendation: "Disable implicit access token grant — use auth code + PKCE instead (NextAuth uses auth code flow by default)"
+      redirect_uris:
+        issue: "6 of 11 redirect URIs are localhost; localhost URIs co-exist with production callbacks"
+        details:
+          - "PROD: https://leo-ai-audit.healthcarecopilot.ai/auth/callback"
+          - "VAL:  https://atlas-val.healthcarecopilot.ai/auth/callback"
+          - "DEV:  https://atlas-dev.healthcarecopilot.ai/auth/callback"
+          - "OTHER: https://research.healthcarecopilot.ai/api/auth/callback/azure-ad"
+          - "LOCAL: http://localhost:3000/auth/callback"
+          - "LOCAL: http://localhost:3000/auth/callback/azure-ad"
+          - "LOCAL: http://localhost:3000/api/auth/callback/azure-ad"
+          - "LOCAL: http://localhost:3004/api/auth/callback/azure-ad"
+          - "LOCAL: http://localhost:3013/api/auth/callback/azure-ad"
+          - "LOCAL: http://localhost:4000/auth/callback"
+          - "LOCAL: http://localhost:4000/api/auth/callback/azure-ad"
+        recommendation: >
+          Create a separate app registration for local dev with localhost URIs.
+          Remove all localhost URIs from the production Mizaic Atlas registration
+          to prevent token redirect attacks.
+      token_version:
+        note: "accessTokenAcceptedVersion=2 on Mizaic Atlas (GOOD). Legacy LEO apps default to v1 — low risk if unused."
+      legacy_expired_credentials:
+        issue: "13 expired client secrets across 8 legacy LEO app registrations (oldest: 2024-07-12)"
+        recommendation: "Audit and decommission unused legacy registrations; rotate or remove expired credentials"
+        affected_apps:
+          - "leo-azure-fhir-server: email_service_secret (2025-03-07)"
+          - "LEO Analytics App: Generated by App Service (2025-08-07), rob-ide (2025-07-18)"
+          - "Leo App - non-prod: 2 expired (2024-07)"
+          - "LEO App Non Prod FHIR Agent: 2 expired (2025-05/07)"
+          - "LEO Edge: 1 expired (2024-10)"
+          - "LEO Pathway Onboarder: 3 expired (2025-11)"
+          - "LEO Training App: 1 expired (2025-11)"
+          - "LEO_Integration_uat: 1 expired (2025-04)"
+
+  - type: "RESOLVED"
+    description: "De-identification completeness assessment using annotated clinical text corpus"
+    impact: "Quantify residual PII rate in text sent to 2-3 LLM providers per entity"
+    resolution: >
+      tests/test_deid_completeness.py provides 138-case multicultural corpus covering
+      34 SystmOne-format names, 20 honorific names, 14 CAPS-bare names, 20 free-text
+      first names (xfail — known NER gap), NHS numbers, postcodes, phones, emails,
+      dates, addresses, facility names, and 7 integrated clinical scenarios across
+      South Asian, East Asian, African, Middle Eastern, Celtic, Eastern European cultures.
+      Regex-only residual rate: 100% for structured PII, 0% for bare first names (requires NER).
+      Two regex bugs fixed during assessment: hyphenated NHS numbers and +44-space phone format.
+
+  - type: "RESOLVED"
+    description: "ReDoS testing of user-supplied context_regex and post-processor rules"
+    impact: "Catastrophic backtracking could cause pipeline timeouts"
+    resolution: "_validate_regex uses a timeout-based probe. tests/test_training_rules_security.py covers OWASP ReDoS patterns, anchored greedy, max length, syntax errors. VT-LEO-AI-045 confirms."
+
+  - type: "RESOLVED"
+    description: "Prompt injection testing with adversarial clinical text payloads against consensus/disorder verifier"
+    impact: "Determine if injection can alter entity classification verdicts"
+    resolution: "tests/test_llm_attack_simulation.py provides 20+ tests across 9 attack families (ChatML, Llama, role hijack, delimiter, XML injection, response-stuffing, JSON array injection, multi-field simultaneous, injection guard presence). Known non-coverage: Unicode lookalike chars (documented)."
+
+  - type: "TODO:MANUAL"
+    description: "Assertion detection accuracy assessment against UK primary care text corpus"
+    impact: "Quantify negation/historical false positive rate for context engine"
+
+  - type: "TODO:MANUAL"
+    description: "Tier classifier threshold calibration against labelled clinical outcomes"
+    impact: "Validate that 0.95 Tier 1 threshold provides adequate clinical safety margin"
+
+# =============================================================================
+# SUMMARY
+# =============================================================================
+summary:
+  total_threats: 38
+  by_status:
+    resolved: 9
+    partially_resolved: 7
+    open: 12
+    new_in_v2: 10
+  by_confidence:
+    confirmed: 12
+    probable: 20
+    investigate: 4
+    mitigated: 2
+  by_severity:
+    critical: 0  # both critical gaps (GAP-001, GAP-003) resolved/partially resolved
+    high: 5
+    medium: 17
+    low: 16
+  attack_chains: 7
+  attack_chains_broken: 4
+  attack_chains_open: 3
+  gaps_total: 17
+  gaps_resolved: 10  # GAP-001,002,004,005,006,007,010,013,014,016
+  gaps_partially_resolved: 6  # GAP-003,008,009,011,012,015
+  gaps_new: 1  # GAP-017
+  regulatory_non_conformities:
+    iec_62304: 0
+    iec_81001_5_1: 0  # 5.3.3 now Conforming (GAP-002 resolved), 5.4.2 now Partially conforming (GAP-012 partially resolved)
+    uk_gdpr: 0
+    dspt: 0
+    ncsc_caf: 0
+    iso_14971: 0
+  regulatory_partial_conformities:
+    iec_62304: 3
+    iec_81001_5_1: 6  # 5.3.2, 5.3.4, 5.3.6, 5.4.2, 5.6.1, 5.6.2
+    uk_gdpr: 1
+    dspt: 3
+    ncsc_caf: 0  # B2.a now Conforming (GAP-002 resolved)
+    iso_14971: 2
+  critical_findings_v1_resolved:
+    - "GAP-001: Identity spoofing via X-User-Email header → RESOLVED"
+    - "GAP-003: Unauthenticated model registry → PARTIALLY RESOLVED (admin required for mutations)"
+    - "CHAIN-001: Patient data exfiltration via identity spoofing → BROKEN"
+    - "CHAIN-002: Supply chain model compromise → PARTIALLY BROKEN"
+  remaining_high_severity:
+    - "GAP-003: Unauthenticated model registry read routes (Low residual risk)"
+    - "GAP-008: NER pass for de-id is opt-in; PHI audit log not yet instrumented (partially resolved)"
+    - "GAP-012: Auth event audit log wired in but sink (Azure Monitor) is a deployment task (partially resolved)"
+  resolved_in_batch_2_2026_03_03:
+    - "GAP-002: JWT JWKS signature verification — RESOLVED"
+    - "GAP-004: Terminology surface form write endpoint auth — RESOLVED"
+    - "GAP-008: NER de-id second pass — PARTIALLY RESOLVED"
+    - "GAP-012: Structured security audit log — PARTIALLY RESOLVED (authz.denied/data.access events pending)"
+    - "GAP-014: Org list configurable via env — RESOLVED"
+    - "GAP-015: Admin guards on rule CRUD + ReDoS regex validation — PARTIALLY RESOLVED"
+    - "GAP-016: Autonomous mode fail-closed (UNCERTAIN verdict) — RESOLVED"
+    - "COD-T-001/002: Service Bus message schema and ID validation — RESOLVED"
+    - "CSP-T-001: Security response headers — RESOLVED"
+    - "TODO-VERIFY: patient_id_hash was storing raw ID (SHA-256 fix) — RESOLVED"
+  new_findings_v2:
+    - "CONS-I-001: Clinical text sent to 2-3 LLMs via consensus pattern (Medium)"
+    - "CONS-T-001: Arbitrator can override correct clinical verdict (Medium)"
+    - "CONS-T-002: Dual provider failure suppresses entities in autonomous mode (Medium) — GAP-016 RESOLVED"
+    - "CTX-T-001: Context engine assertion accuracy affects clinical safety (Medium)"
+    - "TIER-T-001: Tier thresholds determine clinical safety boundary (Medium)"
+    - "RULE-T-001: Regex injection via post-processor rules (Low) — GAP-015 PARTIALLY RESOLVED"
+    - "RULE-T-002: Context rules can alter system-wide assertion detection (Medium) — GAP-015 PARTIALLY RESOLVED"
+    - "CD-I-001: CodingDecision may store unhashed patient_id (Low) — RESOLVED (SHA-256 fix)"
+    - "SVC-S-001: Service auth bypassed when SECRET empty (Low)"
+    - "GAP-017: Expanded LLM data exposure via consensus (Medium) — OPEN (DPIA draft pending sign-off)"
+  visibility_limitations:
+    - "Cloudflare WAF rule-set detail (managed ruleset, rate limiting thresholds, bot management) requires dashboard review"
+    - "Runtime secrets values not inspected"
+    - "Deployment-time configuration (CORS, cookie secure, TLS) verified via Bicep parameters but not runtime"
+    - "Database access control configuration beyond connection credentials"
+    - "Third-party service (AWS Bedrock, Azure OpenAI) security posture and data processing agreements"
+    - "Azure Service Bus network access policies"
+    - "Dual-provider data residency and cross-border transfer compliance"
+    - "ConText assertion detection accuracy on UK primary care text"
+    - "Tier classifier threshold calibration data"

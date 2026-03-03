@@ -49,6 +49,7 @@ import { rebuildPatientEpisodes } from "@/lib/analyticsApi";
 import type { EncounterSearchResult } from "@/lib/api";
 import type { CodedLink, EncounterSummary, ReviewTaskSummary } from "@/lib/types";
 import { usePipeline } from "@/context/PipelineContext";
+import AssertionChip from "./AssertionChip";
 import ConfirmDialog from "./ConfirmDialog";
 
 interface Props {
@@ -195,6 +196,7 @@ export default function EncounterList({ patientId }: Props) {
   const [searchMode, setSearchMode] = useState<"keyword" | "semantic">("keyword");
   const [semanticResults, setSemanticResults] = useState<EncounterSearchResult[] | null>(null);
   const [semanticLoading, setSemanticLoading] = useState(false);
+  const [semanticError, setSemanticError] = useState<string | null>(null);
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const router = useRouter();
@@ -286,11 +288,13 @@ export default function EncounterList({ patientId }: Props) {
         return;
       }
       setSemanticLoading(true);
+      setSemanticError(null);
       try {
         const results = await searchPatientEncounters(patientId, query, "hybrid");
         setSemanticResults(results);
-      } catch {
+      } catch (e) {
         setSemanticResults(null);
+        setSemanticError(e instanceof Error ? e.message : "Semantic search failed. Try again or use keyword search.");
       } finally {
         setSemanticLoading(false);
       }
@@ -301,10 +305,12 @@ export default function EncounterList({ patientId }: Props) {
   useEffect(() => {
     if (searchMode !== "semantic") {
       setSemanticResults(null);
+      setSemanticError(null);
       return;
     }
     if (!searchQuery.trim()) {
       setSemanticResults(null);
+      setSemanticError(null);
       return;
     }
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
@@ -569,6 +575,21 @@ export default function EncounterList({ patientId }: Props) {
                 {rebuilding ? "Rebuilding…" : "Rebuild Pathways"}
               </Button>
             )}
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={() => router.push(`/patients/${patientId}/timeline`)}
+              sx={{
+                textTransform: "none",
+                fontWeight: 600,
+                fontSize: "0.75rem",
+                px: 1.5,
+                py: 0.5,
+                borderRadius: 1.5,
+              }}
+            >
+              Coding timeline
+            </Button>
           </Stack>
           {pipeline.running && pipeline.live && (
             <Stack spacing={0.5} sx={{ mt: 1 }}>
@@ -589,6 +610,7 @@ export default function EncounterList({ patientId }: Props) {
         {/* DR-5: Admin/destructive actions hidden behind kebab menu */}
         <Tooltip title="Patient actions">
           <IconButton
+            aria-label="Patient actions"
             size="small"
             onClick={(e) => setMenuAnchor(e.currentTarget)}
             disabled={loading}
@@ -682,6 +704,7 @@ export default function EncounterList({ patientId }: Props) {
               if (v) {
                 setSearchMode(v);
                 setSemanticResults(null);
+                setSemanticError(null);
               }
             }}
             sx={{
@@ -718,7 +741,7 @@ export default function EncounterList({ patientId }: Props) {
               startAdornment: (
                 <InputAdornment position="start">
                   {semanticLoading ? (
-                    <CircularProgress size={16} />
+                    <CircularProgress aria-label="Loading" size={16} />
                   ) : searchMode === "semantic" ? (
                     <TravelExploreIcon fontSize="small" sx={{ color: "text.disabled" }} />
                   ) : (
@@ -728,6 +751,11 @@ export default function EncounterList({ patientId }: Props) {
               ),
             }}
           />
+          {searchMode === "semantic" && semanticError && (
+            <Typography sx={{ color: "warning.main", fontSize: "0.8rem", alignSelf: "center" }}>
+              {semanticError}
+            </Typography>
+          )}
           <TextField
             select
             size="small"
@@ -1012,7 +1040,7 @@ export default function EncounterList({ patientId }: Props) {
           <Box sx={{ flex: 1, overflow: "auto", minHeight: 0 }}>
             {sidebarLoading && (
               <Box sx={{ display: "flex", alignItems: "center", gap: 1, py: 4 }}>
-                <CircularProgress size={24} />
+                <CircularProgress aria-label="Loading" size={24} />
                 <Typography variant="body2" color="text.secondary">
                   Loading...
                 </Typography>
@@ -1047,33 +1075,40 @@ export default function EncounterList({ patientId }: Props) {
                   </Typography>
                   {sidebarData.codedLinks.length > 0 ? (
                     <Box component="ul" sx={{ m: 0, pl: 2, fontSize: "0.8rem", maxHeight: 220, overflow: "auto" }}>
-                      {sidebarData.codedLinks.map((link, i) => (
-                        <li key={link.concept_id + String(i)}>
-                          <Typography component="span" variant="caption">
-                            {link.term || link.concept_id}
-                            {link.read_code && ` (${link.read_code})`}
-                            {link.semantic_tag && ` [${link.semantic_tag}]`}
-                          </Typography>
-                          {(link.evidence || link.confidence != null || link.domain || link.coded_at || (link.context && Object.keys(link.context).length > 0) || (link.modifiers && Object.keys(link.modifiers).length > 0)) && (
-                            <Typography
-                              component="span"
-                              variant="caption"
-                              sx={{ display: "block", color: "text.secondary", fontSize: "0.75rem", mt: 0.25, pl: 1 }}
-                            >
-                              {[
-                                link.evidence && `evidence: "${link.evidence}"`,
-                                link.confidence != null && `confidence: ${Math.round(link.confidence * 100)}%`,
-                                link.domain && `domain: ${link.domain}`,
-                                link.coded_at && `coded_at: ${link.coded_at}`,
-                                link.context && Object.keys(link.context).length > 0 && `context: ${JSON.stringify(link.context)}`,
-                                link.modifiers && Object.keys(link.modifiers).length > 0 && `modifiers: ${JSON.stringify(link.modifiers)}`,
-                              ]
-                                .filter(Boolean)
-                                .join(" · ")}
-                            </Typography>
-                          )}
-                        </li>
-                      ))}
+                      {sidebarData.codedLinks.map((link, i) => {
+                        const assertion =
+                          link.assertion ??
+                          (link.context as Record<string, unknown> | undefined)?.assertion as string | undefined;
+                        return (
+                          <li key={link.concept_id + String(i)}>
+                            <Stack direction="row" spacing={0.75} alignItems="center" sx={{ flexWrap: "wrap" }}>
+                              <Typography component="span" variant="caption">
+                                {link.term || link.concept_id}
+                                {link.read_code && ` (${link.read_code})`}
+                                {link.semantic_tag && ` [${link.semantic_tag}]`}
+                              </Typography>
+                              <AssertionChip assertion={assertion} />
+                            </Stack>
+                            {(link.evidence || link.confidence != null || link.domain || link.coded_at || (link.modifiers && Object.keys(link.modifiers).length > 0)) && (
+                              <Typography
+                                component="span"
+                                variant="caption"
+                                sx={{ display: "block", color: "text.secondary", fontSize: "0.75rem", mt: 0.25, pl: 1 }}
+                              >
+                                {[
+                                  link.evidence && `evidence: "${link.evidence}"`,
+                                  link.confidence != null && `confidence: ${Math.round(link.confidence * 100)}%`,
+                                  link.domain && `domain: ${link.domain}`,
+                                  link.coded_at && `coded_at: ${link.coded_at}`,
+                                  link.modifiers && Object.keys(link.modifiers).length > 0 && `modifiers: ${JSON.stringify(link.modifiers)}`,
+                                ]
+                                  .filter(Boolean)
+                                  .join(" · ")}
+                              </Typography>
+                            )}
+                          </li>
+                        );
+                      })}
                     </Box>
                   ) : (
                     <Typography variant="caption" color="text.secondary">

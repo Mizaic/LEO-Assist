@@ -28,6 +28,7 @@ param modelStoreContainer string
 param modelStoreModelName string
 param hitlLowConfidenceThreshold string
 param hitlPeerReviewRate string
+param codingMode string = 'hitl'
 param modelMinPrecision string
 param modelMinRecall string = '0.75'
 param sbMaxLockRenewalSeconds string
@@ -123,6 +124,7 @@ var sharedEnv = [
   // HITL thresholds
   { name: 'HITL_LOW_CONFIDENCE_THRESHOLD', value: hitlLowConfidenceThreshold }
   { name: 'HITL_PEER_REVIEW_RATE', value: hitlPeerReviewRate }
+  { name: 'CODING_MODE', value: codingMode }
 
   // Label verification
   { name: 'LABEL_VERIFY_WORKERS', value: '50' }

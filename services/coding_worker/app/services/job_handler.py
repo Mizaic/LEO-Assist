@@ -23,7 +23,10 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
-from typing import Any
+import re
+from typing import Any, Literal
+
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from libs.message_bus.base import Message
 from libs.neo4j_client.client import PatientGraphClient, KnowledgeGraphClient
@@ -37,22 +40,57 @@ logger = logging.getLogger(__name__)
 ANALYSIS_QUEUE = os.getenv("ANALYSIS_QUEUE_NAME", "analysis-jobs")
 CODING_QUEUE = os.getenv("CODING_QUEUE_NAME", "coding-jobs")
 
+# COD-T-001 / COD-T-002: validated schema for all inbound coding job messages.
+_ID_RE = re.compile(r"^[a-zA-Z0-9_\-]{1,128}$")
+
+ValidMode = Literal["all", "unprocessed", "extract_patient", "extract_encounter"]
+
+
+class CodingJobMessage(BaseModel):
+    """Validated schema for coding-jobs Service Bus message bodies.
+
+    Rejects messages with missing required fields, illegal characters in IDs
+    (COD-T-002), or unsupported mode values before any pipeline code runs.
+    """
+
+    patient_id: str = Field(min_length=1, max_length=128)
+    encounter_id: str | None = Field(default=None, max_length=128)
+    mode: ValidMode = "all"
+    dry_run: bool = False
+    trigger_analysis: bool = True
+
+    @field_validator("patient_id", "encounter_id", mode="before")
+    @classmethod
+    def _no_injection_chars(cls, v: Any) -> Any:
+        if v is None:
+            return v
+        s = str(v)
+        if not _ID_RE.match(s):
+            raise ValueError(
+                f"ID contains illegal characters or exceeds length limit: {s[:30]!r}"
+            )
+        return s
+
 
 async def handle_coding_job(msg: Message) -> None:
-    body = msg.body
-    patient_id = body.get("patient_id")
-    encounter_id = body.get("encounter_id")
     run_id = msg.correlation_id or msg.message_id
-    dry_run = body.get("dry_run", False)
-    mode = body.get("mode", "all")
+    # COD-T-001: validate message body against the schema before touching any infrastructure.
+    try:
+        job = CodingJobMessage.model_validate(msg.body)
+    except Exception as exc:
+        logger.error(
+            "Rejecting malformed coding job message (run=%s): %s", run_id, exc
+        )
+        return  # dead-letter by abandoning without raising; prevents poison-pill loops
+
     with logging_context(correlation_id=run_id):
         await _handle_coding_job_inner(
-            body=body,
-            patient_id=patient_id,
-            encounter_id=encounter_id,
+            body=msg.body,
+            patient_id=job.patient_id,
+            encounter_id=job.encounter_id,
             run_id=run_id,
-            dry_run=dry_run,
-            mode=mode,
+            dry_run=job.dry_run,
+            mode=job.mode,
         )
 
 
@@ -77,6 +115,7 @@ async def _handle_coding_job_inner(
         pipeline = CodingPipeline(
             patient_client=patient_client,
             knowledge_client=knowledge_client,
+            coding_mode=os.getenv("CODING_MODE", "hitl"),
         )
 
         def progress_hook(payload: dict[str, Any]) -> None:

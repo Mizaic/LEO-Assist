@@ -346,3 +346,140 @@ class TestDocCats:
 
     def test_default_label_is_clinical(self):
         assert DEFAULT_LABEL == "clinical"
+
+
+# ── Anchor detector (VT-001-TC-004) ──────────────────────────────────────────
+
+
+class TestAnchorDetector:
+    """Verify detect_anchors() identifies milestone encounters from SNOMED DOCUMENTS.
+
+    Tests are fully mock-based — no live Neo4j required. They exercise the
+    core logic in services/analysis_worker/app/analyzers/anchor_detector.py.
+    """
+
+    def _make_client(self, coded_rows=None, expanded_rows=None):
+        from unittest.mock import MagicMock
+
+        client = MagicMock()
+
+        def _run(query, **kwargs):
+            if "DOCUMENTS" in query:
+                return coded_rows or []
+            return expanded_rows or []
+
+        client.run.side_effect = _run
+        return client
+
+    def test_referral_anchor_detected_from_fast_track_concept(self):
+        from services.analysis_worker.app.analyzers.anchor_detector import detect_anchors
+        from libs.domains.ncda_concept_sets import FAST_TRACK_REFERRAL_IDS
+
+        referral_id = next(iter(FAST_TRACK_REFERRAL_IDS))
+        coded = [
+            {
+                "encounter_id": "enc-001",
+                "encounter_date": "2024-03-01",
+                "concept_id": referral_id,
+                "concept_name": "Referral to cancer service",
+                "confidence": 0.95,
+                "source": "provisional",
+                "evidence": "",
+            }
+        ]
+        client = self._make_client(coded_rows=coded)
+        result = detect_anchors("pat-001", "2024-01-01", "2024-12-31", client)
+
+        assert len(result.referral_anchors) == 1
+        assert result.referral_anchors[0]["encounter_id"] == "enc-001"
+        assert result.detection_method == "concept"
+
+    def test_no_anchors_when_no_coded_encounters(self):
+        from services.analysis_worker.app.analyzers.anchor_detector import detect_anchors
+
+        client = self._make_client(coded_rows=[])
+        result = detect_anchors("pat-002", "2024-01-01", "2024-12-31", client)
+
+        assert result.referral_anchors == []
+        assert result.diagnosis_anchors == []
+        assert result.treatment_anchors == []
+        assert result.specialist_visit_anchors == []
+        assert result.detection_method == "none"
+
+    def test_diagnosis_anchor_detected_from_cancer_type_concept(self):
+        from services.analysis_worker.app.analyzers.anchor_detector import detect_anchors
+        from libs.domains.ncda_concept_sets import CANCER_TYPE_IDS
+
+        cancer_id = next(iter(CANCER_TYPE_IDS))
+        coded = [
+            {
+                "encounter_id": "enc-010",
+                "encounter_date": "2024-06-15",
+                "concept_id": cancer_id,
+                "concept_name": "Malignant neoplasm of colon",
+                "confidence": 0.98,
+                "source": "confirmed",
+                "evidence": "",
+            }
+        ]
+        client = self._make_client(coded_rows=coded)
+        result = detect_anchors("pat-003", "2024-01-01", "2024-12-31", client)
+
+        assert len(result.diagnosis_anchors) == 1
+        assert result.diagnosis_anchors[0]["concept_id"] == cancer_id
+
+    def test_same_encounter_deduped_within_anchor_type(self):
+        """Same encounter_id must appear at most once per anchor list."""
+        from services.analysis_worker.app.analyzers.anchor_detector import detect_anchors
+        from libs.domains.ncda_concept_sets import FAST_TRACK_REFERRAL_IDS
+
+        referral_id = next(iter(FAST_TRACK_REFERRAL_IDS))
+        coded = [
+            {
+                "encounter_id": "enc-dup",
+                "encounter_date": "2024-04-01",
+                "concept_id": referral_id,
+                "concept_name": "Referral A",
+                "confidence": 0.9,
+                "source": "provisional",
+                "evidence": "",
+            },
+            {
+                "encounter_id": "enc-dup",
+                "encounter_date": "2024-04-01",
+                "concept_id": referral_id,
+                "concept_name": "Referral B (same encounter, different row)",
+                "confidence": 0.85,
+                "source": "provisional",
+                "evidence": "",
+            },
+        ]
+        client = self._make_client(coded_rows=coded)
+        result = detect_anchors("pat-004", "2024-01-01", "2024-12-31", client)
+
+        assert len(result.referral_anchors) == 1, "Duplicate encounter_id must be deduplicated"
+
+    def test_window_expansion_sets_expanded_dates(self):
+        """With a referral anchor present, expanded_start and expanded_end must be set."""
+        from services.analysis_worker.app.analyzers.anchor_detector import detect_anchors
+        from libs.domains.ncda_concept_sets import FAST_TRACK_REFERRAL_IDS
+
+        referral_id = next(iter(FAST_TRACK_REFERRAL_IDS))
+        coded = [
+            {
+                "encounter_id": "enc-win",
+                "encounter_date": "2024-06-01",
+                "concept_id": referral_id,
+                "concept_name": "Fast track referral",
+                "confidence": 0.92,
+                "source": "provisional",
+                "evidence": "",
+            }
+        ]
+        client = self._make_client(coded_rows=coded, expanded_rows=[])
+        result = detect_anchors("pat-005", "2024-01-01", "2024-12-31", client, expand_months=3)
+
+        assert result.expanded_start is not None
+        assert result.expanded_end is not None
+        assert result.expanded_start < "2024-06-01"
+        assert result.expanded_end > "2024-06-01"

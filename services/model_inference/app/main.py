@@ -223,11 +223,21 @@ async def reload_model(req: ReloadRequest) -> dict[str, Any]:
     model continues serving.  Atomically swaps the in-memory reference when
     the new model is ready.
 
+    Idempotent: if the requested version is already active, returns
+    immediately without downloading or reloading.
+
     Called automatically by ``ModelRegistry.promote()`` and
     ``ModelRegistry.rollback()`` via the registry integration hook.
     """
     if not req.version:
         raise HTTPException(status_code=422, detail="version must be non-empty")
+
+    # Fast-path: already on this version — no download needed.
+    if _loader.active_version == req.version:
+        logger.info(
+            "Reload requested for v%s — already active, no-op", req.version
+        )
+        return {"active_version": _loader.active_version, "elapsed_ms": 0}
 
     start = time.monotonic()
     try:

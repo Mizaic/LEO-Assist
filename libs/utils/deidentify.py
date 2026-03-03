@@ -28,14 +28,20 @@ before calling deidentify_text() if that coverage is required.
 """
 from __future__ import annotations
 
+import os
 import re
 
 # ---------------------------------------------------------------------------
 # Deployment-specific local organisations
 # ---------------------------------------------------------------------------
 # These names identify the source practice / trust and must be scrubbed from
-# training exports.  Update this tuple for each deployment site.
-_LOCAL_ORGS: tuple[str, ...] = (
+# training exports.
+#
+# GAP-014: configurable at runtime via the DEIDENTIFY_LOCAL_ORGS env var.
+# Set it to a pipe-separated list:
+#   DEIDENTIFY_LOCAL_ORGS="Royal Free Hospital|Moorfields Eye|UCL"
+# Falls back to the built-in list below when the env var is absent.
+_BUILTIN_ORGS: tuple[str, ...] = (
     "Loughborough Urgent Treatment Centre",
     "Woodbrook Medical Centre",
     "LLR Charnwood DN",
@@ -46,7 +52,21 @@ _LOCAL_ORGS: tuple[str, ...] = (
 )
 
 
+def _load_local_orgs() -> tuple[str, ...]:
+    raw = os.environ.get("DEIDENTIFY_LOCAL_ORGS", "").strip()
+    if raw:
+        orgs = tuple(o.strip() for o in raw.split("|") if o.strip())
+        if orgs:
+            return orgs
+    return _BUILTIN_ORGS
+
+
+_LOCAL_ORGS: tuple[str, ...] = _load_local_orgs()
+
+
 def _build_org_re(orgs: tuple[str, ...]) -> re.Pattern[str]:
+    if not orgs:
+        return re.compile(r"(?!)")  # never-matching pattern
     # Longest match first so "LLR Charnwood DN" beats "LLR Charnwood"
     parts = sorted((re.escape(o) for o in orgs), key=len, reverse=True)
     return re.compile(r"(?:" + "|".join(parts) + r")", re.IGNORECASE)
@@ -91,8 +111,8 @@ CAPS_NAME_RE = re.compile(
 # leading element was not consumed.
 STRAY_CAPS_PREFIX_RE = re.compile(r"\b[A-Z]{2,5}\s+(?=\[PERSON\])")
 
-# NHS number: 10 digits optionally split by spaces
-NHS_RE = re.compile(r"\b\d{3}\s?\d{3}\s?\d{4}\b")
+# NHS number: 10 digits optionally split by spaces or hyphens
+NHS_RE = re.compile(r"\b\d{3}[\s\-]?\d{3}[\s\-]?\d{4}\b")
 
 # Named healthcare facility — e.g. "City Hospital", "Royal Infirmary",
 # "Queen's Medical Centre", "Leicester General Hospital".
@@ -133,8 +153,8 @@ POSTCODE_RE = re.compile(
     r"\b(?:GIR\s?0AA|[A-Z]{1,2}\d[A-Z\d]?\s?\d[A-Z]{2})\b", re.IGNORECASE
 )
 
-# UK phone number
-PHONE_RE = re.compile(r"\b(?:\+44|0)\d[\d\s\-]{8,}\d\b")
+# UK phone number (handles optional space/hyphen after +44)
+PHONE_RE = re.compile(r"(?:\+44[\s\-]?\d|\b0\d)[\d\s\-]{8,}\d\b")
 
 # Email
 EMAIL_RE = re.compile(r"\b[\w.\-+]+@[\w.\-]+\.\w+\b", re.IGNORECASE)
@@ -145,14 +165,72 @@ DATE_DOT_RE = re.compile(r"\b\d{1,2}\.\d{1,2}\.\d{2,4}\b")
 DATE_ISO_RE = re.compile(r"\b\d{4}-\d{2}-\d{2}\b")
 
 # ---------------------------------------------------------------------------
+# Optional spaCy NER second pass (GAP-008)
+# ---------------------------------------------------------------------------
+# Regex alone cannot catch first names in free-running clinical narrative
+# (e.g. "spoke to Christopher about his meds").  A spaCy PERSON-NER pass
+# over the text catches these residual mentions.
+#
+# The NER pass is opt-in:
+#  - Set env var DEIDENTIFY_NER_MODEL to a spaCy model name (e.g. en_core_web_lg)
+#    to enable it.  The model is loaded once and cached in _NER_NLP.
+#  - The env var is read lazily on first call to deidentify_text(ner=True) so
+#    that importing this module (e.g. in tests) does not trigger a model load.
+
+_NER_NLP = None  # lazy-loaded spaCy pipeline
+_NER_MODEL: str | None = None  # model name used to populate _NER_NLP
+
+
+def _get_ner_nlp():
+    """Return a cached spaCy nlp pipeline for NER, or None if not configured."""
+    global _NER_NLP, _NER_MODEL
+    model = os.environ.get("DEIDENTIFY_NER_MODEL", "").strip()
+    if not model:
+        return None
+    if _NER_NLP is not None and _NER_MODEL == model:
+        return _NER_NLP
+    try:
+        import spacy
+        _NER_NLP = spacy.load(model, disable=["tagger", "parser", "lemmatizer"])
+        _NER_MODEL = model
+    except Exception as exc:
+        import logging as _logging
+        _logging.getLogger(__name__).warning(
+            "DEIDENTIFY_NER_MODEL=%r could not be loaded — NER pass disabled: %s",
+            model, exc,
+        )
+        return None
+    return _NER_NLP
+
+
+def _ner_redact(text: str, nlp) -> str:
+    """Replace PERSON entities found by spaCy with [PERSON]."""
+    doc = nlp(text)
+    if not doc.ents:
+        return text
+    # Build replacement from right-to-left to preserve character offsets
+    chars = list(text)
+    for ent in reversed(doc.ents):
+        if ent.label_ == "PERSON":
+            chars[ent.start_char : ent.end_char] = list("[PERSON]")
+    return "".join(chars)
+
+
+# ---------------------------------------------------------------------------
 # Public functions
 # ---------------------------------------------------------------------------
 
-def deidentify_text(text: str) -> str:
+def deidentify_text(text: str, *, ner: bool | None = None) -> str:
     """Return ``text`` with PII patterns replaced by safe placeholder tokens.
 
     Safe to call multiple times (idempotent — placeholders don't match the
     patterns again).
+
+    Args:
+        text: Raw clinical text to de-identify.
+        ner:  If True, run a spaCy PERSON-NER second pass after the regex
+              pass to catch first names in free narrative.  Defaults to True
+              when DEIDENTIFY_NER_MODEL env var is set, False otherwise.
     """
     out = text
     # Order matters: most-specific patterns first
@@ -171,6 +249,14 @@ def deidentify_text(text: str) -> str:
     out = DATE_SLASH_RE.sub("[DATE]", out)
     out = DATE_DOT_RE.sub("[DATE]", out)
     out = DATE_ISO_RE.sub("[DATE]", out)
+
+    # Optional NER second pass — catches residual first names in free narrative
+    run_ner = ner if ner is not None else bool(os.environ.get("DEIDENTIFY_NER_MODEL", "").strip())
+    if run_ner:
+        nlp = _get_ner_nlp()
+        if nlp is not None:
+            out = _ner_redact(out, nlp)
+
     return out
 
 

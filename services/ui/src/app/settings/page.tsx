@@ -14,6 +14,7 @@ import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import TextFieldsOutlinedIcon from "@mui/icons-material/TextFieldsOutlined";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import HubOutlinedIcon from "@mui/icons-material/HubOutlined";
+import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 
 interface SettingsCard {
   id: string;
@@ -50,6 +51,14 @@ const SETTINGS_CARDS: SettingsCard[] = [
     path: "/settings/terminology",
   },
   {
+    id: "context-rules",
+    title: "Context rules",
+    description:
+      "Teach the system how to handle new clinical phrases -- for example, that 'would not consider' means DECLINED. Rules are added to the context detection pipeline without a code deploy.",
+    icon: <AccountTreeOutlinedIcon sx={{ fontSize: 40, color: "primary.main" }} />,
+    path: "/settings/context-rules",
+  },
+  {
     id: "tenant",
     title: "Tenant Management",
     description:
@@ -68,7 +77,7 @@ export default function SettingsPage() {
 
   return (
     <Box sx={{ p: 3, maxWidth: 1000, mx: "auto" }}>
-      <Typography variant="h5" sx={{ fontWeight: 700, mb: 1 }}>
+      <Typography variant="h5" component="h1" sx={{ fontWeight: 700, mb: 1 }}>
         Settings
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>

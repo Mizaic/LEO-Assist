@@ -33,7 +33,6 @@ from app.deps import get_caller_scope_from_request
 limiter = Limiter(key_func=get_remote_address)
 from app.routers.admin import router as admin_router
 from app.routers.mail_router import router as mail_router
-from app.routers.agent import router as agent_router
 from app.routers.anchor_review import router as anchor_review_router
 from app.routers.audit import router as audit_router
 from app.routers.auth import router as auth_router
@@ -139,9 +138,28 @@ async def require_xhr_for_mutations(request: Request, call_next):
         return Response(status_code=403, content="CSRF check failed: X-Requested-With header required")
     return await call_next(request)
 
+
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    """Add security headers to every response (CSP-T-001, defence-in-depth).
+
+    The Content-Security-Policy is restrictive: this is a JSON API, not a
+    document server, so no scripts, styles, or frames should ever be served.
+    """
+    response = await call_next(request)
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'none'; frame-ancestors 'none'"
+    )
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    response.headers["Strict-Transport-Security"] = (
+        "max-age=63072000; includeSubDomains; preload"
+    )
+    return response
+
 app.include_router(admin_router)
 app.include_router(mail_router)
-app.include_router(agent_router)
 app.include_router(anchor_review_router)
 app.include_router(auth_router)
 app.include_router(proxy_router)

@@ -1,0 +1,68 @@
+# -- DO-LEO-AI-025 -- Three-Tier Decision Engine Module
+# ISO 13485 / IEC 62304 Design Output
+# Schema: design-controls/templates/design_outputs_schema.yaml
+
+- id: "DO-LEO-AI-025"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-038"]
+    user_needs: ["UN-LEO-AI-002"]
+    risks_addressed: ["R-LEO-AI-001", "R-LEO-AI-026"]
+    verification_tests: ["VT-LEO-AI-023"]
+
+  specification:
+    title: "Three-Tier Decision Engine Module"
+    description: |
+      Deterministic decision matrix that classifies each extracted entity
+      into Tier 1 (auto-code), Tier 2 (code with audit flag / review), or
+      Tier 3 (do not code / review) based on assertion, context detection
+      status, terminology confidence, surface form approval, and disorder
+      verdict. Mode-aware routing maps tiers to different actions in HITL
+      vs autonomous mode. Pure function with no side effects.
+    acceptance_criteria:
+      - criterion: "Tier 3 safety gates"
+        type: "safety"
+        measurement: "Test"
+        target: "Context failure, non-codeable assertions, informational/uncertain disorders always Tier 3"
+      - criterion: "Tier 1 auto-code"
+        type: "functional"
+        measurement: "Test"
+        target: "Present assertion + score >= 0.95 = Tier 1"
+      - criterion: "Tier 2 medium confidence"
+        type: "functional"
+        measurement: "Test"
+        target: "Present assertion + score >= 0.70 = Tier 2"
+      - criterion: "Priority ordering"
+        type: "safety"
+        measurement: "Test"
+        target: "Tier 3 gates always override Tier 1 signals"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "libs/coding_engine/tier_classifier.py"
+        description: "TierDecision frozen dataclass and classify_tier() pure function"
+        storage_location: "git"
+    technical_details:
+      language: "Python"
+      loc: 60
+      key_classes: ["TierDecision"]
+      key_functions: ["classify_tier", "_tier2", "_tier3"]
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Tier 3 gates evaluated first -- safety checks take priority"
+      - "Pending surface forms cannot reach Tier 1"
+      - "Absent, declined, hypothetical assertions always blocked from coding"
+    risk_control_measures:
+      - "Deterministic logic with no randomness or model calls"
+      - "Frozen dataclass output prevents post-classification mutation"
+      - "28 unit tests covering the full decision matrix"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: true

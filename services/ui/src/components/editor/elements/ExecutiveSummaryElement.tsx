@@ -183,7 +183,7 @@ export function ExecutiveSummaryElement({ element, pageId, readOnly = false }: E
           </Typography>
         </Box>
         <Button size="small" onClick={handleRun} disabled={busy || readOnly}>
-          {busy ? <CircularProgress size={16} /> : 'Run'}
+          {busy ? <CircularProgress aria-label="Loading" size={16} /> : 'Run'}
         </Button>
       </Box>
       <Box

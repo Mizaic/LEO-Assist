@@ -183,7 +183,7 @@ function InterpretationHeader({ title, busy, readOnly, disabled, onRun }: Interp
         </Typography>
       </Box>
       <Button size="small" onClick={onRun} disabled={busy || readOnly || disabled}>
-        {busy ? <CircularProgress size={16} /> : 'Run'}
+        {busy ? <CircularProgress aria-label="Loading" size={16} /> : 'Run'}
       </Button>
     </Box>
   );

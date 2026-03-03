@@ -1,0 +1,182 @@
+# -- R-LEO-AI-030 -- Prompt Injection / LLM Jacking via Clinical Text
+# ISO 14971 / IEC 62304 / IEC 81001-5-1 Risk
+# Schema: design-controls/templates/risks_schema.yaml
+# Threat model reference: DC-TM-SEC-002 NER-T-001, CONS-T-001
+
+- id: "R-LEO-AI-030"
+  title: "Adversarial prompt injection via clinical text causes LLM to deviate from its coding task"
+
+  hazard:
+    description: >
+      Clinical encounter text processed by the LLM pipeline contains embedded
+      text that looks like instructions, role definitions, or special tokens
+      (e.g. "ignore all previous instructions", "[INST]...[/INST]",
+      "<|im_start|>system..."). When this text is inserted into an LLM
+      prompt without sanitisation, a sufficiently capable LLM may follow the
+      embedded instructions rather than its assigned clinical coding task.
+    category: "software_defect"
+
+  hazardous_situation: >
+    The disorder verifier, coding escalation engine, and candidate picker all
+    embed raw clinical text (entity_text, encounter_text) into LLM user
+    messages. If a malicious actor inserts injection payloads into a patient
+    record — or if a GP system API returns encounter text that already contains
+    such patterns — those payloads reach AWS Bedrock and Azure OpenAI without
+    filtering. The LLM may then:
+    (a) return an incorrect verdict that bypasses the clinical coding gate, or
+    (b) output confidential system-prompt content or infrastructure details, or
+    (c) produce a response that crashes the JSON parser or overflows the
+        downstream processing buffer (response-stuffing).
+    In autonomous mode there is no human in the loop to catch a deceptive LLM
+    response before it is persisted to the patient graph.
+
+  harm:
+    description: >
+      (a) A disorder entity is incorrectly classified (e.g. UNCERTAIN instead
+          of ACTIVE_DIAGNOSIS, or vice versa), causing a false negative or
+          false positive diagnosis in the patient record.
+      (b) Confidential system information (prompt structure, model endpoints)
+          is disclosed, enabling further attacks.
+      (c) A malformed or oversized LLM response causes a processing error
+          that silently suppresses a valid coding decision.
+    severity: "serious"
+
+  initial_risk_estimate:
+    severity: 4
+    probability: 3
+    detectability: 3
+    rpn: 36
+    risk_level: "high"
+
+  mitigation_measures:
+    - control_type: "inherent_safety"
+      description: >
+        INJECTION_GUARD prefix on every LLM system prompt. The guard
+        explicitly instructs the model that all data blocks may contain
+        instruction-like text and must be treated as inert data. The model's
+        role and output format are defined solely by the system prompt.
+      implemented_by: ["DI-LEO-AI-045"]
+      verified_by: ["VT-LEO-AI-038"]
+      effectiveness: "effective"
+
+    - control_type: "protective_measure"
+      description: >
+        sanitise_for_prompt() applied to all entity_text and encounter_text
+        inputs before embedding in LLM user messages. Replaces 15 injection
+        pattern families (instruction-reset, role-assumption, ChatML tokens,
+        Llama/Alpaca tokens, role label hijack, delimiter injection) with
+        [FILTERED] and logs the substitution count for audit.
+      implemented_by: ["DI-LEO-AI-045"]
+      verified_by: ["VT-LEO-AI-038"]
+      effectiveness: "highly_effective"
+
+    - control_type: "protective_measure"
+      description: >
+        cap_llm_response() applied before every response parse function.
+        Truncates raw LLM output to 1000 characters, preventing response-
+        stuffing attacks where an injected payload exploits a greedy JSON
+        regex or overflows the processing buffer.
+      implemented_by: ["DI-LEO-AI-045"]
+      verified_by: ["VT-LEO-AI-038"]
+      effectiveness: "highly_effective"
+
+    - control_type: "protective_measure"
+      description: >
+        Output validation: parse functions accept only a closed set of
+        valid verdicts (active_diagnosis, informational, historical, uncertain;
+        correct, incorrect, uncertain; pick, search, ambiguous, not_codeable).
+        Any response outside the allowed set is treated as a parse failure
+        and the fail_verdict is applied.
+      implemented_by: ["DI-LEO-AI-036", "DI-LEO-AI-037", "DI-LEO-AI-040", "DI-LEO-AI-041"]
+      verified_by: ["VT-LEO-AI-021", "VT-LEO-AI-022", "VT-LEO-AI-025", "VT-LEO-AI-026"]
+      effectiveness: "highly_effective"
+
+    - control_type: "protective_measure"
+      description: >
+        Consensus arbitrator third-verdict alert: when the Sonnet arbitrator
+        returns a verdict not held by either primary model, a WARNING with
+        keyword consensus.arbitrator_third_verdict is emitted. This provides
+        an audit signal for unexpected LLM behavior that may indicate
+        injection or jailbreak.
+      implemented_by: ["DI-LEO-AI-047"]
+      verified_by: ["VT-LEO-AI-038"]
+      effectiveness: "effective"
+
+    - control_type: "protective_measure"
+      description: >
+        Dual-model consensus architecture: disorder verification and coding
+        consensus require two independent providers to agree. A successful
+        injection would need to subvert both AWS and Azure models
+        simultaneously with the same payload.
+      implemented_by: ["DI-LEO-AI-036"]
+      verified_by: ["VT-LEO-AI-021"]
+      effectiveness: "effective"
+
+    - control_type: "protective_measure"
+      description: >
+        Mode-aware fail-safe: any parse failure in autonomous mode defaults
+        to UNCERTAIN (do not code), never to ACTIVE_DIAGNOSIS. A successful
+        injection that produces a garbage response therefore errs on the
+        side of safety (entity not coded rather than falsely coded).
+      implemented_by: ["DI-LEO-AI-037", "DI-LEO-AI-041"]
+      verified_by: ["VT-LEO-AI-022", "VT-LEO-AI-026"]
+      effectiveness: "highly_effective"
+
+    - control_type: "preventive_control"
+      description: >
+        .cursor/rules/llm-security.mdc enforces injection guard, input
+        sanitisation, and response capping on every new LLM call site
+        introduced to the codebase, preventing regression.
+      implemented_by: [".cursor/rules/llm-security.mdc"]
+      verified_by: []
+      effectiveness: "effective"
+
+  residual_risk_estimate:
+    severity: 4
+    probability: 1
+    detectability: 1
+    rpn: 4
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      Six layered controls reduce probability of harm to improbable:
+      the injection guard instructs the model to ignore embedded instructions;
+      sanitise_for_prompt strips 15 injection pattern families before text
+      reaches the model; cap_llm_response prevents response-stuffing;
+      output validation rejects any response outside the allowed verdict set;
+      dual-model consensus requires simultaneous subversion of two independent
+      providers; and the mode-aware fail-safe ensures that even a successful
+      injection producing garbage output defaults to the safe direction (do not
+      code) in autonomous mode. Residual risk arises only from novel injection
+      patterns not yet in the filter list (GAP-017 unicode lookalikes are
+      documented as known non-coverage) and from HITL mode where a deceptive
+      but valid-looking verdict may be accepted -- mitigated by the human
+      reviewer gate.
+
+  monitoring:
+    monitoring_plan: >
+      Monitor the prompt_safety logger for "stripped N injection pattern(s)"
+      warnings. Elevated rates indicate an emerging pattern in the encounter
+      data. Track consensus.arbitrator_third_verdict warnings for unexpected
+      arbitration behavior. Review cap_llm_response truncation events monthly.
+    metrics:
+      - "sanitise_for_prompt substitution count per pipeline run (target: < 0.1% of entities)"
+      - "consensus.arbitrator_third_verdict warning count (target: 0 per week)"
+      - "cap_llm_response truncation events per week (target: 0)"
+      - "Autonomous mode: UNCERTAIN verdict rate (monitor for sudden increase)"
+    review_frequency: "Weekly during initial deployment, then monthly"
+
+  metadata:
+    identified_by: "Threat Model DC-TM-SEC-002 (NER-T-001, CONS-T-001)"
+    identified_date: "2026-03-03"
+    status: "analyzed"
+
+  tags:
+    - "security"
+    - "prompt-injection"
+    - "llm-jacking"
+    - "llm-security"
+    - "response-stuffing"
+    - "owasp-llm-top10"
+    - "clinical-risk"
+    - "autonomous-coding"

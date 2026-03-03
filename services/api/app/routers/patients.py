@@ -7,6 +7,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
+from typing import Optional
 
 from app.db.neo4j_client import CodingGraphClient, PatientGraphClient
 from libs.auth.org_scope import CallerScope, get_caller_scope, require_patient_in_scope
@@ -14,6 +15,7 @@ from app.models.neo4j_schema import (
     DELETE_CODED_LINK,
     GET_ENCOUNTER,
     GET_PATIENT,
+    GET_PATIENT_CODING_TIMELINE,
     LIST_APPROVED_COUNT_BY_PATIENT,
     LIST_ENCOUNTER_CODED_LINKS,
     LIST_PATIENT_ENCOUNTERS,
@@ -26,7 +28,7 @@ from app.services.inference_service import infer_encounter
 from app.services.reset_review_queue_service import reset_review_queue
 from app.services.reset_service import reset_patient
 from app.services.sync_service import sync_gold_to_patient
-from app.services.terminology_writeback_service import writeback_approved_terms
+from services.terminology_api.app.services.writeback_service import writeback_approved_terms
 from app.services.patient_graph_writer import PatientGraphWriter, SemanticLinkPayload
 
 
@@ -157,7 +159,7 @@ def sync_gold_to_patient_graph(
         with patient_client.session() as patient_session, coding_client.session() as coding_session:
             wb = writeback_approved_terms(
                 patient_session=patient_session,
-                coding_session=coding_session,
+                knowledge_session=coding_session,
                 patient_id=patient_id,
             )
         return {
@@ -628,5 +630,61 @@ def update_coded_link_modifiers(
         if not rows:
             raise HTTPException(status_code=404, detail="Coded link not found")
         return {"concept_id": concept_id, "modifiers": modifiers}
+    finally:
+        client.close()
+
+
+class TimelineEvent(BaseModel):
+    encounter_date: str
+    encounter_id: str
+    concept_id: str
+    term: str
+    semantic_tag: str
+    read_code: Optional[str] = None
+    assertion: str
+    confidence: Optional[float] = None
+    domain: Optional[str] = None
+    decision_tier: Optional[int] = None
+
+
+def _parse_assertion_from_context(context_json: str | None) -> str:
+    """Extract the assertion string from the context JSON stored on :DOCUMENTS."""
+    if not context_json:
+        return "present"
+    try:
+        ctx = json.loads(context_json)
+        return str(ctx.get("assertion") or "present")
+    except (json.JSONDecodeError, AttributeError):
+        return "present"
+
+
+@router.get("/{patient_id}/timeline", response_model=list[TimelineEvent])
+def get_patient_coding_timeline(
+    patient_id: str,
+    scope: CallerScope = Depends(get_caller_scope),
+):
+    """Return all coded SNOMED terms for a patient ordered by encounter date."""
+    client = PatientGraphClient()
+    try:
+        require_patient_in_scope(client, scope, patient_id)
+        rows = client.run(GET_PATIENT_CODING_TIMELINE, patient_id=patient_id)
+        events = []
+        for row in rows:
+            concept_id = row.get("concept_id")
+            if not concept_id:
+                continue
+            events.append(TimelineEvent(
+                encounter_date=str(row.get("encounter_date") or ""),
+                encounter_id=str(row.get("encounter_id") or ""),
+                concept_id=str(concept_id),
+                term=str(row.get("term") or concept_id),
+                semantic_tag=str(row.get("semantic_tag") or "other"),
+                read_code=row.get("read_code"),
+                assertion=_parse_assertion_from_context(row.get("context_json")),
+                confidence=float(row["confidence"]) if row.get("confidence") is not None else None,
+                domain=row.get("domain"),
+                decision_tier=int(row["decision_tier"]) if row.get("decision_tier") is not None else None,
+            ))
+        return events
     finally:
         client.close()

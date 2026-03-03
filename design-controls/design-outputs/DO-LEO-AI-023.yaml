@@ -1,0 +1,66 @@
+# -- DO-LEO-AI-023 -- Dual-Model Consensus Runner Module
+# ISO 13485 / IEC 62304 Design Output
+# Schema: design-controls/templates/design_outputs_schema.yaml
+
+- id: "DO-LEO-AI-023"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-036"]
+    user_needs: ["UN-LEO-AI-002"]
+    risks_addressed: ["R-LEO-AI-001", "R-LEO-AI-026"]
+    verification_tests: ["VT-LEO-AI-021"]
+
+  specification:
+    title: "Dual-Model Consensus Runner Module"
+    description: |
+      Generic dual-model consensus runner that calls two independent LLM
+      providers (AWS Haiku, Azure GPT-5 mini) in parallel. If both agree,
+      the shared verdict is returned. If they disagree, Sonnet (AWS big)
+      arbitrates. If all calls fail, a caller-supplied fail_verdict is
+      returned. The module is provider-agnostic via parse_fn and
+      fail_verdict parameters.
+    acceptance_criteria:
+      - criterion: "Agreement path"
+        type: "functional"
+        measurement: "Test"
+        target: "Both providers agree -> shared verdict with agreed=True"
+      - criterion: "Single-provider degradation"
+        type: "functional"
+        measurement: "Test"
+        target: "One failure -> surviving provider's verdict used"
+      - criterion: "Dual-failure safety"
+        type: "safety"
+        measurement: "Test"
+        target: "Both fail -> fail_verdict returned, never empty"
+      - criterion: "Arbitration"
+        type: "functional"
+        measurement: "Test"
+        target: "Disagreement escalated to Sonnet; result used as verdict"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "libs/llm_client/consensus.py"
+        description: "ConsensusResult dataclass and run_consensus() function"
+        storage_location: "git"
+    technical_details:
+      language: "Python"
+      loc: 100
+      key_classes: ["ConsensusResult"]
+      key_functions: ["run_consensus", "_call_provider"]
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Fail-safe: unrecoverable failures always return fail_verdict"
+      - "Parallel execution with independent providers reduces correlated errors"
+    risk_control_measures:
+      - "60-second timeout on each provider call"
+      - "Exception handling with logging on every call path"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: true

@@ -11,7 +11,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Protocol, runtime_checkable
 
-CONTRACT_VERSION = "1.1"
+CONTRACT_VERSION = "1.2"
 
 
 @dataclass(frozen=True)
@@ -32,7 +32,7 @@ class ExtractionItem:
     span_start: int
     span_end: int
     semantic_tag: str
-    assertion: str          # present | absent | possible | historical | hypothetical | family
+    assertion: str          # present | absent | refuted | possible | historical | hypothetical | family | declined | cancelled
     confidence: float
     normalized: str         # lookup term or normalised surface form
     source_meta: dict[str, Any] = field(default_factory=dict)

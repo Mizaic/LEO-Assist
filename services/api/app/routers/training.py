@@ -20,6 +20,8 @@ from __future__ import annotations
 import json
 import logging
 import re
+import subprocess
+import sys
 import threading
 import uuid
 from typing import Any, Optional
@@ -28,7 +30,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
 from libs.auth.org_scope import CallerScope, get_caller_scope
-from libs.neo4j_client.client import PatientGraphClient
+from libs.neo4j_client.client import KnowledgeGraphClient, PatientGraphClient
+from app.deps import require_admin
 from libs.cypher.training_label_queries import (
     COUNT_EXPORTABLE_LABELS,
     COUNT_TRAINING_LABELS_PAGE,
@@ -44,19 +47,32 @@ from libs.cypher.training_label_queries import (
 from libs.cypher.coding_review_queries import (
     AUTO_RESOLVE_CODING_REVIEW,
     BATCH_RESOLVE_BY_ENTITY_TEXT,
+    COUNT_ASSERTION_REVIEW_GROUPS,
     COUNT_CODING_REVIEW_GROUPS,
     COUNT_CODING_REVIEW_PENDING,
     DEACTIVATE_CODING_IGNORE_RULE,
     GET_ALL_CODING_IGNORE_RULES,
+    GET_ASSERTION_REVIEW_QUEUE,
     GET_CODING_IGNORE_RULES,
+    GET_CODING_REVIEW_FOR_ENTITY,
     GET_CODING_REVIEW_QUEUE,
     GET_CODING_REVIEW_STATS,
+    GET_ENCOUNTER_SIBLINGS,
     GET_PENDING_FOR_RECHECK,
     GROUP_CODING_REVIEWS_BY_ENTITY,
     IGNORE_CODING_REVIEW,
     RESOLVE_CODING_REVIEW,
     UPDATE_CODING_REVIEW_FIELDS,
+    DEACTIVATE_CONTEXT_RULE,
+    GET_CONTEXT_RULES,
+    UPDATE_ASSERTION_FOR_REVIEW,
+    UPDATE_ENTITY_LABEL_FOR_TEXT,
     UPSERT_CODING_IGNORE_RULE,
+    UPSERT_CONTEXT_RULE,
+    GET_TIER_OVERRIDE_STATS,
+)
+from services.terminology_api.app.queries.terminology import (
+    APPROVE_SURFACE_FORM,
 )
 from libs.cypher.label_verification_queries import (
     COUNT_VERIFICATION_HISTORY,
@@ -90,6 +106,59 @@ from app.services.label_verifier import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/training", tags=["training"])
+
+
+# ---------------------------------------------------------------------------
+# Regex safety helper (GAP-016 — ReDoS + injection via user-supplied patterns)
+# ---------------------------------------------------------------------------
+
+# Probe strings used by the ReDoS subprocess to trigger catastrophic backtracking.
+# - _REDOS_PROBE_LOWER: all-lowercase; fails patterns requiring uppercase (email-style).
+# - _REDOS_PROBE_SIMPLE: classic probe for nested-quantifier patterns.
+_REDOS_PROBE_LOWER = "a" * 38
+_REDOS_PROBE_SIMPLE = "a" * 50 + "b"
+
+
+def _validate_regex(pattern: str, max_length: int = 200) -> None:
+    """Validate a user-supplied regex for safety before persisting.
+
+    Raises HTTPException(422) if:
+    - The pattern exceeds max_length characters.
+    - The pattern contains a regex syntax error.
+    - The pattern exhibits catastrophic backtracking (ReDoS).
+
+    Uses a subprocess for the ReDoS probe so the GIL cannot block the timeout.
+    The subprocess is killed at the OS level if it does not complete within 0.5s.
+    """
+    if len(pattern) > max_length:
+        raise HTTPException(
+            status_code=422,
+            detail=f"context_regex must not exceed {max_length} characters",
+        )
+    try:
+        re.compile(pattern)
+    except re.error as exc:
+        raise HTTPException(status_code=422, detail=f"Invalid regex: {exc}") from exc
+
+    probe_code = (
+        "import re, sys\n"
+        f"compiled = re.compile({pattern!r})\n"
+        f"compiled.search({_REDOS_PROBE_LOWER!r})\n"
+        f"compiled.search({_REDOS_PROBE_SIMPLE!r})\n"
+        "sys.exit(0)\n"
+    )
+    try:
+        subprocess.run(
+            [sys.executable, "-c", probe_code],
+            timeout=0.5,
+            capture_output=True,
+        )
+    except subprocess.TimeoutExpired:
+        logger.warning("ReDoS probe timed out for regex: %r", pattern[:80])
+        raise HTTPException(
+            status_code=422,
+            detail="context_regex exhibits catastrophic backtracking and is not permitted",
+        )
 
 
 # ------------------------------------------------------------------
@@ -802,12 +871,14 @@ def list_post_processor_rules(scope: CallerScope = Depends(get_caller_scope)) ->
 @router.post("/post-processor-rules")
 def create_post_processor_rule(
     body: PostProcessorRuleRequest,
-    scope: CallerScope = Depends(get_caller_scope),
+    scope: CallerScope = Depends(require_admin),
 ) -> dict[str, Any]:
     """Create or update a post-processor rule used by export and runtime pipeline."""
     valid_actions = {"suppress", "rewrite", "relabel"}
     if body.action not in valid_actions:
         raise HTTPException(status_code=422, detail=f"action must be one of {sorted(valid_actions)}")
+    if body.context_regex:
+        _validate_regex(body.context_regex)
     if body.action in {"rewrite", "relabel"} and not body.rewrite_label:
         raise HTTPException(status_code=422, detail="rewrite_label is required for rewrite/relabel actions")
     if body.action == "rewrite" and not body.rewrite_text:
@@ -843,7 +914,7 @@ def create_post_processor_rule(
 def update_post_processor_rule(
     rule_id: str,
     body: UpdatePostProcessorRuleRequest,
-    scope: CallerScope = Depends(get_caller_scope),
+    scope: CallerScope = Depends(require_admin),
 ) -> dict[str, Any]:
     """Toggle active status for an existing post-processor rule."""
     client = PatientGraphClient()
@@ -955,12 +1026,32 @@ def export_preview(scope: CallerScope = Depends(get_caller_scope)) -> dict[str, 
 def coding_review_queue(
     page: int = Query(1, ge=1),
     page_size: int = Query(25, ge=1, le=500),
+    entity_text: Optional[str] = Query(default=None),
     scope: CallerScope = Depends(get_caller_scope),
 ) -> dict[str, Any]:
-    """Paginated queue of entities with missing or low-confidence SNOMED coding."""
+    """Paginated queue of entities with missing or low-confidence SNOMED coding.
+
+    When entity_text is provided, returns only records for that specific term
+    so callers can inspect all encounter contexts before assigning a code.
+    """
     client = PatientGraphClient()
     try:
         with client.session() as session:
+            if entity_text:
+                rows = session.run(
+                    GET_CODING_REVIEW_FOR_ENTITY,
+                    entity_text=entity_text,
+                )
+                items = [dict(r) for r in rows]
+                return {
+                    "items": items,
+                    "page": 1,
+                    "page_size": len(items),
+                    "total_pages": 1,
+                    "pending": len(items),
+                    "stats": {},
+                }
+
             skip = (page - 1) * page_size
             rows = session.run(GET_CODING_REVIEW_QUEUE, skip=skip, limit=page_size)
             items = [dict(r) for r in rows]
@@ -980,6 +1071,125 @@ def coding_review_queue(
             "pending": pending,
             "stats": stats,
         }
+    finally:
+        client.close()
+
+
+@router.post("/coding-review/encounter-siblings")
+def coding_review_encounter_siblings(
+    body: dict[str, Any],
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    """Return all CodingReview nodes for the same TrainingLabels.
+
+    Accepts ``{"label_ids": ["id1", "id2", ...]}``.
+    Groups results by label_id so the UI can show what other entities
+    share the same encounter text.
+    """
+    label_ids = body.get("label_ids") or []
+    if not label_ids or len(label_ids) > 500:
+        return {"siblings": {}}
+
+    client = PatientGraphClient()
+    try:
+        with client.session() as session:
+            rows = session.run(GET_ENCOUNTER_SIBLINGS, label_ids=label_ids)
+            grouped: dict[str, list[dict]] = {}
+            for r in rows:
+                rec = dict(r)
+                lid = rec.pop("label_id")
+                grouped.setdefault(lid, []).append(rec)
+        return {"siblings": grouped}
+    finally:
+        client.close()
+
+
+class CorrectEntityLabelRequest(BaseModel):
+    entity_text: str
+    entity_label: str
+    corrected_by: str = "operations_ui"
+
+
+@router.patch("/coding-review/entity-label")
+def correct_entity_label(
+    body: CorrectEntityLabelRequest,
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    """Correct the NER entity label on all pending reviews for a given entity text.
+
+    Called when a reviewer notices the model assigned the wrong semantic type
+    (e.g. 'situation' instead of 'finding').  Updates all unresolved
+    CodingReview nodes so subsequent searches and recheck runs use the right label.
+    """
+    if body.entity_label not in _VALID_ENTITY_LABELS:
+        raise HTTPException(
+            status_code=422,
+            detail=f"entity_label must be one of {sorted(_VALID_ENTITY_LABELS)}",
+        )
+    client = PatientGraphClient()
+    try:
+        with client.session() as session:
+            row = session.run(
+                UPDATE_ENTITY_LABEL_FOR_TEXT,
+                entity_text=body.entity_text,
+                entity_label=body.entity_label,
+            ).single()
+        updated = row["updated_count"] if row else 0
+        logger.info(
+            "Entity label corrected: %r -> %r by %s (%d reviews updated)",
+            body.entity_text, body.entity_label, body.corrected_by, updated,
+        )
+        return {
+            "entity_text": body.entity_text,
+            "entity_label": body.entity_label,
+            "updated_count": updated,
+        }
+    finally:
+        client.close()
+
+
+_VALID_ASSERTIONS = frozenset({
+    "present", "absent", "refuted", "possible", "historical", "hypothetical",
+    "family", "declined", "cancelled",
+})
+
+
+class CorrectAssertionRequest(BaseModel):
+    assertion: str
+    corrected_by: str = "operations_ui"
+
+
+@router.patch("/coding-review/{review_id}/assertion")
+def correct_assertion(
+    review_id: str,
+    body: CorrectAssertionRequest,
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    """Override the ConText assertion for a single CodingReview record.
+
+    Sets assertion_override=true so re-processing never overwrites
+    a human correction.
+    """
+    if body.assertion not in _VALID_ASSERTIONS:
+        raise HTTPException(
+            status_code=422,
+            detail=f"assertion must be one of {sorted(_VALID_ASSERTIONS)}",
+        )
+    client = PatientGraphClient()
+    try:
+        with client.session() as session:
+            row = session.run(
+                UPDATE_ASSERTION_FOR_REVIEW,
+                review_id=review_id,
+                assertion=body.assertion,
+            ).single()
+        if not row:
+            raise HTTPException(status_code=404, detail=f"Review {review_id!r} not found")
+        logger.info(
+            "Assertion overridden: review=%s assertion=%r by %s",
+            review_id[:12], body.assertion, body.corrected_by,
+        )
+        return {"review_id": review_id, "assertion": body.assertion}
     finally:
         client.close()
 
@@ -1023,11 +1233,35 @@ def coding_review_grouped(
         client.close()
 
 
+@router.get("/coding-review/tier-calibration")
+def coding_review_tier_calibration(
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    """Override rate per decision tier -- used to calibrate safety layer thresholds.
+
+    Returns the count of resolved items and the override rate (%) for each
+    tier so quality leads can monitor whether the Tier 1 auto-code threshold
+    is too permissive or the Tier 3 gate is blocking codeable items.
+    """
+    client = PatientGraphClient()
+    try:
+        with client.session() as session:
+            rows = session.run(GET_TIER_OVERRIDE_STATS)
+            stats = [dict(r) for r in rows]
+        return {"tiers": stats}
+    finally:
+        client.close()
+
+
 class ResolveCodingReviewRequest(BaseModel):
     resolved_concept_id: str
     resolved_term: str
     resolved_entity_text: str | None = None
     reviewer: str = "operations_ui"
+    # Assertion to record on the resolved code. "declined", "cancelled", or
+    # "refuted" when LEO detected the patient declined/cancelled or an initial
+    # impression was overridden by subsequent investigation.
+    resolved_assertion: str = "present"
 
 
 class IgnoreCodingReviewRequest(BaseModel):
@@ -1069,6 +1303,7 @@ def resolve_coding_review(
                 resolved_concept_id=body.resolved_concept_id,
                 resolved_term=body.resolved_term,
                 reviewer=body.reviewer,
+                resolved_assertion=body.resolved_assertion,
             ).single()
         if not result:
             raise HTTPException(status_code=404, detail="Coding review not found")
@@ -1111,6 +1346,7 @@ def resolve_coding_review(
                     resolved_concept_id=body.resolved_concept_id,
                     resolved_term=body.resolved_term,
                     reviewer=f"cascade:{body.reviewer}",
+                    resolved_assertion=body.resolved_assertion,
                 ).single()
                 cascade_count = (cascade_row["resolved_count"] if cascade_row else 0)
         except Exception:
@@ -1139,6 +1375,7 @@ class BatchResolveCodingReviewRequest(BaseModel):
     resolved_concept_id: str
     resolved_term: str
     reviewer: str = "operations_ui"
+    resolved_assertion: str = "present"
 
 
 @router.post("/coding-review/batch-resolve")
@@ -1163,6 +1400,7 @@ def batch_resolve_coding_review(
                 resolved_concept_id=body.resolved_concept_id,
                 resolved_term=body.resolved_term,
                 reviewer=body.reviewer,
+                resolved_assertion=body.resolved_assertion,
             ).single()
             resolved_count = row["resolved_count"] if row else 0
     finally:
@@ -1267,12 +1505,30 @@ def ask_leo_rank_candidates(
 
     from libs.llm_client.escalation import _parse_json
     from libs.llm_client.factory import create_llm
+    from libs.llm_client.prompt_safety import INJECTION_GUARD, sanitise_for_prompt
+    from libs.ner.lab_value_guard import is_lab_result_sentence, should_suppress_disorder
+
+    # Deterministic guard: block diagnostic inference from lab values
+    if is_lab_result_sentence(body.encounter_text or ""):
+        if should_suppress_disorder(
+            entity_text=body.entity_text,
+            entity_semantic_tag="disorder",
+            entity_normalized=body.entity_text,
+            sentence_text=body.encounter_text or "",
+        ):
+            return {
+                "selected_index": 0,
+                "reason": (
+                    "Lab-value guard: a lab result does not constitute a diagnosis. "
+                    "'CKD-EPI' is a formula name, not a diagnosis of CKD."
+                ),
+            }
 
     numbered = "\n".join(
         f"{i}. {c.get('term', '')} (SNOMED: {c.get('snomed_concept_id', '')})"
         for i, c in enumerate(body.candidates)
     )
-    system = (
+    system = INJECTION_GUARD + (
         "You are a UK primary care SNOMED CT coding specialist.\n"
         "Pick the best concept from the numbered list for the clinical entity "
         "and encounter context.\n\n"
@@ -1290,13 +1546,19 @@ def ask_leo_rank_candidates(
         "concentration; mmol/L -> substance concentration.\n"
         "4. UK convention: blood tests are serum-based unless stated otherwise.\n"
         "5. If no candidate clearly fits, pick the closest and set a lower "
-        "confidence in your reason.\n\n"
+        "confidence in your reason.\n"
+        "6. Do NOT infer diagnoses from lab values. A lab result (eGFR, HbA1c, "
+        "creatinine, sodium, etc.) is an observation, NOT a diagnosis. 'CKD-EPI' "
+        "is a formula name, not CKD. If the encounter text is a lab result, pick "
+        "the observable entity concept, not a disorder concept.\n"
+        "7. This system is a CODING tool. You code what is written, not what is "
+        "inferred or recommended.\n\n"
         "Reply ONLY with JSON: "
         '{"selected_index": <int>, "reason": "<one sentence>"}'
     )
     user_msg = json.dumps({
-        "entity_text": body.entity_text,
-        "encounter_text": body.encounter_text[:1000],
+        "entity_text": sanitise_for_prompt(body.entity_text, max_chars=200),
+        "encounter_text": sanitise_for_prompt(body.encounter_text[:1000], max_chars=1000),
         "candidates": numbered,
     })
     tier = body.tier if body.tier in ("small", "big", "max") else "small"
@@ -1323,12 +1585,38 @@ def ask_leo_rank_candidates(
 # Agentic two-pass LEO SNOMED search
 # ---------------------------------------------------------------------------
 
+_ASSERTION_NOTES: dict[str, str] = {
+    "absent":      "The entity was explicitly negated in this record. Coding is likely inappropriate.",
+    "declined":    (
+        "The patient declined or refused this. Code the underlying procedure or referral "
+        "using its normal SNOMED concept -- do NOT search for 'patient declined [entity]'. "
+        "The system will store the code with assertion='declined' on the relationship so "
+        "the timeline shows it was offered but not accepted."
+    ),
+    "cancelled":   (
+        "The appointment or procedure was cancelled (by patient or practice). Code the "
+        "underlying procedure using its normal SNOMED concept. The system will store the "
+        "code with assertion='cancelled' on the relationship."
+    ),
+    "refuted":     (
+        "Initial impression overridden by subsequent investigation. "
+        "Code the entity that WAS confirmed using its normal SNOMED concept. "
+        "The refuted entity should NOT be coded."
+    ),
+    "historical":  "This may be a past event, not a current active condition.",
+    "hypothetical": "This procedure is planned or awaiting -- it may not have occurred yet.",
+    "possible":    "This was uncertain or suspected in the original record.",
+    "family":      "This applies to a family member, not the patient directly.",
+}
+
+
 class AskLeoSmartRequest(BaseModel):
     entity_text: str
     encounter_text: str = ""
     initial_candidates: list[dict[str, Any]]
     semantic_tags: list[str] = []
     tier: str = "small"
+    assertion: str = "present"
 
 
 def _terminology_search(
@@ -1378,55 +1666,131 @@ def ask_leo_smart(
     from verified terminology search results.
     """
     from libs.llm_client.escalation import escalate_coding_from_candidates
+    from libs.ner.lab_value_guard import is_lab_result_sentence, should_suppress_disorder
+
+    # -- Deterministic guard: block diagnostic inference from lab values ------
+    if is_lab_result_sentence(body.encounter_text or ""):
+        if should_suppress_disorder(
+            entity_text=body.entity_text,
+            entity_semantic_tag="disorder",
+            entity_normalized=body.entity_text,
+            sentence_text=body.encounter_text or "",
+        ):
+            return {
+                "matched_candidate": None,
+                "reason": (
+                    "This encounter text is a lab result line. A lab value "
+                    "(e.g. eGFR, HbA1c, creatinine) is an observation, not a "
+                    "diagnosis. 'CKD-EPI' is a formula name, not a diagnosis "
+                    "of chronic kidney disease. This entity should not be coded "
+                    "as a disorder."
+                ),
+                "is_ambiguous": False,
+                "alternative_query_used": None,
+                "assertion_warning": (
+                    "Lab-value guard: a lab result does not constitute a "
+                    "diagnosis. This entity should not be coded as a disorder."
+                ),
+                "assertion": "present",
+            }
 
     tier = body.tier if body.tier in ("small", "big", "max") else "small"
+    assertion_note = _ASSERTION_NOTES.get(body.assertion, "")
+    encounter_ctx = (
+        f"{body.encounter_text}\n\nContext note: {assertion_note}"
+        if assertion_note and body.encounter_text
+        else body.encounter_text
+    )
 
     def _smart_response(
         candidate: dict[str, Any] | None,
         reason: str,
         is_ambiguous: bool,
         alternative_query: str | None = None,
+        assertion_warning: str | None = None,
+        assertion: str = "present",
     ) -> dict[str, Any]:
         return {
             "matched_candidate": candidate,
             "reason": reason,
             "is_ambiguous": is_ambiguous,
             "alternative_query_used": alternative_query,
+            "assertion_warning": assertion_warning,
+            # "declined", "cancelled", or "refuted" when LEO detected the patient
+            # declined/cancelled or an initial impression was overridden.
+            "assertion": assertion,
         }
 
     # -- Pass 1 ---------------------------------------------------------------
     result1 = escalate_coding_from_candidates(
         entity_text=body.entity_text,
-        encounter_text=body.encounter_text,
+        encounter_text=encounter_ctx,
         candidates=body.initial_candidates,
         tier=tier,
     )
 
+    if result1.action == "not_codeable":
+        return _smart_response(
+            None,
+            result1.reason,
+            is_ambiguous=False,
+            assertion_warning=result1.reason,
+        )
+
     if result1.action == "pick":
         candidate = _pick_candidate(body.initial_candidates, result1.selected_index)
-        return _smart_response(candidate, result1.reason, is_ambiguous=False)
+        return _smart_response(
+            candidate, result1.reason, is_ambiguous=False, assertion=result1.assertion,
+        )
 
     if result1.action == "ambiguous":
         return _smart_response(None, result1.reason, is_ambiguous=True)
 
     # -- Pass 2: LEO requested an alternative search --------------------------
     alt_query = result1.alternative_query
+    # Carry the assertion hint from pass 1 into pass 2's context note.
+    pass2_ctx = encounter_ctx
+    if result1.assertion in {"declined", "cancelled", "refuted"}:
+        note = _ASSERTION_NOTES.get(result1.assertion, "")
+        pass2_ctx = f"{encounter_ctx}\n\nContext note: {note}" if note else encounter_ctx
+
     new_candidates = _terminology_search(alt_query, 10, body.semantic_tags)
     if not new_candidates:
-        return _smart_response(None, result1.reason, is_ambiguous=True, alternative_query=alt_query)
+        return _smart_response(
+            None, result1.reason, is_ambiguous=True,
+            alternative_query=alt_query, assertion=result1.assertion,
+        )
 
     result2 = escalate_coding_from_candidates(
         entity_text=body.entity_text,
-        encounter_text=body.encounter_text,
+        encounter_text=pass2_ctx,
         candidates=new_candidates,
         tier=tier,
     )
 
+    if result2.action == "not_codeable":
+        return _smart_response(
+            None,
+            result2.reason,
+            is_ambiguous=False,
+            alternative_query=alt_query,
+            assertion_warning=result2.reason,
+        )
+
     if result2.action == "pick":
         candidate = _pick_candidate(new_candidates, result2.selected_index)
-        return _smart_response(candidate, result2.reason, is_ambiguous=False, alternative_query=alt_query)
+        # Prefer the assertion from whichever pass detected the clinical context.
+        assertion = result2.assertion if result2.assertion != "present" else result1.assertion
+        return _smart_response(
+            candidate, result2.reason, is_ambiguous=False,
+            alternative_query=alt_query, assertion=assertion,
+        )
 
-    return _smart_response(None, result2.reason, is_ambiguous=True, alternative_query=alt_query)
+    assertion = result2.assertion if result2.assertion != "present" else result1.assertion
+    return _smart_response(
+        None, result2.reason, is_ambiguous=True,
+        alternative_query=alt_query, assertion=assertion,
+    )
 
 
 @router.post("/coding-review/{review_id}/ignore")
@@ -1832,20 +2196,21 @@ def _apply_recheck_item(
             term=term,
             resolved_by=resolved_by,
         )
-        llm_writeback_ok = False
-        if resolved_by.startswith("llm_alt:"):
-            llm_writeback_ok = _writeback_recheck_surface_form(
-                entity_text=entity_text,
-                concept_id=concept_id,
-                resolved_by=resolved_by,
-            )
+        # Write surface form for all auto-resolved paths so future pipeline
+        # runs hit the Tier-1 fast path instead of re-querying the terminology API.
+        writeback_ok = _writeback_recheck_surface_form(
+            entity_text=entity_text,
+            concept_id=concept_id,
+            resolved_by=resolved_by,
+        )
         logger.info(
-            "RECHECK: [FINALISED] term=%r -> concept=%r snomed=%r score=%.4f method=%r review=%s",
-            entity_text, concept_id, term, score, resolved_by, review_id,
+            "RECHECK: [FINALISED] term=%r -> concept=%r snomed=%r score=%.4f"
+            " method=%r review=%s writeback=%s",
+            entity_text, concept_id, term, score, resolved_by, review_id, writeback_ok,
         )
         if resolved_by.startswith("llm_alt:"):
-            return "resolved_llm", llm_writeback_ok
-        return "resolved_direct", False
+            return "resolved_llm", writeback_ok
+        return "resolved_direct", writeback_ok
 
     # Last resort: model escalation (small -> big -> max) for unresolved items
     if try_alternatives:
@@ -1856,19 +2221,25 @@ def _apply_recheck_item(
             confidence_threshold=0.85,
             start_tier="big",
         )
-        if esc.resolved and esc.concept_term:
+        if esc.resolved and esc.concept_id and esc.concept_term:
+            resolved_by_esc = f"escalation:{esc.model_tier}"
             logger.info(
                 "RECHECK: [ESCALATED] term=%r -> concept=%r tier=%s conf=%.2f review=%s",
-                entity_text, esc.concept_term, esc.model_tier, esc.confidence, review_id,
+                entity_text, esc.concept_id, esc.model_tier, esc.confidence, review_id,
             )
             session.run(
                 AUTO_RESOLVE_CODING_REVIEW,
                 review_id=review_id,
-                concept_id=esc.concept_term,
+                concept_id=esc.concept_id,
                 term=esc.concept_term,
-                resolved_by=f"escalation:{esc.model_tier}",
+                resolved_by=resolved_by_esc,
             )
-            return "resolved_llm", False
+            esc_writeback_ok = _writeback_recheck_surface_form(
+                entity_text=entity_text,
+                concept_id=esc.concept_id,
+                resolved_by=resolved_by_esc,
+            )
+            return "resolved_llm", esc_writeback_ok
 
     logger.info(
         "RECHECK: [PENDING] term=%r label=%s -- not resolved, remains in queue review=%s",
@@ -2142,6 +2513,192 @@ def coding_review_stats(
         return dict(row) if row else {
             "total": 0, "coded": 0, "uncoded": 0,
             "resolved": 0, "pending": 0, "low_confidence": 0,
+            "assertion_flagged": 0,
         }
+    finally:
+        client.close()
+
+
+@router.get("/coding-review/assertion-queue")
+def assertion_review_queue(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(25, ge=1, le=200),
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    """Entities with possible/historical/family assertions requiring human review.
+
+    These are not auto-coded -- a reviewer must either confirm the assertion
+    and assign a code, change the assertion to present, or suppress the entity.
+    Returns the same grouped shape as the coding-review/grouped endpoint so
+    ReviewCard can render them without changes.
+    """
+    client = PatientGraphClient()
+    try:
+        with client.session() as session:
+            skip = (page - 1) * page_size
+            rows = session.run(
+                GET_ASSERTION_REVIEW_QUEUE,
+                skip=skip,
+                limit=page_size,
+            )
+            groups = [dict(r) for r in rows]
+            count_row = session.run(COUNT_ASSERTION_REVIEW_GROUPS).single()
+            total_groups = count_row["group_count"] if count_row else 0
+        total_pages = max(1, (total_groups + page_size - 1) // page_size)
+        return {
+            "groups": groups,
+            "page": page,
+            "page_size": page_size,
+            "total_pages": total_pages,
+            "total_groups": total_groups,
+        }
+    finally:
+        client.close()
+
+
+# ---------------------------------------------------------------------------
+# Context rules -- user-defined ConText rules stored in Neo4j.
+# ---------------------------------------------------------------------------
+
+_VALID_CATEGORIES = frozenset({
+    "NEGATED_EXISTENCE", "POSSIBLE_EXISTENCE", "HISTORICAL",
+    "HYPOTHETICAL", "FAMILY", "DECLINED",
+})
+_VALID_DIRECTIONS = frozenset({"FORWARD", "BACKWARD", "BIDIRECTIONAL"})
+
+
+class ContextRuleRequest(BaseModel):
+    literal: str
+    category: str
+    direction: str = "FORWARD"
+    max_scope: int = 6
+    description: str = ""
+    example: str = ""
+    created_by: str = "operations_ui"
+
+
+@router.get("/context-rules")
+def list_context_rules(
+    active_only: bool = True,
+    include_builtin: bool = True,
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    """List ConText rules: user-defined (Neo4j) plus optionally the shipped built-ins.
+
+    Custom rules are scoped to the caller's org; platform admins see all orgs.
+    Built-in rules (source='builtin') are read-only and global.
+    """
+    from libs.ner.context_engine import get_builtin_rules
+
+    org_id = None if scope.is_admin else scope.primary_org_id
+
+    client = PatientGraphClient()
+    try:
+        with client.session() as session:
+            rows = session.run(GET_CONTEXT_RULES, active_only=active_only, org_id=org_id)
+            custom = [{**dict(r), "source": "custom"} for r in rows]
+    finally:
+        client.close()
+
+    builtin = get_builtin_rules() if include_builtin else []
+    return {"rules": builtin + custom}
+
+
+@router.post("/context-rules")
+def create_context_rule(
+    body: ContextRuleRequest,
+    scope: CallerScope = Depends(require_admin),
+) -> dict[str, Any]:
+    """Create a new user-defined ConText rule, scoped to the caller's org.
+
+    The rule is picked up by the coding worker on the next pipeline restart.
+    Only platform admins may create rules (GAP-015).
+    """
+    if not body.literal.strip():
+        raise HTTPException(status_code=422, detail="literal must not be empty")
+    if len(body.literal) > 200:
+        raise HTTPException(status_code=422, detail="literal must not exceed 200 characters")
+    if body.category not in _VALID_CATEGORIES:
+        raise HTTPException(
+            status_code=422,
+            detail=f"category must be one of {sorted(_VALID_CATEGORIES)}",
+        )
+    if body.direction.upper() not in _VALID_DIRECTIONS:
+        raise HTTPException(
+            status_code=422,
+            detail=f"direction must be one of {sorted(_VALID_DIRECTIONS)}",
+        )
+    rule_id = str(uuid.uuid4())
+    org_id = scope.primary_org_id  # None for platform admins (platform-wide rule)
+    client = PatientGraphClient()
+    try:
+        with client.session() as session:
+            session.run(
+                UPSERT_CONTEXT_RULE,
+                rule_id=rule_id,
+                literal=body.literal.strip().lower(),
+                category=body.category.upper(),
+                direction=body.direction.upper(),
+                max_scope=max(1, min(20, body.max_scope)),
+                description=body.description.strip(),
+                example=body.example.strip(),
+                created_by=scope.email,
+                org_id=org_id,
+            )
+        logger.info(
+            "ContextRule created: %s %r -> %s by %s (org=%s)",
+            rule_id[:8], body.literal, body.category, scope.email, org_id,
+        )
+        return {"rule_id": rule_id, "literal": body.literal, "category": body.category, "org_id": org_id}
+    finally:
+        client.close()
+
+
+@router.patch("/context-rules/{rule_id}/deactivate")
+def deactivate_context_rule(
+    rule_id: str,
+    scope: CallerScope = Depends(require_admin),
+) -> dict[str, Any]:
+    """Soft-delete a user-defined ConText rule."""
+    client = PatientGraphClient()
+    try:
+        with client.session() as session:
+            row = session.run(DEACTIVATE_CONTEXT_RULE, rule_id=rule_id).single()
+        if not row:
+            raise HTTPException(status_code=404, detail=f"Rule {rule_id!r} not found")
+        logger.info("ContextRule deactivated: %s", rule_id[:8])
+        return {"rule_id": rule_id, "active": False}
+    finally:
+        client.close()
+
+
+# -- Surface form approval --------------------------------------------------
+
+
+@router.patch("/surface-forms/{normalized}/approve")
+def approve_surface_form(
+    normalized: str,
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    """Promote a pending surface form to approved after second confirmation.
+
+    Surface forms are created as 'pending' on first writeback. This endpoint
+    confirms the mapping so the resolver treats it as a trusted Tier 1 match.
+    """
+    client = KnowledgeGraphClient()
+    try:
+        with client.session() as session:
+            row = session.run(
+                APPROVE_SURFACE_FORM,
+                normalized=normalized,
+                approved_by=scope.user_id or "reviewer",
+            ).single()
+        if not row:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No pending surface form found for {normalized!r}",
+            )
+        logger.info("SurfaceForm approved: %s", normalized[:40])
+        return {"normalized": row["normalized"], "status": row["status"]}
     finally:
         client.close()

@@ -52,6 +52,7 @@ import HourglassTopIcon from "@mui/icons-material/HourglassTop";
 import PauseIcon from "@mui/icons-material/Pause";
 import PlayCircleOutlineIcon from "@mui/icons-material/PlayCircleOutline";
 import TabFlowDiagram, { type TabStage } from "@/components/operations/TabFlowDiagram";
+import AssertionChip from "@/components/AssertionChip";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -205,14 +206,19 @@ function fmtElapsed(s: number | null) {
 }
 
 function EntityPills({ entitiesJson, showAll = false }: { entitiesJson: string; showAll?: boolean }) {
-  let entities: { text: string; label: string }[] = [];
+  let entities: { text: string; label: string; assertion?: string }[] = [];
   try { entities = JSON.parse(entitiesJson); } catch { /* ignore */ }
-  if (!entities.length) return <Typography variant="caption" color="text.disabled">—</Typography>;
+  if (!entities.length) return <Typography variant="caption" color="text.disabled">--</Typography>;
   const visible = showAll ? entities : entities.slice(0, 5);
   return (
     <Stack direction="row" flexWrap="wrap" gap={0.5}>
       {visible.map((e, i) => (
-        <Chip key={i} label={`${e.text} · ${e.label}`} size="small" variant="outlined" sx={{ fontSize: 11 }} />
+        <Stack key={i} direction="row" spacing={0.4} alignItems="center">
+          <Chip label={`${e.text} · ${e.label}`} size="small" variant="outlined" sx={{ fontSize: 11 }} />
+          {e.assertion && e.assertion !== "present" && (
+            <AssertionChip assertion={e.assertion} />
+          )}
+        </Stack>
       ))}
       {!showAll && entities.length > 5 && <Chip label={`+${entities.length - 5} more`} size="small" />}
     </Stack>
@@ -677,7 +683,7 @@ export default function TrainingDataPanel() {
           >
             Start training
           </Button>
-          <IconButton size="small" onClick={() => { fetchJobs(); fetchStats(); fetchPreview(); }}>
+          <IconButton aria-label="Refresh training data" size="small" onClick={() => { fetchJobs(); fetchStats(); fetchPreview(); }}>
             <RefreshIcon fontSize="small" />
           </IconButton>
         </Stack>
@@ -691,14 +697,14 @@ export default function TrainingDataPanel() {
               Run history
             </Typography>
             <Tooltip title={pollingPaused ? "Resume live updates" : "Pause live updates"}>
-              <IconButton size="small" onClick={() => setPollingPaused((p) => !p)}>
+              <IconButton aria-label={pollingPaused ? "Resume live updates" : "Pause live updates"} size="small" onClick={() => setPollingPaused((p) => !p)}>
                 {pollingPaused
                   ? <PlayCircleOutlineIcon fontSize="small" color="success" />
                   : <PauseIcon fontSize="small" color="action" />}
               </IconButton>
             </Tooltip>
             <Tooltip title="Refresh now">
-              <IconButton size="small" onClick={() => { fetchJobs(); fetchStats(); }}>
+              <IconButton aria-label="Refresh now" size="small" onClick={() => { fetchJobs(); fetchStats(); }}>
                 <RefreshIcon fontSize="small" />
               </IconButton>
             </Tooltip>
@@ -726,7 +732,7 @@ export default function TrainingDataPanel() {
                     <Typography variant="caption" color="text.disabled">
                       {new Date(job.created_at * 1000).toLocaleString([], { dateStyle: "short", timeStyle: "short" })}
                     </Typography>
-                    <IconButton size="small" onClick={() => setExpandedJob(isExpanded ? null : job.job_id)}>
+                    <IconButton aria-label={isExpanded ? "Collapse job" : "Expand job"} size="small" onClick={() => setExpandedJob(isExpanded ? null : job.job_id)}>
                       {isExpanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
                     </IconButton>
                   </Stack>
@@ -818,7 +824,7 @@ export default function TrainingDataPanel() {
               <ToggleButton value="true">Included</ToggleButton>
               <ToggleButton value="false">Excluded</ToggleButton>
             </ToggleButtonGroup>
-            <IconButton size="small" onClick={() => { fetchLabels(); fetchVerificationStatus(); }}>
+            <IconButton aria-label="Refresh labels" size="small" onClick={() => { fetchLabels(); fetchVerificationStatus(); }}>
               <RefreshIcon fontSize="small" />
             </IconButton>
             <Box flex={1} />
@@ -935,7 +941,7 @@ export default function TrainingDataPanel() {
               </TableHead>
               <TableBody>
                 {loadingLabels && (
-                  <TableRow><TableCell colSpan={5} align="center"><CircularProgress size={18} /></TableCell></TableRow>
+                  <TableRow><TableCell colSpan={5} align="center"><CircularProgress aria-label="Loading" size={18} /></TableCell></TableRow>
                 )}
                 {!loadingLabels && labels.length === 0 && (
                   <TableRow><TableCell colSpan={5} align="center"><Typography variant="caption" color="text.disabled">No records found</Typography></TableCell></TableRow>
@@ -970,8 +976,8 @@ export default function TrainingDataPanel() {
                     </TableCell>
                     <TableCell align="right">
                       {label.include
-                        ? <Tooltip title="Remove from training"><IconButton size="small" onClick={(e) => { e.stopPropagation(); setExcludeTarget(label.label_id); }}><BlockIcon fontSize="small" color="error" /></IconButton></Tooltip>
-                        : <Tooltip title="Add back to training"><IconButton size="small" onClick={(e) => { e.stopPropagation(); handleInclude(label.label_id); }}><CheckCircleOutlineIcon fontSize="small" color="success" /></IconButton></Tooltip>}
+                        ? <Tooltip title="Remove from training"><IconButton aria-label="Remove from training" size="small" onClick={(e) => { e.stopPropagation(); setExcludeTarget(label.label_id); }}><BlockIcon fontSize="small" color="error" /></IconButton></Tooltip>
+                        : <Tooltip title="Add back to training"><IconButton aria-label="Add back to training" size="small" onClick={(e) => { e.stopPropagation(); handleInclude(label.label_id); }}><CheckCircleOutlineIcon fontSize="small" color="success" /></IconButton></Tooltip>}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -1012,7 +1018,7 @@ export default function TrainingDataPanel() {
                   {selectedLabel.label_id.slice(0, 20)}…
                 </Typography>
               </Box>
-              <IconButton size="small" onClick={() => { setSelectedLabel(null); setEditingEntities(false); }} edge="end">
+              <IconButton aria-label="Close label detail" size="small" onClick={() => { setSelectedLabel(null); setEditingEntities(false); }} edge="end">
                 <CloseIcon fontSize="small" />
               </IconButton>
             </Stack>
@@ -1101,6 +1107,7 @@ export default function TrainingDataPanel() {
                   {!editingEntities ? (
                     <Tooltip title="Edit entities">
                       <IconButton
+                        aria-label="Edit entities"
                         size="small"
                         onClick={() => {
                           let parsed: LabelEntity[] = [];
@@ -1126,7 +1133,7 @@ export default function TrainingDataPanel() {
                         variant="contained"
                         onClick={handleSaveEntities}
                         disabled={savingEntities || draftEntities.length === 0}
-                        startIcon={savingEntities ? <CircularProgress size={12} /> : undefined}
+                        startIcon={savingEntities ? <CircularProgress aria-label="Loading" size={12} /> : undefined}
                       >
                         {savingEntities ? "Saving…" : "Save"}
                       </Button>
@@ -1181,6 +1188,7 @@ export default function TrainingDataPanel() {
                         </FormControl>
                         <Tooltip title="Remove entity">
                           <IconButton
+                            aria-label="Remove entity"
                             size="small"
                             color="error"
                             onClick={() =>
@@ -1304,7 +1312,7 @@ export default function TrainingDataPanel() {
             onClick={handleStartJob}
             disabled={startingJob}
             variant="contained"
-            startIcon={startingJob ? <CircularProgress size={14} /> : <PlayArrowIcon />}
+            startIcon={startingJob ? <CircularProgress aria-label="Loading" size={14} /> : <PlayArrowIcon />}
           >
             {startingJob ? "Starting…" : "Start"}
           </Button>

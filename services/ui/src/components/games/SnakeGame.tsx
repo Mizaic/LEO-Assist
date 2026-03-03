@@ -606,6 +606,8 @@ export default function SnakeGame() {
         )}
         {!started && (
           <button
+            type="button"
+            aria-label="Start game"
             onClick={startGame}
             style={{
               background: "linear-gradient(135deg,#22c55e,#16a34a)",
@@ -623,6 +625,8 @@ export default function SnakeGame() {
         )}
         {gameOver && (
           <button
+            type="button"
+            aria-label="Play again"
             onClick={restart}
             style={{
               background: "linear-gradient(135deg,#6366f1,#8b5cf6)",

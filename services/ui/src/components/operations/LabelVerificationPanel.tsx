@@ -20,6 +20,7 @@ import {
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import TabFlowDiagram, { type TabStage } from "@/components/operations/TabFlowDiagram";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 interface LabelVerificationReview {
   review_id: string;
@@ -202,6 +203,8 @@ export default function LabelVerificationPanel() {
   const [draftEntitiesByReview, setDraftEntitiesByReview] = useState<Record<string, LabelEntity[]>>({});
   const [newSpanText, setNewSpanText] = useState<Record<string, string>>({});
   const [newSpanLabel, setNewSpanLabel] = useState<Record<string, string>>({});
+  const [confirmSuppressReview, setConfirmSuppressReview] = useState<LabelVerificationReview | null>(null);
+  const [confirmResetAll, setConfirmResetAll] = useState(false);
 
   const fetchQueue = useCallback(async () => {
     setLoading(true);
@@ -581,7 +584,7 @@ export default function LabelVerificationPanel() {
           variant="outlined"
           size="small"
           disabled={startingVerify || verifyStatus?.status === "running" || verifyStatus?.status === "stopping"}
-          onClick={() => handleStartVerification("all", true)}
+          onClick={() => setConfirmResetAll(true)}
         >
           Reset + reverify all
         </Button>
@@ -616,7 +619,7 @@ export default function LabelVerificationPanel() {
 
       {loading && (
         <Paper variant="outlined" sx={{ p: 3, textAlign: "center", mb: 2 }}>
-          <CircularProgress size={20} />
+          <CircularProgress aria-label="Loading" size={20} />
         </Paper>
       )}
 
@@ -803,7 +806,7 @@ export default function LabelVerificationPanel() {
               <Button
                 variant="outlined"
                 size="small"
-                onClick={() => handleCreateSuppressRule(review)}
+                onClick={() => setConfirmSuppressReview(review)}
                 disabled={creatingRuleId === review.review_id}
               >
                 {creatingRuleId === review.review_id ? "Creating rule..." : "Create ignore rule"}
@@ -821,6 +824,28 @@ export default function LabelVerificationPanel() {
           </Paper>
         ))}
       </Stack>
+
+      {confirmSuppressReview && (
+        <ConfirmDialog
+          title="Create global suppress rule?"
+          body={`This will permanently suppress "${(selectedSpans[confirmSuppressReview.review_id] ?? confirmSuppressReview.entity_text ?? "").trim()}" across all future pipeline runs and remove the span from this record.`}
+          confirmLabel="Create suppress rule"
+          variant="danger"
+          onConfirm={() => { handleCreateSuppressRule(confirmSuppressReview); setConfirmSuppressReview(null); }}
+          onCancel={() => setConfirmSuppressReview(null)}
+        />
+      )}
+
+      {confirmResetAll && (
+        <ConfirmDialog
+          title="Reset all pending verifications?"
+          body="This will discard all in-progress review work and restart label verification from scratch. This cannot be undone."
+          confirmLabel="Reset + reverify all"
+          variant="danger"
+          onConfirm={() => { handleStartVerification("all", true); setConfirmResetAll(false); }}
+          onCancel={() => setConfirmResetAll(false)}
+        />
+      )}
 
       <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 2 }}>
         <Button size="small" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>

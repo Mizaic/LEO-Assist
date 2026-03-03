@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import CircularProgress from "@mui/material/CircularProgress";
 import UnauthorizedScreen from "@/components/UnauthorizedScreen";
@@ -76,7 +77,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Gold Dataset", path: "/gold-dataset", icon: <LibraryBooksOutlinedIcon /> },
   { label: "Tenant", path: "/tenant", icon: <AdminPanelSettingsOutlinedIcon />, adminOnly: true },
   { label: "Support Mail", path: "/mail", icon: <MailOutlineIcon />, adminOnly: true },
-  { label: "Domain Config", path: "/settings", icon: <TuneOutlinedIcon /> },
+  { label: "Settings", path: "/settings", icon: <TuneOutlinedIcon /> },
 ];
 
 function isEditorRoute(pathname: string): boolean {
@@ -141,7 +142,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           bgcolor: "background.default",
         }}
       >
-        <CircularProgress />
+        <CircularProgress aria-label="Loading" />
       </Box>
     );
   }
@@ -220,7 +221,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             </Avatar>
           </Tooltip>
           <Tooltip title="Sign out" placement="right">
-            <IconButton size="small" onClick={() => signOut()}>
+            <IconButton aria-label="Sign out" size="small" onClick={() => signOut()}>
               <LogoutIcon sx={{ fontSize: 16 }} />
             </IconButton>
           </Tooltip>
@@ -238,7 +239,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           alt="LEO"
           sx={{ width: 32, height: 32 }}
         />
-        <Typography variant="h6" sx={{ fontSize: "1rem", lineHeight: 1.3, color: "text.primary" }}>
+        <Typography component="span" sx={{ fontSize: "1rem", lineHeight: 1.3, color: "text.primary", fontWeight: 600 }}>
           LEO
           <br />
           <Typography component="span" sx={{ fontSize: "0.8rem", color: "text.secondary", fontWeight: 400 }}>
@@ -288,42 +289,47 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
       <Divider />
 
-      <List sx={{ px: 1, pt: 1 }}>
-        {visibleNavItems.map((item) => {
-          const isActive = pathname
-            ? (item.activePrefix
-                ? item.activePrefix.some((p) => pathname === p || pathname.startsWith(p + "/"))
-                : pathname === item.path || pathname.startsWith(item.path + "/"))
-            : false;
-          const badgeCount = item.badgeKey ? (badgeCounts[item.badgeKey] ?? 0) : 0;
-          return (
-            <ListItemButton
-              key={item.path}
-              selected={isActive}
-              onClick={() => handleNav(item.path)}
-              sx={{ py: 1.2 }}
-            >
-              <ListItemIcon sx={{ minWidth: 36, color: isActive ? "primary.main" : "text.secondary" }}>
-                <Badge badgeContent={badgeCount} color="warning" max={99}>
-                  {item.icon}
-                </Badge>
-              </ListItemIcon>
-              <ListItemText
-                primary={item.label}
-                primaryTypographyProps={{
-                  fontWeight: isActive ? 600 : 400,
-                  fontSize: "0.9rem",
-                }}
-              />
-              {badgeCount > 0 && (
-                <Typography variant="caption" sx={{ bgcolor: "warning.main", color: "warning.contrastText", borderRadius: 10, px: 0.8, py: 0.2, fontWeight: 700, fontSize: "0.7rem" }}>
-                  {badgeCount}
-                </Typography>
-              )}
-            </ListItemButton>
-          );
-        })}
-      </List>
+      <Box component="nav" aria-label="Main navigation">
+        <List sx={{ px: 1, pt: 1 }}>
+          {visibleNavItems.map((item) => {
+            const isActive = pathname
+              ? (item.activePrefix
+                  ? item.activePrefix.some((p) => pathname === p || pathname.startsWith(p + "/"))
+                  : pathname === item.path || pathname.startsWith(item.path + "/"))
+              : false;
+            const badgeCount = item.badgeKey ? (badgeCounts[item.badgeKey] ?? 0) : 0;
+            return (
+              <ListItemButton
+                key={item.path}
+                component={Link}
+                href={item.path}
+                selected={isActive}
+                onClick={() => { if (isMobile) setMobileOpen(false); }}
+                aria-current={isActive ? "page" : undefined}
+                sx={{ py: 1.2 }}
+              >
+                <ListItemIcon sx={{ minWidth: 36, color: isActive ? "primary.main" : "text.secondary" }}>
+                  <Badge badgeContent={badgeCount} color="warning" max={99}>
+                    {item.icon}
+                  </Badge>
+                </ListItemIcon>
+                <ListItemText
+                  primary={item.label}
+                  primaryTypographyProps={{
+                    fontWeight: isActive ? 600 : 400,
+                    fontSize: "0.9rem",
+                  }}
+                />
+                {badgeCount > 0 && (
+                  <Typography variant="caption" sx={{ bgcolor: "warning.main", color: "warning.contrastText", borderRadius: 10, px: 0.8, py: 0.2, fontWeight: 700, fontSize: "0.7rem" }}>
+                    {badgeCount}
+                  </Typography>
+                )}
+              </ListItemButton>
+            );
+          })}
+        </List>
+      </Box>
 
       {session?.user && (
         <Box
@@ -352,7 +358,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             </Typography>
           </Box>
           <Tooltip title="Sign out">
-            <IconButton size="small" onClick={() => signOut()}>
+            <IconButton aria-label="Sign out" size="small" onClick={() => signOut()}>
               <LogoutIcon sx={{ fontSize: 18 }} />
             </IconButton>
           </Tooltip>
@@ -424,6 +430,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
       <Box
         component="main"
+        id="main-content"
         sx={{
           flexGrow: 1,
           minWidth: 0,

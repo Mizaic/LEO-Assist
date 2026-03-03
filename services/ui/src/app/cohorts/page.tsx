@@ -106,16 +106,19 @@ export default function CohortsPage() {
     }
   };
 
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
   const handleRunDetection = async (cohortId: string) => {
     try {
       const patients = await resolveCohort(cohortId);
       const base = window.location.origin;
-      await fetch(`${base}/api/pipeline/run`, {
+      const res = await fetch(`${base}/api/pipeline/run`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ cohort_id: cohortId }),
       });
-      alert(`Episode detection started for ${patients.total} patients`);
+      if (!res.ok) throw new Error(`Pipeline run failed (${res.status} ${res.statusText})`);
+      setSuccessMsg(`Episode detection started for ${patients.total} patients`);
     } catch (err) {
       setError(String(err));
     }
@@ -143,7 +146,7 @@ export default function CohortsPage() {
           mb: 3,
         }}
       >
-        <Typography variant="h5" sx={{ fontWeight: 700 }}>
+        <Typography variant="h5" component="h1" sx={{ fontWeight: 700 }}>
           Cohort Builder
         </Typography>
         <Button
@@ -158,6 +161,11 @@ export default function CohortsPage() {
       {error && (
         <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
           {error}
+        </Alert>
+      )}
+      {successMsg && (
+        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccessMsg(null)}>
+          {successMsg}
         </Alert>
       )}
 
@@ -240,6 +248,7 @@ export default function CohortsPage() {
                       Run Detection
                     </Button>
                     <IconButton
+                      aria-label="Delete cohort"
                       size="small"
                       color="error"
                       onClick={() => handleDelete(c.cohort_id)}

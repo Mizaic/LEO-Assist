@@ -70,7 +70,7 @@ export function LibraryPicker({ value, onChange }: LibraryPickerProps) {
   if (loading) {
     return (
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 1.5 }}>
-        <CircularProgress size={16} />
+        <CircularProgress aria-label="Loading" size={16} />
         <Typography>Loading libraries...</Typography>
       </Box>
     );

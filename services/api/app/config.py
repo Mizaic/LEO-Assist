@@ -4,10 +4,23 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
+from enum import Enum
 from pathlib import Path
 
 from dotenv import load_dotenv
 from libs.keyvault.loader import load_keyvault_secrets
+
+
+class CodingMode(str, Enum):
+    """Pipeline operating mode.
+
+    HITL: uncertain items route to the coding review queue for human review.
+    AUTONOMOUS: no review queue -- items are auto-coded, coded with an audit
+    flag, or skipped and logged based on confidence tier.
+    """
+
+    HITL = "hitl"
+    AUTONOMOUS = "autonomous"
 
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -33,9 +46,16 @@ class Settings:
     model_id: str
     prompt_version: str
     terminology_version: str
+    coding_mode: CodingMode
 
 
 def get_settings() -> Settings:
+    raw_mode = os.getenv("CODING_MODE", "hitl").strip().lower()
+    try:
+        coding_mode = CodingMode(raw_mode)
+    except ValueError:
+        coding_mode = CodingMode.HITL
+
     return Settings(
         patient_neo4j_uri=os.getenv("NEO4J_URI", ""),
         patient_neo4j_username=os.getenv("NEO4J_USER", ""),
@@ -49,4 +69,5 @@ def get_settings() -> Settings:
         model_id=os.getenv("AWS_SMALL_MODEL", "unconfigured"),
         prompt_version=os.getenv("TRAINING_PROMPT_VERSION", "v2"),
         terminology_version=os.getenv("TERMINOLOGY_VERSION", "snomed-uk-current"),
+        coding_mode=coding_mode,
     )

@@ -109,7 +109,7 @@ export function MeasurePickerDialog({
 
         <Box sx={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', maxHeight: '55vh', pr: 0.5 }}>
           {loading ? (
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', p: 6 }}><CircularProgress /></Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', p: 6 }}><CircularProgress aria-label="Loading" /></Box>
           ) : grouped.length === 0 ? (
             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', p: '48px 24px', color: 'text.disabled', gap: 1 }}>
               <BarChartOutlined sx={{ fontSize: 32 }} />

@@ -36,7 +36,7 @@ function SignInContent() {
   if (status === "loading") {
     return (
       <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh" }}>
-        <CircularProgress />
+        <CircularProgress aria-label="Loading" />
       </Box>
     );
   }
@@ -61,7 +61,7 @@ function SignInContent() {
         alt="LEO"
         sx={{ width: 64, height: 64 }}
       />
-      <Typography variant="h5" sx={{ fontWeight: 700 }}>
+      <Typography variant="h5" component="h1" sx={{ fontWeight: 700 }}>
         Sign in to LEO
       </Typography>
       {errorMessage && (
@@ -96,7 +96,7 @@ export default function SignInPage() {
     <Suspense
       fallback={
         <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh" }}>
-          <CircularProgress />
+          <CircularProgress aria-label="Loading" />
         </Box>
       }
     >
