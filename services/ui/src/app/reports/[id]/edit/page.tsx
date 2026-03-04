@@ -16,7 +16,7 @@ function EditorContent({ params }: PageProps) {
 
 export default function ReportEditorPage(props: PageProps) {
   return (
-    <Suspense fallback={<Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}><CircularProgress /></Box>}>
+    <Suspense fallback={<Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}><CircularProgress aria-label="Loading" /></Box>}>
       <EditorContent {...props} />
     </Suspense>
   );

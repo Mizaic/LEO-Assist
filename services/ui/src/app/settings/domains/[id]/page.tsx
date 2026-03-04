@@ -292,6 +292,7 @@ export default function DomainDetailPage() {
       {/* Header */}
       <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
         <IconButton
+          aria-label="Back to domains"
           onClick={() => router.push("/settings/domains")}
           size="small"
         >
@@ -315,7 +316,7 @@ export default function DomainDetailPage() {
 
       {loading ? (
         <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
-          <CircularProgress />
+          <CircularProgress aria-label="Loading" />
         </Box>
       ) : domain ? (
         <>
@@ -474,7 +475,7 @@ export default function DomainDetailPage() {
         <DialogContent dividers>
           {!configSub ? (
             <Box sx={{ py: 4, display: "flex", justifyContent: "center" }}>
-              <CircularProgress />
+              <CircularProgress aria-label="Loading" />
             </Box>
           ) : (
             <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
@@ -605,7 +606,7 @@ export default function DomainDetailPage() {
                 />
                 {searchLoading && (
                   <Box sx={{ py: 1 }}>
-                    <CircularProgress size={24} />
+                    <CircularProgress aria-label="Loading" size={24} />
                   </Box>
                 )}
                 {searchResults.length > 0 && (
@@ -628,6 +629,7 @@ export default function DomainDetailPage() {
                                   Add
                                 </Button>
                                 <IconButton
+                                  aria-label="Fill subdomain with all IS_A descendants"
                                   size="small"
                                   title="Fill subdomain with all IS_A descendants"
                                   onClick={() =>
@@ -636,7 +638,7 @@ export default function DomainDetailPage() {
                                   disabled={configSubmitting || !!descendantLoading}
                                 >
                                   {isLoadingDescendants ? (
-                                    <CircularProgress size={16} />
+                                    <CircularProgress aria-label="Loading" size={16} />
                                   ) : (
                                     <AccountTreeIcon fontSize="small" />
                                   )}
@@ -708,7 +710,7 @@ export default function DomainDetailPage() {
                               disabled={configSubmitting || addCount === 0}
                             >
                               {configSubmitting ? (
-                                <CircularProgress size={16} color="inherit" />
+                                <CircularProgress aria-label="Loading" size={16} color="inherit" />
                               ) : (
                                 `Add ${addCount}`
                               )}

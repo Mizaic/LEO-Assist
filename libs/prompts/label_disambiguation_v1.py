@@ -15,8 +15,9 @@ Apply this order:
 1) document/admin artifacts -> record_artifact/event
 2) risk/pending/negated status -> situation
 3) treatment action phrase -> procedure
+4) drug administration phrase (full action) -> procedure; drug name alone -> substance
 5) bare ingredient -> substance
-6) measurable value+unit -> observable_entity
+6) measurable value+unit -> qualifier_value (the test name alone is observable_entity)
 7) confirmed diagnosis -> disorder
 8) symptom/sign/impression -> finding
 9) stage/grade -> qualifier_value/tumor_staging/staging_scale
@@ -37,7 +38,7 @@ Boundary reminders:
 - X_DOSAGE is ONLY for medication doses (240 mg, 20 mg daily)
 - Smoking consumption (1-9 cigs/day) = qualifier_value (NOT X_DOSAGE)
 - Abnormal, Outside reference range, Satisfactory, NAD, weight stable = qualifier_value (not finding)
-- Bare analyte names (creatinine, albumin, folate, urea) near a lab test = suppress
+- Bare analyte names (creatinine, albumin, folate, urea) near a lab test = qualifier_value
 - New Episode, Ongoing Episode = qualifier_value (not X_TEMPORAL)
 - MDT = procedure (clinical governance activity)
 - MDT outcome heading/document phrase = record_artifact

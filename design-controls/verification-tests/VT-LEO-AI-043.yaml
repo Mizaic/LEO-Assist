@@ -1,0 +1,180 @@
+# -- VT-LEO-AI-043 -- Surface Forms Management API Verification
+# IEC 62304 Verification Test Protocol
+# Schema: design-controls/templates/verification_test_schema.yaml
+
+- id: "VT-LEO-AI-043"
+  version: "1.0"
+  status: "pending"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-049"]
+    design_outputs: ["DO-LEO-AI-032"]
+    risks: ["R-LEO-AI-005", "R-LEO-AI-034"]
+    user_needs: []
+
+  metadata:
+    title: "Surface Forms Management API Verification"
+    description: >
+      Verifies all CRUD operations for the surface form management API
+      (GET /surface-forms/grouped, GET /surface-forms, POST /upsert-mapping,
+      DELETE /{normalized}, GET /duplicates, POST /deduplicate) against a
+      seeded Neo4j test graph.  Covers grouping, pagination, full-text search,
+      upsert idempotency, targeted deletion variants, duplicate auditing, and
+      deduplication with highest-confidence retention.
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    test_file_paths:
+      - "tests/test_surface_forms_management.py"
+    created_by: "Quality Engineer"
+    created_date: "2026-03-03"
+
+  test_environment:
+    environment_type: "ci_cd"
+    dependencies:
+      - name: "Neo4j"
+        version: "5.x"
+        mock_in_ci: true
+    data_requirements:
+      - "Mocked KnowledgeGraphClient (no live Neo4j required in CI)"
+
+  test_cases:
+
+    - id: "TC-043-001"
+      title: "Grouped list returns concepts with surface_forms arrays"
+      priority: "high"
+      preconditions:
+        - "KnowledgeGraphClient.run() returns one concept row with two surface form entries"
+      steps:
+        - "Call list_grouped_surface_forms(q=None, limit=50, offset=0)"
+      expected_result:
+        - "total == 1"
+        - "items[0].concept_id == '73211009'"
+        - "items[0].surface_forms has length 2"
+      pass_criteria: "Response structure matches schema"
+
+    - id: "TC-043-002"
+      title: "Grouped list filters by search query parameter"
+      priority: "high"
+      preconditions:
+        - "Mocked result filtered to concept containing 'T2 diabetes'"
+      steps:
+        - "Call list_grouped_surface_forms(q='T2 diabetes', limit=50, offset=0)"
+      expected_result:
+        - "q parameter forwarded to Cypher call"
+        - "Returned items contain the filtered surface form"
+      pass_criteria: "Filter parameter flows through to Cypher"
+
+    - id: "TC-043-003"
+      title: "Flat list returns paginated surface forms with concept join"
+      priority: "high"
+      steps:
+        - "Call list_surface_forms(q=None, concept_id=None, limit=50, offset=0)"
+      expected_result:
+        - "total == 1"
+        - "items[0].normalized == 'diabetes'"
+        - "items[0].concept_id present"
+      pass_criteria: "Flat list returns correct schema"
+
+    - id: "TC-043-004"
+      title: "Upsert creates SurfaceForm node when absent"
+      priority: "high"
+      steps:
+        - "Call upsert_surface_form_mapping with normalized='t2dm', concept_id='44054006'"
+        - "Mock returns one result row"
+      expected_result:
+        - "Returns dict with normalized='t2dm' and concept_fsn present"
+      pass_criteria: "Upsert succeeds and returns created/updated record"
+
+    - id: "TC-043-005"
+      title: "DELETE with no params removes SurfaceForm node (DETACH DELETE)"
+      priority: "high"
+      steps:
+        - "Call delete_surface_form('t2dm', concept_id=None, keep_concept_id=None)"
+      expected_result:
+        - "Returns {deleted: 't2dm'}"
+        - "DELETE_SURFACE_FORM (DETACH DELETE) Cypher issued"
+      pass_criteria: "Node deletion path is exercised"
+
+    - id: "TC-043-006"
+      title: "DELETE ?concept_id removes only named MAPS_TO relationship"
+      priority: "high"
+      steps:
+        - "Call delete_surface_form('t2dm', concept_id='44054006', keep_concept_id=None)"
+      expected_result:
+        - "Returns {normalized: 't2dm', concept_id: '44054006', removed: 1}"
+      pass_criteria: "Relationship-only deletion path exercised"
+
+    - id: "TC-043-007"
+      title: "DELETE ?keep_concept_id removes all MAPS_TO except named concept"
+      priority: "high"
+      steps:
+        - "Call delete_surface_form('t2dm', concept_id=None, keep_concept_id='44054006')"
+      expected_result:
+        - "Returns {normalized: 't2dm', kept_concept_id: '44054006', removed: 1}"
+      pass_criteria: "Keep-one deletion path exercised"
+
+    - id: "TC-043-008"
+      title: "Duplicate audit returns surface forms with multiple mappings"
+      priority: "high"
+      steps:
+        - "Call audit_surface_form_duplicates()"
+        - "Mock returns one form with rel_count=2"
+      expected_result:
+        - "Returns list of length 1"
+        - "items[0].rel_count == 2 and len(items[0].mappings) == 2"
+      pass_criteria: "Audit endpoint returns correct structure"
+
+    - id: "TC-043-009"
+      title: "Deduplicate retains highest-confidence mapping, returns correct count"
+      priority: "critical"
+      steps:
+        - "Call deduplicate_surface_forms()"
+        - "Verify DEDUPLICATE_SURFACE_FORM_RELS Cypher was issued"
+        - "Mock returns {duplicates_removed: 3}"
+      expected_result:
+        - "Returns {duplicates_removed: 3}"
+        - "Correct Cypher query was issued (not a substitute)"
+      pass_criteria: "Deduplication count correct and correct Cypher used"
+
+    - id: "TC-043-010"
+      title: "Upsert returns 404 for unknown concept_id"
+      priority: "high"
+      steps:
+        - "Call upsert_surface_form_mapping with concept_id='DOES_NOT_EXIST'"
+        - "Mock returns empty result (concept not found)"
+      expected_result:
+        - "HTTPException with status_code=404 raised"
+      pass_criteria: "404 raised for unknown concept"
+
+    - id: "TC-043-011"
+      title: "Upsert is idempotent — repeated calls don't duplicate nodes"
+      priority: "high"
+      steps:
+        - "Call upsert_surface_form_mapping twice with same params"
+        - "Both calls return same record (MERGE semantics)"
+      expected_result:
+        - "Both calls return matching normalized and concept_id"
+        - "KnowledgeGraphClient.run() called exactly twice (not zero)"
+      pass_criteria: "MERGE-based idempotency confirmed"
+
+    - id: "TC-043-012"
+      title: "Deduplicate on clean graph returns duplicates_removed=0"
+      priority: "medium"
+      steps:
+        - "Call deduplicate_surface_forms()"
+        - "Mock returns empty list (no duplicates removed)"
+      expected_result:
+        - "Returns {duplicates_removed: 0}"
+      pass_criteria: "Zero-removal case handled correctly"
+
+  acceptance_gate:
+    required_pass_rate: 100
+    critical_test_cases: ["TC-043-009", "TC-043-010"]
+    notes: >
+      TC-043-009 verifies that the correct Cypher deduplication query is used —
+      a substitute that does not evaluate confidence would be a silent regression
+      that corrupts coding accuracy. TC-043-010 verifies that the 404 guard
+      prevents orphaned SurfaceForm nodes that reference non-existent concepts.

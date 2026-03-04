@@ -430,7 +430,7 @@ export default function TerminologyPage() {
       <Stack direction="row" spacing={1.5} mb={3}>
         <Button
           variant="contained"
-          startIcon={syncing ? <CircularProgress size={16} color="inherit" /> : <DownloadingIcon />}
+          startIcon={syncing ? <CircularProgress aria-label="Loading" size={16} color="inherit" /> : <DownloadingIcon />}
           onClick={startSync}
           disabled={syncing || selected.size === 0}
         >

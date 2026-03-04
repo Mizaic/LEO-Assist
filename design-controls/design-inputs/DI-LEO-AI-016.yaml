@@ -5,12 +5,38 @@
 - id: "DI-LEO-AI-016"
   type: "Functional"
   derived_from: ["UN-LEO-AI-010"]
-  requirement: "The system SHALL provide a review interface that displays AI coding proposals alongside the de-identified source text, enabling reviewers to confirm, edit, or reject each proposal with contextual information including confidence scores, alternative candidates, and context flags"
-  rationale: "Effective human review requires the reviewer to see both the AI proposal and the source text side by side. Contextual information (confidence, alternatives, negation flags) helps reviewers make informed decisions. The UI must support efficient review workflow for high throughput."
+  requirement: >
+    The system SHALL provide a review interface that displays AI coding proposals
+    alongside the de-identified source text, enabling reviewers to confirm, edit,
+    or reject each proposal with contextual information including confidence scores,
+    alternative candidates, and context flags.
+    The system SHALL also provide a suppress workflow within the review interface
+    that allows reviewers to create ignore rules for terms that should not be coded
+    in a given context. When LEO has flagged an entity as not codeable (assertion_warning),
+    the system SHALL: (a) auto-populate the context phrase field with the key phrase
+    extracted from LEO's reasoning; (b) require a context phrase before the suppress
+    rule can be confirmed; and (c) explain to the reviewer why a narrowing phrase
+    is required. Suppress rules created without a context phrase when an assertion_warning
+    is present MUST NOT be permitted, to prevent global suppression of clinical terms
+    that are valid in other contexts.
+  rationale: >
+    Effective human review requires the reviewer to see both the AI proposal and the
+    source text side by side. Contextual information (confidence, alternatives, negation
+    flags) helps reviewers make informed decisions. The UI must support efficient review
+    workflow for high throughput.
+    The suppress workflow carries a specific safety risk: a reviewer who clicks
+    'Confirm suppress' without adding a context phrase will create a rule that silences
+    the clinical term in every future encounter, not just the non-codeable context that
+    triggered the review. For example, suppressing 'biopsy' without the phrase 'awaiting
+    appt' would prevent all future biopsy mentions from reaching the coding queue, causing
+    systematic under-coding. Requiring a context phrase when LEO has flagged the reason,
+    and pre-filling LEO's suggested phrase, reduces this risk while preserving reviewer
+    control.
 
   machine_spec:
     agent_prompt: |
-      Implement the Coding Review UI components (~300 LOC total).
+      Implement the Coding Review UI components (~300 LOC total) plus the
+      context-aware suppress form guard.
 
       SINGLE PURPOSE: Provide a side-by-side review interface for AI coding
       proposals with contextual information to support efficient human review.
@@ -22,12 +48,22 @@
       4. Display context flags (negation, family history, past history).
       5. Support confirm, edit, and reject actions on each proposal.
       6. Support keyboard shortcuts for efficient review workflow.
+      7. Suppress form: when LEO has produced an assertion_warning for an entity,
+         auto-extract the key quoted phrase from the warning text and pre-fill the
+         context phrase field. Show "LEO suggested this -- edit to narrow the rule
+         further if needed" as helper text. Disable "Confirm suppress" until the
+         context phrase is non-empty. Show explanatory copy: "A context phrase is
+         required so only this specific context is suppressed, not every mention
+         of '<entity>'."
+      8. Suppress form without assertion_warning: context phrase remains optional
+         (behaviour unchanged for negated entities identified by assertion alone).
 
       COMPONENTS:
       - ReviewView: Main review layout with split-pane source/proposal view.
       - EncounterCodedView: Display coded encounter details and proposals.
       - EntityCard: Individual entity card with confidence and actions.
       - EntitySidebar: Side panel with alternative candidates and context.
+      - CodingReviewCasesModal: Per-entity bulk review modal with inline suppress form.
 
       CODE CLARITY:
       - Use MUI components for consistent styling.
@@ -45,18 +81,33 @@
         spec: "Confirm, edit, and reject actions work for each proposal"
       - type: "test"
         spec: "All review actions call the review service API correctly"
+      - type: "safety"
+        spec: "Confirm suppress button is disabled when assertion_warning is present and context phrase is empty"
+      - type: "safety"
+        spec: "Context phrase is auto-populated from LEO's assertion_warning when the suppress form opens"
+      - type: "demonstration"
+        spec: "Helper text 'LEO suggested this' is shown when phrase was auto-filled"
+      - type: "demonstration"
+        spec: "Explanatory copy explains why a context phrase is required when assertion_warning is present"
 
     constraints:
       - type: "performance"
         spec: "Review interface loads in < 2 seconds"
       - type: "code_quality"
         spec: "Components <= 30 lines of JSX; TypeScript strict mode enabled"
+      - type: "safety"
+        spec: >
+          When assertion_warning is present, the suppress form MUST require a context
+          phrase. A global suppress rule for a common clinical term (e.g. 'biopsy',
+          'hypertension') would cause systematic under-coding and constitutes a
+          patient safety risk (R-LEO-AI-027).
 
     dependencies: []
 
     downstream_impacts:
       - "review_service"
       - "audit_trail"
+      - "post_processor_rules"
 
     technical_details:
       language: "TypeScript"
@@ -67,14 +118,19 @@
         - "services/ui/src/components/EncounterCodedView.tsx"
         - "services/ui/src/components/EntityCard.tsx"
         - "services/ui/src/components/EntitySidebar.tsx"
-      estimated_loc: 300
+        - "services/ui/src/components/operations/CodingReviewCasesModal.tsx"
+      estimated_loc: 400
 
   verification:
     method: "Demonstration"
     phase: "OQ"
-    acceptance: "Reviewer can view source text, coding proposals, confidence scores, and context flags; can confirm, edit, or reject each proposal"
+    acceptance: >
+      Reviewer can view source text, coding proposals, confidence scores, and context
+      flags; can confirm, edit, or reject each proposal. Suppress form requires a
+      context phrase when assertion_warning is present; phrase is auto-populated from
+      LEO's reasoning; Confirm suppress is disabled until phrase is provided.
     test_protocol: "VT-LEO-AI-016"
 
   safety_class: "B"
-  risks: ["R-LEO-AI-006"]
-  tags: ["hitl", "review-ui", "frontend", "usability"]
+  risks: ["R-LEO-AI-006", "R-LEO-AI-027"]
+  tags: ["hitl", "review-ui", "frontend", "usability", "suppress-guard", "patient-safety"]

@@ -6,6 +6,7 @@ Orchestrates the full analysis pipeline for a patient:
 3. Safety-net / unwarranted variation
 4. Abnormal results
 5. KPI metrics
+6. Quality checks (outliers, missing milestones, NHS target breaches, coding contradictions)
 
 Checkpointing:
     Each stage writes a checkpoint to Redis on completion.  If the job is
@@ -39,6 +40,7 @@ from services.analysis_worker.app.analyzers.episode_builder import EpisodeBuildR
 from services.analysis_worker.app.analyzers.safety_net_detector import detect_safety_net_signals
 from services.analysis_worker.app.analyzers.abnormal_results import detect_abnormal_results
 from services.analysis_worker.app.analyzers.kpi_calculator import calculate_kpis
+from services.analysis_worker.app.analyzers.quality_checker import run_quality_checks
 
 logger = logging.getLogger(__name__)
 
@@ -228,6 +230,21 @@ async def _handle_analysis_job_inner(
                 client.close()
             _checkpoint_save(store, f"analysis:{patient_id}:kpis", kpis)
             logger.info("Patient %s — KPIs: %d metrics calculated", patient_id, len(kpis))
+
+        # ---------------------------------------------------------- #
+        # Step 6: Quality checks                                       #
+        # ---------------------------------------------------------- #
+        # Quality checks run unconditionally each job (MERGE semantics
+        # make re-runs safe). Results are persisted as QualityIssue
+        # nodes by run_quality_checks() itself.
+        quality_report = run_quality_checks(patient_id=patient_id)
+        logger.info(
+            "Patient %s — quality checks: %d issues across %d episodes (%d compliant)",
+            patient_id,
+            len(quality_report.issues),
+            quality_report.total_checked,
+            quality_report.compliant_count,
+        )
 
         logger.info("Analysis job completed: patient=%s", patient_id)
 

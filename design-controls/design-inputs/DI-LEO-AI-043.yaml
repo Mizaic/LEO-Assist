@@ -1,0 +1,161 @@
+# -- DI-LEO-AI-043 -- UI Safety, Accessibility, and Usability Remediation
+# IEC 62304 / ISO 13485 / IEC 62366-1 Design Input
+# Schema: design-controls/templates/design_inputs_schema.yaml
+
+- id: "DI-LEO-AI-043"
+  type: "Safety"
+  derived_from: ["UN-LEO-AI-001", "UN-LEO-AI-010"]
+  requirement: >
+    The system SHALL remediate 48 usability, safety, and accessibility findings
+    identified in the IEC 62366-1 / WCAG 2.2 / ISO 9241-110 audit (DC-UE-001)
+    across 5 priority phases:
+    (a) All server-side destructive actions SHALL require user confirmation via
+        ConfirmDialog before execution;
+    (b) All API fetch operations SHALL surface failures to the user via visible
+        error indicators — no silent error swallowing;
+    (c) Keyboard shortcuts for destructive actions SHALL show a confirmation
+        dialog and SHALL guard against all editable element types;
+    (d) Every page SHALL have a semantic <h1> heading, navigation SHALL use
+        <nav> landmarks with aria-current, and a skip navigation link SHALL
+        be provided;
+    (e) All interactive elements SHALL have programmatic labels (aria-label),
+        colour contrast SHALL meet WCAG 1.4.3 (4.5:1), and native browser
+        dialogs (alert, confirm) SHALL NOT be used.
+  rationale: >
+    A structured usability audit identified 13 CRITICAL, 20 MAJOR, and 15 MINOR
+    findings across the clinical coding review UI. The CRITICAL safety findings
+    include 5 unguarded destructive actions that execute immediately on click,
+    silent error swallowing that makes system failures invisible, and a keyboard
+    shortcut that triggers reject without confirmation. The CRITICAL accessibility
+    findings include broken heading hierarchy, insufficient colour contrast,
+    missing navigation landmarks, and no skip link. These findings create
+    use error risks per IEC 62366-1 and accessibility barriers per WCAG 2.2
+    that must be remediated before the interface can be considered safe and
+    accessible for clinical use.
+
+  machine_spec:
+    acceptance_criteria:
+      # Phase 1: Safety
+      - type: "safety"
+        spec: "All 5 identified destructive actions require ConfirmDialog before execution"
+      - type: "safety"
+        spec: "Keyboard R/r shortcut opens ConfirmDialog instead of immediately rejecting"
+      - type: "safety"
+        spec: "Keydown guard covers input, textarea, select, contentEditable, and [role='combobox']"
+      - type: "safety"
+        spec: "Dashboard uses Promise.allSettled with per-section error indicators"
+      - type: "safety"
+        spec: "No .catch(() => []) or .catch(() => {}) patterns in UI fetch calls"
+      - type: "safety"
+        spec: "Cohorts page checks res.ok on pipeline run fetch"
+      - type: "safety"
+        spec: "Operations workspace shows 'Stats unavailable' after repeated failures"
+      - type: "safety"
+        spec: "Next.js error boundaries (global-error, error, not-found, loading) exist"
+      - type: "safety"
+        spec: "No window.confirm() or alert() calls remain in the UI codebase"
+      # Phase 2: Accessibility
+      - type: "accessibility"
+        spec: "Every page has exactly one component='h1' on its title Typography"
+      - type: "accessibility"
+        spec: "Sidebar brand LEO uses component='span', not a heading element"
+      - type: "accessibility"
+        spec: "Navigation List wrapped in <nav> with aria-label='Main navigation'"
+      - type: "accessibility"
+        spec: "Active nav item has aria-current='page'"
+      - type: "accessibility"
+        spec: "Main content area has id='main-content'"
+      - type: "accessibility"
+        spec: "Skip link present as first child of body, hidden except on :focus"
+      - type: "accessibility"
+        spec: "Caption text colour meets 4.5:1 contrast ratio on white"
+      - type: "accessibility"
+        spec: "All IconButton components have aria-label"
+      - type: "accessibility"
+        spec: "All CircularProgress components have aria-label"
+      - type: "accessibility"
+        spec: "Filter chips have aria-pressed state"
+      # Phase 3: Usability
+      - type: "usability"
+        spec: "Empty data states show descriptive messages, never return null"
+      - type: "usability"
+        spec: "Global Snackbar notification system available via useSnackbar() hook"
+      - type: "usability"
+        spec: "Nav label matches destination (Settings, not Domain Config)"
+
+    constraints:
+      - type: "safety"
+        spec: >
+          Destructive actions without confirmation dialog represent an IEC 62366-1
+          use error risk. All server-side destructive API calls MUST be gated by
+          ConfirmDialog.
+      - type: "accessibility"
+        spec: >
+          WCAG 2.2 Level AA conformance is the minimum target. All text on white
+          must achieve 4.5:1 contrast ratio.
+      - type: "code_quality"
+        spec: >
+          .cursor/rules/ui-safety.mdc MUST be created to prevent regression of
+          all remediated findings in future development.
+
+    dependencies: ["DI-LEO-AI-016"]
+
+    downstream_impacts:
+      - "Clinical coding review workflow safety"
+      - "Screen reader accessibility for all UI pages"
+      - "Operations Step 3 (Train) plain-language accessibility for reading age 9-11"
+      - "Operations Step 4 (Deploy) plain-language accessibility for reading age 9-11"
+      - "Keyboard-only user accessibility"
+      - "Error recovery and system status visibility"
+
+    technical_details:
+      language: "TypeScript"
+      framework: "Next.js / React"
+      libraries: ["@mui/material"]
+      file_structure:
+        - "services/ui/src/components/CodedLinksSection.tsx"
+        - "services/ui/src/components/ReviewView.tsx"
+        - "services/ui/src/components/operations/CodingReviewPanel.tsx"
+        - "services/ui/src/components/operations/LabelVerificationPanel.tsx"
+        - "services/ui/src/components/operations/ReviewCard.tsx"
+        - "services/ui/src/components/operations/OperationsWorkspace.tsx"
+        - "services/ui/src/components/operations/ReviewSection.tsx"
+        - "services/ui/src/components/operations/ModelLifecyclePanel.tsx"
+        - "services/ui/src/components/operations/TrainSection.tsx"
+        - "services/ui/src/components/operations/TrainingDataPanel.tsx"
+        - "services/ui/src/components/operations/DeploySection.tsx"
+        - "services/ui/src/components/benchmarks/BenchmarkSetList.tsx"
+        - "services/ui/src/components/AppShell.tsx"
+        - "services/ui/src/components/EncounterList.tsx"
+        - "services/ui/src/app/dashboard/page.tsx"
+        - "services/ui/src/app/cohorts/page.tsx"
+        - "services/ui/src/app/layout.tsx"
+        - "services/ui/src/app/globals.css"
+        - "services/ui/src/app/global-error.tsx"
+        - "services/ui/src/app/error.tsx"
+        - "services/ui/src/app/not-found.tsx"
+        - "services/ui/src/app/loading.tsx"
+        - "services/ui/src/theme.ts"
+        - "services/ui/src/context/SnackbarContext.tsx"
+        - ".cursor/rules/ui-safety.mdc"
+      estimated_loc: 500
+
+  verification:
+    method: "Inspection + Demonstration"
+    phase: "OQ"
+    acceptance: >
+      All 48 audit findings addressed. No destructive actions without
+      ConfirmDialog. No silent error swallowing. WCAG 2.2 Level AA
+      conformance on all audited components. .cursor rule in place.
+    test_protocol: "VT-LEO-AI-036"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-028"]
+  tags:
+    - "usability"
+    - "accessibility"
+    - "wcag"
+    - "iec-62366"
+    - "patient-safety"
+    - "ui-safety"
+    - "use-error-remediation"

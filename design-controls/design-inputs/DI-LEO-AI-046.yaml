@@ -1,0 +1,130 @@
+# -- DI-LEO-AI-046 -- Admin-Only Clinical Rule Mutation with ReDoS-Safe Regex Validation
+# IEC 62304 / ISO 13485 Design Input
+# Schema: design-controls/templates/design_inputs_schema.yaml
+
+- id: "DI-LEO-AI-046"
+  type: "Safety"
+  derived_from: ["R-LEO-AI-031", "R-LEO-AI-027"]
+  requirement: >
+    The system SHALL restrict mutation of clinical rules (ConText rules and
+    post-processor rules) to platform-admin users only, and SHALL validate all
+    user-supplied inputs before persistence:
+
+    (1) ACCESS CONTROL: POST /training/context-rules, POST /training/post-
+        processor-rules, PATCH /training/post-processor-rules/{rule_id}, and
+        PATCH /training/context-rules/{rule_id}/deactivate MUST use
+        Depends(require_admin). Non-admin requests return HTTP 403.
+
+    (2) REGEX SAFETY: _validate_regex(pattern, max_length=200) MUST:
+        (a) Reject patterns exceeding max_length characters (HTTP 422).
+        (b) Reject syntactically invalid patterns (HTTP 422).
+        (c) Detect catastrophic backtracking (ReDoS) by running the pattern
+            against two pathological probe strings via subprocess.run() with
+            a 0.5-second OS-level timeout. A timeout MUST raise HTTP 422.
+            The subprocess approach is REQUIRED (not threading) to ensure
+            the timeout is enforced at the OS level, bypassing the Python GIL.
+
+    (3) LITERAL LENGTH: ConText rule literals MUST be rejected if they
+        exceed 200 characters (HTTP 422) or are empty after stripping.
+
+    (4) AUDIT TRAIL: The created_by field for ConText rules MUST be set to
+        scope.email (the server-side session identity), NOT to any
+        caller-supplied value.
+
+    (5) CATEGORY/DIRECTION VALIDATION: ConText rule category MUST be one of
+        the allowed values; direction MUST be one of the allowed values.
+        Both checked before any write to the graph.
+  rationale: >
+    User-configurable clinical rules are a foreseeable pathway for rule
+    poisoning (R-LEO-AI-031). Without admin-only access, any authenticated
+    user could create a rule that suppresses a class of clinical entities.
+    Without ReDoS validation, a malformed regex could bring the coding pipeline
+    to a halt. Without session-derived created_by, the audit trail for
+    malicious rules cannot be trusted. These controls close GAP-015 identified
+    in threat model DC-TM-SEC-002.
+
+  machine_spec:
+    agent_prompt: |
+      Harden services/api/app/routers/training.py.
+
+      CHANGES REQUIRED:
+      1. Add require_admin dependency (from app.deps) to:
+           POST /post-processor-rules
+           PATCH /post-processor-rules/{rule_id}
+           POST /context-rules
+           PATCH /context-rules/{rule_id}/deactivate
+      2. Implement _validate_regex(pattern, max_length=200):
+           - Check len(pattern) > max_length -> 422
+           - re.compile(pattern) -> 422 on re.error
+           - subprocess.run([sys.executable, "-c", probe_code],
+                           timeout=0.5, capture_output=True)
+             where probe_code runs the pattern against REDOS_PROBE_LOWER
+             ("a" * 38) and REDOS_PROBE_SIMPLE ("a" * 50 + "b").
+           - subprocess.TimeoutExpired -> log + 422
+      3. In create_context_rule:
+           - Validate len(body.literal) <= 200 (422 otherwise)
+           - Set created_by=scope.email (NOT body.created_by or any caller arg)
+      4. Call _validate_regex(body.context_regex) in:
+           - create_post_processor_rule (when context_regex is supplied)
+           - update_post_processor_rule (when context_regex is updated)
+
+    acceptance_criteria:
+      - type: "test"
+        spec: "POST /post-processor-rules has require_admin as a dependency"
+      - type: "test"
+        spec: "PATCH /post-processor-rules/{rule_id} has require_admin as a dependency"
+      - type: "test"
+        spec: "POST /context-rules has require_admin as a dependency"
+      - type: "test"
+        spec: "PATCH /context-rules/{rule_id}/deactivate has require_admin as a dependency"
+      - type: "test"
+        spec: "_validate_regex raises HTTP 422 for patterns > 200 chars"
+      - type: "test"
+        spec: "_validate_regex raises HTTP 422 for syntactically invalid patterns"
+      - type: "test"
+        spec: "_validate_regex raises HTTP 422 for known ReDoS pattern (a+)+ style"
+      - type: "test"
+        spec: "_validate_regex raises HTTP 422 for email-like catastrophic backtracking"
+      - type: "test"
+        spec: "_validate_regex accepts valid, non-pathological patterns"
+      - type: "test"
+        spec: "create_context_rule rejects literals > 200 characters"
+      - type: "test"
+        spec: "create_context_rule rejects empty literals"
+      - type: "test"
+        spec: "create_context_rule sets created_by from scope.email, not from body"
+
+    constraints:
+      - type: "safety"
+        spec: "ReDoS detection MUST use subprocess.run with timeout, not threading.Thread.join, because the Python GIL prevents thread timeouts during C-level regex execution"
+      - type: "safety"
+        spec: "created_by MUST be server-derived; any caller-supplied created_by in request body MUST be ignored"
+      - type: "security"
+        spec: "require_admin MUST be applied as a FastAPI Depends parameter, not optional middleware"
+      - type: "code_quality"
+        spec: "Probe strings _REDOS_PROBE_LOWER and _REDOS_PROBE_SIMPLE defined as module-level constants"
+
+    dependencies: []
+
+    downstream_impacts:
+      - "services/api/app/routers/training.py (primary implementation file)"
+      - "Context engine (picks up new rules on pipeline restart)"
+      - "Coding pipeline (post-processor rules evaluated on every entity)"
+
+    technical_details:
+      language: "Python"
+      framework: "FastAPI"
+      libraries: ["re", "subprocess", "sys", "uuid", "app.deps.require_admin"]
+      file_structure:
+        - "services/api/app/routers/training.py"
+      estimated_loc: 50
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: "All admin dependency checks, ReDoS validation cases, literal validation, and audit trail tests pass"
+    test_protocol: "VT-LEO-AI-039"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-031", "R-LEO-AI-027"]
+  tags: ["security", "access-control", "redos", "rule-poisoning", "admin-guard", "audit-trail"]

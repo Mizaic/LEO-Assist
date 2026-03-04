@@ -112,7 +112,7 @@ export default function PathwayDetailPanel({
         <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
           {row.patient_id}
         </Typography>
-        <IconButton size="small" onClick={onClose}>
+        <IconButton aria-label="Close" size="small" onClick={onClose}>
           <CloseIcon fontSize="small" />
         </IconButton>
       </Box>

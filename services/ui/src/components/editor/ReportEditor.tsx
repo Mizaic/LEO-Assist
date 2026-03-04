@@ -162,7 +162,7 @@ export function ReportEditor({ reportId }: ReportEditorProps) {
     return (
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
         <Box sx={{ textAlign: 'center' }}>
-          <CircularProgress />
+          <CircularProgress aria-label="Loading" />
           <Typography sx={{ mt: 2 }}>Loading editor...</Typography>
         </Box>
       </Box>

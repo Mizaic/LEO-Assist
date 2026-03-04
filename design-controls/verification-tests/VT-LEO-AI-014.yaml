@@ -4,7 +4,7 @@
 
 - id: "VT-LEO-AI-014"
   version: "1.0"
-  status: "draft"
+  status: "pending"
 
   traceability:
     design_inputs: ["DI-LEO-AI-023"]
@@ -14,85 +14,87 @@
   metadata:
     title: "Data Governance Verification"
     description: "Verifies that patient data is stored only in the Patient graph, the Coding graph contains no patient data, and cross-database queries are prevented."
-    test_level: "integration"
+    test_level: "inspection"
     test_type: "security"
     safety_class: "B"
-    automation_status: "automated"
-    automation_framework: "pytest"
+    automation_status: "inspection"
+    automation_framework: "manual"
+    test_file_paths: []
     created_by: "Quality Engineer"
     created_date: "2026-03-01"
 
   test_environment:
-    environment_type: "ci_cd"
+    environment_type: "staging"
     prerequisites:
-      - "Neo4j Patient database running"
-      - "Neo4j Coding database running"
-      - "Data governance middleware configured"
+      - "Neo4j Patient database running with application credentials"
+      - "Neo4j Coding (Knowledge) database running with separate credentials"
+      - "Both databases populated with at least one synthetic patient pipeline run"
     test_data:
       data_type: "synthetic"
       cleanup_required: true
+    rationale: >
+      Database isolation is enforced at the infrastructure level (separate Neo4j instances,
+      separate connection credentials). This cannot be verified by CI unit tests — it requires
+      inspection of the deployed graph schema and live connection testing against a staging
+      environment with real Neo4j instances. The schema schema_constraints.py defines the
+      node/property model but does not enforce cross-database isolation at the code level.
 
   test_cases:
     - case_id: "VT-014-TC-001"
-      case_name: "Patient data stored only in Patient graph"
+      case_name: "Inspect: Patient identifiable data present only in Patient graph"
       priority: "critical"
       preconditions:
-        - "Patient graph database is empty or in known state"
-        - "Pipeline has processed a synthetic patient record"
+        - "Staging Neo4j Patient database has at least one processed synthetic patient"
       test_steps:
         - step_number: 1
-          action: "Run the analysis pipeline for a synthetic patient"
-          expected_result: "Pipeline completes successfully"
-          verification_method: "Assert pipeline status is 'completed'"
+          action: "Connect to staging Patient Neo4j database using patient_client credentials and run: MATCH (p:Patient) RETURN p.nhs_number, p.name, p.dob LIMIT 5"
+          expected_result: "Patient identifiable fields returned — confirms PII is in the correct graph"
+          verification_method: "Inspect query results — confirm nhs_number, name, dob present on Patient nodes"
         - step_number: 2
-          action: "Query the Patient graph for the synthetic patient's identifiable data"
-          expected_result: "Patient identifiable data is found in the Patient graph"
-          verification_method: "Assert query returns records with patient name, NHS number, and date of birth"
-        - step_number: 3
-          action: "Verify patient record structure conforms to governance schema"
-          expected_result: "Record contains only permitted fields for the Patient graph"
-          verification_method: "Assert all returned fields are in the Patient graph allow-list"
+          action: "Connect to staging Knowledge/Coding Neo4j database using knowledge_client credentials and run: MATCH (n) RETURN keys(n) LIMIT 50"
+          expected_result: "No property keys named nhs_number, patient_name, or dob appear"
+          verification_method: "Inspect returned property key sets — confirm absence of patient identifiers"
       acceptance_criteria:
-        - "Patient identifiable data exists in the Patient graph"
-        - "Patient graph records conform to the governance schema"
+        - "PII fields confirmed absent from Coding graph property keys"
+        - "Inspection result recorded in evidence bundle with screenshots of query results"
 
     - case_id: "VT-014-TC-002"
-      case_name: "Coding graph contains no patient data"
+      case_name: "Inspect: Connection credentials enforce graph isolation"
       priority: "critical"
       preconditions:
-        - "Pipeline has processed a synthetic patient record"
-        - "Coding graph is accessible for query"
+        - "Two separate Neo4j connection strings configured in Azure Key Vault or env vars"
+        - "patient_client bolt URI points to Patient database"
+        - "knowledge_client bolt URI points to Knowledge (Coding) database"
       test_steps:
         - step_number: 1
-          action: "Query the Coding graph for any patient identifiable fields (name, NHS number, date of birth)"
-          expected_result: "No patient identifiable data found"
-          verification_method: "Assert query returns zero results"
+          action: "Review services/api/app/config.py and services/coding_worker/app/pipeline/pipeline_service.py — verify patient_client and knowledge_client are constructed with separate connection URIs"
+          expected_result: "Two distinct bolt:// URIs confirmed — isolation is at connection level"
+          verification_method: "Code inspection — document URI config keys in evidence"
         - step_number: 2
-          action: "Enumerate all node labels and properties in the Coding graph"
-          expected_result: "No property keys match patient identifier field names"
-          verification_method: "Assert none of the property keys are in the patient identifier list"
+          action: "In staging, attempt to run a Cypher query against the Patient database using the Knowledge database credentials"
+          expected_result: "Authentication failure or empty result — credentials are database-scoped"
+          verification_method: "Inspect response — record auth error message in evidence bundle"
       acceptance_criteria:
-        - "Coding graph contains zero patient identifiable data"
-        - "No property keys in the Coding graph correspond to patient identifiers"
+        - "Separate bolt URIs confirmed in config"
+        - "Cross-credential query rejected by Neo4j"
 
     - case_id: "VT-014-TC-003"
-      case_name: "Cross-database query prevented"
-      priority: "critical"
+      case_name: "Inspect: Schema constraints enforce allowed node types per graph"
+      priority: "high"
       preconditions:
-        - "Both Patient and Coding databases are running"
-        - "Application user credentials are available"
+        - "libs/cypher/schema_constraints.py defines PATIENT_GRAPH_CONSTRAINTS and KNOWLEDGE_GRAPH_CONSTRAINTS"
       test_steps:
         - step_number: 1
-          action: "Attempt a cross-database query from Coding graph to Patient graph using application credentials"
-          expected_result: "Query is rejected or returns an error"
-          verification_method: "Assert query raises a permission error or returns empty result"
+          action: "Review libs/cypher/schema_constraints.py and list all constraint types applied to each graph"
+          expected_result: "Patient graph constraints cover Patient, Encounter nodes; Knowledge graph covers Concept, Domain nodes"
+          verification_method: "Code inspection — confirm no Concept/Domain constraints defined for Patient graph"
         - step_number: 2
-          action: "Attempt a cross-database query from Patient graph to Coding graph using application credentials"
-          expected_result: "Query is rejected or returns an error"
-          verification_method: "Assert query raises a permission error or returns empty result"
+          action: "In staging, run SHOW CONSTRAINTS on both databases and compare against schema_constraints.py"
+          expected_result: "Applied constraints match the constraint definitions in code"
+          verification_method: "Record SHOW CONSTRAINTS output in evidence bundle"
       acceptance_criteria:
-        - "No cross-database queries succeed with application credentials"
-        - "Database isolation is enforced at the connection level"
+        - "Schema constraints confirmed applied to correct graphs"
+        - "No patient-graph constraints present in Knowledge graph or vice versa"
 
     - case_id: "VT-014-TC-004"
       case_name: "No reviewer identity in Knowledge Graph"
@@ -124,4 +126,14 @@
     retention_period: "7 years"
     immutability: true
 
-  execution_history: []
+  execution_history:
+    - execution_id: "VT-014-EXEC-001"
+      date: "2026-03-03"
+      executor: "quality_engineer"
+      environment: "staging"
+      result: "pending"
+      cases_executed: 0
+      cases_passed: 0
+      cases_failed: 0
+      duration_seconds: 0
+      notes: "VT is a staging inspection — requires live Neo4j instances. Pending execution before first clinical deployment. Previous automated_ci entry removed: test_org_context.py does not test cross-database isolation and was an incorrect mapping."

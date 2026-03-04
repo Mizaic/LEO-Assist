@@ -11,7 +11,7 @@ const theme = createTheme({
     secondary: { main: "#14B8A6", light: "#2DD4BF", dark: "#0D9488" },
     background: { default: "#F8FAFC", paper: "#FFFFFF" },
     divider: "#E2E8F0",
-    text: { primary: "#0F172A", secondary: "#64748b" },
+    text: { primary: "#0F172A", secondary: "#596577" },
     success: { main: "#16a34a", light: "#22c55e" },
     error: { main: "#dc2626", light: "#ef4444" },
     warning: { main: "#d97706", light: "#f59e0b" },
@@ -24,8 +24,8 @@ const theme = createTheme({
     h6: { fontWeight: 600 },
     subtitle1: { fontWeight: 600, fontFamily: FONT_MONO, fontSize: "0.95rem" },
     subtitle2: { fontWeight: 500, fontFamily: FONT_MONO, fontSize: "0.85rem" },
-    body2: { color: "#64748b" },
-    caption: { color: "#94a3b8" },
+    body2: { color: "#596577" },
+    caption: { color: "#6B7280" },
   },
   shape: { borderRadius: 10 },
   components: {
@@ -78,7 +78,7 @@ const theme = createTheme({
     },
     MuiTableCell: {
       styleOverrides: {
-        head: { fontWeight: 600, color: "#64748b", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em" },
+        head: { fontWeight: 600, color: "#596577", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em" },
         root: { borderColor: "#F1F5F9" },
       },
     },

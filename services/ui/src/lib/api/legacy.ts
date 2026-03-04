@@ -575,6 +575,7 @@ export async function askLeoSmart(
   initialCandidates: Array<Record<string, unknown>>,
   semanticTags: string[] = [],
   tier: "small" | "big" | "max" = "small",
+  assertion = "present",
 ): Promise<import("@/lib/types").AskLeoSmartResult> {
   return fetchJson(
     `${API_BASE}/api/training/coding-review/ask-leo-smart`,
@@ -587,6 +588,7 @@ export async function askLeoSmart(
         initial_candidates: initialCandidates,
         semantic_tags: semanticTags,
         tier,
+        assertion,
       }),
     },
   );

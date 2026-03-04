@@ -176,7 +176,7 @@ export default function EncounterCodedView({ patientId, encounterId }: Props) {
   if (loading) {
     return (
       <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}>
-        <CircularProgress />
+        <CircularProgress aria-label="Loading" />
       </Box>
     );
   }

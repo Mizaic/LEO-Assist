@@ -201,7 +201,7 @@ export default function UserManagement() {
         <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>
       )}
       {loading ? (
-        <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}><CircularProgress /></Box>
+        <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}><CircularProgress aria-label="Loading" /></Box>
       ) : (
         <Grid container spacing={4}>
 
@@ -292,13 +292,13 @@ export default function UserManagement() {
                         <TableCell align="right" sx={{ py: 1.25, whiteSpace: "nowrap", pr: 0.5 }}>
                           {isOnline && (
                             <Tooltip title="Sign out of all devices now">
-                              <IconButton size="small" onClick={() => setLogoutConfirm(u)} sx={{ color: "text.secondary" }}>
+                              <IconButton aria-label="Sign out of all devices" size="small" onClick={() => setLogoutConfirm(u)} sx={{ color: "text.secondary" }}>
                                 <LogoutIcon sx={{ fontSize: 18 }} />
                               </IconButton>
                             </Tooltip>
                           )}
                           <Tooltip title="Remove from LEO">
-                            <IconButton size="small" color="error" onClick={() => setDeactivateConfirm(u)}>
+                            <IconButton aria-label="Remove from LEO" size="small" color="error" onClick={() => setDeactivateConfirm(u)}>
                               <DeleteOutlineIcon sx={{ fontSize: 18 }} />
                             </IconButton>
                           </Tooltip>
@@ -350,12 +350,12 @@ export default function UserManagement() {
                       sx={{ fontSize: "0.7rem", flexShrink: 0 }}
                     />
                     <Tooltip title="Manage members">
-                      <IconButton size="small" onClick={() => setMemberDialog(g)} sx={{ color: "primary.main" }}>
+                      <IconButton aria-label="Manage members" size="small" onClick={() => setMemberDialog(g)} sx={{ color: "primary.main" }}>
                         <ManageAccountsIcon sx={{ fontSize: 18 }} />
                       </IconButton>
                     </Tooltip>
                     <Tooltip title="Delete this group">
-                      <IconButton size="small" color="error" onClick={() => setGroupDeleteConfirm(g)}>
+                      <IconButton aria-label="Delete this group" size="small" color="error" onClick={() => setGroupDeleteConfirm(g)}>
                         <DeleteOutlineIcon sx={{ fontSize: 18 }} />
                       </IconButton>
                     </Tooltip>
@@ -535,7 +535,7 @@ function MemberDialog({
           <Button variant="contained" size="small" onClick={onAdd} disabled={!addEmail.trim()}>Add</Button>
         </Box>
         {loading ? (
-          <Box sx={{ display: "flex", justifyContent: "center", py: 2 }}><CircularProgress size={24} /></Box>
+          <Box sx={{ display: "flex", justifyContent: "center", py: 2 }}><CircularProgress aria-label="Loading" size={24} /></Box>
         ) : members.length === 0 ? (
           <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center", py: 2 }}>
             No members yet. Add someone above.
@@ -552,7 +552,7 @@ function MemberDialog({
                   {m.name && <Typography variant="caption" color="text.secondary" noWrap sx={{ display: "block" }}>{m.email}</Typography>}
                 </Box>
                 <Tooltip title="Remove from group">
-                  <IconButton size="small" color="error" onClick={() => onRemove(m.email)}>
+                  <IconButton aria-label="Remove from group" size="small" color="error" onClick={() => onRemove(m.email)}>
                     <DeleteOutlineIcon sx={{ fontSize: 16 }} />
                   </IconButton>
                 </Tooltip>

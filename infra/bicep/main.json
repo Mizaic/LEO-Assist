@@ -869,6 +869,10 @@
                 "value": "/var/model_cache/hf_cache"
               },
               {
+                "name": "HF_HUB_OFFLINE",
+                "value": "1"
+              },
+              {
                 "name": "VECTOR_MODEL",
                 "value": "emilyalsentzer/Bio_ClinicalBERT"
               },

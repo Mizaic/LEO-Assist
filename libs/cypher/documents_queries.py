@@ -70,22 +70,48 @@ SET s.semanticTag  = $semantic_tag,
     s.updated_at   = datetime(),
     s.created_at   = coalesce(s.created_at, datetime())
 MERGE (e)-[r:DOCUMENTS {{conceptId: $concept_id}}]->(s)
-SET r.coded_at        = datetime(),
-    r.evidence        = $evidence,
-    r.confidence      = $confidence,
-    r.domain          = $domain,
-    r.context         = $context,
-    r.modifiers       = $modifiers,
-    r.value           = $numeric_value,
-    r.unit            = $unit,
-    r.referenceRange  = $reference_range,
-    r.source          = $source,
-    r.model_name      = $model_name,
-    r.model_version   = $model_version,
+SET r.coded_at         = datetime(),
+    r.evidence         = $evidence,
+    r.confidence       = $confidence,
+    r.domain           = $domain,
+    r.context          = $context,
+    r.modifiers        = $modifiers,
+    r.value            = $numeric_value,
+    r.unit             = $unit,
+    r.referenceRange   = $reference_range,
+    r.source           = $source,
+    r.model_name       = $model_name,
+    r.model_version    = $model_version,
     r.contract_version = $contract_version,
-    r.run_id          = $run_id
-MERGE (p)-[:{rel_type}]->(s)
+    r.run_id           = $run_id,
+    r.audit_flag       = $audit_flag,
+    r.decision_tier    = $decision_tier
+FOREACH (_ IN CASE WHEN $assertion IN ['present', 'historical'] THEN [1] ELSE [] END |
+  MERGE (p)-[:{rel_type}]->(s)
+)
 """
+
+
+_NON_PRESENT = {
+    "absent", "refuted", "possible", "historical", "hypothetical",
+    "family", "declined", "cancelled",
+}
+
+
+def _assertion_context(assertion: str | None) -> dict:
+    """Build the context dict persisted on :DOCUMENTS from the assertion string."""
+    a = assertion or "present"
+    return {
+        "assertion":    a,
+        "negated":      a == "absent",
+        "refuted":      a == "refuted",
+        "uncertain":    a == "possible",
+        "historical":   a == "historical",
+        "hypothetical": a == "hypothetical",
+        "family":       a == "family",
+        "declined":     a == "declined",
+        "cancelled":    a == "cancelled",
+    }
 
 
 def write_documents_from_sentences_payload(
@@ -137,6 +163,7 @@ def write_documents_from_sentences_payload(
             modifiers = term.get("modifiers") or {}
 
             try:
+                term_assertion = term.get("assertion") or "present"
                 session.run(
                     query,
                     encounter_id=encounter_id,
@@ -144,10 +171,10 @@ def write_documents_from_sentences_payload(
                     semantic_tag=semantic_tag,
                     name=coding.get("snomed_term") or term.get("text", ""),
                     read_code=coding.get("read_code"),
-                    evidence=term.get("text", ""),       # NER span — traceability
+                    evidence=term.get("text", ""),
                     confidence=float(coding.get("score") or 0.0),
                     domain=term.get("domain") or "clinical",
-                    context="{}",
+                    context=json.dumps(_assertion_context(term_assertion)),
                     modifiers=json.dumps(modifiers),
                     numeric_value=term.get("numeric_value") or None,
                     unit=term.get("unit") or None,
@@ -157,6 +184,9 @@ def write_documents_from_sentences_payload(
                     model_version=model_version or term.get("extraction_model_version", ""),
                     contract_version=contract_version or term.get("contract_version", ""),
                     run_id=run_id,
+                    audit_flag=bool(term.get("audit_flag", False)),
+                    decision_tier=term.get("decision_tier"),
+                    assertion=term_assertion,
                 )
                 written += 1
             except Exception:
@@ -205,7 +235,9 @@ RETURN toString(e.id) AS encounter_id,
        r.domain AS domain,
        r.context AS context,
        r.modifiers AS modifiers,
-       r.coded_at AS coded_at
+       r.coded_at AS coded_at,
+       r.audit_flag AS audit_flag,
+       r.decision_tier AS decision_tier
 ORDER BY r.coded_at DESC
 """
 
@@ -215,4 +247,20 @@ WHERE toString(p.id) = $patient_id
 OPTIONAL MATCH (e)-[r:DOCUMENTS]->(s)
 WITH e, count(r) AS coded_count
 RETURN toString(e.id) AS encounter_id, coded_count
+"""
+
+GET_PATIENT_CODING_TIMELINE = """
+MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter)-[r:DOCUMENTS]->(s)
+WHERE toString(p.id) = $patient_id AND e.date IS NOT NULL
+RETURN e.date            AS encounter_date,
+       toString(e.id)    AS encounter_id,
+       s.conceptId       AS concept_id,
+       s.name            AS term,
+       s.semanticTag     AS semantic_tag,
+       s.readCode        AS read_code,
+       r.context         AS context_json,
+       r.confidence      AS confidence,
+       r.domain          AS domain,
+       r.decision_tier   AS decision_tier
+ORDER BY e.date ASC
 """

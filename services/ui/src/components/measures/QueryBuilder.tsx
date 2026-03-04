@@ -381,7 +381,7 @@ export function QueryBuilder({
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-        <CircularProgress />
+        <CircularProgress aria-label="Loading" />
       </Box>
     );
   }
@@ -851,7 +851,7 @@ export function QueryBuilder({
             )}
             {previewLoading && (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                <CircularProgress size={20} />
+                <CircularProgress aria-label="Loading" size={20} />
                 <Typography variant="body2" color="text.secondary">Loading preview...</Typography>
               </Box>
             )}

@@ -33,6 +33,8 @@ This document traces software requirements (DC-SRS-001) to design elements, impl
 | FR-TP-008 | Hard fail on LLM failure | 03-detail 9 | llm_extractor.py (ExtractionError) | test_v3_llm_extractor.test_disabled_extractor_raises | ST-TP-003 |
 | FR-TP-009 | Concurrent processing | 03-detail 10 | pipeline_service.py (ThreadPoolExecutor) | -- | ST-TP-001 |
 | FR-TP-010 | SSE progress events | 03-detail 2.1 | pipeline_service._emit() | -- | ST-TP-001 |
+| FR-TP-011 | Unified post-processing stack (9 layers) shared between training and runtime pipelines | DI-LEO-AI-050 | libs/pipeline/post_processing.py | test_post_processing_pipeline.py (13 tests), test_pipeline_parity.py (9 tests) | -- |
+| FR-TP-012 | Hardened post-processing: sentence-window scoping for lab-value guard and scope guard, narrowed scope guard regexes, removed "discussed" ConText rule, multi-pass ConText deduplication, refuted disorder verdict, narrowed situation normalisation, INJECTION_GUARD on _VERIFY_SYSTEM | DI-LEO-AI-044, DI-LEO-AI-048, DI-LEO-AI-005 | libs/pipeline/post_processing.py, libs/ner/lab_value_guard.py, libs/ner/scope_guard.py, libs/ner/context_engine.py, libs/ner/context_detector.py, libs/ner/observable_post_processor.py, libs/ner/post_processor_rules.py, libs/llm_client/disorder_verifier.py, libs/llm_client/escalation.py | test_lab_value_guard.py, test_scope_guard.py, test_context_detector.py, test_escalation.py, test_post_processing_pipeline.py, test_pipeline_parity.py | -- |
 
 ### 2.2 HITL Review
 
@@ -111,7 +113,7 @@ This document traces software requirements (DC-SRS-001) to design elements, impl
 | Req ID | Requirement | Design Doc | Implementation | Unit Test | System Test |
 |--------|-------------|-----------|----------------|-----------|-------------|
 | FR-CW-001 | Service Bus consumer for coding jobs | Plan WS-C | coding-worker/app/main.py | -- | ST-CW-001 |
-| FR-CW-002 | Two-phase pipeline (LLM extract -> Terminology resolve) | Plan WS-C | coding-worker/app/pipeline/pipeline_service.py | -- | ST-CW-001 |
+| FR-CW-002 | Two-phase pipeline (LLM extract -> unified post-processing -> Terminology resolve) | Plan WS-C | coding-worker/app/pipeline/pipeline_service.py, libs/pipeline/post_processing.py | test_post_processing_pipeline.py, test_pipeline_parity.py | ST-CW-001 |
 | FR-CW-003 | LLM response caching | Plan WS-C | libs/llm-client/cache.py | test_shared_libs.py (3 tests) | -- |
 | FR-CW-004 | LLM fallback (Bedrock -> Azure OpenAI) | Plan WS-C | libs/llm-client/providers.py | -- | ST-CW-002 |
 | FR-CW-005 | Redis progress streaming | Plan WS-C | coding-worker/app/services/progress_publisher.py | -- | -- |
@@ -183,7 +185,7 @@ This document traces software requirements (DC-SRS-001) to design elements, impl
 
 | Category | Requirements | With Design | With Implementation | With Unit Test | With System Test |
 |----------|-------------|------------|-------------------|---------------|-----------------|
-| Training Pipeline | 10 | 10 | 10 | 5 | 4 |
+| Training Pipeline | 12 | 12 | 12 | 7 | 4 |
 | HITL Review | 5 | 5 | 5 | 0 | 4 |
 | Gold Sync | 3 | 3 | 3 | 3 | 2 |
 | Terminology Writeback | 4 | 4 | 4 | 3 | 3 |
@@ -200,7 +202,7 @@ This document traces software requirements (DC-SRS-001) to design elements, impl
 | Frontend UI | 5 | 5 | 5 | 0 | 5 |
 | Fix Analyzer | 1 | 1 | 1 | 0 | 1 |
 | Message Bus | 2 | 2 | 2 | 1 | 1 |
-| **Total** | **73** | **73** | **73** | **30** | **48** |
+| **Total** | **75** | **75** | **75** | **32** | **48** |
 
 All 73 requirements have design references, implementations, and at least one verification method (unit test, system test, or both).
 

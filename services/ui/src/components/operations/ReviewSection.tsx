@@ -33,6 +33,18 @@ interface CodingGroup {
   any_uncoded: boolean;
   suggested_semantic_tag: string | null;
   sample_encounter_text: string | null;
+  decision_tier: number | null;
+  tier_reason: string | null;
+  tier_decision: string | null;
+}
+
+interface AssertionGroup {
+  entity_text: string;
+  entity_label: string;
+  review_count: number;
+  assertion: string;
+  sample_review_id: string;
+  sample_encounter_text: string | null;
 }
 
 interface HitlTask {
@@ -58,6 +70,9 @@ function codingGroupToItem(g: CodingGroup): ReviewItem {
     explanation: "",
     suggestedSemanticTag: g.suggested_semantic_tag ?? undefined,
     sampleEncounterText: g.sample_encounter_text ?? undefined,
+    decisionTier: (g.decision_tier as 1 | 2 | 3 | null) ?? null,
+    tierReason: g.tier_reason ?? null,
+    tierDecision: g.tier_decision ?? null,
   };
   base.question = buildQuestion(base);
   base.explanation = buildExplanation(base);
@@ -83,13 +98,32 @@ function hitlTaskToItem(t: HitlTask): ReviewItem {
   return base;
 }
 
+function assertionGroupToItem(g: AssertionGroup): ReviewItem {
+  const base: ReviewItem = {
+    id: `context:${g.entity_text}:${g.assertion}`,
+    kind: "context",
+    entityText: g.entity_text,
+    entityLabel: g.entity_label,
+    count: g.review_count,
+    confidence: null,
+    uncoded: true,
+    question: "",
+    explanation: "",
+    assertion: g.assertion,
+    sampleEncounterText: g.sample_encounter_text ?? undefined,
+  };
+  base.question = buildQuestion(base);
+  base.explanation = buildExplanation(base);
+  return base;
+}
+
 // -- Component ---------------------------------------------------------------
 
 interface Props {
   onStatsChange?: () => void;
 }
 
-type FilterKey = "all" | "coding" | "hitl";
+type FilterKey = "all" | "coding" | "hitl" | "context" | "tier1" | "tier2" | "tier3";
 
 export default function ReviewSection({ onStatsChange }: Props) {
   const [queue, setQueue] = useState<ReviewItem[]>([]);
@@ -104,12 +138,15 @@ export default function ReviewSection({ onStatsChange }: Props) {
     setLoading(true);
     setError("");
     try {
-      const [codingRes, hitlRes] = await Promise.allSettled([
+      const [codingRes, hitlRes, contextRes] = await Promise.allSettled([
         jsonFetch<{ groups: CodingGroup[] }>(
           "/api/training/coding-review/grouped?page=1&page_size=50",
         ),
         jsonFetch<{ tasks: HitlTask[] }>(
           "/api/operations/tasks?status=pending",
+        ),
+        jsonFetch<{ groups: AssertionGroup[] }>(
+          "/api/training/coding-review/assertion-queue?page=1&page_size=50",
         ),
       ]);
 
@@ -120,8 +157,16 @@ export default function ReviewSection({ onStatsChange }: Props) {
       if (hitlRes.status === "fulfilled") {
         items.push(...hitlRes.value.tasks.map(hitlTaskToItem));
       }
+      if (contextRes.status === "fulfilled") {
+        items.push(...contextRes.value.groups.map(assertionGroupToItem));
+      }
 
-      items.sort((a, b) => b.count - a.count);
+      items.sort((a, b) => {
+        const tierA = a.decisionTier ?? 2;
+        const tierB = b.decisionTier ?? 2;
+        if (tierA !== tierB) return tierA - tierB;
+        return b.count - a.count;
+      });
       setQueue(items);
       setIndex(0);
       setResolved(0);
@@ -136,9 +181,14 @@ export default function ReviewSection({ onStatsChange }: Props) {
     loadQueue();
   }, [loadQueue]);
 
-  const filtered = queue.filter(
-    (item) => filter === "all" || item.kind === filter,
-  );
+  const filtered = queue.filter((item) => {
+    if (filter === "all") return true;
+    if (filter === "tier1") return item.decisionTier === 1;
+    if (filter === "tier2") return item.decisionTier === 2;
+    if (filter === "tier3") return item.decisionTier === 3;
+    return item.kind === filter;
+  });
+
 
   const current = filtered[index] ?? null;
   const total = filtered.length;
@@ -164,6 +214,7 @@ export default function ReviewSection({ onStatsChange }: Props) {
             resolved_concept_id: result.snomed_concept_id,
             resolved_term: result.term,
             reviewer: "operations_ui",
+            resolved_assertion: item.assertion ?? "present",
           }),
         });
         advance();
@@ -208,7 +259,7 @@ export default function ReviewSection({ onStatsChange }: Props) {
   // Keyboard shortcuts
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement || (e.target as HTMLElement).isContentEditable || (e.target as HTMLElement).closest('[role="combobox"]')) return;
       if (e.key === "s" || e.key === "S") handleSkip();
     }
     window.addEventListener("keydown", onKey);
@@ -254,26 +305,52 @@ export default function ReviewSection({ onStatsChange }: Props) {
       </Box>
 
       {/* Filters */}
-      <Stack direction="row" gap={0.75}>
-        {(["all", "coding", "hitl"] as FilterKey[]).map((key) => {
-          const labels: Record<FilterKey, string> = {
+      <Stack role="group" aria-label="Review filters" direction="row" gap={0.75} flexWrap="wrap">
+        {(["all", "coding", "hitl", "context"] as FilterKey[]).map((key) => {
+          const labels: Record<string, string> = {
             all: "All",
             coding: "Coding",
             hitl: "Tasks",
+            context: "Context",
           };
           const count =
             key === "all"
               ? queue.length
               : queue.filter((i) => i.kind === key).length;
+          const hasAlert = key === "context" && count > 0;
+          const isActive = filter === key;
           return (
             <Chip
               key={key}
               label={`${labels[key]} (${count})`}
               size="small"
-              variant={filter === key ? "filled" : "outlined"}
-              color={filter === key ? "primary" : "default"}
+              variant={isActive ? "filled" : "outlined"}
+              color={hasAlert && !isActive ? "warning" : isActive ? "primary" : "default"}
+              aria-pressed={isActive}
               onClick={() => {
                 setFilter(key);
+                setIndex(0);
+              }}
+            />
+          );
+        })}
+        {/* Tier filter chips - only shown when there are items with tier info */}
+        {([1, 2, 3] as const).map((tier) => {
+          const tierColors = { 1: "success", 2: "warning", 3: "error" } as const;
+          const tierKey = `tier${tier}` as FilterKey;
+          const count = queue.filter((i) => i.decisionTier === tier).length;
+          if (count === 0) return null;
+          const isActive = filter === tierKey;
+          return (
+            <Chip
+              key={tierKey}
+              label={`Tier ${tier} (${count})`}
+              size="small"
+              variant={isActive ? "filled" : "outlined"}
+              color={isActive ? tierColors[tier] : "default"}
+              aria-pressed={isActive}
+              onClick={() => {
+                setFilter(tierKey);
                 setIndex(0);
               }}
             />
@@ -288,6 +365,7 @@ export default function ReviewSection({ onStatsChange }: Props) {
           onResolveCoding={handleResolveCoding}
           onResolveHitl={handleResolveHitl}
           onSkip={handleSkip}
+          onAllCasesResolved={advance}
           busy={busy}
         />
       ) : (

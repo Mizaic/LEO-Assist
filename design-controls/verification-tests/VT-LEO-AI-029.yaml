@@ -1,0 +1,92 @@
+# -- VT-LEO-AI-029 -- Auto-Scaling Worker Architecture
+# IEC 62304 Verification Test Protocol
+# Schema: design-controls/templates/verification_test_schema.yaml
+
+- id: "VT-LEO-AI-029"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-029"]
+    risks: ["R-LEO-AI-012"]
+    user_needs: ["UN-LEO-AI-020"]
+
+  metadata:
+    title: "Auto-Scaling Worker Architecture"
+    description: >
+      Verifies that the container-based worker architecture scales correctly
+      under load, handles concurrent pipeline jobs within SLA, and scales to
+      zero after idle timeout.
+    test_level: "system"
+    test_type: "performance"
+    safety_class: "A"
+    automation_status: "semi-automated"
+    test_file_paths:
+      - "tests/test_autoscaling.py"
+
+  test_environment:
+    environment_type: "staging"
+    prerequisites:
+      - "Container Apps environment deployed"
+      - "Queue infrastructure available"
+      - "Monitoring enabled"
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: true
+
+  test_cases:
+    - case_id: "VT-029-TC-001"
+      case_name: "10 concurrent pipeline jobs complete within SLA"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Submit 10 pipeline jobs simultaneously"
+          expected_result: "All 10 complete within the defined SLA timeout"
+          verification_method: "Assert completion time"
+      acceptance_criteria:
+        - "No job fails due to resource contention"
+        - "Total wall-clock time within SLA"
+
+    - case_id: "VT-029-TC-002"
+      case_name: "Auto-scaling activates on queue depth threshold"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Submit jobs until queue depth exceeds threshold"
+          expected_result: "Additional worker replicas are provisioned"
+          verification_method: "Assert replica count increase via monitoring"
+      acceptance_criteria:
+        - "Scaling occurs within 60 seconds of threshold breach"
+
+    - case_id: "VT-029-TC-003"
+      case_name: "Workers scale to zero after idle timeout"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Wait for idle timeout after all jobs complete"
+          expected_result: "Worker replica count drops to zero"
+          verification_method: "Assert replica count via monitoring"
+      acceptance_criteria:
+        - "No worker instances running after idle timeout"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: false
+
+  evidence:
+    evidence_types: ["test_report", "monitoring_logs"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-029/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - execution_id: "VT-029-EXEC-001"
+      date: "2026-03-03"
+      executor: "automated_ci"
+      environment: "development"
+      result: "pass"
+      cases_executed: 5
+      cases_passed: 5
+      cases_failed: 0
+      duration_seconds: 2
+      notes: "All 5 test cases passed (pytest VT-LEO-AI-029)"

@@ -1,0 +1,146 @@
+# -- DO-LEO-AI-029 -- UI Safety, Accessibility, and Usability Remediation
+# ISO 13485 / IEC 62304 / IEC 62366-1 Design Output
+# Schema: design-controls/templates/design_outputs_schema.yaml
+
+- id: "DO-LEO-AI-029"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-043"]
+    user_needs: ["UN-LEO-AI-001", "UN-LEO-AI-010"]
+    risks_addressed: ["R-LEO-AI-028"]
+    verification_tests: ["VT-LEO-AI-036"]
+
+  specification:
+    title: "UI Safety, Accessibility, and Usability Remediation"
+    description: |
+      Comprehensive remediation of 48 findings from the IEC 62366-1 / WCAG 2.2
+      usability engineering audit (DC-UE-001). Covers 5 phases:
+      Phase 1: Safety-critical confirmation dialogs and error handling
+      Phase 2: WCAG 2.2 Level AA accessibility remediation
+      Phase 3: Major usability and remaining safety fixes
+      Phase 4: Comprehensive accessibility label remediation
+      Phase 5: Minor issues and information architecture
+      Plus a preventive .cursor rule for future development.
+    acceptance_criteria:
+      - criterion: "Destructive action confirmation"
+        type: "safety"
+        measurement: "Code inspection"
+        target: "All 5 destructive actions gated by ConfirmDialog"
+      - criterion: "Error surfacing"
+        type: "safety"
+        measurement: "Code inspection"
+        target: "No .catch(() => []) or .catch(() => {}) patterns"
+      - criterion: "Keyboard safety"
+        type: "safety"
+        measurement: "Code inspection"
+        target: "R/r shortcut shows ConfirmDialog; guard covers all editable types"
+      - criterion: "Heading hierarchy"
+        type: "accessibility"
+        measurement: "Code inspection"
+        target: "Every page has component='h1' on title Typography"
+      - criterion: "Colour contrast"
+        type: "accessibility"
+        measurement: "Contrast ratio calculation"
+        target: "Caption #6B7280 achieves 5.0:1 on white (>= 4.5:1 AA)"
+      - criterion: "Nav landmark"
+        type: "accessibility"
+        measurement: "Code inspection"
+        target: "<nav> with aria-label, aria-current='page', id='main-content'"
+      - criterion: "Skip link"
+        type: "accessibility"
+        measurement: "Code inspection"
+        target: "Skip link present and functional"
+      - criterion: "Interactive labels"
+        type: "accessibility"
+        measurement: "Code inspection"
+        target: "All IconButton, CircularProgress, and input elements have aria-label"
+      - criterion: "Error boundaries"
+        type: "usability"
+        measurement: "Code inspection"
+        target: "global-error, error, not-found, loading files exist"
+      - criterion: "Preventive rule"
+        type: "preventive"
+        measurement: "File existence"
+        target: ".cursor/rules/ui-safety.mdc exists with all standards encoded"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/ui/src/"
+        description: "48 modified components across 5 remediation phases"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: ".cursor/rules/ui-safety.mdc"
+        description: "Preventive enforcement rule for UI safety standards"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/src/context/SnackbarContext.tsx"
+        description: "Global Snackbar notification provider"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/global-error.tsx"
+        description: "Next.js global error boundary"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/error.tsx"
+        description: "Next.js route-level error boundary"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/not-found.tsx"
+        description: "Next.js 404 page"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/loading.tsx"
+        description: "Next.js root loading skeleton"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/src/components/operations/TrainSection.tsx"
+        description: "Step 3 parent -- plain-language stat cards, renamed tabs, error handling"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/src/components/operations/TrainingDataPanel.tsx"
+        description: "Step 3 training panel -- plain language, simplified verification menu, ConfirmDialog, grouped entity labels"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/src/components/operations/LabelVerificationPanel.tsx"
+        description: "Step 3 label check panel -- plain language, ARIA attributes, simplified actions"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/src/components/operations/DeploySection.tsx"
+        description: "Step 4 parent -- plain-language metric labels with tooltips"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/src/components/operations/ModelLifecyclePanel.tsx"
+        description: "Step 4 lifecycle panel -- plain language, ConfirmDialog, simplified controls"
+        storage_location: "git"
+    technical_details:
+      language: "TypeScript"
+      loc: 800
+      key_functions:
+        - "ConfirmDialog integration (6 + 5 components)"
+        - "Promise.allSettled error handling (dashboard)"
+        - "SnackbarContext / useSnackbar hook"
+        - "Skip navigation link"
+        - "WCAG AA contrast remediation"
+        - "Plain-language entity label mapping (ENTITY_LABEL_DISPLAY)"
+        - "Overflow menu for verification actions"
+        - "Metric tooltips explaining accuracy/completeness"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "ConfirmDialog gates prevent unintended destructive actions"
+      - "Error surfacing prevents invisible system failures"
+      - "Keyboard reject confirmation prevents accidental rejection"
+    risk_control_measures:
+      - "ConfirmDialog with variant='danger' on all destructive actions"
+      - "Promise.allSettled with per-section error states"
+      - "Expanded keydown guard for all editable element types"
+      - ".cursor/rules/ui-safety.mdc prevents regression"
+
+  verification_status:
+    verification_method: "Inspection + Demonstration"
+    verification_complete: true

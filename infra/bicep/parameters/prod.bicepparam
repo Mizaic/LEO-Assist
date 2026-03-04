@@ -27,6 +27,7 @@ param modelStoreModelName = 'medspacy_clinical_ner'
 // HITL thresholds (tighter in production)
 param hitlLowConfidenceThreshold = '0.6'
 param hitlPeerReviewRate = '0.10'
+param codingMode = 'hitl'
 param modelMinPrecision = '0.85'
 param modelMinRecall = '0.80'
 

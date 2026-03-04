@@ -12,10 +12,6 @@ import {
   CardContent,
   Chip,
   CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   Divider,
   LinearProgress,
   Paper,
@@ -31,8 +27,8 @@ import {
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import RefreshIcon from "@mui/icons-material/Refresh";
-import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import TabFlowDiagram, { type TabStage } from "@/components/operations/TabFlowDiagram";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 type ModelStatus =
   | "registered"
@@ -145,11 +141,11 @@ function healthChip(health?: InferenceHealth | null) {
 function statusChip(status: ModelStatus) {
   const map: Record<ModelStatus, { label: string; color: "default" | "success" | "warning" | "info" | "error" }> = {
     promoted: { label: "Live", color: "success" },
-    canary: { label: "Canary", color: "info" },
-    offline_validated: { label: "Validated", color: "warning" },
+    canary: { label: "Being tested", color: "info" },
+    offline_validated: { label: "Ready to test", color: "warning" },
     registered: { label: "Registered", color: "default" },
-    deprecated: { label: "Deprecated", color: "error" },
-    rollback: { label: "Rolled Back", color: "warning" },
+    deprecated: { label: "Retired", color: "error" },
+    rollback: { label: "Switched back", color: "warning" },
   };
   const cfg = map[status];
   return <Chip size="small" label={cfg.label} color={cfg.color} />;
@@ -158,56 +154,56 @@ function statusChip(status: ModelStatus) {
 const DEPLOYMENT_STAGES: TabStage[] = [
   {
     id: "md1", num: 1,
-    label: "AI Trained",
-    tooltip: "A new version of the AI has finished its training run. It now needs to be tested before it can go live.",
-    detailIn: "A completed training run from the Training Data tab",
-    detailOut: "A registered model version waiting for testing",
+    label: "AI trained",
+    tooltip: "A new version of the AI has finished learning. It now needs to be tested before it can go live.",
+    detailIn: "A completed learning run from the Teach the AI tab",
+    detailOut: "A new AI version waiting to be tested",
   },
   {
     id: "md2", num: 2,
-    label: "Gold Test",
-    tooltip: "We test the new AI on a set of real patient examples where we already know the right answers. This is called a gold patient test.",
-    detailIn: "The new AI model and a set of gold patient examples",
-    detailOut: "Precision and recall scores from the test",
+    label: "Safety test",
+    tooltip: "We test the new AI on real patient examples where we already know the right answers. This checks that it learned correctly.",
+    detailIn: "The new AI and a set of checked patient examples",
+    detailOut: "Accuracy and completeness scores from the test",
     branches: [
       {
         label: "Test already running",
-        description: "You can only run one gold test at a time. Wait for it to finish before starting another",
+        description: "You can only run one safety test at a time. Wait for it to finish before starting another",
       },
     ],
   },
   {
     id: "md3", num: 3,
-    label: "Check Scores",
-    tooltip: "We look at the test results. The AI must score at least 78% precision and 72% recall to pass.",
-    detailIn: "The test scores for each label type",
-    detailOut: "A pass or fail result for each threshold gate",
+    label: "Check scores",
+    tooltip: "We look at the test results. The AI must get at least 78% of answers right and find at least 72% of items to pass.",
+    detailIn: "The test scores for each type of medical word",
+    detailOut: "A pass or fail result",
     branches: [
       {
-        label: "Failed a gate",
-        description: "If the AI does not meet the thresholds, you can reject it. You can still force-promote it, but this is logged as an audit event",
+        label: "Did not pass",
+        description: "If the AI does not meet the required scores, you can reject it. You can still make it live anyway, but this is recorded for audit",
       },
     ],
   },
   {
     id: "md4", num: 4,
-    label: "Go Live",
-    tooltip: "If the AI passes, you promote it to live. It becomes the main AI used by the pipeline from that moment on.",
-    detailIn: "Your decision to promote the model",
-    detailOut: "The new AI is live; the old version is marked as deprecated",
+    label: "Go live",
+    tooltip: "If the AI passes, you make it live. It becomes the main AI used from that moment on.",
+    detailIn: "Your decision to make the AI live",
+    detailOut: "The new AI is live; the old version is retired",
     branches: [
       {
-        label: "Rollback",
-        description: "If the live AI has problems, you can roll back to the previous version at any time",
+        label: "Switch back",
+        description: "If the live AI has problems, you can switch back to the previous version at any time",
       },
     ],
   },
   {
     id: "md5", num: 5,
-    label: "Watch It",
+    label: "Watch it",
     tooltip: "We keep checking the health of the live AI. If it stops responding or gives strange results, an alert appears here.",
-    detailIn: "The live AI model running in the pipeline",
-    detailOut: "A health status: OK, Degraded, or Unreachable",
+    detailIn: "The live AI running in the pipeline",
+    detailOut: "A health status: OK, degraded, or unreachable",
   },
 ];
 
@@ -243,7 +239,7 @@ export default function ModelLifecyclePanel() {
       setStatus(await statusRes.json());
       setVersions((await versionsRes.json()).versions ?? []);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Failed to load model deployment data");
+      setError(e instanceof Error ? e.message : "Could not load the AI deployment information. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -299,7 +295,7 @@ export default function ModelLifecyclePanel() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.detail || `Failed (${res.status})`);
-      setInfo(`Gold test started for v${version}.`);
+      setInfo(`Safety test started for version ${version}.`);
       setGoldJobId(data.job_id);
       setGoldJob({
         job_id: data.job_id,
@@ -309,7 +305,7 @@ export default function ModelLifecyclePanel() {
         message: "Queued",
       });
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Failed to start gold test");
+      setError(e instanceof Error ? e.message : "Could not start the safety test. Please try again.");
     } finally {
       setBusyAction(null);
     }
@@ -330,18 +326,24 @@ export default function ModelLifecyclePanel() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.detail || `Failed (${res.status})`);
-      setInfo(`v${version} promoted${force ? " (gate overridden)" : ""} — inference hot-reload triggered.`);
+      setInfo(`Version ${version} is now live${force ? " (quality check was overridden)" : ""}. The AI will start using it straight away.`);
       setForcePromoteConfirmOpen(false);
       await loadAll();
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Promote failed");
+      setError(e instanceof Error ? e.message : "Could not make the AI live. Please try again.");
     } finally {
       setBusyAction(null);
     }
   }
 
+  const [rejectConfirmVersion, setRejectConfirmVersion] = useState<string | null>(null);
+
+  function requestReject(version: string) {
+    setRejectConfirmVersion(version);
+  }
+
   async function reject(version: string) {
-    if (!window.confirm(`Reject v${version}? This marks the version deprecated.`)) return;
+    setRejectConfirmVersion(null);
     setBusyAction(`reject:${version}`);
     setError(null);
     try {
@@ -352,11 +354,11 @@ export default function ModelLifecyclePanel() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.detail || `Failed (${res.status})`);
-      setInfo(`v${version} rejected and deprecated.`);
+      setInfo(`Version ${version} has been rejected and retired.`);
       setGoldJob(null);
       await loadAll();
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Reject failed");
+      setError(e instanceof Error ? e.message : "Could not reject this version. Please try again.");
     } finally {
       setBusyAction(null);
     }
@@ -369,10 +371,10 @@ export default function ModelLifecyclePanel() {
       const res = await fetch("/api/model-registry/rollback", { method: "POST" });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.detail || `Failed (${res.status})`);
-      setInfo(`Rolled back to v${data.rolled_back_to}.`);
+      setInfo(`Switched back to version ${data.rolled_back_to}. The AI will use the previous version now.`);
       await loadAll();
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Rollback failed");
+      setError(e instanceof Error ? e.message : "Could not switch back to the previous AI. Please try again.");
     } finally {
       setBusyAction(null);
       setRollbackConfirmOpen(false);
@@ -380,14 +382,14 @@ export default function ModelLifecyclePanel() {
   }
 
   return (
-    <Box sx={{ maxWidth: 1280, mx: "auto", px: 3, py: 3 }}>
-      <Stack direction="row" justifyContent="space-between" alignItems="flex-start" mb={2}>
+    <Stack spacing={1.5}>
+      <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
         <Box>
-          <Typography variant="h6" fontWeight={700}>
-            Model Deployment
+          <Typography variant="subtitle1" fontWeight={700} sx={{ lineHeight: 1.3 }}>
+            Make the AI live
           </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Review metrics, run automated gold patient test, then promote or reject.
+          <Typography variant="body2" color="text.secondary" sx={{ fontSize: 13 }}>
+            Check the scores, run a safety test, then make the AI live or reject it.
           </Typography>
         </Box>
         <Button startIcon={<RefreshIcon />} onClick={loadAll} disabled={loading} variant="outlined" size="small">
@@ -396,105 +398,106 @@ export default function ModelLifecyclePanel() {
       </Stack>
 
       {/* How this works */}
-      <Accordion variant="outlined" disableGutters sx={{ mb: 3 }}>
-        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+      <Accordion variant="outlined" disableGutters sx={{ "&::before": { display: "none" } }}>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ minHeight: 36, "& .MuiAccordionSummary-content": { my: 0.75 } }}>
+          <Typography variant="body2" sx={{ fontWeight: 600, fontSize: 13 }}>
             How this tab works
           </Typography>
         </AccordionSummary>
-        <AccordionDetails sx={{ pt: 0 }}>
+        <AccordionDetails sx={{ pt: 0, pb: 1.5 }}>
           <TabFlowDiagram
             stages={DEPLOYMENT_STAGES}
             color="#059669"
             lightColor="#D1FAE5"
-            trackLabel="Model Deployment"
+            trackLabel="Make the AI live"
           />
         </AccordionDetails>
       </Accordion>
 
-      {loading && <LinearProgress sx={{ mb: 2 }} />}
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-      {info && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setInfo(null)}>{info}</Alert>}
+      {loading && <LinearProgress />}
+      {error && <Alert severity="error" sx={{ py: 0.25 }}>{error}</Alert>}
+      {info && <Alert severity="success" sx={{ py: 0.25 }} onClose={() => setInfo(null)}>{info}</Alert>}
 
-      <Card variant="outlined" sx={{ mb: 2 }}>
-        <CardContent>
-          <Stack direction={{ xs: "column", md: "row" }} spacing={2} alignItems={{ xs: "flex-start", md: "center" }}>
+      <Card variant="outlined">
+        <CardContent sx={{ p: 1.5, "&:last-child": { pb: 1.5 } }}>
+          <Stack direction={{ xs: "column", md: "row" }} spacing={1.5} alignItems={{ xs: "flex-start", md: "center" }}>
             <Box sx={{ flex: 1 }}>
-              <Typography variant="subtitle2" fontWeight={700}>Live model</Typography>
+              <Typography variant="subtitle2" fontWeight={700} sx={{ fontSize: 13 }}>Live AI</Typography>
               {active ? (
-                <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ mt: 0.5 }}>
-                  <Typography variant="body2"><strong>Version:</strong> v{active.model_version}</Typography>
-                  <Typography variant="body2"><strong>Promoted:</strong> {fmtDate(active.promoted_at)}</Typography>
-                  <Typography variant="body2"><strong>Backbone:</strong> {BACKBONE}</Typography>
+                <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ mt: 0.25 }}>
+                  <Typography variant="caption"><strong>Version:</strong> {active.model_version}</Typography>
+                  <Typography variant="caption"><strong>Made live:</strong> {fmtDate(active.promoted_at)}</Typography>
+                  <Typography variant="caption"><strong>Base model:</strong> {BACKBONE}</Typography>
                 </Stack>
               ) : (
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                  No model promoted yet.
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 0.25 }}>
+                  No AI is live yet. Run a safety test and make one live.
                 </Typography>
               )}
             </Box>
-            <Stack spacing={0.5}>
-              <Typography variant="caption" color="text.secondary">Training P/R/F1</Typography>
-              <Typography variant="body2">
+            <Stack spacing={0.25}>
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: 10.5 }}>Training score</Typography>
+              <Typography variant="caption" sx={{ fontWeight: 600 }}>
                 {pct(active?.offline_precision)} / {pct(active?.offline_recall)} / {pct(f1(active?.offline_precision, active?.offline_recall))}
               </Typography>
             </Stack>
-            <Stack spacing={0.5}>
-              <Typography variant="caption" color="text.secondary">Gold P/R/F1</Typography>
-              <Typography variant="body2">
+            <Stack spacing={0.25}>
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: 10.5 }}>Safety test score</Typography>
+              <Typography variant="caption" sx={{ fontWeight: 600 }}>
                 {pct(active?.canary_precision)} / {pct(active?.canary_recall)} / {pct(f1(active?.canary_precision, active?.canary_recall))}
               </Typography>
             </Stack>
-            <Stack spacing={0.5}>
-              <Typography variant="caption" color="text.secondary">Inference health</Typography>
+            <Stack spacing={0.25}>
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: 10.5 }}>AI service status</Typography>
               {healthChip(status?.inference_service)}
-              <Typography variant="caption" color="text.secondary">
-                Active in memory: {status?.inference_service?.active_version || "none"}
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: 10.5 }}>
+                Running: {status?.inference_service?.active_version || "none"}
               </Typography>
             </Stack>
             {active?.rollback_target_version && (
               <Button
                 color="warning"
-                variant="contained"
+                variant="outlined"
+                size="small"
                 onClick={() => setRollbackConfirmOpen(true)}
                 disabled={busyAction === "rollback"}
               >
-                {busyAction === "rollback" ? <CircularProgress size={16} /> : `Rollback to v${active.rollback_target_version}`}
+                {busyAction === "rollback" ? <CircularProgress aria-label="Loading" size={14} /> : `Switch back to version ${active.rollback_target_version}`}
               </Button>
             )}
           </Stack>
         </CardContent>
       </Card>
 
-      <Stack direction={{ xs: "column", lg: "row" }} spacing={2} sx={{ mb: 2 }}>
+      <Stack direction={{ xs: "column", lg: "row" }} spacing={1.5}>
         <Card variant="outlined" sx={{ flex: 1 }}>
-          <CardContent>
-            <Typography variant="subtitle1" fontWeight={700} mb={0.5}>Ready for testing</Typography>
+          <CardContent sx={{ p: 1.5, "&:last-child": { pb: 1.5 } }}>
+            <Typography variant="subtitle2" fontWeight={700} mb={0.5}>Ready for safety test</Typography>
             {!ready ? (
-              <Alert severity="info">
-                No offline-validated model is waiting for gold test. Complete a training run in the Training Data tab.
+              <Alert severity="info" sx={{ py: 0.25 }}>
+                No AI is waiting to be tested. Complete a learning run in the Teach the AI tab first.
               </Alert>
             ) : (
               <>
-                <Stack direction={{ xs: "column", sm: "row" }} spacing={2} mb={1}>
-                  <Typography variant="body2"><strong>Version:</strong> v{ready.model_version}</Typography>
-                  <Typography variant="body2"><strong>Trained:</strong> {fmtDate(ready.registered_at)}</Typography>
+                <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} mb={0.75}>
+                  <Typography variant="caption"><strong>Version:</strong> {ready.model_version}</Typography>
+                  <Typography variant="caption"><strong>Finished learning:</strong> {fmtDate(ready.registered_at)}</Typography>
                 </Stack>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-                  Training metrics
+                <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.25 }}>
+                  Training scores
                 </Typography>
-                <Typography variant="body2" sx={{ mb: 1.5 }}>
-                  P {pct(ready.offline_precision)} | R {pct(ready.offline_recall)} | F1 {pct(f1(ready.offline_precision, ready.offline_recall))}
+                <Typography variant="caption" sx={{ display: "block", mb: 1, fontWeight: 600 }}>
+                  Accuracy {pct(ready.offline_precision)} | Completeness {pct(ready.offline_recall)} | Overall {pct(f1(ready.offline_precision, ready.offline_recall))}
                 </Typography>
                 {ready.notes && (
-                  <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1.5 }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
                     Notes: {ready.notes}
                   </Typography>
                 )}
                 {goldJobId && goldJob?.version === ready.model_version && (
                   <Box sx={{ mb: 1.5 }}>
                     <Typography variant="body2" sx={{ mb: 0.5 }}>
-                      {goldJob.message || "Running gold test..."}
+                      {goldJob.message || "Running safety test..."}
                     </Typography>
                     {(goldJob.status === "accepted" || goldJob.status === "running") && <LinearProgress />}
                   </Box>
@@ -504,7 +507,7 @@ export default function ModelLifecyclePanel() {
                   onClick={() => runGoldTest(ready.model_version)}
                   disabled={busyAction === `run-gold:${ready.model_version}` || !!goldJobId}
                 >
-                  {busyAction === `run-gold:${ready.model_version}` ? <CircularProgress size={16} /> : "Run gold patient test"}
+                  {busyAction === `run-gold:${ready.model_version}` ? <CircularProgress aria-label="Loading" size={16} /> : "Run safety test"}
                 </Button>
               </>
             )}
@@ -513,30 +516,30 @@ export default function ModelLifecyclePanel() {
 
         <Card variant="outlined" sx={{ flex: 1 }}>
           <CardContent>
-            <Typography variant="subtitle1" fontWeight={700} mb={0.5}>Gold test results</Typography>
+            <Typography variant="subtitle1" fontWeight={700} mb={0.5}>Safety test results</Typography>
             {!canaryVersion ? (
               <Typography variant="body2" color="text.secondary">
-                Results appear here after the automated gold test completes.
+                Results appear here after the safety test finishes.
               </Typography>
             ) : (
               <>
                 <Typography variant="body2" sx={{ mb: 1 }}>
-                  v{canaryVersion.model_version} | Training F1 {pct(f1(canaryVersion.offline_precision, canaryVersion.offline_recall))}
-                  {" "}→ Gold F1 {pct(f1(canaryVersion.canary_precision, canaryVersion.canary_recall))}
+                  Version {canaryVersion.model_version} | Training score {pct(f1(canaryVersion.offline_precision, canaryVersion.offline_recall))}
+                  {" "}→ Safety test score {pct(f1(canaryVersion.canary_precision, canaryVersion.canary_recall))}
                 </Typography>
-                <Stack direction={{ xs: "column", sm: "row" }} spacing={2} mb={1}>
-                  <Paper variant="outlined" sx={{ p: 1.5, minWidth: 180 }}>
-                    <Typography variant="caption" color="text.secondary">Gold Precision</Typography>
-                    <Typography variant="h6">{pct(canaryVersion.canary_precision)}</Typography>
+                <Stack direction="row" spacing={1.5} mb={1} flexWrap="wrap" useFlexGap>
+                  <Paper variant="outlined" sx={{ p: 1, minWidth: 120, flex: "1 1 120px" }}>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: 10.5 }}>Accuracy</Typography>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{pct(canaryVersion.canary_precision)}</Typography>
                   </Paper>
-                  <Paper variant="outlined" sx={{ p: 1.5, minWidth: 180 }}>
-                    <Typography variant="caption" color="text.secondary">Gold Recall</Typography>
-                    <Typography variant="h6">{pct(canaryVersion.canary_recall)}</Typography>
+                  <Paper variant="outlined" sx={{ p: 1, minWidth: 120, flex: "1 1 120px" }}>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: 10.5 }}>Completeness</Typography>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{pct(canaryVersion.canary_recall)}</Typography>
                   </Paper>
-                  <Paper variant="outlined" sx={{ p: 1.5, minWidth: 180 }}>
-                    <Typography variant="caption" color="text.secondary">Threshold Gate</Typography>
-                    <Typography variant="h6" color={canaryPass ? "success.main" : "error.main"}>
-                      {canaryPass ? "PASS" : "FAIL"}
+                  <Paper variant="outlined" sx={{ p: 1, minWidth: 120, flex: "1 1 120px" }}>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: 10.5 }}>Quality check</Typography>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 700 }} color={canaryPass ? "success.main" : "error.main"}>
+                      {canaryPass ? "PASSED" : "DID NOT PASS"}
                     </Typography>
                   </Paper>
                 </Stack>
@@ -544,7 +547,7 @@ export default function ModelLifecyclePanel() {
                 {goldJob?.version === canaryVersion.model_version &&
                   goldJob.status === "failed" && (
                     <Alert severity="error" sx={{ mb: 2 }}>
-                      Gold test failed: {goldJob.message}
+                      Safety test did not finish: {goldJob.message}
                     </Alert>
                   )}
 
@@ -555,17 +558,17 @@ export default function ModelLifecyclePanel() {
                     <Box sx={{ mb: 2 }}>
                       <Typography variant="body2" sx={{ mb: 0.75 }}>
                         {goldJob.phase === "downloading_model"
-                          ? "Downloading model artifact..."
+                          ? "Getting the AI ready..."
                           : goldJob.phase === "loading_gold_data"
-                            ? "Loading gold patient data..."
+                            ? "Loading test patient records..."
                             : goldJob.phase === "scoring"
-                              ? `Scoring patients${goldJob.progress != null ? ` -- ${Math.round(goldJob.progress * 100)}% done` : "..."}`
-                              : goldJob.message ?? "Running gold test..."}
+                              ? `Testing the AI${goldJob.progress != null ? ` -- ${Math.round(goldJob.progress * 100)}% done` : "..."}`
+                              : goldJob.message ?? "Running safety test..."}
                       </Typography>
                       <LinearProgress
                         variant={goldJob.progress != null ? "determinate" : "indeterminate"}
                         value={(goldJob.progress ?? 0) * 100}
-                        aria-label="Gold test progress"
+                        aria-label="Safety test progress"
                       />
                     </Box>
                   )}
@@ -573,17 +576,17 @@ export default function ModelLifecyclePanel() {
                 {goldJob?.status === "completed" && goldJob.metrics?.per_label?.length ? (
                   <Accordion disableGutters>
                     <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                      <Typography variant="body2" fontWeight={600}>Per-label gold metrics</Typography>
+                      <Typography variant="body2" fontWeight={600}>Scores for each type of medical word</Typography>
                     </AccordionSummary>
                     <AccordionDetails>
                       <Table size="small">
                         <TableHead>
                           <TableRow>
-                            <TableCell>Label</TableCell>
-                            <TableCell>Gold P</TableCell>
-                            <TableCell>Gold R</TableCell>
-                            <TableCell>Gold F1</TableCell>
-                            <TableCell>Delta vs training F1</TableCell>
+                            <TableCell>Word type</TableCell>
+                            <TableCell>Accuracy</TableCell>
+                            <TableCell>Completeness</TableCell>
+                            <TableCell>Overall</TableCell>
+                            <TableCell>Change from training</TableCell>
                           </TableRow>
                         </TableHead>
                         <TableBody>
@@ -608,11 +611,11 @@ export default function ModelLifecyclePanel() {
                   </Accordion>
                 ) : (
                   <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
-                    Per-label detail is shown for the latest completed gold run in this session.
+                    Detailed scores for each word type appear after the safety test finishes.
                   </Typography>
                 )}
                 <Stack direction="row" spacing={1} sx={{ mt: 1 }} flexWrap="wrap">
-                  <Tooltip title={canaryPass ? "" : "Canary thresholds not met"}>
+                  <Tooltip title={canaryPass ? "" : "The AI did not pass the quality check"}>
                     <span>
                       <Button
                         variant="contained"
@@ -620,19 +623,19 @@ export default function ModelLifecyclePanel() {
                         disabled={!canaryPass || busyAction === `promote:${canaryVersion.model_version}`}
                         onClick={() => promote(canaryVersion.model_version)}
                       >
-                        {busyAction === `promote:${canaryVersion.model_version}` ? <CircularProgress size={16} /> : "Promote to live"}
+                        {busyAction === `promote:${canaryVersion.model_version}` ? <CircularProgress aria-label="Loading" size={16} /> : "Make this AI live"}
                       </Button>
                     </span>
                   </Tooltip>
                   {!canaryPass && canaryVersion.canary_precision !== null && (
-                    <Tooltip title="Override gate failure and promote anyway — record will be flagged for audit">
+                    <Tooltip title="Go live anyway even though the AI did not pass — this will be recorded for audit">
                       <Button
                         variant="outlined"
                         color="warning"
                         onClick={() => setForcePromoteConfirmOpen(true)}
                         disabled={!!busyAction}
                       >
-                        Force promote
+                        Go live anyway
                       </Button>
                     </Tooltip>
                   )}
@@ -643,20 +646,20 @@ export default function ModelLifecyclePanel() {
                       onClick={() => runGoldTest(canaryVersion.model_version)}
                       disabled={busyAction === `run-gold:${canaryVersion.model_version}` || !!goldJobId}
                     >
-                      {busyAction === `run-gold:${canaryVersion.model_version}` ? <CircularProgress size={16} /> : "Re-run gold test"}
+                      {busyAction === `run-gold:${canaryVersion.model_version}` ? <CircularProgress aria-label="Loading" size={16} /> : "Run safety test again"}
                     </Button>
                   )}
                   <Button
                     variant="outlined"
                     color="error"
-                    onClick={() => reject(canaryVersion.model_version)}
+                    onClick={() => requestReject(canaryVersion.model_version)}
                     disabled={busyAction === `reject:${canaryVersion.model_version}`}
                   >
-                    {busyAction === `reject:${canaryVersion.model_version}` ? <CircularProgress size={16} /> : "Reject this version"}
+                    {busyAction === `reject:${canaryVersion.model_version}` ? <CircularProgress aria-label="Loading" size={16} /> : "Reject this version"}
                   </Button>
                 </Stack>
                 <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
-                  Gate: precision ≥ {(MODEL_CANARY_MIN_PRECISION * 100).toFixed(0)}%, recall ≥ {(MODEL_CANARY_MIN_RECALL * 100).toFixed(0)}%
+                  The AI must get at least {(MODEL_CANARY_MIN_PRECISION * 100).toFixed(0)}% of answers right and find at least {(MODEL_CANARY_MIN_RECALL * 100).toFixed(0)}% of items to pass.
                 </Typography>
               </>
             )}
@@ -664,29 +667,29 @@ export default function ModelLifecyclePanel() {
         </Card>
       </Stack>
 
-      <Accordion defaultExpanded={false}>
-        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-          <Typography variant="subtitle1" fontWeight={700}>Version history</Typography>
+      <Accordion defaultExpanded={false} disableGutters variant="outlined" sx={{ "&::before": { display: "none" } }}>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ minHeight: 36, "& .MuiAccordionSummary-content": { my: 0.75 } }}>
+          <Typography variant="subtitle2" fontWeight={700} sx={{ fontSize: 13 }}>Past versions</Typography>
         </AccordionSummary>
-        <AccordionDetails>
+        <AccordionDetails sx={{ p: 0 }}>
           {versions.length === 0 ? (
-            <Alert severity="info">No model versions found yet.</Alert>
+            <Alert severity="info" sx={{ m: 1.5, py: 0.25 }}>No AI versions have been created yet.</Alert>
           ) : (
             <Table size="small">
               <TableHead>
                 <TableRow>
                   <TableCell>Version</TableCell>
                   <TableCell>Status</TableCell>
-                  <TableCell>Training P/R/F1</TableCell>
-                  <TableCell>Gold P/R/F1</TableCell>
-                  <TableCell>Promoted</TableCell>
+                  <TableCell>Training score</TableCell>
+                  <TableCell>Safety test score</TableCell>
+                  <TableCell>Made live</TableCell>
                   <TableCell>Notes</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {versions.map((v) => (
                   <TableRow key={v.model_version}>
-                    <TableCell>v{v.model_version}</TableCell>
+                    <TableCell>{v.model_version}</TableCell>
                     <TableCell>{statusChip(v.status)}</TableCell>
                     <TableCell>
                       {pct(v.offline_precision)} / {pct(v.offline_recall)} / {pct(f1(v.offline_precision, v.offline_recall))}
@@ -710,64 +713,44 @@ export default function ModelLifecyclePanel() {
 
       <Divider sx={{ my: 3 }} />
       <Paper variant="outlined" sx={{ p: 2 }}>
-        <Typography variant="subtitle1" fontWeight={700}>Training corpus source</Typography>
+        <Typography variant="subtitle1" fontWeight={700}>Where the teaching examples come from</Typography>
         <Typography variant="body2" color="text.secondary">
-          Training labels are managed in the Training Data tab. Training worker handles register, upload, and offline validation automatically.
+          Teaching records are managed in the Teach the AI tab. The system handles uploading and checking automatically.
         </Typography>
       </Paper>
 
-      <Dialog open={forcePromoteConfirmOpen} onClose={() => setForcePromoteConfirmOpen(false)}>
-        <DialogTitle>Force promote — gate override</DialogTitle>
-        <DialogContent>
-          <Stack spacing={1.5}>
-            <Stack direction="row" spacing={1} alignItems="flex-start">
-              <WarningAmberIcon color="warning" sx={{ mt: 0.25 }} />
-              <Typography variant="body2">
-                The gold test did <strong>not</strong> meet the required thresholds
-                (precision ≥ {(MODEL_CANARY_MIN_PRECISION * 100).toFixed(0)}%,
-                recall ≥ {(MODEL_CANARY_MIN_RECALL * 100).toFixed(0)}%).
-              </Typography>
-            </Stack>
-            <Typography variant="body2">
-              Forcing promotion will flag this version in the audit trail with a
-              <strong> [FORCED PROMOTION]</strong> note. Use only if you intend to
-              retrain with improved labels shortly.
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Current results: P={pct(canaryVersion?.canary_precision)} R={pct(canaryVersion?.canary_recall)}
-            </Typography>
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setForcePromoteConfirmOpen(false)}>Cancel</Button>
-          <Button
-            color="warning"
-            variant="contained"
-            disabled={busyAction === `promote:${canaryVersion?.model_version}`}
-            onClick={() => canaryVersion && promote(canaryVersion.model_version, true)}
-          >
-            {busyAction === `promote:${canaryVersion?.model_version}` ? <CircularProgress size={16} /> : "Confirm force promote"}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      {forcePromoteConfirmOpen && (
+        <ConfirmDialog
+          title="Go live anyway? The AI did not pass the safety test"
+          body={`The AI did not meet the required scores (accuracy at least ${(MODEL_CANARY_MIN_PRECISION * 100).toFixed(0)}%, completeness at least ${(MODEL_CANARY_MIN_RECALL * 100).toFixed(0)}%). Current results: accuracy ${pct(canaryVersion?.canary_precision)}, completeness ${pct(canaryVersion?.canary_recall)}. Making it live will be flagged for audit. Only do this if you plan to retrain soon.`}
+          confirmLabel={busyAction === `promote:${canaryVersion?.model_version}` ? "Working..." : "Go live anyway"}
+          variant="danger"
+          onConfirm={() => canaryVersion && promote(canaryVersion.model_version, true)}
+          onCancel={() => setForcePromoteConfirmOpen(false)}
+        />
+      )}
 
-      <Dialog open={rollbackConfirmOpen} onClose={() => setRollbackConfirmOpen(false)}>
-        <DialogTitle>Confirm rollback</DialogTitle>
-        <DialogContent>
-          <Stack direction="row" spacing={1} alignItems="center">
-            <WarningAmberIcon color="warning" />
-            <Typography variant="body2">
-              Roll back live model to v{active?.rollback_target_version}? Inference service hot-reload will be triggered immediately.
-            </Typography>
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setRollbackConfirmOpen(false)}>Cancel</Button>
-          <Button color="warning" variant="contained" onClick={rollback}>
-            Confirm rollback
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Box>
+      {rollbackConfirmOpen && (
+        <ConfirmDialog
+          title="Switch back to the previous AI?"
+          body={`This will switch the live AI back to version ${active?.rollback_target_version}. The change takes effect straight away.`}
+          confirmLabel="Switch back"
+          variant="danger"
+          onConfirm={rollback}
+          onCancel={() => setRollbackConfirmOpen(false)}
+        />
+      )}
+
+      {!!rejectConfirmVersion && (
+        <ConfirmDialog
+          title="Reject this AI version?"
+          body={`Version ${rejectConfirmVersion} will be marked as retired and cannot be made live. This cannot be undone.`}
+          confirmLabel="Reject"
+          variant="danger"
+          onConfirm={() => rejectConfirmVersion && reject(rejectConfirmVersion)}
+          onCancel={() => setRejectConfirmVersion(null)}
+        />
+      )}
+    </Stack>
   );
 }

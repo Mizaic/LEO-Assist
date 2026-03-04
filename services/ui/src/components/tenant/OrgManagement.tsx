@@ -229,7 +229,7 @@ export default function OrgManagement() {
 
       {loading ? (
         <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
-          <CircularProgress />
+          <CircularProgress aria-label="Loading" />
         </Box>
       ) : filtered.length === 0 ? (
         <Box sx={{ textAlign: "center", py: 6, color: "text.secondary" }}>

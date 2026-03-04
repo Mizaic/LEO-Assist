@@ -1,0 +1,101 @@
+# -- VT-LEO-AI-034 -- Value Set and Concept Map Management
+# IEC 62304 Verification Test Protocol
+# Schema: design-controls/templates/verification_test_schema.yaml
+
+- id: "VT-LEO-AI-034"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-034"]
+    risks: ["R-LEO-AI-019"]
+    user_needs: ["UN-LEO-AI-023"]
+
+  metadata:
+    title: "Value Set and Concept Map Management"
+    description: >
+      Verifies CRUD operations for value sets and concept maps, versioning
+      with timestamps and authors, and validation of invalid inputs.
+    test_level: "integration"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    test_file_paths:
+      - "tests/test_conceptmap_service.py"
+
+  test_environment:
+    environment_type: "ci_cd"
+    prerequisites:
+      - "Terminology API running"
+      - "Neo4j Coding graph available"
+    test_data:
+      data_type: "fixture"
+      cleanup_required: true
+
+  test_cases:
+    - case_id: "VT-034-TC-001"
+      case_name: "Value set CRUD lifecycle"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Create, read, update, and delete a value set"
+          expected_result: "All operations succeed with correct HTTP status codes and data"
+          verification_method: "Assert status codes and response content"
+      acceptance_criteria:
+        - "Full value set lifecycle works correctly"
+
+    - case_id: "VT-034-TC-002"
+      case_name: "Concept map CRUD lifecycle"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Create, read, update, and delete a concept map"
+          expected_result: "All operations succeed"
+          verification_method: "Assert status codes and response content"
+      acceptance_criteria:
+        - "Full concept map lifecycle works correctly"
+
+    - case_id: "VT-034-TC-003"
+      case_name: "Versioning tracks changes"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Update a value set and check version metadata"
+          expected_result: "Timestamp and author recorded on each version"
+          verification_method: "Assert metadata fields"
+      acceptance_criteria:
+        - "Change history is maintained"
+
+    - case_id: "VT-034-TC-004"
+      case_name: "Validation rejects invalid inputs"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Submit invalid value sets and concept maps"
+          expected_result: "HTTP 422 returned with validation error details"
+          verification_method: "Assert status code"
+      acceptance_criteria:
+        - "Invalid data is rejected with clear error messages"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["test_report"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-034/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - execution_id: "VT-034-EXEC-001"
+      date: "2026-03-03"
+      executor: "automated_ci"
+      environment: "development"
+      result: "pass"
+      cases_executed: 4
+      cases_passed: 4
+      cases_failed: 0
+      duration_seconds: 2
+      notes: "All 4 test cases passed (pytest VT-LEO-AI-034)"

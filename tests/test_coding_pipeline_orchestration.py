@@ -187,7 +187,7 @@ async def test_dry_run_skips_persistence():
             new_callable=AsyncMock,
             return_value={},
         ):
-            with patch.object(pipeline, "_persist_candidate") as mock_persist:
+            with patch.object(pipeline, "_persist_documents") as mock_persist:
                 await pipeline.run_single_encounter(
                     patient_id="pat-001",
                     encounter_id="enc-001",
@@ -214,22 +214,33 @@ def test_candidate_id_deterministic():
 
 @pytest.mark.asyncio
 async def test_run_twice_calls_upsert_not_insert():
-    """Re-running same encounter calls UPSERT (MERGE) semantics in Neo4j."""
+    """Re-running same encounter calls _persist_documents twice — MERGE semantics are idempotent.
+
+    With empty extraction results there is nothing to persist, so we verify
+    that _persist_documents is called once per non-dry_run invocation regardless
+    of whether there are items to write (the method handles empty payloads safely).
+    """
     patient_client = _stub_patient_client()
     knowledge_client = MagicMock()
 
     from services.coding_worker.app.pipeline.pipeline_service import CodingPipeline
-    import libs.cypher.candidate_queries as cq
 
     mock_extractor = MagicMock()
     mock_extractor.source = "llm"
     mock_extractor.model_name = "bedrock"
     mock_extractor.model_version = "1.0"
-    mock_extractor.extract_batch.return_value = []
+    mock_extractor.extract_batch.return_value = [_make_extraction_item()]
 
-    session_mock = MagicMock()
-    patient_client.session.return_value.__enter__ = MagicMock(return_value=session_mock)
-    patient_client.session.return_value.__exit__ = MagicMock(return_value=False)
+    persist_call_count = 0
+
+    def _count_persist(*args, **kwargs):
+        nonlocal persist_call_count
+        persist_call_count += 1
+
+    pipeline = CodingPipeline(
+        patient_client=patient_client,
+        knowledge_client=knowledge_client,
+    )
 
     with patch(
         "services.coding_worker.app.pipeline.pipeline_service.build_extractor",
@@ -240,16 +251,13 @@ async def test_run_twice_calls_upsert_not_insert():
             new_callable=AsyncMock,
             return_value={},
         ):
-            pipeline = CodingPipeline(
-                patient_client=patient_client,
-                knowledge_client=knowledge_client,
-            )
-            await pipeline.run_single_encounter("pat-001", "enc-001")
-            await pipeline.run_single_encounter("pat-001", "enc-001")
+            with patch.object(pipeline, "_persist_documents", side_effect=_count_persist):
+                await pipeline.run_single_encounter("pat-001", "enc-001", dry_run=False)
+                await pipeline.run_single_encounter("pat-001", "enc-001", dry_run=False)
 
-    # UPSERT_CANDIDATE uses MERGE — calling it twice is idempotent in Neo4j.
-    # We verify the session.run was called (not that it de-duped at test level).
-    assert session_mock.run.call_count >= 2
+    assert persist_call_count == 2, (
+        f"Expected _persist_documents called twice (idempotent MERGE), got {persist_call_count}"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -273,13 +281,12 @@ async def test_sentences_payload_has_provenance():
 
     captured_payload: list = []
 
-    async def _fake_resolve(terms):
+    async def _fake_resolve(terms, **kwargs):
         return {}
 
     pipeline = CodingPipeline(patient_client=patient_client, knowledge_client=knowledge_client)
-    original_persist = pipeline._persist_candidate
 
-    def _capture_persist(*args, sentences_payload, **kwargs):
+    def _capture_persist(encounter_id, sentences_payload, extractor, run_id=""):
         captured_payload.extend(sentences_payload)
 
     with patch(
@@ -287,7 +294,7 @@ async def test_sentences_payload_has_provenance():
         return_value=mock_extractor,
     ):
         with patch.object(pipeline, "_resolve_via_api", new=_fake_resolve):
-            with patch.object(pipeline, "_persist_candidate", side_effect=_capture_persist):
+            with patch.object(pipeline, "_persist_documents", side_effect=_capture_persist):
                 await pipeline.run_single_encounter(
                     patient_id="pat-001",
                     encounter_id="enc-001",

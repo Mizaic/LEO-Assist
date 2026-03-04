@@ -50,13 +50,15 @@ export function ChecklistElement({ element, onToggle, readOnly = false }: Checkl
               key={item.id}
               sx={{ display: 'flex', alignItems: 'center', gap: '8px' }}
             >
-              <input
-                type="checkbox"
-                checked={item.checked}
-                onChange={() => onToggle?.(item.id)}
-                disabled={readOnly}
-              />
-              <span>{item.text}</span>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: readOnly ? 'default' : 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={item.checked}
+                  onChange={() => onToggle?.(item.id)}
+                  disabled={readOnly}
+                />
+                <span>{item.text}</span>
+              </label>
             </Box>
           ))}
         </Box>

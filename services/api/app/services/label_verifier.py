@@ -39,11 +39,10 @@ from libs.cypher.training_label_queries import (
     GET_ALL_INCLUDED_LABELS_FOR_EXPORT,
     UPDATE_TRAINING_LABEL_ENTITIES,
 )
+from libs.coding_engine.tier_classifier import classify_tier
 from libs.llm_client.escalation import escalate_label
 from libs.llm_client.factory import LLMResponse, create_llm
 from libs.neo4j_client.client import PatientGraphClient
-from libs.ner.context_detector import apply_context_detection
-from libs.ner.observable_post_processor import normalize_observable_entities
 from libs.ner.post_processor_rules import apply_rules_to_entities, parse_rules, PostProcessorRule
 from libs.ner.schema_mapper import LABEL_TO_SNOMED_TAG
 from libs.prompts.registry import get_prompt
@@ -61,6 +60,7 @@ _AUTO_TRIAGE_TERM_THRESHOLD = float(os.getenv("AUTO_TRIAGE_TERM_THRESHOLD", "0.8
 _AUTO_TRIAGE_LLM_THRESHOLD = float(os.getenv("AUTO_TRIAGE_LLM_THRESHOLD", "0.80"))
 _LLM_RETRIES = int(os.getenv("LABEL_VERIFY_LLM_RETRIES", "4"))
 _LLM_BACKOFF_BASE_S = float(os.getenv("LABEL_VERIFY_LLM_BACKOFF_BASE_S", "0.6"))
+_CODING_MODE = os.getenv("CODING_MODE", "hitl").strip().lower()
 
 
 def _env_int(name: str, default: int, *, minimum: int = 1) -> int:
@@ -267,8 +267,9 @@ def begin_job_with_mode(*, run_mode: str = "all", reset_pending: bool = False) -
       - "all": verify all included labels (re-verifies already-verified ones)
       - "hitl_only": re-verify only labels that had HITL-resolved reviews
       - "resume": continue from checkpoint — skip labels already verified
+      - "re_extract": re-extract entities via LLM before running verification
     """
-    mode = run_mode if run_mode in {"all", "hitl_only", "resume"} else "all"
+    mode = run_mode if run_mode in {"all", "hitl_only", "resume", "re_extract"} else "all"
     with _job_state_lock:
         if _job_state["status"] in {"running", "stopping"}:
             return False
@@ -455,290 +456,25 @@ def _resolve_start(text: str, span_text: str, around: int = 0) -> int | None:
     return None
 
 
-def _clean_observable_spans(encounter_text: str, updated_entities: list[dict[str, Any]]) -> None:
-    """Normalize observable spans to test-name boundaries with structured values."""
-    cleaned = normalize_observable_entities(
-        encounter_text,
-        updated_entities,
-        add_qualifier_value=True,
-    )
-    updated_entities[:] = cleaned
 
-
-_VALUE_UNIT_RE = re.compile(
-    r"(?P<value>[<>]?\s*\d+(?:\.\d+)?)\s*(?P<unit>(?:10\^\d+\/[A-Za-z]+|[A-Za-z/%]+(?:\/[A-Za-z]+)*))",
-    re.IGNORECASE,
+# Entity-type normalisation and value-unit linking have been moved to the
+# shared post-processing module: libs/pipeline/post_processing.py
+from libs.pipeline.post_processing import (  # noqa: E402
+    run_post_processing,
+    _BARE_NUMERIC_RE,
+    _EPISODE_MARKER_TEXTS,
+    _MDT_OUTCOME_RE,
+    _SEVERITY_MODIFIER_TEXTS,
+    _SMOKING_CONSUMPTION_RE,
+    _UNCERTAINTY_MARKER_RE,
+    _has_nearby_observable,
+    _is_bare_analyte,
+    _is_lab_value_text,
+    _is_lifestyle_topic_list,
+    _is_numeric_measurement_text,
+    _is_result_descriptor,
+    _is_smoking_status_text,
 )
-
-_LAB_UNIT_INDICATORS = re.compile(
-    r"(?:mmol|umol|nmol|pmol|mg|ug|ng|pg|g|iu|mL|miu|L|mol|fl|10\^9|%|ratio|kg|kpa|mmhg|bpm|ug/g|cigs)",
-    re.IGNORECASE,
-)
-
-_RESULT_DESCRIPTOR_TEXTS = frozenset({
-    "abnormal", "abnormal but expected", "normal", "satisfactory",
-    "outside reference range", "within normal limits", "within reference range",
-    "normal - no action", "borderline", "high", "low", "raised", "elevated",
-    "nad", "no abnormality detected", "fobt non-response", "non-response",
-    "no problems or concerns", "no problemds or concerns",
-    "negative", "positive", "reactive", "non-reactive",
-    "but expected", "weight stable",
-})
-
-_EPISODE_MARKER_TEXTS = frozenset({
-    "new episode", "ongoing episode", "first episode",
-})
-
-_LIFESTYLE_FACTOR_TEXTS = frozenset({
-    "diet", "alcohol", "exercise", "weight", "smoking", "drives",
-    "sleep", "caffeine",
-})
-
-_UNCERTAINTY_MARKER_RE = re.compile(r"^\?{1,4}$")
-
-_SEVERITY_MODIFIER_TEXTS = frozenset({
-    "severe", "mild", "moderate", "minor", "major", "urgent",
-    "worsened", "worsening", "improving", "stable", "unchanged",
-    "pale", "slight", "significant", "marked",
-})
-
-_MDT_OUTCOME_RE = re.compile(
-    r"(?:mdt|multidisciplinary)\s+(?:meet(?:ing)?|discussion|team)?\s*(?:outcome|result|decision)",
-    re.IGNORECASE,
-)
-
-_SMOKING_CONSUMPTION_RE = re.compile(
-    r"\d+[\s-]*(?:\d+)?\s*(?:cigs?|cigarettes?|roll[\s-]?ups?)\s*/\s*(?:day|week|wk)",
-    re.IGNORECASE,
-)
-
-_REF_RANGE_ONLY_RE = re.compile(
-    r"^\s*\[?\s*\d+(?:\.\d+)?\s*-\s*\d+(?:\.\d+)?\s*\]?\s*$",
-)
-
-_ANALYTE_NAMES = frozenset({
-    "creatinine", "albumin", "phosphate", "inorganic phosphate", "sodium",
-    "potassium", "calcium", "bilirubin", "cholesterol", "glucose", "urea",
-    "ferritin", "haemoglobin", "globulin", "triglyceride", "triglycerides",
-    "folate", "iron", "zinc", "magnesium", "copper", "lithium",
-    "testosterone", "oestradiol", "cortisol", "thyroxine",
-    "chloride", "bicarbonate", "protein", "alkaline phosphatase",
-})
-
-_BARE_NUMERIC_RE = re.compile(r"^[<>]?\s*\d+(?:\.\d+)?\s*$")
-
-
-def _is_smoking_status_text(text: str) -> bool:
-    lowered = text.strip().lower()
-    return "smoking status" in lowered or lowered in {
-        "smoker", "non-smoker", "ex-smoker", "never smoker",
-        "current smoker", "ex smoker", "non smoker",
-    }
-
-
-def _is_lab_value_text(text: str) -> bool:
-    """True if text looks like a lab result value+unit, not a medication dose."""
-    stripped = text.strip()
-    if not stripped:
-        return False
-    starts_with_number = bool(re.match(r"^[<>]?\s*\d", stripped))
-    has_lab_unit = bool(_LAB_UNIT_INDICATORS.search(stripped))
-    return starts_with_number and has_lab_unit
-
-
-def _is_numeric_measurement_text(text: str) -> bool:
-    stripped = text.strip()
-    if not stripped:
-        return False
-    starts_with_number = bool(re.match(r"^[<>]?\s*\d", stripped))
-    has_unit = bool(_VALUE_UNIT_RE.search(stripped))
-    return starts_with_number and has_unit
-
-
-def _is_result_descriptor(text: str) -> bool:
-    return text.strip().lower() in _RESULT_DESCRIPTOR_TEXTS
-
-
-def _is_bare_analyte(text: str) -> bool:
-    return text.strip().lower() in _ANALYTE_NAMES
-
-
-def _extract_value_unit(text: str) -> tuple[str, str] | None:
-    m = _VALUE_UNIT_RE.search(text or "")
-    if not m:
-        return None
-    value = (m.group("value") or "").strip()
-    unit = (m.group("unit") or "").strip()
-    if not value or not unit:
-        return None
-    return value, unit
-
-
-def _has_nearby_observable(entities: list[dict[str, Any]], target_idx: int, max_dist: int = 80) -> bool:
-    target = entities[target_idx]
-    t_start = int(target.get("start", 0) or 0)
-    t_end = int(target.get("end", 0) or 0)
-    for i, ent in enumerate(entities):
-        if i == target_idx:
-            continue
-        if str(ent.get("label", "")) != "observable_entity":
-            continue
-        o_start = int(ent.get("start", 0) or 0)
-        o_end = int(ent.get("end", 0) or 0)
-        dist = min(abs(t_start - o_end), abs(o_start - t_end))
-        if dist <= max_dist:
-            return True
-    return False
-
-
-def _normalise_entity_types(updated_entities: list[dict[str, Any]]) -> None:
-    """Apply deterministic cleanup rules after model voting."""
-
-    for ent in updated_entities:
-        label = str(ent.get("label", ""))
-        text = str(ent.get("text", ""))
-        lowered = text.strip().lower()
-
-        # 1) Smoking status → finding (not attribute or situation).
-        if label in {"attribute", "situation"} and _is_smoking_status_text(text):
-            ent["label"] = "finding"
-
-        # 2) Lab result values labeled X_DOSAGE → qualifier_value.
-        if label == "X_DOSAGE" and _is_lab_value_text(text):
-            ent["label"] = "qualifier_value"
-
-        # 3) Numeric-only observable snippets → qualifier_value.
-        if label == "observable_entity" and _is_numeric_measurement_text(text):
-            ent["label"] = "qualifier_value"
-
-        # 4) Result descriptors → qualifier_value (from finding or situation).
-        if label in {"finding", "situation"} and _is_result_descriptor(text):
-            ent["label"] = "qualifier_value"
-
-        # 5) Episode markers → qualifier_value (from X_TEMPORAL or X_PATHWAY_MILESTONE).
-        if label in {"X_TEMPORAL", "X_PATHWAY_MILESTONE"} and lowered in _EPISODE_MARKER_TEXTS:
-            ent["label"] = "qualifier_value"
-
-        # 5b) Remaining X_PATHWAY_MILESTONE → procedure (pathway analytics handled downstream).
-        if label == "X_PATHWAY_MILESTONE" and ent.get("label") == "X_PATHWAY_MILESTONE":
-            ent["label"] = "procedure"
-
-        # 6) Lifestyle factors as attribute → finding.
-        if label == "attribute" and lowered in _LIFESTYLE_FACTOR_TEXTS:
-            ent["label"] = "finding"
-
-        # 7) Smoking consumption frequency as X_DOSAGE → qualifier_value.
-        if label == "X_DOSAGE" and _SMOKING_CONSUMPTION_RE.search(text):
-            ent["label"] = "qualifier_value"
-
-        # 8) Uncertainty markers (??, ???) → qualifier_value.
-        if _UNCERTAINTY_MARKER_RE.match(text.strip()):
-            ent["label"] = "qualifier_value"
-
-        # 9) Severity/modifier words → qualifier_value (from attribute or finding).
-        if label in {"attribute", "finding"} and lowered in _SEVERITY_MODIFIER_TEXTS:
-            ent["label"] = "qualifier_value"
-
-        # 10) MDT outcome heading phrases → record_artifact.
-        if _MDT_OUTCOME_RE.search(text):
-            ent["label"] = "record_artifact"
-        elif lowered == "mdt" and label in {"event", "record_artifact"}:
-            ent["label"] = "procedure"
-
-    # ── Suppression passes (modify the list in place) ──
-
-    suppress_indices: set[int] = set()
-    for i, ent in enumerate(updated_entities):
-        label = str(ent.get("label", ""))
-        text = str(ent.get("text", ""))
-
-        # 11) Bare analyte names near an observable → suppress.
-        if label == "substance" and _is_bare_analyte(text) and _has_nearby_observable(updated_entities, i):
-            suppress_indices.add(i)
-
-        # 14) X_NEGATION_CUE entities → suppress (negation handled by context detector).
-        if label == "X_NEGATION_CUE":
-            suppress_indices.add(i)
-
-        # 12) Reference-range-only spans → suppress.
-        if _REF_RANGE_ONLY_RE.match(text):
-            suppress_indices.add(i)
-
-    # 13) Duplicate and sub-span overlap suppression.
-    for i, ent_a in enumerate(updated_entities):
-        if i in suppress_indices:
-            continue
-        a_label = str(ent_a.get("label", ""))
-        a_start = int(ent_a.get("start", 0) or 0)
-        a_end = int(ent_a.get("end", 0) or 0)
-        a_text = str(ent_a.get("text", "")).strip().lower()
-        for j, ent_b in enumerate(updated_entities):
-            if j <= i or j in suppress_indices:
-                continue
-            b_label = str(ent_b.get("label", ""))
-            b_start = int(ent_b.get("start", 0) or 0)
-            b_end = int(ent_b.get("end", 0) or 0)
-            b_text = str(ent_b.get("text", "")).strip().lower()
-
-            # Exact duplicate (same text + same label).
-            if a_text == b_text and a_label == b_label:
-                suppress_indices.add(j)
-                continue
-
-            # Same-label containment: suppress the shorter span.
-            if a_label == b_label:
-                if a_start <= b_start and a_end >= b_end:
-                    suppress_indices.add(j)
-                elif b_start <= a_start and b_end >= a_end:
-                    suppress_indices.add(i)
-
-    if suppress_indices:
-        updated_entities[:] = [e for i, e in enumerate(updated_entities) if i not in suppress_indices]
-
-
-def _link_observable_value_units(updated_entities: list[dict[str, Any]]) -> None:
-    """Attach value/unit from nearby numeric spans onto observable entities."""
-    observable_indices = [
-        i for i, e in enumerate(updated_entities)
-        if str(e.get("label", "")) == "observable_entity"
-    ]
-    if not observable_indices:
-        return
-
-    measurement_indices = [
-        i for i, e in enumerate(updated_entities)
-        if _is_numeric_measurement_text(str(e.get("text", "")))
-    ]
-    if not measurement_indices:
-        return
-
-    for obs_i in observable_indices:
-        obs = updated_entities[obs_i]
-        if obs.get("value") is not None and obs.get("unit"):
-            continue
-        obs_start = int(obs.get("start", 0) or 0)
-        obs_end = int(obs.get("end", 0) or 0)
-        closest_idx: int | None = None
-        closest_dist: int | None = None
-
-        for meas_i in measurement_indices:
-            meas = updated_entities[meas_i]
-            meas_start = int(meas.get("start", 0) or 0)
-            meas_end = int(meas.get("end", 0) or 0)
-            # Prefer measurements adjacent to the observable phrase.
-            dist = min(abs(meas_start - obs_end), abs(obs_start - meas_end))
-            if closest_dist is None or dist < closest_dist:
-                closest_dist = dist
-                closest_idx = meas_i
-
-        if closest_idx is None or (closest_dist is not None and closest_dist > 40):
-            continue
-        parsed = _extract_value_unit(str(updated_entities[closest_idx].get("text", "")))
-        if not parsed:
-            continue
-        value, unit = parsed
-        obs["value"] = value
-        obs["unit"] = unit
 
 
 _CLINICAL_LABELS = frozenset({
@@ -808,7 +544,7 @@ def _deterministic_resolve(
         if _is_smoking_status_text(text):
             return {"resolved_label": "finding", "confidence": 0.99,
                     "method": "deterministic_rule", "reason": "smoking status"}
-        if lowered in _LIFESTYLE_FACTOR_TEXTS:
+        if _is_lifestyle_topic_list(text):
             return {"resolved_label": "finding", "confidence": 0.99,
                     "method": "deterministic_rule", "reason": "lifestyle factor"}
 
@@ -1036,6 +772,11 @@ def _build_review_item(
     coded: bool,
     top: dict,
     score: float | None,
+    assertion: str = "present",
+    *,
+    decision_tier: int | None = None,
+    tier_reason: str | None = None,
+    tier_decision: str | None = None,
 ) -> dict[str, Any]:
     """Assemble a coding review dict for the queue."""
     concept_id = str(top.get("snomed_concept_id") or "")
@@ -1050,6 +791,10 @@ def _build_review_item(
         "snomed_term": str(top.get("snomed_term") or "") if coded else None,
         "score": score if coded else None,
         "semantic_tag": str(top.get("semantic_tag") or "") if coded else None,
+        "assertion": assertion,
+        "decision_tier": decision_tier,
+        "tier_reason": tier_reason,
+        "tier_decision": tier_decision,
     }
 
 
@@ -1065,10 +810,11 @@ def _check_terminology_coding(
     Near-miss entities (score >= _CODING_ALT_LOW) are tried against LLM
     alternatives before being added to the queue.
     """
+    _AUTO_CODE_BLOCKED = {"absent", "refuted", "declined", "cancelled", "hypothetical", "possible", "historical", "family"}
     codeable = [
         (i, e) for i, e in enumerate(entities)
         if str(e.get("label", "")) in _CODEABLE_LABELS
-        and str(e.get("assertion", "present")).strip().lower() != "absent"
+        and str(e.get("assertion", "present")).strip().lower() not in _AUTO_CODE_BLOCKED
         and str(e.get("text", "")).strip()
     ]
     if not codeable:
@@ -1107,9 +853,61 @@ def _check_terminology_coding(
             if alt:
                 continue
 
-        reviews.append(_build_review_item(label_id, idx, entity_text, entity_label, coded, top, score))
+        assertion = str(ent.get("assertion") or "present")
+        surface_form_status = str(ent.get("surface_form_status") or "")
+        tier = classify_tier(
+            assertion=assertion,
+            context_failed=bool(ent.get("context_failed")),
+            terminology_score=score or 0.0,
+            surface_form_status=surface_form_status,
+            coding_mode=_CODING_MODE,
+        )
+        reviews.append(
+            _build_review_item(
+                label_id, idx, entity_text, entity_label, coded, top, score, assertion,
+                decision_tier=tier.tier,
+                tier_reason=tier.reason,
+                tier_decision=tier.decision,
+            )
+        )
 
     return reviews
+
+
+_ASSERTION_QUEUE_SET = {"possible", "historical", "family", "declined", "cancelled", "refuted"}
+
+
+def _build_assertion_review_items(
+    label_id: str,
+    entities: list[dict[str, Any]],
+    ignore_texts: frozenset[str],
+) -> list[dict[str, Any]]:
+    """Build CodingReview queue entries for assertion-gated entities.
+
+    Entities with possible/historical/family assertions are not auto-coded
+    but still need a review card so a clinician can confirm or recode them.
+    """
+    items: list[dict[str, Any]] = []
+    for idx, ent in enumerate(entities):
+        if str(ent.get("label", "")) not in _CODEABLE_LABELS:
+            continue
+        assertion = str(ent.get("assertion") or "present").strip().lower()
+        if assertion not in _ASSERTION_QUEUE_SET:
+            continue
+        entity_text = str(ent.get("text", "")).strip()
+        if not entity_text:
+            continue
+        normalized = re.sub(r"\s+", " ", entity_text.lower())
+        if normalized in ignore_texts:
+            continue
+        items.append(
+            _build_review_item(
+                label_id, idx, entity_text,
+                str(ent.get("label", "")),
+                False, {}, None, assertion,
+            )
+        )
+    return items
 
 
 # ---------------------------------------------------------------------------
@@ -1314,12 +1112,21 @@ def _process_label(
             )
 
         updated_entities[:] = [e for e in updated_entities if not e.get("__suppress__")]
-        _clean_observable_spans(text, updated_entities)
-        _normalise_entity_types(updated_entities)
-        _link_observable_value_units(updated_entities)
-        apply_context_detection(text, updated_entities)
 
-        result.coding_reviews = _check_terminology_coding(label_id, updated_entities, ignore_texts)
+        # Unified post-processing stack (Layers 1-9).
+        # Post-processor rules (Layer 1) were already applied before LLM
+        # verification, so we pass rules=None here to avoid double-applying.
+        updated_entities[:] = run_post_processing(
+            text,
+            updated_entities,
+            rules=None,
+            enable_disorder_gate=True,
+            coding_mode=_CODING_MODE,
+        )
+
+        coding_reviews = _check_terminology_coding(label_id, updated_entities, ignore_texts)
+        assertion_reviews = _build_assertion_review_items(label_id, updated_entities, ignore_texts)
+        result.coding_reviews = coding_reviews + assertion_reviews
 
         total_entities = max(len(entities), 1)
         result.updated_entities = updated_entities
@@ -1339,6 +1146,282 @@ def _process_label(
 
 
 # ---------------------------------------------------------------------------
+# LLM re-extraction (for re_extract mode)
+# ---------------------------------------------------------------------------
+
+_SENTENCE_SPLIT_RE = re.compile(r"(?<=[.!?])\s+|\n+")
+
+_EXTRACTION_SNOMED_TAG_TO_LABEL = {
+    "qualifier value": "qualifier_value",
+    "observable entity": "observable_entity",
+    "body structure": "body_structure",
+    "tumor staging": "tumor_staging",
+    "assessment scale": "assessment_scale",
+    "staging scale": "staging_scale",
+    "regime/therapy": "regime_therapy",
+    "record artifact": "record_artifact",
+    "physical object": "physical_object",
+    "morphologic abnormality": "morphologic_abnormality",
+    "clinical drug": "clinical_drug",
+    "medicinal product": "medicinal_product",
+    "qualifier": "qualifier_value",
+}
+
+
+def _re_extract_entities(text: str) -> list[dict[str, Any]] | None:
+    """Run LLM extraction over encounter text and return canonical entity dicts.
+
+    Returns None on failure so the caller can skip without losing progress.
+    """
+    if not text or not text.strip():
+        return []
+
+    # Split into sentences (regex mode -- no spacy dependency in the API service)
+    parts = _SENTENCE_SPLIT_RE.split(text)
+    sentences: list[dict[str, Any]] = []
+    offset = 0
+    for idx, part in enumerate(parts):
+        stripped = part.strip()
+        if not stripped:
+            offset += len(part) + 1
+            continue
+        start = text.find(stripped, offset)
+        if start < 0:
+            start = offset
+        end = start + len(stripped)
+        sentences.append({"sentence_id": f"s{idx}", "text": stripped, "start": start, "end": end})
+        offset = end
+
+    if not sentences:
+        return []
+
+    extraction_prompt = get_prompt("extraction", version=1)
+    user_payload = (
+        f"Extract clinical entities from sentences below.\n\n"
+        f"Encounter text:\n{text}\n\n"
+        f"Sentences:\n{json.dumps([{'sentence_id': s['sentence_id'], 'text': s['text']} for s in sentences], ensure_ascii=False)}"
+    )
+
+    client = create_llm(provider="aws", tier="small")
+    for attempt in range(_LLM_RETRIES + 1):
+        if _stop_requested():
+            return None
+        _llm_limiter.acquire()
+        try:
+            response = client.converse(
+                system=extraction_prompt,
+                messages=[{"role": "user", "content": user_payload}],
+                max_tokens=2048,
+                temperature=0.0,
+            )
+            break
+        except Exception as exc:
+            msg = str(exc).lower()
+            throttled = any(m in msg for m in ("429", "rate limit", "throttle", "too many requests"))
+            if throttled:
+                _llm_limiter.on_throttle()
+            if attempt >= _LLM_RETRIES:
+                logger.warning("Re-extraction LLM call failed: %s", exc)
+                return None
+            delay = _LLM_BACKOFF_BASE_S * (2 ** attempt)
+            if throttled:
+                delay *= 2.0
+            time.sleep(delay)
+        finally:
+            _llm_limiter.release()
+    else:
+        return None
+
+    _llm_limiter.on_success()
+    parsed = _parse_model_json(response.text)
+    sent_map = {s["sentence_id"]: s for s in sentences}
+    entities: list[dict[str, Any]] = []
+
+    for row in parsed.get("terms", []):
+        if not isinstance(row, dict):
+            continue
+        sid = str(row.get("sentence_id", "")).strip()
+        term_text = str(row.get("text", "")).strip()
+        if not sid or not term_text:
+            continue
+        sent = sent_map.get(sid)
+        if not sent:
+            continue
+
+        assertion = str(row.get("assertion", "present")).strip().lower()
+        if assertion not in {"present", "absent", "refuted", "possible", "historical", "hypothetical", "family", "declined", "cancelled"}:
+            assertion = "present"
+
+        tag = str(row.get("semantic_tag", "finding")).strip().lower()
+        label = _EXTRACTION_SNOMED_TAG_TO_LABEL.get(tag, tag.replace(" ", "_"))
+
+        start = _resolve_start(text, term_text, around=sent["start"])
+        if start is None:
+            start = sent["start"]
+        end = start + len(term_text)
+
+        entity: dict[str, Any] = {
+            "text": term_text,
+            "label": label,
+            "start": start,
+            "end": end,
+            "assertion": assertion,
+        }
+
+        lookup_term = str(row.get("lookup_term", "")).strip()
+        if lookup_term and lookup_term != term_text:
+            entity["lookup_term"] = lookup_term
+
+        value = str(row.get("value", "") or "").strip()
+        unit = str(row.get("unit", "") or "").strip()
+        ref_range = str(row.get("reference_range", "") or "").strip()
+        if value:
+            entity["value"] = value
+        if unit:
+            entity["unit"] = unit
+        if ref_range:
+            entity["reference_range"] = ref_range
+
+        entities.append(entity)
+
+    return entities
+
+
+def _run_re_extraction_phase(labels: list[dict[str, Any]]) -> int:
+    """Phase 0 for re_extract mode: LLM-extract entities for all labels.
+
+    Updates entities_json in Neo4j and mutates the label dicts in place.
+    Returns the number of labels successfully re-extracted.
+    """
+    logger.info("Re-extraction phase: %d labels", len(labels))
+    write_client = PatientGraphClient()
+    extracted = 0
+    errors = 0
+
+    try:
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=_MAX_WORKERS,
+            thread_name_prefix="re-extract",
+        ) as pool:
+            futures = {
+                pool.submit(_re_extract_entities, str(row.get("text", ""))): row
+                for row in labels
+            }
+            for future in concurrent.futures.as_completed(futures):
+                if _stop_requested():
+                    break
+                row = futures[future]
+                label_id = str(row.get("label_id", ""))
+                try:
+                    entities = future.result()
+                except Exception:
+                    logger.warning("Re-extraction future failed for %s", label_id[:8], exc_info=True)
+                    errors += 1
+                    continue
+
+                if entities is None:
+                    errors += 1
+                    continue
+
+                entities_json = json.dumps(entities)
+                row["entities_json"] = entities_json
+                try:
+                    with write_client.session() as session:
+                        session.run(
+                            UPDATE_TRAINING_LABEL_ENTITIES,
+                            label_id=label_id,
+                            entities_json=entities_json,
+                        )
+                except Exception:
+                    logger.warning("Neo4j write failed during re-extraction for %s", label_id[:8], exc_info=True)
+                    errors += 1
+                    continue
+
+                extracted += 1
+                if extracted % 100 == 0:
+                    logger.info("Re-extraction progress: %d/%d extracted, %d errors", extracted, len(labels), errors)
+    finally:
+        write_client.close()
+
+    logger.info("Re-extraction phase complete: %d extracted, %d errors", extracted, errors)
+    return extracted
+
+
+# ---------------------------------------------------------------------------
+# Neo4j write helper (per-result, uses client-level retry)
+# ---------------------------------------------------------------------------
+
+def _write_result_to_graph(client: "PatientGraphClient", result: _VerifyResult) -> None:
+    """Persist verification output for a single label to Neo4j.
+
+    Uses ``client.run()`` which opens a fresh session per call and retries
+    on transient connection errors (ServiceUnavailable, SessionExpired, etc.).
+    """
+    for item in result.review_items:
+        client.run(
+            UPSERT_LABEL_VERIFICATION_REVIEW,
+            review_id=item["review_id"],
+            label_id=result.label_id,
+            entity_index=item["entity_index"],
+            entity_text=item["entity_text"],
+            current_label=item["current_label"],
+            model_a_label=item["model_a_label"],
+            model_a_rationale=item["model_a_rationale"],
+            model_a_confidence=item.get("model_a_confidence", 0.0),
+            model_b_label=item["model_b_label"],
+            model_b_rationale=item["model_b_rationale"],
+            model_b_confidence=item.get("model_b_confidence", 0.0),
+            auto_resolve_method=item.get("auto_resolve_method"),
+            auto_resolve_confidence=item.get("auto_resolve_confidence"),
+            auto_resolve_reason=item.get("auto_resolve_reason"),
+        )
+        if item.get("auto_resolved"):
+            resolved_label = str(item.get("resolved_label", ""))
+            client.run(
+                RESOLVE_LABEL_VERIFICATION_REVIEW,
+                review_id=item["review_id"],
+                resolved_label=resolved_label,
+                reviewer=f"auto_triage:{item.get('auto_resolve_method', 'unknown')}",
+                entities_json=json.dumps(result.updated_entities),
+                model_a_was_correct=(item["model_a_label"] == resolved_label),
+                model_b_was_correct=(item["model_b_label"] == resolved_label),
+            )
+
+    for cr in result.coding_reviews:
+        client.run(
+            UPSERT_CODING_REVIEW,
+            review_id=cr["review_id"],
+            label_id=result.label_id,
+            entity_index=cr["entity_index"],
+            entity_text=cr["entity_text"],
+            entity_label=cr["entity_label"],
+            coded=cr["coded"],
+            snomed_concept_id=cr.get("snomed_concept_id"),
+            snomed_term=cr.get("snomed_term"),
+            score=cr.get("score"),
+            semantic_tag=cr.get("semantic_tag"),
+            assertion=cr.get("assertion", "present"),
+            decision_tier=cr.get("decision_tier"),
+            tier_reason=cr.get("tier_reason"),
+            tier_decision=cr.get("tier_decision"),
+        )
+
+    client.run(
+        UPDATE_TRAINING_LABEL_ENTITIES,
+        label_id=result.label_id,
+        entities_json=json.dumps(result.updated_entities),
+    )
+    client.run(
+        UPDATE_LABEL_VERIFICATION,
+        label_id=result.label_id,
+        verification_agreement=result.agreement,
+        model_a_label=result.first_aws_label,
+        model_b_label=result.first_azure_label,
+        quality_score=result.quality_score,
+    )
+
+
+# ---------------------------------------------------------------------------
 # Main verification entry point
 # ---------------------------------------------------------------------------
 
@@ -1350,6 +1433,11 @@ def run_verification() -> None:
                calling AWS + Azure in a nested 2-thread pool.
     Phase 3 — Write results back to Neo4j sequentially as futures complete
                (avoids multi-threaded session usage).
+
+    Neo4j writes use ``write_client.run()`` (fresh session per call with
+    automatic retry on transient errors). If all retries fail for a single
+    label the write is skipped and the label counted as an error so the
+    pipeline continues rather than stalling.
     """
     # ------------------------------------------------------------------
     # Phase 1: fetch
@@ -1391,117 +1479,73 @@ def run_verification() -> None:
     )
 
     # ------------------------------------------------------------------
+    # Phase 1b (optional): re-extract entities via LLM before verification
+    # ------------------------------------------------------------------
+    if run_mode == "re_extract" and not _stop_requested():
+        logger.info("Re-extract mode: running LLM extraction before verification")
+        _run_re_extraction_phase(labels)
+
+    # ------------------------------------------------------------------
     # Phase 2 + 3: process in parallel, write sequentially as futures land
     # ------------------------------------------------------------------
     write_client = PatientGraphClient()
     try:
-        with write_client.session() as session:
-            with concurrent.futures.ThreadPoolExecutor(
-                max_workers=_MAX_WORKERS,
-                thread_name_prefix="label-verify",
-            ) as pool:
-                futures = {pool.submit(_process_label, row, rules, ignore_texts): row for row in labels}
-                last_progress_log_done = 0
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=_MAX_WORKERS,
+            thread_name_prefix="label-verify",
+        ) as pool:
+            futures = {pool.submit(_process_label, row, rules, ignore_texts): row for row in labels}
+            last_progress_log_done = 0
 
-                for future in concurrent.futures.as_completed(futures):
-                    if _stop_requested():
-                        break
-                    try:
-                        result = future.result()
-                    except Exception:
-                        logger.warning("Future raised unexpectedly", exc_info=True)
-                        _increment_state(done=1, errors=1)
-                        continue
+            for future in concurrent.futures.as_completed(futures):
+                if _stop_requested():
+                    break
+                try:
+                    result = future.result()
+                except Exception:
+                    logger.warning("Future raised unexpectedly", exc_info=True)
+                    _increment_state(done=1, errors=1)
+                    continue
 
-                    if result.error or not result.label_id:
-                        _increment_state(done=1, errors=1)
-                        continue
+                if result.error or not result.label_id:
+                    _increment_state(done=1, errors=1)
+                    continue
 
-                    # Write disagreement review items
-                    for item in result.review_items:
-                        session.run(
-                            UPSERT_LABEL_VERIFICATION_REVIEW,
-                            review_id=item["review_id"],
-                            label_id=result.label_id,
-                            entity_index=item["entity_index"],
-                            entity_text=item["entity_text"],
-                            current_label=item["current_label"],
-                            model_a_label=item["model_a_label"],
-                            model_a_rationale=item["model_a_rationale"],
-                            model_a_confidence=item.get("model_a_confidence", 0.0),
-                            model_b_label=item["model_b_label"],
-                            model_b_rationale=item["model_b_rationale"],
-                            model_b_confidence=item.get("model_b_confidence", 0.0),
-                            auto_resolve_method=item.get("auto_resolve_method"),
-                            auto_resolve_confidence=item.get("auto_resolve_confidence"),
-                            auto_resolve_reason=item.get("auto_resolve_reason"),
-                        )
-                        if item.get("auto_resolved"):
-                            resolved_label = str(item.get("resolved_label", ""))
-                            session.run(
-                                RESOLVE_LABEL_VERIFICATION_REVIEW,
-                                review_id=item["review_id"],
-                                resolved_label=resolved_label,
-                                reviewer=f"auto_triage:{item.get('auto_resolve_method', 'unknown')}",
-                                entities_json=json.dumps(result.updated_entities),
-                                model_a_was_correct=(item["model_a_label"] == resolved_label),
-                                model_b_was_correct=(item["model_b_label"] == resolved_label),
-                            )
-
-                    # Write coding review items (uncoded / low-confidence entities)
-                    for cr in result.coding_reviews:
-                        session.run(
-                            UPSERT_CODING_REVIEW,
-                            review_id=cr["review_id"],
-                            label_id=result.label_id,
-                            entity_index=cr["entity_index"],
-                            entity_text=cr["entity_text"],
-                            entity_label=cr["entity_label"],
-                            coded=cr["coded"],
-                            snomed_concept_id=cr.get("snomed_concept_id"),
-                            snomed_term=cr.get("snomed_term"),
-                            score=cr.get("score"),
-                            semantic_tag=cr.get("semantic_tag"),
-                        )
-
-                    session.run(
-                        UPDATE_TRAINING_LABEL_ENTITIES,
-                        label_id=result.label_id,
-                        entities_json=json.dumps(result.updated_entities),
+                try:
+                    _write_result_to_graph(write_client, result)
+                except Exception:
+                    logger.warning(
+                        "Neo4j write failed for label %s after retries — skipping",
+                        result.label_id,
+                        exc_info=True,
                     )
-                    session.run(
-                        UPDATE_LABEL_VERIFICATION,
-                        label_id=result.label_id,
-                        verification_agreement=result.agreement,
-                        model_a_label=result.first_aws_label,
-                        model_b_label=result.first_azure_label,
-                        quality_score=result.quality_score,
-                    )
+                    _increment_state(done=1, errors=1)
+                    continue
 
-                    _increment_state(
-                        done=1,
-                        agreements=(1 if result.agreement else 0),
-                        disagreements=result.n_disagreements,
-                        auto_resolved=result.auto_resolved,
-                        pending_review=sum(1 for item in result.review_items if not item.get("auto_resolved")),
+                _increment_state(
+                    done=1,
+                    agreements=(1 if result.agreement else 0),
+                    disagreements=result.n_disagreements,
+                    auto_resolved=result.auto_resolved,
+                    pending_review=sum(1 for item in result.review_items if not item.get("auto_resolved")),
+                )
+                state_now = get_job_state()
+                done_now = int(state_now.get("done") or 0)
+                total_now = int(state_now.get("total") or 0)
+                log_step = 25 if total_now <= 1000 else 100
+                if done_now >= total_now or done_now - last_progress_log_done >= log_step:
+                    eta_seconds = state_now.get("eta_seconds")
+                    eta_str = f"{eta_seconds}s" if isinstance(eta_seconds, int) else "unknown"
+                    logger.info(
+                        "Verifier progress: %d/%d (%.2f%%), remaining=%d, throughput=%.2f items/min, eta=%s",
+                        done_now,
+                        total_now,
+                        float(state_now.get("progress_pct") or 0.0),
+                        int(state_now.get("remaining") or 0),
+                        float(state_now.get("items_per_min") or 0.0),
+                        eta_str,
                     )
-                    state_now = get_job_state()
-                    done_now = int(state_now.get("done") or 0)
-                    total_now = int(state_now.get("total") or 0)
-                    log_step = 25 if total_now <= 1000 else 100
-                    if done_now >= total_now or done_now - last_progress_log_done >= log_step:
-                        eta_seconds = state_now.get("eta_seconds")
-                        eta_str = f"{eta_seconds}s" if isinstance(eta_seconds, int) else "unknown"
-                        logger.info(
-                            "Verifier progress: %d/%d (%.2f%%), remaining=%d, throughput=%.2f items/min, eta=%s",
-                            done_now,
-                            total_now,
-                            float(state_now.get("progress_pct") or 0.0),
-                            int(state_now.get("remaining") or 0),
-                            float(state_now.get("items_per_min") or 0.0),
-                            eta_str,
-                        )
-                        last_progress_log_done = done_now
+                    last_progress_log_done = done_now
 
         _patch_state(status=("cancelled" if _stop_requested() else "done"), finished_at=time.time())
         logger.info("Label verification completed")

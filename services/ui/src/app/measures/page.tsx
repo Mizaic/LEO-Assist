@@ -7,7 +7,7 @@ import { MeasureList } from "@/components/measures/MeasureList";
 
 export default function MeasuresPage() {
   return (
-    <Suspense fallback={<Box sx={{ display: "flex", justifyContent: "center", p: 6 }}><CircularProgress /></Box>}>
+    <Suspense fallback={<Box sx={{ display: "flex", justifyContent: "center", p: 6 }}><CircularProgress aria-label="Loading" /></Box>}>
       <MeasureList />
     </Suspense>
   );

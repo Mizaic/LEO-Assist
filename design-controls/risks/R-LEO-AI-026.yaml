@@ -1,0 +1,87 @@
+# -- R-LEO-AI-026 -- Autonomous Coding Without Human Review
+# ISO 14971 / IEC 62304 Risk
+# Schema: design-controls/templates/risks_schema.yaml
+
+- id: "R-LEO-AI-026"
+  title: "Autonomous coding mode operates without human review gate"
+
+  hazard:
+    description: "In autonomous mode, the system codes clinical entities into SNOMED CT without a human reviewer validating each coding decision before persistence"
+    category: "use_error"
+
+  hazardous_situation: "Autonomous mode auto-codes entities based on NLP extraction and terminology matching. If the tier classifier, consensus verification, or terminology match is incorrect, miscoded entities are persisted directly to the patient graph without human interception"
+
+  harm:
+    description: "Systematic miscoding in autonomous mode could distort audit datasets for multiple patients before the error is detected through monitoring or audit review, potentially misdirecting clinical quality improvement activities"
+    severity: "serious"
+
+  initial_risk_estimate:
+    severity: 3
+    probability: 3
+    detectability: 3
+    rpn: 27
+    risk_level: "high"
+
+  mitigation_measures:
+    - control_type: "protective_measure"
+      description: "Dual-model consensus verification: two independent LLM providers must agree before a disorder entity is classified as active diagnosis"
+      implemented_by: ["DI-LEO-AI-036", "DI-LEO-AI-037"]
+      verified_by: ["VT-LEO-AI-021", "VT-LEO-AI-022"]
+      effectiveness: "highly_effective"
+    - control_type: "protective_measure"
+      description: "Three-tier decision engine: only entities with high terminology match score (>=0.95), present assertion, no context failure, and approved surface form qualify for Tier 1 auto-coding"
+      implemented_by: ["DI-LEO-AI-038"]
+      verified_by: ["VT-LEO-AI-023"]
+      effectiveness: "highly_effective"
+    - control_type: "protective_measure"
+      description: "Mode-aware fail-safe: all failures in autonomous mode default to uncertain/not_coded, never to active_diagnosis/auto_coded"
+      implemented_by: ["DI-LEO-AI-037", "DI-LEO-AI-040", "DI-LEO-AI-041"]
+      verified_by: ["VT-LEO-AI-022", "VT-LEO-AI-025", "VT-LEO-AI-026"]
+      effectiveness: "highly_effective"
+    - control_type: "protective_measure"
+      description: "Tier 2 coded_with_flag decisions create an audit trail and are separately reportable for practice review"
+      implemented_by: ["DI-LEO-AI-039"]
+      verified_by: ["VT-LEO-AI-024"]
+      effectiveness: "effective"
+    - control_type: "protective_measure"
+      description: "CodingDecision audit trail records every autonomous decision with full provenance for retrospective inspection"
+      implemented_by: ["DI-LEO-AI-039", "DI-LEO-AI-040"]
+      verified_by: ["VT-LEO-AI-024", "VT-LEO-AI-025"]
+      effectiveness: "effective"
+    - control_type: "protective_measure"
+      description: "CODING_MODE defaults to HITL on misconfiguration -- autonomous mode requires explicit opt-in"
+      implemented_by: ["DI-LEO-AI-040"]
+      verified_by: ["VT-LEO-AI-025"]
+      effectiveness: "highly_effective"
+    - control_type: "procedural_control"
+      description: "Surface form approval lifecycle: new surface forms start as pending and require explicit approval before reaching Tier 1"
+      implemented_by: ["DI-LEO-AI-035"]
+      verified_by: []
+      effectiveness: "effective"
+
+  residual_risk_estimate:
+    severity: 3
+    probability: 1
+    detectability: 1
+    rpn: 3
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: "Seven layered controls reduce probability to improbable: dual-model consensus, three-tier decision engine, mode-aware fail-safes, audit trail, Tier 2 flagging, HITL default, and surface form approval. The combination ensures that only high-confidence, fully-verified entities are auto-coded. All failures default to the safe direction (do not code). Complete audit trail enables retrospective detection of any systematic drift."
+
+  monitoring:
+    monitoring_plan: "Track autonomous decision distribution, Tier 2 flag rate, Tier 3 skip rate, and coding accuracy against gold-standard dataset"
+    metrics:
+      - "Tier 1 auto-code rate"
+      - "Tier 2 flag rate (coded_with_flag count)"
+      - "Tier 3 skip rate"
+      - "Consensus agreement rate"
+      - "Coding accuracy F1 against gold-standard labelled dataset"
+      - "Reviewer override rate on flagged decisions"
+    review_frequency: "Weekly during initial deployment, then monthly"
+
+  metadata:
+    identified_by: "Risk Management Team"
+    identified_date: "2026-03-03"
+    status: "analyzed"
+
+  tags: ["clinical-risk", "autonomous-coding", "no-human-review", "safety-critical"]

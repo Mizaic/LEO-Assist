@@ -1,0 +1,170 @@
+# -- VT-LEO-AI-025 -- CodingMode Pipeline Routing Verification
+# IEC 62304 Verification Test Protocol
+# Schema: design-controls/templates/verification_test_schema.yaml
+
+- id: "VT-LEO-AI-025"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-040"]
+    risks: ["R-LEO-AI-001", "R-LEO-AI-026"]
+    user_needs: ["UN-LEO-AI-002"]
+
+  metadata:
+    title: "CodingMode Pipeline Routing Verification"
+    description: "Verifies the CodingMode enum, environment variable parsing with fail-safe defaults, tier classification integration in the pipeline payload, autonomous-mode CodingDecision audit writes, and exception safety"
+    test_level: "integration"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    test_file_paths:
+      - "tests/test_coding_mode_routing.py"
+
+  test_environment:
+    environment_type: "ci_cd"
+    prerequisites:
+      - "Python 3.12+ with project dependencies installed"
+      - "Neo4j session mocked via unittest.mock"
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-025-TC-001"
+      case_name: "CodingMode enum values"
+      priority: "high"
+      preconditions: []
+      test_steps:
+        - step_number: 1
+          action: "Check CodingMode.HITL.value and CodingMode.AUTONOMOUS.value"
+          expected_result: "Values are 'hitl' and 'autonomous'"
+          verification_method: "Assert enum values and string construction"
+      acceptance_criteria:
+        - "Enum values match expected strings"
+
+    - case_id: "VT-025-TC-002"
+      case_name: "Invalid CODING_MODE defaults to HITL"
+      priority: "critical"
+      preconditions:
+        - "CODING_MODE env var set to an invalid value"
+      test_steps:
+        - step_number: 1
+          action: "Set CODING_MODE='invalid_value' and call get_settings()"
+          expected_result: "settings.coding_mode == CodingMode.HITL"
+          verification_method: "Assert with patched environment"
+      acceptance_criteria:
+        - "Invalid configuration never results in autonomous operation"
+
+    - case_id: "VT-025-TC-003"
+      case_name: "Missing CODING_MODE defaults to HITL"
+      priority: "critical"
+      preconditions:
+        - "CODING_MODE env var not set"
+      test_steps:
+        - step_number: 1
+          action: "Remove CODING_MODE from environment and call get_settings()"
+          expected_result: "settings.coding_mode == CodingMode.HITL"
+          verification_method: "Assert with unset environment variable"
+      acceptance_criteria:
+        - "Missing configuration defaults to safe HITL mode"
+
+    - case_id: "VT-025-TC-004"
+      case_name: "Present + high score entity gets Tier 1 in payload"
+      priority: "critical"
+      preconditions:
+        - "Entity with assertion=present, score=0.96, approved surface form"
+      test_steps:
+        - step_number: 1
+          action: "Call _build_sentences_payload with a high-confidence entity"
+          expected_result: "decision_tier=1, tier_decision=auto_coded, audit_flag=False"
+          verification_method: "Assert payload term attributes"
+      acceptance_criteria:
+        - "Tier classification correctly wired into payload"
+
+    - case_id: "VT-025-TC-005"
+      case_name: "Absent assertion entity gets Tier 3 in payload"
+      priority: "critical"
+      preconditions:
+        - "Entity with assertion=absent"
+      test_steps:
+        - step_number: 1
+          action: "Call _build_sentences_payload with absent-assertion entity"
+          expected_result: "decision_tier=3, tier_decision=not_coded"
+          verification_method: "Assert payload term attributes"
+      acceptance_criteria:
+        - "Non-codeable assertions correctly classified in payload"
+
+    - case_id: "VT-025-TC-006"
+      case_name: "Medium score autonomous gets audit flag"
+      priority: "critical"
+      preconditions:
+        - "Entity with assertion=present, score=0.80, autonomous mode"
+      test_steps:
+        - step_number: 1
+          action: "Call _build_sentences_payload in autonomous mode"
+          expected_result: "decision_tier=2, audit_flag=True, tier_decision=coded_with_flag"
+          verification_method: "Assert payload term attributes"
+      acceptance_criteria:
+        - "Audit flag set for medium-confidence autonomous decisions"
+
+    - case_id: "VT-025-TC-007"
+      case_name: "CodingDecision writes one per term"
+      priority: "critical"
+      preconditions:
+        - "sentences_payload with 2 terms"
+      test_steps:
+        - step_number: 1
+          action: "Call _write_coding_decisions with a 2-term payload"
+          expected_result: "Neo4j session.run called exactly 2 times"
+          verification_method: "Assert mock call count"
+      acceptance_criteria:
+        - "One audit record per entity"
+
+    - case_id: "VT-025-TC-008"
+      case_name: "Decision ID format"
+      priority: "high"
+      preconditions: []
+      test_steps:
+        - step_number: 1
+          action: "Call _write_coding_decisions and inspect the decision_id parameter"
+          expected_result: "Format is dec:{encounter_id}:{index}"
+          verification_method: "Assert parameter value"
+      acceptance_criteria:
+        - "Deterministic, reproducible decision IDs"
+
+    - case_id: "VT-025-TC-009"
+      case_name: "Neo4j write failure does not crash pipeline"
+      priority: "critical"
+      preconditions:
+        - "Neo4j session.run raises RuntimeError"
+      test_steps:
+        - step_number: 1
+          action: "Call _write_coding_decisions with a failing session"
+          expected_result: "No exception raised -- failure logged and swallowed"
+          verification_method: "Call completes without exception"
+      acceptance_criteria:
+        - "Audit write failures must never crash the coding pipeline"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["test_report", "code_coverage"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-025/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - execution_id: "VT-025-EXEC-001"
+      date: "2026-03-03"
+      executor: "automated_ci"
+      environment: "local"
+      result: "pass"
+      cases_executed: 13
+      cases_passed: 13
+      cases_failed: 0
+      duration_seconds: 1
+      notes: "All 13 tests pass (pytest tests/test_coding_mode_routing.py)"

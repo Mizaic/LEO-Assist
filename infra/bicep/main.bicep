@@ -24,6 +24,7 @@ param modelStoreContainer string
 param modelStoreModelName string
 param hitlLowConfidenceThreshold string
 param hitlPeerReviewRate string
+param codingMode string = 'hitl'
 param modelMinPrecision string
 param modelMinRecall string = '0.75'
 param sbMaxLockRenewalSeconds string
@@ -129,6 +130,7 @@ module containerApps 'modules/container-apps.bicep' = {
     modelStoreModelName: modelStoreModelName
     hitlLowConfidenceThreshold: hitlLowConfidenceThreshold
     hitlPeerReviewRate: hitlPeerReviewRate
+    codingMode: codingMode
     modelMinPrecision: modelMinPrecision
     modelMinRecall: modelMinRecall
     sbMaxLockRenewalSeconds: sbMaxLockRenewalSeconds

@@ -1,0 +1,148 @@
+# -- VT-LEO-AI-022 -- Disorder Entity Verifier Verification
+# IEC 62304 Verification Test Protocol
+# Schema: design-controls/templates/verification_test_schema.yaml
+
+- id: "VT-LEO-AI-022"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-037"]
+    risks: ["R-LEO-AI-001", "R-LEO-AI-026"]
+    user_needs: ["UN-LEO-AI-002"]
+
+  metadata:
+    title: "Disorder Entity Verifier Verification"
+    description: "Verifies the disorder verifier's JSON parsing, mode-aware fail-safe behaviour, all four verdict classifications, unknown verdict fallback, and encounter text truncation"
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    test_file_paths:
+      - "tests/test_disorder_verifier.py"
+
+  test_environment:
+    environment_type: "ci_cd"
+    prerequisites:
+      - "Python 3.12+ with project dependencies installed"
+      - "Consensus runner mocked via unittest.mock.patch"
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-022-TC-001"
+      case_name: "Parse plain JSON verdict"
+      priority: "high"
+      preconditions:
+        - "LLM returns clean JSON with verdict key"
+      test_steps:
+        - step_number: 1
+          action: "Call _parse_verdict with valid JSON containing verdict"
+          expected_result: "Returns the verdict string"
+          verification_method: "Assert exact verdict value"
+      acceptance_criteria:
+        - "Correctly extracts verdict from well-formed JSON"
+
+    - case_id: "VT-022-TC-002"
+      case_name: "Parse markdown-wrapped JSON"
+      priority: "high"
+      preconditions:
+        - "LLM returns JSON wrapped in markdown code fences"
+      test_steps:
+        - step_number: 1
+          action: "Call _parse_verdict with markdown-wrapped JSON"
+          expected_result: "Returns the verdict string after stripping markdown"
+          verification_method: "Assert correct verdict value"
+      acceptance_criteria:
+        - "Strips markdown fences and extracts verdict"
+
+    - case_id: "VT-022-TC-003"
+      case_name: "HITL fail-safe defaults to active_diagnosis"
+      priority: "critical"
+      preconditions:
+        - "coding_mode='hitl'"
+      test_steps:
+        - step_number: 1
+          action: "Call _fail_verdict_for_mode('hitl')"
+          expected_result: "Returns 'active_diagnosis'"
+          verification_method: "Assert return value"
+      acceptance_criteria:
+        - "HITL mode fail-safe == active_diagnosis"
+
+    - case_id: "VT-022-TC-004"
+      case_name: "Autonomous fail-safe defaults to uncertain"
+      priority: "critical"
+      preconditions:
+        - "coding_mode='autonomous'"
+      test_steps:
+        - step_number: 1
+          action: "Call _fail_verdict_for_mode('autonomous')"
+          expected_result: "Returns 'uncertain'"
+          verification_method: "Assert return value"
+      acceptance_criteria:
+        - "Autonomous mode fail-safe == uncertain"
+
+    - case_id: "VT-022-TC-005"
+      case_name: "End-to-end active diagnosis in HITL mode"
+      priority: "critical"
+      preconditions:
+        - "Consensus returns active_diagnosis verdict"
+      test_steps:
+        - step_number: 1
+          action: "Call verify_disorder with mocked consensus returning active_diagnosis"
+          expected_result: "Returns DisorderVerdict.ACTIVE_DIAGNOSIS"
+          verification_method: "Assert enum value and consensus call arguments"
+      acceptance_criteria:
+        - "Correct verdict returned"
+        - "Consensus called with fail_verdict=active_diagnosis"
+
+    - case_id: "VT-022-TC-006"
+      case_name: "Unknown verdict falls back to mode-appropriate default"
+      priority: "critical"
+      preconditions:
+        - "Consensus returns a verdict not in the valid set"
+      test_steps:
+        - step_number: 1
+          action: "Call verify_disorder with mocked consensus returning unknown verdict"
+          expected_result: "HITL returns ACTIVE_DIAGNOSIS; autonomous returns UNCERTAIN"
+          verification_method: "Assert fallback behaviour for both modes"
+      acceptance_criteria:
+        - "Unknown verdict in HITL mode -> ACTIVE_DIAGNOSIS"
+        - "Unknown verdict in autonomous mode -> UNCERTAIN"
+
+    - case_id: "VT-022-TC-007"
+      case_name: "Encounter text sanitised and capped at 16000 characters"
+      priority: "high"
+      preconditions:
+        - "Encounter text exceeds 16000 characters"
+      test_steps:
+        - step_number: 1
+          action: "Call verify_disorder with 20000-char encounter text"
+          expected_result: "User message encounter_text is exactly 16000 characters"
+          verification_method: "Parse user_msg JSON and assert length"
+      acceptance_criteria:
+        - "len(encounter_text) == 16000"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["test_report", "code_coverage"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-022/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - execution_id: "VT-022-EXEC-001"
+      date: "2026-03-03"
+      executor: "automated_ci"
+      environment: "local"
+      result: "pass"
+      cases_executed: 19
+      cases_passed: 19
+      cases_failed: 0
+      duration_seconds: 1
+      notes: "All 19 tests pass (pytest tests/test_disorder_verifier.py)"

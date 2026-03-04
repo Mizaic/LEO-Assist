@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import uuid
 from dataclasses import dataclass
 from typing import Any, Callable
@@ -59,6 +60,7 @@ class PipelineService:
         self._canonical = CodingPipeline(
             patient_client=self.patient_graph,
             knowledge_client=self.coding_graph,
+            coding_mode=os.getenv("CODING_MODE", "hitl"),
         )
 
     @classmethod

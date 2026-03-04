@@ -148,6 +148,7 @@ function SortableThumbnail({ page, index, isSelected, onClick }: SortableThumbna
         </Tooltip>
 
         <IconButton
+          aria-label="Page options"
           size="small"
           onClick={(e) => {
             e.stopPropagation();

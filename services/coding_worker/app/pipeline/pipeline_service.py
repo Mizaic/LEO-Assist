@@ -28,14 +28,15 @@ from typing import Any, Callable, Optional
 
 import httpx
 
+from libs.coding_engine.tier_classifier import TierDecision, classify_tier
+from libs.cypher.coding_decision_queries import UPSERT_CODING_DECISION
 from libs.cypher.coding_review_queries import UPSERT_CODING_SUGGESTION
 from libs.cypher.post_processor_rule_queries import GET_ACTIVE_POST_PROCESSOR_RULES
 from libs.cypher.documents_queries import write_documents_from_sentences_payload
 from libs.llm_client.escalation import escalate_coding
-from libs.ner.context_detector import detect_assertion, normalize_situation_lookup
-from libs.ner.observable_post_processor import normalize_observable_entities
-from libs.ner.post_processor_rules import apply_rules_to_entities, parse_rules, PostProcessorRule
+from libs.ner.post_processor_rules import parse_rules, PostProcessorRule
 from libs.ner.schema_mapper import LABEL_TO_SNOMED_TAG
+from libs.pipeline.post_processing import run_post_processing
 from services.coding_worker.app.pipeline.extractor_contract import (
     CONTRACT_VERSION,
     ExtractionItem,
@@ -70,6 +71,65 @@ _CODEABLE_LABELS = frozenset({
     "morphologic_abnormality", "regime_therapy", "assessment_scale",
     "tumor_staging", "organism", "occupation", "physical_object",
 })
+
+
+def _items_to_dicts(items: list[ExtractionItem]) -> list[dict[str, Any]]:
+    """Convert ExtractionItem objects to plain entity dicts for the shared pipeline.
+
+    Only preserves ``normalized`` when the provider set a custom lookup term
+    (i.e. different from ``text``).  Otherwise the post-processed ``text``
+    should be used for terminology resolution.
+    """
+    return [
+        {
+            "text": item.text,
+            "label": item.semantic_tag,
+            "start": item.span_start,
+            "end": item.span_end,
+            "assertion": item.assertion or "present",
+            "confidence": item.confidence,
+            "normalized": (
+                item.normalized
+                if item.normalized and item.normalized != item.text
+                else None
+            ),
+            "value": item.numeric_value or None,
+            "unit": item.unit or None,
+            "reference_range": item.reference_range or None,
+            "__sentence_id": item.sentence_id,
+            "__source": item.source,
+            "__model_name": item.model_name,
+            "__model_version": item.model_version,
+            "__contract_version": item.contract_version,
+            "__source_meta": item.source_meta,
+            "__relations": item.relations,
+        }
+        for item in items
+    ]
+
+
+def _dict_to_item(ent: dict[str, Any]) -> ExtractionItem:
+    """Convert a processed entity dict back to an ExtractionItem."""
+    normalized = str(ent.get("normalized") or ent.get("normalized_lookup") or ent.get("text", ""))
+    return ExtractionItem(
+        sentence_id=str(ent.get("__sentence_id", "")),
+        text=str(ent.get("text", "")),
+        span_start=int(ent.get("start", 0) or 0),
+        span_end=int(ent.get("end", 0) or 0),
+        semantic_tag=str(ent.get("label", "")),
+        assertion=str(ent.get("assertion") or "present"),
+        confidence=float(ent.get("confidence", 0.0) or 0.0),
+        normalized=normalized,
+        source_meta=ent.get("__source_meta") or {},
+        relations=ent.get("__relations") or [],
+        numeric_value=str(ent.get("value", "") or "").strip(),
+        unit=str(ent.get("unit", "") or "").strip(),
+        reference_range=str(ent.get("reference_range", "") or "").strip(),
+        source=str(ent.get("__source", "unknown")),
+        model_name=str(ent.get("__model_name", "")),
+        model_version=str(ent.get("__model_version", "")),
+        contract_version=str(ent.get("__contract_version", CONTRACT_VERSION)),
+    )
 
 
 def _build_expected_tags(
@@ -124,9 +184,15 @@ class CodingPipeline:
     pipeline logic itself.
     """
 
-    def __init__(self, patient_client, knowledge_client) -> None:
+    def __init__(
+        self,
+        patient_client,
+        knowledge_client,
+        coding_mode: str = "hitl",
+    ) -> None:
         self.patient_client = patient_client
         self.knowledge_client = knowledge_client
+        self.coding_mode = coding_mode
         self.splitter = SentenceSplitter()
         # Provider is lazily initialised on first run so the progress_hook
         # can be forwarded for fallback events.
@@ -289,9 +355,9 @@ class CodingPipeline:
             })
             return
 
-        extracted = self._apply_post_processor_rules(deidentified, extracted)
-        extracted = self._apply_observable_post_processing(deidentified, extracted)
-        extracted = self._apply_context_detection(deidentified, extracted)
+        extracted, context_detection_failed = self._run_unified_post_processing(
+            deidentified, sentences, extracted,
+        )
 
         all_items = [item for items in extracted.values() for item in items]
         extract_latency_ms = round((time.monotonic() - t_extract) * 1000)
@@ -305,6 +371,7 @@ class CodingPipeline:
             "model_version": extractor.model_version,
             "entity_count": len(all_items),
             "extract_latency_ms": extract_latency_ms,
+            "context_detection_failed": context_detection_failed,
         })
 
         # Phase 2: terminology resolution
@@ -328,11 +395,25 @@ class CodingPipeline:
             "resolve_latency_ms": resolve_latency_ms,
         })
 
-        self._suggest_surface_forms(all_items, resolved, dry_run)
+        is_autonomous = self.coding_mode == "autonomous"
+
+        if not is_autonomous:
+            self._suggest_surface_forms(all_items, resolved, dry_run)
 
         sentences_payload = self._build_sentences_payload(
             sentences, extracted, resolved, extractor
         )
+
+        # Autonomous mode: filter out Tier 3 items and log CodingDecision nodes
+        if is_autonomous and not dry_run:
+            self._write_coding_decisions(
+                encounter_id, patient_id, sentences_payload,
+            )
+            for sentence in sentences_payload:
+                sentence["terms"] = [
+                    t for t in sentence.get("terms", [])
+                    if t.get("tier_decision") != "not_coded"
+                ]
 
         # Persistence
         t_persist = time.monotonic()
@@ -376,6 +457,54 @@ class CodingPipeline:
                 by_sentence.setdefault(item.sentence_id, []).append(item)
         return by_sentence
 
+    # ------------------------------------------------------------------
+    # Unified post-processing (delegates to shared canonical stack)
+    # ------------------------------------------------------------------
+
+    def _run_unified_post_processing(
+        self,
+        encounter_text: str,
+        sentences: list[SentenceChunk],
+        extracted: dict[str, list[ExtractionItem]],
+    ) -> tuple[dict[str, list[ExtractionItem]], bool]:
+        """Run the canonical post-processing stack via the shared module.
+
+        Converts ExtractionItem objects to entity dicts, calls
+        ``run_post_processing()``, and maps results back to ExtractionItem
+        objects keyed by sentence_id.
+
+        Returns:
+            Tuple of (updated extracted dict, context_detection_failed flag).
+        """
+        rules = self._load_post_processor_rules()
+
+        all_items: list[ExtractionItem] = []
+        for items in extracted.values():
+            all_items.extend(items)
+
+        entity_dicts = _items_to_dicts(all_items)
+
+        processed = run_post_processing(
+            encounter_text,
+            entity_dicts,
+            rules=rules or None,
+            enable_disorder_gate=False,
+            coding_mode=self.coding_mode,
+        )
+
+        context_detection_failed = any(
+            e.get("context_detection_failed") for e in processed
+        )
+
+        output: dict[str, list[ExtractionItem]] = {
+            s.sentence_id: [] for s in sentences
+        }
+        for ent in processed:
+            item = _dict_to_item(ent)
+            output.setdefault(item.sentence_id, []).append(item)
+
+        return output, context_detection_failed
+
     def _load_post_processor_rules(self) -> list[PostProcessorRule]:
         if self._post_rules is not None:
             return self._post_rules
@@ -384,175 +513,6 @@ class CodingPipeline:
         if self._post_rules:
             logger.info("Loaded %d active post-processor rules", len(self._post_rules))
         return self._post_rules
-
-    def _apply_post_processor_rules(
-        self,
-        encounter_text: str,
-        extracted: dict[str, list[ExtractionItem]],
-    ) -> dict[str, list[ExtractionItem]]:
-        rules = self._load_post_processor_rules()
-        if not rules:
-            return extracted
-
-        output: dict[str, list[ExtractionItem]] = {}
-        for sentence_id, items in extracted.items():
-            transformed: list[ExtractionItem] = []
-            for item in items:
-                entity = {
-                    "text": item.text,
-                    "label": item.semantic_tag,
-                    "start": item.span_start,
-                    "end": item.span_end,
-                }
-                updated = apply_rules_to_entities(encounter_text, [entity], rules)
-                if not updated:
-                    continue
-                ent = updated[0]
-                transformed.append(
-                    ExtractionItem(
-                        sentence_id=item.sentence_id,
-                        text=str(ent.get("text", item.text)),
-                        span_start=int(ent.get("start", item.span_start)),
-                        span_end=int(ent.get("end", item.span_end)),
-                        semantic_tag=str(ent.get("label", item.semantic_tag)),
-                        assertion=item.assertion,
-                        confidence=item.confidence,
-                        normalized=str(ent.get("text", item.normalized)),
-                        source_meta=item.source_meta,
-                        relations=item.relations,
-                        source=item.source,
-                        model_name=item.model_name,
-                        model_version=item.model_version,
-                        contract_version=item.contract_version,
-                    )
-                )
-            output[sentence_id] = transformed
-        return output
-
-    def _apply_observable_post_processing(
-        self,
-        encounter_text: str,
-        extracted: dict[str, list[ExtractionItem]],
-    ) -> dict[str, list[ExtractionItem]]:
-        """Normalize observable spans and attach value/unit/reference_range."""
-        output: dict[str, list[ExtractionItem]] = {}
-        for sentence_id, items in extracted.items():
-            if not items:
-                output[sentence_id] = items
-                continue
-
-            as_entities = [
-                {
-                    "__idx": i,
-                    "text": item.text,
-                    "label": item.semantic_tag,
-                    "start": item.span_start,
-                    "end": item.span_end,
-                    "value": item.numeric_value or None,
-                    "unit": item.unit or None,
-                    "reference_range": item.reference_range or None,
-                }
-                for i, item in enumerate(items)
-            ]
-            normalized_entities = normalize_observable_entities(
-                encounter_text,
-                as_entities,
-                add_qualifier_value=False,
-            )
-            by_idx = {
-                int(ent.get("__idx")): ent
-                for ent in normalized_entities
-                if isinstance(ent.get("__idx"), int)
-            }
-
-            transformed: list[ExtractionItem] = []
-            for i, item in enumerate(items):
-                ent = by_idx.get(i, as_entities[i])
-                normalized_lookup = (
-                    item.normalized
-                    if str(item.normalized or "").strip() and item.normalized != item.text
-                    else str(ent.get("text", item.normalized))
-                )
-                transformed.append(
-                    ExtractionItem(
-                        sentence_id=item.sentence_id,
-                        text=str(ent.get("text", item.text)),
-                        span_start=int(ent.get("start", item.span_start)),
-                        span_end=int(ent.get("end", item.span_end)),
-                        semantic_tag=str(ent.get("label", item.semantic_tag)),
-                        assertion=item.assertion,
-                        confidence=item.confidence,
-                        normalized=normalized_lookup,
-                        source_meta=item.source_meta,
-                        relations=item.relations,
-                        numeric_value=str(ent.get("value", item.numeric_value) or "").strip(),
-                        unit=str(ent.get("unit", item.unit) or "").strip(),
-                        reference_range=str(ent.get("reference_range", item.reference_range) or "").strip(),
-                        source=item.source,
-                        model_name=item.model_name,
-                        model_version=item.model_version,
-                        contract_version=item.contract_version,
-                    )
-                )
-            output[sentence_id] = transformed
-        return output
-
-    def _apply_context_detection(
-        self,
-        encounter_text: str,
-        extracted: dict[str, list[ExtractionItem]],
-    ) -> dict[str, list[ExtractionItem]]:
-        """Detect family-history / negation / historical context and set assertion.
-
-        Also normalizes lookup terms for situation entities whose freeform
-        text won't resolve via terminology API.
-        """
-        output: dict[str, list[ExtractionItem]] = {}
-        for sentence_id, items in extracted.items():
-            transformed: list[ExtractionItem] = []
-            for item in items:
-                new_assertion = item.assertion or "present"
-                new_normalized = item.normalized
-
-                if new_assertion == "present":
-                    detected = detect_assertion(
-                        encounter_text, item.span_start, item.span_end,
-                    )
-                    if detected != "present":
-                        new_assertion = detected
-
-                if item.semantic_tag == "situation":
-                    canonical = normalize_situation_lookup(item.text)
-                    if canonical:
-                        new_normalized = canonical
-
-                if new_assertion == item.assertion and new_normalized == item.normalized:
-                    transformed.append(item)
-                    continue
-
-                transformed.append(
-                    ExtractionItem(
-                        sentence_id=item.sentence_id,
-                        text=item.text,
-                        span_start=item.span_start,
-                        span_end=item.span_end,
-                        semantic_tag=item.semantic_tag,
-                        assertion=new_assertion,
-                        confidence=item.confidence,
-                        normalized=new_normalized,
-                        source_meta=item.source_meta,
-                        relations=item.relations,
-                        numeric_value=item.numeric_value,
-                        unit=item.unit,
-                        reference_range=item.reference_range,
-                        source=item.source,
-                        model_name=item.model_name,
-                        model_version=item.model_version,
-                        contract_version=item.contract_version,
-                    )
-                )
-            output[sentence_id] = transformed
-        return output
 
     # ------------------------------------------------------------------
     # Terminology resolution
@@ -609,7 +569,10 @@ class CodingPipeline:
         for item in all_items:
             if item.semantic_tag not in _CODEABLE_LABELS:
                 continue
-            if item.assertion == "absent":
+            if item.assertion in {
+                "absent", "declined", "cancelled",
+                "hypothetical", "possible", "family", "historical",
+            }:
                 continue
             key = item.normalized
             if key in seen:
@@ -685,6 +648,15 @@ class CodingPipeline:
                 # Extract modifiers from source_meta (populated by LLM provider)
                 source_meta = item.source_meta or {}
                 modifiers = source_meta.get("modifiers", {})
+                score = float(best.get("score", 0.0) or 0.0)
+                sf_status = str(best.get("surface_form_status", "") or "")
+                tier_decision = classify_tier(
+                    assertion=item.assertion or "present",
+                    context_failed=False,
+                    terminology_score=score,
+                    surface_form_status=sf_status,
+                    coding_mode=self.coding_mode,
+                )
                 terms_data.append({
                     "term_id": f"{sentence.sentence_id}_t{term_counter}",
                     "text": item.text,
@@ -694,22 +666,24 @@ class CodingPipeline:
                         "snomed_concept_id": best.get("snomed_concept_id"),
                         "read_code": best.get("read_code"),
                         "snomed_term": best.get("snomed_term"),
-                        "score": best.get("score", 0.0),
+                        "score": score,
                         "source": "terminology_api",
                     },
                     "semantic_tag": item.semantic_tag,
                     "assertion": item.assertion,
                     "confidence": item.confidence,
                     "modifiers": modifiers,
-                    # Structured measurement fields (observable entities)
                     "numeric_value": item.numeric_value,
                     "unit": item.unit,
                     "reference_range": item.reference_range,
-                    # Provenance from the extractor
                     "extraction_source": item.source,
                     "extraction_model_name": item.model_name,
                     "extraction_model_version": item.model_version,
                     "contract_version": item.contract_version,
+                    "decision_tier": tier_decision.tier,
+                    "audit_flag": tier_decision.decision == "coded_with_flag",
+                    "tier_reason": tier_decision.reason,
+                    "tier_decision": tier_decision.decision,
                 })
                 term_counter += 1
             payload.append({
@@ -758,6 +732,45 @@ class CodingPipeline:
                 extractor.model_name,
                 extractor.model_version,
             )
+
+    def _write_coding_decisions(
+        self,
+        encounter_id: str,
+        patient_id: str,
+        sentences_payload: list[dict[str, Any]],
+    ) -> None:
+        """Write CodingDecision audit nodes for all terms in autonomous mode."""
+        import hashlib
+        pid_hash = hashlib.sha256(patient_id.encode()).hexdigest()
+        with self.patient_client.session() as session:
+            idx = 0
+            for sentence in sentences_payload:
+                for term in sentence.get("terms", []):
+                    decision_id = f"dec:{encounter_id}:{idx}"
+                    try:
+                        session.run(
+                            UPSERT_CODING_DECISION,
+                            decision_id=decision_id,
+                            encounter_id=encounter_id,
+                            patient_id_hash=pid_hash,
+                            entity_text=term.get("text", ""),
+                            entity_label=term.get("semantic_tag", ""),
+                            assertion=term.get("assertion", "present"),
+                            tier=term.get("decision_tier"),
+                            decision=term.get("tier_decision", ""),
+                            reason=term.get("tier_reason", ""),
+                            terminology_score=float(
+                                (term.get("coding") or {}).get("score", 0.0) or 0.0
+                            ),
+                            consensus_verdict="",
+                            model_ids="",
+                        )
+                    except Exception:
+                        logger.warning(
+                            "Failed to write CodingDecision for %s idx=%d",
+                            encounter_id, idx, exc_info=True,
+                        )
+                    idx += 1
 
     # ------------------------------------------------------------------
     # Neo4j fetches

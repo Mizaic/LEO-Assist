@@ -87,6 +87,7 @@ class CodingCandidate:
     read_code: str | None
     score: float
     source: str
+    surface_form_status: str = ""
 
 
 class CodingResolver:
@@ -171,7 +172,11 @@ class CodingResolver:
                 "read_codes": sorted(set(rec.get("read_codes") or [])),
                 "lexical_raw": 0.0,
                 "vector_raw": 0.0,
+                "surface_form_status": "",
             })
+            sf_status = rec.get("surface_form_status") or ""
+            if sf_status:
+                base["surface_form_status"] = sf_status
             score = float(rec.get("score", 0.0))
             if branch == "lexical":
                 base["lexical_raw"] = max(base["lexical_raw"], score)
@@ -285,6 +290,7 @@ class CodingResolver:
                 read_code=(c.get("read_codes") or [None])[0],
                 score=round(fused, 4),
                 source="hybrid",
+                surface_form_status=c.get("surface_form_status", ""),
             )
             for fused, c in scored
         ]

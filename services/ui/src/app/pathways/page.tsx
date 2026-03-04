@@ -189,7 +189,7 @@ function PathwaysPageContent() {
   return (
     <Box sx={{ p: 3 }}>
       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2 }}>
-        <Typography variant="h5">Referral Pathways</Typography>
+        <Typography variant="h5" component="h1">Referral Pathways</Typography>
         {!loading && alertCount > 0 && (
           <Chip
             component={Link}

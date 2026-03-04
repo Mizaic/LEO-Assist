@@ -1,0 +1,79 @@
+# -- DO-LEO-AI-035 -- Security Gap Remediation Batch 1 — Implementation
+- id: "DO-LEO-AI-035"
+  title: "Security Gap Remediation Batch 1 — Implementation Artefacts"
+  version: "1.0"
+  status: "released"
+  date: "2026-03-03"
+  satisfies: ["DI-LEO-AI-052"]
+  verified_by: ["VT-LEO-AI-045"]
+
+  implementation_artefacts:
+    - path: "libs/auth/org_scope.py"
+      changes:
+        - "GAP-001: get_caller_scope uses X-Leo-Session only; X-User-Email header removed"
+
+    - path: "services/api/app/deps.py"
+      changes:
+        - "GAP-001: get_caller_scope_from_request resolves identity from session data only"
+        - "GAP-001: No x_user_email parameter, no ?email= query parameter"
+        - "GAP-003: require_admin dependency raises HTTP 403 for non-admin callers"
+
+    - path: "services/api/app/main.py"
+      changes:
+        - "GAP-001: dependency_overrides[get_caller_scope] = get_caller_scope_from_request"
+        - "GAP-006: slowapi Limiter with per-IP rate limiting"
+        - "GAP-009: require_xhr_for_mutations middleware (X-Requested-With header check)"
+        - "GAP-013: ALLOWED_ORIGINS env var configures CORSMiddleware"
+
+    - path: "services/api/app/routers/auth.py"
+      changes:
+        - "GAP-005: COOKIE_SECURE env var controls secure flag, defaults to true"
+        - "GAP-010: leo_oauth_nonce cookie set at /login, validated at /callback"
+        - "GAP-011: Session TTL from SystemConfig with SESSION_TTL_HOURS env fallback"
+
+    - path: "services/api/app/routers/model_registry.py"
+      changes:
+        - "GAP-003: Depends(require_admin) on all mutating routes (register, upload, validate, canary, promote, rollback, reject)"
+
+    - path: "libs/auth/service_auth.py"
+      changes:
+        - "GAP-007: verify_service_token with hmac.compare_digest timing-safe comparison"
+        - "GAP-007: SERVICE_AUTH_SECRET env var; HTTP 401 on mismatch"
+
+    - path: "services/api/app/services/session_store.py"
+      changes:
+        - "GAP-011: SESSION_TTL_HOURS configurable; Redis mandatory (503 on failure)"
+
+    - path: "infra/bicep/parameters/dev.bicepparam"
+      changes:
+        - "GAP-005: COOKIE_SECURE=true"
+        - "GAP-011: SESSION_TTL_HOURS=12"
+        - "GAP-013: ALLOWED_ORIGINS restricted to dev domain + localhost"
+
+    - path: "infra/bicep/parameters/val.bicepparam"
+      changes:
+        - "GAP-005: COOKIE_SECURE=true"
+        - "GAP-011: SESSION_TTL_HOURS=12"
+        - "GAP-013: ALLOWED_ORIGINS restricted to val domain"
+
+    - path: "infra/bicep/parameters/prod.bicepparam"
+      changes:
+        - "GAP-005: COOKIE_SECURE=true"
+        - "GAP-011: SESSION_TTL_HOURS=24"
+        - "GAP-013: ALLOWED_ORIGINS restricted to prod domain"
+
+    - path: "services/api/app/routers/training.py"
+      changes:
+        - "GAP-015: Depends(require_admin) on POST/PATCH post-processor-rules"
+        - "GAP-015: Depends(require_admin) on POST context-rules and PATCH deactivate"
+        - "GAP-015: _validate_regex with ReDoS timeout probe and max length"
+        - "GAP-015: Context rule literal length validation (max 200 chars)"
+        - "GAP-015: created_by uses scope.email, not request body"
+
+    - path: "libs/llm_client/disorder_verifier.py"
+      changes:
+        - "GAP-016: _fail_verdict_for_mode('autonomous') returns UNCERTAIN instead of 'not_disorder'"
+
+    - path: "libs/llm_client/escalation.py"
+      changes:
+        - "GAP-016: LLM response capped at 1000 chars (response-stuffing defence)"

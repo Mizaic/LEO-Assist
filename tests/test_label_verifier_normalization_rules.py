@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from services.api.app.services.label_verifier import (
-    _deterministic_resolve,
-    _link_observable_value_units,
-    _normalise_entity_types,
+from libs.pipeline.post_processing import (
+    link_observable_value_units as _link_observable_value_units,
+    normalise_entity_types as _normalise_entity_types,
 )
+from services.api.app.services.label_verifier import _deterministic_resolve
 
 
 # ── Rule 1: Smoking status attribute/situation → finding ──

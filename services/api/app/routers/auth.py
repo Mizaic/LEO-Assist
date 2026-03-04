@@ -8,11 +8,13 @@ from __future__ import annotations
 
 import logging
 import os
+import time
 from urllib.parse import urlencode
 
 from fastapi import APIRouter, HTTPException, Request, Response
 from fastapi.responses import RedirectResponse
 import httpx
+from jose import jwt, JWTError
 
 from app.services.session_store import (
     COOKIE_NAME,
@@ -21,6 +23,13 @@ from app.services.session_store import (
     delete_session,
     load_session,
     save_session,
+)
+from libs.audit.security_log import (
+    emit_login_success,
+    emit_login_failure,
+    emit_login_mfa_blocked,
+    emit_logout,
+    emit_token_rejected,
 )
 
 logger = logging.getLogger(__name__)
@@ -39,6 +48,62 @@ SCOPE = os.getenv("AZURE_AD_SCOPE", "openid profile email api://c97f7ad9-845f-42
 AUTH_URL = f"https://login.microsoftonline.com/{TENANT_ID}/oauth2/v2.0/authorize"
 TOKEN_URL = f"https://login.microsoftonline.com/{TENANT_ID}/oauth2/v2.0/token"
 ANALYTICS_BASE = os.getenv("ANALYTICS_API_BASE", "http://localhost:8003")
+
+# JWKS cache — fetched once per process, refreshed when keys change.
+# Azure AD rotates keys infrequently; 1-hour TTL is conservative.
+_JWKS_CACHE: dict = {}
+_JWKS_FETCHED_AT: float = 0.0
+_JWKS_TTL = 3600  # seconds
+
+
+def _get_jwks() -> dict:
+    """Return Azure AD JWKS, refreshing the cache if older than _JWKS_TTL."""
+    global _JWKS_CACHE, _JWKS_FETCHED_AT
+    now = time.monotonic()
+    if _JWKS_CACHE and (now - _JWKS_FETCHED_AT) < _JWKS_TTL:
+        return _JWKS_CACHE
+    jwks_uri = f"https://login.microsoftonline.com/{TENANT_ID}/discovery/v2.0/keys"
+    try:
+        with httpx.Client(timeout=10) as client:
+            resp = client.get(jwks_uri)
+            resp.raise_for_status()
+            _JWKS_CACHE = resp.json()
+            _JWKS_FETCHED_AT = now
+    except Exception as exc:
+        logger.error("Failed to fetch Azure AD JWKS: %s", exc)
+        if _JWKS_CACHE:
+            logger.warning("Using stale JWKS cache after fetch failure")
+            return _JWKS_CACHE
+        raise
+    return _JWKS_CACHE
+
+
+def _verify_id_token(id_token: str) -> dict:
+    """Verify and decode an Azure AD id_token using JWKS.
+
+    Validates: signature, issuer, audience, expiry.
+    Raises HTTPException(401) on any failure.
+    GAP-002 fix: replaces insecure base64 decode with cryptographic verification.
+    """
+    if not TENANT_ID or not CLIENT_ID:
+        raise HTTPException(500, "Azure AD not configured")
+    try:
+        jwks = _get_jwks()
+        claims = jwt.decode(
+            id_token,
+            jwks,
+            algorithms=["RS256"],
+            audience=CLIENT_ID,
+            issuer=f"https://login.microsoftonline.com/{TENANT_ID}/v2.0",
+            options={"verify_exp": True, "verify_nbf": True},
+        )
+        return claims
+    except JWTError as exc:
+        logger.warning("id_token verification failed: %s", exc)
+        raise HTTPException(status_code=401, detail="Token verification failed") from exc
+    except Exception as exc:
+        logger.error("Unexpected error verifying id_token: %s", exc)
+        raise HTTPException(status_code=401, detail="Token verification error") from exc
 
 
 def _get_session_config() -> tuple[int, int, bool]:
@@ -157,42 +222,38 @@ def callback(
     access_token = token_data.get("access_token")
     id_token = token_data.get("id_token")
 
-    # Enforce v2.0 tokens only — reject v1.0 (sts.windows.net) at login
-    import base64
-    import json
-
-    for token in (access_token, id_token):
-        if token:
-            try:
-                payload_b64 = token.split(".")[1]
-                payload_b64 += "=" * (4 - len(payload_b64) % 4)
-                claims = json.loads(base64.urlsafe_b64decode(payload_b64))
-                iss = claims.get("iss", "")
-                if "sts.windows.net" in iss:
-                    logger.warning("Rejecting v1.0 token (iss=%s). Set accessTokenAcceptedVersion: 2 in Azure AD app manifest.", iss)
-                    return RedirectResponse(
-                        url=f"{FRONTEND_URL}/sign-in?error=token_v1_not_allowed",
-                        status_code=302,
-                    )
-            except Exception:
-                pass
-
-    email = None
-    name = None
+    # GAP-002: Verify id_token signature against Azure AD JWKS before trusting any claims.
+    # Replaces the previous insecure base64 decode which accepted forged tokens.
     id_claims: dict = {}
-    if id_token:
-        try:
-            payload_b64 = id_token.split(".")[1]
-            payload_b64 += "=" * (4 - len(payload_b64) % 4)
-            id_claims = json.loads(base64.urlsafe_b64decode(payload_b64))
-            email = (
-                id_claims.get("preferred_username")
-                or id_claims.get("upn")
-                or id_claims.get("email")
-            )
-            name = id_claims.get("name")
-        except Exception:
-            pass
+    if not id_token:
+        logger.warning("Token exchange returned no id_token")
+        return RedirectResponse(url=f"{FRONTEND_URL}/sign-in?error=no_id_token", status_code=302)
+
+    client_ip = request.client.host if request.client else "unknown"
+    try:
+        id_claims = _verify_id_token(id_token)
+    except HTTPException as exc:
+        emit_token_rejected(reason=exc.detail, ip=client_ip)
+        emit_login_failure(reason="token_verification_failed", ip=client_ip, detail=exc.detail)
+        return RedirectResponse(
+            url=f"{FRONTEND_URL}/sign-in?error=token_verification_failed",
+            status_code=302,
+        )
+
+    # Reject v1.0 tokens (sts.windows.net issuer) — requires accessTokenAcceptedVersion: 2 in Azure AD manifest.
+    iss = id_claims.get("iss", "")
+    if "sts.windows.net" in iss:
+        logger.warning("Rejecting v1.0 token (iss=%s). Set accessTokenAcceptedVersion: 2 in Azure AD app manifest.", iss)
+        emit_token_rejected(reason="v1_issuer", ip=client_ip)
+        emit_login_failure(reason="token_v1_not_allowed", ip=client_ip)
+        return RedirectResponse(url=f"{FRONTEND_URL}/sign-in?error=token_v1_not_allowed", status_code=302)
+
+    email = (
+        id_claims.get("preferred_username")
+        or id_claims.get("upn")
+        or id_claims.get("email")
+    )
+    name = id_claims.get("name")
 
     if not email:
         email = "unknown"
@@ -217,6 +278,7 @@ def callback(
                 email,
                 amr,
             )
+            emit_login_mfa_blocked(email=email or "unknown", ip=client_ip, amr=amr)
             return RedirectResponse(
                 url=f"{FRONTEND_URL}/sign-in?error=mfa_required",
                 status_code=302,
@@ -234,6 +296,11 @@ def callback(
             "idle_timeout_minutes": idle_mins,
         },
         ttl_seconds=session_ttl_secs,
+    )
+    emit_login_success(
+        email=email.lower().strip(),
+        ip=client_ip,
+        session_id_prefix=session_id,
     )
 
     normalized_state = state if state.startswith("/") else f"/{state.lstrip('/')}"
@@ -257,9 +324,14 @@ def callback(
 @router.post("/logout")
 def logout(request: Request, response: Response):
     """Clear session and cookie."""
+    from libs.audit.security_log import emit_logout
     session_id = request.cookies.get(COOKIE_NAME)
+    client_ip = request.client.host if request.client else "unknown"
     if session_id:
+        data = load_session(session_id)
+        email = (data or {}).get("email", "unknown")
         delete_session(session_id)
+        emit_logout(email=email, ip=client_ip)
     resp = Response(status_code=204)
     resp.delete_cookie(COOKIE_NAME, path="/")
     return resp

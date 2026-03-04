@@ -50,6 +50,7 @@ export default function EntitySidebar({ terms, selectedId, onSelect, onRemove, o
               secondaryAction={
                 onRemove ? (
                   <IconButton
+                    aria-label="Remove term"
                     size="small"
                     color="error"
                     onClick={(e) => {
