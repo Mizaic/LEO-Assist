@@ -132,6 +132,31 @@
         - "Provenance metadata is stored with the mapping"
         - "Writeback improves future search relevance for the same surface form"
 
+    - case_id: "VT-016-TC-005"
+      case_name: "Writeback excludes reviewer identity from Knowledge Graph"
+      priority: "critical"
+      preconditions:
+        - "Terminology API writeback endpoint is available"
+        - "A clinician has reviewed and approved a coding suggestion"
+      test_steps:
+        - step_number: 1
+          action: "Run writeback for a candidate approved by a named reviewer (e.g. jane.smith@nhs.net)"
+          expected_result: "SurfaceForm node is created in the Knowledge Graph"
+          verification_method: "Assert the SurfaceForm node exists with correct form and concept"
+        - step_number: 2
+          action: "Inspect the approved_by field on the MAPS_TO relationship and created_by on the SurfaceForm node"
+          expected_result: "Both fields contain the source tag 'hitl_approved', not the reviewer's name or email"
+          verification_method: "Assert approved_by == 'hitl_approved' and created_by == 'hitl_approved'"
+        - step_number: 3
+          action: "Search all SurfaceForm node and MAPS_TO relationship properties for email patterns"
+          expected_result: "No email addresses or person names found in any Knowledge Graph property"
+          verification_method: "Assert regex [\w.]+@[\w.]+ returns zero matches across all SurfaceForm properties"
+      acceptance_criteria:
+        - "No reviewer name or email stored in the Knowledge Graph"
+        - "approved_by and created_by fields contain process-name source tags only"
+        - "ICO pseudonymisation guidance satisfied -- no personal data in shared terminology resource"
+      regulatory_reference: "DC-DPA-002 clauses 5.3(d), 6.2; ICO pseudonymisation guidance (2025)"
+
   pass_fail_criteria:
     pass_threshold: "100% critical, 95% all"
     blocking_on_failure: true
