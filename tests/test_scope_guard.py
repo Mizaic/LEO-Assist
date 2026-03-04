@@ -78,8 +78,9 @@ class TestRecommendationDetection:
     def test_should_be_started_on(self) -> None:
         assert has_recommendation_language("Patient should be started on aspirin")
 
-    def test_will_start(self) -> None:
-        assert has_recommendation_language("Will start amoxicillin 500mg TDS for 7 days")
+    def test_will_start_not_flagged(self) -> None:
+        """'Will start' is ambiguous in UK GP notes — often means 'started today'."""
+        assert not has_recommendation_language("Will start amoxicillin 500mg TDS for 7 days")
 
     def test_plan_to_refer(self) -> None:
         assert has_recommendation_language("Plan to refer to physiotherapy")
@@ -210,13 +211,14 @@ class TestReclassifyAssertion:
         )
         assert result is None
 
-    def test_will_start_medication_is_hypothetical(self) -> None:
+    def test_will_start_medication_not_reclassified(self) -> None:
+        """'Will start' is too ambiguous in UK GP notes — no reclassification."""
         result = reclassify_assertion(
             entity_semantic_tag="substance",
             entity_assertion="present",
             sentence_text="Will start amoxicillin 500mg TDS for 7 days",
         )
-        assert result == "hypothetical"
+        assert result is None
 
     def test_plan_to_refer_is_hypothetical(self) -> None:
         result = reclassify_assertion(

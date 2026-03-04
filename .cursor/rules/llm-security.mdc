@@ -94,6 +94,16 @@ Before merging any new LLM call site:
 - [ ] Clinical text truncated before embedding (default 2000 chars)
 - [ ] Call is covered by a unit test that mocks the LLM and tests the fail_verdict path
 
+### System prompts that MUST carry INJECTION_GUARD
+
+All of the following must be prefixed with `INJECTION_GUARD`:
+
+- `libs/llm_client/escalation.py` -- `escalate_coding` system prompt
+- `libs/llm_client/escalation.py` -- `_CANDIDATES_SYSTEM`
+- `libs/llm_client/escalation.py` -- `_VERIFY_SYSTEM`
+- `libs/llm_client/disorder_verifier.py` -- `_SYSTEM_PROMPT`
+- Any new system prompt added to the codebase
+
 ## 8. User-Supplied Rules (Context Rules, Post-Processor Rules)
 
 Any endpoint that persists user-supplied regex or NLP rules MUST:

@@ -54,11 +54,15 @@ const safetyPulse = keyframes`
 
 function isClinicalSafetyWarning(warning: string | null | undefined): boolean {
   if (!warning) return false;
-  return /^lab-value guard/i.test(warning) || /clinical safety/i.test(warning);
+  return /^lab-value guard/i.test(warning) || /clinical safety/i.test(warning) || /\blab result\b/i.test(warning);
+}
+
+function _isLabValueWarning(warning: string): boolean {
+  return /^lab-value guard/i.test(warning) || /\blab result\b/i.test(warning);
 }
 
 function warningHeadline(warning: string): string {
-  if (/^lab-value guard/i.test(warning)) {
+  if (_isLabValueWarning(warning)) {
     return "Clinical safety: this is NOT a diagnosis.";
   }
   return "LEO says: this procedure was not performed.";

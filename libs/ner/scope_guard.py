@@ -62,8 +62,6 @@ _RECOMMENDATION_RE = re.compile(
     r"|(?:should|could|may|might)\s+(?:be\s+)?(?:started\s+on|commenced\s+on|initiated\s+on|referred)"
     r"|(?:plan|intention|aim)\s+to\s+(?:start|commenc|initiat|prescrib|refer|try|give|review)\w*"
     r"|would\s+(?:benefit\s+from|recommend|suggest|advise)"
-    r"|will\s+(?:start|commence|initiate|prescribe|refer|arrange|book|order|request)"
-    r"|to\s+(?:start|commence|initiate|try)\s+(?:on\s+)?"
     r")",
     re.IGNORECASE,
 )
@@ -94,7 +92,13 @@ _CONFIRMED_DIAGNOSIS_RE = re.compile(
     r"|has\s+(?:been\s+)?diagnosed"
     r"|confirmed?\b"
     r"|established\b"
-    r"|known\s+(?:to\s+have|case\s+of)"
+    r"|known\s+(?:to\s+have|case\s+of|\w+)"
+    r"|suffers?\s+from"
+    r"|(?:patient|pt)\s+has\s+\w+"
+    r"|on\s+treatment\s+for"
+    r"|managed\s+for"
+    r"|being\s+treated\s+for"
+    r"|presents?\s+with"
     r"|problem\s+list"
     r"|active\s+problem"
     r"|impression[:\s]"

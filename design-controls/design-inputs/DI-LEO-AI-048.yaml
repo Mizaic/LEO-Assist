@@ -13,8 +13,10 @@
     (a) Entities extracted from safety-netting / contingency sentences SHALL
         be reclassified from "present" to "hypothetical".
     (b) Entities from treatment recommendation context (e.g. "consider starting",
-        "will refer", "recommend starting") SHALL be reclassified from "present"
-        to "hypothetical".
+        "recommend starting", "suggest initiating", "should be started on")
+        SHALL be reclassified from "present" to "hypothetical". The regex
+        SHALL NOT match ambiguous UK GP phrases like "will start" or "to start"
+        which commonly describe actions the GP performed during the consultation.
     (c) Disorder entities from hedged diagnostic language (e.g. "consistent with",
         "suggestive of", "cannot exclude") SHALL be reclassified from "present"
         to "possible" unless an explicit confirmed diagnosis is also stated.
@@ -52,7 +54,7 @@
       - type: "safety"
         spec: "Normal clinical text (diagnoses, current medications, completed procedures) is not affected by the scope guard"
       - type: "safety"
-        spec: "Scope guard is integrated into the runtime CodingPipeline after lab-value guard and before ConText detection"
+        spec: "Scope guard is Layer 3 in the unified post-processing stack (libs/pipeline/post_processing.py), applied identically to both training and runtime pipelines after lab-value guard (Layer 2) and before ConText detection (Layer 7)"
 
     constraints:
       - type: "safety"
@@ -77,12 +79,15 @@
 
     technical_details:
       language: "Python"
-      framework: "coding-worker pipeline"
+      framework: "Unified post-processing stack (libs/pipeline/post_processing.py) — scope guard is Layer 3, applied identically to training and runtime pipelines (DI-LEO-AI-050)"
       file_structure:
+        - "libs/pipeline/post_processing.py"
         - "libs/prompts/extraction_v1.py"
         - "libs/ner/scope_guard.py"
         - "services/coding_worker/app/pipeline/pipeline_service.py"
+        - "services/api/app/services/label_verifier.py"
         - "tests/test_scope_guard.py"
+        - "tests/test_post_processing_pipeline.py"
       estimated_loc: 250
 
   verification:

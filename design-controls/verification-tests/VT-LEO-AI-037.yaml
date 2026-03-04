@@ -26,6 +26,8 @@
     test_file_paths:
       - "tests/test_lab_value_guard.py"
       - "tests/test_escalation.py"
+      - "tests/test_post_processing_pipeline.py"
+      - "tests/test_pipeline_parity.py"
 
   test_environment:
     environment_type: "development"
@@ -256,3 +258,13 @@
       cases_failed: 0
       duration_seconds: 1
       notes: "Extended to 35 test cases: added 3 escalation prompt lab-value rule verification tests (test_escalation.py::TestPromptLabValueRules)"
+    - execution_id: "VT-037-EXEC-003"
+      date: "2026-03-04"
+      executor: "automated_pytest"
+      environment: "development"
+      result: "pass"
+      cases_executed: 32
+      cases_passed: 32
+      cases_failed: 0
+      duration_seconds: 2
+      notes: "Post pipeline hardening: sentence-window scoping, expanded analytes, expanded _has_explicit_diagnosis. All lab_value_guard tests pass"

@@ -359,21 +359,25 @@ _CANDIDATES_SYSTEM = INJECTION_GUARD + (
     "should remain 'present'. Example: 'thought to be eczema but biopsy "
     "confirmed psoriasis' -> eczema gets assertion 'refuted'.\n"
     "8. Use 'not_codeable' ONLY when the entity truly did not occur and there is "
-    "no clinical event to record: procedure is still awaiting / pending / not yet "
-    "done, condition explicitly ruled out, or finding explicitly negated "
-    "(e.g. 'no evidence of X', 'biopsy not performed', 'awaiting biopsy'). "
-    "State the reason clearly.\n"
-    "9. CRITICAL -- Do NOT infer diagnoses from lab values:\n"
-    "   A lab result (eGFR, creatinine, HbA1c, sodium, haemoglobin, etc.) is an "
-    "observation, NOT a diagnosis. If the encounter text is a lab result line "
-    "(e.g. 'eGFR using creatinine (CKD-EPI) ... 69 mL/min'), do NOT pick a "
-    "disorder concept such as 'Chronic kidney disease stage 1'. Instead use "
-    "'not_codeable' and explain that a lab value is an observation and does not "
-    "constitute a diagnosis. 'CKD-EPI' is a formula name (Chronic Kidney Disease "
-    "Epidemiology Collaboration), NOT a diagnosis of CKD.\n"
-    "   Similarly, do NOT infer diabetes from HbA1c, hyponatraemia from sodium, "
-    "anaemia from haemoglobin, etc. Only code a disorder if the encounter text "
-    "explicitly states a diagnosis.\n"
+    "no clinical event to record: condition explicitly ruled out, or finding "
+    "explicitly negated (e.g. 'no evidence of X'). "
+    "NEVER use 'not_codeable' for declined/refused/cancelled procedures — those "
+    "are coded with assertion='declined' or 'cancelled' per Rule 7. "
+    "NEVER use 'not_codeable' for pending/awaiting items — those are coded with "
+    "assertion='hypothetical'. State the reason clearly.\n"
+    "9. CRITICAL -- Lab values vs diagnoses:\n"
+    "   a) When the CANDIDATES are observable-entity concepts (e.g. 'Neutrophil "
+    "count', 'Red blood cell count', 'Serum sodium level') and the entity text "
+    "is a lab result with a numeric value, this IS codeable -- pick the best "
+    "observable-entity concept. Lab results are valid clinical observations.\n"
+    "   b) Do NOT infer a DISORDER from a lab value. If the candidates are "
+    "disorder concepts (e.g. 'Chronic kidney disease stage 1', 'Anaemia') "
+    "but the encounter text only shows a numeric result without an explicit "
+    "diagnosis, use 'not_codeable' -- a lab value is an observation, not a "
+    "diagnosis. 'CKD-EPI' is a formula name, NOT a diagnosis of CKD.\n"
+    "   c) Similarly, do NOT infer diabetes from HbA1c, hyponatraemia from "
+    "sodium, anaemia from haemoglobin, etc. Only code a disorder if the "
+    "encounter text explicitly states a diagnosis.\n"
     "10. This system is a CODING tool. You code what is written. You do NOT make "
     "diagnoses, recommend treatment, or interpret clinical results.\n\n"
     "Respond ONLY with JSON. Include 'assertion' only when it differs from "
@@ -438,9 +442,23 @@ def escalate_coding_from_candidates(
     assertion = raw_assertion if raw_assertion in {"declined", "cancelled", "refuted"} else "present"
 
     if action == "pick":
-        idx = int(parsed.get("selected_index", 0))
+        try:
+            idx = int(parsed.get("selected_index", -1))
+        except (TypeError, ValueError):
+            idx = -1
         if not (0 <= idx < len(candidates)):
-            idx = 0
+            logger.warning(
+                "escalate_coding_from_candidates: selected_index=%r out of "
+                "range [0, %d) for %r -- falling back to ambiguous",
+                parsed.get("selected_index"),
+                len(candidates),
+                entity_text,
+            )
+            return CandidatesResult(
+                action="ambiguous",
+                reason=f"Invalid selected_index ({parsed.get('selected_index')}); {reason}",
+                model_id=response.model_id,
+            )
         return CandidatesResult(
             action="pick",
             selected_index=idx,
@@ -462,13 +480,14 @@ def escalate_coding_from_candidates(
             action="not_codeable",
             reason=reason,
             model_id=response.model_id,
+            assertion=assertion,
         )
     return CandidatesResult(action="ambiguous", reason=reason, model_id=response.model_id)
 
 
 # -- Dual-model consensus verification for autonomous coding ----------------
 
-_VERIFY_SYSTEM = (
+_VERIFY_SYSTEM = INJECTION_GUARD + (
     "You are a UK primary care SNOMED CT coding specialist.\n\n"
     "A terminology index matched an entity from a GP encounter to a SNOMED "
     "concept. Your task: decide whether the match is CORRECT.\n\n"

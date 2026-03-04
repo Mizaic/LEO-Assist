@@ -287,7 +287,7 @@ class TestEscalateCoding:
         assert "[INST]" not in user_content["encounter_text"]
 
     @patch("libs.llm_client.escalation.create_llm")
-    def test_encounter_text_truncated_to_2000_chars(self, mock_create):
+    def test_encounter_text_truncated_to_16000_chars(self, mock_create):
         mock_client = MagicMock()
         mock_client.converse.return_value = _make_response(
             '{"concept_term": "Cough", "confidence": 0.92}'
@@ -297,13 +297,13 @@ class TestEscalateCoding:
         escalate_coding(
             entity_text="cough",
             entity_label="finding",
-            encounter_text="A" * 5000,
+            encounter_text="A" * 20000,
         )
 
         user_content = json.loads(
             mock_client.converse.call_args.kwargs["messages"][0]["content"]
         )
-        assert len(user_content["encounter_text"]) == 2000
+        assert len(user_content["encounter_text"]) == 16000
 
     @patch("libs.llm_client.escalation.create_llm")
     def test_entity_text_truncated_to_200_chars(self, mock_create):
@@ -531,7 +531,7 @@ class TestEscalateCodingFromCandidates:
         assert "failed" in result.reason.lower()
 
     @patch("libs.llm_client.escalation.create_llm")
-    def test_out_of_bounds_index_clamped_to_zero(self, mock_create):
+    def test_out_of_bounds_index_returns_ambiguous(self, mock_create):
         mock_create.return_value = _mock_client(
             '{"action": "pick", "selected_index": 99, "reason": "bad index"}'
         )
@@ -540,8 +540,8 @@ class TestEscalateCodingFromCandidates:
             encounter_text="x",
             candidates=_CANDIDATES,
         )
-        assert result.action == "pick"
-        assert result.selected_index == 0
+        assert result.action == "ambiguous"
+        assert "Invalid selected_index" in result.reason
 
     @patch("libs.llm_client.escalation.create_llm")
     def test_unknown_action_falls_back_to_ambiguous(self, mock_create):
@@ -594,7 +594,7 @@ class TestEscalateCodingFromCandidates:
         assert "[FILTERED]" in user_content["encounter_text"]
 
     @patch("libs.llm_client.escalation.create_llm")
-    def test_encounter_text_truncated_to_1500_chars(self, mock_create):
+    def test_encounter_text_truncated_to_16000_chars(self, mock_create):
         mock_client = MagicMock()
         mock_client.converse.return_value = _make_response(
             '{"action": "ambiguous", "reason": "ok"}'
@@ -603,14 +603,14 @@ class TestEscalateCodingFromCandidates:
 
         escalate_coding_from_candidates(
             entity_text="x",
-            encounter_text="A" * 5000,
+            encounter_text="A" * 20000,
             candidates=_CANDIDATES,
         )
 
         user_content = json.loads(
             mock_client.converse.call_args.kwargs["messages"][0]["content"]
         )
-        assert len(user_content["encounter_text"]) == 1500
+        assert len(user_content["encounter_text"]) == 16000
 
     @patch("libs.llm_client.escalation.create_llm")
     def test_reason_truncated_to_400_chars(self, mock_create):
@@ -631,6 +631,12 @@ class TestEscalateCodingFromCandidates:
         from libs.llm_client.prompt_safety import INJECTION_GUARD
 
         assert _CANDIDATES_SYSTEM.startswith(INJECTION_GUARD)
+
+    def test_verify_system_prompt_includes_injection_guard(self):
+        from libs.llm_client.escalation import _VERIFY_SYSTEM
+        from libs.llm_client.prompt_safety import INJECTION_GUARD
+
+        assert _VERIFY_SYSTEM.startswith(INJECTION_GUARD)
 
     @patch("libs.llm_client.escalation.create_llm")
     def test_invalid_tier_defaults_to_small(self, mock_create):
@@ -657,9 +663,10 @@ class TestPromptLabValueRules:
     def test_candidates_system_contains_lab_value_rule(self):
         from libs.llm_client.escalation import _CANDIDATES_SYSTEM
 
-        assert "Do NOT infer diagnoses from lab values" in _CANDIDATES_SYSTEM
+        assert "Do NOT infer a DISORDER from a lab value" in _CANDIDATES_SYSTEM
         assert "CKD-EPI" in _CANDIDATES_SYSTEM
         assert "not_codeable" in _CANDIDATES_SYSTEM
+        assert "observable-entity" in _CANDIDATES_SYSTEM
 
     def test_candidates_system_contains_intended_use_rule(self):
         from libs.llm_client.escalation import _CANDIDATES_SYSTEM

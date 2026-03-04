@@ -8,9 +8,13 @@
   requirement: >
     The coding pipeline SHALL NOT infer a clinical diagnosis from a lab result
     value. Lab measurements (e.g. eGFR, HbA1c, creatinine, sodium, haemoglobin,
-    cholesterol, TSH, troponin, PSA) SHALL be coded only as observable entities
-    with their numeric value and unit. A disorder entity SHALL only be generated
-    when the encounter text explicitly states a diagnosis.
+    cholesterol, TSH, troponin, PSA, LDH, amylase, lipase, procalcitonin,
+    NT-proBNP, CK/CPK, lactate, AFP, CA-125, CEA) SHALL be coded only as
+    observable entities with their numeric value and unit. A disorder entity
+    SHALL only be generated when the encounter text explicitly states a
+    diagnosis. The lab-value guard SHALL operate on a per-entity sentence
+    window (not the full encounter text) to avoid false suppression of
+    legitimate diagnoses in other parts of the encounter.
   rationale: >
     A critical bug was identified where the LLM extraction step inferred
     "Chronic kidney disease stage 1 (disorder)" from an eGFR measurement of
@@ -77,8 +81,9 @@
 
     technical_details:
       language: "Python"
-      framework: "coding-worker pipeline + label-verifier + mining QA"
+      framework: "Unified post-processing stack (libs/pipeline/post_processing.py) — lab-value guard is Layer 2, applied identically to training and runtime pipelines (DI-LEO-AI-050)"
       file_structure:
+        - "libs/pipeline/post_processing.py"
         - "libs/prompts/extraction_v1.py"
         - "libs/ner/lab_value_guard.py"
         - "libs/ner/precision_gates.py"
@@ -90,6 +95,7 @@
         - "tests/test_lab_value_guard.py"
         - "tests/test_escalation.py"
         - "tests/test_disorder_verifier.py"
+        - "tests/test_post_processing_pipeline.py"
       estimated_loc: 450
 
   verification:

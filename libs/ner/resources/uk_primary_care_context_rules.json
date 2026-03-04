@@ -269,7 +269,8 @@
       "category": "CANCELLED",
       "direction": "FORWARD",
       "max_scope": 4,
-      "description": "Short for 'Did Not Attend' — the patient missed an appointment. This is NHS shorthand and does not mean DNA (deoxyribonucleic acid).",
+      "allowed_types": [],
+      "description": "Short for 'Did Not Attend' — the patient missed an appointment. This is NHS shorthand and does not mean DNA (deoxyribonucleic acid). allowed_types=[] restricts firing to standalone usage only.",
       "example": "DNA colonoscopy → the patient did not turn up; the procedure was not done"
     },
     {
@@ -279,14 +280,6 @@
       "max_scope": 4,
       "description": "Past tense of DNA — the patient previously missed an appointment.",
       "example": "dna'd last month → the patient missed their appointment last month"
-    },
-    {
-      "literal": "discussed",
-      "category": "HISTORICAL",
-      "direction": "FORWARD",
-      "max_scope": 4,
-      "description": "Something was talked about during the consultation. This does not mean it was done — it may only have been a conversation.",
-      "example": "discussed bowel cancer screening → screening was mentioned, not necessarily arranged"
     },
     {
       "literal": "mentioning",

@@ -29,7 +29,7 @@
       verified_by: ["VT-LEO-AI-037"]
       effectiveness: "effective"
     - control_type: "protective_measure"
-      description: "Lab-value guard: deterministic post-extraction filter suppresses any disorder entity whose evidence text is a lab result line and whose normalised term matches a known lab-to-diagnosis inference pattern"
+      description: "Lab-value guard: deterministic post-extraction filter operating on a per-entity sentence window (not the full encounter) suppresses any disorder entity whose local sentence context is a lab result line and whose normalised term matches a known lab-to-diagnosis inference pattern. Expanded to include LDH, amylase, lipase, procalcitonin, NT-proBNP, CK/CPK, lactate, AFP, CA-125, CEA"
       implemented_by: ["DI-LEO-AI-044"]
       verified_by: ["VT-LEO-AI-037"]
       effectiveness: "highly_effective"
@@ -49,6 +49,11 @@
       implemented_by: ["DI-LEO-AI-044"]
       verified_by: ["VT-LEO-AI-037"]
       effectiveness: "highly_effective"
+    - control_type: "protective_measure"
+      description: "Unified post-processing pipeline: the lab-value guard, scope guard, and all 9 post-processing layers are applied identically to training data and runtime data via a single shared module (libs/pipeline/post_processing.py), preventing train/serve skew where mitigations might differ between environments"
+      implemented_by: ["DI-LEO-AI-050"]
+      verified_by: ["VT-LEO-AI-050"]
+      effectiveness: "effective"
 
   residual_risk_estimate:
     severity: 4

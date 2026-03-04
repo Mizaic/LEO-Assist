@@ -286,12 +286,41 @@ or contingency-plan text.
 Actions the clinician PLANS to take (e.g. "will refer", "start Amoxicillin tomorrow", \
 "book blood test", "consider physio") must use assertion "hypothetical" — they are not \
 yet performed. Only use assertion "present" for actions already done or conditions \
-currently confirmed.
+currently confirmed. Only exclude items that are purely administrative (e.g. \
+"appointment booked", "SMS sent").
+
+## "Improving" vs "Improved"
+
+Pay close attention to the difference:
+- "improving" (still active, getting better) → assertion "present". The condition \
+still exists.
+- "improved" or "has improved and resolved" → assertion "historical" ONLY if the \
+condition no longer exists. If it has improved but is still present, use "present".
+
+## Allergy Guidance
+
+- "Allergic to penicillin" → semantic_tag "situation", lookup_term "allergy to \
+penicillin". Allergy status is a persisting contextual fact.
+- "Anaphylaxis to peanuts" → semantic_tag "disorder", lookup_term "anaphylaxis \
+caused by peanut". The anaphylactic reaction is a clinical event.
+- "NKDA" → semantic_tag "situation", lookup_term "no known drug allergies".
+
+## Implicit Negation
+
+Some clinical findings are expressed positively to mean the absence of pathology:
+- "Chest clear" → finding "chest clear" with assertion "present" (the finding IS \
+that the chest is clear). Do NOT extract as absent chest abnormality.
+- "Abdomen soft non-tender" → finding "abdomen soft non-tender", assertion "present".
+- "No wheeze" → finding "wheeze" with assertion "absent" (explicit negation).
+The key distinction: a positive statement of normality is "present"; only explicit \
+negation words ("no", "nil", "denies") make an entity "absent".
 
 ## Self-Check
 
 Before finalising EACH entity, re-read the source sentence and ask yourself:
-1. Does the text assert this entity IS present for this patient right now?
+1. Is the assertion status (present/absent/possible/historical/hypothetical/family/\
+refuted) correctly assigned? An absent entity should still be extracted with \
+assertion "absent", not omitted.
 2. Is the assertion correct given the surrounding context in the sentence?
 3. Does the lookup_term faithfully represent what the text describes?
 4. Am I coding what was written, or am I making a clinical interpretation?
