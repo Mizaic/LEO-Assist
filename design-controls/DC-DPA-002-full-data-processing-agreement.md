@@ -63,10 +63,11 @@ of practice issued by the ICO, as amended from time to time.
 
 **"De-identification"** means the automated removal of patient names,
 NHS numbers, dates of birth, postcodes, addresses, phone numbers, email
-addresses, dates, and organisation names from clinical text before that
-text is processed by any AI model, displayed to a Reviewer, or stored
-outside the Patient Graph. The De-identification process is described
-in Annex B.
+addresses, dates, and organisation names from Clinical Record Data
+(including encounter text and text extracted from documents) before
+that text is processed by any AI model, displayed to a Reviewer, or
+stored outside the Patient Graph. The De-identification process is
+described in Annex B.
 
 **"De-identified Clinical Phrase"** means a short fragment of clinical
 text (for example "CXR", "2WW referral", "raised PSA") from which all
@@ -91,10 +92,24 @@ review decisions, and audit trail entries. Each Controller's Patient
 Graph is logically and physically separated from other Controllers'
 data.
 
+**"Clinical Record Data"** means patient clinical information supplied
+by the Controller to the Service, including:
+
+(a) encounter text (consultation notes, telephone contacts, home
+visits, task entries);
+
+(b) text extracted from clinical documents (clinic letters, discharge
+summaries, pathology reports, radiology reports, MDT outcome letters,
+referral letters, and other correspondence filed in the patient
+record); and
+
+(c) previously coded data (existing SNOMED CT codes, Read codes, CTV3
+codes, and associated terms already recorded against the patient).
+
 **"Patient Personal Data"** means personal data relating to the
 Controller's patients that is processed under this Agreement, including
-clinical encounter text, NHS numbers, names, dates of birth, and coded
-clinical information.
+Clinical Record Data, NHS numbers, names, dates of birth, and any
+other information from which a patient could be identified.
 
 **"Reviewer"** means a person employed or engaged by the Controller who
 reviews AI-generated coding proposals through the Service and approves,
@@ -125,8 +140,9 @@ line with clause 11.
 The Processor will process Patient Personal Data for the following
 purposes:
 
-(a) AI-assisted clinical coding of patient encounter records using
-named entity recognition (NER) and SNOMED CT terminology resolution;
+(a) AI-assisted clinical coding of Clinical Record Data (encounter
+text, document text, and previously coded data) using named entity
+recognition (NER) and SNOMED CT terminology resolution;
 
 (b) clinical pathway reconstruction and retrospective audit analysis;
 
@@ -144,10 +160,14 @@ Controller.
 
 ### 2.3  Types of personal data
 
-- Patient clinical encounter text (free text from clinical records)
+- Patient encounter text (free-text consultation notes)
+- Text extracted from clinical documents (clinic letters, discharge
+  summaries, pathology reports, radiology reports, MDT outcome letters,
+  referral letters, and other correspondence)
+- Previously coded clinical data (SNOMED CT codes, Read codes, CTV3
+  codes and their associated terms)
 - Patient demographic identifiers (NHS number, name, date of birth,
   postcode, phone number, email address)
-- Coded clinical data (SNOMED CT codes, Read codes)
 - Reviewer staff identifiers (name, email, role) for audit trail
   purposes
 
@@ -832,9 +852,13 @@ Article 32:
 
 ## ANNEX B -- DE-IDENTIFICATION PROCESS
 
-The Processor applies a three-layer De-identification process before
-clinical text reaches any AI model, is displayed to a Reviewer, or is
-stored outside the Patient Graph.
+The Processor applies a three-layer De-identification process to all
+free-text Clinical Record Data (encounter text and text extracted from
+documents) before it reaches any AI model, is displayed to a Reviewer,
+or is stored outside the Patient Graph. Previously coded data
+(SNOMED/Read codes and their terms) does not go through
+De-identification because coded terms do not contain patient-
+identifiable information.
 
 **Layer 1 -- Pattern matching** (`libs/utils/deidentify.py`)
 
@@ -907,13 +931,29 @@ their own model training.
 *This annex is written in plain English so that anyone at your
 organisation can understand how the Learning Loop works.*
 
+**What data does the system look at?**
+
+The system reads three types of clinical information from your records:
+
+1. **Encounter text** -- the notes written during consultations, phone
+   calls, and home visits.
+2. **Document text** -- text from clinic letters, discharge summaries,
+   pathology reports, radiology reports, MDT outcomes, and other
+   correspondence filed in the patient record.
+3. **Previously coded data** -- SNOMED and Read codes that are already
+   recorded against the patient.
+
+All personal details (names, NHS numbers, addresses, dates, and so on)
+are removed from the text before the system processes it.
+
 **What is the Learning Loop?**
 
 When a clinical coder at your organisation reviews a coding suggestion
 from the system and approves it, the system learns from that decision.
-It saves a link between the clinical phrase (for example "chest X-ray")
-and the correct SNOMED code. Next time the system sees "chest X-ray"
-in any patient's record, it is more likely to suggest the right code.
+It saves a link between a clinical phrase (for example "chest X-ray"
+from a radiology report, or "2WW referral" from a consultation note)
+and the correct SNOMED code. Next time the system sees that phrase in
+any patient's record, it is more likely to suggest the right code.
 
 **What information is saved?**
 
