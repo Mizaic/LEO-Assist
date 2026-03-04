@@ -444,10 +444,10 @@ export default function SurfaceFormsPage() {
       </Breadcrumbs>
 
       <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>
-        <IconButton size="small" onClick={() => router.push("/settings")}>
+        <IconButton aria-label="Back to settings" size="small" onClick={() => router.push("/settings")}>
           <CloseIcon fontSize="small" />
         </IconButton>
-        <Typography variant="h5" sx={{ fontWeight: 700 }}>
+        <Typography variant="h5" component="h1" sx={{ fontWeight: 700 }}>
           Surface Forms
         </Typography>
       </Box>
@@ -469,6 +469,7 @@ export default function SurfaceFormsPage() {
           placeholder="Search by alias, concept name, SNOMED or Read code…"
           value={searchInput}
           onChange={(e) => handleSearchChange(e.target.value)}
+          aria-label="Search by alias, concept name, SNOMED or Read code"
           sx={{ width: 380 }}
           InputProps={{
             startAdornment: (
@@ -489,7 +490,7 @@ export default function SurfaceFormsPage() {
           color="warning"
           startIcon={
             duplicatesLoading
-              ? <CircularProgress size={14} />
+              ? <CircularProgress aria-label="Loading" size={14} />
               : <WarningAmberIcon fontSize="small" />
           }
           onClick={handleAuditDuplicates}
@@ -548,7 +549,7 @@ export default function SurfaceFormsPage() {
                       onClick={handleDeduplicate}
                       disabled={deduping || !!mappingActioning}
                     >
-                      {deduping ? <CircularProgress size={14} color="inherit" /> : "Fix all by confidence"}
+                      {deduping ? <CircularProgress aria-label="Loading" size={14} color="inherit" /> : "Fix all by confidence"}
                     </Button>
                   </Tooltip>
                 )}
@@ -608,7 +609,7 @@ export default function SurfaceFormsPage() {
                                   onClick={() => handleKeepMapping(d.normalized, m.concept_id)}
                                   disabled={anyBusy}
                                 >
-                                  {busy ? <CircularProgress size={12} color="inherit" /> : "Keep"}
+                                  {busy ? <CircularProgress aria-label="Loading" size={12} color="inherit" /> : "Keep"}
                                 </Button>
                               </span>
                             </Tooltip>
@@ -622,7 +623,7 @@ export default function SurfaceFormsPage() {
                                   onClick={() => handleRemoveMapping(d.normalized, m.concept_id)}
                                   disabled={anyBusy}
                                 >
-                                  {busy ? <CircularProgress size={12} color="inherit" /> : "Remove"}
+                                  {busy ? <CircularProgress aria-label="Loading" size={12} color="inherit" /> : "Remove"}
                                 </Button>
                               </span>
                             </Tooltip>
@@ -653,14 +654,15 @@ export default function SurfaceFormsPage() {
             size="small"
             fullWidth
             autoFocus
-          placeholder="Concept name, SNOMED code, or Read code…"
+            placeholder="Concept name, SNOMED code, or Read code…"
             value={addConceptQuery}
             onChange={(e) => handleAddConceptSearch(e.target.value)}
+            aria-label="Search for SNOMED concept by name, code, or Read code"
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
                   {addConceptSearching
-                    ? <CircularProgress size={14} />
+                    ? <CircularProgress aria-label="Loading" size={14} />
                     : <SearchIcon fontSize="small" color="action" />}
                 </InputAdornment>
               ),
@@ -696,7 +698,7 @@ export default function SurfaceFormsPage() {
       {/* ── Concept groups ───────────────────────────────────── */}
       {loading && groups.length === 0 ? (
         <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
-          <CircularProgress />
+          <CircularProgress aria-label="Loading" />
         </Box>
       ) : groups.length === 0 ? (
         <Paper variant="outlined" sx={{ p: 4, textAlign: "center" }}>
@@ -747,19 +749,21 @@ export default function SurfaceFormsPage() {
                   <Tooltip title="Suggest more aliases using AI">
                     <span>
                       <IconButton
+                        aria-label="Suggest more aliases using AI"
                         size="small"
                         color="primary"
                         onClick={() => handleSuggest(group.concept_id)}
                         disabled={suggestingFor === group.concept_id}
                       >
                         {suggestingFor === group.concept_id
-                          ? <CircularProgress size={16} />
+                          ? <CircularProgress aria-label="Loading" size={16} />
                           : <AutoAwesomeIcon fontSize="small" />}
                       </IconButton>
                     </span>
                   </Tooltip>
                   <Tooltip title="Delete this concept and all its aliases">
                     <IconButton
+                      aria-label="Delete this concept and all its aliases"
                       size="small"
                       color="error"
                       onClick={() => setDeleteTarget(group)}
@@ -787,7 +791,7 @@ export default function SurfaceFormsPage() {
                     }
                     deleteIcon={
                       deletingAlias === sf.normalized
-                        ? <CircularProgress size={12} />
+                        ? <CircularProgress aria-label="Loading" size={12} />
                         : undefined
                     }
                     title={`${sf.normalized}${sf.source ? ` · ${sf.source}` : ""}${sf.confidence != null ? ` · ${(sf.confidence * 100).toFixed(0)}%` : ""}`}
@@ -825,23 +829,26 @@ export default function SurfaceFormsPage() {
                         onChange={(e) => handleAliasInputChange(e.target.value, group.concept_id)}
                         onKeyDown={(e) => handleAliasKeyDown(e, group.concept_id)}
                         disabled={aliasAdding}
+                        aria-label="Add alias for this concept"
                         sx={{ flex: 1 }}
                         inputProps={{ style: { fontSize: "0.8rem", padding: "4px 8px" } }}
                       />
                       <Tooltip title="Confirm (Enter)">
                         <span>
                           <IconButton
+                            aria-label="Confirm add alias"
                             size="small"
                             color="primary"
                             onClick={() => handleAddAlias(group.concept_id)}
                             disabled={aliasAdding || !addAliasInput.trim()}
                           >
-                            {aliasAdding ? <CircularProgress size={14} /> : <CheckIcon fontSize="small" />}
+                            {aliasAdding ? <CircularProgress aria-label="Loading" size={14} /> : <CheckIcon fontSize="small" />}
                           </IconButton>
                         </span>
                       </Tooltip>
                       <Tooltip title="Cancel (Esc)">
                         <IconButton
+                          aria-label="Cancel add alias"
                           size="small"
                           onClick={() => { setAddAliasFor(null); setAddAliasInput(""); setAliasConflict(null); }}
                           disabled={aliasAdding}
@@ -924,7 +931,7 @@ export default function SurfaceFormsPage() {
             variant="contained"
             disabled={deleting}
           >
-            {deleting ? <CircularProgress size={16} color="inherit" /> : "Delete"}
+            {deleting ? <CircularProgress aria-label="Loading" size={16} color="inherit" /> : "Delete"}
           </Button>
         </DialogActions>
       </Dialog>

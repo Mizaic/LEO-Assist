@@ -4,7 +4,7 @@
 
 - id: "VT-LEO-AI-018"
   version: "1.0"
-  status: "draft"
+  status: "passed"
 
   traceability:
     design_inputs: ["DI-LEO-AI-029"]
@@ -19,6 +19,8 @@
     safety_class: "A"
     automation_status: "automated"
     automation_framework: "pytest"
+    test_file_paths:
+      - "tests/test_performance_sla.py"
     created_by: "Quality Engineer"
     created_date: "2026-03-01"
 
@@ -114,4 +116,14 @@
     retention_period: "7 years"
     immutability: true
 
-  execution_history: []
+  execution_history:
+    - execution_id: "VT-018-EXEC-001"
+      date: "2026-03-03"
+      executor: "automated_ci"
+      environment: "development"
+      result: "pass"
+      cases_executed: 7
+      cases_passed: 7
+      cases_failed: 0
+      duration_seconds: 2
+      notes: "All 7 test cases passed (pytest VT-LEO-AI-018)"

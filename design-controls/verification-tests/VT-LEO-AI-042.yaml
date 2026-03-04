@@ -1,0 +1,157 @@
+# -- VT-LEO-AI-042 -- LLM Alias Suggestion Endpoint Verification
+# IEC 62304 Verification Test Protocol
+# Schema: design-controls/templates/verification_test_schema.yaml
+
+- id: "VT-LEO-AI-042"
+  version: "1.0"
+  status: "pending"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-050"]
+    design_outputs: ["DO-LEO-AI-033"]
+    risks: ["R-LEO-AI-034"]
+    user_needs: []
+
+  metadata:
+    title: "LLM Alias Suggestion Endpoint Verification"
+    description: >
+      Verifies that POST /terminology/concepts/{concept_id}/suggest-aliases
+      returns valid alias suggestions, degrades gracefully on LLM failure,
+      returns 404 for unknown concepts, and — critically — transmits only
+      SNOMED concept metadata to the LLM with no patient data or PHI.
+      Also covers the UI acceptance gate (suggestions require explicit accept
+      before being written to the graph).
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "planned"
+    automation_framework: "pytest"
+    test_file_paths:
+      - "tests/test_suggest_aliases.py"
+    created_by: "Quality Engineer"
+    created_date: "2026-03-03"
+
+  test_environment:
+    environment_type: "ci_cd"
+    dependencies:
+      - name: "AWS Bedrock (Claude Haiku)"
+        version: "anthropic.claude-haiku-20240307-v1:0"
+        mock_in_ci: true
+    data_requirements:
+      - "Seeded Neo4j test graph with at least one active Concept node and two existing SurfaceForm aliases"
+
+  test_cases:
+
+    - id: "TC-042-001"
+      title: "Valid concept returns suggestions list"
+      priority: "high"
+      preconditions:
+        - "Concept node 73211009 (Diabetes mellitus) present in test graph"
+        - "LLM mock returns [\"DM\", \"T2DM\", \"insulin resistance\"]"
+      steps:
+        - "POST /terminology/concepts/73211009/suggest-aliases"
+      expected_result:
+        - "HTTP 200"
+        - "Response body: {concept_id: '73211009', suggestions: ['DM', 'T2DM', 'insulin resistance']}"
+        - "suggestions array contains only strings not already present in existing aliases (lowercased dedup)"
+      pass_criteria: "Response matches schema and suggestions list is non-empty"
+
+    - id: "TC-042-002"
+      title: "Graceful degradation on LLM failure"
+      priority: "critical"
+      preconditions:
+        - "Concept node 73211009 present"
+        - "LLM mock raises an exception (timeout or API error)"
+      steps:
+        - "POST /terminology/concepts/73211009/suggest-aliases"
+      expected_result:
+        - "HTTP 200 (not 500)"
+        - "Response body: {concept_id: '73211009', suggestions: []}"
+      pass_criteria: "Endpoint returns HTTP 200 with empty suggestions — page remains usable"
+
+    - id: "TC-042-003"
+      title: "Unknown concept_id returns 404"
+      priority: "high"
+      preconditions:
+        - "Concept DOES_NOT_EXIST absent from test graph"
+      steps:
+        - "POST /terminology/concepts/DOES_NOT_EXIST/suggest-aliases"
+      expected_result:
+        - "HTTP 404"
+        - "detail field present in response"
+      pass_criteria: "404 returned with descriptive error"
+
+    - id: "TC-042-004"
+      title: "LLM prompt contains no PHI or patient data fields"
+      priority: "critical"
+      preconditions:
+        - "Access to rendered LLM prompt string (captured via mock)"
+      steps:
+        - "Capture the prompt string passed to the LLM mock"
+        - "Assert that prompt does not contain: 'patient_id', 'nhs_number', 'dob', 'encounter_id', 'encounter_text', 'entity_text'"
+        - "Assert that prompt does contain: concept FSN text, semantic_tag, existing surface form examples"
+      expected_result:
+        - "No prohibited patient-data fields present in prompt"
+        - "Concept metadata (FSN, semantic tag) is present in prompt"
+      pass_criteria: "Privacy constraint satisfied — prompt contains only SNOMED metadata"
+
+    - id: "TC-042-005"
+      title: "Cypher GET_CONCEPT_FOR_SUGGESTION selects only concept metadata"
+      priority: "critical"
+      preconditions:
+        - "Import GET_CONCEPT_FOR_SUGGESTION from services.terminology_api.app.queries.terminology"
+      steps:
+        - "Inspect query string for prohibited patient-data fields"
+        - "Inspect query string for required concept metadata fields"
+      expected_result:
+        - "Query contains 'c.fsn', 'c.semantic_tag', 'collect(sf.form)'"
+        - "Query does NOT contain 'patient_id', 'nhs_number', 'encounter_id', 'encounter_text', 'entity_text', 'dob'"
+      pass_criteria: "Static analysis confirms no PHI fields referenced in query"
+
+    - id: "TC-042-006"
+      title: "Suggestions are deduplicated against existing aliases"
+      priority: "high"
+      preconditions:
+        - "Concept 73211009 has existing alias 'dm' (lowercased)"
+        - "LLM mock returns ['DM', 'T2DM', 'diabetes'] where 'DM' matches existing alias"
+      steps:
+        - "POST /terminology/concepts/73211009/suggest-aliases"
+      expected_result:
+        - "HTTP 200"
+        - "suggestions does NOT contain 'DM' or 'dm' (already exists)"
+        - "suggestions DOES contain 'T2DM' and 'diabetes'"
+      pass_criteria: "Suggestions list excludes aliases already present in graph"
+
+    - id: "TC-042-007"
+      title: "Empty LLM response returns empty suggestions list"
+      priority: "medium"
+      preconditions:
+        - "LLM mock returns empty JSON array []"
+      steps:
+        - "POST /terminology/concepts/73211009/suggest-aliases"
+      expected_result:
+        - "HTTP 200"
+        - "suggestions: []"
+      pass_criteria: "Empty LLM output handled gracefully"
+
+    - id: "TC-042-008"
+      title: "Suggestions capped at 10 items"
+      priority: "medium"
+      preconditions:
+        - "LLM mock returns a list of 15 suggestions"
+      steps:
+        - "POST /terminology/concepts/73211009/suggest-aliases"
+      expected_result:
+        - "HTTP 200"
+        - "suggestions array length <= 10"
+      pass_criteria: "Suggestions are capped at the maximum of 10"
+
+  acceptance_gate:
+    required_pass_rate: 100
+    critical_test_cases: ["TC-042-002", "TC-042-004", "TC-042-005"]
+    notes: >
+      TC-042-002 (graceful degradation) and TC-042-004/TC-042-005 (PHI privacy
+      verification) are non-negotiable PASS conditions. Failure of either blocks
+      release regardless of overall pass rate. The PHI constraint is a categorical
+      safety and privacy requirement — any failure must be treated as P0 and
+      escalated immediately.

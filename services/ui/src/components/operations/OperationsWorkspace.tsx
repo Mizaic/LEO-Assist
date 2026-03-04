@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Badge from "@mui/material/Badge";
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
@@ -87,9 +87,13 @@ interface Props {
 export default function OperationsWorkspace({ initialTab = "review" }: Props) {
   const [tab, setTab] = useState<TabKey>(initialTab);
   const [stats, setStats] = useState<QuickStats | null>(null);
+  const [statsError, setStatsError] = useState(false);
+  const statsFailCount = useRef(0);
 
   const refresh = useCallback(() => {
-    loadQuickStats().then(setStats).catch(() => {});
+    loadQuickStats()
+      .then((s) => { setStats(s); setStatsError(false); statsFailCount.current = 0; })
+      .catch(() => { statsFailCount.current += 1; if (statsFailCount.current >= 3) setStatsError(true); });
   }, []);
 
   useEffect(() => {
@@ -100,7 +104,15 @@ export default function OperationsWorkspace({ initialTab = "review" }: Props) {
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      const t = e.target as HTMLElement;
+      if (
+        t instanceof HTMLInputElement ||
+        t instanceof HTMLTextAreaElement ||
+        t instanceof HTMLSelectElement ||
+        t.isContentEditable ||
+        t.closest('[role="combobox"]')
+      )
+        return;
       const idx = parseInt(e.key, 10) - 1;
       if (idx >= 0 && idx < TAB_ORDER.length) {
         setTab(TAB_ORDER[idx]);
@@ -122,8 +134,8 @@ export default function OperationsWorkspace({ initialTab = "review" }: Props) {
           bgcolor: "background.paper",
           borderBottom: 1,
           borderColor: "divider",
-          px: 3,
-          py: 1.5,
+          px: { xs: 1.5, sm: 2.5 },
+          py: 1,
         }}
       >
         <Stack
@@ -160,6 +172,15 @@ export default function OperationsWorkspace({ initialTab = "review" }: Props) {
                   variant="outlined"
                 />
               </>
+            ) : statsError ? (
+              <Chip
+                label="Stats unavailable"
+                size="small"
+                color="error"
+                variant="outlined"
+                onClick={refresh}
+                clickable
+              />
             ) : (
               <>
                 <Skeleton width={100} height={24} />
@@ -214,7 +235,7 @@ export default function OperationsWorkspace({ initialTab = "review" }: Props) {
       </Box>
 
       {/* -- Content -------------------------------------------------------- */}
-      <Box sx={{ px: 3, py: 2.5, maxWidth: 960, mx: "auto" }}>
+      <Box sx={{ px: { xs: 1.5, sm: 2.5 }, py: 1.5, maxWidth: 960, mx: "auto" }}>
         <Box
           role="tabpanel"
           id={`ops-panel-${tab}`}

@@ -1,0 +1,72 @@
+# -- DO-LEO-AI-027 -- CodingMode Pipeline Routing
+# ISO 13485 / IEC 62304 Design Output
+# Schema: design-controls/templates/design_outputs_schema.yaml
+
+- id: "DO-LEO-AI-027"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-040"]
+    user_needs: ["UN-LEO-AI-002"]
+    risks_addressed: ["R-LEO-AI-001", "R-LEO-AI-026"]
+    verification_tests: ["VT-LEO-AI-025"]
+
+  specification:
+    title: "CodingMode Pipeline Routing"
+    description: |
+      CodingMode enum and pipeline integration that enables two operating
+      modes: HITL (human-in-the-loop, default) and AUTONOMOUS. The
+      CODING_MODE environment variable controls the mode, with invalid or
+      missing values defaulting to HITL as a fail-safe. In autonomous mode,
+      the pipeline writes CodingDecision audit nodes and filters out Tier 3
+      entities. In HITL mode, all entities route to the review queue.
+    acceptance_criteria:
+      - criterion: "HITL default"
+        type: "safety"
+        measurement: "Test"
+        target: "Missing or invalid CODING_MODE always defaults to HITL"
+      - criterion: "Tier integration"
+        type: "functional"
+        measurement: "Test"
+        target: "classify_tier called for every entity in payload"
+      - criterion: "Audit writes"
+        type: "regulatory"
+        measurement: "Test"
+        target: "One CodingDecision per entity in autonomous mode"
+      - criterion: "Exception safety"
+        type: "safety"
+        measurement: "Test"
+        target: "Neo4j write failures swallowed with logging"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/api/app/config.py"
+        description: "CodingMode enum and CODING_MODE env var parsing"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/coding_worker/app/pipeline/pipeline_service.py"
+        description: "Mode-aware _build_sentences_payload, _write_coding_decisions, Tier 3 filtering"
+        storage_location: "git"
+    technical_details:
+      language: "Python"
+      loc: 50
+      key_classes: ["CodingMode", "CodingPipeline"]
+      key_functions: ["get_settings", "_build_sentences_payload", "_write_coding_decisions"]
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Invalid CODING_MODE defaults to HITL -- never autonomous by accident"
+      - "CodingDecision write failures do not crash the pipeline"
+      - "Tier 3 entities excluded from graph in autonomous mode"
+    risk_control_measures:
+      - "Environment variable with safe HITL default"
+      - "Try/except around each Neo4j audit write"
+      - "Tier classification before any persistence"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: true

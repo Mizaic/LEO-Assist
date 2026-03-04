@@ -1,0 +1,174 @@
+# -- VT-LEO-AI-023 -- Three-Tier Decision Engine Verification
+# IEC 62304 Verification Test Protocol
+# Schema: design-controls/templates/verification_test_schema.yaml
+
+- id: "VT-LEO-AI-023"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-038"]
+    risks: ["R-LEO-AI-001", "R-LEO-AI-026"]
+    user_needs: ["UN-LEO-AI-002"]
+
+  metadata:
+    title: "Three-Tier Decision Engine Verification"
+    description: "Comprehensive verification of the tier classifier decision matrix covering all tier boundaries, assertion types, surface form statuses, disorder verdicts, context failure, mode-dependent decisions, threshold boundaries, and priority ordering"
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    test_file_paths:
+      - "tests/test_tier_classifier.py"
+
+  test_environment:
+    environment_type: "ci_cd"
+    prerequisites:
+      - "Python 3.12+ with project dependencies installed"
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-023-TC-001"
+      case_name: "Context failure always produces Tier 3"
+      priority: "critical"
+      preconditions:
+        - "context_failed=True, regardless of score or surface form status"
+      test_steps:
+        - step_number: 1
+          action: "Call classify_tier with context_failed=True, terminology_score=1.0, approved surface form"
+          expected_result: "Tier 3, reason=context_failure"
+          verification_method: "Assert tier, decision, reason for both autonomous and HITL modes"
+      acceptance_criteria:
+        - "Tier 3 in autonomous mode: decision=not_coded"
+        - "Tier 3 in HITL mode: decision=route_to_review"
+
+    - case_id: "VT-023-TC-002"
+      case_name: "Non-codeable assertions (absent, declined, hypothetical) always Tier 3"
+      priority: "critical"
+      preconditions:
+        - "assertion in {absent, declined, hypothetical}"
+      test_steps:
+        - step_number: 1
+          action: "Call classify_tier with each non-codeable assertion, high score, approved form"
+          expected_result: "Tier 3, reason=non_codeable_assertion"
+          verification_method: "Parametrized test across 3 assertion values x 2 modes"
+      acceptance_criteria:
+        - "All 6 combinations produce Tier 3"
+
+    - case_id: "VT-023-TC-003"
+      case_name: "Informational and uncertain disorder verdicts are Tier 3"
+      priority: "critical"
+      preconditions:
+        - "disorder_verdict in {informational, uncertain}"
+      test_steps:
+        - step_number: 1
+          action: "Call classify_tier with informational/uncertain disorder_verdict, high score"
+          expected_result: "Tier 3 with appropriate reason"
+          verification_method: "Assert tier and reason"
+      acceptance_criteria:
+        - "informational -> reason=informational"
+        - "uncertain -> reason=uncertain_assertion"
+
+    - case_id: "VT-023-TC-004"
+      case_name: "High score + present assertion = Tier 1 auto-code"
+      priority: "critical"
+      preconditions:
+        - "assertion=present, terminology_score>=0.95, no context failure"
+      test_steps:
+        - step_number: 1
+          action: "Call classify_tier with present assertion, score=0.96, approved surface form"
+          expected_result: "Tier 1, decision=auto_coded, reason=surface_form_match"
+          verification_method: "Assert tier, decision, reason"
+      acceptance_criteria:
+        - "Approved surface form: reason=surface_form_match"
+        - "No surface form: reason=high_confidence"
+
+    - case_id: "VT-023-TC-005"
+      case_name: "Threshold boundaries"
+      priority: "critical"
+      preconditions:
+        - "Scores at exact threshold values"
+      test_steps:
+        - step_number: 1
+          action: "Test score=0.95 (exactly at Tier 1), score=0.94 (just below), score=0.70 (Tier 2 boundary)"
+          expected_result: "0.95=Tier 1, 0.94=not Tier 1, 0.69=Tier 3"
+          verification_method: "Assert tier for each boundary value"
+      acceptance_criteria:
+        - "Exact threshold values handled correctly"
+
+    - case_id: "VT-023-TC-006"
+      case_name: "Historical and family assertions are Tier 2"
+      priority: "high"
+      preconditions:
+        - "assertion in {historical, family}"
+      test_steps:
+        - step_number: 1
+          action: "Call classify_tier with historical/family assertion"
+          expected_result: "Tier 2, reason=qualifier_assertion"
+          verification_method: "Parametrized test across 2 assertions x 2 modes"
+      acceptance_criteria:
+        - "Autonomous: decision=coded_with_flag"
+        - "HITL: decision=route_to_review"
+
+    - case_id: "VT-023-TC-007"
+      case_name: "Pending surface form is Tier 2"
+      priority: "high"
+      preconditions:
+        - "surface_form_status=pending, present assertion, medium score"
+      test_steps:
+        - step_number: 1
+          action: "Call classify_tier with pending surface form, score=0.85"
+          expected_result: "Tier 2, reason=pending_surface_form"
+          verification_method: "Assert tier, decision, reason"
+      acceptance_criteria:
+        - "Pending surface forms never reach Tier 1"
+
+    - case_id: "VT-023-TC-008"
+      case_name: "Tier 3 gates override Tier 1 signals (priority)"
+      priority: "critical"
+      preconditions:
+        - "High score and approved form BUT context_failed or bad assertion"
+      test_steps:
+        - step_number: 1
+          action: "Call classify_tier with perfect score but context_failure, then absent assertion, then informational disorder"
+          expected_result: "All three produce Tier 3 despite perfect score"
+          verification_method: "Assert tier == 3 for each case"
+      acceptance_criteria:
+        - "Safety gates always take priority over confidence signals"
+
+    - case_id: "VT-023-TC-009"
+      case_name: "TierDecision is frozen"
+      priority: "low"
+      preconditions: []
+      test_steps:
+        - step_number: 1
+          action: "Attempt to mutate a TierDecision attribute"
+          expected_result: "AttributeError raised"
+          verification_method: "pytest.raises(AttributeError)"
+      acceptance_criteria:
+        - "Tier decisions are immutable after creation"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 95% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["test_report", "code_coverage"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-023/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - execution_id: "VT-023-EXEC-001"
+      date: "2026-03-03"
+      executor: "automated_ci"
+      environment: "local"
+      result: "pass"
+      cases_executed: 28
+      cases_passed: 28
+      cases_failed: 0
+      duration_seconds: 1
+      notes: "All 28 tests pass (pytest tests/test_tier_classifier.py)"

@@ -4,7 +4,7 @@
 
 - id: "VT-LEO-AI-006"
   version: "1.0"
-  status: "draft"
+  status: "passed"
 
   traceability:
     design_inputs: ["DI-LEO-AI-008", "DI-LEO-AI-024", "DI-LEO-AI-025"]
@@ -23,7 +23,8 @@
     safety_class: "B"
     automation_status: "automated"
     automation_framework: "pytest"
-    test_file_path: "tests/integration/test_guideline_compliance.py"
+    test_file_paths:
+      - "tests/test_safety_net_detector.py"
     created_by: "Quality Engineer"
     created_date: "2026-03-01"
 
@@ -123,4 +124,14 @@
     retention_period: "7 years"
     immutability: true
 
-  execution_history: []
+  execution_history:
+    - execution_id: "VT-006-EXEC-001"
+      date: "2026-03-03"
+      executor: "automated_ci"
+      environment: "development"
+      result: "pass"
+      cases_executed: 9
+      cases_passed: 9
+      cases_failed: 0
+      duration_seconds: 2
+      notes: "All 9 test cases passed (pytest VT-LEO-AI-006)"

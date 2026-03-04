@@ -97,6 +97,7 @@ export default function Leaderboard({
             value={playerName}
             onChange={(e) => setPlayerName(e.target.value)}
             maxLength={30}
+            aria-label="Player name"
             style={{
               flex: 1,
               background: "rgba(255,255,255,0.06)",
@@ -106,7 +107,6 @@ export default function Leaderboard({
               padding: "5px 10px",
               fontSize: 12,
               fontFamily: "var(--font-mono, monospace)",
-              outline: "none",
             }}
             onKeyDown={(e) => {
               if (e.key === "Enter" && playerName.trim()) setEditing(false);
@@ -114,6 +114,8 @@ export default function Leaderboard({
           />
           {editing && (
             <button
+              type="button"
+              aria-label="Save player name"
               onClick={() => setEditing(false)}
               style={{
                 background: "#4f46e5",
@@ -134,6 +136,8 @@ export default function Leaderboard({
       {/* Submit score */}
       {gameOver && currentScore > 0 && nameSet && !submitted && (
         <button
+          type="button"
+          aria-label={`Submit score of ${currentScore}`}
           onClick={handleSubmit}
           disabled={submitting}
           style={{
@@ -190,6 +194,8 @@ export default function Leaderboard({
           </span>
           {nameSet && !editing && (
             <button
+              type="button"
+              aria-label={`Edit player name, currently ${playerName}`}
               onClick={() => setEditing(true)}
               style={{
                 background: "none",

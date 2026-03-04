@@ -1,0 +1,245 @@
+# -- R-LEO-AI-032 -- Dual-Provider LLM Data Exposure (UK GDPR Article 35)
+# ISO 14971 / IEC 62304 / UK GDPR Risk
+# Schema: design-controls/templates/risks_schema.yaml
+# Threat model reference: DC-TM-SEC-002 CONS-I-001, GAP-017
+
+- id: "R-LEO-AI-032"
+  title: "Clinical text (PHI) exposed to multiple external LLM providers without confirmed Data Processing Agreements"
+
+  hazard:
+    description: >
+      The dual-model consensus engine sends clinical encounter text
+      (entity_text + encounter_text, up to 2200 characters per call) to
+      AWS Bedrock and Azure OpenAI in parallel. When the two providers
+      disagree, a third call is made to AWS Sonnet. This means up to three
+      external API calls per clinical entity per encounter, each carrying
+      patient-identifiable information from NHS GP records.
+    category: "data_protection"
+
+  hazardous_situation: >
+    (a) The encounter text sent to LLM providers may contain residual PHI
+        that the de-identification pass (libs/deid) did not catch (GAP-008:
+        known regex gaps for uncommon PHI formats). This PHI is transmitted
+        to up to three external cloud services: AWS Bedrock in eu-west-2
+        (London, UK — domestic, no transfer) and Azure OpenAI in Sweden
+        Central (international transfer, lawful under UK adequacy regulations
+        for EEA). No data is transmitted to the United States.
+
+    (b) The Data Processing Agreements (DPAs) with AWS and Azure confirm
+        that clinical data is not used to train foundation models, but the
+        DPAs have not been reviewed against the expanded triple-call pattern.
+        Specifically: on arbitration, the third call goes to AWS Sonnet
+        (still eu-west-2) — this must be explicitly confirmed as covered
+        by the AWS DPA. A gap in DPA coverage for the arbitration call
+        could constitute a UK GDPR Article 28 breach.
+
+    (c) A UK GDPR Article 35 Data Protection Impact Assessment (DPIA) has
+        not been completed for the dual-provider consensus pattern. The NHS
+        Data Security and Protection Toolkit (DSPT) requires a DPIA for
+        new processing activities involving patient data.
+
+    (d) No per-call PHI audit log is maintained for LLM provider calls.
+        In the event of a data breach, it is not possible to determine which
+        patient records were transmitted to which provider at what time.
+
+    (e) The UK → Sweden transfer (Azure OpenAI) is an international transfer
+        under UK GDPR and must be recorded in the Records of Processing
+        Activities (RoPA) with the Article 45 adequacy basis cited. If the
+        UK's adequacy decision for the EEA is ever revoked or the Azure
+        deployment region changes, a UK IDTA or SCCs would be required.
+
+  harm:
+    description: >
+      (a) UK GDPR Article 35 non-compliance: processing special category
+          health data without a completed DPIA is a regulatory violation
+          subject to ICO investigation and potential fine.
+      (b) Patient confidentiality breach: PHI transmitted to external LLM
+          providers without adequate contractual protection could be retained,
+          logged, or accessed by the provider in ways not permitted by the DPA.
+      (c) NHS DSPT non-compliance: failure to document and assess the new
+          processing activity could cause LEO AI to fail the annual DSPT
+          submission.
+    severity: "serious"
+
+  initial_risk_estimate:
+    severity: 4
+    probability: 2
+    detectability: 4
+    rpn: 32
+    risk_level: "high"
+
+  mitigation_measures:
+    - control_type: "protective_measure"
+      description: >
+        De-identification pass: libs/deid processes all encounter text before
+        any LLM call, redacting NHS numbers, postcodes, phone numbers, dates
+        of birth, and configurable local organisation names. Reduces PHI
+        volume transmitted to providers.
+      implemented_by: ["DI-LEO-AI-013"]
+      verified_by: []
+      effectiveness: "effective"
+
+    - control_type: "protective_measure"
+      description: >
+        Input length limits: sanitise_for_prompt() sanitises and caps
+        encounter_text to 16000 characters (~4 A4 pages) and entity_text
+        to 200 characters before transmission, limiting the size of each
+        PHI disclosure while preserving full clinical context.
+      implemented_by: ["DI-LEO-AI-045"]
+      verified_by: ["VT-LEO-AI-038"]
+      effectiveness: "partially_effective"
+
+    - control_type: "protective_measure"
+      description: >
+        UK data residency confirmed for AWS Bedrock: all three model ARNs
+        (Haiku, Sonnet, Opus) are pinned to eu-west-2 (London, UK) using
+        the eu.anthropic.* cross-region inference profile. No data leaves
+        the UK for AWS processing. No Article 46 international transfer
+        mechanism is required for this provider.
+      implemented_by: ["infra/bicep/modules/container-apps.bicep"]
+      verified_by: []
+      effectiveness: "highly_effective"
+
+    - control_type: "protective_measure"
+      description: >
+        Azure OpenAI hosted in Sweden Central (eu-ai-models.openai.azure.com).
+        UK → Sweden is an international transfer under UK GDPR, but is
+        lawful without SCCs or a UK IDTA because Sweden (EEA) is covered
+        by The Data Protection (Adequacy) (European Union) Regulations 2021,
+        which grants the EEA adequate status under UK GDPR Article 45.
+        This transfer must be documented in the DPIA and the Article 45
+        adequacy basis recorded in the Records of Processing Activities (RoPA).
+      implemented_by: ["infra/bicep/modules/container-apps.bicep"]
+      verified_by: []
+      effectiveness: "highly_effective"
+
+    - control_type: "protective_measure"
+      description: >
+        AWS Bedrock Enterprise DPA: AWS contractually commits that customer
+        content is not used to train or improve Amazon Bedrock foundation
+        models. DPA covers Claude models (Haiku, Sonnet, Opus). DPA review
+        (DPA-REVIEW-001) required to confirm coverage of the triple-call
+        arbitration pattern.
+      implemented_by: []
+      verified_by: []
+      effectiveness: "effective"
+
+    - control_type: "protective_measure"
+      description: >
+        Azure OpenAI Enterprise DPA: Microsoft contractually commits that
+        customer data processed by Azure OpenAI is not used to train or
+        improve OpenAI models. DPA covers GPT-5 mini. DPA review
+        (DPA-REVIEW-001) required to confirm coverage of the arbitration
+        (third-call to Sonnet on AWS) use case.
+      implemented_by: []
+      verified_by: []
+      effectiveness: "effective"
+
+    - control_type: "procedural_control"
+      description: >
+        DPIA REQUIRED (open action): conduct a UK GDPR Article 35 Data
+        Protection Impact Assessment for the dual-provider triple-call
+        consensus pattern. DPIA must cover: processing purposes, necessity
+        and proportionality, risks to data subjects, and DPA adequacy for
+        all three providers and call modes.
+      implemented_by: []
+      verified_by: []
+      effectiveness: "pending"
+      open_action: "DPIA-001"
+      target_date: "2026-06-01"
+
+    - control_type: "procedural_control"
+      description: >
+        DPA review REQUIRED (open action): review AWS Bedrock and Azure
+        OpenAI DPAs specifically for: (a) the arbitration (third-call to
+        Sonnet) use case, (b) data residency (ensure EU/UK regions used),
+        (c) sub-processor disclosure obligations, (d) breach notification
+        timelines compatible with NHS DSPT requirements.
+      implemented_by: []
+      verified_by: []
+      effectiveness: "pending"
+      open_action: "DPA-REVIEW-001"
+      target_date: "2026-05-01"
+
+    - control_type: "procedural_control"
+      description: >
+        Per-call PHI audit REQUIRED (open action): implement structured
+        logging of LLM API calls with: timestamp, provider, model_id,
+        entity_text length, encounter_text length (not content), patient_id
+        hash. Enables post-incident forensics without logging PHI content.
+      implemented_by: []
+      verified_by: []
+      effectiveness: "pending"
+      open_action: "LOG-LLM-CALLS-001"
+      target_date: "2026-05-15"
+
+  residual_risk_estimate:
+    severity: 4
+    probability: 1
+    detectability: 2
+    rpn: 8
+    risk_level: "low"
+    acceptability: "conditionally_acceptable"
+    justification: >
+      Confirmed UK/EEA data residency (AWS eu-west-2 London; Azure Sweden
+      Central) eliminates the international transfer risk that was the primary
+      concern. All clinical data remains within the UK or EEA at all times.
+      De-identification reduces residual PHI in transmissions and provider
+      DPAs prohibit training use. Probability is now low, as the main
+      pathways to harm (cross-border transfer without adequate safeguards,
+      provider training on patient data) are controlled. Two open actions
+      remain before this risk is fully closed: DPIA completion (DPIA-001)
+      and per-call PHI audit log (LOG-LLM-CALLS-001). The risk is
+      conditionally acceptable pending those actions, provided LEO AI
+      remains in evaluation/pilot scope. The DPIA must be completed before
+      production rollout to additional GP practices.
+
+  monitoring:
+    monitoring_plan: >
+      Track open actions DPIA-001, DPA-REVIEW-001, LOG-LLM-CALLS-001 to
+      completion. Monitor LLM API call volumes and error rates. Review DPA
+      adequacy annually or whenever the LLM provider changes its terms of
+      service. Track de-identification coverage metrics (GAP-008).
+    metrics:
+      - "DPIA completion status (target: complete before production rollout)"
+      - "DPA review completion status (target: complete by 2026-05-01)"
+      - "PHI audit log implementation status (target: complete by 2026-05-15)"
+      - "De-identification coverage: PHI-containing entities reaching LLM (target: < 1%)"
+      - "LLM provider DPA annual review status"
+      - "UK adequacy decision for EEA status (monitor for revocation or amendment)"
+      - "Azure OpenAI region configuration — alert if endpoint region changes from Sweden Central"
+      - "RoPA entry for UK → Sweden transfer present and current"
+    review_frequency: "Monthly until DPIA complete; then quarterly"
+
+  metadata:
+    identified_by: "Threat Model DC-TM-SEC-002 (CONS-I-001, GAP-017)"
+    identified_date: "2026-03-03"
+    status: "analyzed"
+    dpo_notification_required: true
+    open_actions:
+      - id: "DPIA-001"
+        description: "Complete UK GDPR Article 35 DPIA for dual-provider LLM consensus"
+        owner: "DPO / Product Manager"
+        target_date: "2026-06-01"
+        status: "open"
+      - id: "DPA-REVIEW-001"
+        description: "Review AWS and Azure DPAs for triple-call arbitration pattern. Note: international transfer risk eliminated (AWS eu-west-2 UK, Azure Sweden EEA). Focus is on confirming arbitration call to Sonnet is covered by the AWS DPA."
+        owner: "Legal / DPO"
+        target_date: "2026-05-01"
+        status: "open"
+      - id: "LOG-LLM-CALLS-001"
+        description: "Implement per-call PHI audit log for LLM provider calls"
+        owner: "Engineering"
+        target_date: "2026-05-15"
+        status: "open"
+
+  tags:
+    - "security"
+    - "data-protection"
+    - "gdpr"
+    - "dpia-required"
+    - "dspt"
+    - "llm-data-exposure"
+    - "dual-provider"
+    - "phi"
+    - "open-actions"

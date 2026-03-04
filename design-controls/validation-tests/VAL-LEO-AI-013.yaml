@@ -1,0 +1,99 @@
+# -- VAL-LEO-AI-013 -- Safety Layer Calibration via HITL Override Rates
+# IEC 62304 Validation Test Protocol
+# Schema: design-controls/templates/validation_test_schema.yaml
+
+- id: "VAL-LEO-AI-013"
+  version: "1.0"
+  status: "draft"
+
+  traceability:
+    user_needs: ["UN-LEO-AI-002"]
+    design_inputs: ["DI-LEO-AI-036", "DI-LEO-AI-037", "DI-LEO-AI-038", "DI-LEO-AI-040"]
+    risks: ["R-LEO-AI-026"]
+    verification_tests: ["VT-LEO-AI-021", "VT-LEO-AI-022", "VT-LEO-AI-023", "VT-LEO-AI-025"]
+
+  metadata:
+    title: "Safety Layer Calibration via HITL Reviewer Override Rates"
+    description: |
+      Post-deployment validation that the safety layer thresholds (Tier 1
+      >= 0.95, Tier 2 >= 0.70) are correctly calibrated against real
+      clinical data. Uses HITL reviewer decisions as ground truth.
+      A high reviewer override rate on Tier 1 decisions signals that the
+      auto-code threshold is too permissive and must be recalibrated.
+      A low Tier 2 override rate confirms the flag-for-review mechanism
+      is catching the right cases.
+    validation_phase: "post-deployment"
+    test_type: "calibration"
+    automation_level: "semi-automated"
+    participants:
+      user_type: "clinical_reviewer"
+      count: 3
+      selection_criteria: "Qualified clinical coders with >= 6 months system experience"
+
+  test_environment:
+    environment_name: "production"
+    prerequisites:
+      - "CODING_MODE=hitl in production environment"
+      - "Tier fields (decision_tier, tier_reason) written to CodingReview nodes"
+      - "reviewer_tier_override tracked on all resolved items"
+      - "At least 500 items with tier classification resolved by human reviewers"
+
+  acceptance_criteria:
+    - criterion: "Tier 1 reviewer override rate"
+      target: "< 5%"
+      measurement: "COUNT(resolved items where reviewer_tier_override=true AND decision_tier=1) / COUNT(resolved Tier 1 items)"
+      rationale: "More than 5% Tier 1 overrides indicates the auto-code threshold is too permissive"
+    - criterion: "Tier 2 flag rate appropriateness"
+      target: "Between 30% and 70% of Tier 2 items accepted as correct by reviewer"
+      measurement: "Reviewer accepts auto-suggestion vs overrides for Tier 2 items"
+      rationale: "Too few confirms = threshold too low (flagging obvious items); too many = threshold too high (missing ambiguous ones)"
+    - criterion: "Tier 3 false block rate"
+      target: "< 10% of Tier 3 items subsequently coded by reviewer through override"
+      measurement: "COUNT(Tier 3 items with reviewer_tier_override=true) / COUNT(resolved Tier 3 items)"
+      rationale: "High false block rate indicates Tier 3 gates are blocking codeable items"
+
+  user_scenarios:
+    - scenario_id: "VAL-013-SCENARIO-001"
+      scenario_name: "Tier badge aids reviewer decision"
+      user_role: "Clinical Coder"
+      steps:
+        - step_number: 1
+          action: "Open the review queue. Observe the Tier badge on each item."
+          expected_result: "Each item shows Tier 1, 2, or 3 badge with plain-language reason"
+          success_criteria: "Reviewer understands why the item is in the queue from the badge alone"
+        - step_number: 2
+          action: "Review a Tier 1 item (pre-accepted suggestion visible)"
+          expected_result: "Pre-accepted concept shown. Reviewer accepts or overrides."
+          success_criteria: "Reviewer makes decision in < 30 seconds on Tier 1 items"
+        - step_number: 3
+          action: "Review a Tier 2 item (audit-flagged for review)"
+          expected_result: "Best match shown with tier reason. Reviewer verifies."
+          success_criteria: "Tier reason helps reviewer understand why review is needed"
+        - step_number: 4
+          action: "Review a Tier 3 item (safety gate blocked)"
+          expected_result: "Tier 3 reason shown. Reviewer can override if clinical context warrants."
+          success_criteria: "Reviewer understands the gate reason and can override with a comment"
+
+    - scenario_id: "VAL-013-SCENARIO-002"
+      scenario_name: "Override rate monitoring triggers recalibration"
+      user_role: "Quality Lead"
+      steps:
+        - step_number: 1
+          action: "Review the safety layer calibration report after 500+ resolved items"
+          expected_result: "Override rates per tier displayed with trend"
+          success_criteria: "If Tier 1 override rate >= 5%, a recalibration alert is raised"
+        - step_number: 2
+          action: "Adjust Tier 1 threshold (e.g. 0.95 -> 0.97) and re-run pipeline on held-out cohort"
+          expected_result: "Override rate drops below threshold"
+          success_criteria: "Calibration cycle completes within one sprint"
+
+  evidence_bundle:
+    bundle_id: "VAL-013-EXEC-PLACEHOLDER"
+    blob_path: "/evidence-bundles/LEO-AI/validation/VAL-LEO-AI-013/"
+    immutability: true
+    evidence_types:
+      - "Tier override rate report (Neo4j query output)"
+      - "Reviewer session logs"
+      - "Calibration decision log (any threshold changes)"
+
+  execution_history: []

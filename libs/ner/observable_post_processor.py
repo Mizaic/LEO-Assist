@@ -25,16 +25,40 @@ def _collapse_ws(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
-def _find_nearest_start(encounter_text: str, span_text: str, around: int = 0) -> int | None:
+def _find_nearest_start(
+    encounter_text: str,
+    span_text: str,
+    around: int = 0,
+    existing_entities: list[dict[str, Any]] | None = None,
+) -> int | None:
     if not span_text:
         return None
+
+    def _overlaps_existing(candidate: int) -> bool:
+        if not existing_entities:
+            return False
+        cand_end = candidate + len(span_text)
+        for e in existing_entities:
+            es = int(e.get("start", 0) or 0)
+            ee = int(e.get("end", 0) or 0)
+            if candidate < ee and cand_end > es:
+                return True
+        return False
+
+    def _best(positions: list[int]) -> int | None:
+        ranked = sorted(positions, key=lambda p: abs(p - around))
+        for p in ranked:
+            if not _overlaps_existing(p):
+                return p
+        return ranked[0] if ranked else None
+
     positions: list[int] = []
     pos = encounter_text.find(span_text)
     while pos != -1:
         positions.append(pos)
         pos = encounter_text.find(span_text, pos + 1)
     if positions:
-        return min(positions, key=lambda p: abs(p - around))
+        return _best(positions)
 
     hay = encounter_text.lower()
     needle = span_text.lower()
@@ -44,7 +68,7 @@ def _find_nearest_start(encounter_text: str, span_text: str, around: int = 0) ->
         positions.append(pos)
         pos = hay.find(needle, pos + 1)
     if positions:
-        return min(positions, key=lambda p: abs(p - around))
+        return _best(positions)
     return None
 
 
@@ -134,10 +158,14 @@ def normalize_observable_entities(
 
         value_span = parsed.get("value_span", "")
         if value_span:
-            # Keep only the test-name segment before first numeric value+unit.
             value_pos = stripped.lower().find(value_span.lower())
             if value_pos > 0:
                 stripped = _collapse_ws(stripped[:value_pos].strip(" -:;,"))
+            elif value_pos == 0:
+                after = stripped[len(value_span):]
+                after_clean = _collapse_ws(after.strip(" -:;,"))
+                if after_clean:
+                    stripped = after_clean
 
         if stripped:
             ent["text"] = stripped
@@ -155,7 +183,7 @@ def normalize_observable_entities(
             if value_start is not None:
                 duplicate = any(
                     str(e.get("label", "")) == "qualifier_value"
-                    and _collapse_ws(str(e.get("text", ""))) == value_span
+                    and _collapse_ws(str(e.get("text", ""))).lower().strip() == value_span.lower().strip()
                     for e in updated + extras
                 )
                 if not duplicate:

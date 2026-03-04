@@ -375,7 +375,7 @@ function AskLeoPanel({
 
       {busy && (
         <Stack direction="row" alignItems="center" gap={1} sx={{ py: 0.5 }}>
-          <CircularProgress size={14} />
+          <CircularProgress aria-label="Loading" size={14} />
           <Typography variant="body2" color="text.secondary">{STEP_LABELS[step]}</Typography>
         </Stack>
       )}
@@ -749,7 +749,7 @@ export default function TermSearch({
 
         {loading && (
           <Box sx={{ display: "flex", alignItems: "center", gap: 1, py: 2, px: 1 }}>
-            <CircularProgress size={18} />
+            <CircularProgress aria-label="Loading" size={18} />
             <Typography variant="body2" color="text.secondary">Searching...</Typography>
           </Box>
         )}

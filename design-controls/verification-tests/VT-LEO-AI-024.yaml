@@ -1,0 +1,126 @@
+# -- VT-LEO-AI-024 -- CodingDecision Audit Trail Verification
+# IEC 62304 Verification Test Protocol
+# Schema: design-controls/templates/verification_test_schema.yaml
+
+- id: "VT-LEO-AI-024"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-039"]
+    risks: ["R-LEO-AI-026"]
+    user_needs: ["UN-LEO-AI-002"]
+
+  metadata:
+    title: "CodingDecision Audit Trail Verification"
+    description: "Validates the structural correctness of CodingDecision Cypher queries: MERGE idempotency, timestamp handling, parameter completeness, field coverage, ordering, aggregation, and audit flag filtering"
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    test_file_paths:
+      - "tests/test_coding_decision_queries.py"
+
+  test_environment:
+    environment_type: "ci_cd"
+    prerequisites:
+      - "Python 3.12+ with project dependencies installed"
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-024-TC-001"
+      case_name: "UPSERT uses MERGE for idempotent writes"
+      priority: "critical"
+      preconditions: []
+      test_steps:
+        - step_number: 1
+          action: "Check UPSERT_CODING_DECISION query string for MERGE keyword"
+          expected_result: "Query contains MERGE"
+          verification_method: "String assertion"
+      acceptance_criteria:
+        - "MERGE present in query -- prevents duplicate audit records"
+
+    - case_id: "VT-024-TC-002"
+      case_name: "created_at set only on first create"
+      priority: "critical"
+      preconditions: []
+      test_steps:
+        - step_number: 1
+          action: "Check for ON CREATE SET d.created_at = datetime()"
+          expected_result: "Pattern present in query"
+          verification_method: "String assertion"
+      acceptance_criteria:
+        - "created_at immutable after initial write"
+
+    - case_id: "VT-024-TC-003"
+      case_name: "All 12 required parameters present"
+      priority: "critical"
+      preconditions: []
+      test_steps:
+        - step_number: 1
+          action: "Check all Cypher parameters ($decision_id, $encounter_id, etc.) present in query"
+          expected_result: "All 12 parameters found"
+          verification_method: "Parameterised assertion across all parameter names"
+      acceptance_criteria:
+        - "No missing parameters that would cause runtime Cypher errors"
+
+    - case_id: "VT-024-TC-004"
+      case_name: "GET query returns all audit fields"
+      priority: "high"
+      preconditions: []
+      test_steps:
+        - step_number: 1
+          action: "Check GET_CODING_DECISIONS_FOR_ENCOUNTER returns 11 named fields"
+          expected_result: "All audit fields present as named RETURN columns"
+          verification_method: "Assert 'AS field_name' for each expected field"
+      acceptance_criteria:
+        - "Complete audit record retrievable per encounter"
+
+    - case_id: "VT-024-TC-005"
+      case_name: "STATS query aggregates correctly"
+      priority: "high"
+      preconditions: []
+      test_steps:
+        - step_number: 1
+          action: "Check GET_CODING_DECISION_STATS groups by tier, decision, reason with count"
+          expected_result: "Aggregation query correctly structured"
+          verification_method: "String assertions for GROUP BY equivalent and count(d)"
+      acceptance_criteria:
+        - "Enables monitoring dashboard for decision distribution"
+
+    - case_id: "VT-024-TC-006"
+      case_name: "Audit flag count filters correctly"
+      priority: "high"
+      preconditions: []
+      test_steps:
+        - step_number: 1
+          action: "Check COUNT_AUDIT_FLAGGED filters by coded_with_flag and since date"
+          expected_result: "Both filters present"
+          verification_method: "String assertions"
+      acceptance_criteria:
+        - "Enables alerting when flagged decision count exceeds threshold"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["test_report"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-024/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - execution_id: "VT-024-EXEC-001"
+      date: "2026-03-03"
+      executor: "automated_ci"
+      environment: "local"
+      result: "pass"
+      cases_executed: 14
+      cases_passed: 14
+      cases_failed: 0
+      duration_seconds: 1
+      notes: "All 14 tests pass (pytest tests/test_coding_decision_queries.py)"

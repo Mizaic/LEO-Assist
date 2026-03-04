@@ -1,0 +1,325 @@
+{
+  "context_rules": [
+    {
+      "literal": "nil",
+      "category": "NEGATED_EXISTENCE",
+      "direction": "FORWARD",
+      "max_scope": 6,
+      "description": "Doctors use 'nil' as a shorthand for 'none' or 'nothing'. When it appears before a condition, it means the patient does NOT have that problem.",
+      "example": "nil chest pain → the patient has no chest pain"
+    },
+    {
+      "literal": "no evidence of",
+      "category": "NEGATED_EXISTENCE",
+      "direction": "FORWARD",
+      "max_scope": 6,
+      "description": "Means the doctor looked for something and could not find it. The condition was ruled out.",
+      "example": "no evidence of infection → no infection was found"
+    },
+    {
+      "literal": "no evidence",
+      "category": "NEGATED_EXISTENCE",
+      "direction": "FORWARD",
+      "max_scope": 6,
+      "description": "Similar to 'no evidence of' — the doctor checked and found nothing to suggest the condition is present.",
+      "example": "no evidence of spread → the cancer has not spread"
+    },
+    {
+      "literal": "fhx",
+      "category": "FAMILY",
+      "direction": "BIDIRECTIONAL",
+      "max_scope": 8,
+      "description": "Short for 'family history'. The condition is in a relative, not the patient. It should not be coded as the patient's own diagnosis.",
+      "example": "fhx breast cancer → a family member has breast cancer, not the patient"
+    },
+    {
+      "literal": "fh:",
+      "category": "FAMILY",
+      "direction": "BIDIRECTIONAL",
+      "max_scope": 8,
+      "description": "Another shorthand for 'family history' (written with a colon). The condition belongs to a relative, not the patient.",
+      "example": "FH: diabetes → a family member has diabetes"
+    },
+    {
+      "literal": "mum",
+      "category": "FAMILY",
+      "direction": "BIDIRECTIONAL",
+      "max_scope": 8,
+      "description": "Tells the system the note is about the patient's mother. Anything near this word should be linked to the mother, not coded to the patient.",
+      "example": "mum had bowel cancer → the patient's mother had bowel cancer, not the patient"
+    },
+    {
+      "literal": "dad",
+      "category": "FAMILY",
+      "direction": "BIDIRECTIONAL",
+      "max_scope": 8,
+      "description": "Tells the system the note is about the patient's father. Conditions near this word belong to the father, not the patient.",
+      "example": "dad had a stroke → the patient's father had a stroke"
+    },
+    {
+      "literal": "h/o",
+      "category": "HISTORICAL",
+      "direction": "FORWARD",
+      "max_scope": 8,
+      "description": "Short for 'history of'. The condition happened in the past and may no longer be active. It should be recorded as historical.",
+      "example": "h/o hypertension → the patient used to have high blood pressure"
+    },
+    {
+      "literal": "hx of",
+      "category": "HISTORICAL",
+      "direction": "FORWARD",
+      "max_scope": 8,
+      "description": "Another way of writing 'history of'. The condition is from the patient's past, not a current problem.",
+      "example": "hx of depression → the patient had depression before"
+    },
+    {
+      "literal": "awaiting",
+      "category": "HYPOTHETICAL",
+      "direction": "FORWARD",
+      "max_scope": 6,
+      "description": "The patient is waiting for something that has not happened yet. Do not code the procedure or diagnosis as complete.",
+      "example": "awaiting colonoscopy → the colonoscopy is booked but not done yet"
+    },
+    {
+      "literal": "booked for",
+      "category": "HYPOTHETICAL",
+      "direction": "FORWARD",
+      "max_scope": 6,
+      "description": "An appointment or procedure has been arranged but has not taken place yet.",
+      "example": "booked for cystoscopy → the procedure is scheduled, not yet done"
+    },
+    {
+      "literal": "waiting list",
+      "category": "HYPOTHETICAL",
+      "direction": "BIDIRECTIONAL",
+      "max_scope": 6,
+      "description": "The patient is in a queue for a procedure or appointment that has not happened yet.",
+      "example": "waiting list for hip replacement → the operation has not been done yet"
+    },
+    {
+      "literal": "2ww",
+      "category": "HYPOTHETICAL",
+      "direction": "FORWARD",
+      "max_scope": 6,
+      "description": "A Two-Week Wait cancer referral. The patient has been referred for investigation but has not yet been seen or diagnosed. This should never be coded as a confirmed cancer.",
+      "example": "2ww referral for lung → the patient is being investigated, not diagnosed"
+    },
+    {
+      "literal": "referred for",
+      "category": "HYPOTHETICAL",
+      "direction": "FORWARD",
+      "max_scope": 6,
+      "description": "The patient has been sent to another service but has not been seen yet. The referral is pending, not complete.",
+      "example": "referred for physiotherapy → physiotherapy has not started"
+    },
+    {
+      "literal": "referral for",
+      "category": "HYPOTHETICAL",
+      "direction": "FORWARD",
+      "max_scope": 6,
+      "description": "Same meaning as 'referred for' — a referral has been made but not yet acted on.",
+      "example": "referral for gastroscopy → the procedure has not happened yet"
+    },
+    {
+      "literal": "on waiting list",
+      "category": "HYPOTHETICAL",
+      "direction": "FORWARD",
+      "max_scope": 6,
+      "description": "Explicitly states the patient is in a queue for something that has not yet been done.",
+      "example": "on waiting list for knee surgery → surgery has not taken place"
+    },
+    {
+      "literal": "scheduled for",
+      "category": "HYPOTHETICAL",
+      "direction": "FORWARD",
+      "max_scope": 6,
+      "description": "Something has been planned and put in the diary, but it has not happened yet.",
+      "example": "scheduled for CT scan → the scan has not been done"
+    },
+    {
+      "literal": "planned",
+      "category": "HYPOTHETICAL",
+      "direction": "FORWARD",
+      "max_scope": 4,
+      "description": "Something is intended to happen in the future. It has not taken place yet and should not be coded as completed.",
+      "example": "planned hysterectomy → the operation has not been performed"
+    },
+    {
+      "literal": "declined",
+      "category": "DECLINED",
+      "direction": "BIDIRECTIONAL",
+      "max_scope": 8,
+      "description": "The patient said no. The procedure or treatment was offered but refused. It should not be coded as if it happened.",
+      "example": "declined colonoscopy → the patient refused; the procedure was not done"
+    },
+    {
+      "literal": "patient declined",
+      "category": "DECLINED",
+      "direction": "BIDIRECTIONAL",
+      "max_scope": 8,
+      "description": "The patient explicitly refused something that was offered to them.",
+      "example": "patient declined referral to oncology → the patient said no to the referral"
+    },
+    {
+      "literal": "pt declined",
+      "category": "DECLINED",
+      "direction": "BIDIRECTIONAL",
+      "max_scope": 8,
+      "description": "Short for 'patient declined' — the patient said no.",
+      "example": "pt declined further investigation → no further tests were done"
+    },
+    {
+      "literal": "patient declined to",
+      "category": "DECLINED",
+      "direction": "BIDIRECTIONAL",
+      "max_scope": 8,
+      "description": "The patient refused to do or undergo something.",
+      "example": "patient declined to undergo biopsy → the biopsy was not done"
+    },
+    {
+      "literal": "refused",
+      "category": "DECLINED",
+      "direction": "BIDIRECTIONAL",
+      "max_scope": 8,
+      "description": "The patient refused a treatment or investigation. It should not be coded as if the event took place.",
+      "example": "refused blood test → the patient said no; the test was not done"
+    },
+    {
+      "literal": "patient refused",
+      "category": "DECLINED",
+      "direction": "BIDIRECTIONAL",
+      "max_scope": 8,
+      "description": "The patient explicitly refused something that was offered.",
+      "example": "patient refused chemotherapy → chemotherapy was not given"
+    },
+    {
+      "literal": "did not want",
+      "category": "DECLINED",
+      "direction": "BIDIRECTIONAL",
+      "max_scope": 6,
+      "description": "The patient chose not to have something. It was their decision to decline.",
+      "example": "did not want colonoscopy → the patient chose not to have the procedure"
+    },
+    {
+      "literal": "not wanted",
+      "category": "DECLINED",
+      "direction": "BIDIRECTIONAL",
+      "max_scope": 6,
+      "description": "Something the patient has said they do not want. The treatment or investigation was not carried out.",
+      "example": "further treatment not wanted by patient"
+    },
+    {
+      "literal": "does not want",
+      "category": "DECLINED",
+      "direction": "BIDIRECTIONAL",
+      "max_scope": 6,
+      "description": "The patient does not wish to have something. They are actively choosing to decline.",
+      "example": "does not want referral at this time → no referral was made"
+    },
+    {
+      "literal": "declined treatment",
+      "category": "DECLINED",
+      "direction": "BIDIRECTIONAL",
+      "max_scope": 8,
+      "description": "The patient has specifically said no to a course of treatment.",
+      "example": "declined treatment with statins → statins were not prescribed"
+    },
+    {
+      "literal": "declined referral",
+      "category": "DECLINED",
+      "direction": "BIDIRECTIONAL",
+      "max_scope": 8,
+      "description": "The patient has said no to being referred to another service.",
+      "example": "declined referral to breast clinic → the patient was not referred"
+    },
+    {
+      "literal": "cancelled",
+      "category": "CANCELLED",
+      "direction": "BIDIRECTIONAL",
+      "max_scope": 6,
+      "description": "An appointment or treatment was cancelled before it happened. It should not be coded as completed.",
+      "example": "appointment cancelled → the patient was not seen"
+    },
+    {
+      "literal": "patient cancelled",
+      "category": "CANCELLED",
+      "direction": "FORWARD",
+      "max_scope": 6,
+      "description": "The patient themselves rang up and cancelled. The appointment did not happen.",
+      "example": "patient cancelled colonoscopy appointment → procedure not done"
+    },
+    {
+      "literal": "appointment cancelled",
+      "category": "CANCELLED",
+      "direction": "BIDIRECTIONAL",
+      "max_scope": 6,
+      "description": "The appointment was cancelled by any party. The event did not take place.",
+      "example": "appointment cancelled due to patient illness"
+    },
+    {
+      "literal": "did not attend",
+      "category": "CANCELLED",
+      "direction": "FORWARD",
+      "max_scope": 6,
+      "description": "The patient missed their appointment without cancelling. The consultation or procedure did not happen.",
+      "example": "did not attend clinic → no review took place"
+    },
+    {
+      "literal": "dna",
+      "category": "CANCELLED",
+      "direction": "FORWARD",
+      "max_scope": 4,
+      "allowed_types": [],
+      "description": "Short for 'Did Not Attend' — the patient missed an appointment. This is NHS shorthand and does not mean DNA (deoxyribonucleic acid). allowed_types=[] restricts firing to standalone usage only.",
+      "example": "DNA colonoscopy → the patient did not turn up; the procedure was not done"
+    },
+    {
+      "literal": "dna'd",
+      "category": "CANCELLED",
+      "direction": "BIDIRECTIONAL",
+      "max_scope": 4,
+      "description": "Past tense of DNA — the patient previously missed an appointment.",
+      "example": "dna'd last month → the patient missed their appointment last month"
+    },
+    {
+      "literal": "mentioning",
+      "category": "HISTORICAL",
+      "direction": "FORWARD",
+      "max_scope": 4,
+      "description": "A brief reference to something, often from the past. The condition may have been raised in passing rather than being a current issue.",
+      "example": "patient mentioning previous chest pain → past symptom, not a current complaint"
+    },
+    {
+      "literal": "background:",
+      "category": "HISTORICAL",
+      "direction": "FORWARD",
+      "max_scope": 10,
+      "description": "Information about the patient's past medical history. Conditions listed under 'Background:' are historical and may not be active now.",
+      "example": "Background: hypertension, T2DM → these are existing long-term conditions, not new diagnoses"
+    },
+    {
+      "literal": "reasons for request",
+      "category": "HYPOTHETICAL",
+      "direction": "FORWARD",
+      "max_scope": 8,
+      "description": "The clinical reason a referral or investigation is being requested. The condition listed here is suspected, not confirmed — the referral is to find out more.",
+      "example": "Reasons for request: possible colorectal cancer → this is a suspicion, not a diagnosis"
+    },
+    {
+      "literal": "clinical information:",
+      "category": "HYPOTHETICAL",
+      "direction": "FORWARD",
+      "max_scope": 8,
+      "description": "Background details provided to support a referral. The conditions mentioned are concerns or symptoms, not confirmed diagnoses.",
+      "example": "Clinical information: rectal bleeding, weight loss → these are symptoms prompting investigation"
+    },
+    {
+      "literal": "criteria:",
+      "category": "HYPOTHETICAL",
+      "direction": "BIDIRECTIONAL",
+      "max_scope": 6,
+      "description": "Eligibility criteria being checked for a referral or treatment. The condition is being considered as a possible reason, not confirmed.",
+      "example": "criteria: meets 2ww threshold for lung cancer referral → suspicion only, not a diagnosis"
+    }
+  ]
+}

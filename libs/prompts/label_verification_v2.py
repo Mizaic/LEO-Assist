@@ -65,8 +65,12 @@ Allowed labels:
 
 Decision ladder (apply in order):
 1) Document/admin artifact or correspondence phrase -> record_artifact or event
-2) Risk/pending/negated/excluded status statement -> situation
+2) Risk/pending/excluded status statement -> situation (NOT for negated entities — \
+negated entities keep their base clinical type per the negation rules below)
 3) Treatment action phrase (administered/commenced/performed) -> procedure
+4) Drug administration phrase (if span is the FULL administration phrase, e.g. \
+"Degarelix 240 mg SC injection administered") -> procedure. If the span is just \
+the drug name alone (e.g. "Degarelix") -> substance.
 5) Bare drug ingredient name -> substance
 6) Product/formulation/brand drug phrasing -> medicinal_product or clinical_drug or product
 7) Measured clinical parameter with value/unit -> observable_entity (test name only) + qualifier_value (value/unit token)

@@ -82,6 +82,7 @@ function PatientHeader({
       }}
     >
       <IconButton
+        aria-label={expanded ? "Collapse group" : "Expand group"}
         size="small"
         sx={{
           transform: expanded ? "rotate(180deg)" : "rotate(0deg)",

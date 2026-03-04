@@ -40,4 +40,7 @@ PATIENT_SCHEMA_CONSTRAINTS = [
 CODING_SCHEMA_CONSTRAINTS: list[str] = [
     'CREATE FULLTEXT INDEX surface_form_fulltext IF NOT EXISTS FOR (sf:SurfaceForm) ON EACH [sf.form]',
     "CREATE CONSTRAINT surface_form_normalized IF NOT EXISTS FOR (sf:SurfaceForm) REQUIRE sf.normalized IS UNIQUE",
+    "CREATE CONSTRAINT coding_decision_id IF NOT EXISTS FOR (d:CodingDecision) REQUIRE d.decision_id IS UNIQUE",
+    "CREATE INDEX coding_decision_encounter IF NOT EXISTS FOR (d:CodingDecision) ON (d.encounter_id)",
+    "CREATE INDEX coding_decision_decision IF NOT EXISTS FOR (d:CodingDecision) ON (d.decision)",
 ]

@@ -141,11 +141,11 @@ export default function MailPage() {
       <Box sx={{ px: 3, pt: 3, pb: 1.5, borderBottom: "1px solid", borderColor: "divider", bgcolor: "background.paper" }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 0.5 }}>
           <MailOutlineIcon color="primary" />
-          <Typography variant="h6" sx={{ fontWeight: 700 }}>
+          <Typography variant="h6" component="h1" sx={{ fontWeight: 700 }}>
             Support Mail
           </Typography>
           <Tooltip title="Refresh">
-            <IconButton size="small" onClick={load} disabled={loading}>
+            <IconButton aria-label="Refresh" size="small" onClick={load} disabled={loading}>
               <RefreshIcon fontSize="small" />
             </IconButton>
           </Tooltip>
@@ -204,7 +204,7 @@ export default function MailPage() {
           <Box sx={{ flex: 1, overflowY: "auto" }}>
             {loading && (
               <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
-                <CircularProgress size={28} />
+                <CircularProgress aria-label="Loading" size={28} />
               </Box>
             )}
             {!loading && visible.length === 0 && (
@@ -277,6 +277,7 @@ export default function MailPage() {
                     )}
                     <Tooltip title="Delete">
                       <IconButton
+                        aria-label="Delete message"
                         size="small"
                         onClick={(e) => { e.stopPropagation(); handleDelete(msg); }}
                         sx={{ p: 0.25 }}
@@ -295,7 +296,7 @@ export default function MailPage() {
         <Box sx={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
           {loadingDetail && (
             <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", flex: 1 }}>
-              <CircularProgress />
+              <CircularProgress aria-label="Loading" />
             </Box>
           )}
 

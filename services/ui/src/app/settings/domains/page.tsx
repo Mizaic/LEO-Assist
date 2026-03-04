@@ -74,7 +74,7 @@ export default function DomainsListPage() {
   return (
     <Box sx={{ p: 3, maxWidth: 1000, mx: "auto" }}>
       <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
-        <IconButton onClick={() => router.push("/settings")} size="small">
+        <IconButton aria-label="Back to settings" onClick={() => router.push("/settings")} size="small">
           <ArrowBackIcon />
         </IconButton>
         <Typography variant="h5" sx={{ fontWeight: 700 }}>
@@ -94,7 +94,7 @@ export default function DomainsListPage() {
 
       {loading ? (
         <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
-          <CircularProgress />
+          <CircularProgress aria-label="Loading" />
         </Box>
       ) : (
         <>

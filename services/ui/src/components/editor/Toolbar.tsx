@@ -209,7 +209,7 @@ export function Toolbar({
         )}
         <Button
           variant="contained"
-          startIcon={saving ? <CircularProgress size={16} color="inherit" /> : <SaveOutlined />}
+          startIcon={saving ? <CircularProgress aria-label="Loading" size={16} color="inherit" /> : <SaveOutlined />}
           onClick={handleSave}
           disabled={saving || !isDirty}
         >
@@ -240,10 +240,10 @@ function UndoRedoGroup({ undo, redo, canUndo, canRedo }: { undo: () => void; red
   return (
     <Box sx={{ display: 'flex', alignItems: 'center' }}>
       <Tooltip title="Undo (Ctrl+Z)">
-        <span><IconButton onClick={undo} disabled={!canUndo}><UndoOutlined /></IconButton></span>
+        <span><IconButton aria-label="Undo" onClick={undo} disabled={!canUndo}><UndoOutlined /></IconButton></span>
       </Tooltip>
       <Tooltip title="Redo (Ctrl+Y)">
-        <span><IconButton onClick={redo} disabled={!canRedo}><RedoOutlined /></IconButton></span>
+        <span><IconButton aria-label="Redo" onClick={redo} disabled={!canRedo}><RedoOutlined /></IconButton></span>
       </Tooltip>
     </Box>
   );
@@ -253,7 +253,7 @@ function ZoomGroup({ zoom, baseZoom, zoomIn, zoomOut, resetZoom }: { zoom: numbe
   return (
     <Box sx={{ display: 'flex', alignItems: 'center' }}>
       <Tooltip title="Zoom Out">
-        <span><IconButton onClick={zoomOut} disabled={zoom <= 0.25}><ZoomOutOutlined /></IconButton></span>
+        <span><IconButton aria-label="Zoom out" onClick={zoomOut} disabled={zoom <= 0.25}><ZoomOutOutlined /></IconButton></span>
       </Tooltip>
       <Tooltip title="Click to reset zoom">
         <Button variant="text" onClick={resetZoom} sx={{ minWidth: '50px', fontSize: '0.75rem', color: 'text.secondary' }}>
@@ -261,7 +261,7 @@ function ZoomGroup({ zoom, baseZoom, zoomIn, zoomOut, resetZoom }: { zoom: numbe
         </Button>
       </Tooltip>
       <Tooltip title="Zoom In">
-        <span><IconButton onClick={zoomIn} disabled={zoom >= 4}><ZoomInOutlined /></IconButton></span>
+        <span><IconButton aria-label="Zoom in" onClick={zoomIn} disabled={zoom >= 4}><ZoomInOutlined /></IconButton></span>
       </Tooltip>
     </Box>
   );
@@ -271,10 +271,10 @@ function GridGroup({ showGrid, snapToGrid, toggleGrid, toggleSnapToGrid }: { sho
   return (
     <Box sx={{ display: 'flex', alignItems: 'center' }}>
       <Tooltip title={showGrid ? 'Hide Grid' : 'Show Grid'}>
-        <IconButton onClick={toggleGrid} color={showGrid ? 'primary' : 'default'}><GridOnOutlined /></IconButton>
+        <IconButton aria-label={showGrid ? 'Hide grid' : 'Show grid'} onClick={toggleGrid} color={showGrid ? 'primary' : 'default'}><GridOnOutlined /></IconButton>
       </Tooltip>
       <Tooltip title={snapToGrid ? 'Disable Snap' : 'Enable Snap'}>
-        <IconButton onClick={toggleSnapToGrid} color={snapToGrid ? 'primary' : 'default'}><GridViewOutlined /></IconButton>
+        <IconButton aria-label={snapToGrid ? 'Disable snap to grid' : 'Enable snap to grid'} onClick={toggleSnapToGrid} color={snapToGrid ? 'primary' : 'default'}><GridViewOutlined /></IconButton>
       </Tooltip>
     </Box>
   );
@@ -379,7 +379,7 @@ function InterpretSection({ agentModelSize, onAgentModelSizeChange, onInterpretM
         </TextField>
       </Box>
       <Tooltip title="Interpret measures">
-        <Button variant="text" startIcon={agentBusy ? <CircularProgress size={16} /> : undefined} onClick={onInterpretMeasures} disabled={agentBusy || agentDisabled}>
+        <Button variant="text" startIcon={agentBusy ? <CircularProgress aria-label="Loading" size={16} /> : undefined} onClick={onInterpretMeasures} disabled={agentBusy || agentDisabled}>
           {agentBusy ? 'Running...' : 'Interpret'}
         </Button>
       </Tooltip>

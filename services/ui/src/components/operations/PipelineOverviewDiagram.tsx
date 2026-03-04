@@ -713,7 +713,7 @@ function DetailCard({
               />
             </Box>
           </Stack>
-          <IconButton size="small" onClick={onClose}>
+          <IconButton aria-label="Close" size="small" onClick={onClose}>
             <CloseIcon fontSize="small" />
           </IconButton>
         </Stack>

@@ -139,3 +139,32 @@ Quarterly review of problem reports to identify:
 |------|------|------|-----------|
 | Author | | | |
 | Quality Manager | | | |
+
+---
+
+## 9. Resolved Problem Records
+
+Formal records of resolved software problems, maintained here for IEC 62304 Clause 9 traceability in conjunction with the Jira ticket system.
+
+| ID | Category | Title | Root Cause | Fix Reference | Status | Date Resolved |
+|----|----------|-------|-----------|--------------|--------|---------------|
+| PR-2026-003 | P1 (Major) | Model inference `/reload` 500 error on startup — race condition in `ModelLoader.load_version()` | Concurrent lifespan handler + `_signal_reload()` both attempted Azure Blob download for the same model version, causing file-system collision and `BlobNotFound`. Absence of a serialisation lock meant two threads could enter the download path simultaneously. | DO-LEO-AI-033 (`services/model_inference/app/model_loader.py`, `services/model_inference/app/main.py`) | Closed | 2026-03-03 |
+
+### PR-2026-003 Detail
+
+| Field | Value |
+|-------|-------|
+| **ID** | PR-2026-003 |
+| **Category** | P1 — Major |
+| **Reported** | 2026-03-03 |
+| **Resolved** | 2026-03-03 |
+| **Affected component** | `services/model_inference` — `ModelLoader`, `/reload` endpoint |
+| **Symptom** | `POST /reload HTTP/1.1" 500 Internal Server Error`; `BlobNotFound` from Azure Storage SDK |
+| **Steps to reproduce** | 1. Start `model_inference` service cold with a canary model version set in Neo4j. 2. Immediately (within ~2 s of startup) trigger a `POST /reload` for the same version. |
+| **Root cause** | `ModelLoader.load_version()` had no mutual-exclusion lock. Two concurrent callers (lifespan handler + `/reload` handler) could both pass the `_active_version != version` guard, then both attempt to download and extract `model.tar.gz` from Azure Blob Storage. The second download arrived while the first extraction was still writing to the temp directory, causing the Azure SDK to report the blob as inaccessible and subsequent extraction to fail. |
+| **Safety impact** | None direct — model inference service was unavailable for the startup window only; no patient coding requests were served during the failed state. Audit trail unaffected. |
+| **Fix** | (1) Added `_load_lock = threading.Lock()` to `ModelLoader.__init__`. `load_version()` now acquires `_load_lock` before any download attempt, serialising concurrent callers. An idempotency re-check inside the lock means the second caller exits early if the first already completed the load. (2) Added an HTTP-layer fast-path to `POST /reload`: if `_loader.active_version == req.version`, the endpoint returns immediately without spawning a background task. |
+| **Tests** | VT-LEO-AI-038 (model hot-swap); PR regression test added to `tests/test_model_reload_race.py` (pending — see VT-LEO-AI-038 execution schedule) |
+| **Risk register** | No new hazard identified; residual risk is acceptable per existing risk controls. |
+| **Design output** | DO-LEO-AI-033 |
+| **Closed by** | Engineering |

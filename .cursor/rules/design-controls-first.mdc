@@ -1,0 +1,44 @@
+---
+description: Require reading design-controls before taking any action in this repo
+alwaysApply: true
+---
+
+# Design Controls — Read Before Acting
+
+Before making **any** code change, creating files, or implementing features, you MUST read the relevant design-controls artefacts to understand requirements, risks, and traceability obligations.
+
+## Step 0 — Classify the Change (Proportionality Gate)
+
+Before reading anything else, classify the change to determine which obligations apply.
+
+| Class | Description | Examples | Obligations |
+|---|---|---|---|
+| **Cosmetic** | No logic, no safety impact | CSS tweaks, copy changes, rename a variable | Read related DIs to confirm no overlap; no new artefacts required |
+| **Class A** | Non-safety-critical software item (IEC 62304 Class A) | Internal tooling, dev-only utilities, test helpers | Read DIs + risks; create DI/DO only if genuinely new capability |
+| **Class B** | Safety-relevant (IEC 62304 Class B) | Any clinical pipeline, API route, UI feature visible to clinical staff | **Full workflow** — DI, DO, Risk, VT, traceability matrix update all required |
+| **Class C** | Life-critical / irreversible harm potential | Autonomous coding decisions, safety gates, model thresholds | **Full workflow** + additional VAL required; escalate before proceeding |
+
+If you are unsure of the class, treat it as Class B.
+
+---
+
+## Mandatory Reading Order (Class B and above)
+
+1. **`design-controls/README.md`** — overall structure and process overview
+2. **`design-controls/intended-use.md`** — intended use and safety classification
+3. **`design-controls/design-inputs/`** — requirements (DI-LEO-AI-*.yaml) that relate to the area being changed
+4. **`design-controls/design-outputs/`** — corresponding outputs (DO-LEO-AI-*.yaml)
+5. **`design-controls/risks/`** — any risks (R-LEO-AI-*.yaml) linked to the feature area
+6. **`design-controls/DC-TM-001-traceability-matrix.md`** — confirm traceability coverage before and after
+
+---
+
+## Rules
+
+- **Never** add, remove, or significantly modify functionality without first identifying the DI/DO/Risk items it touches.
+- If a change introduces new functionality with no matching DI → **stop**: create a new DI before proceeding (see `vt-enforcement.mdc` for the full creation workflow).
+- If a change introduces a new DI → a corresponding DO and (where applicable) a new Risk item **must also be created or updated** in the same changeset.
+- If a change affects a risk-mitigating control → read the linked risk YAML and confirm the mitigation is preserved.
+- Verification tests (`verification-tests/VT-LEO-AI-*.yaml`) and validation tests (`validation-tests/VAL-LEO-AI-*.yaml`) must remain consistent with any updated design outputs.
+- **Whenever a new DI, DO, VT, VAL, or Risk is created** → update the corresponding row in `design-controls/DC-TM-001-traceability-matrix.md`.
+- When in doubt, read `design-controls/DC-SRS-001-software-requirements.md` for the full software requirements specification.

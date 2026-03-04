@@ -63,4 +63,57 @@ describe("CodedLinksSection", () => {
       expect(screen.getByText(/API down/)).toBeInTheDocument();
     });
   });
+
+  it("delete button has aria-label with term name", async () => {
+    render(
+      <CodedLinksSection patientId="P1" encounterId="E1" onCorrection={jest.fn()} />,
+    );
+    await waitFor(() => {
+      expect(screen.getByText("Chest pain")).toBeInTheDocument();
+    });
+    expect(screen.getByRole("button", { name: "Remove Chest pain" })).toBeInTheDocument();
+  });
+
+  it("delete button opens ConfirmDialog before removing", async () => {
+    const user = userEvent.setup();
+    render(
+      <CodedLinksSection patientId="P1" encounterId="E1" onCorrection={jest.fn()} />,
+    );
+    await waitFor(() => {
+      expect(screen.getByText("Chest pain")).toBeInTheDocument();
+    });
+    await user.click(screen.getByRole("button", { name: "Remove Chest pain" }));
+    expect(screen.getByText("Remove clinical code?")).toBeInTheDocument();
+    expect(screen.getByText(/permanently delete/)).toBeInTheDocument();
+  });
+
+  it("cancelling ConfirmDialog does not delete the code", async () => {
+    const user = userEvent.setup();
+    render(
+      <CodedLinksSection patientId="P1" encounterId="E1" onCorrection={jest.fn()} />,
+    );
+    await waitFor(() => {
+      expect(screen.getByText("Chest pain")).toBeInTheDocument();
+    });
+    await user.click(screen.getByRole("button", { name: "Remove Chest pain" }));
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByText("Remove clinical code?")).not.toBeInTheDocument();
+    expect(deleteCodedLink).not.toHaveBeenCalled();
+  });
+
+  it("confirming ConfirmDialog calls deleteCodedLink", async () => {
+    const user = userEvent.setup();
+    const onCorrection = jest.fn();
+    render(
+      <CodedLinksSection patientId="P1" encounterId="E1" onCorrection={onCorrection} />,
+    );
+    await waitFor(() => {
+      expect(screen.getByText("Chest pain")).toBeInTheDocument();
+    });
+    await user.click(screen.getByRole("button", { name: "Remove Chest pain" }));
+    await user.click(screen.getByRole("button", { name: "Remove" }));
+    await waitFor(() => {
+      expect(deleteCodedLink).toHaveBeenCalledWith("P1", "E1", "C1");
+    });
+  });
 });

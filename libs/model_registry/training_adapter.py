@@ -50,7 +50,8 @@ _SUPPORTED_DEID_VERSIONS = frozenset({"1.0"})
 _SUPPORTED_LABEL_VERSIONS = frozenset({"1.0"})
 
 _VALID_ASSERTIONS = frozenset(
-    {"present", "absent", "possible", "historical", "hypothetical", "family"}
+    {"present", "absent", "refuted", "possible", "historical", "hypothetical",
+     "family", "declined", "cancelled"}
 )
 
 _LABEL_TO_SEMANTIC_TAG: dict[str, str] = {

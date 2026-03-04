@@ -33,9 +33,9 @@ from neo4j.exceptions import (
 logger = logging.getLogger("libs.neo4j_client")
 
 _RETRYABLE_EXCEPTIONS = (ServiceUnavailable, SessionExpired, TransientError, OSError)
-_MAX_RETRIES = 4
+_MAX_RETRIES = 6
 _BASE_DELAY = 1.0
-_MAX_DELAY = 15.0
+_MAX_DELAY = 30.0
 
 
 def run_with_retry(

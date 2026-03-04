@@ -690,6 +690,7 @@ function RelatedPathways({ siblings }: { siblings: EpisodeWithRisk[] }) {
         }}
       >
         <IconButton
+          aria-label={open ? "Collapse pathways" : "Expand pathways"}
           size="small"
           sx={{
             transform: open ? "rotate(180deg)" : "rotate(0deg)",
@@ -893,7 +894,7 @@ function MilestoneEncounterTooltip({
       >
         {loading && (
           <Box sx={{ display: "flex", alignItems: "center", gap: 1, p: 2 }}>
-            <CircularProgress size={20} />
+            <CircularProgress aria-label="Loading" size={20} />
             <Typography variant="body2" color="text.secondary">
               Loading encounter...
             </Typography>

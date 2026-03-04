@@ -8,6 +8,7 @@ import CardContent from "@mui/material/CardContent";
 import Chip from "@mui/material/Chip";
 import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import StatusDot from "./StatusDot";
 import ModelLifecyclePanel from "./ModelLifecyclePanel";
@@ -49,7 +50,7 @@ export default function DeploySection() {
   useEffect(() => {
     loadModelStatus()
       .then(setData)
-      .catch(() => setError("Could not load model information."));
+      .catch(() => setError("Could not load AI information. Please try again."));
   }, []);
 
   if (error) {
@@ -68,25 +69,25 @@ export default function DeploySection() {
   const model = data.active_model;
 
   return (
-    <Stack gap={2.5}>
+    <Stack gap={1.5}>
       {/* Current model */}
-      <Card>
-        <CardContent sx={{ p: 3 }}>
-          <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 1.5 }}>
+      <Card variant="outlined">
+        <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
+          <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 1 }}>
             <StatusDot
               variant={model?.status === "active" ? "ok" : model ? "warn" : "neutral"}
-              label={model ? `Model is ${model.status}` : "No model"}
+              label={model ? "The AI is running" : "No AI is live"}
             />
-            <Typography variant="h6" sx={{ fontWeight: 600 }}>
-              {model ? `Live model: v${model.model_version}` : "No model deployed"}
+            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+              {model ? `Current AI: version ${model.model_version}` : "No AI is live yet"}
             </Typography>
           </Stack>
 
           {model ? (
             <ActiveModelDetail model={model} totalVersions={data.total_versions} />
           ) : (
-            <Typography variant="body2" color="text.secondary">
-              Train and promote a model to make it live.
+            <Typography variant="body2" color="text.secondary" sx={{ fontSize: 13 }}>
+              Teach and test an AI, then make it live.
             </Typography>
           )}
         </CardContent>
@@ -112,44 +113,47 @@ function ActiveModelDetail({
 
   return (
     <>
-      <Stack direction="row" gap={1} flexWrap="wrap" sx={{ mb: 2 }}>
+      <Stack direction="row" gap={0.75} flexWrap="wrap" sx={{ mb: 1.5 }}>
         <Chip label={model.status} color={statusColor} size="small" />
         <Chip
-          label={`${totalVersions} ${totalVersions === 1 ? "version" : "versions"} total`}
+          label={`${totalVersions} ${totalVersions === 1 ? "version" : "versions"}`}
           size="small"
           variant="outlined"
         />
         {model.promoted_at && (
           <Chip
-            label={`Promoted ${new Date(model.promoted_at).toLocaleDateString()}`}
+            label={`Made live ${new Date(model.promoted_at).toLocaleDateString()}`}
             size="small"
             variant="outlined"
           />
         )}
       </Stack>
 
-      {/* Metrics */}
-      <Stack direction="row" gap={3} flexWrap="wrap">
+      <Stack direction="row" gap={2} flexWrap="wrap">
         <MetricPair
-          label="Offline precision"
+          label="Training accuracy"
+          tooltip="How often the AI got the right answer during training"
           value={model.offline_precision}
         />
         <MetricPair
-          label="Offline recall"
+          label="Training completeness"
+          tooltip="How many real items the AI found during training"
           value={model.offline_recall}
         />
         <MetricPair
-          label="Canary precision"
+          label="Live test accuracy"
+          tooltip="How often the AI got the right answer in the safety test"
           value={model.canary_precision}
         />
         <MetricPair
-          label="Canary recall"
+          label="Live test completeness"
+          tooltip="How many real items the AI found in the safety test"
           value={model.canary_recall}
         />
       </Stack>
 
       {model.notes && (
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+        <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: "block" }}>
           {model.notes}
         </Typography>
       )}
@@ -159,9 +163,11 @@ function ActiveModelDetail({
 
 function MetricPair({
   label,
+  tooltip,
   value,
 }: {
   label: string;
+  tooltip?: string;
   value: number | null;
 }) {
   const display = value != null ? `${(value * 100).toFixed(1)}%` : "--";
@@ -174,14 +180,16 @@ function MetricPair({
           ? "text.primary"
           : "warning.main";
 
-  return (
-    <Box>
-      <Typography variant="caption" color="text.secondary">
+  const content = (
+    <Box sx={{ minWidth: 80 }}>
+      <Typography variant="caption" color="text.secondary" sx={{ fontSize: 11, display: "block", lineHeight: 1.2 }}>
         {label}
       </Typography>
-      <Typography variant="h6" sx={{ fontWeight: 700, color }}>
+      <Typography variant="subtitle1" sx={{ fontWeight: 700, color, lineHeight: 1.3 }}>
         {display}
       </Typography>
     </Box>
   );
+
+  return tooltip ? <Tooltip title={tooltip} arrow>{content}</Tooltip> : content;
 }

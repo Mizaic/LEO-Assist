@@ -1,0 +1,170 @@
+# -- DI-LEO-AI-042 -- Declined/Cancelled Assertion Lifecycle
+# IEC 62304 / ISO 13485 Design Input
+# Schema: design-controls/templates/design_inputs_schema.yaml
+
+- id: "DI-LEO-AI-042"
+  type: "Safety"
+  derived_from: ["UN-LEO-AI-002", "UN-LEO-AI-009"]
+  requirement: >
+    The system SHALL correctly propagate the 'declined' and 'cancelled' assertion
+    values through every layer of the NER and coding pipeline, such that:
+    (a) both assertion values are recognised by the LLM extractor, schema mapper,
+        ConText engine, and extractor contract without silent coercion to 'present';
+    (b) both values are treated as non-codeable contexts by the tier classifier
+        (Tier 3) and are excluded from autonomous auto-coding;
+    (c) both values are included in the HITL review queue with an assertion chip
+        so that reviewers can see the clinical context;
+    (d) patient-level shortcut relationships (HAS_PROCEDURE, HAS_FINDING, etc.)
+        are NOT written for declined or cancelled assertions, preventing
+        misrepresentation in population-level queries;
+    (e) the assertion value is stored on the DOCUMENTS relationship in Neo4j and
+        returned by the patient coding timeline API for UI display.
+  rationale: >
+    Before this fix, declined and cancelled assertions were silently coerced to
+    'present' by the LLM extractor and schema mapper.  This caused three classes
+    of defect: (1) clinical events the patient explicitly refused or that were
+    cancelled were auto-coded as if they had occurred; (2) patient-level shortcut
+    relationships were written for non-events, inflating prevalence counts; (3)
+    the review queue showed no assertion context, so human reviewers could not
+    spot the coercion error.  Patient declining care is a codeable clinical event
+    in UK primary care (e.g. 'patient declined flu vaccine' maps to a SNOMED
+    declined procedure concept), but the assertion must be recorded accurately
+    so downstream analytics can distinguish declined from performed.
+
+  machine_spec:
+    agent_prompt: |
+      Fix the declined/cancelled assertion lifecycle across 9 Python files.
+
+      SCOPE:
+      1. LLM Extractor (llm_extractor.py): add 'declined' and 'cancelled' to
+         _VALID_ASSERTIONS and _ASSERTION_TO_CONTEXT with correct flag mapping
+         (declined: True / cancelled: True; negated: False).
+      2. Schema Mapper (schema_mapper.py): add 'declined' and 'cancelled' to
+         the assertion allowlist so they are not coerced to 'present'.
+      3. ConText Engine (context_engine.py): add CANCELLED span attribute and
+         _span_to_assertion branch; register is_cancelled Span extension.
+      4. ConText Rules (uk_primary_care_context_rules.json): add CANCELLED
+         rules for 'cancelled', 'patient cancelled', 'appointment cancelled',
+         'did not attend', 'dna', "dna'd".
+      5. Extractor Contract (extractor_contract.py): update assertion docstring
+         to include declined and cancelled; bump CONTRACT_VERSION to "1.2".
+      6. Pipeline Service (pipeline_service.py): add 'cancelled' and
+         'historical' to the surface form exclusion set.
+      7. Documents Queries (documents_queries.py): add 'cancelled' to
+         _NON_PRESENT; add 'declined' and 'cancelled' to _assertion_context;
+         gate patient shortcut MERGE with FOREACH so shortcuts are only written
+         for 'present' and 'historical' assertions; add GET_PATIENT_CODING_TIMELINE.
+      8. Tier Classifier (tier_classifier.py): add 'cancelled' to
+         _AUTO_CODE_BLOCKED and the Tier 3 assertion gate.
+      9. Label Verifier (label_verifier.py): add 'declined' and 'cancelled' to
+         _AUTO_CODE_BLOCKED and _ASSERTION_QUEUE_SET.
+
+    acceptance_criteria:
+      - type: "test"
+        spec: "declined and cancelled in _VALID_ASSERTIONS (llm_extractor)"
+      - type: "test"
+        spec: "_ASSERTION_TO_CONTEXT declined entry sets declined=True, negated=False"
+      - type: "test"
+        spec: "_ASSERTION_TO_CONTEXT cancelled entry sets cancelled=True, negated=False"
+      - type: "test"
+        spec: "schema_mapper passes declined through without coercion to present"
+      - type: "test"
+        spec: "schema_mapper passes cancelled through without coercion to present"
+      - type: "test"
+        spec: "unknown assertion values still coerced to present by schema_mapper"
+      - type: "test"
+        spec: "_NON_PRESENT contains declined and cancelled"
+      - type: "test"
+        spec: "_assertion_context('declined') returns declined=True, negated=False"
+      - type: "test"
+        spec: "_assertion_context('cancelled') returns cancelled=True, negated=False"
+      - type: "test"
+        spec: "_assertion_context(None) defaults to present"
+      - type: "test"
+        spec: "patient shortcut gate uses FOREACH in _build_upsert_query"
+      - type: "test"
+        spec: "GET_PATIENT_CODING_TIMELINE contains encounter_date, concept_id, term, r.context"
+      - type: "test"
+        spec: "GET_PATIENT_CODING_TIMELINE ordered by date ASC"
+      - type: "test"
+        spec: "declined assertion returns Tier 3 in autonomous and HITL modes"
+      - type: "test"
+        spec: "cancelled assertion returns Tier 3 in autonomous and HITL modes"
+      - type: "test"
+        spec: "declined and cancelled in _AUTO_CODE_BLOCKED (tier_classifier)"
+      - type: "test"
+        spec: "present high-confidence entity is not Tier 3 (regression guard)"
+      - type: "test"
+        spec: "_AUTO_CODE_BLOCKED in label_verifier contains declined and cancelled"
+      - type: "test"
+        spec: "_ASSERTION_QUEUE_SET contains declined, cancelled, and possible"
+      - type: "test"
+        spec: "CONTRACT_VERSION is 1.2"
+
+    constraints:
+      - type: "safety"
+        spec: >
+          Patient shortcut relationships (HAS_PROCEDURE, HAS_FINDING, etc.) MUST
+          NOT be written for declined or cancelled assertions.  A declined procedure
+          must never appear in population prevalence counts as if it was performed.
+      - type: "safety"
+        spec: >
+          declined and cancelled assertions MUST be Tier 3 in both modes.
+          They must never be auto-coded without human review.
+      - type: "data_integrity"
+        spec: >
+          declined and cancelled assertion values MUST be stored verbatim on the
+          DOCUMENTS relationship.  They must not be coerced to 'present' at any
+          pipeline stage.
+      - type: "code_quality"
+        spec: "CONTRACT_VERSION must be bumped whenever ExtractionItem assertion enum changes."
+
+    dependencies: ["DI-LEO-AI-038", "DI-LEO-AI-040"]
+
+    downstream_impacts:
+      - "Population prevalence queries (patient shortcut gate)"
+      - "HITL review queue (assertion chips)"
+      - "Patient coding timeline API and UI"
+      - "Autonomous coding safety gate (Tier 3 block)"
+      - "Surface form training pipeline (exclusion set)"
+
+    technical_details:
+      language: "Python / TypeScript"
+      framework: "FastAPI / Next.js"
+      libraries:
+        - "medspacy"
+        - "neo4j"
+        - "libs.coding_engine.tier_classifier"
+      file_structure:
+        - "services/coding_worker/app/pipeline/llm_extractor.py"
+        - "libs/ner/schema_mapper.py"
+        - "libs/ner/context_engine.py"
+        - "libs/ner/resources/uk_primary_care_context_rules.json"
+        - "libs/ner/extractor_contract.py"
+        - "services/coding_worker/app/pipeline/pipeline_service.py"
+        - "libs/cypher/documents_queries.py"
+        - "libs/coding_engine/tier_classifier.py"
+        - "services/api/app/services/label_verifier.py"
+        - "services/api/app/routers/patients.py"
+        - "services/ui/src/components/AssertionChip.tsx"
+        - "services/ui/src/components/PatientTimeline.tsx"
+        - "services/ui/src/app/patients/[patientId]/timeline/page.tsx"
+      estimated_loc: 180
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      All 36 assertion lifecycle tests pass; patient shortcut gate verified;
+      timeline query structure verified; tier classifier blocks both assertion types.
+    test_protocol: "VT-LEO-AI-028"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-001", "R-LEO-AI-026"]
+  tags:
+    - "assertion-lifecycle"
+    - "declined"
+    - "cancelled"
+    - "patient-safety"
+    - "neo4j-integrity"
+    - "tier-classifier"

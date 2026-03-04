@@ -198,7 +198,7 @@ export function BenchmarkRuleEditor({ ruleId }: BenchmarkRuleEditorProps) {
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', p: 6 }}>
-        <CircularProgress />
+        <CircularProgress aria-label="Loading" />
       </Box>
     );
   }

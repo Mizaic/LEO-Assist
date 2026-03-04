@@ -1,0 +1,177 @@
+# -- R-LEO-AI-031 -- Clinical Rule Poisoning by Privileged User
+# ISO 14971 / IEC 62304 / IEC 81001-5-1 Risk
+# Schema: design-controls/templates/risks_schema.yaml
+# Threat model reference: DC-TM-SEC-002 CHAIN-006, RULE-T-001, RULE-T-002, GAP-015
+
+- id: "R-LEO-AI-031"
+  title: "Privileged user creates malicious clinical rules causing systematic entity suppression or mislabelling"
+
+  hazard:
+    description: >
+      Authenticated users with platform-admin privileges can create, update,
+      and deactivate ConText rules (which determine entity assertion context)
+      and post-processor rules (which suppress, rewrite, or relabel coded
+      entities). A malicious or mistaken admin could create rules with overly
+      broad match criteria, pathological regex patterns (ReDoS), or incorrect
+      category assignments that systematically distort all future coding
+      decisions made by the pipeline.
+    category: "use_error"
+
+  hazardous_situation: >
+    (a) A ConText rule with a common clinical phrase (e.g. "patient has") is
+        assigned the NEGATED_EXISTENCE category and direction BIDIRECTIONAL.
+        Every future encounter containing that phrase has its disorders marked
+        as absent, suppressing them from the coding queue permanently and
+        silently. The suppression is not visible in the review queue because
+        the entities never appear -- they are classified as absent before
+        reaching the HITL stage.
+
+    (b) A post-processor suppress rule with no context_regex is created for
+        a common term (e.g. "diabetes"), suppressing all future mentions
+        regardless of clinical context.
+
+    (c) A user-supplied regex in a post-processor rule contains a pathological
+        pattern (e.g. (a+)+ style nested quantifier) that causes catastrophic
+        backtracking in the Python re engine, creating a denial-of-service
+        condition in the coding pipeline whenever the rule is evaluated.
+
+    (d) The created_by field is supplied by the caller rather than derived
+        from the authenticated session, enabling audit log tampering.
+
+  harm:
+    description: >
+      (a) Systematic under-coding: a disease, procedure, or clinical finding
+          present in encounters is never coded, distorting prevalence and
+          quality-of-care audit data for all patients processed after the
+          malicious rule is created.
+      (b) Pipeline denial-of-service: a ReDoS regex brings the coding worker
+          to a halt, preventing any coding decisions from being made until
+          the rule is identified and removed.
+      (c) Untraceability: if created_by is attacker-supplied, the audit trail
+          cannot reliably identify who created a malicious rule.
+    severity: "serious"
+
+  initial_risk_estimate:
+    severity: 4
+    probability: 2
+    detectability: 3
+    rpn: 24
+    risk_level: "high"
+
+  mitigation_measures:
+    - control_type: "protective_measure"
+      description: >
+        Admin-only access: POST /training/context-rules, POST /training/post-
+        processor-rules, PATCH /training/post-processor-rules/{rule_id}, and
+        PATCH /training/context-rules/{rule_id}/deactivate all require
+        Depends(require_admin). Non-admin authenticated users receive 403.
+        This limits the attack surface to platform-admin accounts only.
+      implemented_by: ["DI-LEO-AI-046"]
+      verified_by: ["VT-LEO-AI-039"]
+      effectiveness: "highly_effective"
+
+    - control_type: "protective_measure"
+      description: >
+        _validate_regex() safety check on all user-supplied context_regex
+        fields before persistence. Validates: (1) length <= 200 characters,
+        (2) valid regex syntax, (3) no catastrophic backtracking via
+        subprocess-based ReDoS probe (pattern applied to pathological probe
+        strings with 0.5s timeout). Raises HTTPException(422) on any failure.
+      implemented_by: ["DI-LEO-AI-046"]
+      verified_by: ["VT-LEO-AI-039"]
+      effectiveness: "highly_effective"
+
+    - control_type: "protective_measure"
+      description: >
+        literal length limit of 200 characters on ConText rule literals,
+        preventing excessively broad match patterns.
+      implemented_by: ["DI-LEO-AI-046"]
+      verified_by: ["VT-LEO-AI-039"]
+      effectiveness: "effective"
+
+    - control_type: "protective_measure"
+      description: >
+        created_by field is derived from scope.email (the verified session
+        identity from the server-side session store) rather than from the
+        request body, ensuring the audit trail cannot be spoofed by a
+        caller-supplied string.
+      implemented_by: ["DI-LEO-AI-046"]
+      verified_by: ["VT-LEO-AI-039"]
+      effectiveness: "effective"
+
+    - control_type: "protective_measure"
+      description: >
+        UI suppress rule guard (R-LEO-AI-027 control): when an
+        assertion_warning is present, the UI disables the Confirm button
+        until a context phrase is provided, preventing blank context_regex
+        via the normal review workflow.
+      implemented_by: ["DI-LEO-AI-016"]
+      verified_by: []
+      effectiveness: "effective"
+
+    - control_type: "procedural_control"
+      description: >
+        Periodic rule audit: monthly review of all active context rules and
+        post-processor suppress rules. Any rule with a match that covers
+        more than 5% of encounters is flagged for manual review. Rules
+        without context_regex are flagged for suppress action type.
+      implemented_by: []
+      verified_by: []
+      effectiveness: "effective"
+
+    - control_type: "procedural_control"
+      description: >
+        Admin account control: platform-admin role requires approval from
+        a second named administrator and is reviewed quarterly. Admin
+        actions are logged with actor identity and timestamp in the
+        application audit log.
+      implemented_by: []
+      verified_by: []
+      effectiveness: "partially_effective"
+
+  residual_risk_estimate:
+    severity: 4
+    probability: 1
+    detectability: 1
+    rpn: 4
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      The combination of admin-only access, ReDoS-safe regex validation,
+      literal length limits, and session-derived audit identity reduces the
+      probability of a malicious or accidentally harmful rule being created
+      and going undetected. The residual risk requires a deliberate, malicious
+      admin account and relies on the periodic audit not catching the rule
+      within the review window. The created_by audit trail and monitoring
+      metrics enable post-hoc attribution. The deny-on-regex-safety-failure
+      approach ensures pipeline availability is not compromised by pathological
+      patterns.
+
+  monitoring:
+    monitoring_plan: >
+      Track rule creation events (actor, literal, category, context_regex
+      presence). Alert on any suppress rule without context_regex.
+      Monitor pipeline throughput for unexpected drops that could indicate
+      ReDoS degradation. Review all admin actions quarterly.
+    metrics:
+      - "Context rules created per week (baseline + 2-sigma alert threshold)"
+      - "Suppress rules without context_regex (target: 0)"
+      - "Coding pipeline P95 latency per encounter (alert on 2x baseline)"
+      - "_validate_regex 422 rejection rate (unexpected spikes indicate probing)"
+      - "Admin account actions per week (audit log)"
+    review_frequency: "Monthly rule audit; quarterly admin access review"
+
+  metadata:
+    identified_by: "Threat Model DC-TM-SEC-002 (CHAIN-006, GAP-015)"
+    identified_date: "2026-03-03"
+    status: "analyzed"
+
+  tags:
+    - "security"
+    - "rule-poisoning"
+    - "insider-threat"
+    - "redos"
+    - "access-control"
+    - "audit-trail"
+    - "clinical-risk"
+    - "systematic-under-coding"

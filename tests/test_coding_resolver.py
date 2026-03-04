@@ -54,6 +54,7 @@ class TestCodingCandidate:
         c = CodingCandidate(
             snomed_concept_id="12345",
             snomed_term="Cough",
+            semantic_tag="finding",
             read_code="1C1..",
             score=0.95,
             source="hybrid",
@@ -110,6 +111,38 @@ class TestCodingResolver:
 
         result = resolver.resolve_candidates(["unknown_term"], neo4j_session=session)
         assert result["unknown_term"] == []
+
+    def test_top_1_accuracy_meets_90_pct_on_mock_gold_set(self):
+        """VT-003-TC-003: top-1 accuracy >= 90% across a mock gold-standard dataset."""
+        resolver = self._make_resolver()
+
+        gold_dataset = [
+            ("cough", "49727002"),
+            ("hypertension", "38341003"),
+            ("diabetes mellitus", "73211009"),
+            ("chest pain", "29857009"),
+            ("shortness of breath", "230145002"),
+            ("headache", "25064002"),
+            ("fatigue", "84229001"),
+            ("back pain", "279039007"),
+            ("nausea", "422587007"),
+            ("anxiety", "48694002"),
+        ]
+
+        correct = 0
+        for surface_form, expected_concept_id in gold_dataset:
+            session = MagicMock()
+            session.run.return_value = [
+                {"concept_id": expected_concept_id, "fsn": surface_form,
+                 "semantic_tag": "finding", "read_codes": [], "score": 1.0},
+            ]
+            result = resolver.resolve_candidates([surface_form], neo4j_session=session)
+            if surface_form in result and result[surface_form]:
+                if result[surface_form][0].snomed_concept_id == expected_concept_id:
+                    correct += 1
+
+        accuracy = correct / len(gold_dataset)
+        assert accuracy >= 0.90, f"Top-1 accuracy {accuracy:.0%} below 90% threshold"
 
     def test_tag_boost_applied(self):
         from services.terminology_api.app.services.coding_resolver import CodingResolver

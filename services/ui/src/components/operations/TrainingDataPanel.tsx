@@ -11,15 +11,12 @@ import {
   Chip,
   CircularProgress,
   Collapse,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   Divider,
   Drawer,
   FormControl,
   IconButton,
   LinearProgress,
+  Menu,
   MenuItem,
   Paper,
   Select,
@@ -44,6 +41,7 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
@@ -52,6 +50,8 @@ import HourglassTopIcon from "@mui/icons-material/HourglassTop";
 import PauseIcon from "@mui/icons-material/Pause";
 import PlayCircleOutlineIcon from "@mui/icons-material/PlayCircleOutline";
 import TabFlowDiagram, { type TabStage } from "@/components/operations/TabFlowDiagram";
+import AssertionChip from "@/components/AssertionChip";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -182,11 +182,41 @@ const VALID_ENTITY_LABELS = [
   "X_ROUTE",
 ] as const;
 
+const ENTITY_LABEL_DISPLAY: Record<string, string> = {
+  disorder: "Health condition",
+  finding: "Finding or symptom",
+  procedure: "Treatment or procedure",
+  observable_entity: "Test or measurement",
+  qualifier_value: "Qualifier",
+  substance: "Substance",
+  medicinal_product: "Medicine",
+  clinical_drug: "Drug",
+  situation: "Situation",
+  event: "Event",
+  body_structure: "Body part",
+  tumor_staging: "Tumour stage",
+  assessment_scale: "Assessment scale",
+  staging_scale: "Staging scale",
+  regime_therapy: "Therapy plan",
+  record_artifact: "Record type",
+  physical_object: "Physical object",
+  organism: "Organism",
+  morphologic_abnormality: "Structural change",
+  occupation: "Job or role",
+  attribute: "Attribute",
+  environment: "Environment",
+  product: "Product",
+  X_TEMPORAL: "Time or date",
+  X_DOSAGE: "Dose",
+  X_FREQUENCY: "How often",
+  X_ROUTE: "How given",
+};
+
 const SOURCE_LABELS: Record<string, string> = {
-  hitl_approval: "HITL",
-  coding_correction: "Correction",
-  anchor_mining: "Mined",
-  seed: "Seed",
+  hitl_approval: "Reviewed",
+  coding_correction: "Corrected",
+  anchor_mining: "Auto-found",
+  seed: "Starting set",
 };
 
 const SOURCE_COLORS: Record<string, "primary" | "secondary" | "success" | "warning"> = {
@@ -205,16 +235,28 @@ function fmtElapsed(s: number | null) {
 }
 
 function EntityPills({ entitiesJson, showAll = false }: { entitiesJson: string; showAll?: boolean }) {
-  let entities: { text: string; label: string }[] = [];
+  let entities: { text: string; label: string; assertion?: string }[] = [];
   try { entities = JSON.parse(entitiesJson); } catch { /* ignore */ }
-  if (!entities.length) return <Typography variant="caption" color="text.disabled">—</Typography>;
-  const visible = showAll ? entities : entities.slice(0, 5);
+  if (!entities.length) return <Typography variant="caption" color="text.disabled">--</Typography>;
+  const visible = showAll ? entities : entities.slice(0, 3);
   return (
-    <Stack direction="row" flexWrap="wrap" gap={0.5}>
+    <Stack direction="row" flexWrap="wrap" gap={0.4} useFlexGap>
       {visible.map((e, i) => (
-        <Chip key={i} label={`${e.text} · ${e.label}`} size="small" variant="outlined" sx={{ fontSize: 11 }} />
+        <Stack key={i} direction="row" spacing={0.3} alignItems="center">
+          <Tooltip title={ENTITY_LABEL_DISPLAY[e.label] ?? e.label} arrow>
+            <Chip
+              label={e.text}
+              size="small"
+              variant="outlined"
+              sx={{ fontSize: 11, maxWidth: 180 }}
+            />
+          </Tooltip>
+          {e.assertion && e.assertion !== "present" && (
+            <AssertionChip assertion={e.assertion} />
+          )}
+        </Stack>
       ))}
-      {!showAll && entities.length > 5 && <Chip label={`+${entities.length - 5} more`} size="small" />}
+      {!showAll && entities.length > 3 && <Chip label={`+${entities.length - 3}`} size="small" sx={{ fontSize: 10 }} />}
     </Stack>
   );
 }
@@ -226,62 +268,62 @@ function EntityPills({ entitiesJson, showAll = false }: { entitiesJson: string; 
 const TRAINING_STAGES: TabStage[] = [
   {
     id: "td1", num: 1,
-    label: "Collect Reviews",
-    tooltip: "All the notes that human reviewers have checked and approved are gathered together. These become the teaching examples for the AI.",
-    detailIn: "Approved human-reviewed labels from the Label Review and other queues",
+    label: "Gather examples",
+    tooltip: "All the records that people have checked and approved are gathered together. These become the teaching examples for the AI.",
+    detailIn: "Approved records from the review queue",
     detailOut: "A set of correct examples ready to learn from",
     branches: [
       {
         label: "Not enough examples",
-        description: "Training cannot start until there are at least 50 approved examples. Check back after more reviews are done",
+        description: "The AI needs at least 50 approved examples before it can start learning. Check back after more reviews are done",
       },
     ],
   },
   {
     id: "td2", num: 2,
-    label: "Check Examples",
-    tooltip: "Each example is inspected and tidied. You can edit or remove examples that look wrong before training starts.",
-    detailIn: "The collected training examples",
+    label: "Check examples",
+    tooltip: "Each example is checked and tidied up. You can edit or remove examples that look wrong before the AI starts learning.",
+    detailIn: "The collected teaching examples",
     detailOut: "A clean, checked set of teaching examples",
     branches: [
       {
-        label: "Exclude an example",
-        description: "You can remove an example from training if you think it would teach the AI the wrong thing",
+        label: "Remove an example",
+        description: "You can take out an example if you think it would teach the AI the wrong thing",
       },
     ],
   },
   {
     id: "td3", num: 3,
-    label: "AI Learns",
+    label: "AI learns",
     tooltip: "The AI studies thousands of correct examples so it can learn to spot medical words on its own.",
-    detailIn: "The clean training examples",
-    detailOut: "A freshly trained AI model",
+    detailIn: "The clean teaching examples",
+    detailOut: "A freshly trained AI",
     branches: [
       {
         label: "Hardware retry",
-        description: "If training fails on a fast machine, we try again on slower hardware -- up to 4 attempts",
+        description: "If learning fails on a fast machine, we try again on slower hardware -- up to 4 attempts",
       },
     ],
   },
   {
     id: "td4", num: 4,
-    label: "AI Tested",
+    label: "AI tested",
     tooltip: "We give the AI a quiz using examples it has never seen before to check it learned well enough.",
     detailIn: "The trained AI and a set of test examples",
-    detailOut: "A test score -- it must reach at least 80% precision and 75% recall to pass",
+    detailOut: "A test score -- it must get at least 80% of answers right and find at least 75% of items",
     branches: [
       {
-        label: "Failed the test",
-        description: "If the AI does not score high enough, training stops here and the new model is not used",
+        label: "Did not pass",
+        description: "If the AI does not score high enough, learning stops here and the new AI is not used",
       },
     ],
   },
   {
     id: "td5", num: 5,
-    label: "New AI Ready",
-    tooltip: "If the AI passes, it is saved and registered. Head to the Model Deployment tab to promote it to live.",
-    detailIn: "The tested and approved AI model",
-    detailOut: "A new model version ready to be deployed",
+    label: "New AI ready",
+    tooltip: "If the AI passes, it is saved. Go to the Make the AI Live tab to put it into use.",
+    detailIn: "The tested and approved AI",
+    detailOut: "A new AI version ready to go live",
   },
 ];
 
@@ -317,6 +359,8 @@ export default function TrainingDataPanel() {
   const [error, setError] = useState<string | null>(null);
   const [verificationStatus, setVerificationStatus] = useState<VerificationStatus | null>(null);
   const [startingVerification, setStartingVerification] = useState(false);
+  const [verifyMenuAnchor, setVerifyMenuAnchor] = useState<HTMLElement | null>(null);
+  const [confirmExclude, setConfirmExclude] = useState(false);
 
   const PAGE_SIZE = 30;
   const heroLogRef = useRef<HTMLDivElement | null>(null);
@@ -417,19 +461,20 @@ export default function TrainingDataPanel() {
   // ---------- actions ----------
 
   const handleExclude = async () => {
-    if (!excludeTarget || !excludeReason.trim()) return;
+    if (!excludeTarget) return;
     setExcludeBusy(true);
     try {
       await jsonFetch(`/api/training/labels/${excludeTarget}/exclude`, {
         method: "POST",
-        body: JSON.stringify({ reason: excludeReason }),
+        body: JSON.stringify({ reason: excludeReason.trim() || "Removed by reviewer" }),
       });
       setExcludeTarget(null);
       setExcludeReason("");
+      setConfirmExclude(false);
       fetchStats();
       fetchLabels();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to exclude");
+      setError(e instanceof Error ? e.message : "Could not remove this record. Please try again.");
     } finally {
       setExcludeBusy(false);
     }
@@ -475,13 +520,13 @@ export default function TrainingDataPanel() {
     try {
       await jsonFetch<{ job_id: string }>(
         "/api/training-worker/jobs",
-        { method: "POST", body: JSON.stringify({ notes: jobNotes, triggered_by: "ui" }) }
+        { method: "POST", body: JSON.stringify({ notes: jobNotes || "Started from operations UI", triggered_by: "ui" }) }
       );
       setStartJobOpen(false);
       setJobNotes("");
       fetchJobs();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not start training");
+      setError(e instanceof Error ? e.message : "Could not start the learning run. Please try again.");
     } finally {
       setStartingJob(false);
     }
@@ -528,42 +573,43 @@ export default function TrainingDataPanel() {
   // ---------- render ----------
 
   return (
-    <Box sx={{ maxWidth: 900, mx: "auto", px: 3, py: 3 }}>
+    <Stack spacing={1.5}>
 
       {/* Page title */}
-      <Typography variant="h6" sx={{ fontWeight: 700, mb: 0.5 }}>Model training</Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-        Review what's in the training set, then start a run to update the NER model.
-      </Typography>
+      <Box>
+        <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.3 }}>Teach the AI</Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ fontSize: 13 }}>
+          Check the teaching examples, then start a run so the AI can learn from them.
+        </Typography>
+      </Box>
 
       {/* How this works */}
-      <Accordion variant="outlined" disableGutters sx={{ mb: 3 }}>
-        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+      <Accordion variant="outlined" disableGutters sx={{ "&::before": { display: "none" } }}>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ minHeight: 36, "& .MuiAccordionSummary-content": { my: 0.75 } }}>
+          <Typography variant="body2" sx={{ fontWeight: 600, fontSize: 13 }}>
             How this tab works
           </Typography>
         </AccordionSummary>
-        <AccordionDetails sx={{ pt: 0 }}>
+        <AccordionDetails sx={{ pt: 0, pb: 1.5 }}>
           <TabFlowDiagram
             stages={TRAINING_STAGES}
             color="#7C3AED"
             lightColor="#EDE9FE"
-            trackLabel="Training Data"
+            trackLabel="Teach the AI"
           />
         </AccordionDetails>
       </Accordion>
 
       {error && (
-        <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>{error}</Alert>
+        <Alert severity="error" onClose={() => setError(null)} sx={{ py: 0.25 }}>{error}</Alert>
       )}
 
       {/* ── Hero: current state ── */}
       <Paper
         variant="outlined"
         sx={{
-          p: 3,
-          mb: 3,
-          borderRadius: 2,
+          p: 2,
+          borderRadius: 1.5,
           borderColor: activeJob ? "primary.main"
             : lastJob?.status === "failed" ? "error.light"
             : lastJob?.status === "done" ? "success.light"
@@ -573,20 +619,20 @@ export default function TrainingDataPanel() {
       >
         {/* Active job */}
         {activeJob && (
-          <Stack spacing={1.5}>
-            <Stack direction="row" spacing={1.5} alignItems="center">
-              <HourglassTopIcon color="primary" />
+          <Stack spacing={1}>
+            <Stack direction="row" spacing={1} alignItems="center">
+              <HourglassTopIcon color="primary" fontSize="small" />
               <Box flex={1}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Training in progress</Typography>
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>The AI is learning</Typography>
+                <Typography variant="caption" color="text.secondary">
                   Step: {activeJob.phase || "starting up"}
-                  {activeJob.elapsed_s != null && ` · ${fmtElapsed(activeJob.elapsed_s)} elapsed`}
+                  {activeJob.elapsed_s != null && ` · ${fmtElapsed(activeJob.elapsed_s)} so far`}
                 </Typography>
               </Box>
             </Stack>
             <LinearProgress sx={{ borderRadius: 1 }} />
             {activeJob.log_lines?.length > 0 && (
-              <Box ref={heroLogRef} sx={{ background: "#0f172a", color: "#86efac", fontFamily: "monospace", fontSize: 11.5, p: 1.5, borderRadius: 1, height: 200, overflowY: "auto" }}>
+              <Box ref={heroLogRef} sx={{ background: "#0f172a", color: "#86efac", fontFamily: "monospace", fontSize: 11, p: 1, borderRadius: 1, height: 160, overflowY: "auto" }}>
                 {activeJob.log_lines.map((l, i) => <div key={i}>{l}</div>)}
               </Box>
             )}
@@ -595,22 +641,24 @@ export default function TrainingDataPanel() {
 
         {/* Last job failed */}
         {!activeJob && lastJob?.status === "failed" && (
-          <Stack direction="row" spacing={1.5} alignItems="flex-start">
-            <ErrorOutlineIcon color="error" sx={{ mt: 0.3 }} />
+          <Stack direction="row" spacing={1} alignItems="flex-start">
+            <ErrorOutlineIcon color="error" fontSize="small" sx={{ mt: 0.25 }} />
             <Box flex={1}>
-              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Last run failed</Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-                {lastJob.error || "An error occurred during training."}
+              <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>The last run did not finish</Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
+                {lastJob.error || "Something went wrong while the AI was learning."}
                 {lastJob.elapsed_s != null && ` · ran for ${fmtElapsed(lastJob.elapsed_s)}`}
               </Typography>
-              <Button variant="contained" startIcon={<PlayArrowIcon />} onClick={() => setStartJobOpen(true)}>
-                Try again
-              </Button>
-              <Button size="small" sx={{ ml: 1 }} onClick={() => setExpandedJob(expandedJob === lastJob.job_id ? null : lastJob.job_id)}>
-                {expandedJob === lastJob.job_id ? "Hide log" : "Show log"}
-              </Button>
+              <Stack direction="row" spacing={1}>
+                <Button size="small" variant="contained" startIcon={<PlayArrowIcon />} onClick={() => setStartJobOpen(true)}>
+                  Try again
+                </Button>
+                <Button size="small" onClick={() => setExpandedJob(expandedJob === lastJob.job_id ? null : lastJob.job_id)}>
+                  {expandedJob === lastJob.job_id ? "Hide log" : "Show log"}
+                </Button>
+              </Stack>
               <Collapse in={expandedJob === lastJob.job_id}>
-                <Box sx={{ mt: 1.5, background: "#0f172a", color: "#fca5a5", fontFamily: "monospace", fontSize: 11, p: 1.5, borderRadius: 1, maxHeight: 160, overflowY: "auto" }}>
+                <Box sx={{ mt: 1, background: "#0f172a", color: "#fca5a5", fontFamily: "monospace", fontSize: 11, p: 1, borderRadius: 1, maxHeight: 140, overflowY: "auto" }}>
                   {(lastJob.log_lines ?? []).map((l, i) => <div key={i}>{l}</div>)}
                 </Box>
               </Collapse>
@@ -618,44 +666,41 @@ export default function TrainingDataPanel() {
           </Stack>
         )}
 
-        {/* Last job done */}
         {!activeJob && lastJob?.status === "done" && (
-          <Stack direction="row" spacing={1.5} alignItems="center">
-            <CheckCircleIcon color="success" />
+          <Stack direction="row" spacing={1} alignItems="center">
+            <CheckCircleIcon color="success" fontSize="small" />
             <Box flex={1}>
-              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                Training complete{lastJob.model_version ? ` — version ${lastJob.model_version}` : ""}
+              <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                The AI has finished learning{lastJob.model_version ? ` — version ${lastJob.model_version}` : ""}
               </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Go to the <strong>Model Deployment</strong> tab to validate and promote.
+              <Typography variant="caption" color="text.secondary">
+                Go to the <strong>Make the AI Live</strong> tab to test and put it into use.
                 {lastJob.elapsed_s != null && ` · took ${fmtElapsed(lastJob.elapsed_s)}`}
               </Typography>
             </Box>
-            <Button variant="outlined" startIcon={<PlayArrowIcon />} onClick={() => setStartJobOpen(true)}>
+            <Button size="small" variant="outlined" startIcon={<PlayArrowIcon />} onClick={() => setStartJobOpen(true)}>
               New run
             </Button>
           </Stack>
         )}
 
-        {/* No jobs yet */}
         {!activeJob && !lastJob && (
-          <Stack direction="row" spacing={2} alignItems="center">
+          <Stack direction="row" spacing={1.5} alignItems="center">
             <Box flex={1}>
-              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
                 {preview?.exportable_label_count.toLocaleString() ?? stats?.included.toLocaleString() ?? "…"} records ready
               </Typography>
-              <Typography variant="body2" color="text.secondary">
-                No training runs yet. Start one to build the NER model.
+              <Typography variant="caption" color="text.secondary">
+                No learning runs yet. Start one so the AI can learn from these examples.
               </Typography>
             </Box>
             <Button
               variant="contained"
-              size="large"
               startIcon={<PlayArrowIcon />}
               disabled={!preview?.ready_to_train}
               onClick={() => setStartJobOpen(true)}
             >
-              Start training
+              Start learning
             </Button>
           </Stack>
         )}
@@ -663,21 +708,21 @@ export default function TrainingDataPanel() {
 
       {/* Start button when there's a previous job but no active one */}
       {!activeJob && lastJob && (
-        <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 3 }}>
-          <Typography variant="body2" color="text.secondary">
-            {(preview?.exportable_label_count ?? stats?.included ?? 0).toLocaleString()} records included ·{" "}
-            {(stats?.excluded ?? 0).toLocaleString()} excluded
+        <Stack direction="row" spacing={1} alignItems="center">
+          <Typography variant="caption" color="text.secondary">
+            {(preview?.exportable_label_count ?? stats?.included ?? 0).toLocaleString()} included · {(stats?.excluded ?? 0).toLocaleString()} excluded
           </Typography>
           <Box flex={1} />
           <Button
+            size="small"
             variant="contained"
             startIcon={<PlayArrowIcon />}
             disabled={!preview?.ready_to_train}
             onClick={() => setStartJobOpen(true)}
           >
-            Start training
+            Start learning
           </Button>
-          <IconButton size="small" onClick={() => { fetchJobs(); fetchStats(); fetchPreview(); }}>
+          <IconButton aria-label="Refresh teaching records" size="small" onClick={() => { fetchJobs(); fetchStats(); fetchPreview(); }}>
             <RefreshIcon fontSize="small" />
           </IconButton>
         </Stack>
@@ -686,31 +731,30 @@ export default function TrainingDataPanel() {
       {/* ── Run history ── */}
       {jobs.length > 0 && (
         <>
-          <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
-            <Typography variant="subtitle2" color="text.secondary" sx={{ textTransform: "uppercase", letterSpacing: 0.5, fontSize: 11, flex: 1 }}>
-              Run history
+          <Stack direction="row" alignItems="center" spacing={0.5} sx={{ mb: 0.5 }}>
+            <Typography variant="caption" color="text.secondary" sx={{ textTransform: "uppercase", letterSpacing: 0.5, fontSize: 10, fontWeight: 600, flex: 1 }}>
+              Past runs
             </Typography>
             <Tooltip title={pollingPaused ? "Resume live updates" : "Pause live updates"}>
-              <IconButton size="small" onClick={() => setPollingPaused((p) => !p)}>
+              <IconButton aria-label={pollingPaused ? "Resume live updates" : "Pause live updates"} size="small" onClick={() => setPollingPaused((p) => !p)}>
                 {pollingPaused
                   ? <PlayCircleOutlineIcon fontSize="small" color="success" />
                   : <PauseIcon fontSize="small" color="action" />}
               </IconButton>
             </Tooltip>
             <Tooltip title="Refresh now">
-              <IconButton size="small" onClick={() => { fetchJobs(); fetchStats(); }}>
+              <IconButton aria-label="Refresh now" size="small" onClick={() => { fetchJobs(); fetchStats(); }}>
                 <RefreshIcon fontSize="small" />
               </IconButton>
             </Tooltip>
           </Stack>
-          <Stack spacing={1} sx={{ mb: 3 }}>
+          <Stack spacing={0.75}>
             {jobs.map((job) => {
               const isActive = ACTIVE_STATUSES.has(job.status);
-              // Don't expand active jobs in history — the hero card already shows progress
               const isExpanded = !isActive && expandedJob === job.job_id;
               return (
-                <Paper key={job.job_id} variant="outlined" sx={{ p: 1.5, borderRadius: 1.5 }}>
-                  <Stack direction="row" spacing={1.5} alignItems="center">
+                <Paper key={job.job_id} variant="outlined" sx={{ p: 1, px: 1.5, borderRadius: 1 }}>
+                  <Stack direction="row" spacing={1} alignItems="center">
                     <Chip
                       label={job.status}
                       color={job.status === "done" ? "success" : job.status === "failed" ? "error" : job.status === "running" || isActive ? "primary" : "default"}
@@ -726,7 +770,7 @@ export default function TrainingDataPanel() {
                     <Typography variant="caption" color="text.disabled">
                       {new Date(job.created_at * 1000).toLocaleString([], { dateStyle: "short", timeStyle: "short" })}
                     </Typography>
-                    <IconButton size="small" onClick={() => setExpandedJob(isExpanded ? null : job.job_id)}>
+                    <IconButton aria-label={isExpanded ? "Collapse job" : "Expand job"} size="small" onClick={() => setExpandedJob(isExpanded ? null : job.job_id)}>
                       {isExpanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
                     </IconButton>
                   </Stack>
@@ -740,10 +784,10 @@ export default function TrainingDataPanel() {
                         const m = (job.metrics as any).ner;
                         return (
                           <Stack direction="row" spacing={2} sx={{ mb: 1.5 }}>
-                            <Typography variant="caption">Precision <strong>{m.precision}</strong></Typography>
-                            <Typography variant="caption">Recall <strong>{m.recall}</strong></Typography>
-                            <Typography variant="caption">F1 <strong>{m.f1}</strong></Typography>
-                            <Chip label={m.passed_gates ? "Gates passed" : "Gates failed"} color={m.passed_gates ? "success" : "error"} size="small" />
+                            <Typography variant="caption">Correct answers <strong>{m.precision}</strong></Typography>
+                            <Typography variant="caption">Found answers <strong>{m.recall}</strong></Typography>
+                            <Typography variant="caption">Overall score <strong>{m.f1}</strong></Typography>
+                            <Chip label={m.passed_gates ? "Quality check passed" : "Quality check failed"} color={m.passed_gates ? "success" : "error"} size="small" />
                           </Stack>
                         );
                       })()}
@@ -763,10 +807,10 @@ export default function TrainingDataPanel() {
       )}
 
       {/* ── Label library (collapsed) ── */}
-      <Accordion disableGutters variant="outlined" sx={{ borderRadius: "8px !important" }}>
-        <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ px: 2 }}>
-          <Stack direction="row" spacing={1.5} alignItems="center" sx={{ width: "100%" }}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Label library</Typography>
+      <Accordion disableGutters variant="outlined" sx={{ borderRadius: "6px !important", "&::before": { display: "none" } }}>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ px: 1.5, minHeight: 40, "& .MuiAccordionSummary-content": { my: 0.5 } }}>
+          <Stack direction="row" spacing={1} alignItems="center" sx={{ width: "100%" }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, fontSize: 13 }}>Teaching records</Typography>
             {labelTotal > 0 && (
               <Chip label={`${labelTotal.toLocaleString()} records`} size="small" variant="outlined" />
             )}
@@ -775,7 +819,7 @@ export default function TrainingDataPanel() {
             )}
             {verificationStatus?.pending_review ? (
               <Chip
-                label={`${verificationStatus.pending_review} HITL pending`}
+                label={`${verificationStatus.pending_review} waiting for you`}
                 size="small"
                 color="warning"
                 variant="outlined"
@@ -783,112 +827,121 @@ export default function TrainingDataPanel() {
             ) : null}
             {(verificationStatus?.auto_resolved ?? 0) > 0 ? (
               <Chip
-                label={`${verificationStatus?.auto_resolved ?? 0} auto-resolved`}
+                label={`${verificationStatus?.auto_resolved ?? 0} fixed automatically`}
                 size="small"
                 color="success"
                 variant="outlined"
               />
             ) : null}
             {verificationRunning ? (
-              <Chip label="Verification running" size="small" color="primary" />
+              <Chip label="Checking labels" size="small" color="primary" />
             ) : verificationFinishedAt ? (
-              <Chip label={`Last verified ${verificationFinishedAt}`} size="small" variant="outlined" />
+              <Chip label={`Last checked ${verificationFinishedAt}`} size="small" variant="outlined" />
             ) : null}
           </Stack>
         </AccordionSummary>
         <AccordionDetails sx={{ p: 0 }}>
           {/* Filters */}
-          <Stack direction="row" spacing={1} sx={{ px: 2, py: 1.5 }} flexWrap="wrap" alignItems="center">
+          <Stack direction="row" spacing={0.75} sx={{ px: 1.5, py: 1 }} flexWrap="wrap" alignItems="center" useFlexGap>
             <TextField
               size="small"
               placeholder="Search…"
               value={searchText}
               onChange={(e) => { setSearchText(e.target.value); setLabelPage(1); }}
-              sx={{ width: 200 }}
+              sx={{ width: 160 }}
+              inputProps={{ sx: { py: 0.5, fontSize: 13 } }}
             />
-            <ToggleButtonGroup size="small" exclusive value={filterSource ?? ""} onChange={(_, v) => { setFilterSource(v || null); setLabelPage(1); }}>
+            <ToggleButtonGroup size="small" exclusive value={filterSource ?? ""} onChange={(_, v) => { setFilterSource(v || null); setLabelPage(1); }} role="group" aria-label="Filter by source">
               <ToggleButton value="">All</ToggleButton>
-              <ToggleButton value="hitl_approval">HITL</ToggleButton>
-              <ToggleButton value="coding_correction">Corrections</ToggleButton>
-              <ToggleButton value="anchor_mining">Mined</ToggleButton>
-              <ToggleButton value="seed">Seed</ToggleButton>
+              <ToggleButton value="hitl_approval">Reviewed</ToggleButton>
+              <ToggleButton value="coding_correction">Corrected</ToggleButton>
+              <ToggleButton value="anchor_mining">Auto-found</ToggleButton>
+              <ToggleButton value="seed">Starting set</ToggleButton>
             </ToggleButtonGroup>
             <ToggleButtonGroup size="small" exclusive value={filterInclude === null ? "" : String(filterInclude)} onChange={(_, v) => { setFilterInclude(v === "" ? null : v === "true"); setLabelPage(1); }}>
               <ToggleButton value="">All</ToggleButton>
               <ToggleButton value="true">Included</ToggleButton>
               <ToggleButton value="false">Excluded</ToggleButton>
             </ToggleButtonGroup>
-            <IconButton size="small" onClick={() => { fetchLabels(); fetchVerificationStatus(); }}>
+            <IconButton aria-label="Refresh teaching records" size="small" onClick={() => { fetchLabels(); fetchVerificationStatus(); }}>
               <RefreshIcon fontSize="small" />
             </IconButton>
             <Box flex={1} />
-            <Button
+            {verificationRunning ? (
+              <Button
+                size="small"
+                variant="outlined"
+                color="error"
+                onClick={handleStopVerification}
+              >
+                Stop checking
+              </Button>
+            ) : (
+              <Button
+                size="small"
+                variant="contained"
+                disabled={startingVerification}
+                onClick={() => handleVerifyLabels("all", false)}
+              >
+                {startingVerification ? "Starting..." : "Check labels"}
+              </Button>
+            )}
+            <IconButton
+              aria-label="More label actions"
               size="small"
-              variant="outlined"
-              disabled={verificationRunning}
-              onClick={() => handleVerifyLabels("all", false)}
+              onClick={(e) => setVerifyMenuAnchor(e.currentTarget)}
             >
-              {startingVerification ? "Starting..." : "Verify labels"}
-            </Button>
-            <Button
-              size="small"
-              variant="outlined"
-              color="warning"
-              disabled={verificationRunning}
-              onClick={() => handleVerifyLabels("all", true)}
+              <MoreVertIcon fontSize="small" />
+            </IconButton>
+            <Menu
+              anchorEl={verifyMenuAnchor}
+              open={Boolean(verifyMenuAnchor)}
+              onClose={() => setVerifyMenuAnchor(null)}
             >
-              Reset + reverify all
-            </Button>
-            <Button
-              size="small"
-              variant="outlined"
-              color="secondary"
-              disabled={verificationRunning}
-              onClick={() => handleVerifyLabels("hitl_only", false)}
-            >
-              Reverify HITL only
-            </Button>
-            <Button
-              size="small"
-              variant="outlined"
-              disabled={verificationRunning}
-              onClick={() => handleVerifyLabels("resume", false)}
-            >
-              Resume
-            </Button>
-            <Button
-              size="small"
-              variant="outlined"
-              color="error"
-              disabled={!verificationRunning}
-              onClick={handleStopVerification}
-            >
-              Stop verify
-            </Button>
+              <MenuItem
+                disabled={verificationRunning}
+                onClick={() => { setVerifyMenuAnchor(null); handleVerifyLabels("all", true); }}
+              >
+                Reset and recheck all
+              </MenuItem>
+              <MenuItem
+                disabled={verificationRunning}
+                onClick={() => { setVerifyMenuAnchor(null); handleVerifyLabels("hitl_only", false); }}
+              >
+                Recheck reviewed labels only
+              </MenuItem>
+              <MenuItem
+                disabled={verificationRunning}
+                onClick={() => { setVerifyMenuAnchor(null); handleVerifyLabels("resume", false); }}
+              >
+                Resume checking
+              </MenuItem>
+            </Menu>
           </Stack>
 
           {verificationRunning && (
             <Stack
               direction="row"
-              spacing={1}
-              sx={{ px: 2, pb: 1.5, flexWrap: "wrap" }}
+              spacing={0.75}
+              sx={{ px: 1.5, pb: 1, flexWrap: "wrap" }}
               alignItems="center"
+              useFlexGap
             >
               <Chip
-                label={`${verificationStatus?.done ?? 0}/${verificationStatus?.total ?? 0} labels (${(verificationStatus?.progress_pct ?? 0).toFixed(1)}%)`}
+                label={`${verificationStatus?.done ?? 0} of ${verificationStatus?.total ?? 0} checked (${(verificationStatus?.progress_pct ?? 0).toFixed(1)}%)`}
                 size="small"
                 color="primary"
                 variant="outlined"
               />
               <Chip
-                label={`${verificationStatus?.remaining ?? 0} labels remaining`}
+                label={`${verificationStatus?.remaining ?? 0} left`}
                 size="small"
                 color="primary"
                 variant="outlined"
               />
               {typeof verificationStatus?.items_per_min === "number" && verificationStatus.items_per_min > 0 ? (
                 <Chip
-                  label={`${verificationStatus.items_per_min.toFixed(1)} labels/min`}
+                  label={`${verificationStatus.items_per_min.toFixed(1)} per minute`}
                   size="small"
                   color="primary"
                   variant="outlined"
@@ -896,7 +949,7 @@ export default function TrainingDataPanel() {
               ) : null}
               {typeof verificationStatus?.eta_seconds === "number" ? (
                 <Chip
-                  label={`ETA ${fmtElapsed(verificationStatus.eta_seconds)}`}
+                  label={`About ${fmtElapsed(verificationStatus.eta_seconds)} left`}
                   size="small"
                   color="primary"
                   variant="outlined"
@@ -904,7 +957,7 @@ export default function TrainingDataPanel() {
               ) : null}
               {typeof verificationStatus?.eta_at === "number" ? (
                 <Chip
-                  label={`ETA at ${new Date(verificationStatus.eta_at * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`}
+                  label={`Should finish by ${new Date(verificationStatus.eta_at * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`}
                   size="small"
                   color="primary"
                   variant="outlined"
@@ -917,7 +970,7 @@ export default function TrainingDataPanel() {
             <LinearProgress
               variant="determinate"
               value={Math.max(0, Math.min(100, verificationStatus.progress_pct))}
-              sx={{ mx: 2, mb: 1.5, borderRadius: 1 }}
+              sx={{ mx: 1.5, mb: 1, borderRadius: 1 }}
             />
           ) : null}
 
@@ -935,7 +988,7 @@ export default function TrainingDataPanel() {
               </TableHead>
               <TableBody>
                 {loadingLabels && (
-                  <TableRow><TableCell colSpan={5} align="center"><CircularProgress size={18} /></TableCell></TableRow>
+                  <TableRow><TableCell colSpan={5} align="center"><CircularProgress aria-label="Loading" size={18} /></TableCell></TableRow>
                 )}
                 {!loadingLabels && labels.length === 0 && (
                   <TableRow><TableCell colSpan={5} align="center"><Typography variant="caption" color="text.disabled">No records found</Typography></TableCell></TableRow>
@@ -952,12 +1005,12 @@ export default function TrainingDataPanel() {
                     }}
                     selected={selectedLabel?.label_id === label.label_id}
                   >
-                    <TableCell sx={{ maxWidth: 260 }}>
-                      <Typography variant="caption" sx={{ fontFamily: "monospace" }}>
-                        {label.text.slice(0, 100)}{label.text.length > 100 ? "…" : ""}
+                    <TableCell sx={{ maxWidth: 260, py: 0.75 }}>
+                      <Typography variant="caption" sx={{ fontSize: 12, lineHeight: 1.4 }}>
+                        {label.text.slice(0, 90)}{label.text.length > 90 ? "…" : ""}
                       </Typography>
                     </TableCell>
-                    <TableCell sx={{ minWidth: 180 }}>
+                    <TableCell sx={{ minWidth: 140 }}>
                       <EntityPills entitiesJson={label.entities_json} />
                     </TableCell>
                     <TableCell>
@@ -965,13 +1018,13 @@ export default function TrainingDataPanel() {
                     </TableCell>
                     <TableCell>
                       {label.include
-                        ? <Chip label="In" color="success" size="small" />
-                        : <Tooltip title={label.excluded_reason ?? ""}><Chip label="Out" color="default" size="small" /></Tooltip>}
+                        ? <Chip label="Included" color="success" size="small" variant="outlined" />
+                        : <Tooltip title={label.excluded_reason ?? ""}><Chip label="Excluded" color="default" size="small" variant="outlined" /></Tooltip>}
                     </TableCell>
                     <TableCell align="right">
                       {label.include
-                        ? <Tooltip title="Remove from training"><IconButton size="small" onClick={(e) => { e.stopPropagation(); setExcludeTarget(label.label_id); }}><BlockIcon fontSize="small" color="error" /></IconButton></Tooltip>
-                        : <Tooltip title="Add back to training"><IconButton size="small" onClick={(e) => { e.stopPropagation(); handleInclude(label.label_id); }}><CheckCircleOutlineIcon fontSize="small" color="success" /></IconButton></Tooltip>}
+                        ? <Tooltip title="Remove from training"><IconButton aria-label="Remove from training" size="small" onClick={(e) => { e.stopPropagation(); setExcludeTarget(label.label_id); }}><BlockIcon fontSize="small" color="error" /></IconButton></Tooltip>
+                        : <Tooltip title="Add back to training"><IconButton aria-label="Add back to training" size="small" onClick={(e) => { e.stopPropagation(); handleInclude(label.label_id); }}><CheckCircleOutlineIcon fontSize="small" color="success" /></IconButton></Tooltip>}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -980,10 +1033,10 @@ export default function TrainingDataPanel() {
           </TableContainer>
 
           {/* Pagination */}
-          <Stack direction="row" spacing={1} alignItems="center" sx={{ px: 2, py: 1.5 }}>
+          <Stack direction="row" spacing={0.75} alignItems="center" sx={{ px: 1.5, py: 0.75 }}>
             <Button size="small" disabled={labelPage <= 1} onClick={() => setLabelPage((p) => p - 1)}>← Prev</Button>
-            <Typography variant="caption" color="text.secondary">
-              {labelPage} / {totalPages} ({labelTotal.toLocaleString()} records)
+            <Typography variant="caption" color="text.secondary" sx={{ fontSize: 11 }}>
+              {labelPage} / {totalPages} ({labelTotal.toLocaleString()})
             </Typography>
             <Button size="small" disabled={labelPage >= totalPages} onClick={() => setLabelPage((p) => p + 1)}>Next →</Button>
           </Stack>
@@ -995,7 +1048,7 @@ export default function TrainingDataPanel() {
         anchor="right"
         open={!!selectedLabel}
         onClose={() => { setSelectedLabel(null); setEditingEntities(false); }}
-        PaperProps={{ sx: { width: { xs: "100%", sm: 500 }, display: "flex", flexDirection: "column" } }}
+        PaperProps={{ sx: { width: { xs: "100%", sm: 440 }, display: "flex", flexDirection: "column" } }}
       >
         {selectedLabel && (
           <>
@@ -1004,15 +1057,15 @@ export default function TrainingDataPanel() {
               direction="row"
               alignItems="center"
               justifyContent="space-between"
-              sx={{ px: 2.5, py: 1.75, borderBottom: "1px solid", borderColor: "divider", flexShrink: 0 }}
+              sx={{ px: 2, py: 1.25, borderBottom: "1px solid", borderColor: "divider", flexShrink: 0 }}
             >
               <Box>
-                <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.3 }}>Label detail</Typography>
+                <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.3 }}>Record detail</Typography>
                 <Typography variant="caption" color="text.secondary" sx={{ fontFamily: "monospace" }}>
                   {selectedLabel.label_id.slice(0, 20)}…
                 </Typography>
               </Box>
-              <IconButton size="small" onClick={() => { setSelectedLabel(null); setEditingEntities(false); }} edge="end">
+              <IconButton aria-label="Close record detail" size="small" onClick={() => { setSelectedLabel(null); setEditingEntities(false); }} edge="end">
                 <CloseIcon fontSize="small" />
               </IconButton>
             </Stack>
@@ -1101,6 +1154,7 @@ export default function TrainingDataPanel() {
                   {!editingEntities ? (
                     <Tooltip title="Edit entities">
                       <IconButton
+                        aria-label="Edit entities"
                         size="small"
                         onClick={() => {
                           let parsed: LabelEntity[] = [];
@@ -1126,7 +1180,7 @@ export default function TrainingDataPanel() {
                         variant="contained"
                         onClick={handleSaveEntities}
                         disabled={savingEntities || draftEntities.length === 0}
-                        startIcon={savingEntities ? <CircularProgress size={12} /> : undefined}
+                        startIcon={savingEntities ? <CircularProgress aria-label="Loading" size={12} /> : undefined}
                       >
                         {savingEntities ? "Saving…" : "Save"}
                       </Button>
@@ -1174,13 +1228,14 @@ export default function TrainingDataPanel() {
                           >
                             {VALID_ENTITY_LABELS.map((l) => (
                               <MenuItem key={l} value={l} sx={{ fontSize: 12 }}>
-                                {l}
+                                {ENTITY_LABEL_DISPLAY[l] ?? l}
                               </MenuItem>
                             ))}
                           </Select>
                         </FormControl>
                         <Tooltip title="Remove entity">
                           <IconButton
+                            aria-label="Remove entity"
                             size="small"
                             color="error"
                             onClick={() =>
@@ -1256,60 +1311,28 @@ export default function TrainingDataPanel() {
         )}
       </Drawer>
 
-      {/* ── Exclude dialog ── */}
-      <Dialog open={!!excludeTarget} onClose={() => setExcludeTarget(null)} maxWidth="sm" fullWidth>
-        <DialogTitle>Remove this record from training?</DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" sx={{ mb: 2 }}>
-            The record won't be used in future training runs. You can add it back at any time.
-          </Typography>
-          <TextField
-            fullWidth autoFocus
-            label="Reason"
-            placeholder="e.g. wrong entity, contains identifiable information…"
-            value={excludeReason}
-            onChange={(e) => setExcludeReason(e.target.value)}
-            multiline rows={2}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setExcludeTarget(null)}>Cancel</Button>
-          <Button onClick={handleExclude} disabled={!excludeReason.trim() || excludeBusy} color="error" variant="contained">
-            {excludeBusy ? "Removing…" : "Remove"}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      {/* ── Remove from teaching dialog ── */}
+      {!!excludeTarget && (
+        <ConfirmDialog
+          title="Remove this record from teaching?"
+          body="The AI will not learn from this record in future. You can add it back at any time."
+          confirmLabel={excludeBusy ? "Removing…" : "Remove"}
+          variant="danger"
+          onConfirm={handleExclude}
+          onCancel={() => { setExcludeTarget(null); setExcludeReason(""); setConfirmExclude(false); }}
+        />
+      )}
 
-      {/* ── Start training dialog ── */}
-      <Dialog open={startJobOpen} onClose={() => setStartJobOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Start a training run</DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" sx={{ mb: 2 }}>
-            This will train the NER model using{" "}
-            <strong>{(preview?.exportable_label_count ?? 0).toLocaleString()} records</strong>.
-            Training runs in the background — you can watch progress on this page.
-          </Typography>
-          <TextField
-            fullWidth
-            label="Notes (optional)"
-            placeholder="e.g. added corrections for haemoptysis"
-            value={jobNotes}
-            onChange={(e) => setJobNotes(e.target.value)}
-            multiline rows={2}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setStartJobOpen(false)}>Cancel</Button>
-          <Button
-            onClick={handleStartJob}
-            disabled={startingJob}
-            variant="contained"
-            startIcon={startingJob ? <CircularProgress size={14} /> : <PlayArrowIcon />}
-          >
-            {startingJob ? "Starting…" : "Start"}
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Box>
+      {/* ── Start learning dialog ── */}
+      {startJobOpen && (
+        <ConfirmDialog
+          title="Start a learning run?"
+          body={`The AI will learn from ${(preview?.exportable_label_count ?? 0).toLocaleString()} records. This runs in the background — you can watch progress on this page.`}
+          confirmLabel={startingJob ? "Starting…" : "Start"}
+          onConfirm={handleStartJob}
+          onCancel={() => setStartJobOpen(false)}
+        />
+      )}
+    </Stack>
   );
 }

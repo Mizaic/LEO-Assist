@@ -1,0 +1,103 @@
+---
+description: Safety, accessibility, and usability standards for the clinical UI
+globs: services/ui/src/**/*.tsx
+alwaysApply: false
+---
+
+# UI Safety and Accessibility Standards
+
+These rules are mandatory for all UI code in this clinical decision-support application.
+
+## Destructive Actions
+
+Every server-side destructive action (delete, remove, reset, create-rule, dismiss, reject) MUST use `ConfirmDialog` from `components/ConfirmDialog.tsx`. Never use `window.confirm()` or fire destructive API calls on a bare `onClick`.
+
+```tsx
+// BAD — one-click permanent delete
+<IconButton onClick={() => deleteCodedLink(id)}><DeleteIcon /></IconButton>
+
+// GOOD — gated by ConfirmDialog
+const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+<IconButton onClick={() => setConfirmDelete(id)}><DeleteIcon /></IconButton>
+{confirmDelete && (
+  <ConfirmDialog
+    title="Remove clinical code?"
+    body={`This will permanently delete ${term} (${confirmDelete}).`}
+    confirmLabel="Remove"
+    variant="danger"
+    onConfirm={() => { handleRemove(confirmDelete); setConfirmDelete(null); }}
+    onCancel={() => setConfirmDelete(null)}
+  />
+)}
+```
+
+## Error Handling
+
+Never swallow API errors. Every fetch must surface failures to the user.
+
+```tsx
+// BAD — silent failure looks like empty data
+const data = await fetchData().catch(() => []);
+
+// GOOD — per-section error state
+try { setData(await fetchData()); }
+catch { setSectionError("Unable to load data. Please retry."); }
+```
+
+Always check `res.ok` on raw `fetch()` calls before treating as success.
+
+## Keyboard Shortcuts
+
+Keyboard handlers for destructive actions (reject, dismiss, delete) must:
+1. Guard against `input`, `textarea`, `contentEditable`, `select`, and `[role="combobox"]`
+2. Show a `ConfirmDialog` before executing
+
+```tsx
+if (
+  e.target instanceof HTMLInputElement ||
+  e.target instanceof HTMLTextAreaElement ||
+  e.target instanceof HTMLSelectElement ||
+  (e.target as HTMLElement).isContentEditable ||
+  (e.target as HTMLElement).closest('[role="combobox"]')
+) return;
+```
+
+## Headings
+
+Every page must have exactly one `<h1>`. Use `component="h1"` on the page title Typography:
+
+```tsx
+<Typography variant="h5" component="h1">Settings</Typography>
+```
+
+Do not use heading variants on non-heading elements (e.g. sidebar brand).
+
+## Input Labels
+
+All inputs must have programmatic labels. Never rely on `placeholder` alone.
+
+- MUI `TextField`: use the `label` prop, or `aria-label` for search fields.
+- `IconButton`: always add `aria-label`.
+- `CircularProgress`: always add `aria-label="Loading"`.
+
+## Native Dialogs
+
+Never use `alert()`, `window.confirm()`, or `window.prompt()`. Use MUI `Alert`/`Snackbar` for feedback and `ConfirmDialog` for confirmations.
+
+## Colour Contrast
+
+Text on white must meet WCAG AA (4.5:1 for normal, 3:1 for large text). Banned combinations on white backgrounds: `#94a3b8` (2.4:1), `#e2e8f0` (1.2:1), `rgba(0,0,0,0.38)` (2.7:1). Use theme tokens; minimum caption color is `#6B7280`.
+
+## Empty States
+
+Never `return null` when data is absent. Always render an explanation with navigation:
+
+```tsx
+// BAD
+if (!data) return null;
+
+// GOOD
+if (!data) return (
+  <Alert severity="info">No candidate data available. <Link href={backUrl}>Return to encounters</Link></Alert>
+);
+```

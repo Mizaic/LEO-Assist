@@ -877,6 +877,8 @@ export default function BreakoutGame() {
       />
       {gameOver && (
         <button
+          type="button"
+          aria-label="Restart game"
           onClick={reset}
           style={{
             background: "linear-gradient(135deg,#6366f1,#8b5cf6)",

@@ -1,0 +1,68 @@
+# -- DI-LEO-AI-041 -- Coding Verification Consensus
+# IEC 62304 / ISO 13485 Design Input
+# Schema: design-controls/templates/design_inputs_schema.yaml
+
+- id: "DI-LEO-AI-041"
+  type: "Safety"
+  derived_from: ["UN-LEO-AI-002"]
+  requirement: "The system SHALL verify terminology index matches using dual-model consensus, returning correct, incorrect, or uncertain -- with mode-aware fail behaviour: autonomous mode defaults to uncertain (do not auto-code unverified matches), HITL mode defaults to correct (let human review)"
+  rationale: "Terminology index matches can be semantically incorrect even when the match score is high (e.g. 'weight' matched to 'Weight loss (finding)' when the encounter describes body weight measurement). Dual-model verification catches these false-positive matches before they are auto-coded. Mode-aware fail behaviour ensures that verification failures in autonomous mode prevent coding rather than permitting it."
+
+  machine_spec:
+    agent_prompt: |
+      Implement verify_coding_consensus (~30 LOC).
+
+      SINGLE PURPOSE: Verify a terminology match using dual-model
+      consensus and return correct/incorrect/uncertain.
+
+      REQUIREMENTS:
+      1. Use run_consensus from DI-LEO-AI-036.
+      2. User message includes entity_text, encounter_text (sanitised and
+         capped at 16000 chars), and matched SNOMED concept with ID.
+      3. Parse verdict: only accept correct, incorrect, or uncertain.
+      4. Autonomous fail_verdict: uncertain.
+      5. HITL fail_verdict: correct.
+
+    acceptance_criteria:
+      - type: "test"
+        spec: "Correct verdict returned when consensus agrees on correct"
+      - type: "test"
+        spec: "Incorrect verdict returned when consensus agrees on incorrect"
+      - type: "test"
+        spec: "Autonomous mode fail_verdict is uncertain"
+      - type: "test"
+        spec: "HITL mode fail_verdict is correct"
+      - type: "test"
+        spec: "User message includes SNOMED concept ID"
+      - type: "test"
+        spec: "Encounter text sanitised and capped at 16000 characters"
+
+    constraints:
+      - type: "safety"
+        spec: "Autonomous mode MUST default to uncertain on failure -- never auto-approve an unverified match"
+      - type: "performance"
+        spec: "Reuses the consensus runner; no additional LLM calls beyond the consensus pattern"
+
+    dependencies: ["DI-LEO-AI-036"]
+
+    downstream_impacts:
+      - "tier_classifier (Tier 2 promotion check)"
+      - "pipeline_service"
+
+    technical_details:
+      language: "Python"
+      framework: "N/A"
+      libraries: ["libs.llm_client.consensus"]
+      file_structure:
+        - "libs/llm_client/escalation.py"
+      estimated_loc: 30
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: "All three verdicts, both mode fail behaviours, message content, and truncation verified"
+    test_protocol: "VT-LEO-AI-026"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-001", "R-LEO-AI-026", "R-LEO-AI-030"]
+  tags: ["coding-verification", "consensus", "safety-gate", "autonomous-coding", "intended-use-enforcement"]

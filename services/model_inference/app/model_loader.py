@@ -12,6 +12,17 @@ Hot-reload protocol
 
 This means the old model serves requests right up until the moment the
 in-memory pointer is swapped — zero dropped requests.
+
+Concurrency safeguards
+----------------------
+- ``_load_lock`` serialises all ``load_version`` calls so only one download
+  runs at a time.  A concurrent call for the same version that arrives while
+  a load is in progress will return immediately once the lock is released
+  (the version will already be active).  A call for a *different* version
+  waits and then proceeds normally.
+- The idempotency check inside ``_load_lock`` means that startup +
+  a concurrent registry ``_signal_reload`` for the same version never
+  trigger two redundant 400 MB blob downloads.
 """
 
 from __future__ import annotations
@@ -29,7 +40,11 @@ class ModelLoader:
     """Thread-safe model holder for the inference service."""
 
     def __init__(self) -> None:
+        # Guards in-memory swap of _nlp / _active_version.
         self._lock = threading.RLock()
+        # Serialises concurrent load_version calls — prevents duplicate
+        # blob downloads when startup and _signal_reload race each other.
+        self._load_lock = threading.Lock()
         self._nlp: Any = None
         self._active_version: Optional[str] = None
         self._model_name = os.getenv("CODING_MODEL_NAME", "medspacy_clinical_ner")
@@ -51,8 +66,9 @@ class ModelLoader:
     def load_version(self, version: str) -> None:
         """Download from blob and hot-swap to the requested version.
 
-        Thread-safe — safe to call concurrently.  Only one caller will win
-        the swap; others will see the new version immediately after.
+        Idempotent: if this version is already active when the load lock is
+        acquired (e.g. a concurrent call finished first), returns immediately
+        without a redundant download.
 
         Args:
             version: Version string matching a blob path in the model store.
@@ -60,32 +76,43 @@ class ModelLoader:
         Raises:
             RuntimeError: If download or spaCy load fails.
         """
-        from libs.model_store import ModelStore
-        import spacy
+        with self._load_lock:
+            # Re-check inside the lock: another thread may have loaded this
+            # version while we were waiting (startup vs. _signal_reload race).
+            with self._lock:
+                if self._active_version == version:
+                    logger.info(
+                        "ModelLoader: v%s already active — skipping redundant load",
+                        version,
+                    )
+                    return
 
-        store = ModelStore()
+            from libs.model_store import ModelStore
+            import spacy
 
-        logger.info("ModelLoader: downloading v%s from blob store...", version)
-        local_model_dir = store.download(version)
-        logger.info("ModelLoader: loading spaCy model from %s...", local_model_dir)
+            store = ModelStore()
 
-        # Load in staging — outside the lock so requests keep flowing
-        try:
-            new_nlp = spacy.load(str(local_model_dir))
-        except Exception as exc:
-            raise RuntimeError(
-                f"ModelLoader: spaCy failed to load model from {local_model_dir}: {exc}"
-            ) from exc
+            logger.info("ModelLoader: downloading v%s from blob store...", version)
+            local_model_dir = store.download(version)
+            logger.info("ModelLoader: loading spaCy model from %s...", local_model_dir)
 
-        # Atomic swap
-        with self._lock:
-            old_version = self._active_version
-            self._nlp = new_nlp
-            self._active_version = version
+            # Load in staging — outside the swap lock so requests keep flowing.
+            try:
+                new_nlp = spacy.load(str(local_model_dir))
+            except Exception as exc:
+                raise RuntimeError(
+                    f"ModelLoader: spaCy failed to load model from {local_model_dir}: {exc}"
+                ) from exc
 
-        logger.info(
-            "ModelLoader: hot-swapped v%s → v%s (pipes: %s)",
-            old_version or "none",
-            version,
-            ", ".join(new_nlp.pipe_names),
-        )
+            # Atomic swap.
+            with self._lock:
+                old_version = self._active_version
+                self._nlp = new_nlp
+                self._active_version = version
+
+            logger.info(
+                "ModelLoader: hot-swapped v%s → v%s (pipes: %s)",
+                old_version or "none",
+                version,
+                ", ".join(new_nlp.pipe_names),
+            )

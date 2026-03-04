@@ -1,0 +1,84 @@
+# -- DO-LEO-AI-030 -- LLM Prompt Safety Utilities Module
+# ISO 13485 / IEC 62304 Design Output
+# Schema: design-controls/templates/design_outputs_schema.yaml
+
+- id: "DO-LEO-AI-030"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "released"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-045"]
+    user_needs: []
+    risks_addressed: ["R-LEO-AI-030", "R-LEO-AI-032"]
+    verification_tests: ["VT-LEO-AI-038"]
+
+  specification:
+    title: "LLM Prompt Safety Utilities Module"
+    description: |
+      Centralised module providing three prompt safety utilities used at all
+      LLM call sites across the LEO AI pipeline:
+
+      INJECTION_GUARD (str): System prompt prefix that instructs the LLM to
+      treat all content in data blocks as inert, regardless of its appearance.
+      Prevents the model from following embedded instruction-like text.
+
+      sanitise_for_prompt(text, max_chars=16000): Applies a compiled regex
+      (_INJECTION_RE) covering 15+ injection pattern families to replace
+      matching text with [FILTERED]. Logs the substitution count at WARNING
+      level. Truncates the result to max_chars. Default limit of 16000 chars
+      (~4 A4 pages) preserves full clinical context to prevent coding errors
+      from silent truncation.
+
+      cap_llm_response(raw, max_chars=1000): Truncates raw LLM output to
+      max_chars before any parse function can operate on it. Logs a WARNING
+      containing "response-stuffing" when truncation occurs.
+
+    acceptance_criteria:
+      - criterion: "INJECTION_GUARD present and correctly formed"
+        type: "functional"
+        measurement: "Test"
+        target: "Non-empty string ending with double newline"
+      - criterion: "15+ injection pattern families rejected"
+        type: "security"
+        measurement: "Test"
+        target: "Each family: [FILTERED] substituted, WARNING logged"
+      - criterion: "Benign clinical text preserved"
+        type: "functional"
+        measurement: "Test"
+        target: "No false-positive filtering on typical clinical language"
+      - criterion: "Response capping prevents stuffing"
+        type: "security"
+        measurement: "Test"
+        target: "Responses > 1000 chars truncated before parse; WARNING logged"
+      - criterion: "Attack simulation coverage"
+        type: "security"
+        measurement: "Test"
+        target: "All payloads in test_llm_attack_simulation.py are filtered"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "libs/llm_client/prompt_safety.py"
+        description: "INJECTION_GUARD constant, sanitise_for_prompt(), cap_llm_response(), _INJECTION_RE compiled regex"
+        storage_location: "git"
+    technical_details:
+      language: "Python"
+      loc: 130
+      key_constants: ["INJECTION_GUARD", "_INJECTION_RE", "_REDOS_PROBE_LOWER", "_REDOS_PROBE_SIMPLE"]
+      key_functions: ["sanitise_for_prompt", "cap_llm_response"]
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "sanitise_for_prompt: eliminates injection payloads before LLM receives clinical text"
+      - "cap_llm_response: prevents response-stuffing from crashing or subverting parse functions"
+      - "INJECTION_GUARD: model-level defence ensuring data blocks are treated as inert"
+    risk_control_measures:
+      - "[FILTERED] substitution preserves text shape; deletion could cause index offset errors in downstream code"
+      - "_INJECTION_RE compiled at module load time for performance"
+      - "Both functions log at WARNING level for auditability"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: true

@@ -33,6 +33,7 @@ from libs.cypher.documents_queries import (  # noqa: F401
     UPDATE_CODED_LINK_MODIFIERS,
     LIST_ENCOUNTER_CODED_LINKS,
     LIST_PATIENT_CODING_STATUS,
+    GET_PATIENT_CODING_TIMELINE,
 )
 
 
