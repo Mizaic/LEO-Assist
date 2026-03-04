@@ -121,17 +121,17 @@
         - "LLM receives full concept context for verification"
 
     - case_id: "VT-026-TC-008"
-      case_name: "Encounter text truncated to 1500 characters"
+      case_name: "Encounter text sanitised and capped at 16000 characters"
       priority: "high"
       preconditions:
-        - "Encounter text exceeds 1500 characters"
+        - "Encounter text exceeds 16000 characters"
       test_steps:
         - step_number: 1
-          action: "Call verify_coding_consensus with 5000-char encounter text"
-          expected_result: "User message encounter_text is exactly 1500 characters"
+          action: "Call verify_coding_consensus with 20000-char encounter text"
+          expected_result: "User message encounter_text is exactly 16000 characters"
           verification_method: "Parse user_msg JSON and assert length"
       acceptance_criteria:
-        - "Token budget managed by truncation"
+        - "Full clinical context preserved for encounters up to ~4 A4 pages"
 
   pass_fail_criteria:
     pass_threshold: "100% critical, 100% all"

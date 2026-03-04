@@ -17,8 +17,8 @@
 
       REQUIREMENTS:
       1. Use run_consensus from DI-LEO-AI-036.
-      2. User message includes entity_text, encounter_text (truncated to
-         1500 chars), and matched SNOMED concept with ID.
+      2. User message includes entity_text, encounter_text (sanitised and
+         capped at 16000 chars), and matched SNOMED concept with ID.
       3. Parse verdict: only accept correct, incorrect, or uncertain.
       4. Autonomous fail_verdict: uncertain.
       5. HITL fail_verdict: correct.
@@ -35,7 +35,7 @@
       - type: "test"
         spec: "User message includes SNOMED concept ID"
       - type: "test"
-        spec: "Encounter text truncated to 1500 characters"
+        spec: "Encounter text sanitised and capped at 16000 characters"
 
     constraints:
       - type: "safety"

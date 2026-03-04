@@ -81,9 +81,10 @@
 
     - control_type: "protective_measure"
       description: >
-        Input length limits: sanitise_for_prompt() truncates encounter_text
-        to 2000 characters and entity_text to 200 characters before
-        transmission, limiting the size of each PHI disclosure.
+        Input length limits: sanitise_for_prompt() sanitises and caps
+        encounter_text to 16000 characters (~4 A4 pages) and entity_text
+        to 200 characters before transmission, limiting the size of each
+        PHI disclosure while preserving full clinical context.
       implemented_by: ["DI-LEO-AI-045"]
       verified_by: ["VT-LEO-AI-038"]
       effectiveness: "partially_effective"

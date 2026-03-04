@@ -265,7 +265,7 @@ def escalate_coding(
                             {
                                 "entity_text": sanitise_for_prompt(entity_text, max_chars=200),
                                 "entity_label": entity_label,
-                                "encounter_text": sanitise_for_prompt(encounter_text, max_chars=2000),
+                                "encounter_text": sanitise_for_prompt(encounter_text, max_chars=16_000),
                             }
                         ),
                     }
@@ -411,7 +411,7 @@ def escalate_coding_from_candidates(
     numbered = _format_candidates(candidates)
     user_msg = json.dumps({
         "entity_text": sanitise_for_prompt(entity_text, max_chars=200),
-        "encounter_text": sanitise_for_prompt(encounter_text, max_chars=1500),
+        "encounter_text": sanitise_for_prompt(encounter_text, max_chars=16_000),
         "candidates": numbered,
     })
 

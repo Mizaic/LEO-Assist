@@ -57,7 +57,7 @@
     safety_critical_functions:
       - "Mode-aware fail-safe: autonomous never defaults to active_diagnosis"
       - "Unknown verdicts fall back to mode-appropriate default"
-      - "Encounter text truncated to 2000 chars to prevent token budget overruns"
+      - "Encounter text sanitised and capped at 16000 chars (~4 A4 pages) to balance token budget with clinical context preservation"
     risk_control_measures:
       - "Dual-model consensus via DI-LEO-AI-036"
       - "JSON verdict validated against allowlist before use"

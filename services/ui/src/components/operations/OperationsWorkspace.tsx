@@ -134,8 +134,8 @@ export default function OperationsWorkspace({ initialTab = "review" }: Props) {
           bgcolor: "background.paper",
           borderBottom: 1,
           borderColor: "divider",
-          px: 3,
-          py: 1.5,
+          px: { xs: 1.5, sm: 2.5 },
+          py: 1,
         }}
       >
         <Stack
@@ -235,7 +235,7 @@ export default function OperationsWorkspace({ initialTab = "review" }: Props) {
       </Box>
 
       {/* -- Content -------------------------------------------------------- */}
-      <Box sx={{ px: 3, py: 2.5, maxWidth: 960, mx: "auto" }}>
+      <Box sx={{ px: { xs: 1.5, sm: 2.5 }, py: 1.5, maxWidth: 960, mx: "auto" }}>
         <Box
           role="tabpanel"
           id={`ops-panel-${tab}`}

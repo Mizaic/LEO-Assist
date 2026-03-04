@@ -140,6 +140,7 @@ var sharedEnv = [
   { name: 'TRAINING_MIN_LABEL_COUNT', value: '50' }
   { name: 'TRAINING_USE_GPU', value: 'false' }
   { name: 'HF_HOME', value: '/var/model_cache/hf_cache' }
+  { name: 'HF_HUB_OFFLINE', value: '1' }
 
   // Vector / embedding model (same base model as NER)
   { name: 'VECTOR_MODEL', value: 'emilyalsentzer/Bio_ClinicalBERT' }

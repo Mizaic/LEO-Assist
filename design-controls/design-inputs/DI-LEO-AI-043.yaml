@@ -103,6 +103,8 @@
     downstream_impacts:
       - "Clinical coding review workflow safety"
       - "Screen reader accessibility for all UI pages"
+      - "Operations Step 3 (Train) plain-language accessibility for reading age 9-11"
+      - "Operations Step 4 (Deploy) plain-language accessibility for reading age 9-11"
       - "Keyboard-only user accessibility"
       - "Error recovery and system status visibility"
 
@@ -119,6 +121,9 @@
         - "services/ui/src/components/operations/OperationsWorkspace.tsx"
         - "services/ui/src/components/operations/ReviewSection.tsx"
         - "services/ui/src/components/operations/ModelLifecyclePanel.tsx"
+        - "services/ui/src/components/operations/TrainSection.tsx"
+        - "services/ui/src/components/operations/TrainingDataPanel.tsx"
+        - "services/ui/src/components/operations/DeploySection.tsx"
         - "services/ui/src/components/benchmarks/BenchmarkSetList.tsx"
         - "services/ui/src/components/AppShell.tsx"
         - "services/ui/src/components/EncounterList.tsx"

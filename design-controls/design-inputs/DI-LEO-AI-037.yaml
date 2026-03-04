@@ -24,7 +24,7 @@
       4. On unknown verdict, fall back to mode-appropriate default.
       5. HITL mode fail-safe: active_diagnosis (let human review it).
       6. Autonomous mode fail-safe: uncertain (do not code it).
-      7. Truncate encounter text to 2000 chars to stay within token limits.
+      7. Sanitise encounter text (injection filter) and cap at 16000 chars (~4 A4 pages).
 
     acceptance_criteria:
       - type: "test"
@@ -38,7 +38,7 @@
       - type: "test"
         spec: "Unknown verdict returns mode-appropriate default"
       - type: "test"
-        spec: "Encounter text truncated to 2000 characters"
+        spec: "Encounter text sanitised and capped at 16000 characters"
 
     constraints:
       - type: "safety"

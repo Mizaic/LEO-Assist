@@ -144,6 +144,21 @@ The audit covered every screen, component, flow, and interaction state in the UI
 | USA-007 | MAJOR | Multiple | Native `window.confirm()`/`alert()` used instead of in-app UI | Nielsen H4 — Consistency | Replaced all instances with MUI components |
 | USA-008 | MAJOR | AppShell | Nav items not grouped by function | Nielsen H7 — Flexibility | Navigation label fix applied (Settings rename) |
 | USA-009 | MINOR | Multiple | Keyboard shortcut hints have insufficient contrast | Nielsen H10 — Help and documentation | Contrast improved |
+| USA-010 | CRITICAL | TrainSection | Stat cards use technical jargon ("Training labels", "Coding reviews") incompatible with reading age 9-11 | Health literacy — Plain language | Renamed to "Teaching examples", "Checked records", "Need attention" with plain-language subtitles |
+| USA-011 | CRITICAL | TrainingDataPanel | Technical terms throughout: "NER model", "precision", "recall", "F1", "gates passed" | Health literacy — Plain language | Replaced with "the AI", "correct answers", "found answers", "overall score", "quality check passed" |
+| USA-012 | CRITICAL | TrainingDataPanel | 5 verification action buttons in a row overwhelm non-technical users | Nielsen H8 — Aesthetic and minimalist design | Collapsed into primary "Check labels" button + overflow menu |
+| USA-013 | CRITICAL | TrainingDataPanel | 26 raw SNOMED entity labels shown in dropdown (e.g. "morphologic_abnormality") | Health literacy — Plain language | Mapped to plain-language categories (e.g. "Structural change", "Health condition") |
+| USA-014 | MAJOR | TrainingDataPanel | Error silently swallowed with `.catch(() => {})` in parent `TrainSection` | Nielsen H9 — Help users recover | Added error state with Alert |
+| USA-015 | MAJOR | TrainingDataPanel | Raw `<Dialog>` used for exclude and start-training instead of `ConfirmDialog` | ui-safety.mdc — ConfirmDialog consistency | Replaced with `ConfirmDialog` |
+| USA-016 | CRITICAL | LabelVerificationPanel | Labels "AWS suggestion"/"Azure suggestion" expose vendor names to non-technical users | Health literacy — Plain language | Renamed to "Tool A thinks" / "Tool B thinks" |
+| USA-017 | MAJOR | LabelVerificationPanel | "Span text", "Context contains" field labels assume NLP knowledge | Health literacy — Plain language | Renamed to "Word or phrase", "Nearby words (optional)" |
+| USA-018 | MAJOR | LabelVerificationPanel | 6 action buttons per row with technical labels ("Apply edit", "Remove span", "Create ignore rule") | Nielsen H8 — Aesthetic and minimalist design | Simplified to "Fix this", "Remove this word", "Always ignore this", "Save and next" |
+| USA-019 | MAJOR | LabelVerificationPanel | View toggle buttons ("Pending"/"History") missing `aria-pressed` | WCAG 4.1.2 Name, Role, Value | Added `aria-pressed` and `role="group"` with `aria-label` |
+| USA-020 | CRITICAL | DeploySection | Metric labels use ML jargon: "Offline precision", "Offline recall", "Canary precision/recall" | Health literacy — Plain language | Renamed to "Training accuracy", "Training completeness", "Live test accuracy/completeness" with tooltips |
+| USA-021 | CRITICAL | ModelLifecyclePanel | "Gold patient test", "Canary", "Force promote — gate override" are incomprehensible at reading age 11 | Health literacy — Plain language | Renamed to "Safety test", "Being tested", "Go live anyway" |
+| USA-022 | MAJOR | ModelLifecyclePanel | Status labels "Canary", "offline_validated", "deprecated" are technical | Health literacy — Plain language | Renamed to "Being tested", "Ready to test", "Retired" |
+| USA-023 | MAJOR | ModelLifecyclePanel | Raw `<Dialog>` used for force-promote, rollback, reject instead of `ConfirmDialog` | ui-safety.mdc — ConfirmDialog consistency | Replaced with `ConfirmDialog` |
+| USA-024 | MAJOR | ModelLifecyclePanel | Error messages use ML terminology ("Promote failed", "Rollback failed") | Health literacy — Plain language | Rewritten as plain actionable messages |
 
 ### 5.4 INFORMATION ARCHITECTURE
 
@@ -213,7 +228,7 @@ A `.cursor/rules/ui-safety.mdc` rule was created encoding all safety, accessibil
 
 ## 8. Residual Risk Assessment
 
-After remediation, all 48 findings have been addressed. Residual risks:
+After remediation, all 63 findings (48 original + 15 Step 3/4 plain-language) have been addressed. Residual risks:
 
 | Area | Residual Risk | Acceptability |
 |------|---------------|---------------|

@@ -55,7 +55,7 @@
     safety_class: "B"
     safety_critical_functions:
       - "Autonomous mode never defaults to correct on failure"
-      - "Encounter text truncated to 1500 chars"
+      - "Encounter text sanitised and capped at 16000 chars"
       - "Verdict validated against allowlist (correct, incorrect, uncertain)"
     risk_control_measures:
       - "Dual-model consensus via DO-LEO-AI-023"

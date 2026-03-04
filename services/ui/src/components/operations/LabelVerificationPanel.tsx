@@ -108,6 +108,36 @@ const VALID_ENTITY_LABELS = [
   "X_ROUTE",
 ] as const;
 
+const ENTITY_LABEL_DISPLAY: Record<string, string> = {
+  disorder: "Health condition",
+  finding: "Finding or symptom",
+  procedure: "Treatment or procedure",
+  observable_entity: "Test or measurement",
+  qualifier_value: "Qualifier",
+  substance: "Substance",
+  medicinal_product: "Medicine",
+  clinical_drug: "Drug",
+  situation: "Situation",
+  event: "Event",
+  body_structure: "Body part",
+  tumor_staging: "Tumour stage",
+  assessment_scale: "Assessment scale",
+  staging_scale: "Staging scale",
+  regime_therapy: "Therapy plan",
+  record_artifact: "Record type",
+  physical_object: "Physical object",
+  organism: "Organism",
+  morphologic_abnormality: "Structural change",
+  occupation: "Job or role",
+  attribute: "Attribute",
+  environment: "Environment",
+  product: "Product",
+  X_TEMPORAL: "Time or date",
+  X_DOSAGE: "Dose",
+  X_FREQUENCY: "How often",
+  X_ROUTE: "How given",
+};
+
 async function jsonFetch<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, {
     ...init,
@@ -128,48 +158,48 @@ async function jsonFetch<T>(url: string, init?: RequestInit): Promise<T> {
 const LABEL_STAGES: TabStage[] = [
   {
     id: "lv1", num: 1,
-    label: "Two Tools Read It",
-    tooltip: "Two medical AI tools -- AWS Comprehend Medical and Azure Text Analytics for Health -- both read the note and pull out key medical words.",
+    label: "Two tools read it",
+    tooltip: "Two medical AI tools both read the note and pull out key medical words.",
     detailIn: "A patient note",
-    detailOut: "Two sets of medical word labels -- one from each AI tool",
+    detailOut: "Two sets of medical word labels -- one from each tool",
   },
   {
     id: "lv2", num: 2,
-    label: "They Disagree",
-    tooltip: "The two tools give different labels for the same word. For example, one says 'diagnosis' and the other says 'symptom'.",
+    label: "They disagree",
+    tooltip: "The two tools give different labels for the same word. For example, one says 'health condition' and the other says 'symptom'.",
     detailIn: "Two different labels for the same word in the note",
     detailOut: "A review record added to this queue",
   },
   {
     id: "lv3", num: 3,
-    label: "You See Both",
-    tooltip: "You see the word highlighted in the note, along with what each AI tool said and the reason it gave.",
-    detailIn: "The word, the note, and both AI suggestions with reasons",
+    label: "You see both",
+    tooltip: "You see the word highlighted in the note, along with what each tool said and the reason it gave.",
+    detailIn: "The word, the note, and both suggestions with reasons",
     detailOut: "A clear picture of the disagreement",
   },
   {
     id: "lv4", num: 4,
-    label: "You Choose",
-    tooltip: "You pick the right label for the word. You can also fix the word span, add a new word the AI missed, or remove a word that should not be there.",
+    label: "You choose",
+    tooltip: "You pick the right label for the word. You can also fix the word, add a new word the AI missed, or remove a word that should not be there.",
     detailIn: "Your knowledge of the medical term",
-    detailOut: "A corrected label, span, and optional suppression rule",
+    detailOut: "A corrected label and word",
     branches: [
       {
-        label: "Add a new span",
+        label: "Add a new word",
         description: "If the AI missed an important word entirely, you can add it with the correct label",
       },
       {
-        label: "Suppress a pattern",
+        label: "Always ignore this",
         description: "If the AI keeps making the same mistake, you can create a rule to stop it happening again",
       },
     ],
   },
   {
     id: "lv5", num: 5,
-    label: "Saved for Training",
-    tooltip: "Your corrected label is saved into the training library. It will be used next time the AI is retrained.",
-    detailIn: "Your corrected label and span",
-    detailOut: "A verified training example added to the library",
+    label: "Saved for teaching",
+    tooltip: "Your corrected label is saved. It will be used next time the AI learns.",
+    detailIn: "Your corrected label and word",
+    detailOut: "A checked teaching example added to the records",
   },
 ];
 
@@ -264,7 +294,7 @@ export default function LabelVerificationPanel() {
       setNewSpanText(nextNewSpanText);
       setNewSpanLabel(nextNewSpanLabel);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not load label review data");
+      setError(e instanceof Error ? e.message : "Could not load the label check data. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -282,7 +312,7 @@ export default function LabelVerificationPanel() {
     const resolvedLabel = selectedLabels[review.review_id] || review.current_label;
     const resolvedText = (selectedSpans[review.review_id] ?? review.entity_text ?? "").trim();
     if (!resolvedText) {
-      setError("Span text cannot be empty");
+      setError("The word or phrase cannot be empty.");
       return;
     }
     const idx = selectedEntityIdx[review.review_id] ?? 0;
@@ -321,7 +351,7 @@ export default function LabelVerificationPanel() {
   const handleCreateSuppressRule = async (review: LabelVerificationReview) => {
     const spanText = (selectedSpans[review.review_id] ?? review.entity_text ?? "").trim();
     if (!spanText) {
-      setError("Span text cannot be empty to create a post-processor rule");
+      setError("The word or phrase cannot be empty.");
       return;
     }
 
@@ -347,7 +377,7 @@ export default function LabelVerificationPanel() {
       // Stage a local removal so user can keep fixing this record before submit.
       await removeSpanFromRecord(review);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not create post-processor rule");
+      setError(e instanceof Error ? e.message : "Could not create the ignore rule. Please try again.");
     } finally {
       setCreatingRuleId(null);
     }
@@ -357,26 +387,26 @@ export default function LabelVerificationPanel() {
     () =>
       viewMode === "history"
         ? [
-            { label: `History items: ${reviews.length.toLocaleString()}` },
-            { label: `Page: ${page} / ${totalPages}` },
+            { label: `${reviews.length.toLocaleString()} past items` },
+            { label: `Page ${page} of ${totalPages}` },
           ]
         : [
-            { label: `Total labels: ${stats.total_labels.toLocaleString()}` },
-            { label: `Verified: ${stats.verified_labels.toLocaleString()}` },
-            { label: `Agreements: ${stats.agreements.toLocaleString()}` },
-            { label: `Disagreements: ${stats.disagreements.toLocaleString()}` },
-            { label: `Pending HITL: ${pendingCount.toLocaleString()}`, color: "warning" as const },
-            { label: `Auto-resolved: ${autoResolvedCount.toLocaleString()}`, color: "success" as const },
+            { label: `${stats.total_labels.toLocaleString()} labels total` },
+            { label: `${stats.verified_labels.toLocaleString()} checked` },
+            { label: `${stats.agreements.toLocaleString()} agreed` },
+            { label: `${stats.disagreements.toLocaleString()} disagreed` },
+            { label: `${pendingCount.toLocaleString()} waiting for you`, color: "warning" as const },
+            { label: `${autoResolvedCount.toLocaleString()} fixed automatically`, color: "success" as const },
             ...(verifyStatus?.status === "running" || verifyStatus?.status === "stopping"
               ? [
-                  { label: `Progress: ${(verifyStatus.progress_pct ?? 0).toFixed(1)}%`, color: "primary" as const },
-                  { label: `Remaining: ${(verifyStatus.remaining ?? 0).toLocaleString()}`, color: "primary" as const },
+                  { label: `${(verifyStatus.progress_pct ?? 0).toFixed(1)}% done`, color: "primary" as const },
+                  { label: `${(verifyStatus.remaining ?? 0).toLocaleString()} left`, color: "primary" as const },
                   {
-                    label: `ETA: ${typeof verifyStatus.eta_seconds === "number" ? `${Math.max(0, Math.round(verifyStatus.eta_seconds / 60))}m` : "unknown"}`,
+                    label: `About ${typeof verifyStatus.eta_seconds === "number" ? `${Math.max(0, Math.round(verifyStatus.eta_seconds / 60))}m left` : "unknown"}`,
                     color: "primary" as const,
                   },
                   {
-                    label: `Finish: ${
+                    label: `Should finish by ${
                       typeof verifyStatus.eta_at === "number"
                         ? new Date(verifyStatus.eta_at * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
                         : "unknown"
@@ -439,12 +469,12 @@ export default function LabelVerificationPanel() {
     const spanText = (newSpanText[reviewId] ?? "").trim();
     const label = (newSpanLabel[reviewId] ?? "finding").trim();
     if (!spanText) {
-      setError("New span text cannot be empty");
+      setError("The new word or phrase cannot be empty.");
       return;
     }
     const start = findBestStart(review.text, spanText, 0);
     if (start == null) {
-      setError("New span text was not found in encounter text");
+      setError("That word was not found in the record text. Check for typos.");
       return;
     }
     const ent: LabelEntity = { text: spanText, label, start, end: start + spanText.length };
@@ -487,7 +517,7 @@ export default function LabelVerificationPanel() {
         pending: Math.max(0, s.pending - 1),
       }));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not submit record updates");
+      setError(e instanceof Error ? e.message : "Could not save. Please try again.");
     } finally {
       setSubmittingReviewId(null);
     }
@@ -503,7 +533,7 @@ export default function LabelVerificationPanel() {
       });
       await fetchQueue();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not start label verification");
+      setError(e instanceof Error ? e.message : "Could not start the label check. Please try again.");
     } finally {
       setStartingVerify(false);
     }
@@ -516,34 +546,36 @@ export default function LabelVerificationPanel() {
       const status = await jsonFetch<VerifyAllStatus>("/api/training/labels/verify-all/status");
       setVerifyStatus(status);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not stop label verification");
+      setError(e instanceof Error ? e.message : "Could not stop the label check. Please try again.");
     } finally {
       setStoppingVerify(false);
     }
   };
 
   return (
-    <Box sx={{ maxWidth: 1100, mx: "auto", px: 3, py: 3 }}>
-      <Typography variant="h6" sx={{ fontWeight: 700, mb: 0.5 }}>
-        Label Review
-      </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>
-        Resolve AWS/Azure disagreements on label extraction quality.
-      </Typography>
+    <Stack spacing={1.5}>
+      <Box>
+        <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.3 }}>
+          Check the labels
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ fontSize: 13 }}>
+          Two AI tools read the same record and disagreed. Pick the right answer.
+        </Typography>
+      </Box>
 
       {/* How this works */}
-      <Accordion variant="outlined" disableGutters sx={{ mb: 3 }}>
-        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+      <Accordion variant="outlined" disableGutters sx={{ "&::before": { display: "none" } }}>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ minHeight: 36, "& .MuiAccordionSummary-content": { my: 0.75 } }}>
+          <Typography variant="body2" sx={{ fontWeight: 600, fontSize: 13 }}>
             How this tab works
           </Typography>
         </AccordionSummary>
-        <AccordionDetails sx={{ pt: 0 }}>
+        <AccordionDetails sx={{ pt: 0, pb: 1.5 }}>
           <TabFlowDiagram
             stages={LABEL_STAGES}
             color="#14B8A6"
             lightColor="#CCFBF1"
-            trackLabel="Label Review"
+            trackLabel="Check the labels"
           />
         </AccordionDetails>
       </Accordion>
@@ -554,20 +586,22 @@ export default function LabelVerificationPanel() {
         </Alert>
       )}
 
-      <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mb: 2 }}>
+      <Stack role="group" aria-label="View mode" direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
         <Button
           variant={viewMode === "queue" ? "contained" : "outlined"}
           size="small"
+          aria-pressed={viewMode === "queue"}
           onClick={() => setViewMode("queue")}
         >
-          Pending
+          Waiting for you
         </Button>
         <Button
           variant={viewMode === "history" ? "contained" : "outlined"}
           size="small"
+          aria-pressed={viewMode === "history"}
           onClick={() => setViewMode("history")}
         >
-          History
+          Done
         </Button>
         {summaryChips.map((chip) => (
           <Chip key={chip.label} label={chip.label} color={chip.color ?? "default"} size="small" />
@@ -586,7 +620,7 @@ export default function LabelVerificationPanel() {
           disabled={startingVerify || verifyStatus?.status === "running" || verifyStatus?.status === "stopping"}
           onClick={() => setConfirmResetAll(true)}
         >
-          Reset + reverify all
+          Reset and recheck all
         </Button>
         <Button
           variant="outlined"
@@ -594,7 +628,7 @@ export default function LabelVerificationPanel() {
           disabled={startingVerify || verifyStatus?.status === "running" || verifyStatus?.status === "stopping"}
           onClick={() => handleStartVerification("hitl_only", false)}
         >
-          Reverify HITL only
+          Recheck reviewed only
         </Button>
         <Button
           variant="outlined"
@@ -602,7 +636,7 @@ export default function LabelVerificationPanel() {
           disabled={startingVerify || verifyStatus?.status === "running" || verifyStatus?.status === "stopping"}
           onClick={() => handleStartVerification("resume", false)}
         >
-          Resume
+          Resume checking
         </Button>
         <Button
           variant="outlined"
@@ -611,7 +645,7 @@ export default function LabelVerificationPanel() {
           disabled={stoppingVerify || (verifyStatus?.status !== "running" && verifyStatus?.status !== "stopping")}
           onClick={handleStopVerification}
         >
-          Stop verify
+          Stop checking
         </Button>
           </>
         )}
@@ -626,7 +660,7 @@ export default function LabelVerificationPanel() {
       {!loading && reviews.length === 0 && (
         <Paper variant="outlined" sx={{ p: 3, textAlign: "center", mb: 2 }}>
           <Typography variant="body2" color="text.secondary">
-            {viewMode === "history" ? "No resolved items in history yet." : "No pending disagreements."}
+            {viewMode === "history" ? "Nothing has been checked yet." : "No disagreements waiting for you. All caught up!"}
           </Typography>
         </Paper>
       )}
@@ -694,12 +728,12 @@ export default function LabelVerificationPanel() {
             >
               <TextField
                 size="small"
-                label="New span text"
+                label="New word or phrase"
                 value={newSpanText[review.review_id] ?? ""}
                 onChange={(e) =>
                   setNewSpanText((prev) => ({ ...prev, [review.review_id]: e.target.value }))
                 }
-                helperText="Add a brand-new span from encounter text"
+                helperText="Add a word the AI missed from the record"
                 sx={{ minWidth: 280, flex: 1 }}
               />
               <FormControl size="small" sx={{ minWidth: 210 }}>
@@ -710,7 +744,7 @@ export default function LabelVerificationPanel() {
                   }
                 >
                   {VALID_ENTITY_LABELS.map((label) => (
-                    <MenuItem key={`new-${label}`} value={label}>{label}</MenuItem>
+                    <MenuItem key={`new-${label}`} value={label}>{ENTITY_LABEL_DISPLAY[label] ?? label}</MenuItem>
                   ))}
                 </Select>
               </FormControl>
@@ -719,21 +753,21 @@ export default function LabelVerificationPanel() {
                 size="small"
                 onClick={() => handleAddSpan(review)}
               >
-                Add span
+                Add word
               </Button>
             </Stack>
 
             <Stack direction={{ xs: "column", md: "row" }} spacing={1.25} sx={{ mb: 1.25 }}>
               <Paper variant="outlined" sx={{ p: 1.25, flex: 1 }}>
                 <Typography variant="caption" sx={{ fontWeight: 700 }}>
-                  AWS suggestion
+                  Tool A thinks
                 </Typography>
                 <Typography variant="body2" sx={{ mt: 0.5 }}>{review.model_a_label}</Typography>
                 <Typography variant="caption" color="text.secondary">{review.model_a_rationale || "—"}</Typography>
               </Paper>
               <Paper variant="outlined" sx={{ p: 1.25, flex: 1 }}>
                 <Typography variant="caption" sx={{ fontWeight: 700 }}>
-                  Azure suggestion
+                  Tool B thinks
                 </Typography>
                 <Typography variant="body2" sx={{ mt: 0.5 }}>{review.model_b_label}</Typography>
                 <Typography variant="caption" color="text.secondary">{review.model_b_rationale || "—"}</Typography>
@@ -756,17 +790,17 @@ export default function LabelVerificationPanel() {
               >
               <TextField
                 size="small"
-                label="Span text"
+                label="Word or phrase"
                 value={selectedSpans[review.review_id] ?? review.entity_text}
                 onChange={(e) =>
                   setSelectedSpans((prev) => ({ ...prev, [review.review_id]: e.target.value }))
                 }
-                helperText="Use exact text from encounter"
+                helperText="Use the exact words from the record"
                 sx={{ minWidth: 260, flex: 1 }}
               />
               <TextField
                 size="small"
-                label="Context contains (optional)"
+                label="Nearby words (optional)"
                 value={contextContains[review.review_id] ?? ""}
                 onChange={(e) =>
                   setContextContains((prev) => ({ ...prev, [review.review_id]: e.target.value }))
@@ -782,7 +816,7 @@ export default function LabelVerificationPanel() {
                   }
                 >
                   {VALID_ENTITY_LABELS.map((label) => (
-                    <MenuItem key={label} value={label}>{label}</MenuItem>
+                    <MenuItem key={label} value={label}>{ENTITY_LABEL_DISPLAY[label] ?? label}</MenuItem>
                   ))}
                 </Select>
               </FormControl>
@@ -792,7 +826,7 @@ export default function LabelVerificationPanel() {
                 onClick={() => handleResolve(review)}
                 disabled={savingReviewId === review.review_id}
               >
-                Apply edit
+                Fix this
               </Button>
               <Button
                 variant="outlined"
@@ -801,7 +835,7 @@ export default function LabelVerificationPanel() {
                 onClick={() => handleRemoveFromTraining(review)}
                 disabled={savingReviewId === review.review_id}
               >
-                Remove span
+                Remove this word
               </Button>
               <Button
                 variant="outlined"
@@ -809,7 +843,7 @@ export default function LabelVerificationPanel() {
                 onClick={() => setConfirmSuppressReview(review)}
                 disabled={creatingRuleId === review.review_id}
               >
-                {creatingRuleId === review.review_id ? "Creating rule..." : "Create ignore rule"}
+                {creatingRuleId === review.review_id ? "Creating rule..." : "Always ignore this"}
               </Button>
               <Button
                 variant="contained"
@@ -817,7 +851,7 @@ export default function LabelVerificationPanel() {
                 onClick={() => handleSubmit(review)}
                 disabled={submittingReviewId === review.review_id}
               >
-                {submittingReviewId === review.review_id ? "Submitting..." : "Submit"}
+                {submittingReviewId === review.review_id ? "Saving..." : "Save and next"}
               </Button>
               </Stack>
             )}
@@ -827,9 +861,9 @@ export default function LabelVerificationPanel() {
 
       {confirmSuppressReview && (
         <ConfirmDialog
-          title="Create global suppress rule?"
-          body={`This will permanently suppress "${(selectedSpans[confirmSuppressReview.review_id] ?? confirmSuppressReview.entity_text ?? "").trim()}" across all future pipeline runs and remove the span from this record.`}
-          confirmLabel="Create suppress rule"
+          title="Always ignore this word?"
+          body={`The AI will stop picking up "${(selectedSpans[confirmSuppressReview.review_id] ?? confirmSuppressReview.entity_text ?? "").trim()}" in all future runs. The word will also be removed from this record. This cannot be undone.`}
+          confirmLabel="Always ignore this"
           variant="danger"
           onConfirm={() => { handleCreateSuppressRule(confirmSuppressReview); setConfirmSuppressReview(null); }}
           onCancel={() => setConfirmSuppressReview(null)}
@@ -838,9 +872,9 @@ export default function LabelVerificationPanel() {
 
       {confirmResetAll && (
         <ConfirmDialog
-          title="Reset all pending verifications?"
-          body="This will discard all in-progress review work and restart label verification from scratch. This cannot be undone."
-          confirmLabel="Reset + reverify all"
+          title="Start all checks again from scratch?"
+          body="This will clear all work in progress and recheck every label from the beginning. This cannot be undone."
+          confirmLabel="Reset and recheck all"
           variant="danger"
           onConfirm={() => { handleStartVerification("all", true); setConfirmResetAll(false); }}
           onCancel={() => setConfirmResetAll(false)}
@@ -872,6 +906,6 @@ export default function LabelVerificationPanel() {
         </FormControl>
         <Typography variant="caption" color="text.secondary">per page</Typography>
       </Stack>
-    </Box>
+    </Stack>
   );
 }

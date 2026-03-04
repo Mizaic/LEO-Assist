@@ -71,9 +71,9 @@ class TestSanitiseForPromptCleanText:
         assert "[FILTERED]" not in result
 
     def test_truncates_to_default_max_chars(self):
-        text = "A" * 5000
+        text = "A" * 20000
         result = sanitise_for_prompt(text)
-        assert len(result) == 2000
+        assert len(result) == 16000
 
     def test_truncates_to_custom_max_chars(self):
         text = "B" * 500

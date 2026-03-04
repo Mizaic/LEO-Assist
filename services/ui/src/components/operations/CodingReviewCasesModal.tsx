@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import { keyframes } from "@mui/material/styles";
@@ -563,11 +565,21 @@ function EncounterContextPanel({
     <Box sx={{ mb: 1.5 }}>
       <Button
         size="small"
-        variant="text"
+        variant="outlined"
         onClick={() => setExpanded((p) => !p)}
-        sx={{ textTransform: "none", fontWeight: 500, color: "text.secondary", px: 0.5 }}
+        endIcon={expanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+        sx={{
+          textTransform: "none",
+          fontWeight: 500,
+          color: "text.primary",
+          borderColor: "divider",
+          px: 1,
+          "&:hover": { borderColor: "text.secondary", bgcolor: "action.hover" },
+        }}
       >
-        {expanded ? "Hide" : "Show"} encounter context ({others.length} other entit{others.length === 1 ? "y" : "ies"})
+        {expanded
+          ? "Hide other items from this note"
+          : `Show ${others.length} other item${others.length === 1 ? "" : "s"} from this note`}
       </Button>
       {expanded && (
         <Box sx={{ mt: 0.5, pl: 1, borderLeft: "2px solid", borderColor: "divider" }}>
