@@ -23,7 +23,13 @@ class TestCodingResolver:
 
         session = MagicMock()
         session.run.return_value = [
-            {"concept_id": "25064002", "fsn": "Headache (finding)", "semantic_tag": "finding", "read_codes": ["1BA.."], "score": 1.0},
+            {
+                "concept_id": "25064002",
+                "fsn": "Headache (finding)",
+                "semantic_tag": "finding",
+                "read_codes": ["1BA.."],
+                "score": 1.0,
+            },
         ]
 
         resolver = CodingResolver()
@@ -37,14 +43,22 @@ class TestWritebackService:
     """Tests for terminology writeback."""
 
     def test_extract_surface_form_rows(self):
-        from services.terminology_api.app.services.writeback_service import _extract_surface_form_rows
+        from services.terminology_api.app.services.writeback_service import (
+            _extract_surface_form_rows,
+        )
 
-        sentences_json = json.dumps([{
-            "terms": [{
-                "text": "chest pain",
-                "coding": {"snomed_concept_id": "29857009", "score": 0.95},
-            }],
-        }])
+        sentences_json = json.dumps(
+            [
+                {
+                    "terms": [
+                        {
+                            "text": "chest pain",
+                            "coding": {"snomed_concept_id": "29857009", "score": 0.95},
+                        }
+                    ],
+                }
+            ]
+        )
 
         candidates = [{"c": {"sentences_json": sentences_json}, "reviewer": "dr_smith"}]
         rows, stats = _extract_surface_form_rows(candidates)
@@ -52,14 +66,50 @@ class TestWritebackService:
         assert len(rows) == 1
         assert rows[0]["form"] == "chest pain"
         assert rows[0]["concept_id"] == "29857009"
+        assert rows[0]["approved_by"] == "hitl_approved"
         assert stats.eligible == 1
 
-    def test_extract_skips_no_concept(self):
-        from services.terminology_api.app.services.writeback_service import _extract_surface_form_rows
+    def test_reviewer_identity_excluded_from_writeback_rows(self):
+        """DPA clause 5.3(d): reviewer identity must not reach Knowledge Graph."""
+        from services.terminology_api.app.services.writeback_service import (
+            _extract_surface_form_rows,
+        )
 
-        sentences_json = json.dumps([{
-            "terms": [{"text": "something", "coding": {}}],
-        }])
+        sentences_json = json.dumps(
+            [
+                {
+                    "terms": [
+                        {
+                            "text": "raised PSA",
+                            "coding": {"snomed_concept_id": "63476009", "score": 0.9},
+                        }
+                    ],
+                }
+            ]
+        )
+
+        candidates = [
+            {"c": {"sentences_json": sentences_json}, "reviewer": "dr.jones@nhs.net"}
+        ]
+        rows, _ = _extract_surface_form_rows(candidates)
+
+        assert len(rows) == 1
+        assert rows[0]["approved_by"] == "hitl_approved"
+        assert "dr.jones" not in str(rows[0])
+        assert "nhs.net" not in str(rows[0])
+
+    def test_extract_skips_no_concept(self):
+        from services.terminology_api.app.services.writeback_service import (
+            _extract_surface_form_rows,
+        )
+
+        sentences_json = json.dumps(
+            [
+                {
+                    "terms": [{"text": "something", "coding": {}}],
+                }
+            ]
+        )
 
         candidates = [{"c": {"sentences_json": sentences_json}, "reviewer": "sys"}]
         rows, stats = _extract_surface_form_rows(candidates)
@@ -71,7 +121,9 @@ class TestWritebackService:
 class TestValueSetService:
     """Tests for FHIR ValueSet operations."""
 
-    @patch("services.terminology_api.app.services.valueset_service.KnowledgeGraphClient")
+    @patch(
+        "services.terminology_api.app.services.valueset_service.KnowledgeGraphClient"
+    )
     def test_get_valueset_not_found(self, MockKG):
         from services.terminology_api.app.services.valueset_service import get_valueset
 
@@ -79,7 +131,9 @@ class TestValueSetService:
         result = get_valueset("nonexistent")
         assert result is None
 
-    @patch("services.terminology_api.app.services.valueset_service.KnowledgeGraphClient")
+    @patch(
+        "services.terminology_api.app.services.valueset_service.KnowledgeGraphClient"
+    )
     def test_get_valueset_found(self, MockKG):
         from services.terminology_api.app.services.valueset_service import get_valueset
 
@@ -90,20 +144,26 @@ class TestValueSetService:
         assert result["id"] == "test-vs"
 
     def test_expand_valueset_inline(self):
-        from services.terminology_api.app.services.valueset_service import expand_valueset
+        from services.terminology_api.app.services.valueset_service import (
+            expand_valueset,
+        )
 
-        with patch("services.terminology_api.app.services.valueset_service.get_valueset") as mock_get:
+        with patch(
+            "services.terminology_api.app.services.valueset_service.get_valueset"
+        ) as mock_get:
             mock_get.return_value = {
                 "resourceType": "ValueSet",
                 "id": "test-vs",
                 "compose": {
-                    "include": [{
-                        "system": "http://snomed.info/sct",
-                        "concept": [
-                            {"code": "12345", "display": "Test concept"},
-                            {"code": "67890", "display": "Another concept"},
-                        ],
-                    }],
+                    "include": [
+                        {
+                            "system": "http://snomed.info/sct",
+                            "concept": [
+                                {"code": "12345", "display": "Test concept"},
+                                {"code": "67890", "display": "Another concept"},
+                            ],
+                        }
+                    ],
                 },
             }
 
@@ -114,9 +174,13 @@ class TestValueSetService:
             assert result["expansion"]["contains"][0]["code"] == "12345"
 
     def test_expand_valueset_not_found(self):
-        from services.terminology_api.app.services.valueset_service import expand_valueset
+        from services.terminology_api.app.services.valueset_service import (
+            expand_valueset,
+        )
 
-        with patch("services.terminology_api.app.services.valueset_service.get_valueset") as mock_get:
+        with patch(
+            "services.terminology_api.app.services.valueset_service.get_valueset"
+        ) as mock_get:
             mock_get.return_value = None
             result = expand_valueset("missing")
             assert result is None
