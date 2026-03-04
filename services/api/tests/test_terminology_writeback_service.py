@@ -39,33 +39,59 @@ class TestExtractSurfaceFormRows:
         }
 
     def test_extracts_term_with_concept(self) -> None:
-        record = self._make_record([{
-            "text": "Diabetes",
-            "coding": {"snomed_concept_id": "73211009", "score": 0.95},
-        }])
+        record = self._make_record(
+            [
+                {
+                    "text": "Diabetes",
+                    "coding": {"snomed_concept_id": "73211009", "score": 0.95},
+                }
+            ]
+        )
         rows, stats = _extract_surface_form_rows([record])
         assert len(rows) == 1
         assert rows[0]["form"] == "Diabetes"
         assert rows[0]["normalized"] == "diabetes"
         assert rows[0]["concept_id"] == "73211009"
         assert rows[0]["confidence"] == 0.95
-        assert rows[0]["approved_by"] == "dr.smith"
+        assert rows[0]["approved_by"] == "hitl_approved"
         assert stats.eligible == 1
 
+    def test_reviewer_identity_not_in_knowledge_graph_rows(self) -> None:
+        """DPA clause 5.3(d) / 6.2: no reviewer identity in Knowledge Graph."""
+        record = self._make_record(
+            [
+                {
+                    "text": "Headache",
+                    "coding": {"snomed_concept_id": "25064002", "score": 0.9},
+                }
+            ],
+            reviewer="jane.smith@nhs.net",
+        )
+        rows, _ = _extract_surface_form_rows([record])
+        assert len(rows) == 1
+        assert rows[0]["approved_by"] == "hitl_approved"
+        assert "jane.smith" not in str(rows[0])
+
     def test_skips_no_concept(self) -> None:
-        record = self._make_record([{
-            "text": "unknown",
-            "coding": {"snomed_concept_id": None},
-        }])
+        record = self._make_record(
+            [
+                {
+                    "text": "unknown",
+                    "coding": {"snomed_concept_id": None},
+                }
+            ]
+        )
         rows, stats = _extract_surface_form_rows([record])
         assert len(rows) == 0
         assert stats.skipped_no_concept == 1
 
     def test_deduplicates(self) -> None:
-        record = self._make_record([
-            {"text": "Diabetes", "coding": {"snomed_concept_id": "73211009"}},
-            {"text": "diabetes", "coding": {"snomed_concept_id": "73211009"}},
-        ])
+        record = self._make_record(
+            [
+                {"text": "Diabetes", "coding": {"snomed_concept_id": "73211009"}},
+                {"text": "diabetes", "coding": {"snomed_concept_id": "73211009"}},
+            ]
+        )
         rows, stats = _extract_surface_form_rows([record])
         assert len(rows) == 1
         assert stats.eligible == 1
@@ -86,20 +112,29 @@ class TestWritebackApprovedTerms:
         coding_session.run.assert_not_called()
 
     def test_writes_surface_forms(self) -> None:
-        sentences = [{"sentence_id": "s0", "terms": [{
-            "text": "BP",
-            "coding": {"snomed_concept_id": "75367002", "score": 0.9},
-        }]}]
+        sentences = [
+            {
+                "sentence_id": "s0",
+                "terms": [
+                    {
+                        "text": "BP",
+                        "coding": {"snomed_concept_id": "75367002", "score": 0.9},
+                    }
+                ],
+            }
+        ]
         patient_session = MagicMock()
-        patient_session.run.return_value = [{
-            "c": {
-                "candidate_id": "c1",
-                "patient_id": "p1",
-                "encounter_id": "enc1",
-                "sentences_json": json.dumps(sentences),
-            },
-            "reviewer": "dr.jones",
-        }]
+        patient_session.run.return_value = [
+            {
+                "c": {
+                    "candidate_id": "c1",
+                    "patient_id": "p1",
+                    "encounter_id": "enc1",
+                    "sentences_json": json.dumps(sentences),
+                },
+                "reviewer": "dr.jones",
+            }
+        ]
 
         written_record = MagicMock()
         written_record.__getitem__ = lambda self, key: 1

@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import json
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -74,7 +74,6 @@ def _extract_surface_form_rows(
 
     for record in candidates:
         candidate = dict(record["c"])
-        reviewer = record.get("reviewer") or "system"
         stats.candidates_scanned += 1
 
         try:
@@ -100,16 +99,18 @@ def _extract_surface_form_rows(
                 seen.add(key)
 
                 stats.eligible += 1
-                rows.append({
-                    "form": surface_text,
-                    "normalized": normalized,
-                    "concept_id": concept_id,
-                    "confidence": float(coding.get("score", 0.9)),
-                    "approved_by": reviewer,
-                    "source": "hitl_approved",
-                    "status": "approved",
-                    "provenance": "hitl_gold_sync",
-                })
+                rows.append(
+                    {
+                        "form": surface_text,
+                        "normalized": normalized,
+                        "concept_id": concept_id,
+                        "confidence": float(coding.get("score", 0.9)),
+                        "approved_by": "hitl_approved",
+                        "source": "hitl_approved",
+                        "status": "approved",
+                        "provenance": "hitl_gold_sync",
+                    }
+                )
 
     return rows, stats
 
@@ -126,10 +127,12 @@ def writeback_approved_terms(
     to coding graph. Returns stats dict.
     """
     if patient_id:
-        records = list(patient_session.run(
-            LIST_APPROVED_FOR_PATIENT_WITH_REVIEWER,
-            patient_id=patient_id,
-        ))
+        records = list(
+            patient_session.run(
+                LIST_APPROVED_FOR_PATIENT_WITH_REVIEWER,
+                patient_id=patient_id,
+            )
+        )
     else:
         records = list(patient_session.run(LIST_APPROVED_WITH_REVIEWER))
 
@@ -155,12 +158,15 @@ def writeback_approved_terms(
         stats.written += batch_written
         logger.info(
             "Writeback: wrote %d/%d surface forms",
-            stats.written, len(rows),
+            stats.written,
+            len(rows),
         )
 
     logger.info(
         "Writeback complete - %d candidates, %d terms, %d surface forms written",
-        stats.candidates_scanned, stats.terms_scanned, stats.written,
+        stats.candidates_scanned,
+        stats.terms_scanned,
+        stats.written,
     )
     return {
         "candidates_scanned": stats.candidates_scanned,

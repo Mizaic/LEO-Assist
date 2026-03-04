@@ -147,7 +147,7 @@ class UpsertMappingRequest(BaseModel):
     confidence: float = 1.0
     source: str = "manual"
     provenance: str = "manual_correction"
-    created_by: str = "ui_user"
+    created_by: str = "manual_mapping"
 
 
 @router.post("/surface-forms/upsert-mapping")

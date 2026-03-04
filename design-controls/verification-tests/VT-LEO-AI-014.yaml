@@ -94,6 +94,26 @@
         - "No cross-database queries succeed with application credentials"
         - "Database isolation is enforced at the connection level"
 
+    - case_id: "VT-014-TC-004"
+      case_name: "No reviewer identity in Knowledge Graph"
+      priority: "critical"
+      preconditions:
+        - "Writeback has been run with candidates approved by named reviewers"
+        - "Knowledge Graph contains SurfaceForm nodes"
+      test_steps:
+        - step_number: 1
+          action: "Query all SurfaceForm nodes and MAPS_TO relationships in the Knowledge Graph for email-like patterns"
+          expected_result: "No email addresses or person names found"
+          verification_method: "Assert regex search for email patterns returns zero matches"
+        - step_number: 2
+          action: "Check approved_by and created_by fields on all SurfaceForm nodes and MAPS_TO relationships"
+          expected_result: "All values are process-name source tags (e.g. 'hitl_approved', 'coding_review', 'manual_mapping')"
+          verification_method: "Assert no value contains '@' or matches a person-name pattern"
+      acceptance_criteria:
+        - "No staff personal data stored in the Knowledge Graph"
+        - "DPA clause 5.3(d) and clause 6.2 satisfied"
+      regulatory_reference: "DC-DPA-002 clauses 5.3(d), 6.2; ICO pseudonymisation guidance"
+
   pass_fail_criteria:
     pass_threshold: "100% all"
     blocking_on_failure: true
