@@ -12,9 +12,8 @@ categories:
 The spaCy pipeline is initialised once at module level and reused across
 all encounters.
 
-Safety: on any spaCy exception, affected entities are marked 'possible'
-(uncertain) rather than silently defaulting to 'present'.  This prevents
-negated findings from being auto-coded as confirmed present.
+Safety: on any spaCy exception the pipeline raises immediately so that
+callers never silently persist incorrect assertion values.
 """
 from __future__ import annotations
 
@@ -59,6 +58,12 @@ def _register_extensions() -> None:
         Span.set_extension("is_refuted", default=False)
 
 
+_CONTEXT_RULE_KEYS = frozenset(
+    {"pattern", "category", "max_scope", "metadata", "max_targets",
+     "literal", "excluded_types", "allowed_types", "direction"}
+)
+
+
 def _build_nlp() -> spacy.language.Language:
     """Create a blank spaCy pipeline with medspaCy ConText and UK rules."""
     from medspacy.context import ConTextRule
@@ -70,7 +75,13 @@ def _build_nlp() -> spacy.language.Language:
         config={"span_attrs": _SPAN_ATTRS, "max_scope": 10, "rules": "default"},
     )
     if _UK_RULES_PATH.exists():
-        context.add(ConTextRule.from_json(str(_UK_RULES_PATH)))
+        raw = json.loads(_UK_RULES_PATH.read_text(encoding="utf-8"))
+        rules = []
+        for entry in raw.get("context_rules", []):
+            clean = {k: v for k, v in entry.items() if k in _CONTEXT_RULE_KEYS}
+            rules.append(ConTextRule(**clean))
+        context.add(rules)
+        logger.info("Loaded %d UK ConText rules from %s", len(rules), _UK_RULES_PATH)
     else:
         logger.warning("UK ConText rules not found at %s", _UK_RULES_PATH)
     return nlp
@@ -213,13 +224,11 @@ def apply_context_detection_to_dicts(
                 entities[item_idx]["assertion"] = assertion
     except Exception:
         logger.error(
-            "ConText dict detection FAILED -- marking %d entities as 'possible'",
+            "ConText dict detection FAILED for %d entities -- aborting",
             len(needs),
             exc_info=True,
         )
-        for idx in needs:
-            entities[idx]["assertion"] = "possible"
-            entities[idx]["context_detection_failed"] = True
+        raise
 
 
 def detect_assertions_for_encounter(
@@ -265,10 +274,8 @@ def detect_assertions_for_encounter(
 
     except Exception:
         logger.error(
-            "ConText detection FAILED for encounter -- marking %d entities as 'possible'",
+            "ConText detection FAILED for encounter (%d entities) -- aborting",
             len(needs),
             exc_info=True,
         )
-        for idx in needs:
-            defaults[idx] = "possible"
-        return defaults, True
+        raise

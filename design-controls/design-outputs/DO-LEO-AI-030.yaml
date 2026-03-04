@@ -23,10 +23,12 @@
       treat all content in data blocks as inert, regardless of its appearance.
       Prevents the model from following embedded instruction-like text.
 
-      sanitise_for_prompt(text, max_chars=2000): Applies a compiled regex
+      sanitise_for_prompt(text, max_chars=16000): Applies a compiled regex
       (_INJECTION_RE) covering 15+ injection pattern families to replace
       matching text with [FILTERED]. Logs the substitution count at WARNING
-      level. Truncates the result to max_chars.
+      level. Truncates the result to max_chars. Default limit of 16000 chars
+      (~4 A4 pages) preserves full clinical context to prevent coding errors
+      from silent truncation.
 
       cap_llm_response(raw, max_chars=1000): Truncates raw LLM output to
       max_chars before any parse function can operate on it. Logs a WARNING

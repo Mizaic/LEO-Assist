@@ -121,7 +121,7 @@ def verify_disorder(
     """
     user_msg = json.dumps({
         "entity_text": sanitise_for_prompt(entity_text, max_chars=200),
-        "encounter_text": sanitise_for_prompt(encounter_text, max_chars=2000),
+        "encounter_text": sanitise_for_prompt(encounter_text, max_chars=16_000),
     })
 
     fail_v = _fail_verdict_for_mode(coding_mode)

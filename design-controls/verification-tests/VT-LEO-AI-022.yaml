@@ -113,17 +113,17 @@
         - "Unknown verdict in autonomous mode -> UNCERTAIN"
 
     - case_id: "VT-022-TC-007"
-      case_name: "Encounter text truncated to 2000 characters"
+      case_name: "Encounter text sanitised and capped at 16000 characters"
       priority: "high"
       preconditions:
-        - "Encounter text exceeds 2000 characters"
+        - "Encounter text exceeds 16000 characters"
       test_steps:
         - step_number: 1
-          action: "Call verify_disorder with 5000-char encounter text"
-          expected_result: "User message encounter_text is exactly 2000 characters"
+          action: "Call verify_disorder with 20000-char encounter text"
+          expected_result: "User message encounter_text is exactly 16000 characters"
           verification_method: "Parse user_msg JSON and assert length"
       acceptance_criteria:
-        - "len(encounter_text) == 2000"
+        - "len(encounter_text) == 16000"
 
   pass_fail_criteria:
     pass_threshold: "100% critical, 100% all"

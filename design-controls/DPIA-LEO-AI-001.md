@@ -54,7 +54,7 @@ This DPIA covers **all processing of personal data** by the platform, including:
 | Large-scale processing | Yes | Multi-GP-practice national audit programme (NCDA) |
 | New technology (Article 35(1)) | Yes | LLMs and NLP applied to clinical free text |
 | Automated processing with significant effects | Yes | Coding decisions feed national audit quality measures |
-| International data transfer | Yes | UK to Sweden Central (Azure OpenAI); UK to Neo4j Aura (verify region) |
+| International data transfer | Yes | UK to Sweden Central (Azure OpenAI) — lawful under UK adequacy regulations for EEA. Neo4j Aura is UK (no international transfer). |
 | Profiling / evaluation of individuals | Partial | Per-patient encounter coding; outputs are population-level |
 | Vulnerable individuals | Yes | Cancer patients; NHS patients generally |
 
@@ -72,7 +72,7 @@ This DPIA covers **all processing of personal data** by the platform, including:
 | **LEO AI company** | **Data Processor** — processes patient data on behalf of, and under instruction from, the controller | Data Processing Agreement (DPA) with each GP practice |
 | **AWS Bedrock** (Claude — eu-west-2) | **Sub-processor** under LEO AI | AWS Enterprise DPA; named in LEO AI's DPA with GP practices |
 | **Azure OpenAI** (GPT-5 mini — Sweden Central) | **Sub-processor** under LEO AI | Microsoft Enterprise DPA; named in LEO AI's DPA with GP practices |
-| **Neo4j Aura** (region: verify in Aura console) | **Sub-processor** under LEO AI | Neo4j DPA |
+| **Neo4j Aura** (UK region) | **Sub-processor** under LEO AI | Neo4j DPA |
 | **Microsoft Azure** (Container Apps, Redis, Service Bus, Key Vault, Blob Storage) | **Sub-processor** under LEO AI | Microsoft Enterprise DPA |
 | **Microsoft Entra ID** (Azure AD) | **Sub-processor** (authentication) | Microsoft Enterprise DPA |
 
@@ -98,7 +98,7 @@ This DPIA covers **all processing of personal data** by the platform, including:
 | Field | Max size | Content |
 |---|---|---|
 | `entity_text` | ~200 chars | The extracted clinical phrase (e.g. "type 2 diabetes mellitus") |
-| `encounter_text` | 2,000 chars | Surrounding clinical context from the encounter note, after de-identification |
+| `encounter_text` | 16,000 chars | Surrounding clinical context from the encounter note, after de-identification |
 
 Both fields pass through `sanitise_for_prompt()` (injection filtering) and de-identification before transmission.
 
@@ -287,7 +287,7 @@ LEO AI is a data processor. It acts solely under the controller's instructions a
 
 | Control | What it does |
 |---|---|
-| Encounter text truncation (2,000 chars) | Limits the volume of text sent to LLMs |
+| Encounter text truncation (16,000 chars) | Limits the volume of text sent to LLMs while preserving full clinical context |
 | Entity text limit (~200 chars) | Restricts the clinical phrase sent to LLMs |
 | De-identification before LLM calls | Removes NHS numbers, postcodes, dates of birth, phone numbers |
 | `sanitise_for_prompt()` | Strips injection patterns from text before LLM calls |
@@ -356,9 +356,6 @@ Risks are scored: severity (1–5) × likelihood (1–5). Scores of 9 or above a
 
 | Risk ID | Risk | Sev | Like | Score | Level | Primary mitigation |
 |---|---|---|---|---|---|---|
-| R-032-DP-002 | Azure OpenAI (Sweden) international transfer not documented in RoPA | 3 | 2 | 6 | Low | UK adequacy regulations for EEA; document in RoPA (ROPA-001) |
-| R-032-DP-003 | AWS/Azure DPA does not cover triple-call arbitration pattern | 4 | 1 | 4 | Low | DPA review (DPA-REVIEW-001) |
-| R-032-DP-018 | Neo4j Aura data region not confirmed; potential undocumented international transfer | 3 | 2 | 6 | Low | Verify region in Aura console; document in RoPA |
 | R-032-DP-004 | No per-call audit log for LLM API calls — forensic gap if breach occurs | 3 | 1 | 3 | Low | Open action LOG-LLM-CALLS-001 |
 
 ### 5.4 Individual rights and fairness risks
@@ -399,14 +396,15 @@ R-032-DP-019 (patient awareness) scores 6 (Low). The obligation to inform patien
 | Azure Key Vault for all secrets | R-032-DP-010 | DC-TM-SEC-002 |
 | Azure Managed Redis with TLS and encryption at rest | R-032-DP-012, R-032-DP-013, R-032-DP-017 | DC-TM-SEC-002 |
 | De-identification before LLM calls (libs/deid) | R-032-DP-001, R-032-DP-005 | GAP-008 |
-| Encounter text truncation (2,000 chars) | R-032-DP-001 | DI-LEO-AI-045 |
+| Encounter text truncation (16,000 chars) | R-032-DP-001 | DI-LEO-AI-045 |
 | `sanitise_for_prompt()` injection filter | R-LEO-AI-030 | DO-LEO-AI-030; VT-LEO-AI-038 |
 | `cap_llm_response()` response limiter | R-LEO-AI-030 | DO-LEO-AI-030; VT-LEO-AI-038 |
 | INJECTION_GUARD system prompt prefix | R-LEO-AI-030 | DO-LEO-AI-030 |
 | Dual-model consensus (AWS + Azure) | R-LEO-AI-026, R-LEO-AI-030 | DI-LEO-AI-036; DO-LEO-AI-023 |
 | HITL mandatory review for all proposals | R-LEO-AI-026, R-032-DP-006 | DC-IU-001 section 6.2 |
-| UK data residency — AWS eu-west-2 | R-032-DP-002 | Confirmed via Bedrock ARN |
-| EEA data residency — Azure Sweden | R-032-DP-002 | Confirmed via endpoint |
+| UK data residency — AWS eu-west-2 | R-032-DP-001 | Confirmed via Bedrock ARN |
+| EEA data residency — Azure Sweden | R-032-DP-001 | Confirmed via endpoint; documented in RoPA |
+| UK data residency — Neo4j Aura | R-032-DP-001 | Confirmed in Neo4j Aura console; no international transfer |
 | Admin-only rule mutation | R-LEO-AI-031 | DI-LEO-AI-046; DO-LEO-AI-031 |
 | CSP, HSTS, X-Frame-Options headers | R-032-DP-012 | DC-TM-SEC-002 |
 | Session TTL (12–24 hours in prod) | R-032-DP-012 | DC-TM-SEC-002 |
@@ -420,21 +418,18 @@ R-032-DP-019 (patient awareness) scores 6 (Low). The obligation to inform patien
 | DM-001 | Evaluate sending entity_text only (not encounter_text) for disorder verification | R-032-DP-001 | 2026-06-01 |
 | DEID-002 | NER-based name detection as second de-identification pass (spaCy PERSON model) | R-032-DP-001 (GAP-008) | 2026-07-01 |
 | LOG-ACCESS-001 | Audit trail for patient record access via the UI and API | R-032-DP-010, R-032-DP-011 | 2026-06-01 |
-| NEO4J-REGION-001 | Confirm Neo4j Aura data region and document in RoPA | R-032-DP-018 | 2026-04-15 |
 
 ### 6.3 Contractual measures — open actions
 
 | Action ID | Measure | Risks addressed | Target date |
 |---|---|---|---|
-| DPA-REVIEW-001 | Review AWS and Azure DPAs — confirm: (a) triple-call arbitration covered, (b) no training use, (c) 72-hour breach notification, (d) sub-processor disclosure | R-032-DP-003 | 2026-05-01 |
-| DPA-GP-001 | Update GP practice DPAs to name AWS, Azure, Neo4j, and Microsoft Azure PaaS as sub-processors | R-032-DP-003 | 2026-05-01 |
-| DPA-NEO4J-001 | Review Neo4j Aura DPA for data residency, breach notification, and deletion commitments | R-032-DP-018 | 2026-05-01 |
+| DPA-REVIEW-001 | Review AWS and Azure DPAs — confirm: (a) no training use, (b) 72-hour breach notification, (c) sub-processor disclosure | R-032-DP-001 | 2026-05-01 |
+| DPA-GP-001 | Update GP practice DPAs to name AWS, Azure, Neo4j, and Microsoft Azure PaaS as sub-processors | R-032-DP-001 | 2026-05-01 |
 
 ### 6.4 Governance measures — open actions
 
 | Action ID | Measure | Risks addressed | Target date |
 |---|---|---|---|
-| ROPA-001 | Add UK → Sweden (Azure OpenAI) and Neo4j Aura transfers to Records of Processing Activities with adequacy basis | R-032-DP-002, R-032-DP-018 | 2026-04-15 |
 | PN-SUPPORT-001 | Provide controllers with template privacy notice language covering AI-assisted audit processing, for inclusion in their own privacy notices | R-032-DP-019 | 2026-05-15 |
 | RET-001 | Define retention periods for Neo4j patient data (encounter text, coded outputs, review decisions); implement deletion | R-032-DP-006, R-032-DP-016 | 2026-06-01 |
 | BIAS-001 | Coding accuracy analysis stratified by patient ethnicity and gender | R-032-DP-007 | 2026-09-01 |
@@ -475,18 +470,17 @@ After all confirmed mitigations are in place, the residual risk level is:
 | Dual-provider DPAs prohibit training use | Done (arbitration coverage needs confirming) |
 | HITL review for all coding proposals | Done |
 | Prompt injection controls deployed and tested | Done |
-| Neo4j Aura data region confirmed | Pending (NEO4J-REGION-001) |
+| Neo4j Aura UK data region confirmed | Done |
+| Azure Sweden → RoPA entry present | Done |
 | DPO consulted | Pending |
 | DPA-REVIEW-001 complete | Pending (2026-05-01) |
-| DPA-NEO4J-001 complete | Pending (2026-05-01) |
-| ROPA-001 complete | Pending (2026-04-15) |
 | PN-SUPPORT-001 template privacy notice language provided to controllers | Pending (2026-05-15) |
 | PPV-001 patient engagement completed | Pending (2026-05-01) |
 | LOG-LLM-CALLS-001 implemented | Pending (2026-05-15) |
 | RET-001 retention policy defined | Pending (2026-06-01) |
 | RIGHTS-001 erasure process documented | Pending (2026-06-01) |
 
-**Recommendation:** Processing may proceed in **pilot scope only** (limited GP practice cohort) while open actions are completed. Production rollout is conditional on DPO sign-off and completion of: DPA-REVIEW-001, DPA-NEO4J-001, ROPA-001, PN-SUPPORT-001, RET-001, and RIGHTS-001.
+**Recommendation:** Processing may proceed in **pilot scope only** (limited GP practice cohort) while open actions are completed. Production rollout is conditional on DPO sign-off and completion of: DPA-REVIEW-001, PN-SUPPORT-001, RET-001, and RIGHTS-001.
 
 ### 7.4 DPO sign-off
 
@@ -524,9 +518,6 @@ This DPIA must be reviewed if any of the following happen:
 |---|---|---|---|---|
 | DPA-REVIEW-001 | Review AWS and Azure DPAs for triple-call arbitration, no training use, 72-hour breach notification, sub-processor obligations | Legal / DPO | 2026-05-01 | Open |
 | DPA-GP-001 | Update GP practice DPAs to name all sub-processors (AWS, Azure, Neo4j, Microsoft Azure PaaS) | Legal | 2026-05-01 | Open |
-| DPA-NEO4J-001 | Review Neo4j Aura DPA for data residency, breach notification, deletion | Legal / DPO | 2026-05-01 | Open |
-| NEO4J-REGION-001 | Confirm Neo4j Aura data region; document in RoPA | Engineering / DPO | 2026-04-15 | Open |
-| ROPA-001 | Add all international transfers to RoPA with adequacy basis | DPO | 2026-04-15 | Open |
 | PN-SUPPORT-001 | Provide controllers with template privacy notice language covering AI-assisted audit processing | Product / Legal | 2026-05-15 | Open |
 | PPV-001 | Engage NHS PPV partners and cancer charities on AI processing | Product | 2026-05-01 | Open |
 | LOG-LLM-CALLS-001 | Per-call audit log for LLM API calls | Engineering | 2026-05-15 | Open |

@@ -386,12 +386,13 @@ export default function ContextRulesPage() {
       <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 2 }}>
         <Box>
           <Typography variant="h5" gutterBottom>Context rules</Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 600 }}>
-            These rules teach the system how to read clinical notes. When a doctor writes something
+          <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 640 }}>
+            Context rules are a key part of how LEO reads clinical notes. Doctors often write things
             like <em>&quot;patient declined colonoscopy&quot;</em> or{" "}
-            <em>&quot;awaiting CT&quot;</em>, the system uses these rules to understand that the
-            procedure has not happened — so it does not get coded as if it has. Click any row to see
-            a plain-English explanation and an example.
+            <em>&quot;awaiting CT scan&quot;</em>. Without these rules, the system might think the
+            procedure actually happened when it did not. Context rules make sure that planned,
+            declined, or historical events are recorded correctly — so the data matches what really
+            took place. Click any row to see a simple explanation and an example.
           </Typography>
         </Box>
         <Stack direction="row" spacing={1} sx={{ ml: 2, flexShrink: 0 }}>

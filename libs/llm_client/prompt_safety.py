@@ -14,7 +14,7 @@ Usage
     _SYSTEM_PROMPT = INJECTION_GUARD + "You are a clinical coder..."
 
     user_msg = json.dumps({
-        "encounter_text": sanitise_for_prompt(encounter_text, max_chars=2000),
+        "encounter_text": sanitise_for_prompt(encounter_text, max_chars=16000),
         "entity_text":    sanitise_for_prompt(entity_text,    max_chars=200),
     })
 
@@ -77,12 +77,16 @@ _INJECTION_RE = re.compile(
 )
 
 
-def sanitise_for_prompt(text: str, *, max_chars: int = 2000) -> str:
+def sanitise_for_prompt(text: str, *, max_chars: int = 16_000) -> str:
     """Strip prompt-injection patterns from *text* and truncate to *max_chars*.
 
     This function is intentionally conservative: it replaces suspicious
     substrings with ``[FILTERED]`` rather than silently deleting them, so
     the LLM still sees the approximate shape of the text.
+
+    The default limit of 16 000 chars (~4 A4 pages) is deliberately large
+    so that clinical encounter text is never silently truncated -- losing
+    context is a patient-safety risk.
 
     Args:
         text:      Raw text to sanitise (e.g. encounter_text, entity_text).

@@ -271,8 +271,9 @@ def begin_job_with_mode(*, run_mode: str = "all", reset_pending: bool = False) -
       - "all": verify all included labels (re-verifies already-verified ones)
       - "hitl_only": re-verify only labels that had HITL-resolved reviews
       - "resume": continue from checkpoint — skip labels already verified
+      - "re_extract": re-extract entities via LLM before running verification
     """
-    mode = run_mode if run_mode in {"all", "hitl_only", "resume"} else "all"
+    mode = run_mode if run_mode in {"all", "hitl_only", "resume", "re_extract"} else "all"
     with _job_state_lock:
         if _job_state["status"] in {"running", "stopping"}:
             return False
@@ -1467,6 +1468,282 @@ def _process_label(
 
 
 # ---------------------------------------------------------------------------
+# LLM re-extraction (for re_extract mode)
+# ---------------------------------------------------------------------------
+
+_SENTENCE_SPLIT_RE = re.compile(r"(?<=[.!?])\s+|\n+")
+
+_EXTRACTION_SNOMED_TAG_TO_LABEL = {
+    "qualifier value": "qualifier_value",
+    "observable entity": "observable_entity",
+    "body structure": "body_structure",
+    "tumor staging": "tumor_staging",
+    "assessment scale": "assessment_scale",
+    "staging scale": "staging_scale",
+    "regime/therapy": "regime_therapy",
+    "record artifact": "record_artifact",
+    "physical object": "physical_object",
+    "morphologic abnormality": "morphologic_abnormality",
+    "clinical drug": "clinical_drug",
+    "medicinal product": "medicinal_product",
+    "qualifier": "qualifier_value",
+}
+
+
+def _re_extract_entities(text: str) -> list[dict[str, Any]] | None:
+    """Run LLM extraction over encounter text and return canonical entity dicts.
+
+    Returns None on failure so the caller can skip without losing progress.
+    """
+    if not text or not text.strip():
+        return []
+
+    # Split into sentences (regex mode -- no spacy dependency in the API service)
+    parts = _SENTENCE_SPLIT_RE.split(text)
+    sentences: list[dict[str, Any]] = []
+    offset = 0
+    for idx, part in enumerate(parts):
+        stripped = part.strip()
+        if not stripped:
+            offset += len(part) + 1
+            continue
+        start = text.find(stripped, offset)
+        if start < 0:
+            start = offset
+        end = start + len(stripped)
+        sentences.append({"sentence_id": f"s{idx}", "text": stripped, "start": start, "end": end})
+        offset = end
+
+    if not sentences:
+        return []
+
+    extraction_prompt = get_prompt("extraction", version=1)
+    user_payload = (
+        f"Extract clinical entities from sentences below.\n\n"
+        f"Encounter text:\n{text}\n\n"
+        f"Sentences:\n{json.dumps([{'sentence_id': s['sentence_id'], 'text': s['text']} for s in sentences], ensure_ascii=False)}"
+    )
+
+    client = create_llm(provider="aws", tier="small")
+    for attempt in range(_LLM_RETRIES + 1):
+        if _stop_requested():
+            return None
+        _llm_limiter.acquire()
+        try:
+            response = client.converse(
+                system=extraction_prompt,
+                messages=[{"role": "user", "content": user_payload}],
+                max_tokens=2048,
+                temperature=0.0,
+            )
+            break
+        except Exception as exc:
+            msg = str(exc).lower()
+            throttled = any(m in msg for m in ("429", "rate limit", "throttle", "too many requests"))
+            if throttled:
+                _llm_limiter.on_throttle()
+            if attempt >= _LLM_RETRIES:
+                logger.warning("Re-extraction LLM call failed: %s", exc)
+                return None
+            delay = _LLM_BACKOFF_BASE_S * (2 ** attempt)
+            if throttled:
+                delay *= 2.0
+            time.sleep(delay)
+        finally:
+            _llm_limiter.release()
+    else:
+        return None
+
+    _llm_limiter.on_success()
+    parsed = _parse_model_json(response.text)
+    sent_map = {s["sentence_id"]: s for s in sentences}
+    entities: list[dict[str, Any]] = []
+
+    for row in parsed.get("terms", []):
+        if not isinstance(row, dict):
+            continue
+        sid = str(row.get("sentence_id", "")).strip()
+        term_text = str(row.get("text", "")).strip()
+        if not sid or not term_text:
+            continue
+        sent = sent_map.get(sid)
+        if not sent:
+            continue
+
+        assertion = str(row.get("assertion", "present")).strip().lower()
+        if assertion not in {"present", "absent", "refuted", "possible", "historical", "hypothetical", "family", "declined", "cancelled"}:
+            assertion = "present"
+
+        tag = str(row.get("semantic_tag", "finding")).strip().lower()
+        label = _EXTRACTION_SNOMED_TAG_TO_LABEL.get(tag, tag.replace(" ", "_"))
+
+        start = _resolve_start(text, term_text, around=sent["start"])
+        if start is None:
+            start = sent["start"]
+        end = start + len(term_text)
+
+        entity: dict[str, Any] = {
+            "text": term_text,
+            "label": label,
+            "start": start,
+            "end": end,
+            "assertion": assertion,
+        }
+
+        lookup_term = str(row.get("lookup_term", "")).strip()
+        if lookup_term and lookup_term != term_text:
+            entity["lookup_term"] = lookup_term
+
+        value = str(row.get("value", "") or "").strip()
+        unit = str(row.get("unit", "") or "").strip()
+        ref_range = str(row.get("reference_range", "") or "").strip()
+        if value:
+            entity["value"] = value
+        if unit:
+            entity["unit"] = unit
+        if ref_range:
+            entity["reference_range"] = ref_range
+
+        entities.append(entity)
+
+    return entities
+
+
+def _run_re_extraction_phase(labels: list[dict[str, Any]]) -> int:
+    """Phase 0 for re_extract mode: LLM-extract entities for all labels.
+
+    Updates entities_json in Neo4j and mutates the label dicts in place.
+    Returns the number of labels successfully re-extracted.
+    """
+    logger.info("Re-extraction phase: %d labels", len(labels))
+    write_client = PatientGraphClient()
+    extracted = 0
+    errors = 0
+
+    try:
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=_MAX_WORKERS,
+            thread_name_prefix="re-extract",
+        ) as pool:
+            futures = {
+                pool.submit(_re_extract_entities, str(row.get("text", ""))): row
+                for row in labels
+            }
+            for future in concurrent.futures.as_completed(futures):
+                if _stop_requested():
+                    break
+                row = futures[future]
+                label_id = str(row.get("label_id", ""))
+                try:
+                    entities = future.result()
+                except Exception:
+                    logger.warning("Re-extraction future failed for %s", label_id[:8], exc_info=True)
+                    errors += 1
+                    continue
+
+                if entities is None:
+                    errors += 1
+                    continue
+
+                entities_json = json.dumps(entities)
+                row["entities_json"] = entities_json
+                try:
+                    with write_client.session() as session:
+                        session.run(
+                            UPDATE_TRAINING_LABEL_ENTITIES,
+                            label_id=label_id,
+                            entities_json=entities_json,
+                        )
+                except Exception:
+                    logger.warning("Neo4j write failed during re-extraction for %s", label_id[:8], exc_info=True)
+                    errors += 1
+                    continue
+
+                extracted += 1
+                if extracted % 100 == 0:
+                    logger.info("Re-extraction progress: %d/%d extracted, %d errors", extracted, len(labels), errors)
+    finally:
+        write_client.close()
+
+    logger.info("Re-extraction phase complete: %d extracted, %d errors", extracted, errors)
+    return extracted
+
+
+# ---------------------------------------------------------------------------
+# Neo4j write helper (per-result, uses client-level retry)
+# ---------------------------------------------------------------------------
+
+def _write_result_to_graph(client: "PatientGraphClient", result: _VerifyResult) -> None:
+    """Persist verification output for a single label to Neo4j.
+
+    Uses ``client.run()`` which opens a fresh session per call and retries
+    on transient connection errors (ServiceUnavailable, SessionExpired, etc.).
+    """
+    for item in result.review_items:
+        client.run(
+            UPSERT_LABEL_VERIFICATION_REVIEW,
+            review_id=item["review_id"],
+            label_id=result.label_id,
+            entity_index=item["entity_index"],
+            entity_text=item["entity_text"],
+            current_label=item["current_label"],
+            model_a_label=item["model_a_label"],
+            model_a_rationale=item["model_a_rationale"],
+            model_a_confidence=item.get("model_a_confidence", 0.0),
+            model_b_label=item["model_b_label"],
+            model_b_rationale=item["model_b_rationale"],
+            model_b_confidence=item.get("model_b_confidence", 0.0),
+            auto_resolve_method=item.get("auto_resolve_method"),
+            auto_resolve_confidence=item.get("auto_resolve_confidence"),
+            auto_resolve_reason=item.get("auto_resolve_reason"),
+        )
+        if item.get("auto_resolved"):
+            resolved_label = str(item.get("resolved_label", ""))
+            client.run(
+                RESOLVE_LABEL_VERIFICATION_REVIEW,
+                review_id=item["review_id"],
+                resolved_label=resolved_label,
+                reviewer=f"auto_triage:{item.get('auto_resolve_method', 'unknown')}",
+                entities_json=json.dumps(result.updated_entities),
+                model_a_was_correct=(item["model_a_label"] == resolved_label),
+                model_b_was_correct=(item["model_b_label"] == resolved_label),
+            )
+
+    for cr in result.coding_reviews:
+        client.run(
+            UPSERT_CODING_REVIEW,
+            review_id=cr["review_id"],
+            label_id=result.label_id,
+            entity_index=cr["entity_index"],
+            entity_text=cr["entity_text"],
+            entity_label=cr["entity_label"],
+            coded=cr["coded"],
+            snomed_concept_id=cr.get("snomed_concept_id"),
+            snomed_term=cr.get("snomed_term"),
+            score=cr.get("score"),
+            semantic_tag=cr.get("semantic_tag"),
+            assertion=cr.get("assertion", "present"),
+            decision_tier=cr.get("decision_tier"),
+            tier_reason=cr.get("tier_reason"),
+            tier_decision=cr.get("tier_decision"),
+        )
+
+    client.run(
+        UPDATE_TRAINING_LABEL_ENTITIES,
+        label_id=result.label_id,
+        entities_json=json.dumps(result.updated_entities),
+    )
+    client.run(
+        UPDATE_LABEL_VERIFICATION,
+        label_id=result.label_id,
+        verification_agreement=result.agreement,
+        model_a_label=result.first_aws_label,
+        model_b_label=result.first_azure_label,
+        quality_score=result.quality_score,
+    )
+
+
+# ---------------------------------------------------------------------------
 # Main verification entry point
 # ---------------------------------------------------------------------------
 
@@ -1478,6 +1755,11 @@ def run_verification() -> None:
                calling AWS + Azure in a nested 2-thread pool.
     Phase 3 — Write results back to Neo4j sequentially as futures complete
                (avoids multi-threaded session usage).
+
+    Neo4j writes use ``write_client.run()`` (fresh session per call with
+    automatic retry on transient errors). If all retries fail for a single
+    label the write is skipped and the label counted as an error so the
+    pipeline continues rather than stalling.
     """
     # ------------------------------------------------------------------
     # Phase 1: fetch
@@ -1519,121 +1801,73 @@ def run_verification() -> None:
     )
 
     # ------------------------------------------------------------------
+    # Phase 1b (optional): re-extract entities via LLM before verification
+    # ------------------------------------------------------------------
+    if run_mode == "re_extract" and not _stop_requested():
+        logger.info("Re-extract mode: running LLM extraction before verification")
+        _run_re_extraction_phase(labels)
+
+    # ------------------------------------------------------------------
     # Phase 2 + 3: process in parallel, write sequentially as futures land
     # ------------------------------------------------------------------
     write_client = PatientGraphClient()
     try:
-        with write_client.session() as session:
-            with concurrent.futures.ThreadPoolExecutor(
-                max_workers=_MAX_WORKERS,
-                thread_name_prefix="label-verify",
-            ) as pool:
-                futures = {pool.submit(_process_label, row, rules, ignore_texts): row for row in labels}
-                last_progress_log_done = 0
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=_MAX_WORKERS,
+            thread_name_prefix="label-verify",
+        ) as pool:
+            futures = {pool.submit(_process_label, row, rules, ignore_texts): row for row in labels}
+            last_progress_log_done = 0
 
-                for future in concurrent.futures.as_completed(futures):
-                    if _stop_requested():
-                        break
-                    try:
-                        result = future.result()
-                    except Exception:
-                        logger.warning("Future raised unexpectedly", exc_info=True)
-                        _increment_state(done=1, errors=1)
-                        continue
+            for future in concurrent.futures.as_completed(futures):
+                if _stop_requested():
+                    break
+                try:
+                    result = future.result()
+                except Exception:
+                    logger.warning("Future raised unexpectedly", exc_info=True)
+                    _increment_state(done=1, errors=1)
+                    continue
 
-                    if result.error or not result.label_id:
-                        _increment_state(done=1, errors=1)
-                        continue
+                if result.error or not result.label_id:
+                    _increment_state(done=1, errors=1)
+                    continue
 
-                    # Write disagreement review items
-                    for item in result.review_items:
-                        session.run(
-                            UPSERT_LABEL_VERIFICATION_REVIEW,
-                            review_id=item["review_id"],
-                            label_id=result.label_id,
-                            entity_index=item["entity_index"],
-                            entity_text=item["entity_text"],
-                            current_label=item["current_label"],
-                            model_a_label=item["model_a_label"],
-                            model_a_rationale=item["model_a_rationale"],
-                            model_a_confidence=item.get("model_a_confidence", 0.0),
-                            model_b_label=item["model_b_label"],
-                            model_b_rationale=item["model_b_rationale"],
-                            model_b_confidence=item.get("model_b_confidence", 0.0),
-                            auto_resolve_method=item.get("auto_resolve_method"),
-                            auto_resolve_confidence=item.get("auto_resolve_confidence"),
-                            auto_resolve_reason=item.get("auto_resolve_reason"),
-                        )
-                        if item.get("auto_resolved"):
-                            resolved_label = str(item.get("resolved_label", ""))
-                            session.run(
-                                RESOLVE_LABEL_VERIFICATION_REVIEW,
-                                review_id=item["review_id"],
-                                resolved_label=resolved_label,
-                                reviewer=f"auto_triage:{item.get('auto_resolve_method', 'unknown')}",
-                                entities_json=json.dumps(result.updated_entities),
-                                model_a_was_correct=(item["model_a_label"] == resolved_label),
-                                model_b_was_correct=(item["model_b_label"] == resolved_label),
-                            )
-
-                    # Write coding review items (uncoded / low-confidence entities)
-                    for cr in result.coding_reviews:
-                        session.run(
-                            UPSERT_CODING_REVIEW,
-                            review_id=cr["review_id"],
-                            label_id=result.label_id,
-                            entity_index=cr["entity_index"],
-                            entity_text=cr["entity_text"],
-                            entity_label=cr["entity_label"],
-                            coded=cr["coded"],
-                            snomed_concept_id=cr.get("snomed_concept_id"),
-                            snomed_term=cr.get("snomed_term"),
-                            score=cr.get("score"),
-                            semantic_tag=cr.get("semantic_tag"),
-                            assertion=cr.get("assertion", "present"),
-                            decision_tier=cr.get("decision_tier"),
-                            tier_reason=cr.get("tier_reason"),
-                            tier_decision=cr.get("tier_decision"),
-                        )
-
-                    session.run(
-                        UPDATE_TRAINING_LABEL_ENTITIES,
-                        label_id=result.label_id,
-                        entities_json=json.dumps(result.updated_entities),
+                try:
+                    _write_result_to_graph(write_client, result)
+                except Exception:
+                    logger.warning(
+                        "Neo4j write failed for label %s after retries — skipping",
+                        result.label_id,
+                        exc_info=True,
                     )
-                    session.run(
-                        UPDATE_LABEL_VERIFICATION,
-                        label_id=result.label_id,
-                        verification_agreement=result.agreement,
-                        model_a_label=result.first_aws_label,
-                        model_b_label=result.first_azure_label,
-                        quality_score=result.quality_score,
-                    )
+                    _increment_state(done=1, errors=1)
+                    continue
 
-                    _increment_state(
-                        done=1,
-                        agreements=(1 if result.agreement else 0),
-                        disagreements=result.n_disagreements,
-                        auto_resolved=result.auto_resolved,
-                        pending_review=sum(1 for item in result.review_items if not item.get("auto_resolved")),
+                _increment_state(
+                    done=1,
+                    agreements=(1 if result.agreement else 0),
+                    disagreements=result.n_disagreements,
+                    auto_resolved=result.auto_resolved,
+                    pending_review=sum(1 for item in result.review_items if not item.get("auto_resolved")),
+                )
+                state_now = get_job_state()
+                done_now = int(state_now.get("done") or 0)
+                total_now = int(state_now.get("total") or 0)
+                log_step = 25 if total_now <= 1000 else 100
+                if done_now >= total_now or done_now - last_progress_log_done >= log_step:
+                    eta_seconds = state_now.get("eta_seconds")
+                    eta_str = f"{eta_seconds}s" if isinstance(eta_seconds, int) else "unknown"
+                    logger.info(
+                        "Verifier progress: %d/%d (%.2f%%), remaining=%d, throughput=%.2f items/min, eta=%s",
+                        done_now,
+                        total_now,
+                        float(state_now.get("progress_pct") or 0.0),
+                        int(state_now.get("remaining") or 0),
+                        float(state_now.get("items_per_min") or 0.0),
+                        eta_str,
                     )
-                    state_now = get_job_state()
-                    done_now = int(state_now.get("done") or 0)
-                    total_now = int(state_now.get("total") or 0)
-                    log_step = 25 if total_now <= 1000 else 100
-                    if done_now >= total_now or done_now - last_progress_log_done >= log_step:
-                        eta_seconds = state_now.get("eta_seconds")
-                        eta_str = f"{eta_seconds}s" if isinstance(eta_seconds, int) else "unknown"
-                        logger.info(
-                            "Verifier progress: %d/%d (%.2f%%), remaining=%d, throughput=%.2f items/min, eta=%s",
-                            done_now,
-                            total_now,
-                            float(state_now.get("progress_pct") or 0.0),
-                            int(state_now.get("remaining") or 0),
-                            float(state_now.get("items_per_min") or 0.0),
-                            eta_str,
-                        )
-                        last_progress_log_done = done_now
+                    last_progress_log_done = done_now
 
         _patch_state(status=("cancelled" if _stop_requested() else "done"), finished_at=time.time())
         logger.info("Label verification completed")

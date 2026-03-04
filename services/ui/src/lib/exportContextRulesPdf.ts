@@ -140,11 +140,15 @@ function drawIntro(doc: jsPDF): number {
   const w = doc.internal.pageSize.getWidth();
   const usableW = w - MARGIN * 2;
 
-  // Intro paragraph
+  // Intro paragraph — written at a reading age of 11
   const introText =
-    "Context rules teach the LEO NLP pipeline how to interpret clinical phrases — for example, " +
-    "recognising that 'patient declined colonoscopy' means the procedure was NOT performed, or that " +
-    "'awaiting CT' means it has not yet happened. This report lists the full rule set for audit and transparency purposes.";
+    "Context rules are a key part of the NLP (Natural Language Processing) system that makes sure " +
+    "clinical notes are read correctly. Doctors often use short phrases like 'nil', 'declined', or " +
+    "'awaiting'. Without these rules the system might record something as having happened when it " +
+    "did not — for example, coding a colonoscopy the patient actually refused. Context rules stop " +
+    "that from happening by checking the words around each condition and working out whether it is " +
+    "confirmed, planned, declined, historical, or about a family member. This report lists every " +
+    "rule in use so it can be reviewed for transparency and audit.";
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8.5);

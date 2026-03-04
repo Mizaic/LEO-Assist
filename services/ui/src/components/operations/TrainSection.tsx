@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
@@ -42,6 +43,10 @@ async function loadStats(): Promise<AllStats> {
     fetch("/api/training/coding-review/stats").then((r) => r.json()),
   ]);
 
+  if (labelsRes.status === "rejected" && codingRes.status === "rejected") {
+    throw new Error("Could not load training information. Please try again.");
+  }
+
   return {
     labels:
       labelsRes.status === "fulfilled"
@@ -59,62 +64,72 @@ async function loadStats(): Promise<AllStats> {
 export default function TrainSection() {
   const [stats, setStats] = useState<AllStats | null>(null);
   const [tab, setTab] = useState(0);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    loadStats().then(setStats).catch(() => {});
+    loadStats()
+      .then(setStats)
+      .catch((e) => setError(e instanceof Error ? e.message : "Could not load training information. Please try again."));
   }, []);
 
   return (
-    <Stack gap={2.5}>
+    <Stack gap={1.5}>
+      {error && (
+        <Alert severity="error" onClose={() => setError("")} sx={{ py: 0.25 }}>
+          {error}
+        </Alert>
+      )}
+
       {/* Stats summary */}
-      <Stack direction="row" gap={2} flexWrap="wrap">
+      <Stack direction="row" gap={1.5} flexWrap="wrap">
         <StatCard
-          title="Training labels"
+          title="Teaching examples"
           value={stats?.labels.total}
           sub={
             stats
               ? `${stats.labels.included} included, ${stats.labels.excluded} excluded`
               : undefined
           }
+          hint="Records the AI learns from"
         />
         <StatCard
-          title="Coding reviews"
+          title="Checked records"
           value={stats?.coding.total}
           sub={
             stats
-              ? `${stats.coding.resolved} resolved, ${stats.coding.pending} pending`
+              ? `${stats.coding.resolved} done, ${stats.coding.pending} waiting`
               : undefined
           }
+          hint="Records reviewed by a person"
         />
         <StatCard
-          title="Uncoded items"
+          title="Need attention"
           value={stats?.coding.uncoded}
-          sub="Need a clinical code"
+          sub="Records without a clinical code"
           warn={stats != null && stats.coding.uncoded > 0}
         />
       </Stack>
 
       {/* Sub-tabs */}
-      <Box>
-        <Tabs
-          value={tab}
-          onChange={(_, v) => setTab(v)}
-          aria-label="Training sub-sections"
-        >
-          <Tab
-            label="Training data"
-            id="train-tab-0"
-            aria-controls="train-panel-0"
-            sx={{ textTransform: "none", fontWeight: 600 }}
-          />
-          <Tab
-            label="Label checks"
-            id="train-tab-1"
-            aria-controls="train-panel-1"
-            sx={{ textTransform: "none", fontWeight: 600 }}
-          />
-        </Tabs>
-      </Box>
+      <Tabs
+        value={tab}
+        onChange={(_, v) => setTab(v)}
+        aria-label="Training sub-sections"
+        sx={{ minHeight: 36 }}
+      >
+        <Tab
+          label="Teach the AI"
+          id="train-tab-0"
+          aria-controls="train-panel-0"
+          sx={{ textTransform: "none", fontWeight: 600, minHeight: 36, py: 0.5 }}
+        />
+        <Tab
+          label="Check the labels"
+          id="train-tab-1"
+          aria-controls="train-panel-1"
+          sx={{ textTransform: "none", fontWeight: 600, minHeight: 36, py: 0.5 }}
+        />
+      </Tabs>
 
       <Box
         role="tabpanel"
@@ -134,39 +149,53 @@ function StatCard({
   title,
   value,
   sub,
+  hint,
   warn,
 }: {
   title: string;
   value: number | undefined;
   sub?: string;
+  hint?: string;
   warn?: boolean;
 }) {
   return (
-    <Card sx={{ flex: "1 1 200px", minWidth: 180 }}>
-      <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
+    <Card
+      variant="outlined"
+      sx={{
+        flex: "1 1 160px",
+        minWidth: 150,
+        borderColor: warn ? "warning.light" : "divider",
+      }}
+    >
+      <CardContent sx={{ p: 1.5, "&:last-child": { pb: 1.5 } }}>
         <Typography
           variant="caption"
           color="text.secondary"
-          sx={{ textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600 }}
+          sx={{ textTransform: "uppercase", letterSpacing: "0.04em", fontWeight: 600, fontSize: 10.5 }}
         >
           {title}
         </Typography>
         {value != null ? (
           <Typography
-            variant="h5"
+            variant="h6"
             sx={{
               fontWeight: 700,
-              mt: 0.5,
+              lineHeight: 1.2,
               color: warn ? "warning.main" : "text.primary",
             }}
           >
             {value.toLocaleString()}
           </Typography>
         ) : (
-          <Skeleton width={60} height={32} sx={{ mt: 0.5 }} />
+          <Skeleton width={50} height={28} />
+        )}
+        {hint && (
+          <Typography variant="caption" color="text.disabled" sx={{ display: "block", fontSize: 10.5, lineHeight: 1.3 }}>
+            {hint}
+          </Typography>
         )}
         {sub && (
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
+          <Typography variant="caption" color="text.secondary" sx={{ display: "block", fontSize: 11, lineHeight: 1.3 }}>
             {sub}
           </Typography>
         )}

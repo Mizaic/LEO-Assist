@@ -249,6 +249,73 @@
       acceptance_criteria:
         - "Preventive rule prevents regression of all remediated findings"
 
+    - case_id: "VT-036-TC-019"
+      case_name: "TrainSection uses plain-language stat card labels"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Render TrainSection and inspect stat card headings"
+          expected_result: "Cards titled 'Teaching examples', 'Checked records', 'Need attention' — no ML jargon"
+          verification_method: "Component test"
+      acceptance_criteria:
+        - "All stat cards use reading-age-11 language"
+        - "Error state is surfaced via Alert, not silently swallowed"
+
+    - case_id: "VT-036-TC-020"
+      case_name: "TrainingDataPanel uses ConfirmDialog for exclude action"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Search TrainingDataPanel.tsx for ConfirmDialog usage"
+          expected_result: "ConfirmDialog used for exclude and start-learning dialogs — no raw Dialog"
+          verification_method: "Code inspection"
+      acceptance_criteria:
+        - "No raw <Dialog> used for destructive or confirmation actions"
+
+    - case_id: "VT-036-TC-021"
+      case_name: "LabelVerificationPanel has ARIA attributes on toggle"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Inspect LabelVerificationPanel view-mode toggle buttons"
+          expected_result: "Buttons have aria-pressed attribute and wrapper has role='group' with aria-label"
+          verification_method: "Code inspection"
+      acceptance_criteria:
+        - "Toggle buttons are accessible to screen readers"
+
+    - case_id: "VT-036-TC-022"
+      case_name: "DeploySection uses plain-language metric labels"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Render DeploySection and inspect metric labels"
+          expected_result: "Labels are 'Training accuracy', 'Training completeness', 'Live test accuracy', 'Live test completeness' with tooltips"
+          verification_method: "Component test"
+      acceptance_criteria:
+        - "No ML jargon (precision, recall, canary, offline) in user-facing labels"
+
+    - case_id: "VT-036-TC-023"
+      case_name: "ModelLifecyclePanel uses ConfirmDialog for all destructive actions"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Search ModelLifecyclePanel.tsx for ConfirmDialog usage"
+          expected_result: "ConfirmDialog used for force-promote, rollback, and reject — no raw Dialog"
+          verification_method: "Code inspection"
+      acceptance_criteria:
+        - "All destructive actions gated by ConfirmDialog component"
+
+    - case_id: "VT-036-TC-024"
+      case_name: "ModelLifecyclePanel status labels are plain language"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Inspect statusChip function in ModelLifecyclePanel.tsx"
+          expected_result: "Labels are 'Live', 'Being tested', 'Ready to test', 'Registered', 'Retired', 'Switched back'"
+          verification_method: "Code inspection"
+      acceptance_criteria:
+        - "No technical status labels (canary, deprecated, offline_validated) shown to users"
+
   pass_fail_criteria:
     pass_threshold: "100% critical, 100% all"
     blocking_on_failure: true

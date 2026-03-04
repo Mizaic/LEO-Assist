@@ -212,6 +212,173 @@ describe("VT-036-TC-018: Cursor safety rule exists", () => {
   });
 });
 
+// -- VT-036-TC-019: TrainSection plain-language labels -----------------------
+
+describe("VT-036-TC-019: TrainSection plain language (static)", () => {
+  const trainSection = readUISrc("components/operations/TrainSection.tsx");
+
+  it("uses plain-language stat card title 'Teaching examples'", () => {
+    expect(trainSection).toContain("Teaching examples");
+  });
+
+  it("uses plain-language stat card title 'Checked records'", () => {
+    expect(trainSection).toContain("Checked records");
+  });
+
+  it("uses plain-language stat card title 'Need attention'", () => {
+    expect(trainSection).toContain("Need attention");
+  });
+
+  it("does not silently swallow errors", () => {
+    expect(trainSection).not.toMatch(/\.catch\(\s*\(\)\s*=>\s*\{\s*\}\s*\)/);
+  });
+
+  it("uses plain-language tab labels", () => {
+    expect(trainSection).toContain("Teach the AI");
+    expect(trainSection).toContain("Check the labels");
+  });
+});
+
+// -- VT-036-TC-020: TrainingDataPanel ConfirmDialog --------------------------
+
+describe("VT-036-TC-020: TrainingDataPanel ConfirmDialog (static)", () => {
+  const panel = readUISrc("components/operations/TrainingDataPanel.tsx");
+
+  it("imports ConfirmDialog", () => {
+    expect(panel).toContain("ConfirmDialog");
+  });
+
+  it("does not use raw Dialog for destructive actions", () => {
+    const dialogImportMatch = panel.match(/import\s*\{[^}]*\bDialog\b[^}]*\}/);
+    expect(dialogImportMatch).toBeNull();
+  });
+
+  it("uses plain-language page title", () => {
+    expect(panel).toContain("Teach the AI");
+    expect(panel).not.toContain('"Model training"');
+  });
+
+  it("uses plain-language metric labels", () => {
+    expect(panel).toContain("Correct answers");
+    expect(panel).toContain("Found answers");
+    expect(panel).toContain("Overall score");
+    expect(panel).toContain("Quality check passed");
+  });
+});
+
+// -- VT-036-TC-021: LabelVerificationPanel ARIA ------------------------------
+
+describe("VT-036-TC-021: LabelVerificationPanel ARIA (static)", () => {
+  const panel = readUISrc("components/operations/LabelVerificationPanel.tsx");
+
+  it("view toggle has role='group' and aria-label", () => {
+    expect(panel).toContain('role="group"');
+    expect(panel).toContain('aria-label="View mode"');
+  });
+
+  it("view toggle buttons have aria-pressed", () => {
+    const pressedCount = (panel.match(/aria-pressed/g) || []).length;
+    expect(pressedCount).toBeGreaterThanOrEqual(2);
+  });
+
+  it("uses plain-language action labels", () => {
+    expect(panel).toContain("Save and next");
+    expect(panel).toContain("Fix this");
+    expect(panel).toContain("Remove this word");
+    expect(panel).toContain("Always ignore this");
+  });
+
+  it("uses plain-language suggestion labels", () => {
+    expect(panel).toContain("Tool A thinks");
+    expect(panel).toContain("Tool B thinks");
+  });
+});
+
+// -- VT-036-TC-022: DeploySection plain-language metrics ----------------------
+
+describe("VT-036-TC-022: DeploySection plain-language metrics (static)", () => {
+  const deploy = readUISrc("components/operations/DeploySection.tsx");
+
+  it("uses 'Training accuracy' instead of 'Offline precision'", () => {
+    expect(deploy).toContain("Training accuracy");
+    expect(deploy).not.toContain("Offline precision");
+  });
+
+  it("uses 'Training completeness' instead of 'Offline recall'", () => {
+    expect(deploy).toContain("Training completeness");
+    expect(deploy).not.toContain("Offline recall");
+  });
+
+  it("uses 'Live test accuracy' instead of 'Canary precision'", () => {
+    expect(deploy).toContain("Live test accuracy");
+    expect(deploy).not.toContain("Canary precision");
+  });
+
+  it("uses 'Live test completeness' instead of 'Canary recall'", () => {
+    expect(deploy).toContain("Live test completeness");
+    expect(deploy).not.toContain("Canary recall");
+  });
+
+  it("metric tooltips are present", () => {
+    expect(deploy).toContain("How often the AI got the right answer during training");
+    expect(deploy).toContain("How many real items the AI found during training");
+  });
+});
+
+// -- VT-036-TC-023: ModelLifecyclePanel ConfirmDialog -------------------------
+
+describe("VT-036-TC-023: ModelLifecyclePanel ConfirmDialog (static)", () => {
+  const panel = readUISrc("components/operations/ModelLifecyclePanel.tsx");
+
+  it("imports ConfirmDialog", () => {
+    expect(panel).toContain("ConfirmDialog");
+  });
+
+  it("does not import raw Dialog from MUI", () => {
+    const dialogImportMatch = panel.match(/import\s*\{[^}]*\bDialog\b[^}]*\}\s*from\s*["']@mui/);
+    expect(dialogImportMatch).toBeNull();
+  });
+
+  it("uses ConfirmDialog for force-promote", () => {
+    expect(panel).toContain("Go live anyway");
+  });
+
+  it("uses ConfirmDialog for rollback", () => {
+    expect(panel).toContain("Switch back to the previous AI?");
+  });
+
+  it("uses ConfirmDialog for reject", () => {
+    expect(panel).toContain("Reject this AI version?");
+  });
+});
+
+// -- VT-036-TC-024: ModelLifecyclePanel plain-language status labels ----------
+
+describe("VT-036-TC-024: ModelLifecyclePanel status labels (static)", () => {
+  const panel = readUISrc("components/operations/ModelLifecyclePanel.tsx");
+
+  it("uses 'Being tested' instead of 'Canary'", () => {
+    expect(panel).toContain('"Being tested"');
+  });
+
+  it("uses 'Ready to test' instead of 'Validated'", () => {
+    expect(panel).toContain('"Ready to test"');
+  });
+
+  it("uses 'Retired' instead of 'Deprecated'", () => {
+    expect(panel).toContain('"Retired"');
+  });
+
+  it("uses 'Switched back' instead of 'Rolled Back'", () => {
+    expect(panel).toContain('"Switched back"');
+  });
+
+  it("uses 'Safety test' instead of 'Gold patient test'", () => {
+    expect(panel).toContain("Safety test");
+    expect(panel).not.toContain("Gold patient test");
+  });
+});
+
 // -- VT-036-TC-008 (supplementary): Error boundary files exist ---------------
 
 describe("VT-036-TC-008: Error boundary files exist", () => {

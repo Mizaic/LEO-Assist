@@ -215,7 +215,7 @@ class UpdatePostProcessorRuleRequest(BaseModel):
 
 
 class VerifyAllRequest(BaseModel):
-    mode: str = "all"  # all | hitl_only
+    mode: str = "all"  # all | hitl_only | re_extract
     reset_pending: bool = False
 
 
@@ -431,7 +431,7 @@ def verify_all_labels(
         mode = "all"
         reset_pending = False
     else:
-        mode = body.mode if body.mode in {"all", "hitl_only"} else "all"
+        mode = body.mode if body.mode in {"all", "hitl_only", "re_extract"} else "all"
         reset_pending = bool(body.reset_pending)
         started = begin_job_with_mode(run_mode=mode, reset_pending=reset_pending)
 
@@ -1558,7 +1558,7 @@ def ask_leo_rank_candidates(
     )
     user_msg = json.dumps({
         "entity_text": sanitise_for_prompt(body.entity_text, max_chars=200),
-        "encounter_text": sanitise_for_prompt(body.encounter_text[:1000], max_chars=1000),
+        "encounter_text": sanitise_for_prompt(body.encounter_text, max_chars=16_000),
         "candidates": numbered,
     })
     tier = body.tier if body.tier in ("small", "big", "max") else "small"

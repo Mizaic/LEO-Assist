@@ -789,7 +789,7 @@ component_4_coding_pipeline:
         patient_data_exposure: true
       likelihood: "Medium"
       likelihood_rationale: "De-identification is regex-based and cannot catch all PII. The consensus pattern sends clinical text to 2-3 LLMs per operation (up from 1 in v1)."
-      existing_controls: "Regex-based de-identification; encounter_text truncated to 2000 chars in disorder verifier; AWS Bedrock and Azure OpenAI data processing agreements"
+      existing_controls: "Regex-based de-identification; encounter_text sanitised and capped at 16000 chars (~4 A4 pages) in disorder verifier; AWS Bedrock and Azure OpenAI data processing agreements"
       gaps: "De-identification not validated for completeness; no PHI detection audit before LLM submission; clinical text exposure surface has grown 2-3x with consensus pattern"
       confidence: "Confirmed"
 
@@ -1123,7 +1123,7 @@ component_13_consensus:
         patient_data_exposure: true
       likelihood: "Medium"
       likelihood_rationale: "Standard operation. Every entity that enters Tier 2 or requires disorder verification triggers dual-model calls."
-      existing_controls: "De-identification upstream; encounter_text truncation (2000 chars in disorder verifier, 1500 in coding consensus); AWS/Azure DPAs"
+      existing_controls: "De-identification upstream; encounter_text sanitised and capped at 16000 chars in disorder verifier and coding consensus; AWS/Azure DPAs"
       gaps: "No per-call PHI audit; data sent to two separate cloud jurisdictions (AWS US, Azure UK); no data minimization beyond truncation"
       confidence: "Confirmed"
       regulatory_impact:
@@ -2031,6 +2031,7 @@ unresolved_items:
   - type: "RESOLVED"
     description: "Infrastructure WAF/reverse proxy configuration"
     impact: "Rate limiting, IP filtering, and TLS termination may exist at infrastructure layer"
+    design_document: "DC-DEP-001-deployment-configuration.md"
     resolution: >
       Verified 2026-03-03 via DNS + HTTP probe. healthcarecopilot.ai zone is
       Cloudflare-proxied (CF IPs 104.26.14.136, 104.26.15.136, 172.67.73.125;
@@ -2049,11 +2050,14 @@ unresolved_items:
   - type: "PARTIALLY RESOLVED"
     description: "Azure AD app registration configuration — accessTokenAcceptedVersion, redirect URIs"
     impact: "Token validation scope and OAuth flow security depend on Azure AD configuration"
+    design_document: "DC-DEP-001-deployment-configuration.md"
     resolution: >
       Verified 2026-03-03 via az ad app show. Primary app registration is
       "Mizaic Atlas" (c97f7ad9-845f-420c-ae3f-fa5c5d815bcd) — the actual
       AZURE_AD_CLIENT_ID used by the platform. 19 additional legacy LEO
       registrations exist under tenant ceb47133-88ce-4455-b7ef-99dbd161c637.
+      Deployment configuration specification created (DC-DEP-001) with required
+      settings, checklists, and anti-patterns for new environment onboarding.
     primary_app:
       display_name: "Mizaic Atlas"
       app_id: "c97f7ad9-845f-420c-ae3f-fa5c5d815bcd"
