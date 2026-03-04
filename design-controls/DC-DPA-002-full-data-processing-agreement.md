@@ -1,6 +1,6 @@
 # Data Processing Agreement
 
-## Between Mizaic and NHS GP Practices in England
+## Between Mizaic and NHS Provider Organisations in England
 
 | Field              | Value                                                    |
 | ------------------ | -------------------------------------------------------- |
@@ -15,10 +15,11 @@
 
 ## PARTIES
 
-**(1) The Practice** (the "Controller"), being the GP Practice named
-in Schedule 1 to this Agreement, registered with the Care Quality
-Commission and holding an active NHS Data Security and Protection
-Toolkit (DSPT) assessment.
+**(1) The Organisation** (the "Controller"), being the NHS provider
+organisation named in Schedule 1 to this Agreement (which may be a
+GP practice, NHS trust, NHS foundation trust, integrated care board,
+community health provider, or other NHS body), holding an active NHS
+Data Security and Protection Toolkit (DSPT) assessment.
 
 **(2) Mizaic Limited** (the "Processor"), a company registered in
 England and Wales, holding an active NHS DSPT assessment.
@@ -30,11 +31,11 @@ Together the "Parties" and each a "Party".
 ## BACKGROUND
 
 (A) The Controller holds patient clinical records as part of its NHS
-primary care functions.
+functions.
 
-(B) The Processor operates the Primary Care Clinical Pathway Audit
-Platform (the "Service"), which uses AI-assisted coding and pathway
-reconstruction to support retrospective clinical audit.
+(B) The Processor operates the Clinical Pathway Audit Platform (the
+"Service"), which uses AI-assisted coding and pathway reconstruction
+to support retrospective clinical audit.
 
 (C) The Controller wishes to engage the Processor to process Patient
 Personal Data for the purposes set out in this Agreement.
@@ -99,10 +100,10 @@ clinical information.
 reviews AI-generated coding proposals through the Service and approves,
 rejects, or corrects them.
 
-**"Service"** means the Primary Care Clinical Pathway Audit Platform
-operated by the Processor, including all software, AI models,
-terminology resources, and infrastructure used to provide clinical
-coding and pathway audit services to the Controller.
+**"Service"** means the Clinical Pathway Audit Platform operated by the
+Processor, including all software, AI models, terminology resources,
+and infrastructure used to provide clinical coding and pathway audit
+services to the Controller.
 
 **"Sub-processor"** means any third party engaged by the Processor to
 carry out processing activities on behalf of the Controller.
@@ -124,8 +125,8 @@ line with clause 11.
 The Processor will process Patient Personal Data for the following
 purposes:
 
-(a) AI-assisted clinical coding of GP encounter records using named
-entity recognition (NER) and SNOMED CT terminology resolution;
+(a) AI-assisted clinical coding of patient encounter records using
+named entity recognition (NER) and SNOMED CT terminology resolution;
 
 (b) clinical pathway reconstruction and retrospective audit analysis;
 
@@ -143,7 +144,7 @@ Controller.
 
 ### 2.3  Types of personal data
 
-- Patient clinical encounter text (free text from GP records)
+- Patient clinical encounter text (free text from clinical records)
 - Patient demographic identifiers (NHS number, name, date of birth,
   postcode, phone number, email address)
 - Coded clinical data (SNOMED CT codes, Read codes)
@@ -753,14 +754,19 @@ Signed for and on behalf of **Mizaic Limited** (the Processor):
 
 | Field                       | Detail                                              |
 | --------------------------- | --------------------------------------------------- |
-| Controller name             | [GP Practice name]                                  |
+| Controller name             | [Organisation name]                                 |
+| Controller type             | [GP practice / NHS trust / NHS foundation trust / integrated care board / community health provider / other] |
 | Controller ODS code         | [ODS code]                                          |
+| Controller CQC registration | [CQC registration number, or "N/A" if not applicable] |
 | Controller DPO contact      | [Name, email]                                       |
+| Controller Caldicott Guardian | [Name, email]                                     |
 | Processor contact           | [Mizaic contact name, email]                        |
 | Start date                  | [Date]                                              |
 | Duration                    | [Duration or "until terminated"]                    |
 | DSPT status (Controller)    | [Standards met / approaching standards]              |
+| DSPT category (Controller)  | [Category 1 / 2 / 3 / 4]                           |
 | DSPT status (Processor)     | [Standards met]                                     |
+| Clinical system(s)          | [SystmOne / EMIS / other -- list all source systems] |
 | Notice address (Controller) | [Address]                                           |
 | Notice address (Processor)  | [Address]                                           |
 
@@ -898,14 +904,14 @@ their own model training.
 
 ## ANNEX D -- LEARNING LOOP DESCRIPTION (PLAIN ENGLISH)
 
-*This annex is written in plain English so that anyone at the GP
-Practice can understand how the Learning Loop works.*
+*This annex is written in plain English so that anyone at your
+organisation can understand how the Learning Loop works.*
 
 **What is the Learning Loop?**
 
-When a clinical coder at your practice reviews a coding suggestion from
-the system and approves it, the system learns from that decision. It
-saves a link between the clinical phrase (for example "chest X-ray")
+When a clinical coder at your organisation reviews a coding suggestion
+from the system and approves it, the system learns from that decision.
+It saves a link between the clinical phrase (for example "chest X-ray")
 and the correct SNOMED code. Next time the system sees "chest X-ray"
 in any patient's record, it is more likely to suggest the right code.
 
@@ -922,33 +928,33 @@ text before any link is created.
 
 **Who benefits?**
 
-All GP practices using the system benefit. If a coder at Practice A
-approves "raised PSA" as a match for the PSA test SNOMED code, then
-Practice B's coding will also improve for that same phrase. Your
-practice benefits from corrections made by other practices in the same
-way.
+All NHS organisations using the system benefit. If a coder at
+Organisation A approves "raised PSA" as a match for the PSA test
+SNOMED code, then Organisation B's coding will also improve for that
+same phrase. Your organisation benefits from corrections made by other
+organisations in the same way.
 
-**Can you tell which practice a link came from?**
+**Can you tell which organisation a link came from?**
 
-No. The saved links do not include any practice name, ODS code, coder
-name, or patient identifier. There is no way to tell which practice or
-which patient the phrase came from.
+No. The saved links do not include any organisation name, ODS code,
+coder name, or patient identifier. There is no way to tell which
+organisation or which patient the phrase came from.
 
 **How do we check this is working safely?**
 
 The system runs automated tests on every software release to make sure
 no patient data has crossed into the shared terminology database. Your
-practice can ask to see the results of these tests at any time.
+organisation can ask to see the results of these tests at any time.
 
-**What happens if your practice leaves the service?**
+**What happens if your organisation leaves the service?**
 
-All patient data held for your practice is deleted within 30 days.
+All patient data held for your organisation is deleted within 30 days.
 The clinical-phrase-to-SNOMED links that were created while your
-practice used the service are kept, because they do not contain any
-patient or practice information and other practices depend on them. If
-you believe a specific link contains information that could identify a
-patient, you can ask us to investigate and we will fix it within 14
-days.
+organisation used the service are kept, because they do not contain
+any patient or organisation information and other organisations depend
+on them. If you believe a specific link contains information that could
+identify a patient, you can ask us to investigate and we will fix it
+within 14 days.
 
 **What about the AI models?**
 
@@ -962,4 +968,4 @@ them.
 *IMPORTANT: This document is a draft for review. It must be checked
 by a solicitor qualified in UK data protection law before it is signed.
 The liability cap in clause 13.3 must be agreed between the Parties.
-Schedule 1 must be completed for each GP Practice.*
+Schedule 1 must be completed for each NHS provider organisation.*

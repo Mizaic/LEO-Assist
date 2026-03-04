@@ -8,7 +8,7 @@
 | Date            | 2026-03-03                                             |
 | Classification  | QMS -- Data Governance                                 |
 | Prepared by     | Quality Engineering                                    |
-| Parties         | Mizaic (Processor) and NHS GP Practices in England (Controller) |
+| Parties         | Mizaic (Processor) and NHS Provider Organisations in England (Controller) |
 
 ## Purpose
 
