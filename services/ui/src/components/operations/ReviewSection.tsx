@@ -36,6 +36,8 @@ interface CodingGroup {
   decision_tier: number | null;
   tier_reason: string | null;
   tier_decision: string | null;
+  suggested_label: string | null;
+  tag_mismatch_delta: number | null;
 }
 
 interface AssertionGroup {
@@ -73,6 +75,8 @@ function codingGroupToItem(g: CodingGroup): ReviewItem {
     decisionTier: (g.decision_tier as 1 | 2 | 3 | null) ?? null,
     tierReason: g.tier_reason ?? null,
     tierDecision: g.tier_decision ?? null,
+    suggestedLabel: g.suggested_label ?? undefined,
+    tagMismatchDelta: g.tag_mismatch_delta ?? undefined,
   };
   base.question = buildQuestion(base);
   base.explanation = buildExplanation(base);

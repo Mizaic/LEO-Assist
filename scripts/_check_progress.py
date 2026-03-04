@@ -1,26 +1,37 @@
-"""Quick progress check for verification pipeline."""
-import sys, os, warnings
+"""Quick check of pipeline progress via Neo4j."""
+import os, sys
 from pathlib import Path
-ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT))
-warnings.filterwarnings("ignore")
-
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from dotenv import load_dotenv
-load_dotenv(ROOT / "secrets" / ".env")
-
+load_dotenv(Path(__file__).resolve().parents[1] / "secrets" / ".env")
 from neo4j import GraphDatabase
 
-uri = os.getenv("NEO4J_URI")
-user = os.getenv("NEO4J_USER")
-pw = os.getenv("NEO4J_PASSWORD")
-driver = GraphDatabase.driver(uri, auth=(user, pw))
+d = GraphDatabase.driver(os.getenv("NEO4J_URI"), auth=("neo4j", os.getenv("NEO4J_PASSWORD")))
+d.verify_connectivity()
+s = d.session()
 
-with driver.session() as s:
-    r1 = s.run("MATCH (t:TrainingLabel) WHERE t.include = true RETURN count(t) AS n").single()["n"]
-    r2 = s.run("MATCH (t:TrainingLabel) WHERE t.include = true AND t.verified_at IS NOT NULL RETURN count(t) AS n").single()["n"]
-    r3 = s.run("MATCH (cr:CodingReview) RETURN count(cr) AS n").single()["n"]
+r = s.run(
+    "MATCH (t:TrainingLabel) WHERE t.include = true "
+    "RETURN count(t) AS total, "
+    "  sum(CASE WHEN t.verified_at IS NOT NULL THEN 1 ELSE 0 END) AS verified, "
+    "  sum(CASE WHEN t.entities_json IS NOT NULL THEN 1 ELSE 0 END) AS has_entities"
+).single()
+print(f"TrainingLabels: total={r['total']}, verified={r['verified']}, has_entities={r['has_entities']}")
 
-driver.close()
+r2 = s.run(
+    "MATCH (cr:CodingReview)-[:REVIEWS_CODING]->(t:TrainingLabel) "
+    "WHERE t.include = true "
+    "RETURN count(cr) AS total, "
+    "  sum(CASE WHEN cr.resolved = true THEN 1 ELSE 0 END) AS resolved, "
+    "  sum(CASE WHEN cr.resolved = false THEN 1 ELSE 0 END) AS pending"
+).single()
+print(f"CodingReviews: total={r2['total']}, resolved={r2['resolved']}, pending={r2['pending']}")
 
-pct = (r2 * 100.0 / r1) if r1 > 0 else 0
-print(f"Total: {r1:,}  |  Verified: {r2:,} ({pct:.1f}%)  |  Remaining: {r1-r2:,}  |  CodingReviews: {r3:,}")
+r3 = s.run(
+    "MATCH (r:LabelVerificationReview)-[:REVIEWS_LABEL]->(t:TrainingLabel) "
+    "WHERE t.include = true RETURN count(r) AS total"
+).single()
+print(f"LabelVerificationReviews: {r3['total']}")
+
+s.close()
+d.close()

@@ -661,6 +661,53 @@ _CODING_SCORE_THRESHOLD = float(os.getenv("CODING_REVIEW_SCORE_THRESHOLD", "0.70
 _CODING_ALT_LOW = float(os.getenv("CODING_ALT_THRESHOLD_LOW", "0.3"))
 _CODING_ALT_ENABLED = os.getenv("CODING_ALT_ENABLED", "true").lower() == "true"
 
+# Semantic tag cross-validation thresholds.
+_TAG_XVAL_AUTO_RECLASSIFY_SCORE = float(os.getenv("TAG_XVAL_AUTO_RECLASSIFY_SCORE", "0.90"))
+_TAG_XVAL_SAME_TAG_CEILING = float(os.getenv("TAG_XVAL_SAME_TAG_CEILING", "0.50"))
+_TAG_XVAL_MIN_DELTA = float(os.getenv("TAG_XVAL_MIN_DELTA", "0.10"))
+
+
+def _cross_check_semantic_tag(
+    entity_label: str,
+    candidates: list[dict],
+) -> tuple[str | None, float | None]:
+    """Compare top SNOMED candidates' semantic tags against the entity label.
+
+    Returns (suggested_label, score_delta) when the best unbiased candidate's
+    semantic tag disagrees with the extraction label.  Returns (None, None)
+    when tags agree or there are insufficient candidates to compare.
+    """
+    if not candidates:
+        return None, None
+
+    top_n = candidates[:3]
+
+    best_same_score = 0.0
+    best_diff_label: str | None = None
+    best_diff_score = 0.0
+
+    for c in top_n:
+        tag = str(c.get("semantic_tag") or "")
+        mapped = _snomed_tag_to_label(tag)
+        if not mapped:
+            continue
+        score = _safe_float(c.get("score")) or 0.0
+
+        if mapped == entity_label:
+            best_same_score = max(best_same_score, score)
+        elif score > best_diff_score:
+            best_diff_score = score
+            best_diff_label = mapped
+
+    if not best_diff_label:
+        return None, None
+
+    delta = best_diff_score - best_same_score
+    if delta < _TAG_XVAL_MIN_DELTA:
+        return None, None
+
+    return best_diff_label, delta
+
 
 def _resolve_terms_via_api(
     terms: list[str],
@@ -777,10 +824,12 @@ def _build_review_item(
     decision_tier: int | None = None,
     tier_reason: str | None = None,
     tier_decision: str | None = None,
+    suggested_label: str | None = None,
+    tag_mismatch_delta: float | None = None,
 ) -> dict[str, Any]:
     """Assemble a coding review dict for the queue."""
     concept_id = str(top.get("snomed_concept_id") or "")
-    return {
+    item: dict[str, Any] = {
         "review_id": f"coding:{label_id}:{idx}",
         "label_id": label_id,
         "entity_index": idx,
@@ -796,6 +845,11 @@ def _build_review_item(
         "tier_reason": tier_reason,
         "tier_decision": tier_decision,
     }
+    if suggested_label:
+        item["suggested_label"] = suggested_label
+    if tag_mismatch_delta is not None:
+        item["tag_mismatch_delta"] = round(tag_mismatch_delta, 4)
+    return item
 
 
 def _check_terminology_coding(
@@ -809,6 +863,11 @@ def _check_terminology_coding(
     Entities matching a coding ignore rule are suppressed before queuing.
     Near-miss entities (score >= _CODING_ALT_LOW) are tried against LLM
     alternatives before being added to the queue.
+
+    The resolve call is deliberately **unbiased** (no expected_tags) so the
+    returned candidates are ranked purely by lexical + vector similarity.
+    This allows semantic-tag cross-validation: if the top candidate's SNOMED
+    tag disagrees with the extracted entity label, the mismatch is flagged.
     """
     _AUTO_CODE_BLOCKED = {"absent", "refuted", "declined", "cancelled", "hypothetical", "possible", "historical", "family"}
     codeable = [
@@ -821,14 +880,7 @@ def _check_terminology_coding(
         return []
 
     terms = list({str(e.get("text", "")).strip() for _, e in codeable})
-    tag_map: dict[str, str] = {}
-    for _, ent in codeable:
-        txt = str(ent.get("text", "")).strip()
-        if txt not in tag_map:
-            snomed_tag = LABEL_TO_SNOMED_TAG.get(str(ent.get("label", "")))
-            if snomed_tag:
-                tag_map[txt] = snomed_tag
-    results_map = _resolve_terms_via_api(terms, expected_tags=tag_map or None)
+    results_map = _resolve_terms_via_api(terms)
     reviews: list[dict[str, Any]] = []
 
     for idx, ent in codeable:
@@ -845,29 +897,64 @@ def _check_terminology_coding(
         score = _safe_float(top.get("score"))
         coded = bool(concept_id)
 
-        if coded and score >= _CODING_SCORE_THRESHOLD:
+        suggested_label, tag_delta = _cross_check_semantic_tag(entity_label, candidates)
+
+        if suggested_label:
+            if (
+                tag_delta is not None
+                and tag_delta >= (_TAG_XVAL_AUTO_RECLASSIFY_SCORE - _TAG_XVAL_SAME_TAG_CEILING)
+                and score is not None
+                and score >= _TAG_XVAL_AUTO_RECLASSIFY_SCORE
+            ):
+                logger.info(
+                    "Tag cross-validation: auto-reclassifying %r from %s -> %s (delta=%.2f, score=%.2f)",
+                    entity_text, entity_label, suggested_label, tag_delta, score,
+                )
+                ent["label"] = suggested_label
+                entity_label = suggested_label
+                suggested_label = None
+                tag_delta = None
+            else:
+                logger.info(
+                    "Tag cross-validation: mismatch for %r — extracted=%s, suggested=%s (delta=%.2f)",
+                    entity_text, entity_label, suggested_label, tag_delta or 0.0,
+                )
+
+        if coded and score >= _CODING_SCORE_THRESHOLD and not suggested_label:
             continue
 
-        if _CODING_ALT_ENABLED and coded and score is not None and score >= _CODING_ALT_LOW:
+        if _CODING_ALT_ENABLED and coded and score is not None and score >= _CODING_ALT_LOW and not suggested_label:
             alt = _try_alt_coding(entity_text, entity_label)
             if alt:
                 continue
 
         assertion = str(ent.get("assertion") or "present")
         surface_form_status = str(ent.get("surface_form_status") or "")
-        tier = classify_tier(
-            assertion=assertion,
-            context_failed=bool(ent.get("context_failed")),
-            terminology_score=score or 0.0,
-            surface_form_status=surface_form_status,
-            coding_mode=_CODING_MODE,
-        )
+
+        if suggested_label:
+            tier_val = 2
+            tier_reason_val = f"semantic_tag_mismatch: extracted={entity_label}, suggested={suggested_label}"
+            tier_decision_val = "review"
+        else:
+            tier = classify_tier(
+                assertion=assertion,
+                context_failed=bool(ent.get("context_failed")),
+                terminology_score=score or 0.0,
+                surface_form_status=surface_form_status,
+                coding_mode=_CODING_MODE,
+            )
+            tier_val = tier.tier
+            tier_reason_val = tier.reason
+            tier_decision_val = tier.decision
+
         reviews.append(
             _build_review_item(
                 label_id, idx, entity_text, entity_label, coded, top, score, assertion,
-                decision_tier=tier.tier,
-                tier_reason=tier.reason,
-                tier_decision=tier.decision,
+                decision_tier=tier_val,
+                tier_reason=tier_reason_val,
+                tier_decision=tier_decision_val,
+                suggested_label=suggested_label,
+                tag_mismatch_delta=tag_delta,
             )
         )
 
@@ -1404,6 +1491,8 @@ def _write_result_to_graph(client: "PatientGraphClient", result: _VerifyResult) 
             decision_tier=cr.get("decision_tier"),
             tier_reason=cr.get("tier_reason"),
             tier_decision=cr.get("tier_decision"),
+            suggested_label=cr.get("suggested_label"),
+            tag_mismatch_delta=cr.get("tag_mismatch_delta"),
         )
 
     client.run(
