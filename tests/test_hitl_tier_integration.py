@@ -58,12 +58,13 @@ class TestCheckTerminologyCodingCallsTier:
     """Verify classify_tier is called and results appear in review items."""
 
     def _run(self, entities, score=0.55):
+        entity_label = entities[0].get("label", "disorder")
         results_map = {
             entities[0]["text"]: [{
                 "snomed_concept_id": "123",
                 "snomed_term": "Test",
                 "score": score,
-                "semantic_tag": "disorder",
+                "semantic_tag": entity_label,
             }]
         } if score else {}
 

@@ -35,6 +35,7 @@ This document traces software requirements (DC-SRS-001) to design elements, impl
 | FR-TP-010 | SSE progress events | 03-detail 2.1 | pipeline_service._emit() | -- | ST-TP-001 |
 | FR-TP-011 | Unified post-processing stack (9 layers) shared between training and runtime pipelines | DI-LEO-AI-050 | libs/pipeline/post_processing.py | test_post_processing_pipeline.py (13 tests), test_pipeline_parity.py (9 tests) | -- |
 | FR-TP-012 | Hardened post-processing: sentence-window scoping for lab-value guard and scope guard, narrowed scope guard regexes, removed "discussed" ConText rule, multi-pass ConText deduplication, refuted disorder verdict, narrowed situation normalisation, INJECTION_GUARD on _VERIFY_SYSTEM | DI-LEO-AI-044, DI-LEO-AI-048, DI-LEO-AI-005 | libs/pipeline/post_processing.py, libs/ner/lab_value_guard.py, libs/ner/scope_guard.py, libs/ner/context_engine.py, libs/ner/context_detector.py, libs/ner/observable_post_processor.py, libs/ner/post_processor_rules.py, libs/llm_client/disorder_verifier.py, libs/llm_client/escalation.py | test_lab_value_guard.py, test_scope_guard.py, test_context_detector.py, test_escalation.py, test_post_processing_pipeline.py, test_pipeline_parity.py | -- |
+| FR-TP-013 | Semantic tag cross-validation: unbiased terminology resolve, top-3 candidate tag comparison against entity label, auto-reclassification for high-confidence mismatches, HITL flagging with suggested_label and tag_mismatch_delta for medium-confidence mismatches | DI-LEO-AI-053 | label_verifier.py (_cross_check_semantic_tag, _check_terminology_coding), coding_review_queries.py, ReviewCard.tsx, ReviewSection.tsx, CodingReviewCasesModal.tsx | test_semantic_tag_cross_validation.py (23 tests), test_hitl_tier_integration.py (38 tests) | -- |
 
 ### 2.2 HITL Review
 
@@ -185,7 +186,7 @@ This document traces software requirements (DC-SRS-001) to design elements, impl
 
 | Category | Requirements | With Design | With Implementation | With Unit Test | With System Test |
 |----------|-------------|------------|-------------------|---------------|-----------------|
-| Training Pipeline | 12 | 12 | 12 | 7 | 4 |
+| Training Pipeline | 13 | 13 | 13 | 8 | 4 |
 | HITL Review | 5 | 5 | 5 | 0 | 4 |
 | Gold Sync | 3 | 3 | 3 | 3 | 2 |
 | Terminology Writeback | 4 | 4 | 4 | 3 | 3 |
@@ -202,9 +203,9 @@ This document traces software requirements (DC-SRS-001) to design elements, impl
 | Frontend UI | 5 | 5 | 5 | 0 | 5 |
 | Fix Analyzer | 1 | 1 | 1 | 0 | 1 |
 | Message Bus | 2 | 2 | 2 | 1 | 1 |
-| **Total** | **75** | **75** | **75** | **32** | **48** |
+| **Total** | **76** | **76** | **76** | **33** | **48** |
 
-All 73 requirements have design references, implementations, and at least one verification method (unit test, system test, or both).
+All 76 requirements have design references, implementations, and at least one verification method (unit test, system test, or both).
 
 ---
 
