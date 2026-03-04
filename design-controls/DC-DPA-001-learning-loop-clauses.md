@@ -352,25 +352,32 @@ before signing.
 
 ---
 
-## Implementation note -- pseudonymise `approved_by` before writeback
+## Implementation note -- remove `approved_by` from writeback
 
-The current codebase stores the raw reviewer identity from the
-`Approval` node in the `approved_by` field on the SurfaceForm
-`MAPS_TO` relationship. To comply with Clause 5, the writeback
-service (`services/terminology_api/app/services/writeback_service.py`)
-should be updated to hash the reviewer identity before writing it to
-the Knowledge Graph. For example:
+**ICO finding:** The ICO is clear that pseudonymised data IS still
+personal data under UK GDPR. A hashed reviewer ID in the Knowledge
+Graph would still be personal data from Mizaic's perspective (since
+Mizaic holds both databases and can reverse the pseudonym).
 
-```python
-import hashlib
+**Corrected approach:** Do not store any reviewer identifier in the
+Knowledge Graph at all. The `approved_by` field on the SurfaceForm
+`MAPS_TO` relationship should be set to the source tag
+(e.g. "hitl_approved") rather than the reviewer's identity.
 
-def _pseudonymise_reviewer(reviewer: str) -> str:
-    return "rev_" + hashlib.sha256(reviewer.encode()).hexdigest()[:12]
-```
+The full DPA (DC-DPA-002) adopts this corrected approach in clause
+5.3(d) and clause 6.2. The Patient Graph retains the original
+reviewer identity for the Controller's audit trail.
 
-The Patient Graph retains the original reviewer identity for the
-Controller's audit trail. Only the pseudonymised form crosses into
-the Knowledge Graph.
+The writeback service
+(`services/terminology_api/app/services/writeback_service.py`) must
+be updated to stop passing the reviewer identity to the Knowledge
+Graph write. Change line 77 from:
+
+    "approved_by": reviewer,
+
+to:
+
+    "approved_by": "hitl_approved",
 
 ---
 
