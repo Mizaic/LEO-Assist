@@ -1,114 +1,92 @@
-# -- DI-LEO-AI-050 -- LLM-Assisted Surface Form Alias Suggestion with Human Oversight
+# -- DI-LEO-AI-050 -- Post-Processing Pipeline Parity
 # IEC 62304 / ISO 13485 Design Input
 # Schema: design-controls/templates/design_inputs_schema.yaml
 
 - id: "DI-LEO-AI-050"
   type: "Safety"
-  derived_from: ["DI-LEO-AI-049", "DI-LEO-AI-033"]
+  derived_from: ["UN-LEO-AI-001"]
   requirement: >
-    The terminology API SHALL provide a concept alias suggestion endpoint
-    (POST /terminology/concepts/{concept_id}/suggest-aliases) that:
-    (a) Retrieves the SNOMED concept FSN, semantic tag, and list of existing
-        surface form aliases from the Knowledge Graph.
-    (b) Calls a small LLM (tier="small", currently Claude Haiku via AWS
-        Bedrock) with a system prompt constraining output to UK primary care
-        clinical shorthand, abbreviations, and spelling variants.
-    (c) Returns up to 10 suggested alias strings as a JSON array.
-    (d) On LLM failure or timeout, returns an empty suggestions list (graceful
-        degradation) rather than an error, so the UI remains usable.
-    The endpoint SHALL NOT transmit patient identifiers, encounter text,
-    or any personal data to the LLM — only SNOMED concept metadata.
-    The UI SHALL present suggestions as visually distinct chips (dashed
-    border, AI icon) that require an explicit admin accept action before the
-    alias is written to the graph.  Dismissed suggestions are discarded
-    client-side without any write to the database.
-
+    The post-processing stack applied to training data (gold label
+    verification) SHALL be identical to the post-processing stack applied
+    at inference time (runtime coding pipeline).  Both pipelines SHALL
+    execute the same 9 layers in the same order with the same parameters,
+    from a single shared implementation (libs/pipeline/post_processing.py).
+    The only permitted deviation is the disorder gate (Layer 9), which is
+    enabled by default during training and disabled by default at runtime.
+    This deviation SHALL be explicitly configurable and documented.
   rationale: >
-    Manually curating surface form aliases for hundreds of SNOMED concepts is
-    time-consuming and requires specialist terminology knowledge.  An LLM
-    that has been trained on UK clinical text can suggest NHS abbreviations,
-    acronyms, and spelling variants that administrators may not know.
-    The human acceptance gate is the critical safety control: no alias is
-    persisted unless a human clinician or administrator explicitly approves
-    it.  This mirrors the HITL pattern used throughout the coding pipeline
-    (DI-LEO-AI-040) and limits harm to the case where both the LLM and the
-    administrator err simultaneously.  Because only concept metadata is sent
-    to the LLM, this feature does not trigger DPIA-001 sub-processor
-    obligations for patient data.
+    Train/serve skew — where training data is processed differently from
+    production data — is a well-known source of ML system failures.  If
+    the training pipeline applies different post-processing layers, in a
+    different order, or with different parameters than the runtime pipeline,
+    the gold training data will reflect different semantics than production
+    outputs.  This undermines evaluation metrics, causes silent accuracy
+    degradation, and creates patient safety risks where entities are
+    classified differently during coding than during training.
 
   machine_spec:
     acceptance_criteria:
-      - type: "functional"
-        spec: "POST /terminology/concepts/{concept_id}/suggest-aliases returns {suggestions: [...], concept_id: ...} for a valid concept"
-      - type: "functional"
-        spec: "Returned suggestions are strings not already present in existing_aliases (deduplication by lowercased value)"
-      - type: "functional"
-        spec: "On LLM error or timeout, endpoint returns {suggestions: [], concept_id: ...} with HTTP 200 (graceful degradation)"
-      - type: "functional"
-        spec: "404 returned when concept_id not found or inactive"
       - type: "safety"
-        spec: "Cypher query (GET_CONCEPT_FOR_SUGGESTION) retrieves only c.fsn, c.semantic_tag, and collect(sf.form) — no patient data"
+        spec: "A single run_post_processing() function in libs/pipeline/post_processing.py implements all 9 layers"
       - type: "safety"
-        spec: "LLM prompt does not include patient names, NHS numbers, encounter text, or any personal data"
-      - type: "ui"
-        spec: "Suggested alias chips are visually distinct from confirmed aliases (dashed border, AutoAwesomeIcon)"
-      - type: "ui"
-        spec: "Accepting a suggestion calls upsertSurfaceFormMapping with source='llm_suggestion'; no write occurs on dismiss"
+        spec: "The training pipeline (label_verifier.py) calls run_post_processing()"
+      - type: "safety"
+        spec: "The runtime pipeline (pipeline_service.py) calls run_post_processing()"
+      - type: "safety"
+        spec: "Both pipelines execute layers in identical order: (1) Post-Processor Rules, (2) Lab-Value Guard, (3) Scope Guard, (4) Observable Normalisation, (5) Entity-Type Normalisation, (6) Value-Unit Linking, (7) ConText Assertion Detection, (8) Situation Lookup Normalisation, (9) Disorder Gate"
+      - type: "safety"
+        spec: "The disorder gate toggle (enable_disorder_gate) is the only configurable deviation between training and runtime"
+      - type: "test"
+        spec: "Pipeline parity tests verify that the same input entities produce identical output through both training and runtime paths (excluding disorder gate)"
 
     constraints:
-      - type: "privacy"
-        spec: >
-          Only SNOMED concept metadata (FSN, semantic tag, existing alias
-          forms) is transmitted to the LLM sub-processor.  No PHI or
-          quasi-identifiers may be included in the LLM request.  This is a
-          categorical constraint — any change to include patient data requires
-          a DPIA-001 review and legal sign-off.
       - type: "safety"
         spec: >
-          Suggestions MUST require explicit human acceptance before being
-          persisted.  Auto-acceptance or bulk-accept without per-alias review
-          is prohibited.
-      - type: "reliability"
+          No post-processing layer may exist in only one pipeline.  Any new
+          layer must be added to the shared module and applied to both
+          training and runtime data.
+      - type: "architecture"
         spec: >
-          LLM failures MUST NOT prevent the surface forms management page from
-          loading or other surface form operations from completing.  The
-          suggest button is an optional enhancement, not a critical path.
+          The shared module operates on plain entity dicts.  The runtime
+          pipeline uses ExtractionItem adapter functions (to_entity_dicts /
+          from_entity_dicts) for conversion.
 
-    dependencies: ["DI-LEO-AI-049"]
+    dependencies: ["DI-LEO-AI-005", "DI-LEO-AI-044", "DI-LEO-AI-048"]
 
     downstream_impacts:
-      - "Surface form dictionary completeness"
-      - "NER anchor detection recall"
-      - "HITL review queue volume (via surface form coverage)"
-      - "R-LEO-AI-034 (false-positive risk from poor suggestions)"
+      - "Training data quality and evaluation metric validity"
+      - "Runtime coding accuracy"
+      - "Model performance consistency across training and inference"
+      - "Clinical safety (preventing silent behaviour differences)"
 
     technical_details:
-      language: "Python / TypeScript"
-      framework: "FastAPI (backend), Next.js + MUI (frontend)"
-      libraries: ["libs/llm_client/factory.py", "httpx"]
+      language: "Python"
+      framework: "Shared libs"
       file_structure:
-        - "services/terminology_api/app/routers/concepts.py"
-        - "services/terminology_api/app/queries/terminology.py"
-        - "services/ui/src/app/settings/surface-forms/page.tsx"
-        - "services/ui/src/lib/api/legacy.ts"
-      estimated_loc: 80
+        - "libs/pipeline/post_processing.py"
+        - "services/api/app/services/label_verifier.py"
+        - "services/coding_worker/app/pipeline/pipeline_service.py"
+        - "tests/test_post_processing_pipeline.py"
+        - "tests/test_pipeline_parity.py"
+        - "tests/test_label_verifier_normalization_rules.py"
+      estimated_loc: 350
 
   verification:
     method: "Test"
     phase: "OQ"
     acceptance: >
-      Endpoint returns suggestions for known concept; returns empty list on
-      simulated LLM failure; returns 404 for unknown concept; LLM prompt
-      verified to contain no PHI fields; UI chips require individual accept.
-    test_protocol: "VT-LEO-AI-042"
+      All pipeline parity tests pass (test_pipeline_parity.py), confirming
+      that training and runtime pipelines produce identical post-processing
+      output for the same input entities.  All integration tests pass
+      (test_post_processing_pipeline.py), verifying layer ordering, I/O
+      contracts, and the disorder gate toggle.
+    test_protocol: "VT-LEO-AI-050"
 
   safety_class: "B"
-  risks: ["R-LEO-AI-034"]
+  risks: ["R-LEO-AI-029", "R-LEO-AI-033"]
   tags:
-    - "llm"
-    - "alias-suggestion"
-    - "surface-forms"
-    - "human-oversight"
-    - "terminology-curation"
-    - "privacy"
-    - "graceful-degradation"
+    - "clinical-safety"
+    - "train-serve-parity"
+    - "post-processing-pipeline"
+    - "architecture"
+    - "defence-in-depth"

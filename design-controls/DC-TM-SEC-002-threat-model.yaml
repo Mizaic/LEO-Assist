@@ -725,7 +725,7 @@ component_3_patient_data:
 # ---------------------------------------------------------------------------
 component_4_coding_pipeline:
   name: "Coding Pipeline"
-  purpose: "Extract clinical entities from encounter text via NER, resolve to SNOMED, apply tier classification, persist DOCUMENTS links and CodingDecision audit trail"
+  purpose: "Extract clinical entities from encounter text via NER, apply the unified post-processing stack (libs/pipeline/post_processing.py — shared with Component 6), resolve to SNOMED, apply tier classification, persist DOCUMENTS links and CodingDecision audit trail"
   iec_62304_contribution: "B"
   trust_boundaries:
     - "Service Bus → Coding Worker"
@@ -839,7 +839,7 @@ component_5_terminology:
 # ---------------------------------------------------------------------------
 component_6_training:
   name: "Training & Label Verification"
-  purpose: "NER training data management, dual-model label verification, model training pipeline, coding review queue"
+  purpose: "NER training data management, dual-model label verification using the unified post-processing stack (libs/pipeline/post_processing.py — shared with Component 4 to prevent train/serve skew), model training pipeline, coding review queue"
   iec_62304_contribution: "B"
   trust_boundaries:
     - "Core API → Neo4j (training labels)"
@@ -1085,7 +1085,7 @@ component_12_ner_deidentification:
 # ---------------------------------------------------------------------------
 component_13_consensus:
   name: "Dual-Model Consensus Engine"
-  purpose: "Run clinical verification queries against two LLMs (Haiku + GPT-5 mini) in parallel with Sonnet arbitration on disagreement"
+  purpose: "Run clinical verification queries against two LLMs (Haiku + GPT-5 mini) in parallel with Sonnet arbitration on disagreement. INJECTION_GUARD now prepended to all system prompts including _VERIFY_SYSTEM. Disorder verifier supports REFUTED verdict for overridden impressions. Invalid selected_index falls back to ambiguous instead of picking candidate 0"
   iec_62304_contribution: "B"
   trust_boundaries:
     - "Application → AWS Bedrock (Haiku, Sonnet)"
@@ -1199,12 +1199,13 @@ component_13_consensus:
 # ---------------------------------------------------------------------------
 component_14_context_tier:
   name: "Context Engine & Tier Classifier"
-  purpose: "MedSpaCy ConText assertion detection (negation, historical, hypothetical) and tier-based routing (auto-code vs HITL vs review)"
+  purpose: "MedSpaCy ConText assertion detection (negation, historical, hypothetical) and tier-based routing (auto-code vs HITL vs review). ConText is Layer 7 in the unified post-processing stack (libs/pipeline/post_processing.py). The 'discussed' ConText rule has been removed (discussion implies active management, not historical). The 'dna' rule is scoped to standalone usage only. Overlapping entities are processed in multiple ConText passes"
   iec_62304_contribution: "B"
   trust_boundaries: ["None (in-process)"]
   data_assets: "Clinical text, entity assertions, tier classifications"
   network_exposure: "Isolated"
   source_files:
+    - "libs/pipeline/post_processing.py — unified post-processing stack (orchestrates all 9 layers)"
     - "libs/ner/context_engine.py (~234 lines)"
     - "libs/ner/resources/uk_primary_care_context_rules.json (~39 lines)"
     - "libs/coding_engine/tier_classifier.py (~115 lines)"
@@ -1280,12 +1281,14 @@ component_14_context_tier:
 # ---------------------------------------------------------------------------
 component_15_rules_crud:
   name: "Context Rules & Post-Processor Rules"
-  purpose: "User-configurable ConText rules for assertion detection and regex-based entity suppression/relabeling rules"
+  purpose: "User-configurable ConText rules for assertion detection and regex-based entity suppression/relabeling rules. Post-processor rules are Layer 1 in the unified post-processing stack (libs/pipeline/post_processing.py)"
   iec_62304_contribution: "B"
   trust_boundaries: ["UI → Core API → Neo4j"]
   data_assets: "Rule definitions (literals, regex patterns, categories)"
   network_exposure: "Internal (via Core API)"
   source_files:
+    - "libs/pipeline/post_processing.py — unified post-processing stack (applies rules as Layer 1)"
+    - "libs/ner/post_processor_rules.py — rule engine"
     - "services/api/app/routers/training.py — context-rules and post-processor-rules endpoints"
     - "services/ui/src/app/settings/context-rules/page.tsx (~301 lines)"
     - "services/ui/src/components/operations/CodingReviewCasesModal.tsx (~527 lines)"

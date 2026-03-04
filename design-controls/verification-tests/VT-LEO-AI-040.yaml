@@ -18,6 +18,9 @@
       by detecting safety-netting sentences, treatment recommendation language,
       and hedged diagnostic language, and reclassifying entity assertions
       accordingly. Also verifies that normal clinical text is unaffected.
+      The scope guard is now Layer 3 in the unified post-processing stack
+      (libs/pipeline/post_processing.py), applied identically to both
+      training and runtime pipelines (DI-LEO-AI-050).
     test_level: "unit"
     test_type: "functional"
     safety_class: "B"
@@ -25,6 +28,8 @@
     automation_framework: "pytest"
     test_file_paths:
       - "tests/test_scope_guard.py"
+      - "tests/test_post_processing_pipeline.py"
+      - "tests/test_pipeline_parity.py"
 
   test_environment:
     environment_type: "development"
@@ -218,3 +223,13 @@
       cases_failed: 0
       duration_seconds: 1
       notes: "All 44 test cases pass across 4 test classes (safety-netting, recommendation, hedged diagnosis, reclassification)"
+    - execution_id: "VT-040-EXEC-002"
+      date: "2026-03-04"
+      executor: "automated_pytest"
+      environment: "development"
+      result: "pass"
+      cases_executed: 44
+      cases_passed: 44
+      cases_failed: 0
+      duration_seconds: 1
+      notes: "Post pipeline hardening: narrowed _RECOMMENDATION_RE (removed 'will start' / 'to start'), expanded _CONFIRMED_DIAGNOSIS_RE, sentence-window scoping via _extract_sentence_window. Tests updated to reflect intended behaviour"

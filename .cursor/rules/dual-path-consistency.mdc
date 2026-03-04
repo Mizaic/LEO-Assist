@@ -1,31 +1,45 @@
 ---
-description: Dual-path consistency — NER runtime pipeline AND /operations Ask LEO must stay in sync
+description: Dual-path consistency -- unified post-processing pipeline AND /operations Ask LEO must stay in sync
 alwaysApply: true
 ---
 
-# Dual-path architecture: runtime NER + operations Ask LEO
+# Dual-path architecture: unified pipeline + operations Ask LEO
 
-This codebase has TWO parallel code paths that process clinical entities.
-Any change to assertions, semantic tags, safety guards, or LLM prompt rules
-MUST be applied to BOTH paths or the system will behave inconsistently.
+Post-processing layers (lab-value guard, scope guard, observable normalisation,
+entity-type normalisation, value-unit linking, ConText, situation lookup, and
+the disorder gate) are shared via `libs/pipeline/post_processing.py`
+(`run_post_processing()`).  Both the training and runtime pipelines call this
+single function.  Any change to a post-processing layer is automatically
+applied to BOTH paths.
 
-## Path 1 — NER runtime pipeline (coding worker)
+Changes to assertions, semantic tags, LLM prompt rules, or the escalation
+flow still require updating BOTH the unified pipeline AND the Ask LEO /
+escalation path, since escalation runs independently of post-processing.
 
-Processes encounters at ingestion time.
+## Unified post-processing pipeline (shared)
 
-| Layer | File |
-|-------|------|
-| LLM extraction prompt | `libs/prompts/extraction_v1.py` |
-| Assertion validation | `services/coding_worker/app/pipeline/llm_extractor.py` (`_VALID_ASSERTIONS`) |
-| Schema mapping | `libs/ner/schema_mapper.py` (assertion allowlist in `_map_entity`) |
-| Extractor contract | `libs/ner/extractor_contract.py` |
-| Lab-value guard | `libs/ner/lab_value_guard.py` |
-| Scope guard | `libs/ner/scope_guard.py` |
-| ConText engine | `libs/ner/context_engine.py` |
-| Tier classifier | `libs/coding_engine/tier_classifier.py` (`_AUTO_CODE_BLOCKED`) |
-| Pipeline orchestrator | `services/coding_worker/app/pipeline/pipeline_service.py` |
+All 9 layers live in `libs/pipeline/post_processing.py`.
 
-## Path 2 — /operations Ask LEO (review UI)
+| Layer | Module |
+|-------|--------|
+| 1 -- Post-Processor Rules | `libs/ner/post_processor_rules.py` |
+| 2 -- Lab-Value Guard | `libs/ner/lab_value_guard.py` |
+| 3 -- Scope Guard | `libs/ner/scope_guard.py` |
+| 4 -- Observable Normalisation | `libs/ner/observable_post_processor.py` |
+| 5 -- Entity-Type Normalisation | `libs/pipeline/post_processing.py` (`normalise_entity_types`) |
+| 6 -- Value-Unit Linking | `libs/pipeline/post_processing.py` (`link_observable_value_units`) |
+| 7 -- ConText Assertion Detection | `libs/ner/context_engine.py` |
+| 8 -- Situation Lookup Normalisation | `libs/ner/context_detector.py` |
+| 9 -- Disorder Gate (optional) | `libs/llm_client/disorder_verifier.py` |
+
+## Consumers of `run_post_processing()`
+
+| Consumer | File |
+|----------|------|
+| Runtime pipeline | `services/coding_worker/app/pipeline/pipeline_service.py` (`_run_unified_post_processing`) |
+| Training / label verifier | `services/api/app/services/label_verifier.py` (`_process_label`) |
+
+## Path 2 -- /operations Ask LEO (review UI)
 
 Processes CodingReview nodes when a reviewer clicks "Ask LEO".
 
@@ -51,15 +65,16 @@ Processes CodingReview nodes when a reviewer clicks "Ask LEO".
 
 ## Checklist for ANY assertion / safety-guard / prompt change
 
-1. Update the runtime extraction prompt (`libs/prompts/extraction_v1.py`)
-2. Update the escalation prompts (`libs/llm_client/escalation.py`)
-3. Update the ask-leo-rank inline prompt (`training.py`)
-4. Update ALL `_VALID_ASSERTIONS` sets (at least 3 locations)
-5. Update `_AUTO_CODE_BLOCKED` sets (at least 2 locations)
-6. Update `_ASSERTION_QUEUE_SET` if the assertion needs human review
-7. Update `_assertion_context()` in `documents_queries.py`
-8. Update `_NON_PRESENT` if the assertion should block patient-level shortcuts
-9. Update assertion review queue Cypher filters if needed
-10. Update UI: `ASSERTION_OPTIONS`, `ASSERTION_CHIP`, `AssertionChip.tsx`
-11. Update ConText engine if the assertion can be detected from text patterns
-12. Add tests covering both paths
+1. If it is a post-processing layer change, update the shared module in `libs/pipeline/post_processing.py` (both paths inherit automatically)
+2. Update the runtime extraction prompt (`libs/prompts/extraction_v1.py`)
+3. Update the escalation prompts (`libs/llm_client/escalation.py`)
+4. Update the ask-leo-rank inline prompt (`training.py`)
+5. Update ALL `_VALID_ASSERTIONS` sets (at least 3 locations)
+6. Update `_AUTO_CODE_BLOCKED` sets (at least 2 locations)
+7. Update `_ASSERTION_QUEUE_SET` if the assertion needs human review
+8. Update `_assertion_context()` in `documents_queries.py`
+9. Update `_NON_PRESENT` if the assertion should block patient-level shortcuts
+10. Update assertion review queue Cypher filters if needed
+11. Update UI: `ASSERTION_OPTIONS`, `ASSERTION_CHIP`, `AssertionChip.tsx`
+12. Update ConText engine if the assertion can be detected from text patterns
+13. Add tests covering both paths (parity tests in `tests/test_pipeline_parity.py`)

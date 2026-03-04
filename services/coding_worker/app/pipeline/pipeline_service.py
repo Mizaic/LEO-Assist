@@ -34,13 +34,9 @@ from libs.cypher.coding_review_queries import UPSERT_CODING_SUGGESTION
 from libs.cypher.post_processor_rule_queries import GET_ACTIVE_POST_PROCESSOR_RULES
 from libs.cypher.documents_queries import write_documents_from_sentences_payload
 from libs.llm_client.escalation import escalate_coding
-from libs.ner.context_detector import normalize_situation_lookup
-from libs.ner.context_engine import detect_assertions_for_encounter
-from libs.ner.lab_value_guard import should_suppress_disorder
-from libs.ner.observable_post_processor import normalize_observable_entities
-from libs.ner.scope_guard import reclassify_assertion
-from libs.ner.post_processor_rules import apply_rules_to_entities, parse_rules, PostProcessorRule
+from libs.ner.post_processor_rules import parse_rules, PostProcessorRule
 from libs.ner.schema_mapper import LABEL_TO_SNOMED_TAG
+from libs.pipeline.post_processing import run_post_processing
 from services.coding_worker.app.pipeline.extractor_contract import (
     CONTRACT_VERSION,
     ExtractionItem,
@@ -75,6 +71,65 @@ _CODEABLE_LABELS = frozenset({
     "morphologic_abnormality", "regime_therapy", "assessment_scale",
     "tumor_staging", "organism", "occupation", "physical_object",
 })
+
+
+def _items_to_dicts(items: list[ExtractionItem]) -> list[dict[str, Any]]:
+    """Convert ExtractionItem objects to plain entity dicts for the shared pipeline.
+
+    Only preserves ``normalized`` when the provider set a custom lookup term
+    (i.e. different from ``text``).  Otherwise the post-processed ``text``
+    should be used for terminology resolution.
+    """
+    return [
+        {
+            "text": item.text,
+            "label": item.semantic_tag,
+            "start": item.span_start,
+            "end": item.span_end,
+            "assertion": item.assertion or "present",
+            "confidence": item.confidence,
+            "normalized": (
+                item.normalized
+                if item.normalized and item.normalized != item.text
+                else None
+            ),
+            "value": item.numeric_value or None,
+            "unit": item.unit or None,
+            "reference_range": item.reference_range or None,
+            "__sentence_id": item.sentence_id,
+            "__source": item.source,
+            "__model_name": item.model_name,
+            "__model_version": item.model_version,
+            "__contract_version": item.contract_version,
+            "__source_meta": item.source_meta,
+            "__relations": item.relations,
+        }
+        for item in items
+    ]
+
+
+def _dict_to_item(ent: dict[str, Any]) -> ExtractionItem:
+    """Convert a processed entity dict back to an ExtractionItem."""
+    normalized = str(ent.get("normalized") or ent.get("normalized_lookup") or ent.get("text", ""))
+    return ExtractionItem(
+        sentence_id=str(ent.get("__sentence_id", "")),
+        text=str(ent.get("text", "")),
+        span_start=int(ent.get("start", 0) or 0),
+        span_end=int(ent.get("end", 0) or 0),
+        semantic_tag=str(ent.get("label", "")),
+        assertion=str(ent.get("assertion") or "present"),
+        confidence=float(ent.get("confidence", 0.0) or 0.0),
+        normalized=normalized,
+        source_meta=ent.get("__source_meta") or {},
+        relations=ent.get("__relations") or [],
+        numeric_value=str(ent.get("value", "") or "").strip(),
+        unit=str(ent.get("unit", "") or "").strip(),
+        reference_range=str(ent.get("reference_range", "") or "").strip(),
+        source=str(ent.get("__source", "unknown")),
+        model_name=str(ent.get("__model_name", "")),
+        model_version=str(ent.get("__model_version", "")),
+        contract_version=str(ent.get("__contract_version", CONTRACT_VERSION)),
+    )
 
 
 def _build_expected_tags(
@@ -300,11 +355,9 @@ class CodingPipeline:
             })
             return
 
-        extracted = self._suppress_inferred_diagnoses(sentences, extracted)
-        extracted = self._apply_scope_guard(sentences, extracted)
-        extracted = self._apply_post_processor_rules(deidentified, extracted)
-        extracted = self._apply_observable_post_processing(deidentified, extracted)
-        extracted, context_detection_failed = self._apply_context_detection(deidentified, extracted)
+        extracted, context_detection_failed = self._run_unified_post_processing(
+            deidentified, sentences, extracted,
+        )
 
         all_items = [item for items in extracted.values() for item in items]
         extract_latency_ms = round((time.monotonic() - t_extract) * 1000)
@@ -404,97 +457,53 @@ class CodingPipeline:
                 by_sentence.setdefault(item.sentence_id, []).append(item)
         return by_sentence
 
-    def _suppress_inferred_diagnoses(
+    # ------------------------------------------------------------------
+    # Unified post-processing (delegates to shared canonical stack)
+    # ------------------------------------------------------------------
+
+    def _run_unified_post_processing(
         self,
+        encounter_text: str,
         sentences: list[SentenceChunk],
         extracted: dict[str, list[ExtractionItem]],
-    ) -> dict[str, list[ExtractionItem]]:
-        """Remove disorder entities whose evidence is a lab result, not a diagnosis.
+    ) -> tuple[dict[str, list[ExtractionItem]], bool]:
+        """Run the canonical post-processing stack via the shared module.
 
-        Clinical safety guard: lab values (eGFR, creatinine, HbA1c, etc.)
-        must be coded as observable entities only.  If the LLM infers a
-        disorder from a numeric measurement (e.g. CKD stage 1 from eGFR 69),
-        this guard suppresses it before terminology resolution.
+        Converts ExtractionItem objects to entity dicts, calls
+        ``run_post_processing()``, and maps results back to ExtractionItem
+        objects keyed by sentence_id.
+
+        Returns:
+            Tuple of (updated extracted dict, context_detection_failed flag).
         """
-        sentence_map = {s.sentence_id: s.text for s in sentences}
-        output: dict[str, list[ExtractionItem]] = {}
-        suppressed = 0
-        for sentence_id, items in extracted.items():
-            sentence_text = sentence_map.get(sentence_id, "")
-            kept: list[ExtractionItem] = []
-            for item in items:
-                if should_suppress_disorder(
-                    entity_text=item.text,
-                    entity_semantic_tag=item.semantic_tag,
-                    entity_normalized=item.normalized,
-                    sentence_text=sentence_text,
-                    entity_numeric_value=item.numeric_value,
-                    entity_unit=item.unit,
-                ):
-                    suppressed += 1
-                else:
-                    kept.append(item)
-            output[sentence_id] = kept
-        if suppressed:
-            logger.info(
-                "Lab-value guard: suppressed %d disorder(s) inferred from lab results",
-                suppressed,
-            )
-        return output
+        rules = self._load_post_processor_rules()
 
-    def _apply_scope_guard(
-        self,
-        sentences: list[SentenceChunk],
-        extracted: dict[str, list[ExtractionItem]],
-    ) -> dict[str, list[ExtractionItem]]:
-        """Enforce intended-use boundaries on extracted entities.
+        all_items: list[ExtractionItem] = []
+        for items in extracted.values():
+            all_items.extend(items)
 
-        Reclassifies assertions for entities in safety-netting text,
-        treatment recommendation context, or hedged diagnostic language.
-        Runs before ConText so that MedSpaCy can further tighten assertions.
-        """
-        sentence_map = {s.sentence_id: s.text for s in sentences}
-        output: dict[str, list[ExtractionItem]] = {}
-        reclassified = 0
-        for sentence_id, items in extracted.items():
-            sentence_text = sentence_map.get(sentence_id, "")
-            updated: list[ExtractionItem] = []
-            for item in items:
-                new_assertion = reclassify_assertion(
-                    entity_semantic_tag=item.semantic_tag,
-                    entity_assertion=item.assertion,
-                    sentence_text=sentence_text,
-                )
-                if new_assertion is not None:
-                    item = ExtractionItem(
-                        sentence_id=item.sentence_id,
-                        text=item.text,
-                        span_start=item.span_start,
-                        span_end=item.span_end,
-                        semantic_tag=item.semantic_tag,
-                        assertion=new_assertion,
-                        confidence=item.confidence,
-                        normalized=item.normalized,
-                        source_meta=item.source_meta,
-                        relations=item.relations,
-                        numeric_value=item.numeric_value,
-                        unit=item.unit,
-                        reference_range=item.reference_range,
-                        source=item.source,
-                        model_name=item.model_name,
-                        model_version=item.model_version,
-                        contract_version=item.contract_version,
-                    )
-                    reclassified += 1
-                updated.append(item)
-            output[sentence_id] = updated
-        if reclassified:
-            logger.info(
-                "Scope guard: reclassified %d entit(ies) "
-                "(safety-netting / recommendation / hedged diagnosis)",
-                reclassified,
-            )
-        return output
+        entity_dicts = _items_to_dicts(all_items)
+
+        processed = run_post_processing(
+            encounter_text,
+            entity_dicts,
+            rules=rules or None,
+            enable_disorder_gate=False,
+            coding_mode=self.coding_mode,
+        )
+
+        context_detection_failed = any(
+            e.get("context_detection_failed") for e in processed
+        )
+
+        output: dict[str, list[ExtractionItem]] = {
+            s.sentence_id: [] for s in sentences
+        }
+        for ent in processed:
+            item = _dict_to_item(ent)
+            output.setdefault(item.sentence_id, []).append(item)
+
+        return output, context_detection_failed
 
     def _load_post_processor_rules(self) -> list[PostProcessorRule]:
         if self._post_rules is not None:
@@ -504,178 +513,6 @@ class CodingPipeline:
         if self._post_rules:
             logger.info("Loaded %d active post-processor rules", len(self._post_rules))
         return self._post_rules
-
-    def _apply_post_processor_rules(
-        self,
-        encounter_text: str,
-        extracted: dict[str, list[ExtractionItem]],
-    ) -> dict[str, list[ExtractionItem]]:
-        rules = self._load_post_processor_rules()
-        if not rules:
-            return extracted
-
-        output: dict[str, list[ExtractionItem]] = {}
-        for sentence_id, items in extracted.items():
-            transformed: list[ExtractionItem] = []
-            for item in items:
-                entity = {
-                    "text": item.text,
-                    "label": item.semantic_tag,
-                    "start": item.span_start,
-                    "end": item.span_end,
-                }
-                updated = apply_rules_to_entities(encounter_text, [entity], rules)
-                if not updated:
-                    continue
-                ent = updated[0]
-                transformed.append(
-                    ExtractionItem(
-                        sentence_id=item.sentence_id,
-                        text=str(ent.get("text", item.text)),
-                        span_start=int(ent.get("start", item.span_start)),
-                        span_end=int(ent.get("end", item.span_end)),
-                        semantic_tag=str(ent.get("label", item.semantic_tag)),
-                        assertion=item.assertion,
-                        confidence=item.confidence,
-                        normalized=str(ent.get("text", item.normalized)),
-                        source_meta=item.source_meta,
-                        relations=item.relations,
-                        source=item.source,
-                        model_name=item.model_name,
-                        model_version=item.model_version,
-                        contract_version=item.contract_version,
-                    )
-                )
-            output[sentence_id] = transformed
-        return output
-
-    def _apply_observable_post_processing(
-        self,
-        encounter_text: str,
-        extracted: dict[str, list[ExtractionItem]],
-    ) -> dict[str, list[ExtractionItem]]:
-        """Normalize observable spans and attach value/unit/reference_range."""
-        output: dict[str, list[ExtractionItem]] = {}
-        for sentence_id, items in extracted.items():
-            if not items:
-                output[sentence_id] = items
-                continue
-
-            as_entities = [
-                {
-                    "__idx": i,
-                    "text": item.text,
-                    "label": item.semantic_tag,
-                    "start": item.span_start,
-                    "end": item.span_end,
-                    "value": item.numeric_value or None,
-                    "unit": item.unit or None,
-                    "reference_range": item.reference_range or None,
-                }
-                for i, item in enumerate(items)
-            ]
-            normalized_entities = normalize_observable_entities(
-                encounter_text,
-                as_entities,
-                add_qualifier_value=False,
-            )
-            by_idx = {
-                int(ent.get("__idx")): ent
-                for ent in normalized_entities
-                if isinstance(ent.get("__idx"), int)
-            }
-
-            transformed: list[ExtractionItem] = []
-            for i, item in enumerate(items):
-                ent = by_idx.get(i, as_entities[i])
-                normalized_lookup = (
-                    item.normalized
-                    if str(item.normalized or "").strip() and item.normalized != item.text
-                    else str(ent.get("text", item.normalized))
-                )
-                transformed.append(
-                    ExtractionItem(
-                        sentence_id=item.sentence_id,
-                        text=str(ent.get("text", item.text)),
-                        span_start=int(ent.get("start", item.span_start)),
-                        span_end=int(ent.get("end", item.span_end)),
-                        semantic_tag=str(ent.get("label", item.semantic_tag)),
-                        assertion=item.assertion,
-                        confidence=item.confidence,
-                        normalized=normalized_lookup,
-                        source_meta=item.source_meta,
-                        relations=item.relations,
-                        numeric_value=str(ent.get("value", item.numeric_value) or "").strip(),
-                        unit=str(ent.get("unit", item.unit) or "").strip(),
-                        reference_range=str(ent.get("reference_range", item.reference_range) or "").strip(),
-                        source=item.source,
-                        model_name=item.model_name,
-                        model_version=item.model_version,
-                        contract_version=item.contract_version,
-                    )
-                )
-            output[sentence_id] = transformed
-        return output
-
-    def _apply_context_detection(
-        self,
-        encounter_text: str,
-        extracted: dict[str, list[ExtractionItem]],
-    ) -> tuple[dict[str, list[ExtractionItem]], bool]:
-        """Detect context assertions via MedSpaCy ConText and set assertion.
-
-        Also normalizes lookup terms for situation entities whose freeform
-        text won't resolve via the terminology API directly.
-
-        Returns:
-            Tuple of (updated extracted dict, context_detection_failed flag).
-        """
-        all_items = [item for items in extracted.values() for item in items]
-        assertions, failed = detect_assertions_for_encounter(encounter_text, all_items)
-        assertion_map = {
-            id(item): assertions[i] for i, item in enumerate(all_items)
-        }
-
-        output: dict[str, list[ExtractionItem]] = {}
-        for sentence_id, items in extracted.items():
-            output[sentence_id] = [
-                self._update_item_context(item, assertion_map[id(item)])
-                for item in items
-            ]
-        return output, failed
-
-    def _update_item_context(
-        self, item: ExtractionItem, new_assertion: str
-    ) -> ExtractionItem:
-        """Return item updated with assertion and situation normalisation."""
-        new_normalized = item.normalized
-        if item.semantic_tag == "situation":
-            canonical = normalize_situation_lookup(item.text)
-            if canonical:
-                new_normalized = canonical
-
-        if new_assertion == (item.assertion or "present") and new_normalized == item.normalized:
-            return item
-
-        return ExtractionItem(
-            sentence_id=item.sentence_id,
-            text=item.text,
-            span_start=item.span_start,
-            span_end=item.span_end,
-            semantic_tag=item.semantic_tag,
-            assertion=new_assertion,
-            confidence=item.confidence,
-            normalized=new_normalized,
-            source_meta=item.source_meta,
-            relations=item.relations,
-            numeric_value=item.numeric_value,
-            unit=item.unit,
-            reference_range=item.reference_range,
-            source=item.source,
-            model_name=item.model_name,
-            model_version=item.model_version,
-            contract_version=item.contract_version,
-        )
 
     # ------------------------------------------------------------------
     # Terminology resolution

@@ -174,17 +174,33 @@ def _make_pending_spans(
 
 def _deduplicate_spans(
     pending: list[tuple[int, Span]],
-) -> list[tuple[int, Span]]:
-    """Remove overlapping spans, keeping the first occurrence per token."""
-    seen: set[int] = set()
-    result = []
-    for idx, span in pending:
-        tokens = set(range(span.start, span.end))
-        if tokens & seen:
-            continue
-        seen.update(tokens)
-        result.append((idx, span))
-    return result
+) -> list[list[tuple[int, Span]]]:
+    """Split overlapping spans into non-overlapping groups (passes).
+
+    Returns a list of groups where each group contains non-overlapping
+    spans that can be set as ``doc.ents`` simultaneously.  Overlapping
+    entities are moved to subsequent passes so ConText processes them all.
+    """
+    passes: list[list[tuple[int, Span]]] = []
+    assigned: set[int] = set()
+
+    remaining = list(pending)
+    while remaining:
+        current_pass: list[tuple[int, Span]] = []
+        seen_tokens: set[int] = set()
+        still_remaining: list[tuple[int, Span]] = []
+        for idx, span in remaining:
+            tokens = set(range(span.start, span.end))
+            if tokens & seen_tokens:
+                still_remaining.append((idx, span))
+            else:
+                seen_tokens.update(tokens)
+                current_pass.append((idx, span))
+                assigned.add(idx)
+        passes.append(current_pass)
+        remaining = still_remaining
+
+    return passes
 
 
 def apply_context_detection_to_dicts(
@@ -193,10 +209,15 @@ def apply_context_detection_to_dicts(
 ) -> None:
     """Apply ConText assertion detection to plain entity dicts, mutating in place.
 
-    Each dict must have 'start' and 'end' character offsets.
-    Only overwrites 'assertion' when the current value is 'present' or unset.
-    Used by the label verifier which works with plain dicts, not ExtractionItems.
-    Falls back silently on any spaCy error.
+    Each dict must have ``start`` and ``end`` character offsets.
+    Only overwrites ``assertion`` when the current value is ``"present"`` or unset.
+
+    Overlapping entities are processed in multiple passes so that ConText
+    evaluates every entity, not just the first of each overlapping group.
+
+    Raises:
+        Any exception from the spaCy/medspaCy pipeline is re-raised so
+        callers never silently persist incorrect assertion values.
     """
     if not entities:
         return
@@ -214,14 +235,16 @@ def apply_context_detection_to_dicts(
             span = doc.char_span(start, end, label="ENTITY", alignment_mode="expand")
             if span is not None:
                 pending.append((idx, span))
-        filtered = _deduplicate_spans(pending)
-        doc.ents = [span for _, span in filtered]
-        doc = nlp.get_pipe("medspacy_context")(doc)
-        ent_assertion = {span.start: _span_to_assertion(span) for span in doc.ents}
-        for item_idx, span in filtered:
-            assertion = ent_assertion.get(span.start, "present")
-            if assertion != "present":
-                entities[item_idx]["assertion"] = assertion
+        passes = _deduplicate_spans(pending)
+        context_pipe = nlp.get_pipe("medspacy_context")
+        for current_pass in passes:
+            doc.ents = [span for _, span in current_pass]
+            doc = context_pipe(doc)
+            ent_assertion = {span.start: _span_to_assertion(span) for span in doc.ents}
+            for item_idx, span in current_pass:
+                assertion = ent_assertion.get(span.start, "present")
+                if assertion != "present":
+                    entities[item_idx]["assertion"] = assertion
     except Exception:
         logger.error(
             "ConText dict detection FAILED for %d entities -- aborting",
@@ -237,9 +260,8 @@ def detect_assertions_for_encounter(
 ) -> tuple[list[str], bool]:
     """Return assertion strings for each ExtractionItem plus a failure flag.
 
-    Items that already carry a non-'present' assertion are returned unchanged.
-    On any spaCy exception, affected entities are marked 'possible' (uncertain)
-    so they enter the assertion review queue rather than being silently coded.
+    Items that already carry a non-``"present"`` assertion are returned
+    unchanged.  Overlapping entities are processed in multiple passes.
 
     Args:
         encounter_text: Full de-identified encounter text.
@@ -247,8 +269,12 @@ def detect_assertions_for_encounter(
 
     Returns:
         Tuple of (assertions list, context_detection_failed bool).
-        assertions has the same length and order as items.
+        assertions has the same length and order as *items*.
         context_detection_failed is True if spaCy raised an exception.
+
+    Raises:
+        Any exception from the spaCy/medspaCy pipeline is re-raised so
+        callers never silently persist incorrect assertion values.
     """
     if not items:
         return [], False
@@ -262,14 +288,15 @@ def detect_assertions_for_encounter(
         nlp = _get_nlp()
         doc = nlp.make_doc(encounter_text)
         pending = _make_pending_spans(doc, items, needs)
-        filtered = _deduplicate_spans(pending)
+        passes = _deduplicate_spans(pending)
 
-        doc.ents = [span for _, span in filtered]
-        doc = nlp.get_pipe("medspacy_context")(doc)
-
-        ent_assertion = {span.start: _span_to_assertion(span) for span in doc.ents}
-        for item_idx, span in filtered:
-            defaults[item_idx] = ent_assertion.get(span.start, "present")
+        context_pipe = nlp.get_pipe("medspacy_context")
+        for current_pass in passes:
+            doc.ents = [span for _, span in current_pass]
+            doc = context_pipe(doc)
+            ent_assertion = {span.start: _span_to_assertion(span) for span in doc.ents}
+            for item_idx, span in current_pass:
+                defaults[item_idx] = ent_assertion.get(span.start, "present")
         return defaults, False
 
     except Exception:

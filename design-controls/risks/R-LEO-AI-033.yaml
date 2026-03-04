@@ -58,10 +58,13 @@
     - control_type: "protective_measure"
       description: >
         Scope guard (libs/ner/scope_guard.py): deterministic post-extraction
-        filter that detects safety-netting sentences, treatment recommendation
-        language, and hedged diagnostic language. Reclassifies entity
-        assertions from "present" to "hypothetical" or "possible" as
-        appropriate, before ConText and tier classification.
+        filter operating on sentence-windowed context that detects safety-netting
+        sentences, treatment recommendation language, and hedged diagnostic
+        language. Recommendation regex narrowed to exclude ambiguous UK GP
+        phrases ("will start", "to start"). Confirmed-diagnosis regex expanded
+        to recognise "known X", "suffers from", "on treatment for", "managed
+        for", "presents with". Reclassifies entity assertions from "present"
+        to "hypothetical" or "possible" as appropriate.
       implemented_by: ["DI-LEO-AI-048"]
       verified_by: ["VT-LEO-AI-040"]
       effectiveness: "highly_effective"
@@ -84,6 +87,18 @@
         assertion detection.
       implemented_by: ["DI-LEO-AI-035"]
       verified_by: []
+      effectiveness: "effective"
+
+    - control_type: "protective_measure"
+      description: >
+        Unified post-processing pipeline: the scope guard and all 9
+        post-processing layers are applied identically to both training
+        data and runtime data via a single shared module
+        (libs/pipeline/post_processing.py), ensuring that training-time
+        assertion corrections are consistently reproduced at inference
+        time and preventing train/serve skew.
+      implemented_by: ["DI-LEO-AI-050"]
+      verified_by: ["VT-LEO-AI-050"]
       effectiveness: "effective"
 
   residual_risk_estimate:

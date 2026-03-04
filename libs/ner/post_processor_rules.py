@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 import re
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -60,7 +63,7 @@ def _matches_rule(
 
     if rule.match_text and ent_text.lower() != rule.match_text.lower():
         return False
-    if rule.match_label and ent_label != rule.match_label:
+    if rule.match_label and ent_label.lower() != rule.match_label.lower():
         return False
     if rule.context_regex:
         try:
@@ -72,7 +75,11 @@ def _matches_rule(
             if not re.search(rule.context_regex, context):
                 return False
         except re.error:
-            # Invalid regex in rule should fail closed for safety.
+            logger.warning(
+                "Post-processor rule %s has invalid regex: %s",
+                rule.rule_id,
+                rule.context_regex,
+            )
             return False
     return True
 
@@ -112,8 +119,15 @@ def apply_rules_to_entities(
                     ent["text"] = new_text
                     ent["start"] = new_start
                     ent["end"] = new_start + len(new_text)
-                if rule.rewrite_label:
-                    ent["label"] = rule.rewrite_label
+                    if rule.rewrite_label:
+                        ent["label"] = rule.rewrite_label
+                else:
+                    logger.warning(
+                        "Post-processor rule %s: rewrite text %r not found "
+                        "in encounter -- keeping entity unchanged",
+                        rule.rule_id,
+                        new_text,
+                    )
                 continue
 
         if not drop:

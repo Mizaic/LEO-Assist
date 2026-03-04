@@ -26,8 +26,12 @@ _LAB_TEST_RE = re.compile(
     r"alt\b|ast\b|alp\b|ggt|inr\b|aptt|fibrinogen|crp\b|esr\b|"
     r"vitamin\s*d|folate|b12|iron|transferrin|"
     r"hct\b|mcv\b|mch\b|mchc|rdw\b|mpv\b|"
-    r"psa\b|bnp\b|troponin|d-dimer|"
+    r"psa\b|bnp\b|nt[\s-]*pro[\s-]*bnp|troponin|d-dimer|"
     r"ldl|hdl|vldl|haematocrit|hematocrit|"
+    r"ldh\b|amylase|lipase|procalcitonin|"
+    r"ck\b|cpk\b|creatine\s*kinase|lactate|"
+    r"afp\b|alpha[\s-]*fetoprotein|ca[\s-]*125|cea\b|hcg\b|"
+    r"ammonia|"
     r"alanine\s*aminotransferase|"
     r"aspartate\s*aminotransferase|"
     r"alkaline\s*phosphatase|"
@@ -47,9 +51,19 @@ _MEASUREMENT_RE = re.compile(
 
 _EXPLICIT_DX_RE = re.compile(
     r"\b("
-    r"diagnos[ei]s|diagnos(?:ed|ing)|dx[:\s]|"
-    r"has\s+(?:been\s+)?diagnosed|problem\s+list|"
-    r"active\s+problem|impression[:\s]|assessment[:\s]"
+    r"diagnos[ei]s|diagnos(?:ed|ing)|dx[:\s]"
+    r"|has\s+(?:been\s+)?diagnosed"
+    r"|problem\s+list|active\s+problem"
+    r"|impression[:\s]|assessment[:\s]"
+    r"|(?:patient|pt)\s+has\s+\w+"
+    r"|known\s+\w+"
+    r"|suffers?\s+from"
+    r"|presents?\s+with"
+    r"|on\s+treatment\s+for"
+    r"|managed\s+for"
+    r"|being\s+treated\s+for"
+    r"|confirmed?\b"
+    r"|established\b"
     r")\b",
     re.IGNORECASE,
 )
