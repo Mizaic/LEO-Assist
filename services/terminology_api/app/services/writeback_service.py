@@ -43,7 +43,6 @@ def _extract_surface_form_rows(
 
     for record in candidates:
         candidate = dict(record["c"])
-        reviewer = record.get("reviewer") or "system"
         stats.candidates_scanned += 1
 
         try:
@@ -74,7 +73,7 @@ def _extract_surface_form_rows(
                     "normalized": normalized,
                     "concept_id": concept_id,
                     "confidence": float(coding.get("score", 0.9)),
-                    "approved_by": reviewer,
+                    "approved_by": "hitl_approved",
                     "source": "hitl_approved",
                     "status": "pending",
                     "provenance": "hitl_gold_sync",
