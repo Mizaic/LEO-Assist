@@ -1322,7 +1322,7 @@ def resolve_coding_review(
                 confidence=1.0,
                 source="coding_review",
                 provenance="coding_review_resolution",
-                created_by=body.reviewer,
+                created_by="coding_review",
             )
             coding_client.close()
             logger.info(
@@ -1423,7 +1423,7 @@ def batch_resolve_coding_review(
             confidence=1.0,
             source="batch_coding_review",
             provenance="batch_coding_review_resolution",
-            created_by=body.reviewer,
+            created_by="batch_coding_review",
         )
         coding_client.close()
     except Exception:
@@ -1995,7 +1995,7 @@ def _writeback_recheck_surface_form(
             confidence=1.0,
             source="coding_review_recheck",
             provenance="coding_review_recheck_llm_alt",
-            created_by=resolved_by,
+            created_by="coding_review_recheck",
         )
         logger.info(
             "RECHECK: [WRITEBACK_OK] term=%r -> concept=%r provenance=%s",
