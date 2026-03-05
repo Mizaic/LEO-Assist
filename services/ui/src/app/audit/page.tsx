@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import TextField from "@mui/material/TextField";
+import MenuItem from "@mui/material/MenuItem";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import Stack from "@mui/material/Stack";
@@ -12,9 +13,11 @@ import Tooltip from "@mui/material/Tooltip";
 import IconButton from "@mui/material/IconButton";
 import PrintOutlinedIcon from "@mui/icons-material/PrintOutlined";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import CompareArrowsIcon from "@mui/icons-material/CompareArrows";
 
 import { useOrgId } from "@/context/OrgContext";
 import {
+  fetchBenchmarkSets,
   fetchAuditSummary,
   fetchAuditCancerType,
   fetchAuditCancerStage,
@@ -37,6 +40,8 @@ import {
   type AuditIntervals,
   type AuditSafetyNetting,
   type AuditAvoidableDelays,
+  type AuditSectionResult,
+  type BenchmarkSetSummary,
 } from "@/lib/analyticsApi";
 
 import AuditReportShell, { type TocSection } from "@/components/audit/AuditReportShell";
@@ -91,35 +96,20 @@ interface SectionErrors {
 }
 
 const allTrue = (): SectionLoading => ({
-  summary: true,
-  cancerType: true,
-  cancerStage: true,
-  demographics: true,
-  placeOfPresentation: true,
-  consultations: true,
-  investigations: true,
-  referrals: true,
-  intervals: true,
-  safetyNetting: true,
-  avoidableDelays: true,
+  summary: true, cancerType: true, cancerStage: true, demographics: true,
+  placeOfPresentation: true, consultations: true, investigations: true,
+  referrals: true, intervals: true, safetyNetting: true, avoidableDelays: true,
 });
 
 const allFalse = (): SectionLoading => ({
-  summary: false,
-  cancerType: false,
-  cancerStage: false,
-  demographics: false,
-  placeOfPresentation: false,
-  consultations: false,
-  investigations: false,
-  referrals: false,
-  intervals: false,
-  safetyNetting: false,
-  avoidableDelays: false,
+  summary: false, cancerType: false, cancerStage: false, demographics: false,
+  placeOfPresentation: false, consultations: false, investigations: false,
+  referrals: false, intervals: false, safetyNetting: false, avoidableDelays: false,
 });
 
 export default function AuditPage() {
   const orgId = useOrgId();
+  const orgSelected = !!orgId;
 
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
@@ -127,20 +117,43 @@ export default function AuditPage() {
   const [appliedTo, setAppliedTo] = useState<string | undefined>(undefined);
   const isFiltered = !!appliedFrom || !!appliedTo;
 
+  // Benchmark set selection
+  const [benchmarkSets, setBenchmarkSets] = useState<BenchmarkSetSummary[]>([]);
+  const [benchmarkSetId, setBenchmarkSetId] = useState<string>("none");
+
+  // Section loading / error state
   const [loading, setLoading] = useState<SectionLoading>(allTrue());
   const [errors, setErrors] = useState<SectionErrors>({});
 
+  // Section data — all wrapped in AuditSectionResult
   const [summary, setSummary] = useState<AuditSummary | null>(null);
-  const [cancerType, setCancerType] = useState<AuditCancerTypeRow[]>([]);
-  const [cancerStage, setCancerStage] = useState<AuditCancerStageRow[]>([]);
-  const [demographics, setDemographics] = useState<AuditDemographics | null>(null);
-  const [placeOfPresentation, setPlaceOfPresentation] = useState<AuditPlaceRow[]>([]);
-  const [consultations, setConsultations] = useState<AuditConsultations | null>(null);
-  const [investigations, setInvestigations] = useState<AuditInvestigations | null>(null);
-  const [referrals, setReferrals] = useState<AuditReferralRow[]>([]);
-  const [intervals, setIntervals] = useState<AuditIntervals | null>(null);
-  const [safetyNetting, setSafetyNetting] = useState<AuditSafetyNetting | null>(null);
-  const [avoidableDelays, setAvoidableDelays] = useState<AuditAvoidableDelays | null>(null);
+  const [cancerType, setCancerType] = useState<AuditSectionResult<AuditCancerTypeRow[]> | null>(null);
+  const [cancerStage, setCancerStage] = useState<AuditSectionResult<AuditCancerStageRow[]> | null>(null);
+  const [demographics, setDemographics] = useState<AuditSectionResult<AuditDemographics> | null>(null);
+  const [placeOfPresentation, setPlaceOfPresentation] = useState<AuditSectionResult<AuditPlaceRow[]> | null>(null);
+  const [consultations, setConsultations] = useState<AuditSectionResult<AuditConsultations> | null>(null);
+  const [investigations, setInvestigations] = useState<AuditSectionResult<AuditInvestigations> | null>(null);
+  const [referrals, setReferrals] = useState<AuditSectionResult<AuditReferralRow[]> | null>(null);
+  const [intervals, setIntervals] = useState<AuditSectionResult<AuditIntervals> | null>(null);
+  const [safetyNetting, setSafetyNetting] = useState<AuditSectionResult<AuditSafetyNetting> | null>(null);
+  const [avoidableDelays, setAvoidableDelays] = useState<AuditSectionResult<AuditAvoidableDelays> | null>(null);
+
+  // Fetch available benchmark sets on mount
+  useEffect(() => {
+    fetchBenchmarkSets()
+      .then((sets) => {
+        setBenchmarkSets(sets);
+        if (sets.length > 0 && benchmarkSetId === "none") {
+          setBenchmarkSetId(sets[0].id);
+        }
+      })
+      .catch(() => {
+        // Benchmark sets unavailable — carry on without
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const effectiveBenchmarkSetId = benchmarkSetId === "none" ? undefined : benchmarkSetId;
 
   const load = useCallback(
     async (from: string | undefined, to: string | undefined) => {
@@ -159,19 +172,20 @@ export default function AuditPage() {
 
       await Promise.all([
         settle("summary", fetchAuditSummary(orgId, from, to), setSummary),
-        settle("cancerType", fetchAuditCancerType(orgId, from, to), setCancerType),
-        settle("cancerStage", fetchAuditCancerStage(orgId, from, to), setCancerStage),
-        settle("demographics", fetchAuditDemographics(orgId, from, to), setDemographics),
-        settle("placeOfPresentation", fetchAuditPlaceOfPresentation(orgId, from, to), setPlaceOfPresentation),
-        settle("consultations", fetchAuditConsultations(orgId, from, to), setConsultations),
-        settle("investigations", fetchAuditInvestigations(orgId, from, to), setInvestigations),
-        settle("referrals", fetchAuditReferrals(orgId, from, to), setReferrals),
-        settle("intervals", fetchAuditIntervals(orgId, from, to), setIntervals),
-        settle("safetyNetting", fetchAuditSafetyNetting(orgId, from, to), setSafetyNetting),
-        settle("avoidableDelays", fetchAuditAvoidableDelays(orgId, from, to), setAvoidableDelays),
+        settle("cancerType", fetchAuditCancerType(orgId, from, to, effectiveBenchmarkSetId), setCancerType),
+        settle("cancerStage", fetchAuditCancerStage(orgId, from, to, effectiveBenchmarkSetId), setCancerStage),
+        settle("demographics", fetchAuditDemographics(orgId, from, to, effectiveBenchmarkSetId), setDemographics),
+        settle("placeOfPresentation", fetchAuditPlaceOfPresentation(orgId, from, to, effectiveBenchmarkSetId), setPlaceOfPresentation),
+        settle("consultations", fetchAuditConsultations(orgId, from, to, effectiveBenchmarkSetId), setConsultations),
+        settle("investigations", fetchAuditInvestigations(orgId, from, to, effectiveBenchmarkSetId), setInvestigations),
+        settle("referrals", fetchAuditReferrals(orgId, from, to, effectiveBenchmarkSetId), setReferrals),
+        settle("intervals", fetchAuditIntervals(orgId, from, to, effectiveBenchmarkSetId), setIntervals),
+        settle("safetyNetting", fetchAuditSafetyNetting(orgId, from, to, effectiveBenchmarkSetId), setSafetyNetting),
+        settle("avoidableDelays", fetchAuditAvoidableDelays(orgId, from, to, effectiveBenchmarkSetId), setAvoidableDelays),
       ]);
     },
-    [orgId],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [orgId, effectiveBenchmarkSetId],
   );
 
   useEffect(() => {
@@ -193,14 +207,14 @@ export default function AuditPage() {
 
   return (
     <Box sx={{ p: { xs: 2, sm: 3 }, overflowX: "hidden" }}>
-      {/* ── Page header ─────────────────────────────────────────────── */}
+      {/* ── Page header ──────────────────────────────────────────────── */}
       <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 1, mb: 2 }}>
         <Box>
           <Typography variant="h5" component="h1" sx={{ fontWeight: 700 }}>
             Clinical Audit
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ fontSize: "0.82rem", mt: 0.25 }}>
-            National Cancer Diagnosis Audit (NCDA) — all 14 sections with multi-level benchmarking
+            National Cancer Diagnosis Audit (NCDA) — 14 sections with multi-level live benchmarking
           </Typography>
         </Box>
         <Stack direction="row" spacing={1} alignItems="center">
@@ -217,10 +231,10 @@ export default function AuditPage() {
         </Stack>
       </Box>
 
-      {/* ── Filter bar ──────────────────────────────────────────────── */}
+      {/* ── Filter + benchmark bar ───────────────────────────────────── */}
       <Box
         component="section"
-        aria-label="Filter by date"
+        aria-label="Audit filters"
         sx={{
           display: "flex",
           flexWrap: "wrap",
@@ -280,7 +294,40 @@ export default function AuditPage() {
             variant="outlined"
           />
         )}
+
+        {/* Benchmark set selector */}
+        <Box sx={{ ml: "auto", display: "flex", alignItems: "center", gap: 1 }}>
+          <CompareArrowsIcon fontSize="small" sx={{ color: "text.secondary" }} />
+          <TextField
+            select
+            label="Benchmark"
+            size="small"
+            value={benchmarkSetId}
+            onChange={(e) => setBenchmarkSetId(e.target.value)}
+            sx={{ width: 200 }}
+            inputProps={{ "aria-label": "Select benchmark set for comparison" }}
+          >
+            <MenuItem value="none">
+              <em>No benchmark overlay</em>
+            </MenuItem>
+            {benchmarkSets.map((s) => (
+              <MenuItem key={s.id} value={s.id}>
+                {s.name}{s.audit_year ? ` (${s.audit_year})` : ""}
+              </MenuItem>
+            ))}
+          </TextField>
+        </Box>
       </Box>
+
+      {/* Comparison mode context banner */}
+      {!orgSelected && (
+        <Alert severity="info" sx={{ mb: 2, fontSize: "0.82rem" }}>
+          <strong>All Organisations view:</strong> Showing England-wide live data.
+          {effectiveBenchmarkSetId
+            ? " Select an organisation in the sidebar to compare practice vs alliance vs England."
+            : " Select an organisation to enable multi-level comparisons, or choose a benchmark set above."}
+        </Alert>
+      )}
 
       {Object.values(errors).some(Boolean) && (
         <Alert severity="warning" sx={{ mb: 2 }}>
@@ -299,73 +346,90 @@ export default function AuditPage() {
         />
 
         <CancerTypeSection
-          data={cancerType}
+          result={cancerType}
           loading={loading.cancerType}
           error={errors.cancerType}
+          orgSelected={orgSelected}
         />
 
         <CancerStageSection
-          data={cancerStage}
+          result={cancerStage}
           loading={loading.cancerStage}
           error={errors.cancerStage}
+          orgSelected={orgSelected}
         />
 
         <DemographicsSection
-          data={demographics}
+          result={demographics}
           loading={loading.demographics}
           error={errors.demographics}
+          orgSelected={orgSelected}
         />
 
         <PlaceOfPresentationSection
-          data={placeOfPresentation}
+          result={placeOfPresentation}
           loading={loading.placeOfPresentation}
           error={errors.placeOfPresentation}
+          orgSelected={orgSelected}
         />
 
         <ConsultationsSection
-          data={consultations}
+          result={consultations}
           loading={loading.consultations}
           error={errors.consultations}
+          orgSelected={orgSelected}
         />
 
-        <MultipleConsultationsSection />
+        <MultipleConsultationsSection
+          result={consultations}
+          orgSelected={orgSelected}
+        />
 
         <InvestigationsSection
-          data={investigations}
+          result={investigations}
           loading={loading.investigations}
           error={errors.investigations}
+          orgSelected={orgSelected}
         />
 
         <ReferralsSection
-          data={referrals}
+          result={referrals}
           loading={loading.referrals}
           error={errors.referrals}
+          orgSelected={orgSelected}
         />
 
-        <EmergencyReferralRoutesSection />
+        <EmergencyReferralRoutesSection
+          result={referrals}
+          orgSelected={orgSelected}
+        />
 
         <PrimaryCareIntervalSection
-          data={intervals}
+          result={intervals}
           loading={loading.intervals}
           error={errors.intervals}
+          orgSelected={orgSelected}
         />
 
         <DiagnosticIntervalSection
-          data={intervals}
+          result={intervals}
           loading={loading.intervals}
           error={errors.intervals}
+          orgSelected={orgSelected}
         />
 
         <SafetyNettingSection
-          data={safetyNetting}
+          result={safetyNetting}
           loading={loading.safetyNetting}
           error={errors.safetyNetting}
+          orgSelected={orgSelected}
         />
 
         <AvoidableDelaysSection
-          data={avoidableDelays}
+          result={avoidableDelays}
           loading={loading.avoidableDelays}
           error={errors.avoidableDelays}
+          orgSelected={orgSelected}
         />
       </AuditReportShell>
     </Box>

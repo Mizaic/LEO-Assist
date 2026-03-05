@@ -7,7 +7,7 @@ import TableBody from "@mui/material/TableBody";
 import TableCell from "@mui/material/TableCell";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
-import { BENCHMARK_COLOURS, BENCHMARK_LABELS } from "./BenchmarkLegend";
+import { BENCHMARK_COLOURS, getBenchmarkLabels } from "./BenchmarkLegend";
 
 export interface StatValue {
   value: number | string | null | undefined;
@@ -28,6 +28,7 @@ interface SummaryStatsTableProps {
   rows: SummaryStatRow[];
   visibleKeys?: Array<"practice" | "similar" | "alliance" | "national">;
   caption?: string;
+  orgSelected?: boolean;
 }
 
 function renderCell(sv: StatValue | null | undefined, unit?: string) {
@@ -56,7 +57,9 @@ export default function SummaryStatsTable({
   rows,
   visibleKeys = ["practice", "similar", "alliance", "national"],
   caption,
+  orgSelected = true,
 }: SummaryStatsTableProps) {
+  const labels = getBenchmarkLabels(orgSelected);
   return (
     <Box sx={{ overflowX: "auto" }}>
       <Table size="small" aria-label={caption ?? "NCDA summary statistics"}>
@@ -75,7 +78,7 @@ export default function SummaryStatsTable({
                   whiteSpace: "nowrap",
                 }}
               >
-                {BENCHMARK_LABELS[key]}
+                {labels[key]}
               </TableCell>
             ))}
           </TableRow>

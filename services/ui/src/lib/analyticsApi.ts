@@ -660,7 +660,7 @@ function _auditParams(
 }
 
 export async function fetchBenchmarkSets(): Promise<BenchmarkSetSummary[]> {
-  return fetchJson<BenchmarkSetSummary[]>(`${FHIR_BASE}/fhir/benchmarks/sets`);
+  return fetchJson<BenchmarkSetSummary[]>(`${FHIR_BASE}/benchmarks/sets`);
 }
 
 export async function fetchAuditSummary(orgId?: string, dateFrom?: string, dateTo?: string): Promise<AuditSummary> {

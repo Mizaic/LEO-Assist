@@ -180,6 +180,19 @@ This document traces software requirements (DC-SRS-001) to design elements, impl
 | FR-MB-001 | Azure Service Bus adapter | Plan WS-A | libs/message-bus/azure_adapter.py | -- | ST-MB-001 |
 | FR-MB-002 | In-memory adapter for local dev | Plan WS-A | libs/message-bus/in_memory_adapter.py | test_shared_libs.py (2 tests) | -- |
 
+### 2.18 Agentic Training Label Auditor (New — DI-LEO-AI-054)
+
+| Req ID | Requirement | Design Doc | Implementation | Unit Test | System Test |
+|--------|-------------|-----------|----------------|-----------|-------------|
+| FR-AUD-001 | Two-pass audit: Opus pass 1 (no tools), Haiku+tools pass 2 for SNOMED needs_review | DI-LEO-AI-054, DO-LEO-AI-036 | scripts/opus_training_auditor.py | test_opus_training_auditor.py | VT-LEO-AI-047 |
+| FR-AUD-002 | Bedrock tool_config passthrough and toolUse response parsing in LLMClient.converse() | DI-LEO-AI-054, DO-LEO-AI-036 | libs/llm_client/factory.py | test_opus_training_auditor.py, test_llm_providers.py | VT-LEO-AI-047 |
+| FR-AUD-003 | ToolExecutor: resolve_term, get_related_concepts, get_descendants via Terminology API | DI-LEO-AI-054, DO-LEO-AI-036 | scripts/opus_training_auditor.py (ToolExecutor) | test_opus_training_auditor.py | VT-LEO-AI-047 |
+| FR-AUD-004 | CostGuardrail: per-run token budget and dollar cap with automatic halt | DI-LEO-AI-054, DO-LEO-AI-036 | scripts/opus_training_auditor.py (CostGuardrail) | test_opus_training_auditor.py | VT-LEO-AI-047 |
+| FR-AUD-005 | Hard cap of 5 tool-use iterations per record in agentic loop | DI-LEO-AI-054, DO-LEO-AI-036 | scripts/opus_training_auditor.py (_agentic_audit_record) | test_opus_training_auditor.py | VT-LEO-AI-047 |
+| FR-AUD-006 | SNOMED READONLY_FIELDS enforcement -- tool-informed fixes become proposals only | DI-LEO-AI-054, DO-LEO-AI-036 | scripts/opus_training_auditor.py (_classify_fixes) | test_opus_training_auditor.py | VT-LEO-AI-047 |
+| FR-AUD-007 | Audit trail JSONL records all tool calls with name, input, and result | DI-LEO-AI-054, DO-LEO-AI-036 | scripts/opus_training_auditor.py (_write_trail_entry) | test_opus_training_auditor.py | VT-LEO-AI-047 |
+| FR-AUD-008 | sanitise_for_prompt() applied to all terminology API responses before LLM re-submission | DI-LEO-AI-054, DO-LEO-AI-036 | scripts/opus_training_auditor.py (_agentic_audit_record) | test_opus_training_auditor.py | VT-LEO-AI-047 |
+
 ---
 
 ## 3. Coverage Summary
@@ -203,7 +216,8 @@ This document traces software requirements (DC-SRS-001) to design elements, impl
 | Frontend UI | 5 | 5 | 5 | 0 | 5 |
 | Fix Analyzer | 1 | 1 | 1 | 0 | 1 |
 | Message Bus | 2 | 2 | 2 | 1 | 1 |
-| **Total** | **76** | **76** | **76** | **33** | **48** |
+| Agentic Training Auditor | 8 | 8 | 8 | 8 | 8 |
+| **Total** | **84** | **84** | **84** | **41** | **56** |
 
 All 76 requirements have design references, implementations, and at least one verification method (unit test, system test, or both).
 

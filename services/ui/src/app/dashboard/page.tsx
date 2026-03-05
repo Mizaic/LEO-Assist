@@ -17,6 +17,7 @@ import {
   fetchDiagnosedSummary,
   fetchKPIBenchmarks,
   fetchSafetyNetAlerts,
+  actionSafetyNetAlert,
 } from "@/lib/analyticsApi";
 import { useOrgId } from "@/context/OrgContext";
 import KPICards from "@/components/dashboard/KPICards";
@@ -78,6 +79,11 @@ export default function DashboardPage() {
     setAppliedFrom(dateFrom || undefined);
     setAppliedTo(dateTo || undefined);
   };
+
+  const handleAlertAction = useCallback(async (alertId: string, actioned: boolean) => {
+    await actionSafetyNetAlert(alertId, actioned);
+    setAlerts((prev) => prev.map((a) => (a.id === alertId ? { ...a, actioned } : a)));
+  }, []);
 
   const handleClear = () => {
     setDateFrom("");
@@ -314,7 +320,7 @@ export default function DashboardPage() {
                   No safety alerts for the selected period.
                 </Typography>
               ) : (
-                <SafetyNetAlertsSummary alerts={alerts.slice(0, 8)} />
+                <SafetyNetAlertsSummary alerts={alerts.slice(0, 8)} onAction={handleAlertAction} />
               )}
             </CardContent>
           </Card>

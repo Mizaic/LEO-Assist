@@ -1195,6 +1195,147 @@ component_13_consensus:
       confidence: "Probable"
 
 # ---------------------------------------------------------------------------
+# COMPONENT 14A: AGENTIC TRAINING LABEL AUDITOR (NEW - DI-LEO-AI-054)
+# ---------------------------------------------------------------------------
+component_14a_agentic_auditor:
+  name: "Agentic Training Label Auditor"
+  purpose: >
+    Two-pass automated audit system for TrainingLabel records. Pass 1 uses
+    Opus (AWS_MAX_MODEL) to audit every entity for span, assertion, label,
+    and value errors. Pass 2 invokes Opus with Bedrock tool-use to call
+    the Terminology API (via Haiku sub-agent) for SNOMED-ambiguous entities.
+    Cost guardrails (token budget + dollar cap) and a hard iteration cap
+    (5 per record) prevent runaway spending. SNOMED fields are never
+    auto-fixed; tool-informed results are human-review proposals only.
+  iec_62304_contribution: "B"
+  trust_boundaries:
+    - "scripts/opus_training_auditor.py -> AWS Bedrock (Opus, pass 1+2)"
+    - "scripts/opus_training_auditor.py -> AWS Bedrock (Haiku, tool executor)"
+    - "ToolExecutor -> Terminology API (internal HTTP)"
+    - "scripts/opus_training_auditor.py -> Neo4j Patient Graph (read/write)"
+  data_assets: >
+    De-identified clinical text (from TrainingLabel.text), extracted
+    entities (entities_json), SNOMED concept IDs and terms, audit verdicts,
+    tool call inputs/outputs (recorded in JSONL trail)
+  network_exposure: "Internal -> External (Bedrock)"
+  source_files:
+    - "scripts/opus_training_auditor.py"
+    - "libs/llm_client/factory.py (LLMClient.converse tool_config extension)"
+    - "libs/prompts/opus_audit_v1.py"
+
+  phase_2_threats:
+    - id: "AUD-I-001"
+      element: "scripts/opus_training_auditor.py"
+      threat: "Clinical text sent to Opus and Haiku in agentic audit loop"
+      status: "NEW"
+      attack_vector: >
+        In pass 1, de-identified clinical text from TrainingLabel records is
+        sent to Opus. In pass 2, clinical text is re-sent to Opus along with
+        tool results from Haiku (which received entity text to query the
+        Terminology API). The agentic loop can iterate up to 5 times per
+        entity, each time re-sending the encounter text to Opus. For a batch
+        of 500 records with multiple needs_review entities each, this
+        significantly amplifies data exposure compared to single-pass audit.
+      prerequisites: "Audit run with --apply flag or pass-2 enabled"
+      threat_actors: ["supply_chain"]
+      evidence:
+        file: "scripts/opus_training_auditor.py"
+        snippet: "_agentic_audit_record(): Opus called with full encounter context per iteration"
+      impact:
+        confidentiality: "Medium"
+        integrity: "None"
+        availability: "None"
+        patient_data_exposure: true
+      likelihood: "Medium"
+      likelihood_rationale: >
+        De-identification is regex-based and cannot guarantee all PII
+        removal. Each agentic iteration re-sends the same clinical text
+        to Bedrock. Up to 5 iterations per entity could send the same text
+        5 times. However, training labels are already de-identified
+        upstream by the pipeline.
+      existing_controls: >
+        Regex-based de-identification upstream; sanitise_for_prompt()
+        applied to all content; INJECTION_GUARD on all prompts; AWS Bedrock
+        DPA in place; training labels are already de-identified
+      gaps: >
+        No per-call PHI audit before tool-use re-submission; iterative
+        nature of agentic loop increases total exposure volume vs pass-1 only
+      confidence: "Probable"
+
+    - id: "AUD-T-001"
+      element: "scripts/opus_training_auditor.py (ToolExecutor + _agentic_audit_record)"
+      threat: "Haiku sub-agent returns manipulated terminology results influencing SNOMED verdicts"
+      status: "NEW"
+      attack_vector: >
+        If Haiku hallucinates or the Terminology API returns unexpected data,
+        Haiku may return incorrect SNOMED recommendations. Opus, receiving
+        these results in a toolResult block, may produce a high-confidence
+        needs_review proposal for an incorrect concept. If a human reviewer
+        accepts the proposal without independent verification, incorrect
+        SNOMED codes enter training data.
+      prerequisites: "Pass 2 agentic run with SNOMED needs_review entities"
+      threat_actors: ["N/A - systemic AI reliability risk"]
+      evidence:
+        file: "scripts/opus_training_auditor.py"
+        snippet: "_agentic_audit_record(): toolResult blocks built from ToolExecutor results"
+      impact:
+        confidentiality: "None"
+        integrity: "Medium"
+        availability: "None"
+        patient_data_exposure: false
+      likelihood: "Low"
+      likelihood_rationale: >
+        SNOMED fields are structurally protected by READONLY_FIELDS in
+        _classify_fixes(). Tool results produce proposals only. Human review
+        is mandatory for all SNOMED proposals. However, a human reviewer
+        could accept an incorrect proposal without independent verification.
+      existing_controls: >
+        READONLY_FIELDS enforcement in _classify_fixes() prevents SNOMED
+        auto-fix; tool-use pass produces proposals only; audit trail records
+        full tool call chain for human inspection; sanitise_for_prompt()
+        applied to all API responses
+      gaps: >
+        No independent validation of Haiku's terminology API interpretation
+        against the raw API response; relies on human reviewer to verify
+        SNOMED proposals against authoritative browser
+      confidence: "Probable"
+
+    - id: "AUD-T-002"
+      element: "scripts/opus_training_auditor.py (_agentic_audit_record, CostGuardrail)"
+      threat: "Agentic loop cost amplification via crafted or pathological clinical text"
+      status: "NEW"
+      attack_vector: >
+        Clinical text containing unusual combinations of clinical terms or
+        ambiguous SNOMED mappings could cause Opus to repeatedly request
+        terminology lookups without converging on a verdict, exhausting
+        the 5-iteration cap and consuming maximum tokens per record. If
+        many records in a batch trigger this pattern, cumulative costs
+        may approach the dollar cap before the guardrail triggers.
+      prerequisites: "Large batch audit run with many pathological records"
+      threat_actors: ["N/A - systemic risk from training data distribution"]
+      impact:
+        confidentiality: "None"
+        integrity: "None"
+        availability: "Low"
+        patient_data_exposure: false
+      likelihood: "Low"
+      likelihood_rationale: >
+        Multiple independent controls limit cost: 5-iteration hard cap per
+        record, per-run token budget, per-run dollar cap. The two-pass
+        architecture limits pass-2 eligibility to SNOMED needs_review
+        entities only.
+      existing_controls: >
+        Hard iteration cap of 5 per record in _agentic_audit_record();
+        CostGuardrail tracks cumulative tokens and estimated cost;
+        two-pass architecture minimises pass-2 eligibility population;
+        default budgets: 2M tokens, $50 USD
+      gaps: >
+        No detection of adversarial text patterns that systematically trigger
+        maximum tool-use iterations; no alerting when cost approaches cap
+        threshold (only halts at cap)
+      confidence: "Possible"
+
+# ---------------------------------------------------------------------------
 # COMPONENT 14: CONTEXT ENGINE & TIER CLASSIFIER (NEW in v2)
 # ---------------------------------------------------------------------------
 component_14_context_tier:
@@ -2212,6 +2353,9 @@ summary:
     - "CD-I-001: CodingDecision may store unhashed patient_id (Low) — RESOLVED (SHA-256 fix)"
     - "SVC-S-001: Service auth bypassed when SECRET empty (Low)"
     - "GAP-017: Expanded LLM data exposure via consensus (Medium) — OPEN (DPIA draft pending sign-off)"
+    - "AUD-I-001: Clinical text sent to Opus and Haiku in agentic audit loop (Medium) — OPEN"
+    - "AUD-T-001: Haiku sub-agent returns manipulated terminology results (Low) — MITIGATED (READONLY_FIELDS)"
+    - "AUD-T-002: Agentic loop cost amplification via crafted text (Low) — MITIGATED (iteration cap + cost guardrail)"
   visibility_limitations:
     - "Cloudflare WAF rule-set detail (managed ruleset, rate limiting thresholds, bot management) requires dashboard review"
     - "Runtime secrets values not inspected"

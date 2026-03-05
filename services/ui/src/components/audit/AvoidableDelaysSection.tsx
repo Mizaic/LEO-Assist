@@ -5,42 +5,56 @@ import SectionCard from "./SectionCard";
 import ComparisonBarChart, { type ComparisonDataRow } from "./ComparisonBarChart";
 import BenchmarkLegend from "./BenchmarkLegend";
 import SummaryStatsTable from "./SummaryStatsRow";
-import type { AuditAvoidableDelays } from "@/lib/analyticsApi";
+import type { AuditAvoidableDelays, AuditSectionResult } from "@/lib/analyticsApi";
 
 interface Props {
-  data: AuditAvoidableDelays | null;
+  result: AuditSectionResult<AuditAvoidableDelays> | null;
   loading: boolean;
   error?: string | null;
+  orgSelected?: boolean;
 }
 
-export default function AvoidableDelaysSection({ data, loading, error }: Props) {
+export default function AvoidableDelaysSection({ result, loading, error, orgSelected = false }: Props) {
+  const practice = result?.scopes.practice;
+  const allianceLive = result?.scopes.alliance_live;
+  const englandLive = result?.scopes.england_live;
+  const bm = result?.benchmark?.metrics;
+
+  const visibleKeys = orgSelected
+    ? (["practice", "similar", "alliance", "national"] as const)
+    : (["practice", "national"] as const);
+
   const mainChart: ComparisonDataRow[] = [
     {
       category: "Avoidable delay identified",
-      practice: data?.has_avoidable_delay_pct ?? null,
-      alliance: 24.8,
-      national: 23.5,
+      practice: practice?.avoidable_delay_pct ?? null,
+      similar: allianceLive?.avoidable_delay_pct ?? null,
+      alliance: englandLive?.avoidable_delay_pct ?? null,
+      national: bm?.["avoidable_delays.avoidable_delay_pct"]?.national ?? null,
     },
   ];
 
   const stageChart: ComparisonDataRow[] = [
     {
       category: "Before presentation",
-      practice: data?.delay_before_presentation_pct ?? null,
-      alliance: 45.6,
-      national: 43.7,
+      practice: practice?.delay_before_presentation_pct ?? null,
+      similar: allianceLive?.delay_before_presentation_pct ?? null,
+      alliance: englandLive?.delay_before_presentation_pct ?? null,
+      national: bm?.["avoidable_delays.delay_before_presentation_pct"]?.national ?? null,
     },
     {
       category: "Presentation to referral",
-      practice: data?.delay_before_referral_pct ?? null,
-      alliance: 46.1,
-      national: 43.9,
+      practice: practice?.delay_pres_to_referral_pct ?? null,
+      similar: allianceLive?.delay_pres_to_referral_pct ?? null,
+      alliance: englandLive?.delay_pres_to_referral_pct ?? null,
+      national: bm?.["avoidable_delays.delay_between_presentation_referral_pct"]?.national ?? null,
     },
     {
       category: "After referral",
-      practice: data?.delay_after_referral_pct ?? null,
-      alliance: 33.5,
-      national: 39.3,
+      practice: practice?.delay_after_referral_pct ?? null,
+      similar: allianceLive?.delay_after_referral_pct ?? null,
+      alliance: englandLive?.delay_after_referral_pct ?? null,
+      national: bm?.["avoidable_delays.delay_after_referral_pct"]?.national ?? null,
     },
   ];
 
@@ -48,30 +62,34 @@ export default function AvoidableDelaysSection({ data, loading, error }: Props) 
     {
       label: "GP-assessed avoidable delay (%)",
       unit: "%",
-      practice: data ? { value: data.has_avoidable_delay_pct, n: data.has_avoidable_delay_n } : null,
-      alliance: { value: 24.8 },
-      national: { value: 23.5 },
+      practice: practice ? { value: practice.avoidable_delay_pct, n: practice.avoidable_delay_n } : null,
+      similar: allianceLive ? { value: allianceLive.avoidable_delay_pct } : null,
+      alliance: englandLive ? { value: englandLive.avoidable_delay_pct } : { value: bm?.["avoidable_delays.avoidable_delay_pct"]?.alliance ?? null },
+      national: { value: bm?.["avoidable_delays.avoidable_delay_pct"]?.national ?? null },
     },
     {
       label: "Delay — before presentation (%)",
       unit: "%",
-      practice: data ? { value: data.delay_before_presentation_pct } : null,
-      alliance: { value: 45.6 },
-      national: { value: 43.7 },
+      practice: practice ? { value: practice.delay_before_presentation_pct } : null,
+      similar: allianceLive ? { value: allianceLive.delay_before_presentation_pct } : null,
+      alliance: englandLive ? { value: englandLive.delay_before_presentation_pct } : { value: bm?.["avoidable_delays.delay_before_presentation_pct"]?.alliance ?? null },
+      national: { value: bm?.["avoidable_delays.delay_before_presentation_pct"]?.national ?? null },
     },
     {
       label: "Delay — presentation to referral (%)",
       unit: "%",
-      practice: data ? { value: data.delay_before_referral_pct } : null,
-      alliance: { value: 46.1 },
-      national: { value: 43.9 },
+      practice: practice ? { value: practice.delay_pres_to_referral_pct } : null,
+      similar: allianceLive ? { value: allianceLive.delay_pres_to_referral_pct } : null,
+      alliance: englandLive ? { value: englandLive.delay_pres_to_referral_pct } : { value: bm?.["avoidable_delays.delay_between_presentation_referral_pct"]?.alliance ?? null },
+      national: { value: bm?.["avoidable_delays.delay_between_presentation_referral_pct"]?.national ?? null },
     },
     {
       label: "Delay — after referral (%)",
       unit: "%",
-      practice: data ? { value: data.delay_after_referral_pct } : null,
-      alliance: { value: 33.5 },
-      national: { value: 39.3 },
+      practice: practice ? { value: practice.delay_after_referral_pct } : null,
+      similar: allianceLive ? { value: allianceLive.delay_after_referral_pct } : null,
+      alliance: englandLive ? { value: englandLive.delay_after_referral_pct } : { value: bm?.["avoidable_delays.delay_after_referral_pct"]?.alliance ?? null },
+      national: { value: bm?.["avoidable_delays.delay_after_referral_pct"]?.national ?? null },
     },
   ];
 
@@ -79,17 +97,17 @@ export default function AvoidableDelaysSection({ data, loading, error }: Props) 
     <SectionCard
       id="section-avoidable-delays"
       title="Avoidable Delays"
-      description="Cases where the GP, with hindsight, judged there to have been an avoidable delay in the patient's cancer diagnosis. Requires structured GP data entry."
+      description="Cases where the GP, with hindsight, judged there to have been an avoidable delay. Requires structured GP data entry."
       availability="manual_entry"
       loading={loading}
       error={error}
     >
-      <BenchmarkLegend visibleKeys={["practice", "alliance", "national"]} />
+      <BenchmarkLegend visibleKeys={visibleKeys} orgSelected={orgSelected} />
       <ComparisonBarChart
         data={mainChart}
         unit="percent"
         height={200}
-        visibleKeys={["practice", "alliance", "national"]}
+        visibleKeys={visibleKeys}
         ariaLabel="Proportion of patients with GP-assessed avoidable delay"
       />
       <Box sx={{ mt: 2 }}>
@@ -97,12 +115,12 @@ export default function AvoidableDelaysSection({ data, loading, error }: Props) 
           data={stageChart}
           unit="percent"
           height={240}
-          visibleKeys={["practice", "alliance", "national"]}
+          visibleKeys={visibleKeys}
           ariaLabel="Stage at which avoidable delay occurred"
         />
       </Box>
       <Box sx={{ mt: 2 }}>
-        <SummaryStatsTable rows={tableRows} visibleKeys={["practice", "alliance", "national"]} caption="Avoidable delays by stage in pathway (% of patients with delay)" />
+        <SummaryStatsTable rows={tableRows} visibleKeys={visibleKeys} caption="Avoidable delays by stage in pathway (% of patients with delay)" />
       </Box>
     </SectionCard>
   );
