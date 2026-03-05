@@ -491,6 +491,77 @@ def verification_status(scope: CallerScope = Depends(get_caller_scope)) -> dict[
 
 
 # ------------------------------------------------------------------
+# POST /training/labels/opus-audit
+# GET  /training/labels/opus-audit/status
+# POST /training/labels/opus-audit/cancel
+# ------------------------------------------------------------------
+
+from app.services.opus_audit_service import (  # noqa: E402
+    begin_audit_job,
+    get_audit_state,
+    request_stop_audit,
+    run_audit,
+)
+
+
+class OpusAuditRequest(BaseModel):
+    mode: str = "all"          # all | hitl_only
+    apply: bool = False        # write safe fixes to Neo4j
+    no_agentic: bool = False   # skip pass 2 (tool-use) — cheaper, faster
+    limit: int = 0             # 0 = all labels
+
+
+@router.post("/labels/opus-audit")
+def start_opus_audit(
+    body: OpusAuditRequest | None = None,
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    """Start a background Opus-in-the-Loop audit of training labels.
+
+    Opus (pass 1) reviews every included label for entity quality.
+    In pass 2, agentic tool-use resolves SNOMED ambiguities, with
+    optional blind second-opinion from an independent Haiku instance.
+    Safe auto-fixes are applied if apply=true.
+    """
+    req = body or OpusAuditRequest()
+    mode = req.mode if req.mode in {"all", "hitl_only"} else "all"
+
+    started = begin_audit_job(
+        mode=mode,
+        apply=req.apply,
+        no_agentic=req.no_agentic,
+        limit=req.limit,
+    )
+    if not started:
+        raise HTTPException(status_code=409, detail="An Opus audit job is already running")
+
+    thread = threading.Thread(target=run_audit, daemon=True)
+    thread.start()
+
+    return {
+        "status": "started",
+        "mode": mode,
+        "apply": req.apply,
+        "no_agentic": req.no_agentic,
+        "message": "Opus audit started in background",
+    }
+
+
+@router.get("/labels/opus-audit/status")
+def opus_audit_status(scope: CallerScope = Depends(get_caller_scope)) -> dict[str, Any]:
+    """Return current Opus audit job status and live progress counters."""
+    return get_audit_state()
+
+
+@router.post("/labels/opus-audit/cancel")
+def cancel_opus_audit(scope: CallerScope = Depends(get_caller_scope)) -> dict[str, Any]:
+    """Request graceful cancellation of a running Opus audit job."""
+    if not request_stop_audit():
+        raise HTTPException(status_code=409, detail="No running Opus audit job to cancel")
+    return {"status": "stopping", "message": "Cancellation requested"}
+
+
+# ------------------------------------------------------------------
 # GET /training/labels/verification-queue
 # POST /training/labels/verification-queue/{review_id}/resolve
 # ------------------------------------------------------------------

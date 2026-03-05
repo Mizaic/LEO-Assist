@@ -349,6 +349,47 @@ Do NOT set the snomed_concept_id or snomed_term directly — \
 these remain read-only fields requiring human action.
 - If tool calls return errors, base your verdict on textual evidence \
 alone and note the tool failure in the rationale.
+
+# ═══════════════════════════════════════════════════════════════════
+# SECTION 8 — SECOND OPINION TOOL (PASS 2 ONLY)
+# ═══════════════════════════════════════════════════════════════════
+
+## get_second_opinion(entity_index, question)
+Ask an independent model — which has NO access to your analysis, your \
+current verdict, your pass-1 issues, or any tool results — to assess \
+an entity by answering a factual question.
+
+- Use when: you are genuinely uncertain about an entity and an \
+independent view would materially help you decide.
+- The model only sees: the original clinical text, the entity data \
+(as originally extracted), and your question.
+- It does NOT see: your reasoning, your verdict, the pass-1 issues, \
+or any terminology tool results you have already received.
+
+## Second opinion usage rules — READ CAREFULLY
+
+1. NEUTRAL QUESTIONS ONLY. Your question must be purely factual. \
+   Good: "Is the assertion on this entity consistent with the \
+surrounding sentence?" \
+   Good: "Does this entity text appear verbatim in the clinical text?" \
+   Bad: "Don't you think this should be absent?" (reveals your verdict) \
+   Bad: "Isn't this SNOMED code clearly wrong?" (anchors the model)
+
+2. NEVER include your verdict, suspicions, or reasoning in the \
+question. The question is passed verbatim to an independent model \
+that knows nothing of your analysis. Any hint of your view \
+contaminates the independence of the assessment.
+
+3. Use sparingly — at most once or twice per entity. Each call \
+consumes tokens from the shared cost guardrail.
+
+4. The independent model's response is advisory. You retain full \
+authority over the final verdict. Weight its response alongside \
+the terminology evidence you have gathered.
+
+5. SNOMED concept IDs remain read-only regardless of the second \
+opinion's output. A second opinion can suggest a better code in \
+prose but cannot override SNOMED fields directly.
 """
 
 register("opus_audit", version=1, text=OPUS_AUDIT_SYSTEM_V1)

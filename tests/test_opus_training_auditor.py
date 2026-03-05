@@ -1,8 +1,12 @@
 """Tests for the Opus-in-the-Loop TrainingLabel auditor.
 
-Covers VT-LEO-AI-047 test cases TC-001 through TC-014.
+Covers VT-LEO-AI-047 test cases TC-001 through TC-019.
 All LLM clients, HTTP calls, and Neo4j connections are mocked.
 No live cloud services required.
+
+Core logic is tested via libs.audit.auditor (the shared library).
+The CLI script (scripts.opus_training_auditor) is tested for integration
+only (TC-007 and TC-014).
 """
 from __future__ import annotations
 
@@ -45,11 +49,12 @@ _patches = {
 for mod, mock in _patches.items():
     sys.modules[mod] = mock
 
-# Now safe to import
-from scripts.opus_training_auditor import (  # noqa: E402
+# Now safe to import — core logic lives in the shared lib
+from libs.audit.auditor import (  # noqa: E402
     AuditVerdict,
     AutoFixCapMonitor,
     CostGuardrail,
+    SecondOpinionProvider,
     ToolExecutor,
     _agentic_audit_record,
     _build_tool_config,
