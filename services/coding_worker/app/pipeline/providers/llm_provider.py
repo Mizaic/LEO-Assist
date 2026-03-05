@@ -32,7 +32,15 @@ class LLMExtractorProvider:
     source = _SOURCE
 
     def __init__(self) -> None:
-        model_id = os.getenv("AWS_BEDROCK_MODEL", "")
+        # AWS_BEDROCK_MODEL is the legacy key; prefer the canonical AWS_SMALL_MODEL
+        # (Haiku-class) for extraction and fall back to AWS_BIG_MODEL (Sonnet) if
+        # neither is set, finally falling through to the legacy key.
+        model_id = (
+            os.getenv("AWS_BEDROCK_MODEL")
+            or os.getenv("AWS_SMALL_MODEL")
+            or os.getenv("AWS_BIG_MODEL")
+            or ""
+        )
         region = os.getenv("AWS_DEFAULT_REGION", "eu-west-2")
         self._extractor = LLMExtractor(model_id=model_id, region=region)
 

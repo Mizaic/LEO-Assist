@@ -393,6 +393,7 @@ def _apply_scope_guard_to_dicts(
             entity_semantic_tag=str(ent.get("label", "")),
             entity_assertion=assertion,
             sentence_text=sentence_text,
+            entity_text=str(ent.get("text") or ent.get("normalized") or ""),
         )
         if new_assertion is not None:
             ent["assertion"] = new_assertion

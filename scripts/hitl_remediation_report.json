@@ -1,0 +1,192 @@
+{
+  "dry_run": false,
+  "summary": {
+    "surface_forms_added": 13,
+    "reviews_resolved": 0,
+    "entities_json_updated": 3,
+    "ignore_rules_added": 0,
+    "errors": 0
+  },
+  "surface_forms_added": [
+    {
+      "form": "tongue sore",
+      "normalized": "tongue sore",
+      "concept_id": "30731004",
+      "concept_fsn": "Glossodynia (disorder)"
+    },
+    {
+      "form": "Tongue sore",
+      "normalized": "tongue sore",
+      "concept_id": "30731004",
+      "concept_fsn": "Glossodynia (disorder)"
+    },
+    {
+      "form": "sore tongue",
+      "normalized": "sore tongue",
+      "concept_id": "30731004",
+      "concept_fsn": "Glossodynia (disorder)"
+    },
+    {
+      "form": "dad gets drunk regularly",
+      "normalized": "dad gets drunk regularly",
+      "concept_id": "266890009",
+      "concept_fsn": "Family history of alcoholism (situation)"
+    },
+    {
+      "form": "low mood",
+      "normalized": "low mood",
+      "concept_id": "366979004",
+      "concept_fsn": "Depressed mood (finding)"
+    },
+    {
+      "form": "Low mood",
+      "normalized": "low mood",
+      "concept_id": "366979004",
+      "concept_fsn": "Depressed mood (finding)"
+    },
+    {
+      "form": "low in mood",
+      "normalized": "low in mood",
+      "concept_id": "366979004",
+      "concept_fsn": "Depressed mood (finding)"
+    },
+    {
+      "form": "Persistent low mood",
+      "normalized": "persistent low mood",
+      "concept_id": "366979004",
+      "concept_fsn": "Depressed mood (finding)"
+    },
+    {
+      "form": "persistent low mood",
+      "normalized": "persistent low mood",
+      "concept_id": "366979004",
+      "concept_fsn": "Depressed mood (finding)"
+    },
+    {
+      "form": "anxiety symptoms",
+      "normalized": "anxiety symptoms",
+      "concept_id": "48694002",
+      "concept_fsn": "Anxiety (finding)"
+    },
+    {
+      "form": "Anxiety symptoms",
+      "normalized": "anxiety symptoms",
+      "concept_id": "48694002",
+      "concept_fsn": "Anxiety (finding)"
+    },
+    {
+      "form": "Recurrent Diarrhoea",
+      "normalized": "recurrent diarrhoea",
+      "concept_id": "236071009",
+      "concept_fsn": "Chronic diarrhea (disorder)"
+    },
+    {
+      "form": "recurrent diarrhoea",
+      "normalized": "recurrent diarrhoea",
+      "concept_id": "236071009",
+      "concept_fsn": "Chronic diarrhea (disorder)"
+    }
+  ],
+  "reviews_resolved": [
+    {
+      "entity_text": "tongue sore",
+      "concept_id": "30731004",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Tongue sore",
+      "concept_id": "30731004",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "sore tongue",
+      "concept_id": "30731004",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "dad gets drunk regularly",
+      "concept_id": "266890009",
+      "resolved_count": 0,
+      "assertion": "family"
+    },
+    {
+      "entity_text": "low mood",
+      "concept_id": "366979004",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Low mood",
+      "concept_id": "366979004",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "low in mood",
+      "concept_id": "366979004",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Persistent low mood",
+      "concept_id": "366979004",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "persistent low mood",
+      "concept_id": "366979004",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "anxiety symptoms",
+      "concept_id": "48694002",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Anxiety symptoms",
+      "concept_id": "48694002",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Recurrent Diarrhoea",
+      "concept_id": "236071009",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "recurrent diarrhoea",
+      "concept_id": "236071009",
+      "resolved_count": 0,
+      "assertion": "present"
+    }
+  ],
+  "entities_json_updated": [
+    {
+      "label_id": "246cabbd4b58c5304e3f7c3a428b25f5e83da2bce8b975e45fec6e8f48d5167a",
+      "entity_text": "tongue sore",
+      "old_label": "finding",
+      "new_label": "disorder"
+    },
+    {
+      "label_id": "409dd863ce65ed3652fa7b8cec7cd0c154ab218fbc7a0001c4405cd0f6551325",
+      "entity_text": "dad gets drunk regularly",
+      "old_label": "finding",
+      "new_label": "situation"
+    },
+    {
+      "label_id": "6971243f90c19b214b504f092b54f4644468f048196fd3e82573a148f1e641b8",
+      "entity_text": "Recurrent Diarrhoea",
+      "old_label": "finding",
+      "new_label": "disorder"
+    }
+  ],
+  "ignore_rules_added": [],
+  "errors": []
+}

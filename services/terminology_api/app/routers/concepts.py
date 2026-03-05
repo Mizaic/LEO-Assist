@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import re
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
@@ -14,6 +14,7 @@ from libs.neo4j_client.client import KnowledgeGraphClient
 from services.terminology_api.app.queries.terminology import (
     DESCENDANTS_TEMPLATE,
     GET_CONCEPT_FOR_SUGGESTION,
+    RELATED_CONCEPTS_QUERY,
 )
 
 logger = logging.getLogger(__name__)
@@ -25,6 +26,87 @@ class DescendantResult(BaseModel):
     snomed_concept_id: str
     term: str
     semantic_tag: Optional[str] = None
+
+
+class RelatedConceptRef(BaseModel):
+    id: str
+    fsn: str
+    semantic_tag: Optional[str] = None
+    rel: str
+
+
+class RelatedConceptsResult(BaseModel):
+    """Full ontology family for a lab-domain concept.
+
+    For an observable_entity like ``MCH (observable entity)``:
+    - ``interpreted_by_findings``  — findings that have this as their observable
+      (e.g. *Finding of MCH level (finding)* via INTERPRETS)
+    - ``component_of_procedures`` — procedures that include this observable
+      (e.g. *MCH determination (procedure)* via HAS_COMPONENT)
+    - ``interprets_observables``   — observables that this finding interprets
+      (only populated when the queried concept is a finding)
+    - ``has_components``           — observables that this procedure measures
+      (only populated when the queried concept is a procedure)
+    - ``associated_findings``      — findings linked via HAS_ASSOCIATED_FINDING
+    """
+
+    concept_id: str
+    concept_fsn: str
+    semantic_tag: Optional[str] = None
+    interpreted_by_findings: List[RelatedConceptRef] = []
+    component_of_procedures: List[RelatedConceptRef] = []
+    interprets_observables: List[RelatedConceptRef] = []
+    has_components: List[RelatedConceptRef] = []
+    associated_findings: List[RelatedConceptRef] = []
+
+
+@router.get(
+    "/concepts/{concept_id}/related",
+    response_model=RelatedConceptsResult,
+    summary="Get related lab-domain concepts via SNOMED ontology relationships",
+    description=(
+        "Traverse INTERPRETS, HAS_COMPONENT, and HAS_ASSOCIATED_FINDING relationships "
+        "to return the full observable_entity / procedure / finding family for a concept. "
+        "Relationships are materialised by the phase-3 SNOMED attribute projection loader."
+    ),
+)
+def get_related_concepts(concept_id: str) -> RelatedConceptsResult:
+    """Return the SNOMED ontology family for a lab-domain concept."""
+    client = KnowledgeGraphClient()
+    try:
+        rows = client.run(RELATED_CONCEPTS_QUERY, concept_id=concept_id)
+    finally:
+        client.close()
+
+    if not rows:
+        raise HTTPException(status_code=404, detail=f"Concept {concept_id} not found or inactive")
+
+    row = rows[0]
+
+    def _to_refs(items: Any) -> List[RelatedConceptRef]:
+        if not items:
+            return []
+        return [
+            RelatedConceptRef(
+                id=str(item["id"]),
+                fsn=str(item["fsn"]),
+                semantic_tag=item.get("semantic_tag"),
+                rel=item.get("rel", ""),
+            )
+            for item in items
+            if item and item.get("id") and item.get("fsn")
+        ]
+
+    return RelatedConceptsResult(
+        concept_id=str(row["concept_id"]),
+        concept_fsn=str(row["concept_fsn"]),
+        semantic_tag=row.get("semantic_tag"),
+        interpreted_by_findings=_to_refs(row.get("interpreted_by_findings")),
+        component_of_procedures=_to_refs(row.get("component_of_procedures")),
+        interprets_observables=_to_refs(row.get("interprets_observables")),
+        has_components=_to_refs(row.get("has_components")),
+        associated_findings=_to_refs(row.get("associated_findings")),
+    )
 
 
 @router.get("/concepts/{concept_id}/descendants", response_model=List[DescendantResult])

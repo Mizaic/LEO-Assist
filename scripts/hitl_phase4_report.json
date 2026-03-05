@@ -1,0 +1,2044 @@
+{
+  "dry_run": false,
+  "summary": {
+    "surface_forms_added": 167,
+    "reviews_resolved": 113,
+    "entities_json_updated": 1,
+    "ignore_rules_added": 3,
+    "errors": 0
+  },
+  "surface_forms_added": [
+    {
+      "form": "Suspected cancer",
+      "normalized": "suspected cancer",
+      "concept_id": "162572001",
+      "concept_fsn": "Malignant neoplastic disease suspected (situation)"
+    },
+    {
+      "form": "suspected cancer",
+      "normalized": "suspected cancer",
+      "concept_id": "162572001",
+      "concept_fsn": "Malignant neoplastic disease suspected (situation)"
+    },
+    {
+      "form": "?cancer",
+      "normalized": "?cancer",
+      "concept_id": "162572001",
+      "concept_fsn": "Malignant neoplastic disease suspected (situation)"
+    },
+    {
+      "form": "Malignancy suspected",
+      "normalized": "malignancy suspected",
+      "concept_id": "162572001",
+      "concept_fsn": "Malignant neoplastic disease suspected (situation)"
+    },
+    {
+      "form": "malignancy suspected",
+      "normalized": "malignancy suspected",
+      "concept_id": "162572001",
+      "concept_fsn": "Malignant neoplastic disease suspected (situation)"
+    },
+    {
+      "form": "suspected malignancy",
+      "normalized": "suspected malignancy",
+      "concept_id": "162572001",
+      "concept_fsn": "Malignant neoplastic disease suspected (situation)"
+    },
+    {
+      "form": "Suspected malignancy",
+      "normalized": "suspected malignancy",
+      "concept_id": "162572001",
+      "concept_fsn": "Malignant neoplastic disease suspected (situation)"
+    },
+    {
+      "form": "Suspected head and neck cancer",
+      "normalized": "suspected head and neck cancer",
+      "concept_id": "315277001",
+      "concept_fsn": "Malignant neoplasm of head and/or neck suspected (situation)"
+    },
+    {
+      "form": "suspected head and neck cancer",
+      "normalized": "suspected head and neck cancer",
+      "concept_id": "315277001",
+      "concept_fsn": "Malignant neoplasm of head and/or neck suspected (situation)"
+    },
+    {
+      "form": "?head and neck cancer",
+      "normalized": "?head and neck cancer",
+      "concept_id": "315277001",
+      "concept_fsn": "Malignant neoplasm of head and/or neck suspected (situation)"
+    },
+    {
+      "form": "Ca head and neck",
+      "normalized": "ca head and neck",
+      "concept_id": "315277001",
+      "concept_fsn": "Malignant neoplasm of head and/or neck suspected (situation)"
+    },
+    {
+      "form": "suspected colorectal cancer",
+      "normalized": "suspected colorectal cancer",
+      "concept_id": "315274008",
+      "concept_fsn": "Malignant neoplasm of lower gastrointestinal tract suspected (situation)"
+    },
+    {
+      "form": "Suspected colorectal cancer",
+      "normalized": "suspected colorectal cancer",
+      "concept_id": "315274008",
+      "concept_fsn": "Malignant neoplasm of lower gastrointestinal tract suspected (situation)"
+    },
+    {
+      "form": "?colorectal cancer",
+      "normalized": "?colorectal cancer",
+      "concept_id": "315274008",
+      "concept_fsn": "Malignant neoplasm of lower gastrointestinal tract suspected (situation)"
+    },
+    {
+      "form": "Suspected lower gastrointestinal cancer",
+      "normalized": "suspected lower gastrointestinal cancer",
+      "concept_id": "315274008",
+      "concept_fsn": "Malignant neoplasm of lower gastrointestinal tract suspected (situation)"
+    },
+    {
+      "form": "suspected lower gastrointestinal cancer",
+      "normalized": "suspected lower gastrointestinal cancer",
+      "concept_id": "315274008",
+      "concept_fsn": "Malignant neoplasm of lower gastrointestinal tract suspected (situation)"
+    },
+    {
+      "form": "Suspected lgi cancer",
+      "normalized": "suspected lgi cancer",
+      "concept_id": "315274008",
+      "concept_fsn": "Malignant neoplasm of lower gastrointestinal tract suspected (situation)"
+    },
+    {
+      "form": "suspected lgi cancer",
+      "normalized": "suspected lgi cancer",
+      "concept_id": "315274008",
+      "concept_fsn": "Malignant neoplasm of lower gastrointestinal tract suspected (situation)"
+    },
+    {
+      "form": "?lgi cancer",
+      "normalized": "?lgi cancer",
+      "concept_id": "315274008",
+      "concept_fsn": "Malignant neoplasm of lower gastrointestinal tract suspected (situation)"
+    },
+    {
+      "form": "?lg cx",
+      "normalized": "?lg cx",
+      "concept_id": "315274008",
+      "concept_fsn": "Malignant neoplasm of lower gastrointestinal tract suspected (situation)"
+    },
+    {
+      "form": "?LGI cancer",
+      "normalized": "?lgi cancer",
+      "concept_id": "315274008",
+      "concept_fsn": "Malignant neoplasm of lower gastrointestinal tract suspected (situation)"
+    },
+    {
+      "form": "constipation",
+      "normalized": "constipation",
+      "concept_id": "14760008",
+      "concept_fsn": "Constipation (finding)"
+    },
+    {
+      "form": "Constipation",
+      "normalized": "constipation",
+      "concept_id": "14760008",
+      "concept_fsn": "Constipation (finding)"
+    },
+    {
+      "form": "infection",
+      "normalized": "infection",
+      "concept_id": "40733004",
+      "concept_fsn": "Infectious disease (disorder)"
+    },
+    {
+      "form": "Infection",
+      "normalized": "infection",
+      "concept_id": "40733004",
+      "concept_fsn": "Infectious disease (disorder)"
+    },
+    {
+      "form": "fracture",
+      "normalized": "fracture",
+      "concept_id": "125605004",
+      "concept_fsn": "Fracture of bone (disorder)"
+    },
+    {
+      "form": "Fracture",
+      "normalized": "fracture",
+      "concept_id": "125605004",
+      "concept_fsn": "Fracture of bone (disorder)"
+    },
+    {
+      "form": "Acute Kidney Injury",
+      "normalized": "acute kidney injury",
+      "concept_id": "14669001",
+      "concept_fsn": "Acute kidney injury (disorder)"
+    },
+    {
+      "form": "acute kidney injury",
+      "normalized": "acute kidney injury",
+      "concept_id": "14669001",
+      "concept_fsn": "Acute kidney injury (disorder)"
+    },
+    {
+      "form": "AKI",
+      "normalized": "aki",
+      "concept_id": "14669001",
+      "concept_fsn": "Acute kidney injury (disorder)"
+    },
+    {
+      "form": "IBS",
+      "normalized": "ibs",
+      "concept_id": "10743008",
+      "concept_fsn": "Irritable bowel syndrome (disorder)"
+    },
+    {
+      "form": "Irritable colon",
+      "normalized": "irritable colon",
+      "concept_id": "10743008",
+      "concept_fsn": "Irritable bowel syndrome (disorder)"
+    },
+    {
+      "form": "irritable colon",
+      "normalized": "irritable colon",
+      "concept_id": "10743008",
+      "concept_fsn": "Irritable bowel syndrome (disorder)"
+    },
+    {
+      "form": "Adaptive colitis",
+      "normalized": "adaptive colitis",
+      "concept_id": "10743008",
+      "concept_fsn": "Irritable bowel syndrome (disorder)"
+    },
+    {
+      "form": "adaptive colitis",
+      "normalized": "adaptive colitis",
+      "concept_id": "10743008",
+      "concept_fsn": "Irritable bowel syndrome (disorder)"
+    },
+    {
+      "form": "Membranous colitis",
+      "normalized": "membranous colitis",
+      "concept_id": "10743008",
+      "concept_fsn": "Irritable bowel syndrome (disorder)"
+    },
+    {
+      "form": "membranous colitis",
+      "normalized": "membranous colitis",
+      "concept_id": "10743008",
+      "concept_fsn": "Irritable bowel syndrome (disorder)"
+    },
+    {
+      "form": "Spastic colon",
+      "normalized": "spastic colon",
+      "concept_id": "10743008",
+      "concept_fsn": "Irritable bowel syndrome (disorder)"
+    },
+    {
+      "form": "spastic colon",
+      "normalized": "spastic colon",
+      "concept_id": "10743008",
+      "concept_fsn": "Irritable bowel syndrome (disorder)"
+    },
+    {
+      "form": "Irritable bowel syndrome",
+      "normalized": "irritable bowel syndrome",
+      "concept_id": "10743008",
+      "concept_fsn": "Irritable bowel syndrome (disorder)"
+    },
+    {
+      "form": "irritable bowel syndrome",
+      "normalized": "irritable bowel syndrome",
+      "concept_id": "10743008",
+      "concept_fsn": "Irritable bowel syndrome (disorder)"
+    },
+    {
+      "form": "Mucous colitis",
+      "normalized": "mucous colitis",
+      "concept_id": "10743008",
+      "concept_fsn": "Irritable bowel syndrome (disorder)"
+    },
+    {
+      "form": "mucous colitis",
+      "normalized": "mucous colitis",
+      "concept_id": "10743008",
+      "concept_fsn": "Irritable bowel syndrome (disorder)"
+    },
+    {
+      "form": "Colon spasm",
+      "normalized": "colon spasm",
+      "concept_id": "10743008",
+      "concept_fsn": "Irritable bowel syndrome (disorder)"
+    },
+    {
+      "form": "colon spasm",
+      "normalized": "colon spasm",
+      "concept_id": "10743008",
+      "concept_fsn": "Irritable bowel syndrome (disorder)"
+    },
+    {
+      "form": "Functional bowel disease",
+      "normalized": "functional bowel disease",
+      "concept_id": "10743008",
+      "concept_fsn": "Irritable bowel syndrome (disorder)"
+    },
+    {
+      "form": "functional bowel disease",
+      "normalized": "functional bowel disease",
+      "concept_id": "10743008",
+      "concept_fsn": "Irritable bowel syndrome (disorder)"
+    },
+    {
+      "form": "Nervous colitis",
+      "normalized": "nervous colitis",
+      "concept_id": "10743008",
+      "concept_fsn": "Irritable bowel syndrome (disorder)"
+    },
+    {
+      "form": "nervous colitis",
+      "normalized": "nervous colitis",
+      "concept_id": "10743008",
+      "concept_fsn": "Irritable bowel syndrome (disorder)"
+    },
+    {
+      "form": "IBS - Irritable bowel syndrome",
+      "normalized": "ibs - irritable bowel syndrome",
+      "concept_id": "10743008",
+      "concept_fsn": "Irritable bowel syndrome (disorder)"
+    },
+    {
+      "form": "Irritable bowel",
+      "normalized": "irritable bowel",
+      "concept_id": "10743008",
+      "concept_fsn": "Irritable bowel syndrome (disorder)"
+    },
+    {
+      "form": "irritable bowel",
+      "normalized": "irritable bowel",
+      "concept_id": "10743008",
+      "concept_fsn": "Irritable bowel syndrome (disorder)"
+    },
+    {
+      "form": "Spastic colitis",
+      "normalized": "spastic colitis",
+      "concept_id": "10743008",
+      "concept_fsn": "Irritable bowel syndrome (disorder)"
+    },
+    {
+      "form": "spastic colitis",
+      "normalized": "spastic colitis",
+      "concept_id": "10743008",
+      "concept_fsn": "Irritable bowel syndrome (disorder)"
+    },
+    {
+      "form": "Irritable colon syndrome",
+      "normalized": "irritable colon syndrome",
+      "concept_id": "10743008",
+      "concept_fsn": "Irritable bowel syndrome (disorder)"
+    },
+    {
+      "form": "irritable colon syndrome",
+      "normalized": "irritable colon syndrome",
+      "concept_id": "10743008",
+      "concept_fsn": "Irritable bowel syndrome (disorder)"
+    },
+    {
+      "form": "IC - Irritable colon",
+      "normalized": "ic - irritable colon",
+      "concept_id": "10743008",
+      "concept_fsn": "Irritable bowel syndrome (disorder)"
+    },
+    {
+      "form": "High blood pressure",
+      "normalized": "high blood pressure",
+      "concept_id": "38458008",
+      "concept_fsn": "Hypertensive disorder, systemic arterial (disorder)"
+    },
+    {
+      "form": "high blood pressure",
+      "normalized": "high blood pressure",
+      "concept_id": "38458008",
+      "concept_fsn": "Hypertensive disorder, systemic arterial (disorder)"
+    },
+    {
+      "form": "Hypertensive vascular disease",
+      "normalized": "hypertensive vascular disease",
+      "concept_id": "38458008",
+      "concept_fsn": "Hypertensive disorder, systemic arterial (disorder)"
+    },
+    {
+      "form": "hypertensive vascular disease",
+      "normalized": "hypertensive vascular disease",
+      "concept_id": "38458008",
+      "concept_fsn": "Hypertensive disorder, systemic arterial (disorder)"
+    },
+    {
+      "form": "Hypertensive vascular degeneration",
+      "normalized": "hypertensive vascular degeneration",
+      "concept_id": "38458008",
+      "concept_fsn": "Hypertensive disorder, systemic arterial (disorder)"
+    },
+    {
+      "form": "hypertensive vascular degeneration",
+      "normalized": "hypertensive vascular degeneration",
+      "concept_id": "38458008",
+      "concept_fsn": "Hypertensive disorder, systemic arterial (disorder)"
+    },
+    {
+      "form": "Hypertension",
+      "normalized": "hypertension",
+      "concept_id": "38458008",
+      "concept_fsn": "Hypertensive disorder, systemic arterial (disorder)"
+    },
+    {
+      "form": "hypertension",
+      "normalized": "hypertension",
+      "concept_id": "38458008",
+      "concept_fsn": "Hypertensive disorder, systemic arterial (disorder)"
+    },
+    {
+      "form": "BP - High blood pressure",
+      "normalized": "bp - high blood pressure",
+      "concept_id": "38458008",
+      "concept_fsn": "Hypertensive disorder, systemic arterial (disorder)"
+    },
+    {
+      "form": "Systemic arterial hypertension",
+      "normalized": "systemic arterial hypertension",
+      "concept_id": "38458008",
+      "concept_fsn": "Hypertensive disorder, systemic arterial (disorder)"
+    },
+    {
+      "form": "systemic arterial hypertension",
+      "normalized": "systemic arterial hypertension",
+      "concept_id": "38458008",
+      "concept_fsn": "Hypertensive disorder, systemic arterial (disorder)"
+    },
+    {
+      "form": "HBP - High blood pressure",
+      "normalized": "hbp - high blood pressure",
+      "concept_id": "38458008",
+      "concept_fsn": "Hypertensive disorder, systemic arterial (disorder)"
+    },
+    {
+      "form": "HT - Hypertension",
+      "normalized": "ht - hypertension",
+      "concept_id": "38458008",
+      "concept_fsn": "Hypertensive disorder, systemic arterial (disorder)"
+    },
+    {
+      "form": "High blood pressure disorder",
+      "normalized": "high blood pressure disorder",
+      "concept_id": "38458008",
+      "concept_fsn": "Hypertensive disorder, systemic arterial (disorder)"
+    },
+    {
+      "form": "high blood pressure disorder",
+      "normalized": "high blood pressure disorder",
+      "concept_id": "38458008",
+      "concept_fsn": "Hypertensive disorder, systemic arterial (disorder)"
+    },
+    {
+      "form": "BP+ - Hypertension",
+      "normalized": "bp+ - hypertension",
+      "concept_id": "38458008",
+      "concept_fsn": "Hypertensive disorder, systemic arterial (disorder)"
+    },
+    {
+      "form": "Hypertensive disorder, systemic arterial",
+      "normalized": "hypertensive disorder, systemic arterial",
+      "concept_id": "38458008",
+      "concept_fsn": "Hypertensive disorder, systemic arterial (disorder)"
+    },
+    {
+      "form": "Hypertensive disorder",
+      "normalized": "hypertensive disorder",
+      "concept_id": "38458008",
+      "concept_fsn": "Hypertensive disorder, systemic arterial (disorder)"
+    },
+    {
+      "form": "hypertensive disorder",
+      "normalized": "hypertensive disorder",
+      "concept_id": "38458008",
+      "concept_fsn": "Hypertensive disorder, systemic arterial (disorder)"
+    },
+    {
+      "form": "HTN - Hypertension",
+      "normalized": "htn - hypertension",
+      "concept_id": "38458008",
+      "concept_fsn": "Hypertensive disorder, systemic arterial (disorder)"
+    },
+    {
+      "form": "HTN",
+      "normalized": "htn",
+      "concept_id": "38458008",
+      "concept_fsn": "Hypertensive disorder, systemic arterial (disorder)"
+    },
+    {
+      "form": "Hypertensive disorder, systemic arterial (disorder)",
+      "normalized": "hypertensive disorder, systemic arterial (disorder)",
+      "concept_id": "38458008",
+      "concept_fsn": "Hypertensive disorder, systemic arterial (disorder)"
+    },
+    {
+      "form": "CVA",
+      "normalized": "cva",
+      "concept_id": "230690007",
+      "concept_fsn": "Cerebrovascular accident (disorder)"
+    },
+    {
+      "form": "Cerebrovascular accident",
+      "normalized": "cerebrovascular accident",
+      "concept_id": "230690007",
+      "concept_fsn": "Cerebrovascular accident (disorder)"
+    },
+    {
+      "form": "cerebrovascular accident",
+      "normalized": "cerebrovascular accident",
+      "concept_id": "230690007",
+      "concept_fsn": "Cerebrovascular accident (disorder)"
+    },
+    {
+      "form": "Stroke",
+      "normalized": "stroke",
+      "concept_id": "230690007",
+      "concept_fsn": "Cerebrovascular accident (disorder)"
+    },
+    {
+      "form": "stroke",
+      "normalized": "stroke",
+      "concept_id": "230690007",
+      "concept_fsn": "Cerebrovascular accident (disorder)"
+    },
+    {
+      "form": "Transient ischaemic attack",
+      "normalized": "transient ischaemic attack",
+      "concept_id": "266257000",
+      "concept_fsn": "Transient ischemic attack (disorder)"
+    },
+    {
+      "form": "transient ischaemic attack",
+      "normalized": "transient ischaemic attack",
+      "concept_id": "266257000",
+      "concept_fsn": "Transient ischemic attack (disorder)"
+    },
+    {
+      "form": "Transient cerebral ischemia",
+      "normalized": "transient cerebral ischemia",
+      "concept_id": "266257000",
+      "concept_fsn": "Transient ischemic attack (disorder)"
+    },
+    {
+      "form": "transient cerebral ischemia",
+      "normalized": "transient cerebral ischemia",
+      "concept_id": "266257000",
+      "concept_fsn": "Transient ischemic attack (disorder)"
+    },
+    {
+      "form": "Transient ischemic attack",
+      "normalized": "transient ischemic attack",
+      "concept_id": "266257000",
+      "concept_fsn": "Transient ischemic attack (disorder)"
+    },
+    {
+      "form": "transient ischemic attack",
+      "normalized": "transient ischemic attack",
+      "concept_id": "266257000",
+      "concept_fsn": "Transient ischemic attack (disorder)"
+    },
+    {
+      "form": "Transient cerebral ischaemia",
+      "normalized": "transient cerebral ischaemia",
+      "concept_id": "266257000",
+      "concept_fsn": "Transient ischemic attack (disorder)"
+    },
+    {
+      "form": "transient cerebral ischaemia",
+      "normalized": "transient cerebral ischaemia",
+      "concept_id": "266257000",
+      "concept_fsn": "Transient ischemic attack (disorder)"
+    },
+    {
+      "form": "Transient ischemic attack (disorder)",
+      "normalized": "transient ischemic attack (disorder)",
+      "concept_id": "266257000",
+      "concept_fsn": "Transient ischemic attack (disorder)"
+    },
+    {
+      "form": "TIA - transient ischemic attack",
+      "normalized": "tia - transient ischemic attack",
+      "concept_id": "266257000",
+      "concept_fsn": "Transient ischemic attack (disorder)"
+    },
+    {
+      "form": "TIA - transient ischaemic attack",
+      "normalized": "tia - transient ischaemic attack",
+      "concept_id": "266257000",
+      "concept_fsn": "Transient ischemic attack (disorder)"
+    },
+    {
+      "form": "TIA",
+      "normalized": "tia",
+      "concept_id": "266257000",
+      "concept_fsn": "Transient ischemic attack (disorder)"
+    },
+    {
+      "form": "Steatosis of liver",
+      "normalized": "steatosis of liver",
+      "concept_id": "197321007",
+      "concept_fsn": "Steatosis of liver (disorder)"
+    },
+    {
+      "form": "steatosis of liver",
+      "normalized": "steatosis of liver",
+      "concept_id": "197321007",
+      "concept_fsn": "Steatosis of liver (disorder)"
+    },
+    {
+      "form": "Steatosis of liver (disorder)",
+      "normalized": "steatosis of liver (disorder)",
+      "concept_id": "197321007",
+      "concept_fsn": "Steatosis of liver (disorder)"
+    },
+    {
+      "form": "Fatty liver",
+      "normalized": "fatty liver",
+      "concept_id": "197321007",
+      "concept_fsn": "Steatosis of liver (disorder)"
+    },
+    {
+      "form": "fatty liver",
+      "normalized": "fatty liver",
+      "concept_id": "197321007",
+      "concept_fsn": "Steatosis of liver (disorder)"
+    },
+    {
+      "form": "Hepatic lipidosis",
+      "normalized": "hepatic lipidosis",
+      "concept_id": "197321007",
+      "concept_fsn": "Steatosis of liver (disorder)"
+    },
+    {
+      "form": "hepatic lipidosis",
+      "normalized": "hepatic lipidosis",
+      "concept_id": "197321007",
+      "concept_fsn": "Steatosis of liver (disorder)"
+    },
+    {
+      "form": "Steatotic liver disease",
+      "normalized": "steatotic liver disease",
+      "concept_id": "197321007",
+      "concept_fsn": "Steatosis of liver (disorder)"
+    },
+    {
+      "form": "steatotic liver disease",
+      "normalized": "steatotic liver disease",
+      "concept_id": "197321007",
+      "concept_fsn": "Steatosis of liver (disorder)"
+    },
+    {
+      "form": "SLD - steatotic liver disease",
+      "normalized": "sld - steatotic liver disease",
+      "concept_id": "197321007",
+      "concept_fsn": "Steatosis of liver (disorder)"
+    },
+    {
+      "form": "Mycosis",
+      "normalized": "mycosis",
+      "concept_id": "3218000",
+      "concept_fsn": "Mycosis (disorder)"
+    },
+    {
+      "form": "mycosis",
+      "normalized": "mycosis",
+      "concept_id": "3218000",
+      "concept_fsn": "Mycosis (disorder)"
+    },
+    {
+      "form": "Fungal infection",
+      "normalized": "fungal infection",
+      "concept_id": "3218000",
+      "concept_fsn": "Mycosis (disorder)"
+    },
+    {
+      "form": "fungal infection",
+      "normalized": "fungal infection",
+      "concept_id": "3218000",
+      "concept_fsn": "Mycosis (disorder)"
+    },
+    {
+      "form": "Disease caused by fungus",
+      "normalized": "disease caused by fungus",
+      "concept_id": "3218000",
+      "concept_fsn": "Mycosis (disorder)"
+    },
+    {
+      "form": "disease caused by fungus",
+      "normalized": "disease caused by fungus",
+      "concept_id": "3218000",
+      "concept_fsn": "Mycosis (disorder)"
+    },
+    {
+      "form": "Fungal infectious disease",
+      "normalized": "fungal infectious disease",
+      "concept_id": "3218000",
+      "concept_fsn": "Mycosis (disorder)"
+    },
+    {
+      "form": "fungal infectious disease",
+      "normalized": "fungal infectious disease",
+      "concept_id": "3218000",
+      "concept_fsn": "Mycosis (disorder)"
+    },
+    {
+      "form": "Fungus infection",
+      "normalized": "fungus infection",
+      "concept_id": "3218000",
+      "concept_fsn": "Mycosis (disorder)"
+    },
+    {
+      "form": "fungus infection",
+      "normalized": "fungus infection",
+      "concept_id": "3218000",
+      "concept_fsn": "Mycosis (disorder)"
+    },
+    {
+      "form": "Mycoses",
+      "normalized": "mycoses",
+      "concept_id": "3218000",
+      "concept_fsn": "Mycosis (disorder)"
+    },
+    {
+      "form": "mycoses",
+      "normalized": "mycoses",
+      "concept_id": "3218000",
+      "concept_fsn": "Mycosis (disorder)"
+    },
+    {
+      "form": "Mycosis (disorder)",
+      "normalized": "mycosis (disorder)",
+      "concept_id": "3218000",
+      "concept_fsn": "Mycosis (disorder)"
+    },
+    {
+      "form": "Mycotic disease",
+      "normalized": "mycotic disease",
+      "concept_id": "3218000",
+      "concept_fsn": "Mycosis (disorder)"
+    },
+    {
+      "form": "mycotic disease",
+      "normalized": "mycotic disease",
+      "concept_id": "3218000",
+      "concept_fsn": "Mycosis (disorder)"
+    },
+    {
+      "form": "Stopped smoking",
+      "normalized": "stopped smoking",
+      "concept_id": "160617001",
+      "concept_fsn": "Stopped smoking (finding)"
+    },
+    {
+      "form": "stopped smoking",
+      "normalized": "stopped smoking",
+      "concept_id": "160617001",
+      "concept_fsn": "Stopped smoking (finding)"
+    },
+    {
+      "form": "Never Smoked",
+      "normalized": "never smoked",
+      "concept_id": "266919005",
+      "concept_fsn": "Never smoked tobacco (finding)"
+    },
+    {
+      "form": "never smoked",
+      "normalized": "never smoked",
+      "concept_id": "266919005",
+      "concept_fsn": "Never smoked tobacco (finding)"
+    },
+    {
+      "form": "Never smoked",
+      "normalized": "never smoked",
+      "concept_id": "266919005",
+      "concept_fsn": "Never smoked tobacco (finding)"
+    },
+    {
+      "form": "Ex-cigarette smoker",
+      "normalized": "ex-cigarette smoker",
+      "concept_id": "281018007",
+      "concept_fsn": "Ex-cigarette smoker (finding)"
+    },
+    {
+      "form": "ex-cigarette smoker",
+      "normalized": "ex-cigarette smoker",
+      "concept_id": "281018007",
+      "concept_fsn": "Ex-cigarette smoker (finding)"
+    },
+    {
+      "form": "Ex cigarette smoker",
+      "normalized": "ex cigarette smoker",
+      "concept_id": "281018007",
+      "concept_fsn": "Ex-cigarette smoker (finding)"
+    },
+    {
+      "form": "ex smoker",
+      "normalized": "ex smoker",
+      "concept_id": "281018007",
+      "concept_fsn": "Ex-cigarette smoker (finding)"
+    },
+    {
+      "form": "Ex smoker",
+      "normalized": "ex smoker",
+      "concept_id": "281018007",
+      "concept_fsn": "Ex-cigarette smoker (finding)"
+    },
+    {
+      "form": "smoking cannabis",
+      "normalized": "smoking cannabis",
+      "concept_id": "347841000119106",
+      "concept_fsn": "Long-term current use of cannabis (situation)"
+    },
+    {
+      "form": "Smoking cannabis",
+      "normalized": "smoking cannabis",
+      "concept_id": "347841000119106",
+      "concept_fsn": "Long-term current use of cannabis (situation)"
+    },
+    {
+      "form": "cannabis use",
+      "normalized": "cannabis use",
+      "concept_id": "347841000119106",
+      "concept_fsn": "Long-term current use of cannabis (situation)"
+    },
+    {
+      "form": "smear HPV positive",
+      "normalized": "smear hpv positive",
+      "concept_id": "293201000119102",
+      "concept_fsn": "History of human papillomavirus infection (situation)"
+    },
+    {
+      "form": "HPV positive",
+      "normalized": "hpv positive",
+      "concept_id": "293201000119102",
+      "concept_fsn": "History of human papillomavirus infection (situation)"
+    },
+    {
+      "form": "Lives with partner",
+      "normalized": "lives with partner",
+      "concept_id": "408821002",
+      "concept_fsn": "Lives with partner (finding)"
+    },
+    {
+      "form": "lives with partner",
+      "normalized": "lives with partner",
+      "concept_id": "408821002",
+      "concept_fsn": "Lives with partner (finding)"
+    },
+    {
+      "form": "feels like a cyst",
+      "normalized": "feels like a cyst",
+      "concept_id": "441457006",
+      "concept_fsn": "Cyst (disorder)"
+    },
+    {
+      "form": "freq",
+      "normalized": "freq",
+      "concept_id": "70232002",
+      "concept_fsn": "Frequent (qualifier value)"
+    },
+    {
+      "form": "haematemisis",
+      "normalized": "haematemisis",
+      "concept_id": "8765009",
+      "concept_fsn": "Hematemesis (disorder)"
+    },
+    {
+      "form": "Dehydrocodien",
+      "normalized": "dehydrocodien",
+      "concept_id": "775592007",
+      "concept_fsn": "Product containing only dihydrocodeine (medicinal product)"
+    },
+    {
+      "form": "dehydrocodien",
+      "normalized": "dehydrocodien",
+      "concept_id": "775592007",
+      "concept_fsn": "Product containing only dihydrocodeine (medicinal product)"
+    },
+    {
+      "form": "Dehydrocodeine",
+      "normalized": "dehydrocodeine",
+      "concept_id": "775592007",
+      "concept_fsn": "Product containing only dihydrocodeine (medicinal product)"
+    },
+    {
+      "form": "dehydrocodeine",
+      "normalized": "dehydrocodeine",
+      "concept_id": "775592007",
+      "concept_fsn": "Product containing only dihydrocodeine (medicinal product)"
+    },
+    {
+      "form": "hoseiry",
+      "normalized": "hoseiry",
+      "concept_id": "228183008",
+      "concept_fsn": "Hosiery (physical object)"
+    },
+    {
+      "form": "hosiery",
+      "normalized": "hosiery",
+      "concept_id": "228183008",
+      "concept_fsn": "Hosiery (physical object)"
+    },
+    {
+      "form": "Hosiery",
+      "normalized": "hosiery",
+      "concept_id": "228183008",
+      "concept_fsn": "Hosiery (physical object)"
+    },
+    {
+      "form": "Fluclox",
+      "normalized": "fluclox",
+      "concept_id": "775979003",
+      "concept_fsn": "Product containing only flucloxacillin (medicinal product)"
+    },
+    {
+      "form": "fluclox",
+      "normalized": "fluclox",
+      "concept_id": "775979003",
+      "concept_fsn": "Product containing only flucloxacillin (medicinal product)"
+    },
+    {
+      "form": "flucloxacillin",
+      "normalized": "flucloxacillin",
+      "concept_id": "775979003",
+      "concept_fsn": "Product containing only flucloxacillin (medicinal product)"
+    },
+    {
+      "form": "Flucloxacillin",
+      "normalized": "flucloxacillin",
+      "concept_id": "775979003",
+      "concept_fsn": "Product containing only flucloxacillin (medicinal product)"
+    },
+    {
+      "form": "Cosmocol",
+      "normalized": "cosmocol",
+      "concept_id": "11980301000001107",
+      "concept_fsn": "CosmoCol (product)"
+    },
+    {
+      "form": "cosmocol",
+      "normalized": "cosmocol",
+      "concept_id": "11980301000001107",
+      "concept_fsn": "CosmoCol (product)"
+    },
+    {
+      "form": "CosmoCol",
+      "normalized": "cosmocol",
+      "concept_id": "11980301000001107",
+      "concept_fsn": "CosmoCol (product)"
+    },
+    {
+      "form": "Diuretics",
+      "normalized": "diuretics",
+      "concept_id": "372695000",
+      "concept_fsn": "Diuretic (substance)"
+    },
+    {
+      "form": "diuretics",
+      "normalized": "diuretics",
+      "concept_id": "372695000",
+      "concept_fsn": "Diuretic (substance)"
+    },
+    {
+      "form": "diuretic",
+      "normalized": "diuretic",
+      "concept_id": "372695000",
+      "concept_fsn": "Diuretic (substance)"
+    },
+    {
+      "form": "fidgetting",
+      "normalized": "fidgetting",
+      "concept_id": "247910009",
+      "concept_fsn": "Fidgeting (finding)"
+    },
+    {
+      "form": "fidgeting",
+      "normalized": "fidgeting",
+      "concept_id": "247910009",
+      "concept_fsn": "Fidgeting (finding)"
+    },
+    {
+      "form": "Fidgeting",
+      "normalized": "fidgeting",
+      "concept_id": "247910009",
+      "concept_fsn": "Fidgeting (finding)"
+    },
+    {
+      "form": "distractability",
+      "normalized": "distractability",
+      "concept_id": "28102002",
+      "concept_fsn": "Distractibility (finding)"
+    },
+    {
+      "form": "distractibility",
+      "normalized": "distractibility",
+      "concept_id": "28102002",
+      "concept_fsn": "Distractibility (finding)"
+    },
+    {
+      "form": "Distractibility",
+      "normalized": "distractibility",
+      "concept_id": "28102002",
+      "concept_fsn": "Distractibility (finding)"
+    },
+    {
+      "form": "anergia",
+      "normalized": "anergia",
+      "concept_id": "248274002",
+      "concept_fsn": "Lack of energy (finding)"
+    },
+    {
+      "form": "Anergia",
+      "normalized": "anergia",
+      "concept_id": "248274002",
+      "concept_fsn": "Lack of energy (finding)"
+    },
+    {
+      "form": "perdios heavier",
+      "normalized": "perdios heavier",
+      "concept_id": "161782001",
+      "concept_fsn": "History of menorrhagia (situation)"
+    }
+  ],
+  "reviews_resolved": [
+    {
+      "entity_text": "Suspected cancer",
+      "concept_id": "162572001",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "suspected cancer",
+      "concept_id": "162572001",
+      "resolved_count": 7,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "?cancer",
+      "concept_id": "162572001",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Malignancy suspected",
+      "concept_id": "162572001",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "malignancy suspected",
+      "concept_id": "162572001",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "suspected malignancy",
+      "concept_id": "162572001",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Suspected malignancy",
+      "concept_id": "162572001",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Suspected head and neck cancer",
+      "concept_id": "315277001",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "suspected head and neck cancer",
+      "concept_id": "315277001",
+      "resolved_count": 6,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "?head and neck cancer",
+      "concept_id": "315277001",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Ca head and neck",
+      "concept_id": "315277001",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "suspected colorectal cancer",
+      "concept_id": "315274008",
+      "resolved_count": 6,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Suspected colorectal cancer",
+      "concept_id": "315274008",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "?colorectal cancer",
+      "concept_id": "315274008",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Suspected lower gastrointestinal cancer",
+      "concept_id": "315274008",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "suspected lower gastrointestinal cancer",
+      "concept_id": "315274008",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Suspected lgi cancer",
+      "concept_id": "315274008",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "suspected lgi cancer",
+      "concept_id": "315274008",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "?lgi cancer",
+      "concept_id": "315274008",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "?lg cx",
+      "concept_id": "315274008",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "?LGI cancer",
+      "concept_id": "315274008",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "constipation",
+      "concept_id": "14760008",
+      "resolved_count": 20,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Constipation",
+      "concept_id": "14760008",
+      "resolved_count": 1,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "infection",
+      "concept_id": "40733004",
+      "resolved_count": 5,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Infection",
+      "concept_id": "40733004",
+      "resolved_count": 1,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "fracture",
+      "concept_id": "125605004",
+      "resolved_count": 7,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Fracture",
+      "concept_id": "125605004",
+      "resolved_count": 1,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Acute Kidney Injury",
+      "concept_id": "14669001",
+      "resolved_count": 4,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "acute kidney injury",
+      "concept_id": "14669001",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "AKI",
+      "concept_id": "14669001",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "IBS",
+      "concept_id": "10743008",
+      "resolved_count": 1,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Irritable colon",
+      "concept_id": "10743008",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "irritable colon",
+      "concept_id": "10743008",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Adaptive colitis",
+      "concept_id": "10743008",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "adaptive colitis",
+      "concept_id": "10743008",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Membranous colitis",
+      "concept_id": "10743008",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "membranous colitis",
+      "concept_id": "10743008",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Spastic colon",
+      "concept_id": "10743008",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "spastic colon",
+      "concept_id": "10743008",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Irritable bowel syndrome",
+      "concept_id": "10743008",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "irritable bowel syndrome",
+      "concept_id": "10743008",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Mucous colitis",
+      "concept_id": "10743008",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "mucous colitis",
+      "concept_id": "10743008",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Colon spasm",
+      "concept_id": "10743008",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "colon spasm",
+      "concept_id": "10743008",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Functional bowel disease",
+      "concept_id": "10743008",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "functional bowel disease",
+      "concept_id": "10743008",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Nervous colitis",
+      "concept_id": "10743008",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "nervous colitis",
+      "concept_id": "10743008",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "IBS - Irritable bowel syndrome",
+      "concept_id": "10743008",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Irritable bowel",
+      "concept_id": "10743008",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "irritable bowel",
+      "concept_id": "10743008",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Spastic colitis",
+      "concept_id": "10743008",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "spastic colitis",
+      "concept_id": "10743008",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Irritable colon syndrome",
+      "concept_id": "10743008",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "irritable colon syndrome",
+      "concept_id": "10743008",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "IC - Irritable colon",
+      "concept_id": "10743008",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "High blood pressure",
+      "concept_id": "38458008",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "high blood pressure",
+      "concept_id": "38458008",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Hypertensive vascular disease",
+      "concept_id": "38458008",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "hypertensive vascular disease",
+      "concept_id": "38458008",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Hypertensive vascular degeneration",
+      "concept_id": "38458008",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "hypertensive vascular degeneration",
+      "concept_id": "38458008",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Hypertension",
+      "concept_id": "38458008",
+      "resolved_count": 4,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "hypertension",
+      "concept_id": "38458008",
+      "resolved_count": 3,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "BP - High blood pressure",
+      "concept_id": "38458008",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Systemic arterial hypertension",
+      "concept_id": "38458008",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "systemic arterial hypertension",
+      "concept_id": "38458008",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "HBP - High blood pressure",
+      "concept_id": "38458008",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "HT - Hypertension",
+      "concept_id": "38458008",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "High blood pressure disorder",
+      "concept_id": "38458008",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "high blood pressure disorder",
+      "concept_id": "38458008",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "BP+ - Hypertension",
+      "concept_id": "38458008",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Hypertensive disorder, systemic arterial",
+      "concept_id": "38458008",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Hypertensive disorder",
+      "concept_id": "38458008",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "hypertensive disorder",
+      "concept_id": "38458008",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "HTN - Hypertension",
+      "concept_id": "38458008",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "HTN",
+      "concept_id": "38458008",
+      "resolved_count": 1,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Hypertensive disorder, systemic arterial (disorder)",
+      "concept_id": "38458008",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "CVA",
+      "concept_id": "230690007",
+      "resolved_count": 2,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Cerebrovascular accident",
+      "concept_id": "230690007",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "cerebrovascular accident",
+      "concept_id": "230690007",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Stroke",
+      "concept_id": "230690007",
+      "resolved_count": 1,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "stroke",
+      "concept_id": "230690007",
+      "resolved_count": 5,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Transient ischaemic attack",
+      "concept_id": "266257000",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "transient ischaemic attack",
+      "concept_id": "266257000",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Transient cerebral ischemia",
+      "concept_id": "266257000",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "transient cerebral ischemia",
+      "concept_id": "266257000",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Transient ischemic attack",
+      "concept_id": "266257000",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "transient ischemic attack",
+      "concept_id": "266257000",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Transient cerebral ischaemia",
+      "concept_id": "266257000",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "transient cerebral ischaemia",
+      "concept_id": "266257000",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Transient ischemic attack (disorder)",
+      "concept_id": "266257000",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "TIA - transient ischemic attack",
+      "concept_id": "266257000",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "TIA - transient ischaemic attack",
+      "concept_id": "266257000",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "TIA",
+      "concept_id": "266257000",
+      "resolved_count": 5,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Steatosis of liver",
+      "concept_id": "197321007",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "steatosis of liver",
+      "concept_id": "197321007",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Steatosis of liver (disorder)",
+      "concept_id": "197321007",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Fatty liver",
+      "concept_id": "197321007",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "fatty liver",
+      "concept_id": "197321007",
+      "resolved_count": 3,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Hepatic lipidosis",
+      "concept_id": "197321007",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "hepatic lipidosis",
+      "concept_id": "197321007",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Steatotic liver disease",
+      "concept_id": "197321007",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "steatotic liver disease",
+      "concept_id": "197321007",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "SLD - steatotic liver disease",
+      "concept_id": "197321007",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Mycosis",
+      "concept_id": "3218000",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "mycosis",
+      "concept_id": "3218000",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Fungal infection",
+      "concept_id": "3218000",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "fungal infection",
+      "concept_id": "3218000",
+      "resolved_count": 3,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Disease caused by fungus",
+      "concept_id": "3218000",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "disease caused by fungus",
+      "concept_id": "3218000",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Fungal infectious disease",
+      "concept_id": "3218000",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "fungal infectious disease",
+      "concept_id": "3218000",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Fungus infection",
+      "concept_id": "3218000",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "fungus infection",
+      "concept_id": "3218000",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Mycoses",
+      "concept_id": "3218000",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "mycoses",
+      "concept_id": "3218000",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Mycosis (disorder)",
+      "concept_id": "3218000",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Mycotic disease",
+      "concept_id": "3218000",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "mycotic disease",
+      "concept_id": "3218000",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Stopped smoking",
+      "concept_id": "160617001",
+      "resolved_count": 4,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "stopped smoking",
+      "concept_id": "160617001",
+      "resolved_count": 1,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Never Smoked",
+      "concept_id": "266919005",
+      "resolved_count": 4,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "never smoked",
+      "concept_id": "266919005",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Never smoked",
+      "concept_id": "266919005",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Ex-cigarette smoker",
+      "concept_id": "281018007",
+      "resolved_count": 3,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "ex-cigarette smoker",
+      "concept_id": "281018007",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Ex cigarette smoker",
+      "concept_id": "281018007",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "ex smoker",
+      "concept_id": "281018007",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Ex smoker",
+      "concept_id": "281018007",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "smoking cannabis",
+      "concept_id": "347841000119106",
+      "resolved_count": 3,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Smoking cannabis",
+      "concept_id": "347841000119106",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "cannabis use",
+      "concept_id": "347841000119106",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "smear HPV positive",
+      "concept_id": "293201000119102",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "HPV positive",
+      "concept_id": "293201000119102",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Lives with partner",
+      "concept_id": "408821002",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "lives with partner",
+      "concept_id": "408821002",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "feels like a cyst",
+      "concept_id": "441457006",
+      "resolved_count": 1,
+      "assertion": "hypothetical"
+    },
+    {
+      "entity_text": "freq",
+      "concept_id": "70232002",
+      "resolved_count": 1,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "haematemisis",
+      "concept_id": "8765009",
+      "resolved_count": 1,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Dehydrocodien",
+      "concept_id": "775592007",
+      "resolved_count": 1,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "dehydrocodien",
+      "concept_id": "775592007",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Dehydrocodeine",
+      "concept_id": "775592007",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "dehydrocodeine",
+      "concept_id": "775592007",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "hoseiry",
+      "concept_id": "228183008",
+      "resolved_count": 1,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "hosiery",
+      "concept_id": "228183008",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Hosiery",
+      "concept_id": "228183008",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Fluclox",
+      "concept_id": "775979003",
+      "resolved_count": 1,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "fluclox",
+      "concept_id": "775979003",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "flucloxacillin",
+      "concept_id": "775979003",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Flucloxacillin",
+      "concept_id": "775979003",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Cosmocol",
+      "concept_id": "11980301000001107",
+      "resolved_count": 1,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "cosmocol",
+      "concept_id": "11980301000001107",
+      "resolved_count": 1,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "CosmoCol",
+      "concept_id": "11980301000001107",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Diuretics",
+      "concept_id": "372695000",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "diuretics",
+      "concept_id": "372695000",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "diuretic",
+      "concept_id": "372695000",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "fidgetting",
+      "concept_id": "247910009",
+      "resolved_count": 1,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "fidgeting",
+      "concept_id": "247910009",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Fidgeting",
+      "concept_id": "247910009",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "distractability",
+      "concept_id": "28102002",
+      "resolved_count": 1,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "distractibility",
+      "concept_id": "28102002",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Distractibility",
+      "concept_id": "28102002",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "anergia",
+      "concept_id": "248274002",
+      "resolved_count": 1,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "Anergia",
+      "concept_id": "248274002",
+      "resolved_count": 0,
+      "assertion": "present"
+    },
+    {
+      "entity_text": "perdios heavier",
+      "concept_id": "161782001",
+      "resolved_count": 1,
+      "assertion": "present"
+    }
+  ],
+  "entities_json_updated": [
+    {
+      "label_id": "f770f93792f0e9da82a0137c41949e56310a902d10caa4ae8cd66a8a212f5652",
+      "entity_text": "perdios heavier",
+      "old_label": "finding",
+      "new_label": "situation"
+    }
+  ],
+  "ignore_rules_added": [
+    {
+      "entity_text": "eating a pub meal (mixed grill) last Wednesday,",
+      "reason": "Dietary context, not a codeable clinical concept.",
+      "resolved_count": 0
+    },
+    {
+      "entity_text": "eating a pub meal",
+      "reason": "Dietary context, not a codeable clinical concept.",
+      "resolved_count": 1
+    },
+    {
+      "entity_text": "surpress sxs",
+      "reason": "Too vague to code \u2014 shorthand for 'suppress symptoms' with no specific clinical concept.",
+      "resolved_count": 0
+    }
+  ],
+  "errors": []
+}

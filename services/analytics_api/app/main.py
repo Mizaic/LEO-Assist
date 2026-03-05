@@ -31,6 +31,7 @@ from services.analytics_api.app.routers.imd import router as imd_router
 from services.analytics_api.app.routers.cci import router as cci_router
 from services.analytics_api.app.routers.benchmarks import router as benchmark_router
 from services.analytics_api.app.routers.org_context import router as org_context_router
+from services.analytics_api.app.routers.audit import router as audit_router
 
 configure_logging(service_name="analytics-api")
 logger = logging.getLogger("analytics-api")
@@ -71,6 +72,7 @@ app.include_router(domain_router, prefix="/analytics", tags=["domains"])
 app.include_router(imd_router, prefix="/analytics", tags=["imd"])
 app.include_router(cci_router, prefix="/analytics", tags=["cci"])
 app.include_router(benchmark_router, prefix="/analytics", tags=["benchmarks"])
+app.include_router(audit_router, prefix="/analytics", tags=["audit"])
 
 
 @app.get("/health")

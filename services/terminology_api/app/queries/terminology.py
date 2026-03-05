@@ -142,6 +142,99 @@ ORDER BY best_score DESC
 LIMIT $k
 """
 
+# ---------------------------------------------------------------------------
+# Batch queries — UNWIND-based, reduce N×8 round trips to ~4 per request
+# ---------------------------------------------------------------------------
+
+# Single query covering both Term exact match and SurfaceForm exact match
+# for all terms in one round trip.
+# Returns: input_term, concept_id, fsn, semantic_tag, read_codes, score,
+#          surface_form_status ('sf_exact' branch has status, term branch is '')
+BATCH_EXACT_QUERY = """
+UNWIND $normalized_terms AS norm
+
+OPTIONAL MATCH (t:Term {normalized_form: norm})-[:DESCRIBES]->(ct:Concept)
+WHERE ct.active = true
+OPTIONAL MATCH (ct)-[:MAPS_TO_READ]->(rdt:ReadCode)
+WITH norm, ct, collect(DISTINCT rdt.code) AS rdt_codes
+WITH norm,
+     collect(
+       CASE WHEN ct IS NOT NULL
+            THEN {concept_id: ct.id, fsn: ct.fsn, semantic_tag: ct.semantic_tag,
+                  read_codes: rdt_codes, score: 1.0, surface_form_status: ''}
+       END
+     ) AS raw_term_hits
+WITH norm, [x IN raw_term_hits WHERE x IS NOT NULL] AS term_hits
+
+OPTIONAL MATCH (sf:SurfaceForm {normalized: norm})-[m:MAPS_TO]->(cs:Concept)
+WHERE cs.active = true
+WITH norm, term_hits, sf, cs, max(coalesce(m.confidence, 0.0)) AS best_conf
+OPTIONAL MATCH (cs)-[:MAPS_TO_READ]->(rds:ReadCode)
+WITH norm, term_hits, cs, sf, best_conf, collect(DISTINCT rds.code) AS rds_codes
+WITH norm, term_hits,
+     collect(
+       CASE WHEN cs IS NOT NULL
+            THEN {concept_id: cs.id, fsn: cs.fsn, semantic_tag: cs.semantic_tag,
+                  read_codes: rds_codes, score: 1.2,
+                  surface_form_status: coalesce(sf.status, '')}
+       END
+     ) AS raw_sf_hits
+WITH norm, term_hits, [x IN raw_sf_hits WHERE x IS NOT NULL] AS sf_hits
+
+RETURN norm AS input_term,
+       term_hits + sf_hits AS hits
+"""
+
+# Batched fulltext search: runs one fulltext query string against both
+# the term and surface-form indexes, collecting all matches keyed by
+# the originating input term.  Callers iterate over the fulltext query
+# variants (phrase, raw, AND-tokens) and merge results.
+# Returns: input_term, concept_id, fsn, semantic_tag, read_codes, score,
+#          surface_form_status
+BATCH_FULLTEXT_QUERY = """
+CALL db.index.fulltext.queryNodes("term_fulltext", $ft_query) YIELD node AS tnode, score AS tscore
+MATCH (tnode)-[:DESCRIBES]->(c:Concept)
+WHERE c.active = true
+OPTIONAL MATCH (c)-[:MAPS_TO_READ]->(rd:ReadCode)
+WITH c, max(tscore) AS best_score, collect(DISTINCT rd.code) AS read_codes
+RETURN c.id AS concept_id, c.fsn AS fsn, c.semantic_tag AS semantic_tag,
+       read_codes, best_score AS score, '' AS surface_form_status
+ORDER BY best_score DESC
+LIMIT $k
+UNION ALL
+CALL db.index.fulltext.queryNodes("surface_form_fulltext", $ft_query) YIELD node AS sfnode, score AS sfscore
+MATCH (sfnode)-[:MAPS_TO]->(c:Concept)
+WHERE c.active = true
+OPTIONAL MATCH (c)-[:MAPS_TO_READ]->(rd:ReadCode)
+WITH c, sfnode, max(sfscore) AS best_score, collect(DISTINCT rd.code) AS read_codes
+RETURN c.id AS concept_id, c.fsn AS fsn, c.semantic_tag AS semantic_tag,
+       read_codes, best_score * 1.2 AS score, sfnode.status AS surface_form_status
+ORDER BY best_score DESC
+LIMIT $k
+"""
+
+# Batch lab-domain enrichment: given a list of concept IDs, returns the
+# SNOMED ontology neighbourhood for each in one round trip.
+BATCH_RELATED_CONCEPTS_QUERY = """
+UNWIND $concept_ids AS cid
+MATCH (c:Concept {id: cid})
+WHERE c.active = true
+
+OPTIONAL MATCH (f:Concept)-[:INTERPRETS]->(c) WHERE f.active = true
+OPTIONAL MATCH (p:Concept)-[:HAS_COMPONENT]->(c) WHERE p.active = true
+OPTIONAL MATCH (c)-[:INTERPRETS]->(obs:Concept)  WHERE obs.active = true
+OPTIONAL MATCH (c)-[:HAS_COMPONENT]->(comp:Concept) WHERE comp.active = true
+OPTIONAL MATCH (c)-[:HAS_ASSOCIATED_FINDING]->(assoc_f:Concept) WHERE assoc_f.active = true
+
+RETURN
+  c.id AS concept_id,
+  [x IN collect(DISTINCT f)       WHERE x IS NOT NULL | {id: x.id, fsn: x.fsn, semantic_tag: x.semantic_tag, rel: 'INTERPRETED_BY'}]       AS interpreted_by_findings,
+  [x IN collect(DISTINCT p)       WHERE x IS NOT NULL | {id: x.id, fsn: x.fsn, semantic_tag: x.semantic_tag, rel: 'COMPONENT_OF'}]          AS component_of_procedures,
+  [x IN collect(DISTINCT obs)     WHERE x IS NOT NULL | {id: x.id, fsn: x.fsn, semantic_tag: x.semantic_tag, rel: 'INTERPRETS'}]            AS interprets_observables,
+  [x IN collect(DISTINCT comp)    WHERE x IS NOT NULL | {id: x.id, fsn: x.fsn, semantic_tag: x.semantic_tag, rel: 'HAS_COMPONENT'}]         AS has_components,
+  [x IN collect(DISTINCT assoc_f) WHERE x IS NOT NULL | {id: x.id, fsn: x.fsn, semantic_tag: x.semantic_tag, rel: 'HAS_ASSOCIATED_FINDING'}] AS associated_findings
+"""
+
 UPSERT_SURFACE_FORMS = """
 UNWIND $rows AS r
 MATCH (c:Concept {id: r.concept_id})
@@ -370,4 +463,53 @@ OPTIONAL MATCH (sf:SurfaceForm)-[:MAPS_TO]->(c)
 RETURN c.fsn            AS concept_fsn,
        c.semantic_tag   AS semantic_tag,
        collect(sf.form) AS existing_aliases
+"""
+
+# ---------------------------------------------------------------------------
+# Ontology-Driven Lab Concept Resolver
+# ---------------------------------------------------------------------------
+# Traverses the three lab-domain relationship types materialised by
+# snomed_attribute_projection.py (phase 3 loader):
+#
+#   HAS_COMPONENT  (246093002) — procedure -[HAS_COMPONENT]-> observable_entity
+#   INTERPRETS     (363713009) — finding   -[INTERPRETS]->   observable_entity
+#   HAS_ASSOCIATED_FINDING (246090004) — concept -[HAS_ASSOCIATED_FINDING]-> finding
+#
+# Given any concept in the procedure / observable_entity / finding family,
+# returns the full constellation of related concepts so callers can resolve
+# compound lab entities (observable + qualifier_value + finding) without
+# resorting to LLM disambiguation.
+RELATED_CONCEPTS_QUERY = """
+MATCH (c:Concept {id: $concept_id})
+WHERE c.active = true
+
+// Findings that interpret THIS observable_entity (finding -> INTERPRETS -> me)
+OPTIONAL MATCH (f:Concept)-[:INTERPRETS]->(c)
+WHERE f.active = true
+
+// Procedures that have THIS as a component (procedure -> HAS_COMPONENT -> me)
+OPTIONAL MATCH (p:Concept)-[:HAS_COMPONENT]->(c)
+WHERE p.active = true
+
+// Observables that THIS concept interprets (me -[INTERPRETS]-> observable)
+OPTIONAL MATCH (c)-[:INTERPRETS]->(obs:Concept)
+WHERE obs.active = true
+
+// Components that THIS concept has (me -[HAS_COMPONENT]-> component)
+OPTIONAL MATCH (c)-[:HAS_COMPONENT]->(comp:Concept)
+WHERE comp.active = true
+
+// Findings associated with THIS concept
+OPTIONAL MATCH (c)-[:HAS_ASSOCIATED_FINDING]->(assoc_f:Concept)
+WHERE assoc_f.active = true
+
+RETURN
+  c.id           AS concept_id,
+  c.fsn          AS concept_fsn,
+  c.semantic_tag AS semantic_tag,
+  [x IN collect(DISTINCT f)       WHERE x IS NOT NULL | {id: x.id, fsn: x.fsn, semantic_tag: x.semantic_tag, rel: 'INTERPRETED_BY'}]      AS interpreted_by_findings,
+  [x IN collect(DISTINCT p)       WHERE x IS NOT NULL | {id: x.id, fsn: x.fsn, semantic_tag: x.semantic_tag, rel: 'COMPONENT_OF'}]         AS component_of_procedures,
+  [x IN collect(DISTINCT obs)     WHERE x IS NOT NULL | {id: x.id, fsn: x.fsn, semantic_tag: x.semantic_tag, rel: 'INTERPRETS'}]           AS interprets_observables,
+  [x IN collect(DISTINCT comp)    WHERE x IS NOT NULL | {id: x.id, fsn: x.fsn, semantic_tag: x.semantic_tag, rel: 'HAS_COMPONENT'}]        AS has_components,
+  [x IN collect(DISTINCT assoc_f) WHERE x IS NOT NULL | {id: x.id, fsn: x.fsn, semantic_tag: x.semantic_tag, rel: 'HAS_ASSOCIATED_FINDING'}] AS associated_findings
 """

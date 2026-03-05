@@ -117,6 +117,22 @@ For clinical coding output, we standardise on:
   - SNOMED defining relationships (non-ISA)
   - Relationship label derived from typeId concept name
 
+(:Concept)-[:HAS_COMPONENT]->(:Concept)
+  - SNOMED type 246093002 — procedure -[HAS_COMPONENT]-> observable_entity
+  - e.g. "MCH determination (procedure)" -> "MCH (observable entity)"
+  - Materialised by phase-3 attribute projection loader
+
+(:Concept)-[:INTERPRETS]->(:Concept)
+  - SNOMED type 363713009 — finding -[INTERPRETS]-> observable_entity
+  - e.g. "Finding of MCH level (finding)" -> "MCH (observable entity)"
+  - Enables deterministic resolution of the procedure/observable/finding family
+  - Materialised by phase-3 attribute projection loader
+
+(:Concept)-[:HAS_ASSOCIATED_FINDING]->(:Concept)
+  - SNOMED type 246090004 — concept -[HAS_ASSOCIATED_FINDING]-> finding
+  - Links procedures and situations to their associated findings
+  - Materialised by phase-3 attribute projection loader
+
 (:Concept)-[:MAPS_TO_ICD10]->(:Icd10Code)
   - From SNOMED UK ExtendedMap refsets (refsetId for ICD-10)
   - Properties: map_group, map_priority, map_rule, map_advice
@@ -748,7 +764,62 @@ Total estimated: ~2.5M nodes, ~5M relationships. Well within Neo4j Community Edi
 
 ---
 
-## 11. Next Steps (Implementation Order)
+## 11. Ontology-Driven Lab Concept Resolver (Implemented)
+
+Lab result lines carry three distinct clinical concepts in a single span:
+
+```
+Mean cell haemoglobin level (XE2pb) 22.5 pg [27 - 32] - Outside reference range
+├── observable_entity  "Mean cell haemoglobin level"
+├── qualifier_value    "22.5 pg"
+└── finding            "Outside reference range"
+```
+
+The SNOMED ontology encodes these relationships via three edge types now
+materialised in Neo4j (phase-3 attribute projection loader, type IDs above):
+
+| Relationship | Direction | Example |
+|---|---|---|
+| `HAS_COMPONENT` | procedure → observable | MCH determination → MCH |
+| `INTERPRETS` | finding → observable | Finding of MCH level → MCH |
+| `HAS_ASSOCIATED_FINDING` | concept → finding | links procedure to finding |
+
+### API endpoint
+
+`GET /terminology/concepts/{concept_id}/related`
+
+Returns the full SNOMED ontology family for any concept in the
+procedure / observable_entity / finding triangle:
+
+```json
+{
+  "concept_id": "1022471000000107",
+  "concept_fsn": "Mean corpuscular haemoglobin (observable entity)",
+  "semantic_tag": "observable entity",
+  "interpreted_by_findings": [{"id": "365611000", "fsn": "Finding of mean cell hemoglobin level (finding)", "rel": "INTERPRETED_BY"}],
+  "component_of_procedures": [{"id": "54706004", "fsn": "Mean corpuscular hemoglobin determination (procedure)", "rel": "COMPONENT_OF"}],
+  "interprets_observables": [],
+  "has_components": [],
+  "associated_findings": []
+}
+```
+
+### Pipeline integration
+
+- **`observable_post_processor.normalize_observable_entities`** — detects
+  interpretation suffixes ("Outside reference range", "High", "Low", etc.) and
+  emits a separate `finding` entity. The coding resolver then resolves the
+  finding concept via the `/related` endpoint.
+- **`CodingResolver.resolve_candidates`** — after resolving a lab-domain entity,
+  automatically enriches the top candidate with its SNOMED family via
+  `get_related_concepts()`.
+- **`_smart_hitl_lookup.py`** — Pass 4 uses `graph_disambiguate()` instead of LLM
+  calls: multi-tag search + `/related` cross-validation selects the correct
+  concept deterministically.
+
+---
+
+## 12. Next Steps (Implementation Order)
 
 1. **Set up Neo4j** — Docker container with APOC plugin, create constraints and indexes
 2. **Build base loader** — `scripts/loaders/base.py` with streaming, batching, progress logging

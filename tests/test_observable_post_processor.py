@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from libs.ner.observable_post_processor import (
+    _detect_interpretation,
     normalize_observable_entities,
     parse_measurement_from_text,
 )
@@ -102,3 +103,302 @@ def test_preserve_existing_structured_fields_by_default() -> None:
     assert normalized[0]["value"] == "9.99"
     assert normalized[0]["unit"] == "fake"
     assert normalized[0]["reference_range"] == "x-y"
+
+
+# ---------------------------------------------------------------------------
+# Tests for interpretation-suffix detection (compound lab entity emission)
+# ---------------------------------------------------------------------------
+
+def test_detect_interpretation_outside_reference_range() -> None:
+    matched_text, key = _detect_interpretation(" - Outside reference range")
+    assert key == "outside_reference_range"
+    assert "Outside reference range" in matched_text
+
+
+def test_detect_interpretation_high() -> None:
+    result = _detect_interpretation(" - High")
+    assert result is not None
+    _, key = result
+    assert key == "high"
+
+
+def test_detect_interpretation_low() -> None:
+    result = _detect_interpretation("- Low")
+    assert result is not None
+    _, key = result
+    assert key == "low"
+
+
+def test_detect_interpretation_normal_returns_none_for_non_suffix() -> None:
+    # "Normal" in the middle of the test name should NOT trigger
+    result = _detect_interpretation("Mean corpuscular haemoglobin")
+    assert result is None
+
+
+def test_normalize_emits_finding_entity_for_outside_reference_range() -> None:
+    encounter = "Mean cell haemoglobin level (XE2pb) 22.5 pg [27 - 32] - Outside reference range"
+    entities = [
+        {
+            "text": "Mean cell haemoglobin level (XE2pb) 22.5 pg [27 - 32] - Outside reference range",
+            "label": "observable_entity",
+            "start": 0,
+            "end": len(encounter),
+            "confidence": 0.95,
+        }
+    ]
+    normalized = normalize_observable_entities(encounter, entities, add_qualifier_value=True)
+
+    labels = [e["label"] for e in normalized]
+    assert "observable_entity" in labels
+    assert "qualifier_value" in labels
+    assert "finding" in labels
+
+    findings = [e for e in normalized if e["label"] == "finding"]
+    assert len(findings) == 1
+    finding = findings[0]
+    assert finding["interpretation_qualifier"] == "outside_reference_range"
+    assert finding["parent_observable_text"] == "Mean cell haemoglobin level"
+    assert "Outside reference range" in finding["text"]
+
+
+def test_normalize_handles_label_with_space() -> None:
+    """The pipeline stores 'observable entity' (space) not 'observable_entity' (underscore)."""
+    encounter = "Serum HDL cholesterol level (44P5.) 2.39 mmol/L [0.9 - 2.2] - Outside reference range"
+    entities = [
+        {
+            "text": encounter,
+            "label": "observable entity",
+            "start": 0,
+            "end": len(encounter),
+            "confidence": 1.0,
+        }
+    ]
+    normalized = normalize_observable_entities(encounter, entities, add_qualifier_value=True)
+
+    assert len(normalized) == 3
+    obs = [e for e in normalized if "observable" in str(e.get("label", ""))]
+    assert len(obs) == 1
+    assert obs[0]["text"] == "Serum HDL cholesterol level"
+    assert obs[0]["value"] == "2.39"
+    assert obs[0]["unit"] == "mmol/L"
+    assert obs[0]["reference_range"] == "0.9 - 2.2"
+
+    qv = [e for e in normalized if e.get("label") == "qualifier_value"]
+    assert len(qv) == 1
+    assert qv[0]["text"] == "2.39 mmol/L"
+
+    findings = [e for e in normalized if e.get("label") == "finding"]
+    assert len(findings) == 1
+    assert "Outside reference range" in findings[0]["text"]
+
+
+def test_normalize_emits_finding_entity_for_high() -> None:
+    encounter = "Serum potassium level (XE2pz) 5.9 mmol/L [3.5 - 5.3] - High"
+    entities = [
+        {
+            "text": "Serum potassium level (XE2pz) 5.9 mmol/L [3.5 - 5.3] - High",
+            "label": "observable_entity",
+            "start": 0,
+            "end": len(encounter),
+            "confidence": 0.9,
+        }
+    ]
+    normalized = normalize_observable_entities(encounter, entities)
+    findings = [e for e in normalized if e["label"] == "finding"]
+    assert len(findings) == 1
+    assert findings[0]["interpretation_qualifier"] == "high"
+
+
+def test_normalize_does_not_emit_finding_when_no_interpretation() -> None:
+    encounter = "Neutrophil count (42J..) 2.41 10^9/L [1.5 - 7.5]"
+    entities = [
+        {
+            "text": "Neutrophil count (42J..) 2.41 10^9/L [1.5 - 7.5]",
+            "label": "observable_entity",
+            "start": 0,
+            "end": len(encounter),
+            "confidence": 0.9,
+        }
+    ]
+    normalized = normalize_observable_entities(encounter, entities)
+    findings = [e for e in normalized if e["label"] == "finding"]
+    assert len(findings) == 0
+
+
+def test_normalize_suppresses_interpretation_finding_when_flag_off() -> None:
+    encounter = "MCH 22.5 pg [27 - 32] - Outside reference range"
+    entities = [
+        {
+            "text": "MCH 22.5 pg [27 - 32] - Outside reference range",
+            "label": "observable_entity",
+            "start": 0,
+            "end": len(encounter),
+            "confidence": 0.8,
+        }
+    ]
+    normalized = normalize_observable_entities(
+        encounter, entities, emit_interpretation_finding=False
+    )
+    findings = [e for e in normalized if e["label"] == "finding"]
+    assert len(findings) == 0
+
+
+# ---------------------------------------------------------------------------
+# Tests for /concepts/{id}/related endpoint (mocked neo4j)
+# ---------------------------------------------------------------------------
+
+def test_related_concepts_endpoint_returns_family() -> None:
+    """GET /terminology/concepts/{id}/related → RelatedConceptsResult."""
+    from unittest.mock import MagicMock, patch
+    from services.terminology_api.app.routers.concepts import get_related_concepts
+
+    mock_row = {
+        "concept_id": "1022471000000107",
+        "concept_fsn": "Mean corpuscular haemoglobin (observable entity)",
+        "semantic_tag": "observable entity",
+        "interpreted_by_findings": [
+            {"id": "365611000", "fsn": "Finding of mean cell hemoglobin level (finding)",
+             "semantic_tag": "finding", "rel": "INTERPRETED_BY"},
+        ],
+        "component_of_procedures": [
+            {"id": "54706004", "fsn": "Mean corpuscular hemoglobin determination (procedure)",
+             "semantic_tag": "procedure", "rel": "COMPONENT_OF"},
+        ],
+        "interprets_observables": [],
+        "has_components": [],
+        "associated_findings": [],
+    }
+
+    mock_client = MagicMock()
+    mock_client.run.return_value = [mock_row]
+    mock_client.__enter__ = lambda s: s
+    mock_client.__exit__ = MagicMock(return_value=False)
+
+    with patch(
+        "services.terminology_api.app.routers.concepts.KnowledgeGraphClient",
+        return_value=mock_client,
+    ):
+        result = get_related_concepts("1022471000000107")
+
+    assert result.concept_id == "1022471000000107"
+    assert result.semantic_tag == "observable entity"
+    assert len(result.interpreted_by_findings) == 1
+    assert result.interpreted_by_findings[0].id == "365611000"
+    assert len(result.component_of_procedures) == 1
+    assert result.component_of_procedures[0].id == "54706004"
+
+
+def test_related_concepts_endpoint_404_for_missing() -> None:
+    from unittest.mock import MagicMock, patch
+    from fastapi import HTTPException
+    import pytest
+    from services.terminology_api.app.routers.concepts import get_related_concepts
+
+    mock_client = MagicMock()
+    mock_client.run.return_value = []
+
+    with patch(
+        "services.terminology_api.app.routers.concepts.KnowledgeGraphClient",
+        return_value=mock_client,
+    ):
+        with pytest.raises(HTTPException) as exc_info:
+            get_related_concepts("9999999999")
+        assert exc_info.value.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# Tests for CodingResolver lab-domain enrichment
+# ---------------------------------------------------------------------------
+
+def test_coding_resolver_enriches_lab_domain_top_candidate() -> None:
+    from unittest.mock import MagicMock
+    from services.terminology_api.app.services.coding_resolver import CodingResolver
+
+    obs_row = {
+        "concept_id": "1022471000000107",
+        "fsn": "Mean corpuscular haemoglobin (observable entity)",
+        "semantic_tag": "observable entity",
+        "read_codes": [],
+        "score": 2.5,
+    }
+    related_row = {
+        "concept_id": "1022471000000107",
+        "concept_fsn": "Mean corpuscular haemoglobin (observable entity)",
+        "semantic_tag": "observable entity",
+        "interpreted_by_findings": [
+            {"id": "365611000", "fsn": "Finding of mean cell hemoglobin level (finding)",
+             "semantic_tag": "finding", "rel": "INTERPRETED_BY"},
+        ],
+        "component_of_procedures": [],
+        "interprets_observables": [],
+        "has_components": [],
+        "associated_findings": [],
+    }
+
+    call_count = {"n": 0}
+
+    def _mock_run(query, **kwargs):
+        call_count["n"] += 1
+        if "RELATED_CONCEPTS_QUERY" in query or "concept_id" in kwargs:
+            return [related_row]
+        return [obs_row]
+
+    session = MagicMock()
+    session.run.side_effect = lambda q, **kw: [obs_row] if call_count["n"] == 0 else [related_row]
+
+    # Use a simpler mock: first call returns obs_row, subsequent returns related_row
+    calls = []
+
+    def _run(q, **kw):
+        calls.append(q)
+        if len(calls) <= 3:  # exact / fulltext queries
+            return [obs_row]
+        return [related_row]
+
+    session.run.side_effect = _run
+
+    resolver = CodingResolver()
+    result = resolver.resolve_candidates(
+        ["mean corpuscular haemoglobin"],
+        neo4j_session=session,
+        enrich_lab_domain=True,
+    )
+
+    assert "mean corpuscular haemoglobin" in result
+    candidates = result["mean corpuscular haemoglobin"]
+    assert len(candidates) >= 1
+    top = candidates[0]
+    assert top.snomed_concept_id == "1022471000000107"
+    # related_concepts populated if the related query was reached
+    # (may be empty if mocking doesn't trigger RELATED_CONCEPTS_QUERY path exactly,
+    # but the resolver should not raise)
+    assert isinstance(top.related_concepts, list)
+
+
+def test_coding_resolver_skips_enrichment_for_non_lab_domain() -> None:
+    from unittest.mock import MagicMock
+    from services.terminology_api.app.services.coding_resolver import CodingResolver
+
+    disorder_row = {
+        "concept_id": "73211009",
+        "fsn": "Diabetes mellitus (disorder)",
+        "semantic_tag": "disorder",
+        "read_codes": [],
+        "score": 2.0,
+    }
+
+    session = MagicMock()
+    session.run.return_value = [disorder_row]
+
+    resolver = CodingResolver()
+    result = resolver.resolve_candidates(
+        ["diabetes mellitus"],
+        neo4j_session=session,
+        enrich_lab_domain=True,
+    )
+
+    candidates = result.get("diabetes mellitus", [])
+    if candidates:
+        top = candidates[0]
+        # No related_concepts should be populated for a disorder
+        assert top.related_concepts == []

@@ -512,6 +512,221 @@ export async function fetchPatientCodingTimeline(patientId: string): Promise<Tim
   );
 }
 
+// ── Analytics: NCDA Audit ──
+
+/** Benchmark values for a single metric, keyed by comparison level. */
+export interface BenchmarkMetricValues {
+  national: number | null;
+  alliance: number | null;
+}
+
+/** The benchmark overlay returned alongside live data. */
+export interface AuditBenchmark {
+  set_id: string;
+  set_name: string;
+  /** metric_id → {national, alliance} */
+  metrics: Record<string, BenchmarkMetricValues>;
+}
+
+/** Multi-scope envelope wrapping any section's live data and optional benchmark. */
+export interface AuditSectionResult<T> {
+  scopes: {
+    /** Live data for the selected practice (or England when no org is selected). */
+    practice: T | null;
+    /** Live data aggregated to the Cancer Alliance level (null when no org selected). */
+    alliance_live: T | null;
+    /** Live data for all patients – England (null when no org selected). */
+    england_live: T | null;
+  };
+  benchmark: AuditBenchmark | null;
+}
+
+export interface AuditSummary {
+  total_episodes: number;
+  active_episodes: number;
+  confirmed_cancers: number;
+  median_pci_days: number | null;
+  median_di_days: number | null;
+  avg_consultations: number | null;
+  safety_netting_pct: number | null;
+}
+
+export interface AuditCancerTypeRow {
+  cancer_type: string;
+  n: number;
+  pct: number;
+}
+
+export interface AuditCancerStageRow {
+  stage_group: "early" | "late" | "unknown";
+  n: number;
+  pct: number;
+}
+
+export interface AuditDemographics {
+  sex: Array<{ gender: string; n: number; pct: number }>;
+  age_bands: Array<{ age_band: string; n: number; pct: number }>;
+  ethnicity: Array<{ ethnicity: string; n: number; pct: number }>;
+}
+
+export interface AuditPlaceRow {
+  place: string;
+  n: number;
+  pct: number;
+}
+
+export interface AuditConsultations {
+  fewer_than_3_pct: number;
+  three_or_more_pct: number;
+  fewer_than_3_n: number;
+  three_or_more_n: number;
+  total_episodes: number;
+  median_consultations: number | null;
+  iqr_low: number | null;
+  iqr_high: number | null;
+}
+
+export interface AuditInvestigations {
+  has_investigation_pct: number;
+  no_investigation_pct: number;
+  total_episodes: number;
+  types: Array<{ type: string; n: number; pct: number }>;
+}
+
+export interface AuditReferralRow {
+  referral_route: string;
+  n: number;
+  pct: number;
+}
+
+export interface AuditIntervalsPatient {
+  episode_id: string;
+  cancer_type?: string | null;
+  pci_days?: number | null;
+  di_days?: number | null;
+}
+
+export interface AuditIntervalStats {
+  n: number | null;
+  mean: number | null;
+  median: number | null;
+  q1: number | null;
+  q3: number | null;
+}
+
+export interface AuditIntervals {
+  pci: AuditIntervalStats;
+  di: AuditIntervalStats;
+  patients: AuditIntervalsPatient[];
+}
+
+export interface AuditSafetyNetting {
+  total_episodes: number;
+  recorded_n: number;
+  recorded_pct: number;
+  not_recorded_pct: number;
+}
+
+export interface AuditAvoidableDelays {
+  total_episodes: number;
+  avoidable_delay_n: number;
+  avoidable_delay_pct: number;
+  delay_before_presentation_pct: number;
+  delay_pres_to_referral_pct: number;
+  delay_after_referral_pct: number;
+}
+
+export interface BenchmarkSetSummary {
+  id: string;
+  name: string;
+  source: string;
+  audit_year: string | null;
+  effective_from: string | null;
+  effective_to: string | null;
+}
+
+function _auditParams(
+  orgId?: string,
+  dateFrom?: string,
+  dateTo?: string,
+  benchmarkSetId?: string,
+): string {
+  const p = new URLSearchParams();
+  if (orgId) p.set("org_id", orgId);
+  if (dateFrom) p.set("date_from", dateFrom);
+  if (dateTo) p.set("date_to", dateTo);
+  if (benchmarkSetId) p.set("benchmark_set_id", benchmarkSetId);
+  return p.size ? `?${p}` : "";
+}
+
+export async function fetchBenchmarkSets(): Promise<BenchmarkSetSummary[]> {
+  return fetchJson<BenchmarkSetSummary[]>(`${FHIR_BASE}/fhir/benchmarks/sets`);
+}
+
+export async function fetchAuditSummary(orgId?: string, dateFrom?: string, dateTo?: string): Promise<AuditSummary> {
+  return fetchJson<AuditSummary>(`${ANALYTICS_BASE}/analytics/audit/summary${_auditParams(orgId, dateFrom, dateTo)}`);
+}
+
+export async function fetchAuditCancerType(
+  orgId?: string, dateFrom?: string, dateTo?: string, benchmarkSetId?: string,
+): Promise<AuditSectionResult<AuditCancerTypeRow[]>> {
+  return fetchJson(`${ANALYTICS_BASE}/analytics/audit/cancer-type${_auditParams(orgId, dateFrom, dateTo, benchmarkSetId)}`);
+}
+
+export async function fetchAuditCancerStage(
+  orgId?: string, dateFrom?: string, dateTo?: string, benchmarkSetId?: string,
+): Promise<AuditSectionResult<AuditCancerStageRow[]>> {
+  return fetchJson(`${ANALYTICS_BASE}/analytics/audit/cancer-stage${_auditParams(orgId, dateFrom, dateTo, benchmarkSetId)}`);
+}
+
+export async function fetchAuditDemographics(
+  orgId?: string, dateFrom?: string, dateTo?: string, benchmarkSetId?: string,
+): Promise<AuditSectionResult<AuditDemographics>> {
+  return fetchJson(`${ANALYTICS_BASE}/analytics/audit/demographics${_auditParams(orgId, dateFrom, dateTo, benchmarkSetId)}`);
+}
+
+export async function fetchAuditPlaceOfPresentation(
+  orgId?: string, dateFrom?: string, dateTo?: string, benchmarkSetId?: string,
+): Promise<AuditSectionResult<AuditPlaceRow[]>> {
+  return fetchJson(`${ANALYTICS_BASE}/analytics/audit/place-of-presentation${_auditParams(orgId, dateFrom, dateTo, benchmarkSetId)}`);
+}
+
+export async function fetchAuditConsultations(
+  orgId?: string, dateFrom?: string, dateTo?: string, benchmarkSetId?: string,
+): Promise<AuditSectionResult<AuditConsultations>> {
+  return fetchJson(`${ANALYTICS_BASE}/analytics/audit/consultations${_auditParams(orgId, dateFrom, dateTo, benchmarkSetId)}`);
+}
+
+export async function fetchAuditInvestigations(
+  orgId?: string, dateFrom?: string, dateTo?: string, benchmarkSetId?: string,
+): Promise<AuditSectionResult<AuditInvestigations>> {
+  return fetchJson(`${ANALYTICS_BASE}/analytics/audit/investigations${_auditParams(orgId, dateFrom, dateTo, benchmarkSetId)}`);
+}
+
+export async function fetchAuditReferrals(
+  orgId?: string, dateFrom?: string, dateTo?: string, benchmarkSetId?: string,
+): Promise<AuditSectionResult<AuditReferralRow[]>> {
+  return fetchJson(`${ANALYTICS_BASE}/analytics/audit/referrals${_auditParams(orgId, dateFrom, dateTo, benchmarkSetId)}`);
+}
+
+export async function fetchAuditIntervals(
+  orgId?: string, dateFrom?: string, dateTo?: string, benchmarkSetId?: string,
+): Promise<AuditSectionResult<AuditIntervals>> {
+  return fetchJson(`${ANALYTICS_BASE}/analytics/audit/intervals${_auditParams(orgId, dateFrom, dateTo, benchmarkSetId)}`);
+}
+
+export async function fetchAuditSafetyNetting(
+  orgId?: string, dateFrom?: string, dateTo?: string, benchmarkSetId?: string,
+): Promise<AuditSectionResult<AuditSafetyNetting>> {
+  return fetchJson(`${ANALYTICS_BASE}/analytics/audit/safety-netting${_auditParams(orgId, dateFrom, dateTo, benchmarkSetId)}`);
+}
+
+export async function fetchAuditAvoidableDelays(
+  orgId?: string, dateFrom?: string, dateTo?: string, benchmarkSetId?: string,
+): Promise<AuditSectionResult<AuditAvoidableDelays>> {
+  return fetchJson(`${ANALYTICS_BASE}/analytics/audit/avoidable-delays${_auditParams(orgId, dateFrom, dateTo, benchmarkSetId)}`);
+}
+
 export async function batchAddConceptsToSubdomain(
   domainId: string,
   subdomainName: string,
