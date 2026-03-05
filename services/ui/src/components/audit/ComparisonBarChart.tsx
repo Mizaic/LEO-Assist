@@ -35,9 +35,9 @@ interface ComparisonBarChartProps {
 
 const DEFAULT_KEYS: Array<keyof Omit<ComparisonDataRow, "category">> = [
   "practice",
+  "national",
   "similar",
   "alliance",
-  "national",
 ];
 
 function formatTick(val: number | string, unit: ComparisonBarChartProps["unit"]): string {

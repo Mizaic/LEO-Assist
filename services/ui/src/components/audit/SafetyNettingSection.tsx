@@ -3,7 +3,7 @@
 import Box from "@mui/material/Box";
 import SectionCard from "./SectionCard";
 import ComparisonBarChart, { type ComparisonDataRow } from "./ComparisonBarChart";
-import BenchmarkLegend from "./BenchmarkLegend";
+import BenchmarkLegend, { resolveBenchmarkValue } from "./BenchmarkLegend";
 import SummaryStatsTable from "./SummaryStatsRow";
 import type { AuditSafetyNetting, AuditSectionResult } from "@/lib/analyticsApi";
 
@@ -21,7 +21,7 @@ export default function SafetyNettingSection({ result, loading, error, orgSelect
   const bm = result?.benchmark?.metrics;
 
   const visibleKeys = orgSelected
-    ? (["practice", "similar", "alliance", "national"] as const)
+    ? (["practice", "national", "similar", "alliance"] as const)
     : (["practice", "national"] as const);
 
   const chartData: ComparisonDataRow[] = [
@@ -30,7 +30,7 @@ export default function SafetyNettingSection({ result, loading, error, orgSelect
       practice: practice?.recorded_pct ?? null,
       similar: allianceLive?.recorded_pct ?? null,
       alliance: englandLive?.recorded_pct ?? null,
-      national: bm?.["safety_netting.recorded_pct"]?.national ?? null,
+      national: resolveBenchmarkValue(bm, "safety_netting.recorded_pct", orgSelected),
     },
   ];
 
@@ -41,7 +41,7 @@ export default function SafetyNettingSection({ result, loading, error, orgSelect
       practice: practice ? { value: practice.recorded_pct, n: practice.recorded_n } : null,
       similar: allianceLive ? { value: allianceLive.recorded_pct } : null,
       alliance: englandLive ? { value: englandLive.recorded_pct } : { value: bm?.["safety_netting.recorded_pct"]?.alliance ?? null },
-      national: { value: bm?.["safety_netting.recorded_pct"]?.national ?? null },
+      national: { value: resolveBenchmarkValue(bm, "safety_netting.recorded_pct", orgSelected) },
     },
   ];
 
@@ -60,10 +60,11 @@ export default function SafetyNettingSection({ result, loading, error, orgSelect
         unit="percent"
         height={200}
         visibleKeys={visibleKeys}
+        orgSelected={orgSelected}
         ariaLabel="Proportion of cases with safety netting recorded, compared to benchmarks"
       />
       <Box sx={{ mt: 2 }}>
-        <SummaryStatsTable rows={tableRows} visibleKeys={visibleKeys} caption="Safety netting summary" />
+        <SummaryStatsTable rows={tableRows} visibleKeys={visibleKeys} orgSelected={orgSelected} caption="Safety netting summary" />
       </Box>
     </SectionCard>
   );

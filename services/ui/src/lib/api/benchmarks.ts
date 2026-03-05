@@ -15,6 +15,7 @@ export interface BenchmarkSet {
 }
 
 export interface BenchmarkValue {
+  id?: string;
   metric_id: string;
   scope_type: string;
   scope_id: string;
@@ -25,6 +26,12 @@ export interface BenchmarkValue {
   category: string;
   /** For composite metrics (e.g. sex: male/female), holds { male, female } percentages. */
   value_json?: Record<string, number> | null;
+}
+
+export interface BenchmarkScope {
+  scope_id: string;
+  scope_type: string;
+  scope_name: string;
 }
 
 export interface BenchmarkPoint {
@@ -86,16 +93,38 @@ export async function deleteBenchmarkSet(id: string): Promise<void> {
   return api.delete<void>(`${ENDPOINT}/sets/${id}`);
 }
 
+export async function getBenchmarkCategories(setId: string): Promise<string[]> {
+  return api.get<string[]>(`${ENDPOINT}/sets/${setId}/categories`);
+}
+
+export async function getBenchmarkScopes(setId: string): Promise<BenchmarkScope[]> {
+  return api.get<BenchmarkScope[]>(`${ENDPOINT}/sets/${setId}/scopes`);
+}
+
 export async function getBenchmarkValues(
   setId: string,
-  params?: { metric_id?: string; scope_type?: string }
+  params?: { metric_id?: string; scope_type?: string; scope_id?: string; category?: string }
 ): Promise<BenchmarkValue[]> {
   const searchParams = new URLSearchParams();
   if (params?.metric_id) searchParams.set('metric_id', params.metric_id);
   if (params?.scope_type) searchParams.set('scope_type', params.scope_type);
+  if (params?.scope_id) searchParams.set('scope_id', params.scope_id);
+  if (params?.category) searchParams.set('category', params.category);
   const query = searchParams.toString();
   const url = query ? `${ENDPOINT}/sets/${setId}/values?${query}` : `${ENDPOINT}/sets/${setId}/values`;
   return api.get<BenchmarkValue[]>(url);
+}
+
+export async function updateBenchmarkValue(
+  setId: string,
+  valueId: string,
+  value: number
+): Promise<BenchmarkValue> {
+  return api.put<BenchmarkValue>(`${ENDPOINT}/sets/${setId}/values/${valueId}`, { value });
+}
+
+export async function deleteBenchmarkValue(setId: string, valueId: string): Promise<void> {
+  return api.delete<void>(`${ENDPOINT}/sets/${setId}/values/${valueId}`);
 }
 
 export async function getBenchmarkComparison(

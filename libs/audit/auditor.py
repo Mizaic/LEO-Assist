@@ -55,10 +55,12 @@ MAX_TOOL_ITERATIONS = 5
 TERMINOLOGY_API_URL = os.getenv("TERMINOLOGY_API_URL", "http://localhost:8001")
 TOOL_HTTP_TIMEOUT = 10  # seconds
 
-_OPUS_IN_RATE  = 15.0  / 1_000_000
-_OPUS_OUT_RATE = 75.0  / 1_000_000
-_HAIKU_IN_RATE  = 0.80 / 1_000_000
-_HAIKU_OUT_RATE = 4.0  / 1_000_000
+# Cost rates read from env vars so they stay in sync with secrets/.env.
+# Defaults match Sonnet (big) pricing; override with env vars for other models.
+_AUDIT_IN_RATE  = float(os.getenv("AWS_BEDROCK_MODEL_BIG_MODEL_COST_PER_1M_INPUT_TOKEN",  "3.0"))  / 1_000_000
+_AUDIT_OUT_RATE = float(os.getenv("AWS_BEDROCK_MODEL_BIG_MODEL_COST_PER_1M_OUTPUT_TOKEN", "15.0")) / 1_000_000
+_HAIKU_IN_RATE  = float(os.getenv("AWS_BEDROCK_MODEL_SMALL_MODEL_COST_PER_1M_INPUT_TOKEN",  "1.0")) / 1_000_000
+_HAIKU_OUT_RATE = float(os.getenv("AWS_BEDROCK_MODEL_SMALL_MODEL_COST_PER_1M_OUTPUT_TOKEN", "5.0")) / 1_000_000
 
 # ── Cypher ────────────────────────────────────────────────────────────────────
 
@@ -150,8 +152,8 @@ class CostGuardrail:
         is_haiku: bool = False,
     ) -> None:
         self._total_tokens += input_tokens + output_tokens
-        in_rate  = _HAIKU_IN_RATE  if is_haiku else _OPUS_IN_RATE
-        out_rate = _HAIKU_OUT_RATE if is_haiku else _OPUS_OUT_RATE
+        in_rate  = _HAIKU_IN_RATE  if is_haiku else _AUDIT_IN_RATE
+        out_rate = _HAIKU_OUT_RATE if is_haiku else _AUDIT_OUT_RATE
         self._estimated_cost += input_tokens * in_rate + output_tokens * out_rate
 
     def over_budget(self) -> bool:
@@ -288,22 +290,28 @@ class ToolExecutor:
     def resolve_term(self, text: str, label: str) -> dict[str, Any]:
         """POST /terminology/resolve — find SNOMED candidates for a term."""
         import httpx
-        body = {"text": text, "label": label, "limit": 5}
+        body: dict[str, Any] = {"terms": [text]}
+        if label:
+            body["expected_tags"] = {text: label}
         try:
             with httpx.Client(timeout=self._timeout) as client:
                 resp = client.post(f"{self._base_url}/terminology/resolve", json=body)
                 resp.raise_for_status()
-                return {"candidates": resp.json()}
+                data = resp.json()
+                candidates = data.get("results", {}).get(text, [])
+                return {"candidates": candidates[:5]}
         except Exception as exc:
             logger.warning("ToolExecutor.resolve_term failed: %s", exc)
             return {"error": str(exc), "candidates": []}
 
     def get_related_concepts(self, concept_id: str) -> dict[str, Any]:
-        """GET /concepts/{id}/related — retrieve related SNOMED concepts."""
+        """GET /terminology/concepts/{id}/related — retrieve related SNOMED concepts."""
         import httpx
         try:
             with httpx.Client(timeout=self._timeout) as client:
-                resp = client.get(f"{self._base_url}/concepts/{concept_id}/related")
+                resp = client.get(
+                    f"{self._base_url}/terminology/concepts/{concept_id}/related"
+                )
                 resp.raise_for_status()
                 return {"related": resp.json()}
         except Exception as exc:
@@ -311,12 +319,12 @@ class ToolExecutor:
             return {"error": str(exc), "related": []}
 
     def get_descendants(self, concept_id: str, depth: int = 2) -> dict[str, Any]:
-        """GET /concepts/{id}/descendants — retrieve descendant SNOMED concepts."""
+        """GET /terminology/concepts/{id}/descendants — retrieve descendant SNOMED concepts."""
         import httpx
         try:
             with httpx.Client(timeout=self._timeout) as client:
                 resp = client.get(
-                    f"{self._base_url}/concepts/{concept_id}/descendants",
+                    f"{self._base_url}/terminology/concepts/{concept_id}/descendants",
                     params={"depth": depth},
                 )
                 resp.raise_for_status()

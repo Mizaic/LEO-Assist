@@ -9,7 +9,7 @@ import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import SectionCard from "./SectionCard";
 import ComparisonBarChart, { type ComparisonDataRow } from "./ComparisonBarChart";
-import BenchmarkLegend from "./BenchmarkLegend";
+import BenchmarkLegend, { resolveBenchmarkValue } from "./BenchmarkLegend";
 import type { AuditSectionResult, BenchmarkMetricValues } from "@/lib/analyticsApi";
 
 interface Props {
@@ -38,7 +38,7 @@ export default function EmergencyReferralRoutesSection({ result, loading, error,
     category: `Route ${r.key}`,
     practice: null,
     alliance: bm?.[r.metricKey]?.alliance ?? null,
-    national: bm?.[r.metricKey]?.national ?? null,
+    national: resolveBenchmarkValue(bm, r.metricKey, orgSelected),
   }));
 
   return (
@@ -56,6 +56,7 @@ export default function EmergencyReferralRoutesSection({ result, loading, error,
         unit="percent"
         height={220}
         visibleKeys={visibleKeys}
+        orgSelected={orgSelected}
         ariaLabel="Emergency referral sub-routes compared to benchmarks"
       />
       <Box sx={{ mt: 2, overflowX: "auto" }}>

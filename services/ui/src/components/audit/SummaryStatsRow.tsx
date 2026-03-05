@@ -55,7 +55,7 @@ function renderCell(sv: StatValue | null | undefined, unit?: string) {
 
 export default function SummaryStatsTable({
   rows,
-  visibleKeys = ["practice", "similar", "alliance", "national"],
+  visibleKeys = ["practice", "national", "similar", "alliance"],
   caption,
   orgSelected = true,
 }: SummaryStatsTableProps) {

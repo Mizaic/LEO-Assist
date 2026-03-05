@@ -436,7 +436,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         sx={{
           flexGrow: 1,
           minWidth: 0,
-          overflowX: "hidden",
+          overflowX: "clip",
           mt: isMobile ? "48px" : 0,
           minHeight: "100vh",
           bgcolor: "background.default",

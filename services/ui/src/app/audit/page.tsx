@@ -206,7 +206,7 @@ export default function AuditPage() {
   const anyLoading = Object.values(loading).some(Boolean);
 
   return (
-    <Box sx={{ p: { xs: 2, sm: 3 }, overflowX: "hidden" }}>
+    <Box sx={{ p: { xs: 2, sm: 3 }, overflowX: "clip" }}>
       {/* ── Page header ──────────────────────────────────────────────── */}
       <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 1, mb: 2 }}>
         <Box>

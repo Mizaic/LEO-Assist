@@ -1,7 +1,7 @@
 """Unit tests for the NCDA audit analytics router.
 
-Tests focus on the data-shaping logic (pct calculations, interval stats)
-without requiring a live Neo4j connection — mocking PatientGraphClient.run.
+Tests focus on data-shaping logic (pct calculations, interval stats,
+multi-scope envelope) without requiring a live Neo4j connection.
 """
 
 from __future__ import annotations
@@ -9,198 +9,281 @@ from __future__ import annotations
 from unittest.mock import MagicMock, patch
 
 import pytest
-from fastapi.testclient import TestClient
 
 
 # ---------------------------------------------------------------------------
-# Helpers / mocks
+# Helpers
 # ---------------------------------------------------------------------------
 
-def _mock_scope(is_admin: bool = True):
+def _mock_scope(is_admin: bool = True, primary_org_id=None):
     scope = MagicMock()
     scope.is_admin = is_admin
-    scope.primary_org_id = None
+    scope.primary_org_id = primary_org_id
     scope.org_ids = []
     scope.to_query_params.return_value = {}
     return scope
 
 
-def _make_app():
-    """Create a minimal FastAPI app with just the audit router."""
-    from fastapi import FastAPI
-    from services.analytics_api.app.routers.audit import router
+def _mock_client(rows_by_call):
+    """Return a mock PatientGraphClient where .run() returns successive values."""
+    mock = MagicMock()
+    mock.run.side_effect = rows_by_call
+    mock.__enter__ = MagicMock(return_value=mock)
+    mock.__exit__ = MagicMock(return_value=False)
+    return mock
 
-    app = FastAPI()
-    app.include_router(router, prefix="/analytics")
-    return app
+
+# Multi-scope response helpers
+def _practice(result):
+    return result["scopes"]["practice"]
+
+def _alliance(result):
+    return result["scopes"]["alliance_live"]
+
+def _england(result):
+    return result["scopes"]["england_live"]
+
+def _benchmark(result):
+    return result.get("benchmark")
 
 
 # ---------------------------------------------------------------------------
-# Tests: cancer_type endpoint
+# Tests: _q_cancer_type / audit_cancer_type
 # ---------------------------------------------------------------------------
 
 class TestAuditCancerType:
-    """Tests for GET /analytics/audit/cancer-type."""
+    """Tests for cancer type section multi-scope envelope."""
 
-    def test_returns_pct_summing_to_100(self):
+    def test_returns_multi_scope_envelope(self):
         rows = [
-            {"cancer_type": "Breast", "n": 14},
-            {"cancer_type": "Colorectal", "n": 8},
-            {"cancer_type": "Lung", "n": 8},
-            {"cancer_type": "Prostate", "n": 21},
+            {"cancer_type": "breast", "n": 14},
+            {"cancer_type": "colorectal", "n": 8},
         ]
         with patch("services.analytics_api.app.routers.audit.PatientGraphClient") as MockClient:
-            client_instance = MockClient.return_value.__enter__ = MagicMock()
-            mock = MagicMock()
-            mock.run.return_value = rows
+            mock = _mock_client([rows])
             MockClient.return_value = mock
 
             from services.analytics_api.app.routers.audit import audit_cancer_type
-            scope = _mock_scope()
-            result = audit_cancer_type(scope=scope, org_id=None, date_from=None, date_to=None)
+            result = audit_cancer_type(scope=_mock_scope(), org_id=None, date_from=None, date_to=None, benchmark_set_id=None)
 
-        total_n = sum(r["n"] for r in rows)
-        total_pct = sum(r["pct"] for r in result)
-        assert abs(total_pct - 100.0) < 1.0, f"Expected pct to sum ~100, got {total_pct}"
-        assert all("pct" in r for r in result)
-        assert all("n" in r for r in result)
+        assert "scopes" in result
+        assert "practice" in result["scopes"]
+        assert "alliance_live" in result["scopes"]
+        assert "england_live" in result["scopes"]
+        assert "benchmark" in result
 
-    def test_handles_empty_result(self):
+    def test_pct_sums_to_100(self):
+        rows = [
+            {"cancer_type": "breast", "n": 30},
+            {"cancer_type": "colorectal", "n": 20},
+            {"cancer_type": "lung", "n": 50},
+        ]
         with patch("services.analytics_api.app.routers.audit.PatientGraphClient") as MockClient:
-            mock = MagicMock()
-            mock.run.return_value = []
+            mock = _mock_client([rows])
             MockClient.return_value = mock
 
             from services.analytics_api.app.routers.audit import audit_cancer_type
-            scope = _mock_scope()
-            result = audit_cancer_type(scope=scope, org_id=None, date_from=None, date_to=None)
+            result = audit_cancer_type(scope=_mock_scope(), org_id=None, date_from=None, date_to=None, benchmark_set_id=None)
 
-        assert result == []
+        practice_data = _practice(result)
+        total_pct = sum(r["pct"] for r in practice_data)
+        assert abs(total_pct - 100.0) < 1.0
+
+    def test_empty_returns_empty_practice(self):
+        with patch("services.analytics_api.app.routers.audit.PatientGraphClient") as MockClient:
+            mock = _mock_client([[]])
+            MockClient.return_value = mock
+
+            from services.analytics_api.app.routers.audit import audit_cancer_type
+            result = audit_cancer_type(scope=_mock_scope(), org_id=None, date_from=None, date_to=None, benchmark_set_id=None)
+
+        assert _practice(result) == []
+        assert _alliance(result) is None
+        assert _england(result) is None
+
+    def test_no_org_selected_alliance_and_england_are_none(self):
+        rows = [{"cancer_type": "breast", "n": 10}]
+        with patch("services.analytics_api.app.routers.audit.PatientGraphClient") as MockClient:
+            mock = _mock_client([rows])
+            MockClient.return_value = mock
+
+            from services.analytics_api.app.routers.audit import audit_cancer_type
+            result = audit_cancer_type(scope=_mock_scope(), org_id=None, date_from=None, date_to=None, benchmark_set_id=None)
+
+        assert _alliance(result) is None
+        assert _england(result) is None
 
 
 # ---------------------------------------------------------------------------
-# Tests: consultations endpoint
+# Tests: _q_consultations
 # ---------------------------------------------------------------------------
 
 class TestAuditConsultations:
-    """Tests for GET /analytics/audit/consultations."""
+    """Tests for GET /analytics/audit/consultations multi-scope envelope.
 
-    def test_percentages_are_correct(self):
-        summary_row = {
-            "fewer_than_3": 42,
-            "three_or_more": 9,
-            "total_episodes": 51,
-            "avg_consultations": 1.2,
-        }
-        per_episode_rows = [{"consult_count": i} for i in [0, 1, 1, 1, 2, 2, 3, 4, 5]]
+    _q_consultations makes 2 DB calls: summary row + per-episode rows.
+    """
 
+    def test_multi_scope_envelope_present(self):
+        summary_rows = [{"fewer_than_3": 10, "three_or_more": 5, "total_episodes": 15, "avg_consultations": 2.0}]
+        per_ep_rows = [{"consult_count": 1}, {"consult_count": 3}]
         with patch("services.analytics_api.app.routers.audit.PatientGraphClient") as MockClient:
-            mock = MagicMock()
-            mock.run.side_effect = [summary_row] if False else [[summary_row], per_episode_rows]
+            mock = _mock_client([summary_rows, per_ep_rows])
             MockClient.return_value = mock
 
             from services.analytics_api.app.routers.audit import audit_consultations
-            scope = _mock_scope()
-            result = audit_consultations(scope=scope, org_id=None, date_from=None, date_to=None)
+            result = audit_consultations(scope=_mock_scope(), org_id=None, date_from=None, date_to=None, benchmark_set_id=None)
 
-        assert result["fewer_than_3_pct"] == round(42 * 100.0 / 51, 1)
-        assert result["three_or_more_pct"] == round(9 * 100.0 / 51, 1)
-        assert result["total_episodes"] == 51
+        assert "scopes" in result
+        practice = _practice(result)
+        assert "fewer_than_3_pct" in practice
+        assert "three_or_more_pct" in practice
+
+    def test_percentages_sum_to_100(self):
+        summary_rows = [{"fewer_than_3": 42, "three_or_more": 9, "total_episodes": 51, "avg_consultations": 1.5}]
+        per_ep_rows = []
+        with patch("services.analytics_api.app.routers.audit.PatientGraphClient") as MockClient:
+            mock = _mock_client([summary_rows, per_ep_rows])
+            MockClient.return_value = mock
+
+            from services.analytics_api.app.routers.audit import audit_consultations
+            result = audit_consultations(scope=_mock_scope(), org_id=None, date_from=None, date_to=None, benchmark_set_id=None)
+
+        practice = _practice(result)
+        assert practice["fewer_than_3_pct"] == round(42 * 100.0 / 51, 1)
+        assert practice["three_or_more_pct"] == round(9 * 100.0 / 51, 1)
 
 
 # ---------------------------------------------------------------------------
-# Tests: intervals endpoint — stats computation
+# Tests: interval stats computation (pure logic)
 # ---------------------------------------------------------------------------
 
-class TestAuditIntervals:
-    """Tests that interval statistics (median, IQR) are computed correctly."""
+class TestIntervalStats:
+    """Tests that median / IQR helpers produce correct values."""
 
-    def test_median_and_iqr_from_sorted_values(self):
+    def test_median_even_list(self):
         vals = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
         n = len(vals)
-        expected_median = (vals[n // 2 - 1] + vals[n // 2]) / 2  # 5.5
-        expected_q1 = vals[n // 4]  # index 2 → 3
-        expected_q3 = vals[3 * n // 4]  # index 7 → 8
+        expected = (vals[n // 2 - 1] + vals[n // 2]) / 2  # 5.5
 
-        # Test the helper logic inline (same as the endpoint)
         def _median(v):
             if not v:
                 return None
             k = len(v)
             return v[k // 2] if k % 2 else (v[k // 2 - 1] + v[k // 2]) / 2
 
-        def _iqr(v):
-            if not v:
-                return None, None
-            k = len(v)
-            return v[k // 4], v[3 * k // 4]
+        assert _median(vals) == expected
 
-        assert _median(vals) == expected_median
-        q1, q3 = _iqr(vals)
-        assert q1 == expected_q1
-        assert q3 == expected_q3
+    def test_median_odd_list(self):
+        vals = [1, 2, 3, 4, 5]
+
+        def _median(v):
+            if not v:
+                return None
+            k = len(v)
+            return v[k // 2] if k % 2 else (v[k // 2 - 1] + v[k // 2]) / 2
+
+        assert _median(vals) == 3
 
     def test_empty_patients_returns_none_stats(self):
         agg_rows = [{"pci_n": 0, "mean_pci": None, "di_n": 0, "mean_di": None}]
         patient_rows: list = []
 
         with patch("services.analytics_api.app.routers.audit.PatientGraphClient") as MockClient:
-            mock = MagicMock()
-            mock.run.side_effect = [agg_rows, patient_rows]
+            mock = _mock_client([agg_rows, patient_rows])
             MockClient.return_value = mock
 
             from services.analytics_api.app.routers.audit import audit_intervals
-            scope = _mock_scope()
-            result = audit_intervals(scope=scope, org_id=None, date_from=None, date_to=None)
+            result = audit_intervals(scope=_mock_scope(), org_id=None, date_from=None, date_to=None, benchmark_set_id=None)
 
-        assert result["pci"]["median"] is None
-        assert result["di"]["median"] is None
-        assert result["patients"] == []
+        practice = _practice(result)
+        assert practice["pci"]["median"] is None
+        assert practice["di"]["median"] is None
+        assert practice["patients"] == []
 
 
 # ---------------------------------------------------------------------------
-# Tests: safety_netting endpoint
+# Tests: safety_netting
 # ---------------------------------------------------------------------------
 
 class TestAuditSafetyNetting:
-    """Tests for GET /analytics/audit/safety-netting."""
-
-    def test_pct_calculation(self):
-        rows = [{"total_episodes": 51, "recorded": 10, "positive_contribution": 7, "no_contribution": 2}]
-
-        with patch("services.analytics_api.app.routers.audit._run") as mock_run:
-            mock_run.return_value = rows
+    def test_multi_scope_envelope(self):
+        rows = [{"total_episodes": 51, "recorded": 10}]
+        with patch("services.analytics_api.app.routers.audit.PatientGraphClient") as MockClient:
+            mock = _mock_client([rows])
+            MockClient.return_value = mock
 
             from services.analytics_api.app.routers.audit import audit_safety_netting
-            scope = _mock_scope()
-            result = audit_safety_netting(scope=scope, org_id=None, date_from=None, date_to=None)
+            result = audit_safety_netting(scope=_mock_scope(), org_id=None, date_from=None, date_to=None, benchmark_set_id=None)
 
-        assert result["recorded_pct"] == round(10 * 100.0 / 51, 1)
-        assert result["positive_contribution_pct"] == round(7 * 100.0 / 10, 1)
+        assert "scopes" in result
+        practice = _practice(result)
+        assert "recorded_pct" in practice
+        assert practice["recorded_pct"] == round(10 * 100.0 / 51, 1)
 
 
 # ---------------------------------------------------------------------------
-# Tests: avoidable_delays endpoint
+# Tests: avoidable_delays
 # ---------------------------------------------------------------------------
 
 class TestAuditAvoidableDelays:
-    """Tests for GET /analytics/audit/avoidable-delays."""
-
-    def test_pct_calculation(self):
-        rows = [{
-            "total_episodes": 51,
-            "has_avoidable_delay": 14,
-            "delay_before_presentation": 9,
-            "delay_before_referral": 4,
-            "delay_after_referral": 4,
-        }]
-
-        with patch("services.analytics_api.app.routers.audit._run") as mock_run:
-            mock_run.return_value = rows
+    def test_multi_scope_envelope(self):
+        rows = [{"total_episodes": 51, "has_delay": 14, "before_pres": 9, "pres_to_ref": 4, "after_ref": 1}]
+        with patch("services.analytics_api.app.routers.audit.PatientGraphClient") as MockClient:
+            mock = _mock_client([rows])
+            MockClient.return_value = mock
 
             from services.analytics_api.app.routers.audit import audit_avoidable_delays
-            scope = _mock_scope()
-            result = audit_avoidable_delays(scope=scope, org_id=None, date_from=None, date_to=None)
+            result = audit_avoidable_delays(scope=_mock_scope(), org_id=None, date_from=None, date_to=None, benchmark_set_id=None)
 
-        assert result["has_avoidable_delay_pct"] == round(14 * 100.0 / 51, 1)
-        assert result["delay_before_presentation_pct"] == round(9 * 100.0 / 14, 1)
+        assert "scopes" in result
+        practice = _practice(result)
+        assert "avoidable_delay_pct" in practice
+        assert practice["avoidable_delay_pct"] == round(14 * 100.0 / 51, 1)
+
+
+# ---------------------------------------------------------------------------
+# Tests: benchmark_category fetch helper
+# ---------------------------------------------------------------------------
+
+class TestFetchBenchmarkMetrics:
+    """Tests for _fetch_benchmark_metrics ODS linkage logic."""
+
+    def test_practice_matched_by_ods_code(self):
+        set_rows = [{"set_name": "NCDA 2018"}]
+        value_rows = [
+            {"metric_id": "primary_care_interval.median_days", "scope_type": "gp_practice",
+             "scope_id": "C84070", "scope_name": "Woodbrook Medical Centre", "value": 30},
+            {"metric_id": "primary_care_interval.median_days", "scope_type": "national",
+             "scope_id": "england", "scope_name": "England", "value": 25},
+        ]
+
+        with patch("services.analytics_api.app.routers.audit.KnowledgeGraphClient") as MockKG:
+            mock_kg = MagicMock()
+            mock_kg.run.side_effect = [set_rows, value_rows]
+            MockKG.return_value = mock_kg
+
+            from services.analytics_api.app.routers.audit import _fetch_benchmark_metrics
+            result = _fetch_benchmark_metrics(
+                "ncda-2018", "primary_care_interval",
+                org_id="woodbrook-gp", org_ods_code="C84070", alliance_id=None,
+            )
+
+        assert result is not None
+        metrics = result["metrics"]
+        assert "primary_care_interval.median_days" in metrics
+        m = metrics["primary_care_interval.median_days"]
+        assert m["practice"] == 30
+        assert m["national"] == 25
+
+    def test_no_values_returns_none(self):
+        set_rows = [{"set_name": "NCDA 2018"}]
+        with patch("services.analytics_api.app.routers.audit.KnowledgeGraphClient") as MockKG:
+            mock_kg = MagicMock()
+            mock_kg.run.side_effect = [set_rows, []]
+            MockKG.return_value = mock_kg
+
+            from services.analytics_api.app.routers.audit import _fetch_benchmark_metrics
+            result = _fetch_benchmark_metrics("ncda-2018", "primary_care_interval")
+
+        assert result is None

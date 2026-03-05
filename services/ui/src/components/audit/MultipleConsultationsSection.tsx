@@ -2,7 +2,7 @@
 
 import SectionCard from "./SectionCard";
 import ComparisonBarChart, { type ComparisonDataRow } from "./ComparisonBarChart";
-import BenchmarkLegend from "./BenchmarkLegend";
+import BenchmarkLegend, { resolveBenchmarkValue } from "./BenchmarkLegend";
 import Typography from "@mui/material/Typography";
 import Box from "@mui/material/Box";
 import type { AuditSectionResult, BenchmarkMetricValues } from "@/lib/analyticsApi";
@@ -38,7 +38,7 @@ export default function MultipleConsultationsSection({ result, loading, error, o
     category: r.label.length > 28 ? r.label.slice(0, 27) + "…" : r.label,
     practice: null,
     alliance: r.metricKey ? (bm?.[r.metricKey]?.alliance ?? null) : null,
-    national: r.metricKey ? (bm?.[r.metricKey]?.national ?? null) : null,
+    national: r.metricKey ? resolveBenchmarkValue(bm, r.metricKey, orgSelected) : null,
   }));
 
   return (
@@ -56,6 +56,7 @@ export default function MultipleConsultationsSection({ result, loading, error, o
         unit="percent"
         height={260}
         visibleKeys={visibleKeys}
+        orgSelected={orgSelected}
         ariaLabel="Reasons for multiple consultations compared to benchmarks"
       />
       <Box sx={{ mt: 2 }}>
