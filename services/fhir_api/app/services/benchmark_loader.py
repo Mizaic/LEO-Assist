@@ -43,12 +43,31 @@ def infer_structure(raw_json: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _build_entity_map(entities: List[Dict[str, Any]]) -> Dict[str, Dict[str, str]]:
-    """Map entity id -> {scope_type, scope_name}."""
-    return {
-        e["id"]: {"scope_type": e.get("type", "unknown"), "scope_name": e.get("name", e["id"])}
-        for e in entities
-        if e.get("id")
-    }
+    """Map entity id -> {scope_type, scope_name, scope_id, ods_code}.
+
+    For gp_practice entities the canonical scope_id is the ODS code when
+    present; otherwise the entity id is used.  This ensures benchmark values
+    can be matched against live Organization nodes (which are keyed by ODS).
+    """
+    result: Dict[str, Dict[str, str]] = {}
+    for e in entities:
+        eid = e.get("id")
+        if not eid:
+            continue
+        scope_type = e.get("type", "unknown")
+        ods_code = e.get("ods_code") or ""
+        # Use ODS as canonical scope_id for practices; keep entity id otherwise
+        if scope_type == "gp_practice" and ods_code:
+            canonical_scope_id = ods_code
+        else:
+            canonical_scope_id = eid
+        result[eid] = {
+            "scope_type": scope_type,
+            "scope_name": e.get("name", eid),
+            "scope_id": canonical_scope_id,
+            "ods_code": ods_code,
+        }
+    return result
 
 
 def _is_composite_sex(value: Any) -> bool:
@@ -79,53 +98,26 @@ def _flatten_simple_value(
     scope = entity_map.get(entity_id)
     if scope is None:
         return []
+    # Use canonical scope_id (ODS for practices; entity id for all others)
+    canonical_id = scope.get("scope_id", entity_id)
+    base: Dict[str, Any] = {
+        "audit_id": audit_id,
+        "scope_id": canonical_id,
+        "scope_type": scope["scope_type"],
+        "scope_name": scope["scope_name"],
+        "unit": unit,
+        "category": category,
+        "source": source,
+    }
     if isinstance(value, dict) and _is_composite_sex(value):
-        return [
-            {
-                "audit_id": audit_id,
-                "metric_id": metric_id,
-                "scope_id": entity_id,
-                "scope_type": scope["scope_type"],
-                "scope_name": scope["scope_name"],
-                "value": None,
-                "value_json": value,
-                "unit": unit,
-                "label": label,
-                "category": category,
-                "source": source,
-            }
-        ]
+        return [{**base, "metric_id": metric_id, "label": label, "value": None, "value_json": value}]
     if isinstance(value, dict):
         return [
-            {
-                "audit_id": audit_id,
-                "metric_id": f"{metric_id}.{sub_key}",
-                "scope_id": entity_id,
-                "scope_type": scope["scope_type"],
-                "scope_name": scope["scope_name"],
-                "value": sub_val,
-                "unit": unit,
-                "label": f"{label} ({sub_key})",
-                "category": category,
-                "source": source,
-            }
+            {**base, "metric_id": f"{metric_id}.{sub_key}", "label": f"{label} ({sub_key})", "value": sub_val}
             for sub_key, sub_val in value.items()
             if sub_val is not None and not isinstance(sub_val, dict)
         ]
-    return [
-        {
-            "audit_id": audit_id,
-            "metric_id": metric_id,
-            "scope_id": entity_id,
-            "scope_type": scope["scope_type"],
-            "scope_name": scope["scope_name"],
-            "value": value,
-            "unit": unit,
-            "label": label,
-            "category": category,
-            "source": source,
-        }
-    ]
+    return [{**base, "metric_id": metric_id, "label": label, "value": value}]
 
 
 def _flatten_simple_section(

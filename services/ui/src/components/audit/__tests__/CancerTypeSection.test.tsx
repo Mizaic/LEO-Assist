@@ -1,34 +1,53 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
 import CancerTypeSection from "../CancerTypeSection";
-import type { AuditCancerTypeRow } from "@/lib/analyticsApi";
+import type { AuditCancerTypeRow, AuditSectionResult } from "@/lib/analyticsApi";
 
-const sampleData: AuditCancerTypeRow[] = [
-  { cancer_type: "Breast", n: 14, pct: 27.5 },
-  { cancer_type: "Colorectal", n: 8, pct: 15.7 },
-  { cancer_type: "Lung", n: 8, pct: 15.7 },
-  { cancer_type: "Prostate", n: 4, pct: 7.8 },
+const sampleRows: AuditCancerTypeRow[] = [
+  { cancer_type: "breast", n: 14, pct: 27.5 },
+  { cancer_type: "colorectal", n: 8, pct: 15.7 },
+  { cancer_type: "lung", n: 8, pct: 15.7 },
 ];
+
+const sampleResult: AuditSectionResult<AuditCancerTypeRow[]> = {
+  scopes: {
+    practice: sampleRows,
+    alliance_live: null,
+    england_live: null,
+  },
+  benchmark: null,
+};
 
 describe("CancerTypeSection", () => {
   it("renders section title", () => {
-    render(<CancerTypeSection data={sampleData} loading={false} />);
+    render(<CancerTypeSection result={sampleResult} loading={false} />);
     expect(screen.getByText("Cancer Type")).toBeInTheDocument();
   });
 
-  it("renders chart with data", () => {
-    render(<CancerTypeSection data={sampleData} loading={false} />);
-    expect(screen.getByRole("img")).toBeInTheDocument();
+  it("shows empty state when practice data is empty", () => {
+    const emptyResult: AuditSectionResult<AuditCancerTypeRow[]> = {
+      scopes: { practice: [], alliance_live: null, england_live: null },
+      benchmark: null,
+    };
+    render(<CancerTypeSection result={emptyResult} loading={false} />);
+    expect(screen.getByText(/No cancer type data/i)).toBeInTheDocument();
   });
 
-  it("shows empty state when no data", () => {
-    render(<CancerTypeSection data={[]} loading={false} />);
-    expect(screen.getByText(/No cancer type data/)).toBeInTheDocument();
+  it("shows empty state when result is null", () => {
+    render(<CancerTypeSection result={null} loading={false} />);
+    expect(screen.getByText(/No cancer type data/i)).toBeInTheDocument();
   });
 
-  it("renders national benchmarks in table", () => {
-    render(<CancerTypeSection data={sampleData} loading={false} />);
-    expect(screen.getByText("27.5")).toBeInTheDocument();
-    expect(screen.getByText("15.3")).toBeInTheDocument();
+  it("does not render content while loading", () => {
+    render(<CancerTypeSection result={null} loading={true} />);
+    // When loading, SectionCard renders a Skeleton – children (inc. empty state) are suppressed
+    expect(screen.queryByText(/No cancer type data/i)).not.toBeInTheDocument();
+  });
+
+  it("renders practice data values in the table", () => {
+    render(<CancerTypeSection result={sampleResult} loading={false} />);
+    // breast cancer_type should appear in the table
+    const breastCells = screen.getAllByText(/breast/i);
+    expect(breastCells.length).toBeGreaterThan(0);
   });
 });

@@ -22,6 +22,7 @@ import UploadOutlined from '@mui/icons-material/UploadOutlined';
 import DeleteOutlined from '@mui/icons-material/DeleteOutlined';
 import EditOutlined from '@mui/icons-material/EditOutlined';
 import PlayArrowOutlined from '@mui/icons-material/PlayArrowOutlined';
+import OpenInNewOutlined from '@mui/icons-material/OpenInNewOutlined';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { getBenchmarkSets, getBenchmarkRules, deleteBenchmarkSet, deleteBenchmarkRule, runBenchmarkRule } from '@/lib/api';
 import type { BenchmarkSet, BenchmarkRule } from '@/lib/api/benchmarks';
@@ -136,13 +137,29 @@ export function BenchmarkSetList() {
                 </TableHead>
                 <TableBody>
                   {sets.map((s) => (
-                    <TableRow key={s.id}>
-                      <TableCell>{s.name}</TableCell>
+                    <TableRow
+                      key={s.id}
+                      hover
+                      sx={{ cursor: 'pointer' }}
+                      onClick={() => router.push(`/benchmarks/sets/${s.id}`)}
+                    >
+                      <TableCell>
+                        <Typography variant="body2" sx={{ fontWeight: 500 }}>{s.name}</Typography>
+                        <Typography variant="caption" color="text.secondary">{s.id}</Typography>
+                      </TableCell>
                       <TableCell>
                         <Chip label={s.source} size="small" variant="outlined" />
                       </TableCell>
                       <TableCell>{s.audit_year ?? '-'}</TableCell>
-                      <TableCell align="right">
+                      <TableCell align="right" onClick={(e) => e.stopPropagation()}>
+                        <IconButton
+                          size="small"
+                          onClick={() => router.push(`/benchmarks/sets/${s.id}`)}
+                          title="View details"
+                          aria-label="View benchmark set details"
+                        >
+                          <OpenInNewOutlined fontSize="small" />
+                        </IconButton>
                         <IconButton size="small" onClick={() => setConfirmDeleteSet(s.id)} color="error" aria-label="Delete benchmark set">
                           <DeleteOutlined fontSize="small" />
                         </IconButton>

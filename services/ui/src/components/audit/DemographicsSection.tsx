@@ -5,7 +5,7 @@ import Typography from "@mui/material/Typography";
 import Divider from "@mui/material/Divider";
 import SectionCard from "./SectionCard";
 import ComparisonBarChart, { type ComparisonDataRow } from "./ComparisonBarChart";
-import BenchmarkLegend from "./BenchmarkLegend";
+import BenchmarkLegend, { resolveBenchmarkValue } from "./BenchmarkLegend";
 import SummaryStatsTable from "./SummaryStatsRow";
 import type { AuditDemographics, AuditSectionResult } from "@/lib/analyticsApi";
 
@@ -23,7 +23,7 @@ export default function DemographicsSection({ result, loading, error, orgSelecte
   const bm = result?.benchmark?.metrics;
 
   const visibleKeys = orgSelected
-    ? (["practice", "similar", "alliance", "national"] as const)
+    ? (["practice", "national", "similar", "alliance"] as const)
     : (["practice", "national"] as const);
 
   const sexChart: ComparisonDataRow[] = (practice?.sex ?? []).map((row) => {
@@ -36,7 +36,7 @@ export default function DemographicsSection({ result, loading, error, orgSelecte
       practice: row.pct,
       similar: aRow?.pct ?? null,
       alliance: eRow?.pct ?? null,
-      national: bm?.[metricKey]?.national ?? null,
+      national: resolveBenchmarkValue(bm, metricKey, orgSelected),
     };
   });
 
@@ -54,7 +54,7 @@ export default function DemographicsSection({ result, loading, error, orgSelecte
       practice: row.pct,
       similar: aRow?.pct ?? null,
       alliance: eRow?.pct ?? null,
-      national: isWhite ? (bm?.["demographics.white_ethnicity_pct"]?.national ?? null) : null,
+      national: isWhite ? resolveBenchmarkValue(bm, "demographics.white_ethnicity_pct", orgSelected) : null,
     };
   });
 
@@ -71,7 +71,7 @@ export default function DemographicsSection({ result, loading, error, orgSelecte
       alliance: englandLive?.sex.find((s) => s.gender.toLowerCase() === "male")
         ? { value: englandLive.sex.find((s) => s.gender.toLowerCase() === "male")!.pct }
         : { value: bm?.["demographics.sex_male_pct"]?.alliance ?? null },
-      national: { value: bm?.["demographics.sex_male_pct"]?.national ?? null },
+      national: { value: resolveBenchmarkValue(bm, "demographics.sex_male_pct", orgSelected) },
     },
     {
       label: "Female (%)",
@@ -85,7 +85,7 @@ export default function DemographicsSection({ result, loading, error, orgSelecte
       alliance: englandLive?.sex.find((s) => s.gender.toLowerCase() === "female")
         ? { value: englandLive.sex.find((s) => s.gender.toLowerCase() === "female")!.pct }
         : { value: bm?.["demographics.sex_female_pct"]?.alliance ?? null },
-      national: { value: bm?.["demographics.sex_female_pct"]?.national ?? null },
+      national: { value: resolveBenchmarkValue(bm, "demographics.sex_female_pct", orgSelected) },
     },
     {
       label: "White ethnicity (%)",
@@ -99,7 +99,7 @@ export default function DemographicsSection({ result, loading, error, orgSelecte
       alliance: englandLive?.ethnicity.find((e) => e.ethnicity?.toLowerCase().startsWith("white"))
         ? { value: englandLive.ethnicity.find((e) => e.ethnicity?.toLowerCase().startsWith("white"))!.pct }
         : { value: bm?.["demographics.white_ethnicity_pct"]?.alliance ?? null },
-      national: { value: bm?.["demographics.white_ethnicity_pct"]?.national ?? null },
+      national: { value: resolveBenchmarkValue(bm, "demographics.white_ethnicity_pct", orgSelected) },
     },
   ];
 
@@ -112,7 +112,7 @@ export default function DemographicsSection({ result, loading, error, orgSelecte
       loading={loading}
       error={error}
     >
-      <SummaryStatsTable rows={summaryRows} visibleKeys={visibleKeys} caption="Key demographic comparisons" />
+      <SummaryStatsTable rows={summaryRows} visibleKeys={visibleKeys} orgSelected={orgSelected} caption="Key demographic comparisons" />
 
       <Divider sx={{ my: 2 }} />
 
@@ -120,7 +120,7 @@ export default function DemographicsSection({ result, loading, error, orgSelecte
         <Box sx={{ mb: 3 }}>
           <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600, fontSize: "0.85rem" }}>Sex</Typography>
           <BenchmarkLegend visibleKeys={visibleKeys} orgSelected={orgSelected} />
-          <ComparisonBarChart data={sexChart} unit="percent" height={220} visibleKeys={visibleKeys} ariaLabel="Sex distribution compared to benchmarks" />
+          <ComparisonBarChart data={sexChart} unit="percent" height={220} visibleKeys={visibleKeys} orgSelected={orgSelected} ariaLabel="Sex distribution compared to benchmarks" />
         </Box>
       )}
 
@@ -136,7 +136,7 @@ export default function DemographicsSection({ result, loading, error, orgSelecte
         <Box>
           <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600, fontSize: "0.85rem" }}>Ethnicity</Typography>
           <BenchmarkLegend visibleKeys={visibleKeys} orgSelected={orgSelected} />
-          <ComparisonBarChart data={ethChart} unit="percent" height={240} visibleKeys={visibleKeys} ariaLabel="Ethnicity distribution compared to benchmarks" />
+          <ComparisonBarChart data={ethChart} unit="percent" height={240} visibleKeys={visibleKeys} orgSelected={orgSelected} ariaLabel="Ethnicity distribution compared to benchmarks" />
         </Box>
       )}
     </SectionCard>

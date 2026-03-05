@@ -254,7 +254,7 @@ class TestAgenticLoopIterationCap:
             "issues": [{"field": "snomed_term", "rationale": "snomed_term mismatch", "current": "Chest pain", "suggested": None, "confidence": 0.8}],
         }
 
-        with patch("scripts.opus_training_auditor.sanitise_for_prompt", side_effect=lambda x, **kw: x):
+        with patch("libs.audit.auditor.sanitise_for_prompt", side_effect=lambda x, **kw: x):
             updated_ev, tool_calls = _agentic_audit_record(
                 opus_client=mock_client,
                 system_prompt="system",
@@ -348,7 +348,7 @@ class TestPassTwoFiltering:
             agentic_calls.append(entity_verdict)
             return entity_verdict, []
 
-        with patch("scripts.opus_training_auditor._agentic_audit_record", side_effect=mock_agentic):
+        with patch("libs.audit.auditor._agentic_audit_record", side_effect=mock_agentic):
             guardrail = CostGuardrail(token_budget=10_000_000, cost_cap=1000.0)
             result = _pass_two(
                 pass_one_verdict=pass_one,
@@ -381,7 +381,7 @@ class TestPassTwoFiltering:
         guardrail = CostGuardrail(token_budget=1, cost_cap=0.001)
         guardrail.record(1000, 1000)  # trigger over budget
 
-        with patch("scripts.opus_training_auditor._agentic_audit_record") as mock_agentic:
+        with patch("libs.audit.auditor._agentic_audit_record") as mock_agentic:
             _pass_two(
                 pass_one_verdict=pass_one,
                 row=row,
@@ -571,7 +571,7 @@ class TestSanitisation:
             "issues": [{"field": "snomed_term", "rationale": "snomed mismatch", "current": "X", "suggested": None, "confidence": 0.7}],
         }
 
-        with patch("scripts.opus_training_auditor.sanitise_for_prompt", side_effect=spy_sanitise):
+        with patch("libs.audit.auditor.sanitise_for_prompt", side_effect=spy_sanitise):
             _agentic_audit_record(
                 opus_client=mock_client,
                 system_prompt="system",
@@ -782,7 +782,7 @@ class TestAuditTrailToolCalls:
             "issues": [{"field": "snomed_term", "rationale": "snomed mismatch", "current": "X", "suggested": None, "confidence": 0.7}],
         }
 
-        with patch("scripts.opus_training_auditor.sanitise_for_prompt", side_effect=lambda x, **kw: x):
+        with patch("libs.audit.auditor.sanitise_for_prompt", side_effect=lambda x, **kw: x):
             _, tool_calls = _agentic_audit_record(
                 opus_client=mock_client,
                 system_prompt="system",
@@ -888,7 +888,7 @@ class TestAgenticErrorHandling:
         }
 
         # Should not raise
-        with patch("scripts.opus_training_auditor.sanitise_for_prompt", side_effect=lambda x, **kw: x):
+        with patch("libs.audit.auditor.sanitise_for_prompt", side_effect=lambda x, **kw: x):
             updated_ev, tool_calls = _agentic_audit_record(
                 opus_client=mock_client,
                 system_prompt="system",

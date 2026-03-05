@@ -3,7 +3,7 @@
 import Box from "@mui/material/Box";
 import SectionCard from "./SectionCard";
 import ComparisonBarChart, { type ComparisonDataRow } from "./ComparisonBarChart";
-import BenchmarkLegend from "./BenchmarkLegend";
+import BenchmarkLegend, { resolveBenchmarkValue } from "./BenchmarkLegend";
 import SummaryStatsTable from "./SummaryStatsRow";
 import type { AuditConsultations, AuditSectionResult } from "@/lib/analyticsApi";
 
@@ -21,8 +21,10 @@ export default function ConsultationsSection({ result, loading, error, orgSelect
   const bm = result?.benchmark?.metrics;
 
   const visibleKeys = orgSelected
-    ? (["practice", "similar", "alliance", "national"] as const)
+    ? (["practice", "national", "similar", "alliance"] as const)
     : (["practice", "national"] as const);
+
+  const fewerThan3Bm = resolveBenchmarkValue(bm, "consultations.fewer_than_3_pct", orgSelected);
 
   const chartData: ComparisonDataRow[] = [
     {
@@ -30,16 +32,14 @@ export default function ConsultationsSection({ result, loading, error, orgSelect
       practice: practice?.fewer_than_3_pct ?? null,
       similar: allianceLive?.fewer_than_3_pct ?? null,
       alliance: englandLive?.fewer_than_3_pct ?? null,
-      national: bm?.["consultations.fewer_than_3_pct"]?.national ?? null,
+      national: fewerThan3Bm,
     },
     {
       category: "3 or more",
       practice: practice?.three_or_more_pct ?? null,
       similar: allianceLive?.three_or_more_pct ?? null,
       alliance: englandLive?.three_or_more_pct ?? null,
-      national: bm?.["consultations.fewer_than_3_pct"]?.national != null
-        ? 100 - bm["consultations.fewer_than_3_pct"].national
-        : null,
+      national: fewerThan3Bm != null ? 100 - fewerThan3Bm : null,
     },
   ];
 
@@ -50,7 +50,7 @@ export default function ConsultationsSection({ result, loading, error, orgSelect
       practice: practice ? { value: practice.fewer_than_3_pct, n: practice.fewer_than_3_n } : null,
       similar: allianceLive ? { value: allianceLive.fewer_than_3_pct } : null,
       alliance: englandLive ? { value: englandLive.fewer_than_3_pct } : { value: bm?.["consultations.fewer_than_3_pct"]?.alliance ?? null },
-      national: { value: bm?.["consultations.fewer_than_3_pct"]?.national ?? null },
+      national: { value: fewerThan3Bm },
     },
     {
       label: "Median consultations",
@@ -60,7 +60,7 @@ export default function ConsultationsSection({ result, loading, error, orgSelect
         : null,
       similar: allianceLive ? { value: allianceLive.median_consultations } : null,
       alliance: englandLive ? { value: englandLive.median_consultations } : { value: bm?.["consultations.median_consultations"]?.alliance ?? null },
-      national: { value: bm?.["consultations.median_consultations"]?.national ?? null },
+      national: { value: resolveBenchmarkValue(bm, "consultations.median_consultations", orgSelected) },
     },
   ];
 
@@ -79,12 +79,14 @@ export default function ConsultationsSection({ result, loading, error, orgSelect
         unit="percent"
         height={240}
         visibleKeys={visibleKeys}
+        orgSelected={orgSelected}
         ariaLabel="Proportion of patients with fewer than 3 vs 3 or more consultations"
       />
       <Box sx={{ mt: 2 }}>
         <SummaryStatsTable
           rows={summaryRows}
           visibleKeys={visibleKeys}
+          orgSelected={orgSelected}
           caption="Consultation summary statistics"
         />
       </Box>

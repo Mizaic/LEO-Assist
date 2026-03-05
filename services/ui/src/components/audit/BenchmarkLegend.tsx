@@ -16,12 +16,37 @@ export function getBenchmarkLabels(orgSelected: boolean): Record<keyof typeof BE
     practice: orgSelected ? "This Practice" : "England (today)",
     similar: "Alliance (today)",
     alliance: orgSelected ? "England (today)" : "England (today)",
-    national: "NCDA 2018 Baseline",
+    // When an org is selected the 4th column is the practice's own 2018 baseline;
+    // when no org is selected it is the England 2018 national baseline.
+    national: orgSelected ? "This Practice (2018)" : "England (2018)",
   };
 }
 
 /** Default (backward-compat) static labels. */
 export const BENCHMARK_LABELS = getBenchmarkLabels(true);
+
+/**
+ * Resolve the benchmark value that should be shown in the "national" chart slot.
+ *
+ * When an org is selected the most relevant 2018 comparator is the practice's
+ * own baseline. Falls back to the national benchmark when no practice-level
+ * value exists, and to null when neither is available.
+ *
+ * When no org is selected (England view) only the national benchmark is shown.
+ */
+export function resolveBenchmarkValue(
+  bm: Record<string, { practice?: number | null; alliance?: number | null; national?: number | null }> | null | undefined,
+  metricKey: string,
+  orgSelected: boolean,
+): number | null {
+  if (!bm) return null;
+  const entry = bm[metricKey];
+  if (!entry) return null;
+  if (orgSelected) {
+    return entry.practice ?? entry.national ?? null;
+  }
+  return entry.national ?? null;
+}
 
 interface BenchmarkLegendProps {
   visibleKeys?: Array<keyof typeof BENCHMARK_COLOURS>;
@@ -32,7 +57,7 @@ interface BenchmarkLegendProps {
 }
 
 export default function BenchmarkLegend({
-  visibleKeys = ["practice", "similar", "alliance", "national"],
+  visibleKeys = ["practice", "national", "similar", "alliance"],
   orgSelected = true,
   labelOverrides,
 }: BenchmarkLegendProps) {

@@ -3,7 +3,7 @@
 import Box from "@mui/material/Box";
 import SectionCard from "./SectionCard";
 import ComparisonBarChart, { type ComparisonDataRow } from "./ComparisonBarChart";
-import BenchmarkLegend from "./BenchmarkLegend";
+import BenchmarkLegend, { resolveBenchmarkValue } from "./BenchmarkLegend";
 import SummaryStatsTable from "./SummaryStatsRow";
 import type { AuditInvestigations, AuditSectionResult } from "@/lib/analyticsApi";
 
@@ -31,8 +31,10 @@ export default function InvestigationsSection({ result, loading, error, orgSelec
   const bm = result?.benchmark?.metrics;
 
   const visibleKeys = orgSelected
-    ? (["practice", "similar", "alliance", "national"] as const)
+    ? (["practice", "national", "similar", "alliance"] as const)
     : (["practice", "national"] as const);
+
+  const atLeastOneBm = resolveBenchmarkValue(bm, "investigations.at_least_one_pct", orgSelected);
 
   const summaryChart: ComparisonDataRow[] = [
     {
@@ -40,16 +42,14 @@ export default function InvestigationsSection({ result, loading, error, orgSelec
       practice: practice?.has_investigation_pct ?? null,
       similar: allianceLive?.has_investigation_pct ?? null,
       alliance: englandLive?.has_investigation_pct ?? null,
-      national: bm?.["investigations.at_least_one_pct"]?.national ?? null,
+      national: atLeastOneBm,
     },
     {
       category: "No investigation",
       practice: practice?.no_investigation_pct ?? null,
       similar: allianceLive?.no_investigation_pct ?? null,
       alliance: englandLive?.no_investigation_pct ?? null,
-      national: bm?.["investigations.at_least_one_pct"]?.national != null
-        ? 100 - bm["investigations.at_least_one_pct"].national
-        : null,
+      national: atLeastOneBm != null ? 100 - atLeastOneBm : null,
     },
   ];
 
@@ -61,7 +61,7 @@ export default function InvestigationsSection({ result, loading, error, orgSelec
       practice: t.pct,
       similar: aType?.pct ?? null,
       alliance: eType?.pct ?? null,
-      national: t.type === "blood_test" ? (bm?.["investigations.blood_test_pct"]?.national ?? null) : null,
+      national: t.type === "blood_test" ? resolveBenchmarkValue(bm, "investigations.blood_test_pct", orgSelected) : null,
     };
   });
 
@@ -76,7 +76,7 @@ export default function InvestigationsSection({ result, loading, error, orgSelec
       practice: practice ? { value: practice.has_investigation_pct } : null,
       similar: allianceLive ? { value: allianceLive.has_investigation_pct } : null,
       alliance: englandLive ? { value: englandLive.has_investigation_pct } : { value: bm?.["investigations.at_least_one_pct"]?.alliance ?? null },
-      national: { value: bm?.["investigations.at_least_one_pct"]?.national ?? null },
+      national: { value: atLeastOneBm },
     },
     {
       label: "Blood test (of investigations) (%)",
@@ -84,7 +84,7 @@ export default function InvestigationsSection({ result, loading, error, orgSelec
       practice: btPractice ? { value: btPractice.pct } : null,
       similar: btAlliance ? { value: btAlliance.pct } : null,
       alliance: btEngland ? { value: btEngland.pct } : { value: bm?.["investigations.blood_test_pct"]?.alliance ?? null },
-      national: { value: bm?.["investigations.blood_test_pct"]?.national ?? null },
+      national: { value: resolveBenchmarkValue(bm, "investigations.blood_test_pct", orgSelected) },
     },
   ];
 
@@ -103,6 +103,7 @@ export default function InvestigationsSection({ result, loading, error, orgSelec
         unit="percent"
         height={220}
         visibleKeys={visibleKeys}
+        orgSelected={orgSelected}
         ariaLabel="Proportion of patients with and without primary care investigations"
       />
       {typeChart.length > 0 && (
@@ -112,12 +113,13 @@ export default function InvestigationsSection({ result, loading, error, orgSelec
             unit="percent"
             height={240}
             visibleKeys={visibleKeys}
+            orgSelected={orgSelected}
             ariaLabel="Type of investigations ordered"
           />
         </Box>
       )}
       <Box sx={{ mt: 2 }}>
-        <SummaryStatsTable rows={tableRows} visibleKeys={visibleKeys} caption="Investigation summary" />
+        <SummaryStatsTable rows={tableRows} visibleKeys={visibleKeys} orgSelected={orgSelected} caption="Investigation summary" />
       </Box>
     </SectionCard>
   );

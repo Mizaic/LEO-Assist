@@ -4,7 +4,7 @@ import Box from "@mui/material/Box";
 import SectionCard from "./SectionCard";
 import IntervalStripPlot from "./IntervalStripPlot";
 import SummaryStatsTable from "./SummaryStatsRow";
-import BenchmarkLegend from "./BenchmarkLegend";
+import BenchmarkLegend, { resolveBenchmarkValue } from "./BenchmarkLegend";
 import type { AuditIntervals, AuditSectionResult } from "@/lib/analyticsApi";
 
 interface Props {
@@ -21,10 +21,16 @@ export default function PrimaryCareIntervalSection({ result, loading, error, org
   const bm = result?.benchmark?.metrics;
 
   const visibleKeys = orgSelected
-    ? (["practice", "similar", "alliance", "national"] as const)
+    ? (["practice", "national", "similar", "alliance"] as const)
     : (["practice", "national"] as const);
 
-  const nationalMedian = bm?.["primary_care_interval.median_pci_days"]?.national ?? null;
+  // When a practice is selected, show that practice's 2018 median as the reference line;
+  // fall back to national when no practice-level benchmark exists.
+  const practiceMedianBm = bm?.["primary_care_interval.median_pci_days"]?.practice ?? null;
+  const nationalMedian = resolveBenchmarkValue(bm, "primary_care_interval.median_pci_days", orgSelected);
+  const nationalLabel = orgSelected
+    ? (practiceMedianBm != null ? "This Practice (2018)" : "England (2018)")
+    : "England (2018)";
   const allianceMedian = orgSelected
     ? (allianceLive?.pci?.median ?? bm?.["primary_care_interval.median_pci_days"]?.alliance ?? null)
     : null;
@@ -62,11 +68,12 @@ export default function PrimaryCareIntervalSection({ result, loading, error, org
         q1={practice?.pci?.q1 ?? null}
         q3={practice?.pci?.q3 ?? null}
         nationalMedian={nationalMedian}
+        nationalLabel={nationalLabel}
         allianceMedian={allianceMedian}
         maxDays={180}
       />
       <Box sx={{ mt: 2 }}>
-        <SummaryStatsTable rows={tableRows} visibleKeys={visibleKeys} caption="Primary care interval statistics" />
+        <SummaryStatsTable rows={tableRows} visibleKeys={visibleKeys} orgSelected={orgSelected} caption="Primary care interval statistics" />
       </Box>
     </SectionCard>
   );

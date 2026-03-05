@@ -3,7 +3,7 @@
 import Box from "@mui/material/Box";
 import SectionCard from "./SectionCard";
 import ComparisonBarChart, { type ComparisonDataRow } from "./ComparisonBarChart";
-import BenchmarkLegend from "./BenchmarkLegend";
+import BenchmarkLegend, { resolveBenchmarkValue } from "./BenchmarkLegend";
 import SummaryStatsTable from "./SummaryStatsRow";
 import type { AuditReferralRow, AuditSectionResult } from "@/lib/analyticsApi";
 
@@ -35,7 +35,7 @@ export default function ReferralsSection({ result, loading, error, orgSelected =
   const bm = result?.benchmark?.metrics;
 
   const visibleKeys = orgSelected
-    ? (["practice", "similar", "alliance", "national"] as const)
+    ? (["practice", "national", "similar", "alliance"] as const)
     : (["practice", "national"] as const);
 
   const chartData: ComparisonDataRow[] = practice.slice(0, 8).map((row) => {
@@ -50,7 +50,7 @@ export default function ReferralsSection({ result, loading, error, orgSelected =
       practice: row.pct,
       similar: aRow?.pct ?? null,
       alliance: eRow?.pct ?? null,
-      national: metricKey ? (bm?.[metricKey]?.national ?? null) : null,
+      national: metricKey ? resolveBenchmarkValue(bm, metricKey, orgSelected) : null,
     };
   });
 
@@ -68,7 +68,7 @@ export default function ReferralsSection({ result, loading, error, orgSelected =
       practice: twwP ? { value: twwP.pct } : null,
       similar: twwA ? { value: twwA.pct } : null,
       alliance: twwE ? { value: twwE.pct } : { value: bm?.["referrals.tww_pct"]?.alliance ?? null },
-      national: { value: bm?.["referrals.tww_pct"]?.national ?? null },
+      national: { value: resolveBenchmarkValue(bm, "referrals.tww_pct", orgSelected) },
     },
     {
       label: "Emergency (%)",
@@ -76,7 +76,7 @@ export default function ReferralsSection({ result, loading, error, orgSelected =
       practice: emP ? { value: emP.pct } : null,
       similar: emA ? { value: emA.pct } : null,
       alliance: emE ? { value: emE.pct } : { value: bm?.["referrals.emergency_pct"]?.alliance ?? null },
-      national: { value: bm?.["referrals.emergency_pct"]?.national ?? null },
+      national: { value: resolveBenchmarkValue(bm, "referrals.emergency_pct", orgSelected) },
     },
   ];
 
@@ -94,10 +94,11 @@ export default function ReferralsSection({ result, loading, error, orgSelected =
         data={chartData}
         unit="percent"
         visibleKeys={visibleKeys}
+        orgSelected={orgSelected}
         ariaLabel="Referral routes compared to alliance and national benchmarks"
       />
       <Box sx={{ mt: 2 }}>
-        <SummaryStatsTable rows={tableRows} visibleKeys={visibleKeys} caption="Key referral route comparisons" />
+        <SummaryStatsTable rows={tableRows} visibleKeys={visibleKeys} orgSelected={orgSelected} caption="Key referral route comparisons" />
       </Box>
     </SectionCard>
   );

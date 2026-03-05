@@ -2,7 +2,7 @@
 
 import SectionCard from "./SectionCard";
 import ComparisonBarChart, { type ComparisonDataRow } from "./ComparisonBarChart";
-import BenchmarkLegend from "./BenchmarkLegend";
+import BenchmarkLegend, { resolveBenchmarkValue } from "./BenchmarkLegend";
 import SummaryStatsTable from "./SummaryStatsRow";
 import type { AuditPlaceRow, AuditSectionResult } from "@/lib/analyticsApi";
 
@@ -34,7 +34,7 @@ export default function PlaceOfPresentationSection({ result, loading, error, org
   const bm = result?.benchmark?.metrics;
 
   const visibleKeys = orgSelected
-    ? (["practice", "similar", "alliance", "national"] as const)
+    ? (["practice", "national", "similar", "alliance"] as const)
     : (["practice", "national"] as const);
 
   const chartData: ComparisonDataRow[] = practice.slice(0, 8).map((row) => {
@@ -49,7 +49,7 @@ export default function PlaceOfPresentationSection({ result, loading, error, org
       practice: row.pct,
       similar: aRow?.pct ?? null,
       alliance: eRow?.pct ?? null,
-      national: metricKey ? (bm?.[metricKey]?.national ?? null) : null,
+      national: metricKey ? resolveBenchmarkValue(bm, metricKey, orgSelected) : null,
     };
   });
 
@@ -67,7 +67,7 @@ export default function PlaceOfPresentationSection({ result, loading, error, org
       practice: gpLive ? { value: gpLive.pct } : null,
       similar: gpAlive ? { value: gpAlive.pct } : null,
       alliance: gpElive ? { value: gpElive.pct } : { value: bm?.["place_of_presentation.gp_surgery_pct"]?.alliance ?? null },
-      national: { value: bm?.["place_of_presentation.gp_surgery_pct"]?.national ?? null },
+      national: { value: resolveBenchmarkValue(bm, "place_of_presentation.gp_surgery_pct", orgSelected) },
     },
     {
       label: "A&E (%)",
@@ -75,7 +75,7 @@ export default function PlaceOfPresentationSection({ result, loading, error, org
       practice: aeLive ? { value: aeLive.pct } : null,
       similar: aeAlive ? { value: aeAlive.pct } : null,
       alliance: aeElive ? { value: aeElive.pct } : { value: bm?.["place_of_presentation.ae_pct"]?.alliance ?? null },
-      national: { value: bm?.["place_of_presentation.ae_pct"]?.national ?? null },
+      national: { value: resolveBenchmarkValue(bm, "place_of_presentation.ae_pct", orgSelected) },
     },
   ];
 
@@ -93,11 +93,13 @@ export default function PlaceOfPresentationSection({ result, loading, error, org
         data={chartData}
         unit="percent"
         visibleKeys={visibleKeys}
+        orgSelected={orgSelected}
         ariaLabel="Place of first presentation compared to alliance and national benchmarks"
       />
       <SummaryStatsTable
         rows={tableRows}
         visibleKeys={visibleKeys}
+        orgSelected={orgSelected}
         caption="Place of first presentation — % of audited cases"
       />
     </SectionCard>

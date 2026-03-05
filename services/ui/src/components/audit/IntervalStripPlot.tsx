@@ -28,6 +28,8 @@ interface IntervalStripPlotProps {
   q1?: number | null;
   q3?: number | null;
   nationalMedian?: number | null;
+  /** Label for the national/baseline reference line. Defaults to "2018 baseline". */
+  nationalLabel?: string;
   allianceMedian?: number | null;
   unit?: string;
   maxDays?: number;
@@ -45,6 +47,7 @@ export default function IntervalStripPlot({
   q1,
   q3,
   nationalMedian,
+  nationalLabel = "2018 baseline",
   allianceMedian,
   unit = "days",
   maxDays = 365,
@@ -79,7 +82,7 @@ export default function IntervalStripPlot({
         )}
         {nationalMedian != null && (
           <Chip
-            label={`National median: ${nationalMedian} ${unit}`}
+            label={`${nationalLabel}: ${nationalMedian} ${unit}`}
             size="small"
             sx={{ bgcolor: "#92400E", color: "white" }}
           />
@@ -131,7 +134,7 @@ export default function IntervalStripPlot({
                 <ReferenceLine x={median} stroke="#1D4ED8" strokeWidth={2} strokeDasharray="6 3" label={{ value: "Median", fill: "#1D4ED8", fontSize: 10, position: "top" }} />
               )}
               {nationalMedian != null && (
-                <ReferenceLine x={nationalMedian} stroke="#92400E" strokeWidth={1.5} strokeDasharray="4 2" label={{ value: "National", fill: "#92400E", fontSize: 10, position: "insideTopRight" }} />
+                <ReferenceLine x={nationalMedian} stroke="#92400E" strokeWidth={1.5} strokeDasharray="4 2" label={{ value: nationalLabel, fill: "#92400E", fontSize: 10, position: "insideTopRight" }} />
               )}
               {allianceMedian != null && (
                 <ReferenceLine x={allianceMedian} stroke="#7C3AED" strokeWidth={1.5} strokeDasharray="4 2" label={{ value: "Alliance", fill: "#7C3AED", fontSize: 10, position: "insideTopLeft" }} />
