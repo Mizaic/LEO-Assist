@@ -49,10 +49,13 @@ class SentenceSplitter:
         try:
             import spacy
             nlp = spacy.blank("en")
-            from medspacy.sentence_splitting import PyRuSHSentencizer
-            nlp.add_pipe("medspacy_pyrush", config={"rules_path": None})
+            from medspacy.sentence_splitting import PyRuSHSentencizer  # noqa: F401
+            # rules_path=None was valid in older medspacy but is now rejected by
+            # confection config validation — omit it to use the built-in default rules.
+            nlp.add_pipe("medspacy_pyrush")
             return nlp
         except Exception:
+            logger.debug("PyRuSH sentence splitter unavailable — falling back to regex", exc_info=True)
             return None
 
     def split(self, text: str) -> list[SentenceChunk]:

@@ -133,6 +133,7 @@ def reclassify_assertion(
     entity_semantic_tag: str,
     entity_assertion: str,
     sentence_text: str,
+    entity_text: str = "",
 ) -> str | None:
     """Return a corrected assertion if scope-guard rules apply, else None.
 
@@ -144,18 +145,20 @@ def reclassify_assertion(
     if entity_assertion not in ("present", ""):
         return None
 
+    label = f"{entity_text!r} [{entity_semantic_tag}]" if entity_text else entity_semantic_tag
+
     if is_safety_netting_sentence(sentence_text):
         logger.info(
-            "scope_guard: reclassifying entity to 'hypothetical' -- "
-            "safety-netting sentence: %.120s",
+            "scope_guard: %s → 'hypothetical' (safety-netting) | sent: %.120s",
+            label,
             sentence_text,
         )
         return "hypothetical"
 
     if has_recommendation_language(sentence_text):
         logger.info(
-            "scope_guard: reclassifying entity to 'hypothetical' -- "
-            "recommendation language in: %.120s",
+            "scope_guard: %s → 'hypothetical' (recommendation) | sent: %.120s",
+            label,
             sentence_text,
         )
         return "hypothetical"
@@ -163,8 +166,8 @@ def reclassify_assertion(
     tag = (entity_semantic_tag or "").lower().replace("_", " ")
     if tag == "disorder" and has_hedged_diagnosis(sentence_text):
         logger.info(
-            "scope_guard: reclassifying disorder to 'possible' -- "
-            "hedged diagnostic language in: %.120s",
+            "scope_guard: %s → 'possible' (hedged diagnosis) | sent: %.120s",
+            label,
             sentence_text,
         )
         return "possible"

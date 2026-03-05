@@ -10,6 +10,7 @@
 #   .\scripts\start_leo-ai-core.ps1 -Services api,ui           # named subset (others skipped)
 #   .\scripts\start_leo-ai-core.ps1 -CodingWorkers 1           # single coding worker (debug)
 #   .\scripts\start_leo-ai-core.ps1 -AnalysisWorkers 1         # single analysis worker (debug)
+#   .\scripts\start_leo-ai-core.ps1 -TermWorkers 3             # 3 terminology API instances (8001, 8011, 8021)
 #
 # Model inference service:
 #   Starts by default. Downloads the active NER model from Azure Blob at startup.
@@ -20,6 +21,13 @@
 #   Starts by default. Reads TrainingLabel nodes from Neo4j, trains NER head, uploads to blob.
 #   Exposes /train/jobs, /train/progress/{job_id} on -TrainingWorkerPort (default 8005).
 #   Use -NoTrainingWorker to skip if you are not doing model training today.
+#
+# Terminology API workers (-TermWorkers N):
+#   Starts N independent uvicorn instances of the Terminology API on ports
+#   $TermPort, $TermPort+10, $TermPort+20, ... (default: 8001, 8011, 8021, ...).
+#   Each instance loads its own embedding model. TERMINOLOGY_API_URLS is set in
+#   the environment so coding workers and evaluation scripts round-robin across all.
+#   Recommended: 3 instances for evaluation runs, 1 for normal development.
 
 param(
     [int]$ApiPort             = 8000,
@@ -31,6 +39,7 @@ param(
     [int]$UiPort              = 3000,
     [int]$CodingWorkers       = 3,
     [int]$AnalysisWorkers     = 2,
+    [int]$TermWorkers         = 1,
     [switch]$SkipInstall,
     [switch]$NoWorkers,
     [switch]$NoModelInference,
@@ -202,11 +211,37 @@ if (ShouldStart "api") {
     $windowCount++
 }
 
-# 2  Terminology API  (services/terminology_api)  ->  :8001
+# 2  Terminology API  (services/terminology_api)  ->  :8001 (+ optional extra instances)
+#    Extra instances start on $TermPort+10, $TermPort+20, ... (e.g. 8011, 8021)
+#    TERMINOLOGY_API_URLS is exported so coding workers and evaluation scripts
+#    round-robin across all instances automatically.
 if (ShouldStart "terminology_api") {
-    Start-ServiceWindow -Title "Terminology API :$TermPort" -Command "& '$VenvPython' -m uvicorn services.terminology_api.app.main:app --reload --host 0.0.0.0 --port $TermPort"
-    Write-Host "    Terminology API    http://localhost:$TermPort" -ForegroundColor White
-    $windowCount++
+    $termPorts  = @()
+    $termUrls   = @()
+    for ($t = 0; $t -lt $TermWorkers; $t++) {
+        $tPort = $TermPort + ($t * 10)
+        $termPorts += $tPort
+        $termUrls  += "http://localhost:$tPort"
+        # Primary instance gets --reload (scoped to service dirs only).
+        # All instances get --workers 4 so concurrent requests don't queue at the TCP layer.
+        # Note: --reload and --workers are mutually exclusive in uvicorn, so the primary
+        # uses reload (dev convenience) while workers use multi-process for throughput.
+        if ($t -eq 0) {
+            $termCmd = "& '$VenvPython' -m uvicorn services.terminology_api.app.main:app --reload --reload-dir services/terminology_api --reload-dir libs --host 0.0.0.0 --port $tPort"
+        } else {
+            $termCmd = "& '$VenvPython' -m uvicorn services.terminology_api.app.main:app --workers 4 --host 0.0.0.0 --port $tPort"
+        }
+        Start-ServiceWindow -Title "Terminology API :$tPort" -Command $termCmd
+        Write-Host "    Terminology API    http://localhost:$tPort$(if ($t -eq 0) { ' (primary)' } else { " (worker $t)" })" -ForegroundColor White
+        $windowCount++
+    }
+
+    # Export TERMINOLOGY_API_URLS so child processes (coding workers, eval scripts) inherit it
+    $termUrlsJoined = $termUrls -join ","
+    [System.Environment]::SetEnvironmentVariable("TERMINOLOGY_API_URLS", $termUrlsJoined, "Process")
+    if ($TermWorkers -gt 1) {
+        Write-Host "    TERMINOLOGY_API_URLS=$termUrlsJoined" -ForegroundColor DarkGray
+    }
 }
 
 # 3  FHIR API  (services/fhir_api)  ->  :8002
@@ -282,4 +317,9 @@ if (ShouldStart "ui") {
 # -- Summary ---------------------------------------------------------------
 Write-Host ""
 Write-Host "  $windowCount PowerShell window(s) opened. Close them to stop services." -ForegroundColor DarkGray
+if ($TermWorkers -gt 1) {
+    Write-Host "  Terminology API running on $TermWorkers instances. TERMINOLOGY_API_URLS is set for round-robin." -ForegroundColor Cyan
+    Write-Host "  To run the evaluation script against all instances:" -ForegroundColor DarkGray
+    Write-Host "    .venv\Scripts\python.exe -m scripts.evaluate_training_data" -ForegroundColor DarkGray
+}
 Write-Host ""

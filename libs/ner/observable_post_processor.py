@@ -3,6 +3,22 @@
 This module centralizes deterministic rules used in:
 - label verification normalization (gold-label correction)
 - runtime model extraction post-processing
+
+Compound lab-result handling
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Lab result lines often contain three distinct concepts in a single span::
+
+    Mean cell haemoglobin level (XE2pb) 22.5 pg [27 - 32] - Outside reference range
+    ├── observable_entity  "Mean cell haemoglobin level"   (what was measured)
+    ├── qualifier_value    "22.5 pg"                       (the result)
+    └── finding            "Outside reference range"        (the interpretation)
+
+``normalize_observable_entities`` now detects interpretation suffixes and emits
+a separate ``finding`` entity for them.  The finding entity's SNOMED code is
+resolved downstream by the coding resolver, which can use the
+``/concepts/{id}/related`` API endpoint to navigate from the resolved
+observable_entity concept to its associated finding via the ``INTERPRETS``
+relationship.
 """
 from __future__ import annotations
 
@@ -19,6 +35,53 @@ _KNOWN_UNIT_TOKEN_RE = re.compile(
     r"(?:mmol|umol|nmol|pmol|mg|ug|ng|pg|g|iu|ml|l|mol|fl|%|mmhg|kpa|bpm|10\^)",
     re.IGNORECASE,
 )
+
+# ---------------------------------------------------------------------------
+# Interpretation-suffix detection
+# ---------------------------------------------------------------------------
+# Ordered from most specific to least specific so that "very high" is captured
+# before "high".  Each entry maps to a normalised qualifier key.
+_INTERPRETATION_PATTERNS: list[tuple[re.Pattern[str], str]] = [
+    (re.compile(r"outside\s+reference\s+range", re.I), "outside_reference_range"),
+    (re.compile(r"above\s+reference\s+range",   re.I), "above_reference_range"),
+    (re.compile(r"below\s+reference\s+range",   re.I), "below_reference_range"),
+    (re.compile(r"within\s+reference\s+range",  re.I), "within_reference_range"),
+    (re.compile(r"out(?:\s+of)?\s+range",       re.I), "outside_reference_range"),
+    (re.compile(r"in\s+range",                  re.I), "within_reference_range"),
+    (re.compile(r"above\s+range",               re.I), "above_reference_range"),
+    (re.compile(r"below\s+range",               re.I), "below_reference_range"),
+    (re.compile(r"very\s+high",                 re.I), "very_high"),
+    (re.compile(r"very\s+low",                  re.I), "very_low"),
+    (re.compile(r"high\b",                      re.I), "high"),
+    (re.compile(r"low\b",                       re.I), "low"),
+    (re.compile(r"elevated\b",                  re.I), "high"),
+    (re.compile(r"raised\b",                    re.I), "high"),
+    (re.compile(r"reduced\b",                   re.I), "low"),
+    (re.compile(r"abnormal\b",                  re.I), "abnormal"),
+    (re.compile(r"normal\b",                    re.I), "normal"),
+    (re.compile(r"borderline\b",                re.I), "borderline"),
+]
+
+# Separator characters that may appear between value and interpretation.
+_INTERP_SEP_RE = re.compile(r"^[\s\-–:,;]+")
+
+
+def _detect_interpretation(text: str) -> tuple[str, str] | None:
+    """Return ``(matched_text, qualifier_key)`` if *text* starts with an
+    interpretation phrase (after leading separators), else ``None``.
+
+    Only matches at the start of *text* (after optional separator tokens).
+    """
+    sep_m = _INTERP_SEP_RE.match(text)
+    after_sep = text[sep_m.end():] if sep_m else text
+    for pat, key in _INTERPRETATION_PATTERNS:
+        m = pat.match(after_sep)
+        if m:
+            matched = m.group(0)
+            # The "raw" text in the original includes the leading separator.
+            full_raw = (sep_m.group(0) if sep_m else "") + matched
+            return full_raw.strip(), key
+    return None
 
 
 def _collapse_ws(text: str) -> str:
@@ -119,6 +182,7 @@ def normalize_observable_entities(
     *,
     add_qualifier_value: bool = True,
     preserve_existing_structured: bool = True,
+    emit_interpretation_finding: bool = True,
 ) -> list[dict[str, Any]]:
     """Clean observable spans and attach value/unit/reference-range.
 
@@ -127,13 +191,25 @@ def normalize_observable_entities(
     - splits observable test name from value/unit portion
     - writes structured fields: value, unit, reference_range
     - optionally adds a qualifier_value entity for value+unit text
+    - optionally emits a **finding** entity for interpretation suffixes such
+      as "Outside reference range", "High", "Low" (see ``emit_interpretation_finding``)
     - preserves existing structured fields by default (no silent overwrite)
+
+    Interpretation finding emission
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    When ``emit_interpretation_finding=True`` (the default), if the lab line
+    carries an interpretation phrase after the numeric result, a separate entity
+    ``{"label": "finding", "text": ..., "interpretation_qualifier": ...,
+    "parent_observable_text": ...}`` is appended.  The coding resolver uses the
+    ``/concepts/{id}/related`` endpoint to map the observable_entity concept to
+    its SNOMED finding via the ``INTERPRETS`` relationship.
     """
     updated = [dict(e) for e in entities]
     extras: list[dict[str, Any]] = []
 
     for ent in updated:
-        if str(ent.get("label", "")) != "observable_entity":
+        raw_label = str(ent.get("label", "")).lower().replace(" ", "_")
+        if raw_label != "observable_entity":
             continue
 
         original_text = str(ent.get("text", ""))
@@ -157,10 +233,22 @@ def normalize_observable_entities(
         stripped = _collapse_ws(stripped)
 
         value_span = parsed.get("value_span", "")
+        interpretation_text: str | None = None
+        interpretation_qualifier: str | None = None
+
         if value_span:
             value_pos = stripped.lower().find(value_span.lower())
             if value_pos > 0:
-                stripped = _collapse_ws(stripped[:value_pos].strip(" -:;,"))
+                before = stripped[:value_pos].strip(" -:;,")
+
+                # Capture any trailing text AFTER the value span to detect
+                # interpretation suffixes (e.g. "- Outside reference range").
+                after_value = stripped[value_pos + len(value_span):]
+                interp = _detect_interpretation(after_value)
+                if interp:
+                    interpretation_text, interpretation_qualifier = interp
+
+                stripped = _collapse_ws(before)
             elif value_pos == 0:
                 after = stripped[len(value_span):]
                 after_clean = _collapse_ws(after.strip(" -:;,"))
@@ -194,6 +282,35 @@ def normalize_observable_entities(
                             "start": value_start,
                             "end": value_start + len(value_span),
                             "confidence": float(ent.get("confidence", 0.0) or 0.0),
+                        }
+                    )
+
+        # Emit interpretation phrase as a separate finding entity.
+        # The SNOMED code for the finding is resolved downstream by the coding
+        # resolver using /concepts/{observable_id}/related (INTERPRETS edges).
+        if emit_interpretation_finding and interpretation_text:
+            interp_start = _find_nearest_start(
+                encounter_text,
+                interpretation_text,
+                around=int(ent.get("end", around) or around),
+            )
+            if interp_start is not None:
+                duplicate = any(
+                    str(e.get("label", "")) == "finding"
+                    and str(e.get("interpretation_qualifier", "")) == interpretation_qualifier
+                    and str(e.get("parent_observable_text", "")) == stripped
+                    for e in updated + extras
+                )
+                if not duplicate:
+                    extras.append(
+                        {
+                            "text": interpretation_text,
+                            "label": "finding",
+                            "start": interp_start,
+                            "end": interp_start + len(interpretation_text),
+                            "confidence": float(ent.get("confidence", 0.0) or 0.0),
+                            "interpretation_qualifier": interpretation_qualifier,
+                            "parent_observable_text": stripped,
                         }
                     )
 

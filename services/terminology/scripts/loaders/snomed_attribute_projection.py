@@ -3,6 +3,20 @@ Phase 3: Materialize readable SNOMED attribute relationships.
 
 This projects generic (:Concept)-[:HAS_RELATIONSHIP {type_id, group}]->(:Concept)
 edges into stable, query-friendly relationship types based on typeId.
+
+Key lab-domain relationships added (for observable/procedure/finding traversal):
+
+    HAS_COMPONENT  (246093002) — procedure -[HAS_COMPONENT]-> observable_entity
+        e.g. "MCH determination (procedure)" -> "MCH (observable entity)"
+
+    INTERPRETS     (363713009) — finding -[INTERPRETS]-> observable_entity
+        e.g. "Finding of MCH level (finding)" -> "MCH (observable entity)"
+
+    HAS_ASSOCIATED_FINDING (246090004) — concept -[HAS_ASSOCIATED_FINDING]-> finding
+        links procedures and situations to their associated findings.
+
+These three enable the /concepts/{id}/related endpoint to navigate the full
+procedure <-> observable_entity <-> finding family for any lab test.
 """
 
 from __future__ import annotations
@@ -35,6 +49,11 @@ TYPE_ID_TO_REL = {
     "363701004": "HAS_DIRECT_SUBSTANCE",
     "411116001": "HAS_DOSE_FORM",
     "127489000": "HAS_ACTIVE_INGREDIENT",
+    # --- Lab-domain family relationships ---
+    # Enables: procedure <-> observable_entity <-> finding navigation
+    "246093002": "HAS_COMPONENT",           # procedure -[HAS_COMPONENT]-> observable_entity
+    "363713009": "INTERPRETS",              # finding -[INTERPRETS]-> observable_entity
+    "246090004": "HAS_ASSOCIATED_FINDING",  # concept -[HAS_ASSOCIATED_FINDING]-> finding
 }
 
 REL_TYPE_RE = re.compile(r"^[A-Z][A-Z0-9_]*$")

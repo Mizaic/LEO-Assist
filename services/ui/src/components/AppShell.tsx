@@ -38,6 +38,7 @@ import MenuIcon from "@mui/icons-material/Menu";
 import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettingsOutlined";
 import BusinessOutlinedIcon from "@mui/icons-material/BusinessOutlined";
 import MailOutlineIcon from "@mui/icons-material/MailOutline";
+import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
 import { useAuth } from "@/lib/authContext";
 import { useIdleLogout } from "@/lib/useIdleLogout";
 import Avatar from "@mui/material/Avatar";
@@ -65,6 +66,7 @@ type NavItem = {
 
 const NAV_ITEMS: NavItem[] = [
   { label: "Overview", path: "/dashboard", icon: <DashboardOutlinedIcon /> },
+  { label: "Clinical Audit", path: "/audit", icon: <AssignmentOutlinedIcon />, activePrefix: ["/audit"] },
   { label: "Patients", path: "/patients", icon: <PeopleOutlineIcon /> },
   { label: "Referral Pathways", path: "/pathways", icon: <TimelineOutlinedIcon /> },
   { label: "Safety Netting", path: "/safety-netting", icon: <HealthAndSafetyOutlinedIcon /> },

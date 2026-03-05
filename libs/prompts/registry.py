@@ -57,3 +57,4 @@ from libs.prompts import anchor_domain_review_v1 as _anc  # noqa: F401, E402
 from libs.prompts import exclusion_detect_v1 as _excl  # noqa: F401, E402
 from libs.prompts import label_verification_v2 as _lv2  # noqa: F401, E402
 from libs.prompts import label_disambiguation_v1 as _ld1  # noqa: F401, E402
+from libs.prompts import opus_audit_v1 as _oa1  # noqa: F401, E402

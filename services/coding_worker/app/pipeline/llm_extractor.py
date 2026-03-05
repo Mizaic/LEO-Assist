@@ -67,7 +67,12 @@ class LLMExtractor:
     def _init_client(region: str | None):
         try:
             import boto3
-            return boto3.client("bedrock-runtime", region_name=region)
+            from botocore.config import Config
+            return boto3.client(
+                "bedrock-runtime",
+                region_name=region,
+                config=Config(max_pool_connections=32),
+            )
         except Exception:
             return None
 
