@@ -159,9 +159,9 @@ def _q_cancer_type(base: str, params: dict, client: PatientGraphClient) -> list:
         "OPTIONAL MATCH (diag_enc:Encounter)-[dr:IS_PART_OF]->(ep) "
         "  WHERE dr.milestone_type IN ['diagnosis', 'diagnosis_confirmed'] "
         "WITH ep, count(diag_enc) AS diag_events "
-        "WHERE ep.condition_type IS NOT NULL "
+        "WHERE coalesce(ep.condition_type, ep.cancer_type) IS NOT NULL "
         "  AND (diag_events > 0 OR coalesce(ep.status, '') IN ['confirmed','completed','closed']) "
-        "RETURN ep.condition_type AS cancer_type, count(DISTINCT ep) AS n "
+        "RETURN coalesce(ep.condition_type, ep.cancer_type) AS cancer_type, count(DISTINCT ep) AS n "
         "ORDER BY n DESC",
         **params,
     )
