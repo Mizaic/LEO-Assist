@@ -30,12 +30,18 @@
 
       Pass 2 — Agentic Terminology Verification (tools):
       - Filters pass-1 results for SNOMED needs_review entities
-      - Invokes Opus with Bedrock toolConfig for three terminology tools
-      - ToolExecutor delegates actual API calls to Haiku sub-agent
+      - Invokes Opus with Bedrock toolConfig for four tools:
+          resolve_term, get_related_concepts, get_descendants, get_second_opinion
+      - ToolExecutor delegates terminology calls to Haiku via Terminology API
+      - SecondOpinionProvider: blind Haiku call with only original data,
+          no Opus verdict or reasoning — prevents anchoring bias
       - Results inform Opus verdict; hard cap of 5 iterations per entity
       - CostGuardrail halts if token/dollar budget exceeded
 
-      All tool calls recorded in JSONL audit trail.
+      API surface: POST/GET/POST /training/labels/opus-audit endpoints
+      expose the auditor to the Operations UI (TrainingDataPanel step 3).
+
+      All tool calls (including second opinions) recorded in JSONL audit trail.
       SNOMED fields remain READONLY -- tool results produce proposals only.
 
     acceptance_criteria:
@@ -67,12 +73,41 @@
   implementation:
     artifacts:
       - artifact_type: "source_code"
+        location: "libs/audit/auditor.py"
+        description: >
+          Shared core library. Contains all reusable classes and functions:
+          AuditVerdict, CostGuardrail, SecondOpinionProvider, ToolExecutor
+          (resolve_term, get_related_concepts, get_descendants, get_second_opinion),
+          AutoFixCapMonitor, _build_tool_config(), audit_record(), _pass_two(),
+          _agentic_audit_record(), _classify_fixes(), _apply_fixes().
+        storage_location: "git"
+      - artifact_type: "source_code"
         location: "scripts/opus_training_auditor.py"
         description: >
-          Main auditor script. Key classes and functions: ToolExecutor
-          (resolve_term, get_related_concepts, get_descendants),
-          CostGuardrail (check, record), _build_tool_config(),
-          _agentic_audit_record(), _pass_two(), main().
+          CLI entry point for the auditor. Imports core logic from libs/audit/auditor.py.
+          Provides argparse interface, JSONL trail writer, and Markdown report generator.
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/api/app/services/opus_audit_service.py"
+        description: >
+          API background runner. Job state dict (_audit_state) with threading lock,
+          begin_audit_job(), get_audit_state(), request_stop_audit(), run_audit()
+          daemon thread. Imports core logic from libs/audit/auditor.py.
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/api/app/routers/training.py"
+        description: >
+          Three new endpoints: POST /training/labels/opus-audit (start),
+          GET /training/labels/opus-audit/status (poll), POST
+          /training/labels/opus-audit/cancel (stop).
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/src/components/operations/TrainingDataPanel.tsx"
+        description: >
+          UI integration: AuditStatus interface, auditStatus state, fetchAuditStatus
+          polling, handleStartAudit/handleStopAudit handlers, four Opus audit menu
+          items in MoreVert dropdown, Opus audit chips in AccordionSummary, and
+          a real-time progress/cost section below the label table.
         storage_location: "git"
       - artifact_type: "source_code"
         location: "libs/llm_client/factory.py"
@@ -84,29 +119,33 @@
       - artifact_type: "source_code"
         location: "libs/prompts/opus_audit_v1.py"
         description: >
-          System prompt updated with Section 7 — AVAILABLE TOOLS describing
-          when and how to call resolve_term, get_related_concepts,
-          and get_descendants.
+          System prompt updated with Section 7 (terminology tools) and
+          Section 8 (get_second_opinion: blind Haiku second opinion with
+          strict no-reveal constraint on question neutrality).
         storage_location: "git"
       - artifact_type: "test_code"
         location: "tests/test_opus_training_auditor.py"
         description: >
-          14 pytest test cases covering all acceptance criteria in
-          VT-LEO-AI-047. Mocks LLM client, httpx, and Neo4j.
+          pytest test cases covering all acceptance criteria in VT-LEO-AI-047.
+          TC-015 through TC-019 cover SecondOpinionProvider and UI integration.
         storage_location: "git"
     technical_details:
-      language: "Python"
-      loc: 600
+      language: "Python + TypeScript"
+      loc: 1200
       key_functions:
+        - "SecondOpinionProvider.get_opinion"
         - "ToolExecutor.resolve_term"
         - "ToolExecutor.get_related_concepts"
         - "ToolExecutor.get_descendants"
-        - "CostGuardrail.check"
-        - "_build_tool_config"
+        - "ToolExecutor.execute (get_second_opinion dispatch)"
+        - "CostGuardrail.over_budget"
+        - "_build_tool_config (4 tools)"
         - "_agentic_audit_record"
         - "_pass_two"
         - "LLMClient.converse"
         - "LLMResponse"
+        - "begin_audit_job / run_audit"
+        - "handleStartAudit / handleStopAudit (UI)"
 
   safety_characteristics:
     safety_class: "B"
@@ -115,15 +154,21 @@
       - "READONLY_FIELDS enforcement prevents SNOMED auto-fix"
       - "Tool iteration cap prevents infinite agentic loops"
       - "sanitise_for_prompt() applied to all API responses before LLM re-submission"
+      - "SecondOpinionProvider strips __ audit fields and sanitises question to prevent anchoring"
     risk_control_measures:
       - "Hard cap of 5 tool iterations enforced in loop counter check"
-      - "CostGuardrail checked before every pass-2 record"
-      - "INJECTION_GUARD prepended to all system prompts"
+      - "CostGuardrail checked before every pass-2 record AND before every second opinion call"
+      - "INJECTION_GUARD prepended to all system prompts (Opus and Haiku)"
       - "All tool call results sanitised via sanitise_for_prompt()"
       - "SNOMED fields never removed from READONLY_FIELDS"
+      - "Second opinion question sanitised via sanitise_for_prompt() before Haiku submission"
+      - "Opus verdict/reasoning never included in second opinion context"
 
   verification_status:
     verification_method: "Test"
-    verification_complete: true
+    verification_complete: false
     verification_date: "2026-03-05"
-    verification_evidence: "VT-LEO-AI-047-EXEC-001 — 49/49 tests passed"
+    verification_evidence: >
+      VT-LEO-AI-047-EXEC-001 — 49/49 tests passed (original 14 test cases).
+      VT-LEO-AI-047-EXEC-002 pending — TC-015 to TC-019 (SecondOpinionProvider
+      and UI integration tests) require test implementation and execution.

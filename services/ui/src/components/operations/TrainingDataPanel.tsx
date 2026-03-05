@@ -120,6 +120,27 @@ interface VerificationStatus {
   last_error: string | null;
 }
 
+interface AuditStatus {
+  status: "idle" | "running" | "stopping" | "done" | "failed" | "cancelled";
+  mode?: "all" | "hitl_only";
+  apply?: boolean;
+  no_agentic?: boolean;
+  started_at: number | null;
+  finished_at: number | null;
+  total?: number;
+  done?: number;
+  passed?: number;
+  has_issues?: number;
+  errors?: number;
+  auto_fixed?: number;
+  proposals?: number;
+  needs_review?: number;
+  second_opinions?: number;
+  total_tokens?: number;
+  estimated_cost_usd?: number;
+  last_error: string | null;
+}
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -541,6 +562,8 @@ export default function TrainingDataPanel() {
   const [verificationStatus, setVerificationStatus] = useState<VerificationStatus | null>(null);
   const [startingVerification, setStartingVerification] = useState(false);
   const [verifyMenuAnchor, setVerifyMenuAnchor] = useState<HTMLElement | null>(null);
+  const [auditStatus, setAuditStatus] = useState<AuditStatus | null>(null);
+  const [startingAudit, setStartingAudit] = useState(false);
   const [confirmExclude, setConfirmExclude] = useState(false);
 
   const PAGE_SIZE = 30;
@@ -605,7 +628,14 @@ export default function TrainingDataPanel() {
     } catch { /* silently swallow */ }
   }, []);
 
-  useEffect(() => { fetchStats(); fetchJobs(); fetchPreview(); fetchVerificationStatus(); }, [fetchStats, fetchJobs, fetchPreview, fetchVerificationStatus]);
+  const fetchAuditStatus = useCallback(async () => {
+    try {
+      const data = await jsonFetch<AuditStatus>("/api/training/labels/opus-audit/status");
+      setAuditStatus(data);
+    } catch { /* silently swallow */ }
+  }, []);
+
+  useEffect(() => { fetchStats(); fetchJobs(); fetchPreview(); fetchVerificationStatus(); fetchAuditStatus(); }, [fetchStats, fetchJobs, fetchPreview, fetchVerificationStatus, fetchAuditStatus]);
   useEffect(() => { fetchLabels(); }, [fetchLabels]);
 
   // Resolve entities to SNOMED when detail panel opens
@@ -659,6 +689,19 @@ export default function TrainingDataPanel() {
     }, 5000);
     return () => clearInterval(id);
   }, [verificationStatus?.status, fetchVerificationStatus]);
+
+  // Poll Opus audit status while running/stopping.
+  useEffect(() => {
+    const isActive =
+      auditStatus?.status === "running" ||
+      auditStatus?.status === "stopping" ||
+      startingAudit;
+    if (!isActive) return;
+    const id = setInterval(() => {
+      fetchAuditStatus();
+    }, 5000);
+    return () => clearInterval(id);
+  }, [auditStatus?.status, startingAudit, fetchAuditStatus]);
 
   // Keep refs in sync so the polling interval can read them without being recreated
   useEffect(() => { jobsRef.current = jobs; }, [jobs]);
@@ -780,6 +823,36 @@ export default function TrainingDataPanel() {
     }
   };
 
+  const handleStartAudit = async (
+    mode: "all" | "hitl_only",
+    apply: boolean,
+    no_agentic: boolean,
+  ) => {
+    setStartingAudit(true);
+    try {
+      await jsonFetch<{ status: string; message: string }>("/api/training/labels/opus-audit", {
+        method: "POST",
+        body: JSON.stringify({ mode, apply, no_agentic }),
+      });
+      fetchAuditStatus();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not start Opus audit");
+    } finally {
+      setStartingAudit(false);
+    }
+  };
+
+  const handleStopAudit = async () => {
+    try {
+      await jsonFetch<{ status: string; message: string }>("/api/training/labels/opus-audit/cancel", {
+        method: "POST",
+      });
+      fetchAuditStatus();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not stop Opus audit");
+    }
+  };
+
   const totalPages = Math.max(1, Math.ceil(labelTotal / PAGE_SIZE));
   const activeJob = jobs.find((j) => ACTIVE_STATUSES.has(j.status));
   const lastJob = !activeJob ? jobs[0] : undefined;
@@ -790,6 +863,14 @@ export default function TrainingDataPanel() {
   const verificationFinishedAt = verificationStatus?.finished_at
     ? new Date(verificationStatus.finished_at * 1000).toLocaleString([], { dateStyle: "short", timeStyle: "short" })
     : null;
+  const auditRunning =
+    auditStatus?.status === "running" ||
+    auditStatus?.status === "stopping" ||
+    startingAudit;
+  const auditDone   = auditStatus?.status === "done" || auditStatus?.status === "cancelled";
+  const auditPct    = auditStatus?.total && auditStatus.total > 0
+    ? Math.round(((auditStatus.done ?? 0) / auditStatus.total) * 100)
+    : 0;
 
   // ---------- render ----------
 
@@ -1059,6 +1140,25 @@ export default function TrainingDataPanel() {
             ) : verificationFinishedAt ? (
               <Chip label={`Last checked ${verificationFinishedAt}`} size="small" variant="outlined" />
             ) : null}
+            {auditRunning ? (
+              <Chip label="Opus auditing…" size="small" color="secondary" />
+            ) : null}
+            {!auditRunning && (auditStatus?.auto_fixed ?? 0) > 0 ? (
+              <Chip
+                label={`${auditStatus!.auto_fixed} Opus-fixed`}
+                size="small"
+                color="success"
+                variant="outlined"
+              />
+            ) : null}
+            {!auditRunning && (auditStatus?.proposals ?? 0) > 0 ? (
+              <Chip
+                label={`${auditStatus!.proposals} proposals`}
+                size="small"
+                color="info"
+                variant="outlined"
+              />
+            ) : null}
           </Stack>
         </AccordionSummary>
         <AccordionDetails sx={{ p: 0 }}>
@@ -1088,6 +1188,17 @@ export default function TrainingDataPanel() {
               <RefreshIcon fontSize="small" />
             </IconButton>
             <Box flex={1} />
+            {auditRunning && (
+              <Button
+                size="small"
+                variant="outlined"
+                color="secondary"
+                onClick={handleStopAudit}
+                sx={{ mr: 0.5 }}
+              >
+                Stop Opus audit
+              </Button>
+            )}
             {verificationRunning ? (
               <Button
                 size="small"
@@ -1136,6 +1247,31 @@ export default function TrainingDataPanel() {
                 onClick={() => { setVerifyMenuAnchor(null); handleVerifyLabels("resume", false); }}
               >
                 Resume checking
+              </MenuItem>
+              <Divider />
+              <MenuItem
+                disabled={auditRunning}
+                onClick={() => { setVerifyMenuAnchor(null); handleStartAudit("all", false, false); }}
+              >
+                Opus audit — find &amp; flag issues
+              </MenuItem>
+              <MenuItem
+                disabled={auditRunning}
+                onClick={() => { setVerifyMenuAnchor(null); handleStartAudit("all", true, false); }}
+              >
+                Opus audit — apply safe fixes
+              </MenuItem>
+              <MenuItem
+                disabled={auditRunning}
+                onClick={() => { setVerifyMenuAnchor(null); handleStartAudit("hitl_only", true, false); }}
+              >
+                Opus audit — HITL queue only
+              </MenuItem>
+              <MenuItem
+                disabled={auditRunning}
+                onClick={() => { setVerifyMenuAnchor(null); handleStartAudit("all", false, true); }}
+              >
+                Opus audit — quick (no terminology tools)
               </MenuItem>
             </Menu>
           </Stack>
@@ -1194,6 +1330,84 @@ export default function TrainingDataPanel() {
               sx={{ mx: 1.5, mb: 1, borderRadius: 1 }}
             />
           ) : null}
+
+          {/* Opus audit progress */}
+          {auditRunning && (
+            <Stack
+              direction="row"
+              spacing={0.75}
+              sx={{ px: 1.5, pb: 1, flexWrap: "wrap" }}
+              alignItems="center"
+              useFlexGap
+            >
+              <Chip
+                label={`Opus: ${auditStatus?.done ?? 0} of ${auditStatus?.total ?? "?"} audited${auditStatus?.total ? ` (${auditPct}%)` : ""}`}
+                size="small"
+                color="secondary"
+              />
+              {(auditStatus?.auto_fixed ?? 0) > 0 && (
+                <Chip label={`${auditStatus!.auto_fixed} fixed`} size="small" color="success" variant="outlined" />
+              )}
+              {(auditStatus?.proposals ?? 0) > 0 && (
+                <Chip label={`${auditStatus!.proposals} proposals`} size="small" color="info" variant="outlined" />
+              )}
+              {(auditStatus?.needs_review ?? 0) > 0 && (
+                <Chip label={`${auditStatus!.needs_review} needs review`} size="small" color="warning" variant="outlined" />
+              )}
+              {(auditStatus?.second_opinions ?? 0) > 0 && (
+                <Chip label={`${auditStatus!.second_opinions} 2nd opinions`} size="small" variant="outlined" />
+              )}
+              {typeof auditStatus?.estimated_cost_usd === "number" && (
+                <Chip
+                  label={`~$${auditStatus.estimated_cost_usd.toFixed(2)} est. cost`}
+                  size="small"
+                  variant="outlined"
+                />
+              )}
+            </Stack>
+          )}
+          {auditRunning && auditStatus?.total && auditStatus.total > 0 ? (
+            <LinearProgress
+              variant="determinate"
+              value={auditPct}
+              color="secondary"
+              sx={{ mx: 1.5, mb: 1, borderRadius: 1 }}
+            />
+          ) : null}
+
+          {/* Opus audit completed summary */}
+          {auditDone && !auditRunning && (auditStatus?.done ?? 0) > 0 && (
+            <Stack
+              direction="row"
+              spacing={0.75}
+              sx={{ px: 1.5, pb: 1, flexWrap: "wrap" }}
+              alignItems="center"
+              useFlexGap
+            >
+              <Chip
+                label={`Opus audited ${auditStatus!.done} records`}
+                size="small"
+                color="secondary"
+                variant="outlined"
+              />
+              {(auditStatus?.auto_fixed ?? 0) > 0 && (
+                <Chip label={`${auditStatus!.auto_fixed} auto-fixed`} size="small" color="success" variant="outlined" />
+              )}
+              {(auditStatus?.proposals ?? 0) > 0 && (
+                <Chip label={`${auditStatus!.proposals} proposals`} size="small" color="info" variant="outlined" />
+              )}
+              {typeof auditStatus?.estimated_cost_usd === "number" && (
+                <Chip
+                  label={`$${auditStatus.estimated_cost_usd.toFixed(2)} total cost`}
+                  size="small"
+                  variant="outlined"
+                />
+              )}
+              {(auditStatus?.second_opinions ?? 0) > 0 && (
+                <Chip label={`${auditStatus!.second_opinions} independent opinions`} size="small" variant="outlined" />
+              )}
+            </Stack>
+          )}
 
           {/* Table */}
           <TableContainer sx={{ borderTop: "1px solid", borderColor: "divider" }}>
