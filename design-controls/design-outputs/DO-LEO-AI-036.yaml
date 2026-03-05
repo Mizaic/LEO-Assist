@@ -1,0 +1,129 @@
+# -- DO-LEO-AI-036 -- Agentic Training Label Auditor with Terminology Tool-Use
+# ISO 13485 / IEC 62304 Design Output
+# Schema: design-controls/templates/design_outputs_schema.yaml
+
+- id: "DO-LEO-AI-036"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-054"]
+    user_needs: ["UN-LEO-AI-027"]
+    risks_addressed:
+      - "R-LEO-AI-036"
+      - "R-LEO-AI-037"
+      - "R-LEO-AI-014"
+      - "R-LEO-AI-030"
+    verification_tests: ["VT-LEO-AI-047"]
+
+  specification:
+    title: "Agentic Training Label Auditor with Terminology Tool-Use"
+    description: |
+      A two-pass automated audit system for TrainingLabel records:
+
+      Pass 1 — Standard Audit (no tools):
+      - Opus reviews every entity for span, assertion, label, and value errors
+      - Safe auto-fixes applied immediately (assertion, label, text, value, unit)
+      - SNOMED issues flagged as needs_review proposals
+      - AutoFixCapMonitor tracks sliding-window fix rate
+
+      Pass 2 — Agentic Terminology Verification (tools):
+      - Filters pass-1 results for SNOMED needs_review entities
+      - Invokes Opus with Bedrock toolConfig for three terminology tools
+      - ToolExecutor delegates actual API calls to Haiku sub-agent
+      - Results inform Opus verdict; hard cap of 5 iterations per entity
+      - CostGuardrail halts if token/dollar budget exceeded
+
+      All tool calls recorded in JSONL audit trail.
+      SNOMED fields remain READONLY -- tool results produce proposals only.
+
+    acceptance_criteria:
+      - criterion: "Bedrock tool_config passthrough"
+        type: "functional"
+        measurement: "Test"
+        target: "converse() with tool_config passes toolConfig to Bedrock and populates LLMResponse.tool_uses"
+      - criterion: "Tool iteration cap"
+        type: "safety"
+        measurement: "Test"
+        target: "Loop terminates at <= 5 iterations per record regardless of model behaviour"
+      - criterion: "Cost guardrail halt"
+        type: "safety"
+        measurement: "Test"
+        target: "Processing halts when cumulative tokens or cost exceeds configured budget"
+      - criterion: "SNOMED read-only enforcement"
+        type: "safety"
+        measurement: "Test"
+        target: "No SNOMED field auto-fix applied even when tool provides a recommendation"
+      - criterion: "Audit trail completeness"
+        type: "functional"
+        measurement: "Inspection"
+        target: "JSONL entries include tool_calls with name, input, result for every invocation"
+      - criterion: "Sanitisation"
+        type: "safety"
+        measurement: "Test"
+        target: "All terminology API content passes through sanitise_for_prompt() before LLM submission"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "scripts/opus_training_auditor.py"
+        description: >
+          Main auditor script. Key classes and functions: ToolExecutor
+          (resolve_term, get_related_concepts, get_descendants),
+          CostGuardrail (check, record), _build_tool_config(),
+          _agentic_audit_record(), _pass_two(), main().
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "libs/llm_client/factory.py"
+        description: >
+          LLMClient.converse() extended with tool_config parameter.
+          LLMResponse.tool_uses field added. _converse_bedrock() passes
+          toolConfig to converse_with_retry() and parses toolUse blocks.
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "libs/prompts/opus_audit_v1.py"
+        description: >
+          System prompt updated with Section 7 — AVAILABLE TOOLS describing
+          when and how to call resolve_term, get_related_concepts,
+          and get_descendants.
+        storage_location: "git"
+      - artifact_type: "test_code"
+        location: "tests/test_opus_training_auditor.py"
+        description: >
+          14 pytest test cases covering all acceptance criteria in
+          VT-LEO-AI-047. Mocks LLM client, httpx, and Neo4j.
+        storage_location: "git"
+    technical_details:
+      language: "Python"
+      loc: 600
+      key_functions:
+        - "ToolExecutor.resolve_term"
+        - "ToolExecutor.get_related_concepts"
+        - "ToolExecutor.get_descendants"
+        - "CostGuardrail.check"
+        - "_build_tool_config"
+        - "_agentic_audit_record"
+        - "_pass_two"
+        - "LLMClient.converse"
+        - "LLMResponse"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "CostGuardrail prevents unbounded API spending"
+      - "READONLY_FIELDS enforcement prevents SNOMED auto-fix"
+      - "Tool iteration cap prevents infinite agentic loops"
+      - "sanitise_for_prompt() applied to all API responses before LLM re-submission"
+    risk_control_measures:
+      - "Hard cap of 5 tool iterations enforced in loop counter check"
+      - "CostGuardrail checked before every pass-2 record"
+      - "INJECTION_GUARD prepended to all system prompts"
+      - "All tool call results sanitised via sanitise_for_prompt()"
+      - "SNOMED fields never removed from READONLY_FIELDS"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: true
+    verification_date: "2026-03-05"
+    verification_evidence: "VT-LEO-AI-047-EXEC-001 — 49/49 tests passed"

@@ -304,6 +304,51 @@ reading the encounter text (text comprehension).
 - Whether snomed_term semantically matches the entity (plausibility).
 - Internal consistency: assertion vs tier, label vs semantic tag, \
 value vs source text.
+
+# ═══════════════════════════════════════════════════════════════════
+# SECTION 7 — AVAILABLE TOOLS (PASS 2 ONLY)
+# ═══════════════════════════════════════════════════════════════════
+
+In a second pass you may be given access to three terminology tools. \
+Use them ONLY when you need concrete SNOMED evidence to support or \
+refute a coding quality concern. Do not call tools unless they will \
+materially change your verdict.
+
+## resolve_term(text, label)
+Look up SNOMED CT candidates for a clinical term.
+- Use when: entity text does not match coded snomed_term and you need \
+to identify better-matching concepts.
+- Example: text="Colposcopy biopsy", label="procedure" — look up \
+candidates to identify whether this should be two concepts.
+- Returns: ranked list of SNOMED candidates with concept IDs and terms.
+
+## get_related_concepts(concept_id)
+Retrieve concepts semantically related to a given SNOMED concept ID.
+- Use when: you need to explore the neighbourhood of the existing \
+coded concept (e.g. check if a broader or narrower related concept \
+would be more appropriate).
+- Example: concept_id="392003006" (Colposcopy procedure) — see \
+related procedures such as biopsy-specific descendants.
+
+## get_descendants(concept_id, depth)
+Retrieve descendant (more specific) SNOMED concepts.
+- Use when: the coded concept is too broad and you want to confirm \
+whether a more specific child concept exists.
+- Example: concept_id="86273004" (Biopsy procedure), depth=2 — \
+find specific biopsy types.
+
+## Tool use rules
+- Call at most one tool per reasoning step.
+- After receiving tool results, synthesise the evidence and return \
+your final entity_verdict JSON for the entity being reviewed.
+- If tool results confirm the existing code is correct, set verdict \
+"correct" (or "needs_review" with a confirmatory rationale).
+- If tool results identify a better code, set verdict "needs_review" \
+and explain the recommended concept(s) in the rationale. \
+Do NOT set the snomed_concept_id or snomed_term directly — \
+these remain read-only fields requiring human action.
+- If tool calls return errors, base your verdict on textual evidence \
+alone and note the tool failure in the rationale.
 """
 
 register("opus_audit", version=1, text=OPUS_AUDIT_SYSTEM_V1)

@@ -110,3 +110,85 @@ Any endpoint that persists user-supplied regex or NLP rules MUST:
 - Validate regex safety server-side via `_validate_regex()` in `training.py`
 - Require **admin role** (`Depends(require_admin)`) for creation and deactivation
 - Log the creating user via `scope.email`, not the request body's `created_by` field
+
+## 9. Agentic / Tool-Use Loops
+
+Any code that implements a Bedrock tool-use loop (where an LLM calls tools iteratively) MUST follow all rules below. Violations block merge.
+
+### 9.1 Hard Iteration Cap
+
+Every agentic loop MUST enforce a hard maximum iteration count, checked unconditionally at the top of every loop iteration, regardless of model `stop_reason`:
+
+```python
+# GOOD
+MAX_TOOL_ITERATIONS = 5
+
+for iteration in range(MAX_TOOL_ITERATIONS):
+    resp = client.converse(..., tool_config=tool_config)
+    if resp.stop_reason != "tool_use":
+        break
+    # execute tools...
+# loop exits after MAX_TOOL_ITERATIONS unconditionally
+
+# BAD
+while resp.stop_reason == "tool_use":   # unbounded — never do this
+    ...
+```
+
+### 9.2 Cost Guardrail — Per-Run Token Budget and Dollar Cap
+
+Every agentic run MUST check a `CostGuardrail` before starting each record's tool-use pass. Configure via environment variables:
+
+```python
+# Environment variables (with safe defaults)
+OPUS_AUDIT_TOKEN_BUDGET = int(os.getenv("OPUS_AUDIT_TOKEN_BUDGET", "2000000"))
+OPUS_AUDIT_COST_CAP = float(os.getenv("OPUS_AUDIT_COST_CAP", "50.0"))
+```
+
+The guardrail MUST halt all further agentic processing (not raise an exception that swallows results) and log a clear warning with current spend vs budget.
+
+### 9.3 Tool Result Sanitisation
+
+All content returned by tool calls (external API responses, sub-agent outputs) MUST pass through `sanitise_for_prompt()` before inclusion in a `toolResult` content block sent back to the orchestrator LLM:
+
+```python
+# GOOD
+tool_result_text = sanitise_for_prompt(json.dumps(api_response))
+tool_result_block = {"toolResult": {"toolUseId": tool_use_id, "content": [{"text": tool_result_text}]}}
+
+# BAD
+tool_result_block = {"toolResult": {"toolUseId": tool_use_id, "content": [{"text": json.dumps(api_response)}]}}
+```
+
+### 9.4 Sub-Agent System Prompts
+
+Any sub-agent (e.g. Haiku acting as a tool executor) MUST use `INJECTION_GUARD` on its system prompt:
+
+```python
+haiku_system = INJECTION_GUARD + "You are a terminology lookup assistant..."
+```
+
+### 9.5 READONLY_FIELDS in Agentic Context
+
+Tool-informed fixes for fields in `READONLY_FIELDS` (e.g. `snomed_concept_id`, `snomed_term`) MUST be converted to `needs_review` proposals at the `_classify_fixes()` layer. This enforcement is code-level and must never be relaxed by prompt instructions alone.
+
+### 9.6 Audit Trail — Tool Call Logging
+
+Every tool call MUST be recorded in the audit trail with:
+- `tool_name`: the name of the tool called
+- `tool_input`: the exact input dict passed to the tool
+- `tool_result`: the sanitised result returned
+
+### 9.7 New Agentic Call Checklist
+
+Before merging any new agentic/tool-use call site:
+
+- [ ] Hard iteration cap enforced in loop (not while-True or unbounded range)
+- [ ] `CostGuardrail` checked before each record's tool-use pass
+- [ ] All tool results through `sanitise_for_prompt()` before LLM re-submission
+- [ ] Sub-agent system prompts use `INJECTION_GUARD`
+- [ ] `READONLY_FIELDS` enforcement preserved in `_classify_fixes()`
+- [ ] Tool calls logged in audit trail (tool_name, tool_input, tool_result)
+- [ ] Timeout set on all external tool HTTP calls (default 10s)
+- [ ] Error handling: tool failure returns error signal (not exception propagation)
+- [ ] Unit test covers: cap triggers, cost halt, sanitisation, READONLY enforcement

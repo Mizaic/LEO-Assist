@@ -1,0 +1,136 @@
+# -- DI-LEO-AI-054 -- Agentic Training Label Auditor with Terminology Tool-Use
+# IEC 62304 / ISO 13485 Design Input
+# Schema: design-controls/templates/design_inputs_schema.yaml
+
+- id: "DI-LEO-AI-054"
+  type: "Functional"
+  derived_from: ["UN-LEO-AI-027"]
+
+  requirement: >
+    The system SHALL provide an automated training label auditor that uses
+    Claude Opus (AWS_MAX_MODEL) as an orchestrating LLM with Bedrock
+    native tool-use capability, delegating terminology lookups to Claude
+    Haiku (AWS_SMALL_MODEL) via the internal Terminology API. The auditor
+    SHALL operate in two passes: pass 1 audits all records without tools
+    (producing verdicts for assertion, label, text span, and value errors);
+    pass 2 re-audits only entities flagged "needs_review" for SNOMED coding
+    issues, invoking terminology tools to produce informed recommendations.
+    The system SHALL enforce hard cost guardrails: maximum 5 tool-use
+    iterations per record, a configurable per-run token budget (default
+    2,000,000 tokens), and a configurable per-run dollar cap (default
+    $50.00 USD). All tool calls, their inputs, and their results SHALL
+    be recorded in the JSONL audit trail. SNOMED concept fields SHALL
+    remain read-only and MUST NOT be auto-fixed; tool-informed SNOMED
+    recommendations SHALL be recorded as human-review proposals only.
+
+  rationale: >
+    Training label quality determines production NLP pipeline accuracy.
+    Systematic, scalable quality assurance at the training data layer
+    reduces the probability of systematic coding errors propagating to
+    production. The two-pass agentic approach minimises cost (tools only
+    for genuinely ambiguous cases) while maximising the quality of
+    recommendations for complex SNOMED coding decisions. Cost guardrails
+    are essential because agentic LLM loops can generate unbounded API
+    spend without hard limits.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: >
+          converse() on LLMClient accepts an optional tool_config parameter;
+          when provided, passes it as toolConfig to the Bedrock Converse API
+          and returns tool_uses populated in LLMResponse.
+      - type: "functional"
+        spec: >
+          ToolExecutor.resolve_term(text, label) calls POST /terminology/resolve
+          with timeout=10s, returns structured SNOMED candidates or empty list
+          on error.
+      - type: "functional"
+        spec: >
+          ToolExecutor.get_related_concepts(concept_id) calls GET
+          /concepts/{id}/related with timeout=10s.
+      - type: "functional"
+        spec: >
+          ToolExecutor.get_descendants(concept_id, depth) calls GET
+          /concepts/{id}/descendants with timeout=10s.
+      - type: "functional"
+        spec: >
+          _agentic_audit_record() terminates after at most 5 tool-use
+          iterations, returning the best available verdict.
+      - type: "safety"
+        spec: >
+          CostGuardrail halts further processing (skips pass 2 for remaining
+          records) when cumulative tokens exceed OPUS_AUDIT_TOKEN_BUDGET or
+          estimated cost exceeds OPUS_AUDIT_COST_CAP.
+      - type: "functional"
+        spec: >
+          Audit trail JSONL entries include tool_calls list with tool_name,
+          tool_input, and tool_result fields for every tool invocation.
+      - type: "safety"
+        spec: >
+          All content from terminology API responses passed back to Opus
+          passes through sanitise_for_prompt() before inclusion in a
+          toolResult content block.
+      - type: "functional"
+        spec: >
+          Pass 2 only processes entities whose pass-1 verdict is
+          "needs_review" AND whose rationale contains SNOMED-related
+          keywords (snomed_term, snomed_concept_id, concept, coding,
+          hierarchy).
+      - type: "safety"
+        spec: >
+          SNOMED fields (snomed_concept_id, snomed_term, read_code,
+          snomed_score) remain in READONLY_FIELDS and are never auto-fixed
+          regardless of tool results.
+    constraints:
+      - type: "safety"
+        spec: "Tool-use pass results MUST be proposals (needs_review) only -- never auto-applied auto-fixes"
+      - type: "safety"
+        spec: "INJECTION_GUARD must be prepended to all system prompts including Haiku sub-agent prompts"
+      - type: "performance"
+        spec: "Terminology API calls timeout after 10 seconds; errors are caught and reported as tool failures"
+      - type: "performance"
+        spec: "Pass 2 runs sequentially per entity (not concurrent) to avoid overwhelming the terminology API"
+    dependencies:
+      - "DI-LEO-AI-014"
+      - "DI-LEO-AI-033"
+      - "DI-LEO-AI-045"
+    downstream_impacts:
+      - "TrainingLabel records in Neo4j Patient Graph"
+      - "Training data quality metrics"
+      - "Production NLP model accuracy"
+    technical_details:
+      language: "Python"
+      framework: "boto3 (Bedrock Converse API), httpx, pytest"
+      file_structure:
+        - "scripts/opus_training_auditor.py"
+        - "libs/llm_client/factory.py"
+        - "libs/prompts/opus_audit_v1.py"
+        - "tests/test_opus_training_auditor.py"
+      estimated_loc: 600
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      All 14 test cases in VT-LEO-AI-047 pass. Tests cover: Bedrock
+      toolConfig passthrough, tool_uses parsing, iteration hard cap,
+      cost guardrail halt, two-pass filtering, all three ToolExecutor
+      methods, sanitisation, READONLY_FIELDS enforcement, audit trail
+      content, and graceful error handling.
+    test_protocol: "VT-LEO-AI-047"
+
+  safety_class: "B"
+  risks:
+    - "R-LEO-AI-036"
+    - "R-LEO-AI-037"
+    - "R-LEO-AI-014"
+    - "R-LEO-AI-030"
+  tags:
+    - "training-data"
+    - "audit"
+    - "llm"
+    - "tool-use"
+    - "agentic"
+    - "snomed"
+    - "cost-control"

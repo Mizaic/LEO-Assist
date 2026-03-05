@@ -10,39 +10,52 @@ import TableRow from "@mui/material/TableRow";
 import SectionCard from "./SectionCard";
 import ComparisonBarChart, { type ComparisonDataRow } from "./ComparisonBarChart";
 import BenchmarkLegend from "./BenchmarkLegend";
+import type { AuditSectionResult, BenchmarkMetricValues } from "@/lib/analyticsApi";
+
+interface Props {
+  result?: AuditSectionResult<unknown> | null;
+  loading?: boolean;
+  error?: string | null;
+  orgSelected?: boolean;
+}
 
 const ROUTES = [
-  { key: "0", label: "0. Self-referred to A&E — no prior GP consultations", national: 29.2, alliance: 25.6 },
-  { key: "1", label: "1. GP/OOH referred to A&E — no prior GP consultations", national: null, alliance: null },
-  { key: "2", label: "2. Self-referred to A&E — previously consulted GP, not awaiting test/referral", national: null, alliance: null },
-  { key: "3", label: "3. GP/OOH referred to A&E — previously consulted GP, not awaiting test/referral", national: null, alliance: null },
-  { key: "4", label: "4. Self-referred to A&E — awaiting GP-arranged test/referral", national: null, alliance: null },
-  { key: "5", label: "5. GP/OOH referred to A&E — awaiting prior referral", national: null, alliance: null },
-  { key: "6", label: "6. Other", national: null, alliance: null },
-  { key: "7", label: "7. Not known / cannot verify", national: null, alliance: null },
+  { key: "0", label: "0. Self-referred to A&E — no prior GP consultations", metricKey: "emergency_referral_routes.route_0_pct" },
+  { key: "1", label: "1. GP/OOH referred to A&E — no prior GP consultations", metricKey: "" },
+  { key: "2", label: "2. Self-referred to A&E — previously consulted GP, not awaiting test/referral", metricKey: "" },
+  { key: "3", label: "3. GP/OOH referred to A&E — previously consulted GP, not awaiting test/referral", metricKey: "" },
+  { key: "4", label: "4. Self-referred to A&E — awaiting GP-arranged test/referral", metricKey: "" },
+  { key: "5", label: "5. GP/OOH referred to A&E — awaiting prior referral", metricKey: "" },
+  { key: "6", label: "6. Other", metricKey: "" },
+  { key: "7", label: "7. Not known / cannot verify", metricKey: "" },
 ];
 
-const chartData: ComparisonDataRow[] = ROUTES.filter((r) => r.national != null).map((r) => ({
-  category: `Route ${r.key}`,
-  practice: null,
-  alliance: r.alliance ?? null,
-  national: r.national ?? null,
-}));
+export default function EmergencyReferralRoutesSection({ result, loading, error, orgSelected = false }: Props) {
+  const bm = result?.benchmark?.metrics as Record<string, BenchmarkMetricValues> | undefined;
+  const visibleKeys = ["practice", "alliance", "national"] as const;
 
-export default function EmergencyReferralRoutesSection() {
+  const chartData: ComparisonDataRow[] = ROUTES.filter((r) => r.metricKey).map((r) => ({
+    category: `Route ${r.key}`,
+    practice: null,
+    alliance: bm?.[r.metricKey]?.alliance ?? null,
+    national: bm?.[r.metricKey]?.national ?? null,
+  }));
+
   return (
     <SectionCard
       id="section-emergency-routes"
       title="Emergency Referral Routes"
       description="For patients referred by emergency route — details of whether the patient had prior GP contact and whether a referral/investigation was already pending. Requires structured data entry."
       availability="manual_entry"
+      loading={loading}
+      error={error}
     >
-      <BenchmarkLegend visibleKeys={["practice", "alliance", "national"]} />
+      <BenchmarkLegend visibleKeys={visibleKeys} orgSelected={orgSelected} />
       <ComparisonBarChart
         data={chartData}
         unit="percent"
         height={220}
-        visibleKeys={["practice", "alliance", "national"]}
+        visibleKeys={visibleKeys}
         ariaLabel="Emergency referral sub-routes compared to benchmarks"
       />
       <Box sx={{ mt: 2, overflowX: "auto" }}>
@@ -56,14 +69,18 @@ export default function EmergencyReferralRoutesSection() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {ROUTES.map((r) => (
-              <TableRow key={r.key} hover>
-                <TableCell sx={{ fontWeight: 700, fontSize: "0.8rem" }}>{r.key}</TableCell>
-                <TableCell sx={{ fontSize: "0.78rem" }}>{r.label}</TableCell>
-                <TableCell align="center" sx={{ fontSize: "0.8rem" }}>{r.national != null ? `${r.national}%` : "—"}</TableCell>
-                <TableCell align="center" sx={{ fontSize: "0.8rem" }}>{r.alliance != null ? `${r.alliance}%` : "—"}</TableCell>
-              </TableRow>
-            ))}
+            {ROUTES.map((r) => {
+              const natVal = r.metricKey ? (bm?.[r.metricKey]?.national ?? null) : null;
+              const alVal = r.metricKey ? (bm?.[r.metricKey]?.alliance ?? null) : null;
+              return (
+                <TableRow key={r.key} hover>
+                  <TableCell sx={{ fontWeight: 700, fontSize: "0.8rem" }}>{r.key}</TableCell>
+                  <TableCell sx={{ fontSize: "0.78rem" }}>{r.label}</TableCell>
+                  <TableCell align="center" sx={{ fontSize: "0.8rem" }}>{natVal != null ? `${natVal}%` : "—"}</TableCell>
+                  <TableCell align="center" sx={{ fontSize: "0.8rem" }}>{alVal != null ? `${alVal}%` : "—"}</TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </Box>

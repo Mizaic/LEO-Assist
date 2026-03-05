@@ -13,7 +13,7 @@ import {
 } from "recharts";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
-import { BENCHMARK_COLOURS, BENCHMARK_LABELS } from "./BenchmarkLegend";
+import { BENCHMARK_COLOURS, getBenchmarkLabels } from "./BenchmarkLegend";
 
 export interface ComparisonDataRow {
   category: string;
@@ -30,6 +30,7 @@ interface ComparisonBarChartProps {
   height?: number;
   visibleKeys?: Array<keyof Omit<ComparisonDataRow, "category">>;
   ariaLabel?: string;
+  orgSelected?: boolean;
 }
 
 const DEFAULT_KEYS: Array<keyof Omit<ComparisonDataRow, "category">> = [
@@ -63,7 +64,9 @@ export default function ComparisonBarChart({
   height = 300,
   visibleKeys = DEFAULT_KEYS,
   ariaLabel,
+  orgSelected = true,
 }: ComparisonBarChartProps) {
+  const BENCHMARK_LABELS = getBenchmarkLabels(orgSelected);
   if (!data || data.length === 0) {
     return (
       <Typography variant="body2" color="text.secondary" sx={{ py: 3, textAlign: "center" }}>

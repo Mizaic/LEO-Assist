@@ -33,7 +33,7 @@ router = APIRouter()
 # ---------------------------------------------------------------------------
 
 _ORG_PATIENT_MATCH = (
-    "MATCH (_scope:Organization {{id: $org}}) "
+    "MATCH (_scope:Organization {id: $org}) "
     "MATCH (p:Patient)-[:HAS_GENERAL_PRACTITIONER]->(gp) "
     "WHERE (gp.id = $org) OR (gp)-[:COMMISSIONED_BY]->(_scope) "
     "   OR (gp)-[:COMMISSIONED_BY]->(:ICB)-[:PART_OF_ALLIANCE]->(_scope) "
@@ -98,17 +98,23 @@ def _fetch_benchmark_metrics(set_id: str, category: str) -> Optional[dict]:
     """
     kg = KnowledgeGraphClient()
     try:
+        # Fetch set name
+        set_rows = kg.run(
+            "MATCH (s:BenchmarkSet {id: $set_id}) RETURN s.name AS set_name",
+            set_id=set_id,
+        )
+        set_name = set_rows[0]["set_name"] if set_rows else set_id
+
+        # BenchmarkValue nodes are keyed by audit_id property (not relationship)
         rows = kg.run(
-            "MATCH (s:BenchmarkSet {id: $set_id})-[:HAS_VALUE]->(v:BenchmarkValue) "
-            "WHERE v.category = $category "
-            "RETURN v.metric_id AS metric_id, v.scope_type AS scope_type, "
-            "       v.value AS value, s.name AS set_name",
+            "MATCH (v:BenchmarkValue) "
+            "WHERE v.audit_id = $set_id AND v.category = $category "
+            "RETURN v.metric_id AS metric_id, v.scope_type AS scope_type, v.value AS value",
             set_id=set_id,
             category=category,
         )
         if not rows:
             return None
-        set_name = rows[0].get("set_name", set_id)
         metrics: dict[str, dict] = {}
         for r in rows:
             mid = r["metric_id"]
@@ -150,9 +156,12 @@ def _make_response(
 def _q_cancer_type(base: str, params: dict, client: PatientGraphClient) -> list:
     rows = client.run(
         f"{base}"
-        "WHERE ep.status IN ['confirmed','completed','closed'] "
-        "  AND ep.condition_type IS NOT NULL "
-        "RETURN ep.condition_type AS cancer_type, count(ep) AS n "
+        "OPTIONAL MATCH (diag_enc:Encounter)-[dr:IS_PART_OF]->(ep) "
+        "  WHERE dr.milestone_type IN ['diagnosis', 'diagnosis_confirmed'] "
+        "WITH ep, count(diag_enc) AS diag_events "
+        "WHERE ep.condition_type IS NOT NULL "
+        "  AND (diag_events > 0 OR coalesce(ep.status, '') IN ['confirmed','completed','closed']) "
+        "RETURN ep.condition_type AS cancer_type, count(DISTINCT ep) AS n "
         "ORDER BY n DESC",
         **params,
     )
@@ -231,8 +240,8 @@ def _q_consultations(base: str, params: dict, client: PatientGraphClient) -> dic
         "OPTIONAL MATCH (enc:Encounter)-[:IS_PART_OF]->(ep) "
         "WITH ep, count(enc) AS consult_count "
         "RETURN "
-        "  count(CASE WHEN consult_count < 3 THEN 1 END) AS fewer_than_3, "
-        "  count(CASE WHEN consult_count >= 3 THEN 1 END) AS three_or_more, "
+        "  sum(CASE WHEN consult_count < 3 THEN 1 ELSE 0 END) AS fewer_than_3, "
+        "  sum(CASE WHEN consult_count >= 3 THEN 1 ELSE 0 END) AS three_or_more, "
         "  count(ep) AS total_episodes, "
         "  avg(consult_count) AS avg_consultations",
         **params,
@@ -274,8 +283,8 @@ def _q_investigations(base: str, params: dict, client: PatientGraphClient) -> di
         "WITH ep, count(enc) AS inv_count "
         "RETURN "
         "  count(ep) AS total_episodes, "
-        "  count(CASE WHEN inv_count > 0 THEN 1 END) AS has_investigation, "
-        "  count(CASE WHEN inv_count = 0 THEN 1 END) AS no_investigation",
+        "  sum(CASE WHEN inv_count > 0 THEN 1 ELSE 0 END) AS has_investigation, "
+        "  sum(CASE WHEN inv_count = 0 THEN 1 ELSE 0 END) AS no_investigation",
         **params,
     )
     type_rows = client.run(
@@ -320,11 +329,11 @@ def _q_intervals(base: str, params: dict, client: PatientGraphClient) -> dict:
         "  WHERE dr.milestone_type IN ['diagnosis', 'diagnosis_confirmed'] "
         "WITH ep, min(toString(diag_enc.date)) AS diag_date "
         "RETURN "
-        "  count(CASE WHEN ep.referral_date IS NOT NULL THEN 1 END) AS pci_n, "
+        "  sum(CASE WHEN ep.referral_date IS NOT NULL THEN 1 ELSE 0 END) AS pci_n, "
         "  avg(CASE WHEN ep.referral_date IS NOT NULL "
         "      THEN duration.inDays(date(ep.first_presentation_date), date(toString(ep.referral_date))).days "
         "      ELSE null END) AS mean_pci, "
-        "  count(CASE WHEN diag_date IS NOT NULL THEN 1 END) AS di_n, "
+        "  sum(CASE WHEN diag_date IS NOT NULL THEN 1 ELSE 0 END) AS di_n, "
         "  avg(CASE WHEN diag_date IS NOT NULL "
         "      THEN duration.inDays(date(ep.first_presentation_date), date(diag_date)).days "
         "      ELSE null END) AS mean_di",
@@ -382,7 +391,7 @@ def _q_safety_netting(base: str, params: dict, client: PatientGraphClient) -> di
         f"{base}"
         "RETURN "
         "  count(ep) AS total_episodes, "
-        "  count(CASE WHEN ep.safety_netting_recorded = true THEN 1 END) AS recorded",
+        "  sum(CASE WHEN ep.safety_netting_recorded = true THEN 1 ELSE 0 END) AS recorded",
         **params,
     )
     s = rows[0] if rows else {}
@@ -401,10 +410,10 @@ def _q_avoidable_delays(base: str, params: dict, client: PatientGraphClient) -> 
         f"{base}"
         "RETURN "
         "  count(ep) AS total_episodes, "
-        "  count(CASE WHEN ep.avoidable_delay = true THEN 1 END) AS has_delay, "
-        "  count(CASE WHEN ep.avoidable_delay_phase = 'before_presentation' THEN 1 END) AS before_pres, "
-        "  count(CASE WHEN ep.avoidable_delay_phase = 'pres_to_referral' THEN 1 END) AS pres_to_ref, "
-        "  count(CASE WHEN ep.avoidable_delay_phase = 'after_referral' THEN 1 END) AS after_ref",
+        "  sum(CASE WHEN ep.avoidable_delay = true THEN 1 ELSE 0 END) AS has_delay, "
+        "  sum(CASE WHEN ep.avoidable_delay_phase = 'before_presentation' THEN 1 ELSE 0 END) AS before_pres, "
+        "  sum(CASE WHEN ep.avoidable_delay_phase = 'pres_to_referral' THEN 1 ELSE 0 END) AS pres_to_ref, "
+        "  sum(CASE WHEN ep.avoidable_delay_phase = 'after_referral' THEN 1 ELSE 0 END) AS after_ref",
         **params,
     )
     s = rows[0] if rows else {}
@@ -499,25 +508,56 @@ def audit_summary(
             f"{base}"
             "OPTIONAL MATCH (diag_enc:Encounter)-[dr:IS_PART_OF]->(ep) "
             "  WHERE dr.milestone_type IN ['diagnosis', 'diagnosis_confirmed'] "
-            "WITH p, ep, min(toString(diag_enc.date)) AS diag_date "
+            "WITH ep, min(toString(diag_enc.date)) AS diag_date "
             "OPTIONAL MATCH (enc2:Encounter)-[:IS_PART_OF]->(ep) "
-            "WITH p, ep, diag_date, count(DISTINCT enc2) AS consultation_count "
-            "RETURN "
-            "  count(ep) AS total_episodes, "
-            "  count(CASE WHEN ep.status NOT IN ['closed','completed','merged','excluded'] THEN 1 END) AS active_episodes, "
-            "  count(CASE WHEN diag_date IS NOT NULL THEN 1 END) AS confirmed_cancers, "
-            "  avg(CASE WHEN ep.first_presentation_date IS NOT NULL AND ep.referral_date IS NOT NULL "
-            "      THEN duration.inDays(date(ep.first_presentation_date), date(toString(ep.referral_date))).days "
-            "      ELSE null END) AS median_pci_days, "
-            "  avg(CASE WHEN ep.first_presentation_date IS NOT NULL AND diag_date IS NOT NULL "
-            "      THEN duration.inDays(date(ep.first_presentation_date), date(diag_date)).days "
-            "      ELSE null END) AS median_di_days, "
-            "  avg(consultation_count) AS avg_consultations, "
-            "  count(CASE WHEN ep.safety_netting_recorded = true THEN 1 END) * 100.0 / "
-            "    CASE count(ep) WHEN 0 THEN 1 ELSE count(ep) END AS safety_netting_pct",
+            "WITH ep.status AS ep_status, "
+            "     ep.first_presentation_date AS fp_date, "
+            "     toString(ep.referral_date) AS ref_date, "
+            "     ep.safety_netting_recorded AS sn, "
+            "     diag_date, "
+            "     count(DISTINCT enc2) AS consultation_count "
+            "RETURN ep_status, fp_date, ref_date, sn, diag_date, consultation_count",
             **params,
         )
-        return rows[0] if rows else {}
+
+        _CLOSED = {"closed", "completed", "merged", "excluded"}
+
+        def _safe_days(a: Any, b: Any) -> Optional[float]:
+            try:
+                from datetime import date as _date
+                da = _date.fromisoformat(str(a)) if a else None
+                db = _date.fromisoformat(str(b)) if b else None
+                return (db - da).days if da and db else None
+            except Exception:
+                return None
+
+        total = len(rows)
+        active = sum(1 for r in rows if r.get("ep_status") not in _CLOSED)
+        confirmed = sum(1 for r in rows if r.get("diag_date") is not None)
+
+        pci_vals = [
+            v for r in rows
+            if (v := _safe_days(r.get("fp_date"), r.get("ref_date"))) is not None
+        ]
+        di_vals = [
+            v for r in rows
+            if (v := _safe_days(r.get("fp_date"), r.get("diag_date"))) is not None
+        ]
+        consult_vals = [
+            r["consultation_count"] for r in rows
+            if r.get("consultation_count") is not None
+        ]
+        sn_count = sum(1 for r in rows if r.get("sn") is True)
+
+        return {
+            "total_episodes": total,
+            "active_episodes": active,
+            "confirmed_cancers": confirmed,
+            "median_pci_days": round(sum(pci_vals) / len(pci_vals), 1) if pci_vals else None,
+            "median_di_days": round(sum(di_vals) / len(di_vals), 1) if di_vals else None,
+            "avg_consultations": round(sum(consult_vals) / len(consult_vals), 1) if consult_vals else None,
+            "safety_netting_pct": round(sn_count * 100.0 / total, 1) if total else None,
+        }
     finally:
         client.close()
 

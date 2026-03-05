@@ -23,7 +23,7 @@ from __future__ import annotations
 
 import logging
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -63,6 +63,7 @@ class LLMResponse:
     cached_input_tokens: int
     stop_reason: str
     model_id: str
+    tool_uses: list[dict[str, Any]] = field(default_factory=list)
 
 
 class LLMClient:
@@ -113,16 +114,29 @@ class LLMClient:
         messages: list[dict[str, Any]],
         max_tokens: int = 2048,
         temperature: float = 0.0,
+        tool_config: dict[str, Any] | None = None,
     ) -> LLMResponse:
-        """Synchronous call. Returns unified response regardless of provider."""
+        """Synchronous call. Returns unified response regardless of provider.
+
+        Args:
+            tool_config: Optional Bedrock toolConfig dict. When provided, passes
+                it to the Converse API and populates LLMResponse.tool_uses with
+                any toolUse content blocks returned. Ignored for Azure provider.
+        """
         client = self._get_client()
         if self.provider == "aws":
-            return self._converse_bedrock(client, system, messages, max_tokens, temperature)
+            return self._converse_bedrock(client, system, messages, max_tokens, temperature, tool_config)
         else:
             return self._converse_azure(client, system, messages, max_tokens, temperature)
 
     def _converse_bedrock(
-        self, client: Any, system: str, messages: list[dict], max_tokens: int, temperature: float,
+        self,
+        client: Any,
+        system: str,
+        messages: list[dict],
+        max_tokens: int,
+        temperature: float,
+        tool_config: dict[str, Any] | None = None,
     ) -> LLMResponse:
         from libs.llm_client.bedrock_retry import converse_with_retry
 
@@ -134,19 +148,28 @@ class LLMClient:
                 content = [{"text": content}]
             bedrock_messages.append({"role": role, "content": content})
 
-        response = converse_with_retry(
-            client,
+        converse_kwargs: dict[str, Any] = dict(
             model_id=self.model_id,
             system=[{"text": system}],
             messages=bedrock_messages,
             inferenceConfig={"maxTokens": max_tokens, "temperature": temperature},
         )
+        if tool_config is not None:
+            converse_kwargs["toolConfig"] = tool_config
+
+        response = converse_with_retry(client, **converse_kwargs)
 
         output_content = response.get("output", {}).get("message", {}).get("content", [])
-        text_parts = [
-            item["text"] for item in output_content
-            if isinstance(item, dict) and "text" in item
-        ]
+        text_parts: list[str] = []
+        tool_uses: list[dict[str, Any]] = []
+        for item in output_content:
+            if not isinstance(item, dict):
+                continue
+            if "text" in item:
+                text_parts.append(item["text"])
+            elif "toolUse" in item:
+                tool_uses.append(item["toolUse"])
+
         usage = response.get("usage", {})
         return LLMResponse(
             text="\n".join(text_parts).strip(),
@@ -155,6 +178,7 @@ class LLMClient:
             cached_input_tokens=usage.get("cacheReadInputTokenCount", 0),
             stop_reason=response.get("stopReason", ""),
             model_id=self.model_id,
+            tool_uses=tool_uses,
         )
 
     def _converse_azure(
