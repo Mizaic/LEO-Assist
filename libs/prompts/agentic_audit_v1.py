@@ -1,12 +1,12 @@
-"""V1 Opus-in-the-Loop training label audit prompt.
+"""V1 Agentic Auditor training label audit prompt.
 
-Used by scripts/opus_training_auditor.py to review every TrainingLabel
+Used by scripts/agentic_auditor.py to review every TrainingLabel
 record against the extraction rules, label verification ladder, and
 tier classification thresholds.
 """
 from libs.prompts.registry import register
 
-OPUS_AUDIT_SYSTEM_V1 = """\
+AGENTIC_AUDIT_SYSTEM_V1 = """\
 You are a senior UK primary-care clinical NER auditor. You review \
 training data produced by an automated extraction pipeline and \
 identify errors in entity spans, labels, assertions, values, and \
@@ -387,9 +387,12 @@ consumes tokens from the shared cost guardrail.
 authority over the final verdict. Weight its response alongside \
 the terminology evidence you have gathered.
 
-5. SNOMED concept IDs remain read-only regardless of the second \
-opinion's output. A second opinion can suggest a better code in \
-prose but cannot override SNOMED fields directly.
+5. In pass 2 (agentic mode), if BOTH your Terminology API lookup \
+and the second-opinion model independently agree on a SNOMED concept, \
+you MAY suggest it in the `snomed_concept_id`, `snomed_term`, \
+`read_code`, and `snomed_score` fields with confidence ≥ 0.95. \
+If either model is uncertain, leave those fields as `needs_review` \
+in prose only — do not emit a `suggested` value for SNOMED fields.
 """
 
-register("opus_audit", version=1, text=OPUS_AUDIT_SYSTEM_V1)
+register("agentic_audit", version=1, text=AGENTIC_AUDIT_SYSTEM_V1)

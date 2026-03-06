@@ -10,17 +10,30 @@ export const BENCHMARK_COLOURS = {
   national: "#92400E",
 } as const;
 
-/** Labels shown in the legend and chart tooltips. Vary by whether an org is selected. */
+/**
+ * Labels shown in legends, chart tooltips, and table headers.
+ *
+ * Key semantics:
+ *   practice  — live data for the selected practice (or all patients when no org is selected)
+ *   similar   — Cancer Alliance live aggregated data
+ *   alliance  — All Patients live (England-wide)
+ *   national  — 2018 NCDA baseline (practice-level when org selected, national otherwise)
+ */
 export function getBenchmarkLabels(orgSelected: boolean): Record<keyof typeof BENCHMARK_COLOURS, string> {
   return {
-    practice: orgSelected ? "This Practice" : "England (today)",
-    similar: "Alliance (today)",
-    alliance: orgSelected ? "England (today)" : "England (today)",
-    // When an org is selected the 4th column is the practice's own 2018 baseline;
-    // when no org is selected it is the England 2018 national baseline.
-    national: orgSelected ? "This Practice (2018)" : "England (2018)",
+    practice: orgSelected ? "This Practice" : "All Patients (today)",
+    similar:  "Cancer Alliance (today)",
+    alliance: "All Patients (today)",
+    national: orgSelected ? "This Practice (2018)" : "All Patients (2018)",
   };
 }
+
+/** Convenience labels for 2018 benchmark-only contexts (e.g. per-cancer-type grids). */
+export const BENCHMARK_LABELS_2018 = {
+  practice:     "This Practice (2018)",
+  alliance:     "Cancer Alliance (2018)",
+  national:     "All Patients (2018)",
+} as const;
 
 /** Default (backward-compat) static labels. */
 export const BENCHMARK_LABELS = getBenchmarkLabels(true);
@@ -41,6 +54,31 @@ export function resolveBenchmarkValue(
 ): number | null {
   if (!bm) return null;
   const entry = bm[metricKey];
+  if (!entry) return null;
+  if (orgSelected) {
+    return entry.practice ?? entry.national ?? null;
+  }
+  return entry.national ?? null;
+}
+
+/**
+ * Resolve a benchmark value for a specific cancer type from the by_cancer_type
+ * sub-structure. Falls back to the overall metric if no cancer-type value exists.
+ *
+ * The JSON structure is:
+ *   bm["<section>.by_cancer_type.<cancerType>.<metricKey>"] = { practice, national, ... }
+ */
+export function resolveBenchmarkValueByCancer(
+  bm: Record<string, { practice?: number | null; alliance?: number | null; national?: number | null }> | null | undefined,
+  section: string,
+  metricKey: string,
+  cancerType: string,
+  orgSelected: boolean,
+): number | null {
+  if (!bm) return null;
+  const specificKey = `${section}.by_cancer_type.${cancerType}.${metricKey}`;
+  const fallbackKey = `${section}.${metricKey}`;
+  const entry = bm[specificKey] ?? bm[fallbackKey];
   if (!entry) return null;
   if (orgSelected) {
     return entry.practice ?? entry.national ?? null;

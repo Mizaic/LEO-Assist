@@ -1,4 +1,7 @@
-"""Background Opus-in-the-Loop audit runner for the API.
+"""Background Agentic Auditor runner for the API.
+
+Model-agnostic audit service — the model and provider are configurable
+via environment variables, defaulting to AWS max-tier.
 
 Mirrors the threading / job-state pattern used by label_verifier.py.
 Exposes begin_audit_job(), get_audit_state(), request_stop_audit(), and
@@ -174,7 +177,7 @@ def run_audit() -> None:
     no_agentic = state.get("no_agentic", False)
 
     ts         = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-    trail_path = _TRAIL_DIR / f"opus_audit_trail_{ts}.jsonl"
+    trail_path = _TRAIL_DIR / f"agentic_audit_trail_{ts}.jsonl"
 
     try:
         _run_audit_inner(mode, apply, no_agentic, trail_path)
@@ -213,7 +216,7 @@ def _fetch_and_run(
         try:
             hitl_ids = {r["label_id"] for r in neo4j.run(FETCH_HITL_PENDING_LABEL_IDS)}
             if not hitl_ids:
-                logger.info("Opus audit (hitl_only): no pending HITL labels — nothing to do.")
+                logger.info("Agentic audit (hitl_only): no pending HITL labels — nothing to do.")
                 _patch_state(status="done", finished_at=time.time(), total=0)
                 return
             ids_str = ", ".join(f"'{lid}'" for lid in hitl_ids)
@@ -231,7 +234,7 @@ def _fetch_and_run(
     rows = neo4j.run(query)
     total = len(rows)
     _patch_state(total=total)
-    logger.info("Opus audit: fetched %d labels (mode=%s)", total, mode)
+    logger.info("Agentic audit: fetched %d labels (mode=%s)", total, mode)
 
     if total == 0:
         _patch_state(status="done", finished_at=time.time())
@@ -240,8 +243,9 @@ def _fetch_and_run(
     # Preload sentence splitter on this thread (lazy-loads once)
     _get_splitter()
 
-    opus          = create_llm(provider="aws", tier="max")
-    system_prompt = INJECTION_GUARD + get_prompt("opus_audit", version=1)
+    _audit_provider = "aws"
+    opus            = create_llm(provider=_audit_provider, tier="max")
+    system_prompt   = INJECTION_GUARD + get_prompt("agentic_audit", version=1)
 
     guardrail     = CostGuardrail()
     so_provider   = SecondOpinionProvider(guardrail=guardrail)
@@ -249,7 +253,7 @@ def _fetch_and_run(
     cap_monitor   = AutoFixCapMonitor()
 
     logger.info(
-        "Opus audit started: model=%s token_budget=%d cost_cap=$%.2f agentic=%s",
+        "Agentic audit started: model=%s token_budget=%d cost_cap=$%.2f agentic=%s",
         opus.model_id,
         guardrail._token_budget,
         guardrail._cost_cap,
@@ -259,9 +263,9 @@ def _fetch_and_run(
     def _process_one(row: dict[str, Any]) -> AuditVerdict:
         return audit_record(opus, system_prompt, row)
 
-    workers = int(__import__("os").getenv("OPUS_AUDIT_WORKERS", str(MAX_WORKERS)))
+    workers = int(__import__("os").getenv("AUDIT_WORKERS", str(MAX_WORKERS)))
 
-    with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="opus-audit") as pool:
+    with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="agentic-audit") as pool:
         future_to_row = {pool.submit(_process_one, row): row for row in rows}
 
         for future in as_completed(future_to_row):
@@ -293,13 +297,13 @@ def _fetch_and_run(
                     pass_one_verdict=verdict,
                     row=row,
                     entities=entities,
-                    opus_client=opus,
+                    audit_client=opus,
                     system_prompt=system_prompt,
                     tool_executor=tool_executor,
                     guardrail=guardrail,
                 )
 
-            _classify_fixes(verdict)
+            _classify_fixes(verdict, agentic=not no_agentic)
 
             # Collect per-record stats before Neo4j write
             second_opinions_this = sum(
@@ -318,15 +322,30 @@ def _fetch_and_run(
             fix_count    = len(verdict.auto_fixes_applied)
             cap_triggered = cap_monitor.record(entity_count, fix_count)
 
-            if apply and verdict.auto_fixes_applied and not cap_triggered:
+            if apply and not cap_triggered:
                 try:
-                    fixed = _apply_fixes(entities, verdict.auto_fixes_applied, row["text"])
-                    neo4j.run(
-                        UPDATE_ENTITIES,
-                        label_id=label_id,
-                        entities_json=json.dumps(fixed),
+                    fixed, prog_repairs = _apply_fixes(
+                        entities, verdict.auto_fixes_applied, row["text"]
                     )
-                    applied_this_record = True
+                    changed = verdict.auto_fixes_applied or prog_repairs
+                    if changed:
+                        audit_actions = json.dumps({
+                            "model":        opus.model_id,
+                            "provider":     _audit_provider,
+                            "applied_at":   datetime.now(timezone.utc).isoformat(),
+                            "fixes":        verdict.auto_fixes_applied,
+                            "prog_repairs": prog_repairs,
+                        })
+                        neo4j.run(
+                            UPDATE_ENTITIES,
+                            label_id=label_id,
+                            entities_json=json.dumps(fixed),
+                            audit_actions=audit_actions,
+                            audit_model=opus.model_id,
+                        )
+                        applied_this_record = True
+                    else:
+                        neo4j.run(SET_AUDITED_AT, label_id=label_id)
                 except Exception as exc:
                     logger.error("Failed to write fixes for %s: %s", label_id, exc)
             else:
@@ -358,7 +377,7 @@ def _fetch_and_run(
     final_status = "cancelled" if _stop_requested() else "done"
     _patch_state(status=final_status, finished_at=time.time())
     logger.info(
-        "Opus audit %s. cost=$%.2f tokens=%d",
+        "Agentic audit %s. cost=$%.2f tokens=%d",
         final_status,
         guardrail.estimated_cost,
         guardrail.total_tokens,

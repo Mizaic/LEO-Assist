@@ -40,10 +40,28 @@ export default function DemographicsSection({ result, loading, error, orgSelecte
     };
   });
 
-  const ageChart: ComparisonDataRow[] = (practice?.age_bands ?? []).map((row) => ({
-    category: row.age_band,
-    practice: row.pct,
-  }));
+  // Map each age band label to its benchmark key in the JSON
+  const AGE_BAND_BM_KEY: Record<string, string> = {
+    "0-24":  "demographics.age_band_0_24_pct",
+    "25-49": "demographics.age_band_25_49_pct",
+    "50-64": "demographics.age_band_50_64_pct",
+    "65-74": "demographics.age_band_65_74_pct",
+    "75-84": "demographics.age_band_75_84_pct",
+    "85+":   "demographics.age_band_85_plus_pct",
+  };
+
+  const ageChart: ComparisonDataRow[] = (practice?.age_bands ?? []).map((row) => {
+    const bmKey = AGE_BAND_BM_KEY[row.age_band] ?? null;
+    return {
+      category: row.age_band,
+      practice: row.pct,
+      national: bmKey ? resolveBenchmarkValue(bm, bmKey, orgSelected) : null,
+    };
+  });
+
+  const ageBenchmarkKeys = ageChart.some((r) => r.national != null)
+    ? (["practice", "national"] as const)
+    : (["practice"] as const);
 
   const ethChart: ComparisonDataRow[] = (practice?.ethnicity ?? []).slice(0, 6).map((row) => {
     const aRow = allianceLive?.ethnicity.find((r) => r.ethnicity === row.ethnicity);
@@ -127,8 +145,8 @@ export default function DemographicsSection({ result, loading, error, orgSelecte
       {ageChart.length > 0 && (
         <Box sx={{ mb: 3 }}>
           <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600, fontSize: "0.85rem" }}>Age at Diagnosis (years)</Typography>
-          <BenchmarkLegend visibleKeys={["practice"]} orgSelected={orgSelected} />
-          <ComparisonBarChart data={ageChart} unit="percent" height={220} visibleKeys={["practice"]} ariaLabel="Age band distribution" />
+          <BenchmarkLegend visibleKeys={ageBenchmarkKeys} orgSelected={orgSelected} />
+          <ComparisonBarChart data={ageChart} unit="percent" height={220} visibleKeys={ageBenchmarkKeys} orgSelected={orgSelected} ariaLabel="Age band distribution compared to 2018 benchmark" />
         </Box>
       )}
 

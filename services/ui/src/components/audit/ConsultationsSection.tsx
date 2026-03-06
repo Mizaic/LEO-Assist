@@ -5,6 +5,7 @@ import SectionCard from "./SectionCard";
 import ComparisonBarChart, { type ComparisonDataRow } from "./ComparisonBarChart";
 import BenchmarkLegend, { resolveBenchmarkValue } from "./BenchmarkLegend";
 import SummaryStatsTable from "./SummaryStatsRow";
+import CancerTypeBenchmarkGrid from "./CancerTypeBenchmarkGrid";
 import type { AuditConsultations, AuditSectionResult } from "@/lib/analyticsApi";
 
 interface Props {
@@ -90,6 +91,13 @@ export default function ConsultationsSection({ result, loading, error, orgSelect
           caption="Consultation summary statistics"
         />
       </Box>
+      <CancerTypeBenchmarkGrid
+        bm={bm}
+        section="consultations"
+        metrics={[{ metricKey: "fewer_than_3_pct", label: "Fewer than 3" }]}
+        orgSelected={orgSelected}
+        heading="2018 Baseline by Cancer Type — Fewer than 3 Consultations (%)"
+      />
     </SectionCard>
   );
 }

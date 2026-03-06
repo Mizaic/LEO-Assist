@@ -4,6 +4,7 @@ import SectionCard from "./SectionCard";
 import ComparisonBarChart, { type ComparisonDataRow } from "./ComparisonBarChart";
 import BenchmarkLegend, { resolveBenchmarkValue } from "./BenchmarkLegend";
 import SummaryStatsTable from "./SummaryStatsRow";
+import CancerTypeBenchmarkGrid from "./CancerTypeBenchmarkGrid";
 import Typography from "@mui/material/Typography";
 import type { AuditCancerStageRow, AuditSectionResult } from "@/lib/analyticsApi";
 
@@ -87,6 +88,16 @@ export default function CancerStageSection({ result, loading, error, orgSelected
         visibleKeys={visibleKeys}
         orgSelected={orgSelected}
         caption="Stage at diagnosis — % of audited cases"
+      />
+      <CancerTypeBenchmarkGrid
+        bm={bm}
+        section="cancer_stage"
+        metrics={[
+          { metricKey: "early_stage_pct", label: "Early" },
+          { metricKey: "late_stage_pct",  label: "Late" },
+        ]}
+        orgSelected={orgSelected}
+        heading="2018 Baseline by Cancer Type — Stage at Diagnosis"
       />
     </SectionCard>
   );

@@ -1,11 +1,11 @@
-"""Tests for the Opus-in-the-Loop TrainingLabel auditor.
+"""Tests for the Agentic Auditor TrainingLabel reviewer.
 
 Covers VT-LEO-AI-047 test cases TC-001 through TC-019.
 All LLM clients, HTTP calls, and Neo4j connections are mocked.
 No live cloud services required.
 
 Core logic is tested via libs.audit.auditor (the shared library).
-The CLI script (scripts.opus_training_auditor) is tested for integration
+The CLI script (scripts.agentic_auditor) is tested for integration
 only (TC-007 and TC-014).
 """
 from __future__ import annotations
@@ -256,7 +256,7 @@ class TestAgenticLoopIterationCap:
 
         with patch("libs.audit.auditor.sanitise_for_prompt", side_effect=lambda x, **kw: x):
             updated_ev, tool_calls = _agentic_audit_record(
-                opus_client=mock_client,
+                audit_client=mock_client,
                 system_prompt="system",
                 row=row,
                 entity_verdict=entity_verdict,
@@ -344,7 +344,7 @@ class TestPassTwoFiltering:
 
         agentic_calls: list[dict] = []
 
-        def mock_agentic(opus_client, system_prompt, row, entity_verdict, entities, tool_executor, guardrail):
+        def mock_agentic(audit_client, system_prompt, row, entity_verdict, entities, tool_executor, guardrail):
             agentic_calls.append(entity_verdict)
             return entity_verdict, []
 
@@ -354,7 +354,7 @@ class TestPassTwoFiltering:
                 pass_one_verdict=pass_one,
                 row=row,
                 entities=_parse_entities(row["entities_json"]),
-                opus_client=MagicMock(),
+                audit_client=MagicMock(),
                 system_prompt="system",
                 tool_executor=MagicMock(),
                 guardrail=guardrail,
@@ -386,7 +386,7 @@ class TestPassTwoFiltering:
                 pass_one_verdict=pass_one,
                 row=row,
                 entities=[_make_entity()],
-                opus_client=MagicMock(),
+                audit_client=MagicMock(),
                 system_prompt="system",
                 tool_executor=MagicMock(),
                 guardrail=guardrail,
@@ -573,7 +573,7 @@ class TestSanitisation:
 
         with patch("libs.audit.auditor.sanitise_for_prompt", side_effect=spy_sanitise):
             _agentic_audit_record(
-                opus_client=mock_client,
+                audit_client=mock_client,
                 system_prompt="system",
                 row=row,
                 entity_verdict=entity_verdict,
@@ -784,7 +784,7 @@ class TestAuditTrailToolCalls:
 
         with patch("libs.audit.auditor.sanitise_for_prompt", side_effect=lambda x, **kw: x):
             _, tool_calls = _agentic_audit_record(
-                opus_client=mock_client,
+                audit_client=mock_client,
                 system_prompt="system",
                 row=row,
                 entity_verdict=entity_verdict,
@@ -890,7 +890,7 @@ class TestAgenticErrorHandling:
         # Should not raise
         with patch("libs.audit.auditor.sanitise_for_prompt", side_effect=lambda x, **kw: x):
             updated_ev, tool_calls = _agentic_audit_record(
-                opus_client=mock_client,
+                audit_client=mock_client,
                 system_prompt="system",
                 row=row,
                 entity_verdict=entity_verdict,

@@ -1,43 +1,48 @@
-"""Opus-in-the-Loop TrainingLabel auditor — CLI entry point.
+"""Agentic Auditor — CLI entry point.
 
-Uses Claude Opus 4.6 (AWS_MAX_MODEL) to review every included
-TrainingLabel record, validating entities, assertions, values, SNOMED
-codes, and span boundaries.  Applies safe auto-fixes and escalates
-ambiguous issues for human review.
+Model-agnostic auditor that reviews every included TrainingLabel record,
+validating entities, assertions, values, SNOMED codes, and span
+boundaries.  Applies safe auto-fixes and escalates ambiguous issues for
+human review, with the goal of minimising HITL burden.
 
-For entities flagged "needs_review" with SNOMED coding concerns a
-second pass invokes Opus with Bedrock tool-use, delegating terminology
-lookups to Haiku (AWS_SMALL_MODEL) via the internal Terminology API.
-Opus may also call get_second_opinion to get a blind Haiku assessment
-without anchoring bias.  Cost guardrails (token budget + dollar cap)
-and a hard iteration cap prevent runaway spending.  SNOMED fields are
-never auto-fixed.
+Pass 1 — standard LLM audit with auto-fix for safe fields.
+Pass 2 — agentic tool-use on "needs_review" entities: calls the
+Terminology API, a second-opinion model, and (in agentic mode) can
+also update SNOMED fields when both models agree.  Cost guardrails
+(token budget + dollar cap) and a hard iteration cap prevent runaway
+spending.
+
+Select the auditing model with --provider (aws | azure) and
+--tier (small | big | max).
 
 Usage
 -----
     # Dry-run (default) — audit only, no writes:
-    python -m scripts.opus_training_auditor --limit 50
+    python -m scripts.agentic_auditor --limit 50
 
     # Apply safe auto-fixes:
-    python -m scripts.opus_training_auditor --apply
+    python -m scripts.agentic_auditor --apply
 
     # Skip already-audited records on re-run:
-    python -m scripts.opus_training_auditor --skip-audited --apply
+    python -m scripts.agentic_auditor --skip-audited --apply
+
+    # Use Azure GPT-5.2 instead of the default AWS max model:
+    python -m scripts.agentic_auditor --provider azure --tier big --apply
 
     # Full options:
-    python -m scripts.opus_training_auditor \\
-        --limit 500 --offset 0 --apply --skip-audited
+    python -m scripts.agentic_auditor \\
+        --limit 500 --offset 0 --apply --skip-audited --provider azure --tier big
 
 Environment variables
 ---------------------
-    OPUS_AUDIT_WORKERS         Thread pool size (default: 5).
-    OPUS_AUDIT_TOKEN_BUDGET    Max cumulative tokens for the run (default: 2_000_000).
-    OPUS_AUDIT_COST_CAP        Max USD cost for the run (default: 50.0).
+    AUDIT_WORKERS              Thread pool size (default: 5).
+    AUDIT_TOKEN_BUDGET         Max cumulative tokens for the run (default: 2_000_000).
+    AUDIT_COST_CAP             Max USD cost for the run (default: 50.0).
     TERMINOLOGY_API_URL        Terminology service base URL (default: http://localhost:8001).
     NEO4J_URI / NEO4J_USER / NEO4J_PASSWORD
     AWS_DEFAULT_REGION         Bedrock region.
-    AWS_MAX_MODEL              Override Opus model ID.
-    AWS_SMALL_MODEL            Override Haiku model ID.
+    AWS_MAX_MODEL / AWS_BIG_MODEL / AWS_SMALL_MODEL
+    AZURE_OPENAI_BIG_MODEL / AZURE_OPENAI_SMALL_MODEL
 """
 
 from __future__ import annotations
@@ -47,6 +52,13 @@ import json
 import logging
 import sys
 import time
+
+# Suppress PyRuSH sentence-splitter debug noise (uses loguru, not stdlib logging)
+try:
+    from loguru import logger as _loguru_logger
+    _loguru_logger.disable("PyRuSH")
+except Exception:
+    pass
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
@@ -63,6 +75,7 @@ load_dotenv(_SECRETS / ".env", override=False)
 
 # All core logic lives in the shared lib — import from there
 from libs.audit.auditor import (  # noqa: E402
+    AUTOFIX_CAP_RATIO,
     AuditVerdict,
     AutoFixCapMonitor,
     CostGuardrail,
@@ -89,7 +102,7 @@ logging.basicConfig(
     format="%(asctime)s  %(levelname)-8s  %(name)s  %(message)s",
     datefmt="%H:%M:%S",
 )
-logger = logging.getLogger("opus_training_auditor")
+logger = logging.getLogger("agentic_auditor")
 
 
 # ── Audit trail (JSONL) ───────────────────────────────────────────────────────
@@ -187,7 +200,7 @@ def _generate_report(
                     break
 
     lines = [
-        "# Opus Training Label Audit Report",
+        "# Agentic Auditor — Training Label Audit Report",
         "",
         f"**Date:** {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}  ",
         f"**Mode:** {'APPLY' if applied else 'DRY-RUN'}  ",
@@ -307,7 +320,7 @@ def _generate_report(
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Opus-in-the-Loop TrainingLabel auditor"
+        description="Agentic Auditor — model-agnostic TrainingLabel reviewer"
     )
     parser.add_argument("--limit",        type=int,  default=0,          help="Max records (0=all)")
     parser.add_argument("--offset",       type=int,  default=0,          help="Skip first N records")
@@ -318,10 +331,22 @@ def main() -> None:
         "--no-agentic", action="store_true",
         help="Skip pass 2 (no tool-use); useful for cost-constrained runs",
     )
+    parser.add_argument(
+        "--tier", choices=["small", "big", "max"], default="max",
+        help="Model tier: 'max' = Opus/GPT-5 (default), 'big' = Sonnet/GPT-5.2, 'small' = Haiku/GPT-5-mini",
+    )
+    parser.add_argument(
+        "--provider", choices=["aws", "azure"], default="aws",
+        help="LLM provider: 'aws' = Bedrock (default), 'azure' = Azure OpenAI",
+    )
+    parser.add_argument(
+        "--no-autofix-cap", action="store_true",
+        help="Disable the sliding-window auto-fix cap (use for known-systemic bulk runs)",
+    )
     args = parser.parse_args()
 
     mode_label = "APPLY" if args.apply else "DRY-RUN"
-    logger.info("=== Opus Training Label Auditor [%s] ===", mode_label)
+    logger.info("=== Agentic Auditor [%s] ===", mode_label)
 
     skip_clause   = "AND t.audited_at IS NULL" if args.skip_audited else ""
     limit_clause  = f"LIMIT {args.limit}"  if args.limit  else ""
@@ -351,9 +376,9 @@ def main() -> None:
     _get_splitter()
     logger.info("Sentence splitter ready")
 
-    opus          = create_llm(provider="aws", tier="max")
-    system_prompt = INJECTION_GUARD + get_prompt("opus_audit", version=1)
-    logger.info("Using Opus model: %s", opus.model_id)
+    opus          = create_llm(provider=args.provider, tier=args.tier)
+    system_prompt = INJECTION_GUARD + get_prompt("agentic_audit", version=1)
+    logger.info("Using audit model (%s/%s): %s", args.provider, args.tier, opus.model_id)
 
     so_provider  = SecondOpinionProvider(guardrail=CostGuardrail())  # temp guardrail for SO
     guardrail    = CostGuardrail()
@@ -369,11 +394,11 @@ def main() -> None:
 
     ts          = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     scripts_dir = Path(__file__).resolve().parent
-    trail_path  = scripts_dir / f"opus_audit_trail_{ts}.jsonl"
-    report_path = scripts_dir / f"opus_audit_report_{ts}.md"
+    trail_path  = scripts_dir / f"agentic_audit_trail_{ts}.jsonl"
+    report_path = scripts_dir / f"agentic_audit_report_{ts}.md"
 
     verdicts: list[AuditVerdict] = []
-    cap_monitor        = AutoFixCapMonitor()
+    cap_monitor        = AutoFixCapMonitor(ratio=1.0 if args.no_autofix_cap else AUTOFIX_CAP_RATIO)
     cap_triggered_at: int | None = None
     t_start = time.monotonic()
 
@@ -408,13 +433,13 @@ def main() -> None:
                     pass_one_verdict=verdict,
                     row=row,
                     entities=entities,
-                    opus_client=opus,
+                    audit_client=opus,
                     system_prompt=system_prompt,
                     tool_executor=tool_executor,
                     guardrail=guardrail,
                 )
 
-            _classify_fixes(verdict)
+            _classify_fixes(verdict, agentic=not args.no_agentic)
 
             try:
                 entities   = _parse_entities(row["entities_json"])
@@ -433,15 +458,32 @@ def main() -> None:
                 )
 
             applied_this_record = False
-            if args.apply and verdict.auto_fixes_applied and cap_triggered_at is None:
+            # Run _apply_fixes even when there are no LLM fixes, because it also
+            # runs the programmatic snomed_score clamp and span-heal passes.
+            if args.apply and cap_triggered_at is None:
                 try:
-                    fixed_entities = _apply_fixes(entities, verdict.auto_fixes_applied, row["text"])
-                    neo4j.run(
-                        UPDATE_ENTITIES,
-                        label_id=label_id,
-                        entities_json=json.dumps(fixed_entities),
+                    fixed_entities, prog_repairs = _apply_fixes(
+                        entities, verdict.auto_fixes_applied, row["text"]
                     )
-                    applied_this_record = True
+                    changed = verdict.auto_fixes_applied or prog_repairs
+                    if changed:
+                        audit_actions = json.dumps({
+                            "model":           opus.model_id,
+                            "provider":        args.provider,
+                            "applied_at":      datetime.now(timezone.utc).isoformat(),
+                            "fixes":           verdict.auto_fixes_applied,
+                            "prog_repairs":    prog_repairs,
+                        })
+                        neo4j.run(
+                            UPDATE_ENTITIES,
+                            label_id=label_id,
+                            entities_json=json.dumps(fixed_entities),
+                            audit_actions=audit_actions,
+                            audit_model=opus.model_id,
+                        )
+                        applied_this_record = True
+                    else:
+                        neo4j.run(SET_AUDITED_AT, label_id=label_id)
                 except Exception as exc:
                     logger.error("Failed to write fixes for %s: %s", label_id, exc)
             else:
