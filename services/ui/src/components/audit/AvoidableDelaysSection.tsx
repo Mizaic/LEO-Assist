@@ -5,6 +5,7 @@ import SectionCard from "./SectionCard";
 import ComparisonBarChart, { type ComparisonDataRow } from "./ComparisonBarChart";
 import BenchmarkLegend, { resolveBenchmarkValue } from "./BenchmarkLegend";
 import SummaryStatsTable from "./SummaryStatsRow";
+import CancerTypeBenchmarkGrid from "./CancerTypeBenchmarkGrid";
 import type { AuditAvoidableDelays, AuditSectionResult } from "@/lib/analyticsApi";
 
 interface Props {
@@ -124,6 +125,13 @@ export default function AvoidableDelaysSection({ result, loading, error, orgSele
       <Box sx={{ mt: 2 }}>
         <SummaryStatsTable rows={tableRows} visibleKeys={visibleKeys} orgSelected={orgSelected} caption="Avoidable delays by stage in pathway (% of patients with delay)" />
       </Box>
+      <CancerTypeBenchmarkGrid
+        bm={bm}
+        section="avoidable_delays"
+        metrics={[{ metricKey: "avoidable_delay_pct", label: "Avoidable delay %" }]}
+        orgSelected={orgSelected}
+        heading="2018 Baseline by Cancer Type — Avoidable Delay (%)"
+      />
     </SectionCard>
   );
 }

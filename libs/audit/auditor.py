@@ -1,7 +1,7 @@
-"""Core Opus-in-the-Loop training label auditor — shared library.
+"""Core Agentic Auditor — shared library.
 
-Used by both the CLI script (scripts/opus_training_auditor.py) and the
-API background runner (services/api/app/services/opus_audit_service.py).
+Used by both the CLI script (scripts/agentic_auditor.py) and the
+API background runner (services/api/app/services/agentic_audit_service.py).
 
 All stateless classes, data structures, Cypher queries, and processing
 functions live here.  I/O (file writing, argparse, job-state management)
@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 
-MAX_WORKERS = int(os.getenv("OPUS_AUDIT_WORKERS", "5"))
+MAX_WORKERS = int(os.getenv("AUDIT_WORKERS", "5"))
 
 SAFE_FIX_FIELDS = frozenset({
     "text",
@@ -33,6 +33,15 @@ SAFE_FIX_FIELDS = frozenset({
     "value", "unit", "reference_range",
     "label",
     "normalized",
+})
+
+# Additional fields unlocked only in pass 2 when the Terminology API
+# and a second-opinion model both agree on the corrected SNOMED concept.
+AGENTIC_FIX_FIELDS = SAFE_FIX_FIELDS | frozenset({
+    "snomed_concept_id",
+    "snomed_term",
+    "read_code",
+    "snomed_score",
 })
 
 SAFE_FIX_CONFIDENCE = 0.95
@@ -56,9 +65,14 @@ TERMINOLOGY_API_URL = os.getenv("TERMINOLOGY_API_URL", "http://localhost:8001")
 TOOL_HTTP_TIMEOUT = 10  # seconds
 
 # Cost rates read from env vars so they stay in sync with secrets/.env.
-# Defaults match Sonnet (big) pricing; override with env vars for other models.
-_AUDIT_IN_RATE  = float(os.getenv("AWS_BEDROCK_MODEL_BIG_MODEL_COST_PER_1M_INPUT_TOKEN",  "3.0"))  / 1_000_000
-_AUDIT_OUT_RATE = float(os.getenv("AWS_BEDROCK_MODEL_BIG_MODEL_COST_PER_1M_OUTPUT_TOKEN", "15.0")) / 1_000_000
+# AUDIT_PROVIDER env var switches between AWS and Azure rate tables.
+_AUDIT_PROVIDER = os.getenv("AUDIT_COST_PROVIDER", "aws")
+if _AUDIT_PROVIDER == "azure":
+    _AUDIT_IN_RATE  = float(os.getenv("AZURE_OPENAI_BIG_MODEL_COST_PER_1M_INPUT_TOKEN",  "1.25")) / 1_000_000
+    _AUDIT_OUT_RATE = float(os.getenv("AZURE_OPENAI_BIG_MODEL_COST_PER_1M_OUTPUT_TOKEN", "10.0")) / 1_000_000
+else:
+    _AUDIT_IN_RATE  = float(os.getenv("AWS_BEDROCK_MODEL_BIG_MODEL_COST_PER_1M_INPUT_TOKEN",  "3.0"))  / 1_000_000
+    _AUDIT_OUT_RATE = float(os.getenv("AWS_BEDROCK_MODEL_BIG_MODEL_COST_PER_1M_OUTPUT_TOKEN", "15.0")) / 1_000_000
 _HAIKU_IN_RATE  = float(os.getenv("AWS_BEDROCK_MODEL_SMALL_MODEL_COST_PER_1M_INPUT_TOKEN",  "1.0")) / 1_000_000
 _HAIKU_OUT_RATE = float(os.getenv("AWS_BEDROCK_MODEL_SMALL_MODEL_COST_PER_1M_OUTPUT_TOKEN", "5.0")) / 1_000_000
 
@@ -98,9 +112,11 @@ RETURN t.label_id AS label_id
 
 UPDATE_ENTITIES = """
 MATCH (t:TrainingLabel {label_id: $label_id})
-SET t.entities_json = $entities_json,
-    t.audited_at    = datetime(),
-    t.updated_at    = datetime()
+SET t.entities_json  = $entities_json,
+    t.audited_at     = datetime(),
+    t.updated_at     = datetime(),
+    t.audit_actions  = $audit_actions,
+    t.audit_model    = $audit_model
 RETURN t.label_id AS label_id
 """
 
@@ -136,10 +152,10 @@ class CostGuardrail:
         cost_cap: float | None = None,
     ) -> None:
         self._token_budget = token_budget if token_budget is not None else int(
-            os.getenv("OPUS_AUDIT_TOKEN_BUDGET", "2000000")
+            os.getenv("AUDIT_TOKEN_BUDGET", "2000000")
         )
         self._cost_cap = cost_cap if cost_cap is not None else float(
-            os.getenv("OPUS_AUDIT_COST_CAP", "50.0")
+            os.getenv("AUDIT_COST_CAP", "50.0")
         )
         self._total_tokens: int = 0
         self._estimated_cost: float = 0.0
@@ -199,10 +215,10 @@ _SECOND_OPINION_SYSTEM = (
 
 
 class SecondOpinionProvider:
-    """Solicits a blind second opinion from Haiku without any Opus reasoning context.
+    """Solicits a blind second opinion from the small model without any primary-model reasoning context.
 
-    The Haiku model receives ONLY the original clinical text, the entity data,
-    and the neutral question.  Opus's current verdict, reasoning, prior tool call
+    The secondary model receives ONLY the original clinical text, the entity data,
+    and the neutral question.  The primary model's current verdict, reasoning, prior tool call
     history, and pass-1 issues are NEVER included, preventing anchoring bias
     (DI-LEO-AI-054 §second-opinion, R-LEO-AI-037).
 
@@ -231,12 +247,12 @@ class SecondOpinionProvider:
         """Ask Haiku for an independent entity assessment.
 
         Returns dict with 'opinion' on success, 'error' on failure or budget halt.
-        The question is sanitised to strip any potential Opus-verdict leakage.
+        The question is sanitised to strip any potential primary-model verdict leakage.
         """
         if self._guardrail.over_budget():
             return {"error": "Cost guardrail halted — second opinion skipped"}
 
-        # Strip Opus-internal audit fields so Haiku sees only original data
+        # Strip internal audit fields so the secondary model sees only original data
         clean_entity = {k: v for k, v in entity.items() if not k.startswith("__")}
 
         safe_text     = sanitise_for_prompt(clinical_text)
@@ -536,7 +552,7 @@ def _extract_json(text: str) -> dict[str, Any]:
 
 
 def _validate_verdict(data: dict[str, Any]) -> dict[str, Any]:
-    """Validate the Opus verdict against expected schema."""
+    """Validate the auditor verdict against expected schema."""
     if not isinstance(data, dict):
         raise ValueError("Verdict must be a JSON object")
     if "record_verdict" not in data:
@@ -585,6 +601,37 @@ def _assign_sentence_ids(
     return enriched
 
 
+def _sentences_from_entities(
+    text: str,
+    entities: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Reconstruct sentence list from entity offsets when __sentence_id is already set.
+
+    Groups entities by their existing __sentence_id and uses the min/max character
+    offsets to slice sentence text from the encounter text directly, avoiding the
+    sentence-splitter entirely.
+    """
+    from collections import defaultdict
+    buckets: dict[int, list[dict]] = defaultdict(list)
+    for ent in entities:
+        sid = ent.get("__sentence_id")
+        if sid is not None:
+            buckets[int(sid)].append(ent)
+
+    sentences = []
+    for sid in sorted(buckets):
+        group = buckets[sid]
+        s_start = min(int(e.get("start") or 0) for e in group)
+        s_end   = max(int(e.get("end")   or 0) for e in group)
+        sentences.append({
+            "sentence_id": sid,
+            "start": s_start,
+            "end":   s_end,
+            "text":  text[s_start:s_end],
+        })
+    return sentences
+
+
 def _build_user_message(
     text: str,
     entities: list[dict[str, Any]],
@@ -592,13 +639,20 @@ def _build_user_message(
     source: str,
     quality_score: float,
 ) -> str:
-    splitter = _get_splitter()
-    sentences = splitter.split(text)
-    sentence_list = [
-        {"sentence_id": s.sentence_id, "start": s.start, "end": s.end, "text": s.text}
-        for s in sentences
-    ]
-    enriched_entities = _assign_sentence_ids(entities, sentences)
+    # Skip the sentence splitter if entities already carry __sentence_id from
+    # the original pipeline run — reconstruct sentence boundaries from offsets.
+    all_have_sid = entities and all(e.get("__sentence_id") is not None for e in entities)
+    if all_have_sid:
+        sentence_list    = _sentences_from_entities(text, entities)
+        enriched_entities = entities
+    else:
+        splitter = _get_splitter()
+        sentences = splitter.split(text)
+        sentence_list = [
+            {"sentence_id": s.sentence_id, "start": s.start, "end": s.end, "text": s.text}
+            for s in sentences
+        ]
+        enriched_entities = _assign_sentence_ids(entities, sentences)
 
     return json.dumps({
         "label_id": label_id,
@@ -618,7 +672,7 @@ def audit_record(
     row: dict[str, Any],
     max_retries: int = 3,
 ) -> AuditVerdict:
-    """Pass 1: Send one TrainingLabel to Opus and parse the verdict (no tools)."""
+    """Pass 1: Send one TrainingLabel to the audit model and parse the verdict (no tools)."""
     label_id = row["label_id"]
     try:
         entities = _parse_entities(row["entities_json"])
@@ -695,7 +749,7 @@ def _is_snomed_needs_review(entity_verdict: dict[str, Any]) -> bool:
 
 
 def _agentic_audit_record(
-    opus_client: LLMClient,
+    audit_client: LLMClient,
     system_prompt: str,
     row: dict[str, Any],
     entity_verdict: dict[str, Any],
@@ -734,7 +788,7 @@ def _agentic_audit_record(
     context = {"row": row, "entities": entities}
 
     for _iteration in range(MAX_TOOL_ITERATIONS):
-        resp = opus_client.converse(
+        resp = audit_client.converse(
             system=system_prompt,
             messages=messages,
             max_tokens=2048,
@@ -791,7 +845,7 @@ def _agentic_audit_record(
                         break
         except (json.JSONDecodeError, ValueError):
             logger.warning(
-                "Agentic pass: could not parse Opus response for entity[%d] in %s",
+                "Agentic pass: could not parse model response for entity[%d] in %s",
                 entity_idx,
                 row["label_id"],
             )
@@ -803,7 +857,7 @@ def _pass_two(
     pass_one_verdict: AuditVerdict,
     row: dict[str, Any],
     entities: list[dict[str, Any]],
-    opus_client: LLMClient,
+    audit_client: LLMClient,
     system_prompt: str,
     tool_executor: ToolExecutor,
     guardrail: CostGuardrail,
@@ -828,7 +882,7 @@ def _pass_two(
 
         try:
             updated_ev, tool_calls = _agentic_audit_record(
-                opus_client=opus_client,
+                audit_client=audit_client,
                 system_prompt=system_prompt,
                 row=row,
                 entity_verdict=ev,
@@ -863,14 +917,36 @@ def _pass_two(
 
 # ── Auto-fix logic ───────────────────────────────────────────────────────────
 
-def _classify_fixes(verdict: AuditVerdict) -> None:
-    """Classify issues into auto_fixes_applied vs proposals."""
+def _classify_fixes(verdict: AuditVerdict, agentic: bool = False) -> None:
+    """Classify issues into auto_fixes_applied vs proposals.
+
+    Processes ALL entity verdicts including 'needs_review', allowing partial
+    fixes: safe-field issues on a 'needs_review' entity are still applied
+    automatically; the entity remains in the review queue for its blocking
+    issues (readonly fields, low-confidence problems, etc.).
+
+    Args:
+        agentic: When True (pass 2), SNOMED fields are eligible for auto-fix
+                 provided confidence >= SAFE_FIX_CONFIDENCE and the fix was
+                 informed by Terminology API tool calls.
+    """
+    allowed_fix_fields = AGENTIC_FIX_FIELDS if agentic else SAFE_FIX_FIELDS
+    # In agentic mode, SNOMED fields are no longer readonly if confidence is met
+    effective_readonly = (
+        READONLY_FIELDS - {"snomed_concept_id", "snomed_term", "read_code", "snomed_score"}
+        if agentic else READONLY_FIELDS
+    )
+    # Fields where clearing to None/null is a valid auto-fix (model knows the
+    # field should not have been set — e.g. a unit that isn't in the text).
+    nullable_fix_fields = frozenset({"unit", "value", "reference_range", "normalized"})
+
     for ev in verdict.entity_verdicts:
-        if ev["verdict"] not in ("fixable", "remove"):
+        # Process fixable, remove, AND needs_review (partial-fix support).
+        if ev["verdict"] not in ("fixable", "remove", "needs_review"):
             continue
         for issue in ev.get("issues", []):
             fld = issue.get("field", "")
-            if fld in READONLY_FIELDS or fld.startswith("__"):
+            if fld in effective_readonly or fld.startswith("__"):
                 verdict.proposals.append({
                     "entity_index": ev["entity_index"],
                     "verdict": "needs_review",
@@ -882,11 +958,13 @@ def _classify_fixes(verdict: AuditVerdict) -> None:
                 "verdict": ev["verdict"],
                 **issue,
             }
+            suggested = issue.get("suggested")
+            # Allow null/None suggested for nullable fields (clearing spurious metadata).
+            suggested_ok = (suggested is not None) or (fld in nullable_fix_fields)
             is_safe = (
-                ev["verdict"] == "fixable"
-                and fld in SAFE_FIX_FIELDS
+                fld in allowed_fix_fields
                 and issue.get("confidence", 0) >= SAFE_FIX_CONFIDENCE
-                and issue.get("suggested") is not None
+                and suggested_ok
             )
             if is_safe:
                 verdict.auto_fixes_applied.append(entry)
@@ -901,22 +979,93 @@ def _classify_fixes(verdict: AuditVerdict) -> None:
         })
 
 
+def _heal_spans(
+    entities: list[dict[str, Any]],
+    encounter_text: str,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Recompute start/end for any entity whose text span is inconsistent.
+
+    For every entity where encounter_text[start:end] != entity.text, searches
+    for the entity text as a substring and updates offsets if found.  Returns
+    (healed_entities, list_of_span_repairs) so the caller can record what changed.
+    """
+    healed   = [dict(e) for e in entities]
+    repairs: list[dict[str, Any]] = []
+    for i, ent in enumerate(healed):
+        text = ent.get("text") or ""
+        if not text:
+            continue
+        start = int(ent.get("start") or 0)
+        end   = int(ent.get("end")   or 0)
+        if encounter_text[start:end] == text:
+            continue  # already consistent
+        # Search near current position first, then globally
+        new_start = encounter_text.find(text, max(0, start - 50))
+        if new_start < 0:
+            new_start = encounter_text.find(text)
+        if new_start >= 0 and new_start != start:
+            healed[i]["start"] = new_start
+            healed[i]["end"]   = new_start + len(text)
+            repairs.append({
+                "entity_index": i,
+                "field": "start/end",
+                "old_start": start,
+                "old_end": end,
+                "new_start": new_start,
+                "new_end": new_start + len(text),
+                "rationale": "Span recomputed from entity text substring search",
+            })
+    return healed, repairs
+
+
+def _clamp_snomed_scores(
+    entities: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Clamp snomed_score > 1.0 to exactly 1.0 on every entity.
+
+    A score above 1.0 is a data invariant violation in the embedding pipeline,
+    not a clinical judgement call.  Safe to apply unconditionally.
+    Returns a list of repair descriptors (may be empty).
+    """
+    repairs: list[dict[str, Any]] = []
+    for i, ent in enumerate(entities):
+        score = ent.get("snomed_score")
+        try:
+            score = float(score)
+        except (TypeError, ValueError):
+            continue
+        if score > 1.0:
+            entities[i]["snomed_score"] = 1.0
+            repairs.append({
+                "entity_index": i,
+                "field": "snomed_score",
+                "old_value": score,
+                "new_value": 1.0,
+                "rationale": "snomed_score > 1.0 is a pipeline invariant violation; clamped to 1.0",
+            })
+    return repairs
+
+
 def _apply_fixes(
     entities: list[dict[str, Any]],
     fixes: list[dict[str, Any]],
     encounter_text: str,
-) -> list[dict[str, Any]]:
-    """Apply safe auto-fixes to entities (returns a new copy).
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Apply safe auto-fixes to entities (returns a new copy + programmatic repairs).
 
-    When 'text' is changed, recomputes start/end via str.find().
+    Sequence:
+      1. Apply LLM-suggested field fixes from *fixes*.
+      2. If 'text' changed, recompute start/end via str.find().
+      3. Clamp any snomed_score > 1.0 to 1.0 (pipeline invariant).
+      4. Heal any remaining start/end span inconsistencies via substring search.
     Strips audit-only __ prefixed keys before returning.
     """
     entities = [dict(e) for e in entities]
     for fix in fixes:
         idx       = fix.get("entity_index", -1)
         fld       = fix.get("field")
-        suggested = fix.get("suggested")
-        if 0 <= idx < len(entities) and fld and suggested is not None:
+        suggested = fix.get("suggested")    # may be None (clearing a field)
+        if 0 <= idx < len(entities) and fld:
             entities[idx][fld] = suggested
             if fld == "text" and isinstance(suggested, str):
                 old_start = int(entities[idx].get("start") or 0)
@@ -926,7 +1075,13 @@ def _apply_fixes(
                 if new_start >= 0:
                     entities[idx]["start"] = new_start
                     entities[idx]["end"]   = new_start + len(suggested)
-    return [{k: v for k, v in e.items() if not k.startswith("__")} for e in entities]
+    # Clamp snomed_score > 1.0 (pipeline invariant, always safe)
+    score_repairs = _clamp_snomed_scores(entities)
+    # Heal any remaining span inconsistencies across ALL entities
+    entities, span_repairs = _heal_spans(entities, encounter_text)
+    all_repairs = score_repairs + span_repairs
+    cleaned = [{k: v for k, v in e.items() if not k.startswith("__")} for e in entities]
+    return cleaned, all_repairs
 
 
 # ── Auto-fix cap monitor ───────────────────────────────────────────────────────

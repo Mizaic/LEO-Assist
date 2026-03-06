@@ -5,6 +5,7 @@ import SectionCard from "./SectionCard";
 import ComparisonBarChart, { type ComparisonDataRow } from "./ComparisonBarChart";
 import BenchmarkLegend, { resolveBenchmarkValue } from "./BenchmarkLegend";
 import SummaryStatsTable from "./SummaryStatsRow";
+import CancerTypeBenchmarkGrid from "./CancerTypeBenchmarkGrid";
 import type { AuditReferralRow, AuditSectionResult } from "@/lib/analyticsApi";
 
 const ROUTE_DISPLAY: Record<string, string> = {
@@ -100,6 +101,13 @@ export default function ReferralsSection({ result, loading, error, orgSelected =
       <Box sx={{ mt: 2 }}>
         <SummaryStatsTable rows={tableRows} visibleKeys={visibleKeys} orgSelected={orgSelected} caption="Key referral route comparisons" />
       </Box>
+      <CancerTypeBenchmarkGrid
+        bm={bm}
+        section="referrals"
+        metrics={[{ metricKey: "emergency_pct", label: "Emergency %" }]}
+        orgSelected={orgSelected}
+        heading="2018 Baseline by Cancer Type — Emergency Referral (%)"
+      />
     </SectionCard>
   );
 }

@@ -24,17 +24,32 @@ export default function CancerTypeSection({ result, loading, error, orgSelected 
     ? (["practice", "national", "similar", "alliance"] as const)
     : (["practice", "national"] as const);
 
-  const allTypes = Array.from(
-    new Set([...practice.map((r) => r.cancer_type)])
-  ).slice(0, 12);
+  // Build the full type list as a union of live data + 2018 benchmark types so that
+  // types present in 2018 but absent from today's patient data are still shown
+  // (they'll render a 2018 bar with no live bar — a meaningful signal in itself).
+  const liveTypes = new Set(practice.map((r) => r.cancer_type).filter(Boolean));
+
+  const bmTypes: string[] = bm
+    ? Object.keys(bm)
+        .filter((k) => k.startsWith("condition_type.") && k.split(".").length === 2)
+        .map((k) => k.replace("condition_type.", ""))
+    : [];
+
+  const allTypes = Array.from(new Set([...liveTypes, ...bmTypes]))
+    // Sort by live practice proportion descending; benchmark-only types fall to the end
+    .sort((a, b) => {
+      const pa = practice.find((r) => r.cancer_type === a)?.pct ?? -1;
+      const pb = practice.find((r) => r.cancer_type === b)?.pct ?? -1;
+      return pb - pa;
+    });
 
   const chartData: ComparisonDataRow[] = allTypes.map((type) => {
     const pRow = practice.find((r) => r.cancer_type === type);
     const aRow = allianceLive?.find((r) => r.cancer_type === type);
     const eRow = englandLive?.find((r) => r.cancer_type === type);
-    const metricKey = `condition_type.${type?.toLowerCase() ?? ""}`;
+    const metricKey = `condition_type.${type.toLowerCase()}`;
     return {
-      category: type ?? "Unknown",
+      category: type,
       practice: pRow?.pct ?? null,
       similar: aRow?.pct ?? null,
       alliance: eRow?.pct ?? null,
@@ -42,13 +57,13 @@ export default function CancerTypeSection({ result, loading, error, orgSelected 
     };
   });
 
-  const tableRows = allTypes.slice(0, 8).map((type) => {
+  const tableRows = allTypes.map((type) => {
     const pRow = practice.find((r) => r.cancer_type === type);
     const aRow = allianceLive?.find((r) => r.cancer_type === type);
     const eRow = englandLive?.find((r) => r.cancer_type === type);
-    const metricKey = `condition_type.${type?.toLowerCase() ?? ""}`;
+    const metricKey = `condition_type.${type.toLowerCase()}`;
     return {
-      label: type ?? "Unknown",
+      label: type,
       unit: "%",
       practice: pRow ? { value: pRow.pct, n: pRow.n } : null,
       similar: aRow ? { value: aRow.pct } : null,
@@ -76,6 +91,7 @@ export default function CancerTypeSection({ result, loading, error, orgSelected 
           <ComparisonBarChart
             data={chartData}
             unit="percent"
+            height={Math.max(280, allTypes.length * 30 + 80)}
             visibleKeys={visibleKeys}
             orgSelected={orgSelected}
             ariaLabel="Cancer type distribution compared to alliance and national benchmarks"

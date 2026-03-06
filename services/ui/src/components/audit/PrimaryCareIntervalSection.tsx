@@ -29,8 +29,8 @@ export default function PrimaryCareIntervalSection({ result, loading, error, org
   const practiceMedianBm = bm?.["primary_care_interval.median_pci_days"]?.practice ?? null;
   const nationalMedian = resolveBenchmarkValue(bm, "primary_care_interval.median_pci_days", orgSelected);
   const nationalLabel = orgSelected
-    ? (practiceMedianBm != null ? "This Practice (2018)" : "England (2018)")
-    : "England (2018)";
+    ? (practiceMedianBm != null ? "This Practice (2018)" : "All Patients (2018)")
+    : "All Patients (2018)";
   const allianceMedian = orgSelected
     ? (allianceLive?.pci?.median ?? bm?.["primary_care_interval.median_pci_days"]?.alliance ?? null)
     : null;

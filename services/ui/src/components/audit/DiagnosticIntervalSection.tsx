@@ -29,8 +29,8 @@ export default function DiagnosticIntervalSection({ result, loading, error, orgS
   const practiceMedianBm = bm?.["diagnostic_interval.median_di_days"]?.practice ?? null;
   const nationalMedian = resolveBenchmarkValue(bm, "diagnostic_interval.median_di_days", orgSelected);
   const nationalLabel = orgSelected
-    ? (practiceMedianBm != null ? "This Practice (2018)" : "England (2018)")
-    : "England (2018)";
+    ? (practiceMedianBm != null ? "This Practice (2018)" : "All Patients (2018)")
+    : "All Patients (2018)";
   const allianceMedian = orgSelected
     ? (allianceLive?.di?.median ?? bm?.["diagnostic_interval.median_di_days"]?.alliance ?? null)
     : null;

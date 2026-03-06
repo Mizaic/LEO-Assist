@@ -89,7 +89,7 @@ export default function IntervalStripPlot({
         )}
         {allianceMedian != null && (
           <Chip
-            label={`Alliance median: ${allianceMedian} ${unit}`}
+            label={`Cancer Alliance median: ${allianceMedian} ${unit}`}
             size="small"
             sx={{ bgcolor: "#7C3AED", color: "white" }}
           />
@@ -137,7 +137,7 @@ export default function IntervalStripPlot({
                 <ReferenceLine x={nationalMedian} stroke="#92400E" strokeWidth={1.5} strokeDasharray="4 2" label={{ value: nationalLabel, fill: "#92400E", fontSize: 10, position: "insideTopRight" }} />
               )}
               {allianceMedian != null && (
-                <ReferenceLine x={allianceMedian} stroke="#7C3AED" strokeWidth={1.5} strokeDasharray="4 2" label={{ value: "Alliance", fill: "#7C3AED", fontSize: 10, position: "insideTopLeft" }} />
+                <ReferenceLine x={allianceMedian} stroke="#7C3AED" strokeWidth={1.5} strokeDasharray="4 2" label={{ value: "Cancer Alliance", fill: "#7C3AED", fontSize: 10, position: "insideTopLeft" }} />
               )}
               <Scatter
                 data={points}

@@ -5,6 +5,7 @@ import SectionCard from "./SectionCard";
 import ComparisonBarChart, { type ComparisonDataRow } from "./ComparisonBarChart";
 import BenchmarkLegend, { resolveBenchmarkValue } from "./BenchmarkLegend";
 import SummaryStatsTable from "./SummaryStatsRow";
+import CancerTypeBenchmarkGrid from "./CancerTypeBenchmarkGrid";
 import type { AuditSafetyNetting, AuditSectionResult } from "@/lib/analyticsApi";
 
 interface Props {
@@ -66,6 +67,13 @@ export default function SafetyNettingSection({ result, loading, error, orgSelect
       <Box sx={{ mt: 2 }}>
         <SummaryStatsTable rows={tableRows} visibleKeys={visibleKeys} orgSelected={orgSelected} caption="Safety netting summary" />
       </Box>
+      <CancerTypeBenchmarkGrid
+        bm={bm}
+        section="safety_netting"
+        metrics={[{ metricKey: "positive_contribution_pct", label: "Positive contribution %" }]}
+        orgSelected={orgSelected}
+        heading="2018 Baseline by Cancer Type — Safety Netting Positive Contribution (%)"
+      />
     </SectionCard>
   );
 }

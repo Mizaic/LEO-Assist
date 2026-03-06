@@ -630,7 +630,7 @@ export default function TrainingDataPanel() {
 
   const fetchAuditStatus = useCallback(async () => {
     try {
-      const data = await jsonFetch<AuditStatus>("/api/training/labels/opus-audit/status");
+      const data = await jsonFetch<AuditStatus>("/api/training/labels/agentic-audit/status");
       setAuditStatus(data);
     } catch { /* silently swallow */ }
   }, []);
@@ -690,7 +690,7 @@ export default function TrainingDataPanel() {
     return () => clearInterval(id);
   }, [verificationStatus?.status, fetchVerificationStatus]);
 
-  // Poll Opus audit status while running/stopping.
+  // Poll Agentic Auditor status while running/stopping.
   useEffect(() => {
     const isActive =
       auditStatus?.status === "running" ||
@@ -830,13 +830,13 @@ export default function TrainingDataPanel() {
   ) => {
     setStartingAudit(true);
     try {
-      await jsonFetch<{ status: string; message: string }>("/api/training/labels/opus-audit", {
+      await jsonFetch<{ status: string; message: string }>("/api/training/labels/agentic-audit", {
         method: "POST",
         body: JSON.stringify({ mode, apply, no_agentic }),
       });
       fetchAuditStatus();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not start Opus audit");
+      setError(e instanceof Error ? e.message : "Could not start Agentic Auditor");
     } finally {
       setStartingAudit(false);
     }
@@ -844,12 +844,12 @@ export default function TrainingDataPanel() {
 
   const handleStopAudit = async () => {
     try {
-      await jsonFetch<{ status: string; message: string }>("/api/training/labels/opus-audit/cancel", {
+      await jsonFetch<{ status: string; message: string }>("/api/training/labels/agentic-audit/cancel", {
         method: "POST",
       });
       fetchAuditStatus();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not stop Opus audit");
+      setError(e instanceof Error ? e.message : "Could not stop Agentic Auditor");
     }
   };
 
@@ -1141,7 +1141,7 @@ export default function TrainingDataPanel() {
               <Chip label={`Last checked ${verificationFinishedAt}`} size="small" variant="outlined" />
             ) : null}
             {auditRunning ? (
-              <Chip label="Opus auditing…" size="small" color="secondary" />
+              <Chip label="Agentic audit running…" size="small" color="secondary" />
             ) : null}
             {!auditRunning && (auditStatus?.auto_fixed ?? 0) > 0 ? (
               <Chip
@@ -1196,7 +1196,7 @@ export default function TrainingDataPanel() {
                 onClick={handleStopAudit}
                 sx={{ mr: 0.5 }}
               >
-                Stop Opus audit
+                Stop audit
               </Button>
             )}
             {verificationRunning ? (
@@ -1253,25 +1253,25 @@ export default function TrainingDataPanel() {
                 disabled={auditRunning}
                 onClick={() => { setVerifyMenuAnchor(null); handleStartAudit("all", false, false); }}
               >
-                Opus audit — find &amp; flag issues
+                Agentic audit — find &amp; flag issues
               </MenuItem>
               <MenuItem
                 disabled={auditRunning}
                 onClick={() => { setVerifyMenuAnchor(null); handleStartAudit("all", true, false); }}
               >
-                Opus audit — apply safe fixes
+                Agentic audit — apply safe fixes
               </MenuItem>
               <MenuItem
                 disabled={auditRunning}
                 onClick={() => { setVerifyMenuAnchor(null); handleStartAudit("hitl_only", true, false); }}
               >
-                Opus audit — HITL queue only
+                Agentic audit — HITL queue only
               </MenuItem>
               <MenuItem
                 disabled={auditRunning}
                 onClick={() => { setVerifyMenuAnchor(null); handleStartAudit("all", false, true); }}
               >
-                Opus audit — quick (no terminology tools)
+                Agentic audit — quick (no terminology tools)
               </MenuItem>
             </Menu>
           </Stack>
@@ -1331,7 +1331,7 @@ export default function TrainingDataPanel() {
             />
           ) : null}
 
-          {/* Opus audit progress */}
+          {/* Agentic audit progress */}
           {auditRunning && (
             <Stack
               direction="row"
@@ -1375,7 +1375,7 @@ export default function TrainingDataPanel() {
             />
           ) : null}
 
-          {/* Opus audit completed summary */}
+          {/* Agentic audit completed summary */}
           {auditDone && !auditRunning && (auditStatus?.done ?? 0) > 0 && (
             <Stack
               direction="row"
@@ -1385,7 +1385,7 @@ export default function TrainingDataPanel() {
               useFlexGap
             >
               <Chip
-                label={`Opus audited ${auditStatus!.done} records`}
+                label={`Agentic audited ${auditStatus!.done} records`}
                 size="small"
                 color="secondary"
                 variant="outlined"
