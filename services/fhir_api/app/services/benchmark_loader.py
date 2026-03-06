@@ -120,6 +120,45 @@ def _flatten_simple_value(
     return [{**base, "metric_id": metric_id, "label": label, "value": value}]
 
 
+def _flatten_by_cancer_type(
+    category: str,
+    by_cancer: Dict[str, Any],
+    entity_map: Dict[str, Dict[str, str]],
+    audit_id: str,
+    source: str,
+) -> List[Dict[str, Any]]:
+    """Flatten a by_cancer_type block into dotted metric_id records.
+
+    Structure: { cancer_type: { metric_key: { values: { entity_id: val } } } }
+    Produces metric_ids like: investigations.by_cancer_type.breast.blood_test_pct
+
+    The *category* stored is kept as the parent section (e.g. "investigations") so
+    that _fetch_benchmark_metrics(set_id, "investigations") returns both the
+    top-level metrics and the per-cancer-type breakdown in a single query.
+    """
+    nodes: List[Dict[str, Any]] = []
+    for cancer_type, metrics in by_cancer.items():
+        if not isinstance(metrics, dict):
+            continue
+        for metric_key, metric in metrics.items():
+            if not isinstance(metric, dict) or "values" not in metric:
+                continue
+            metric_id = f"{category}.by_cancer_type.{cancer_type}.{metric_key}"
+            label = metric.get("label", f"{cancer_type} {metric_key}")
+            unit = metric.get("unit", "%")
+            for entity_id, value in metric["values"].items():
+                nodes.extend(
+                    _flatten_simple_value(
+                        entity_id, value,
+                        category,      # store under parent category so audit API finds it
+                        metric_id,
+                        label, unit, entity_map,
+                        audit_id, source,
+                    )
+                )
+    return nodes
+
+
 def _flatten_simple_section(
     category: str,
     section: Dict[str, Any],
@@ -127,10 +166,21 @@ def _flatten_simple_section(
     audit_id: str,
     source: str,
 ) -> List[Dict[str, Any]]:
-    """Flatten a section with {metric_key: {label, unit, values}} structure."""
+    """Flatten a section with {metric_key: {label, unit, values}} structure.
+
+    Also handles a nested ``by_cancer_type`` sub-object (e.g. under
+    ``investigations``) where each cancer type contains per-metric objects.
+    """
     nodes: List[Dict[str, Any]] = []
     for metric_key, metric in section.items():
-        if not isinstance(metric, dict) or "values" not in metric:
+        if not isinstance(metric, dict):
+            continue
+        if metric_key == "by_cancer_type":
+            nodes.extend(
+                _flatten_by_cancer_type(category, metric, entity_map, audit_id, source)
+            )
+            continue
+        if "values" not in metric:
             continue
         metric_id = f"{category}.{metric_key}"
         label = metric.get("label", metric_key)

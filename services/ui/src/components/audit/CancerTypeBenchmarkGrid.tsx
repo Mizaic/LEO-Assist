@@ -55,9 +55,9 @@ interface CancerTypeBenchmarkGridProps {
 }
 
 const COLOURS = {
-  woodbrook:     BENCHMARK_COLOURS.practice,
-  east_midlands: BENCHMARK_COLOURS.alliance,
-  england:       BENCHMARK_COLOURS.national,
+  woodbrook:     BENCHMARK_COLOURS.national,  // brown — 2018 practice baseline, matches main chart's "national" slot
+  east_midlands: BENCHMARK_COLOURS.similar,   // teal  — Cancer Alliance, matches main chart's Cancer Alliance colour
+  england:       BENCHMARK_COLOURS.alliance,  // purple — All Patients, matches main chart's All Patients colour
 };
 
 function MiniBarChart({

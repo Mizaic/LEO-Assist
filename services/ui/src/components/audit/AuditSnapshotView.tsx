@@ -618,8 +618,9 @@ export default function AuditSnapshotView({
   const aeRow        = popPractice.find((r) => r.place?.toLowerCase().includes("a&e") || r.place?.toLowerCase().includes("emergency"));
 
   const conPractice  = consultations?.scopes.practice;
-  const invPractice  = investigations?.scopes.practice;
-  const invBloodLive = invPractice?.types.find((t) => t.type?.toLowerCase().includes("blood"))?.pct;
+  const invPractice   = investigations?.scopes.practice;
+  const invBloodLive  = invPractice?.types.find((t) => t.type?.toLowerCase().includes("blood"))?.pct;
+  const invImagingLive = invPractice?.types.find((t) => t.type?.toLowerCase() === "imaging")?.pct;
 
   const refPractice  = referrals?.scopes.practice ?? [];
   const twwRow       = refPractice.find((r) => { const rr = r.referral_route?.toLowerCase() ?? ""; return rr === "tww" || rr.includes("two_week"); });
@@ -782,6 +783,7 @@ export default function AuditSnapshotView({
                   rows={[
                     { label: "At least one investigation", practice: fmtPct(invPractice?.has_investigation_pct), england: fmtPct(resolveBenchmarkValue(bm, "investigations.at_least_one_pct", orgSelected)) },
                     { label: "Blood test (of investigations)", practice: fmtPct(invBloodLive), england: fmtPct(resolveBenchmarkValue(bm, "investigations.blood_test_pct", orgSelected)) },
+                    { label: "Imaging (of investigations)", practice: fmtPct(invImagingLive), england: fmtPct(resolveBenchmarkValue(bm, "investigations.imaging_pct", orgSelected)) },
                   ]}
                 />
                 <SummaryCard
