@@ -6,6 +6,7 @@ import Divider from "@mui/material/Divider";
 import SectionCard from "./SectionCard";
 import ComparisonBarChart, { type ComparisonDataRow } from "./ComparisonBarChart";
 import BenchmarkLegend, { resolveBenchmarkValue } from "./BenchmarkLegend";
+import CancerTypeBenchmarkGrid from "./CancerTypeBenchmarkGrid";
 import SummaryStatsTable from "./SummaryStatsRow";
 import type { AuditDemographics, AuditSectionResult } from "@/lib/analyticsApi";
 
@@ -147,6 +148,20 @@ export default function DemographicsSection({ result, loading, error, orgSelecte
           <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600, fontSize: "0.85rem" }}>Age at Diagnosis (years)</Typography>
           <BenchmarkLegend visibleKeys={ageBenchmarkKeys} orgSelected={orgSelected} />
           <ComparisonBarChart data={ageChart} unit="percent" height={220} visibleKeys={ageBenchmarkKeys} orgSelected={orgSelected} ariaLabel="Age band distribution compared to 2018 benchmark" />
+          <CancerTypeBenchmarkGrid
+            bm={bm}
+            section="demographics"
+            metrics={[
+              { metricKey: "age_band_0_24_pct",    label: "0–24"   },
+              { metricKey: "age_band_25_49_pct",   label: "25–49"  },
+              { metricKey: "age_band_50_64_pct",   label: "50–64"  },
+              { metricKey: "age_band_65_74_pct",   label: "65–74"  },
+              { metricKey: "age_band_75_84_pct",   label: "75–84"  },
+              { metricKey: "age_band_85_plus_pct", label: "85+"    },
+            ]}
+            orgSelected={orgSelected}
+            heading="2018 Age at Diagnosis by Cancer Type"
+          />
         </Box>
       )}
 
