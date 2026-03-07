@@ -290,12 +290,15 @@ class WorkflowEngine:
         await self._bus.send("pipeline-jobs", message, schedule_after_seconds=delay_seconds)
 
     def _load_prompt_config(self, config_id: str) -> dict[str, Any]:
-        """Load a PromptConfig from Neo4j by ID, returning a dict for subgraph state."""
+        """Load a PromptConfig from Neo4j by ID, returning a dict for subgraph state.
+
+        PromptConfig nodes are in the Knowledge Graph, not the Patient Graph.
+        """
         try:
             from libs.cypher.prompt_config_queries import GET_PROMPT
-            from app.db.neo4j_client import PatientGraphClient
+            from libs.neo4j_client.client import KnowledgeGraphClient
 
-            client = PatientGraphClient()
+            client = KnowledgeGraphClient()
             try:
                 with client.session() as session:
                     row = session.run(GET_PROMPT, id=config_id).single()
@@ -310,7 +313,7 @@ class WorkflowEngine:
                         "name": row["name"],
                         "version": row.get("version", 1),
                         "systemPrompt": row["systemPrompt"],
-                        "outputSchema": row.get("outputSchema") or "{}",
+                        "outputSchema": row.get("outputSchema") or None,
                         "fewShotExamples": few_shot,
                     }
             finally:

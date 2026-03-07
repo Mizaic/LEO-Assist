@@ -1,7 +1,16 @@
 """Thin adapter that provides an ExtractorProvider for the extraction subgraph.
 
-Replaces the now-deleted ``services.coding_worker.app.pipeline.extractor_registry``.
-Delegates to the LLM client using the configurable system prompt.
+Prompt assembly
+---------------
+The final system prompt is assembled from three parts stored in Neo4j:
+
+1. ``systemPrompt``   — instructions only (scope, rules, assertions, surface-form rules)
+2. ``outputSchema``   — machine-readable JSON schema rendered as a "## Output Format" block
+3. ``fewShotExamples`` — example library; filtered by ``model_scope`` and appended as
+                          a "## Examples" block
+
+This separation allows each part to be managed independently in the Admin UI
+and keeps the no-code pipeline builder aware of the exact output shape.
 """
 
 from __future__ import annotations
@@ -16,12 +25,102 @@ from libs.nlp.sentence_splitter import SentenceChunk
 logger = logging.getLogger(__name__)
 
 
+def _active_provider() -> str:
+    """Return the active LLM provider name (``"aws"`` or ``"azure"``)."""
+    import os
+    return os.getenv("PIPELINE_MODEL_PROVIDER", "aws")
+
+
+def _build_few_shot_block(examples: list[dict], provider: str = "aws") -> str:
+    """Render a subset of the example library as a prompt section.
+
+    Selects examples whose ``model_scope`` is ``"any"`` or matches *provider*.
+    ``provider`` should be ``"aws"`` (Claude/Bedrock) or ``"azure"`` (OpenAI).
+    Returns an empty string when there are no matching examples.
+    """
+    applicable = [
+        ex for ex in examples
+        if ex.get("model_scope", "any") in ("any", provider)
+    ]
+    if not applicable:
+        return ""
+
+    lines = ["## Examples", ""]
+    for ex in applicable:
+        desc = ex.get("description", "")
+        cat = ex.get("category", "")
+        header = f"# {cat}" + (f" — {desc}" if desc else "")
+        lines.append(header)
+        lines.append(f"Input:  {ex.get('input', '')}")
+        lines.append(f"Output: {ex.get('output', '')}")
+        lines.append("")
+    return "\n".join(lines)
+
+
+def assemble_system_prompt(
+    instructions: str,
+    output_schema_json: str | None = None,
+    few_shot_examples: list[dict] | None = None,
+    provider: str | None = None,
+) -> str:
+    """Assemble the final system prompt from its three managed parts.
+
+    Args:
+        instructions: The raw ``systemPrompt`` field from Neo4j (instructions only).
+        output_schema_json: The ``outputSchema`` field (JSON string or None).
+        few_shot_examples: Parsed list from the ``fewShotExamples`` field.
+        provider: Active LLM provider — ``"aws"`` (Claude/Bedrock) or ``"azure"``
+            (OpenAI).  Defaults to the ``PIPELINE_MODEL_PROVIDER`` environment
+            variable.  Used to select provider-specific examples from the library;
+            examples marked ``"any"`` are always included.
+
+    Returns:
+        The complete system prompt string to send to the LLM.
+    """
+    active_provider = provider or _active_provider()
+    parts: list[str] = [instructions.strip()]
+
+    # Append the output format block
+    if output_schema_json:
+        try:
+            schema = json.loads(output_schema_json)
+            from libs.prompts.extraction_output_schema import format_output_schema_block
+            fmt_block = format_output_schema_block(schema)
+            if fmt_block:
+                parts.append(fmt_block)
+        except Exception as exc:
+            logger.debug("Could not render output schema block: %s", exc)
+
+    # Append provider-filtered few-shot examples
+    if few_shot_examples:
+        ex_block = _build_few_shot_block(few_shot_examples, provider=active_provider)
+        if ex_block:
+            parts.append(ex_block)
+
+    return "\n\n".join(parts)
+
+
 class LLMExtractorAdapter:
     """LLM-backed entity extractor conforming to ExtractorProvider protocol."""
 
-    def __init__(self, system_prompt: str, tier: str = "small") -> None:
-        self._system_prompt = system_prompt
+    def __init__(
+        self,
+        system_prompt: str,
+        tier: str = "small",
+        output_schema_json: str | None = None,
+        few_shot_examples: list[dict] | None = None,
+        provider: str | None = None,
+    ) -> None:
         self._tier = tier
+        self._provider = provider or _active_provider()
+        # Assemble the full prompt from its three managed parts, filtering
+        # examples to those that match this provider ("any" is always included).
+        self._system_prompt = assemble_system_prompt(
+            instructions=system_prompt,
+            output_schema_json=output_schema_json,
+            few_shot_examples=few_shot_examples,
+            provider=self._provider,
+        )
 
     @property
     def source(self) -> str:
@@ -103,12 +202,27 @@ class LLMExtractorAdapter:
 def build_extractor(
     system_prompt: str | None = None,
     tier: str = "small",
+    output_schema_json: str | None = None,
+    few_shot_examples: list[dict] | None = None,
+    provider: str | None = None,
 ) -> LLMExtractorAdapter:
-    """Build an LLM extractor with the given system prompt.
+    """Build an LLM extractor, assembling the full system prompt from its parts.
 
-    Falls back to the hardcoded extraction prompt if none provided.
+    If ``system_prompt`` is None, falls back to the registry (Neo4j → hardcoded).
+    ``output_schema_json`` and ``few_shot_examples`` are optional; when provided
+    they are rendered and appended to the instructions before sending to the LLM.
+
+    ``provider`` controls which provider-specific examples are selected:
+    ``"aws"`` (Claude/Bedrock) or ``"azure"`` (OpenAI).  Defaults to the
+    ``PIPELINE_MODEL_PROVIDER`` environment variable.
     """
     if not system_prompt:
         from libs.prompts.registry import get_prompt
         system_prompt = get_prompt("extraction", version=1)
-    return LLMExtractorAdapter(system_prompt=system_prompt, tier=tier)
+    return LLMExtractorAdapter(
+        system_prompt=system_prompt,
+        tier=tier,
+        output_schema_json=output_schema_json,
+        few_shot_examples=few_shot_examples,
+        provider=provider,
+    )

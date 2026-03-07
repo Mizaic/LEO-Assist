@@ -1,10 +1,10 @@
-"""V1 episode builder and consolidation prompts.
+"""V1 episode builder and consolidation prompts — INSTRUCTIONS ONLY.
 
-.. deprecated::
-    Hardcoded fallback only. Canonical source: ``PromptConfig`` node in
-    Neo4j. Edit via Admin UI at /admin/prompts.
+Output schemas and few-shot examples are stored separately in Neo4j and
+assembled at runtime. Do NOT add output format sections or inline examples
+to this file — manage them via the Admin UI at /admin/prompts.
 
-Moved from services/analysis_worker/app/prompts/episode_prompts.py.
+Run ``python -m scripts.seed_prompt_configs`` to push changes to Neo4j.
 """
 from libs.prompts.registry import register
 
@@ -42,13 +42,7 @@ RULES:
 - If unsure, mark status='inconclusive' with confidence <70
 - Use confidence 0-100 scale
 
-OUTPUT SCHEMA (respond with ONLY this JSON, nothing else):
-{"status":"confirmed|excluded|inconclusive","confidence":0-100,"reasoning":"short explanation","diagnosis_date":"YYYY-MM-DD or null","treatment_date":"YYYY-MM-DD or null"}
-
-STATUS VALUES:
-- confirmed: Cancer diagnosis confirmed, treatment pathway clear
-- excluded: Cancer ruled out with reasonable certainty
-- inconclusive: Insufficient evidence to determine outcome\
+\
 """
 
 EPISODE_BUILDER_TASK_V1 = """\
@@ -92,7 +86,7 @@ and text snippets from the encounters. Use this evidence to determine:
 4. If the evidence is ambiguous or missing, set status=inconclusive
    with a confidence reflecting how much evidence exists.
 
-Respond with ONLY the JSON object. No preamble, no explanation, no markdown.\
+\
 """
 
 EPISODE_CONSOLIDATION_SYSTEM_V1 = """\
@@ -136,14 +130,7 @@ evidence. For example:
 - If one referral leads to another (e.g. urology liaised with haematology to
   exclude lymphoma), the originating specialty is primary.
 
-OUTPUT:
-Return ONLY a JSON object:
-{
-  "should_merge": true|false,
-  "primary_episode_id": "<the episode representing the actual cancer site>",
-  "reasoning": "explanation including which cancer site the evidence points to",
-  "merged_cancer_type": "<the actual cancer type, e.g. renal, colorectal>" | null
-}\
+\
 """
 
 EPISODE_CONSOLIDATION_TASK_V1 = """\
@@ -168,7 +155,7 @@ and agent reasoning. Determine:
    trigger a referral that turns out negative while the real cancer is
    found elsewhere.
 
-Respond with ONLY the JSON object. No preamble, no explanation, no markdown.\
+\
 """
 
 register("episode_builder_system", version=1, text=EPISODE_BUILDER_SYSTEM_V1)

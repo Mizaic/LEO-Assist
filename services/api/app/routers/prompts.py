@@ -34,6 +34,9 @@ class FewShotExample(BaseModel):
     input: str
     output: str
     deidentified: bool = False
+    category: str = ""          # e.g. "assertion:absent", "observable", "staging"
+    model_scope: str = "any"    # "any" | "extraction" | "extraction:llm" | "verification"
+    description: str = ""       # short human label shown in the example library
 
 
 class PromptCreateRequest(BaseModel):
