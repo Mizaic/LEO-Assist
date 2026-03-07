@@ -1,5 +1,9 @@
 """V1 episode builder and consolidation prompts.
 
+.. deprecated::
+    Hardcoded fallback only. Canonical source: ``PromptConfig`` node in
+    Neo4j. Edit via Admin UI at /admin/prompts.
+
 Moved from services/analysis_worker/app/prompts/episode_prompts.py.
 """
 from libs.prompts.registry import register

@@ -38,6 +38,7 @@ const EXACT_ROUTES: Record<string, () => string> = {
   "/auth/logout": () => `${coreApi()}/auth/logout`,
   "/auth/session": () => `${coreApi()}/auth/session`,
   "/api/patients": () => `${coreApi()}/patients`,
+  "/api/prompts": () => `${coreApi()}/prompts`,
 };
 
 interface PrefixRule {
@@ -66,6 +67,7 @@ const PREFIX_RULES: PrefixRule[] = [
     prefix: "/api/model-registry/",
     rewrite: (r) => `${coreApi()}/model-registry/${r}`,
   },
+  { prefix: "/api/prompts/", rewrite: (r) => `${coreApi()}/prompts/${r}` },
   { prefix: "/api/training/", rewrite: (r) => `${coreApi()}/training/${r}` },
   {
     prefix: "/api/training-worker/",
@@ -127,6 +129,8 @@ export const config = {
     "/api/terminology/:path*",
     "/api/operations/:path*",
     "/api/model-registry/:path*",
+    "/api/prompts",
+    "/api/prompts/:path*",
     "/api/training/:path*",
     "/api/training-worker/:path*",
   ],

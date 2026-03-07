@@ -1,4 +1,9 @@
-"""Prompt for resolving label disagreements in NER verification."""
+"""Prompt for resolving label disagreements in NER verification.
+
+.. deprecated::
+    Hardcoded fallback only. Canonical source: ``PromptConfig`` node in
+    Neo4j. Edit via Admin UI at /admin/prompts.
+"""
 from libs.prompts.registry import register
 
 LABEL_DISAMBIGUATION_V1 = """\

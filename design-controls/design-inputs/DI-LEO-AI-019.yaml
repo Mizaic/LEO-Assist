@@ -5,7 +5,7 @@
 - id: "DI-LEO-AI-019"
   type: "Functional"
   derived_from: ["UN-LEO-AI-012"]
-  requirement: "The system SHALL consume pipeline job messages from the message bus (Azure Service Bus / Redis Streams), dispatch them to the appropriate worker service, track job state, and publish progress events"
+  requirement: "The system SHALL consume pipeline job messages from a single pipeline-jobs queue using unified PipelineJobMessage format (Azure Service Bus / Redis Streams), dispatch them to the appropriate worker service, track job state, and publish progress events"
   rationale: "Asynchronous job processing via message bus enables horizontal scaling of compute-intensive pipeline steps. Job state tracking enables restart on failure and progress monitoring."
 
   machine_spec:

@@ -1,5 +1,9 @@
 """Anchor domain review prompt — v1.
 
+.. deprecated::
+    Hardcoded fallback only. Canonical source: ``PromptConfig`` node in
+    Neo4j. Edit via Admin UI at /admin/prompts.
+
 Reviews batches of anchor training records, assigns clinical domain labels,
 validates SNOMED concept correctness, and generates medspaCy TargetRules.
 

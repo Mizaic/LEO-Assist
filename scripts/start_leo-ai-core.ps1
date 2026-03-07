@@ -4,12 +4,11 @@
 # Usage:
 #   .\scripts\start_leo-ai-core.ps1                            # full stack — ALL services including inference + training worker
 #   .\scripts\start_leo-ai-core.ps1 -SkipInstall               # skip pip/npm install
-#   .\scripts\start_leo-ai-core.ps1 -NoWorkers                 # skip background coding/analysis workers
+#   .\scripts\start_leo-ai-core.ps1 -NoWorkers                 # skip pipeline worker
 #   .\scripts\start_leo-ai-core.ps1 -NoModelInference          # skip NER inference service
 #   .\scripts\start_leo-ai-core.ps1 -NoTrainingWorker          # skip NER training worker
 #   .\scripts\start_leo-ai-core.ps1 -Services api,ui           # named subset (others skipped)
-#   .\scripts\start_leo-ai-core.ps1 -CodingWorkers 1           # single coding worker (debug)
-#   .\scripts\start_leo-ai-core.ps1 -AnalysisWorkers 1         # single analysis worker (debug)
+#   .\scripts\start_leo-ai-core.ps1 -PipelineWorkers 3         # 3 pipeline workers (scale up for bulk runs)
 #   .\scripts\start_leo-ai-core.ps1 -TermWorkers 3             # 3 terminology API instances (8001, 8011, 8021)
 #
 # Model inference service:
@@ -26,7 +25,7 @@
 #   Starts N independent uvicorn instances of the Terminology API on ports
 #   $TermPort, $TermPort+10, $TermPort+20, ... (default: 8001, 8011, 8021, ...).
 #   Each instance loads its own embedding model. TERMINOLOGY_API_URLS is set in
-#   the environment so coding workers and evaluation scripts round-robin across all.
+#   the environment so pipeline workers and evaluation scripts round-robin across all.
 #   Recommended: 3 instances for evaluation runs, 1 for normal development.
 
 param(
@@ -37,8 +36,7 @@ param(
     [int]$ModelInferencePort  = 8004,
     [int]$TrainingWorkerPort  = 8005,
     [int]$UiPort              = 3000,
-    [int]$CodingWorkers       = 3,
-    [int]$AnalysisWorkers     = 2,
+    [int]$PipelineWorkers     = 1,
     [int]$TermWorkers         = 1,
     [switch]$SkipInstall,
     [switch]$NoWorkers,
@@ -289,22 +287,13 @@ if (-not $NoTrainingWorker -and (ShouldStart "training_worker")) {
     Write-Host "    Training Worker    [skipped; use without -NoTrainingWorker to start]" -ForegroundColor DarkGray
 }
 
-# 6  Coding Workers  (message-bus consumers, fan-out parallel classification + extraction)
-if (-not $NoWorkers -and (ShouldStart "coding_worker")) {
-    for ($i = 1; $i -le $CodingWorkers; $i++) {
-        Start-ServiceWindow -Title "Coding Worker $i" -Command "& '$VenvPython' -m services.coding_worker.app.main"
+# 6  Pipeline Worker  (unified: extraction, analytics, verification — all via LangGraph subgraphs)
+if (-not $NoWorkers -and (ShouldStart "pipeline_worker")) {
+    for ($i = 1; $i -le $PipelineWorkers; $i++) {
+        Start-ServiceWindow -Title "Pipeline Worker $i" -Command "& '$VenvPython' -m services.pipeline_worker.app.main"
     }
-    Write-Host "    Coding Workers     (x$CodingWorkers - message bus listeners, fan-out mode)" -ForegroundColor White
-    $windowCount += $CodingWorkers
-}
-
-# 7  Analysis Workers  (message-bus consumers, one per patient, sequential stages)
-if (-not $NoWorkers -and (ShouldStart "analysis_worker")) {
-    for ($i = 1; $i -le $AnalysisWorkers; $i++) {
-        Start-ServiceWindow -Title "Analysis Worker $i" -Command "& '$VenvPython' -m services.analysis_worker.app.main"
-    }
-    Write-Host "    Analysis Workers   (x$AnalysisWorkers - message bus listeners)" -ForegroundColor White
-    $windowCount += $AnalysisWorkers
+    Write-Host "    Pipeline Workers   (x$PipelineWorkers - unified pipeline, message bus listeners)" -ForegroundColor White
+    $windowCount += $PipelineWorkers
 }
 
 # 8  UI  (Next.js)  ->  :3000

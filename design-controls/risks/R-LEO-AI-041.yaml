@@ -1,0 +1,19 @@
+# -- R-LEO-AI-041 -- Knowledge Graph User Identity Leakage
+
+- id: "R-LEO-AI-041"
+  title: "SurfaceForm knowledge graph stores user identifiers"
+  hazard:
+    description: "created_by/approved_by fields expose operator identity in shared/exported KG artifacts."
+    category: "privacy"
+  harm:
+    description: "Personal data leakage for platform users and governance non-compliance."
+    severity: "moderate"
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: "Remove created_by/approved_by from SurfaceForm and MAPS_TO."
+    - control_type: "design_feature"
+      description: "Store system-level provenance only."
+    - control_type: "procedural_control"
+      description: "Record user-level audit in AuditEvent (clinical graph), not KG nodes."
+  residual_risk_estimate:
+    risk_level: "low"

@@ -46,6 +46,9 @@ PATIENT_SCHEMA_CONSTRAINTS = [
     "CREATE INDEX organization_ods_sync_status IF NOT EXISTS FOR (o:Organization) ON (o.ods_sync_status)",
     "CREATE INDEX organization_entra_tenant IF NOT EXISTS FOR (o:Organization) ON (o.entra_tenant_id)",
     "CREATE INDEX organization_onboarding_status IF NOT EXISTS FOR (o:Organization) ON (o.onboarding_status)",
+    # PromptConfig — LLM prompt management
+    "CREATE CONSTRAINT prompt_config_id IF NOT EXISTS FOR (p:PromptConfig) REQUIRE p.id IS UNIQUE",
+    "CREATE INDEX prompt_config_name IF NOT EXISTS FOR (p:PromptConfig) ON (p.name, p.version)",
 ]
 
 CODING_SCHEMA_CONSTRAINTS: list[str] = [
@@ -54,4 +57,13 @@ CODING_SCHEMA_CONSTRAINTS: list[str] = [
     "CREATE CONSTRAINT coding_decision_id IF NOT EXISTS FOR (d:CodingDecision) REQUIRE d.decision_id IS UNIQUE",
     "CREATE INDEX coding_decision_encounter IF NOT EXISTS FOR (d:CodingDecision) ON (d.encounter_id)",
     "CREATE INDEX coding_decision_decision IF NOT EXISTS FOR (d:CodingDecision) ON (d.decision)",
+    # GDPR-isolated learning-loop schemas
+    "CREATE CONSTRAINT training_candidate_id IF NOT EXISTS FOR (c:TrainingCandidate) REQUIRE c.candidate_id IS UNIQUE",
+    "CREATE INDEX training_candidate_status IF NOT EXISTS FOR (c:TrainingCandidate) ON (c.status)",
+    "CREATE INDEX training_candidate_source IF NOT EXISTS FOR (c:TrainingCandidate) ON (c.source)",
+    "CREATE CONSTRAINT gold_label_id IF NOT EXISTS FOR (g:GoldLabel) REQUIRE g.label_id IS UNIQUE",
+    "CREATE INDEX gold_label_source IF NOT EXISTS FOR (g:GoldLabel) ON (g.source)",
+    "CREATE INDEX gold_label_candidate IF NOT EXISTS FOR (g:GoldLabel) ON (g.candidate_id)",
+    "CREATE CONSTRAINT surface_form_task_id IF NOT EXISTS FOR (t:SurfaceFormTask) REQUIRE t.task_id IS UNIQUE",
+    "CREATE INDEX surface_form_task_status IF NOT EXISTS FOR (t:SurfaceFormTask) ON (t.status)",
 ]

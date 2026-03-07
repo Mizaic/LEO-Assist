@@ -1,0 +1,17 @@
+# -- R-LEO-AI-039 -- Surface Form Auto-correction Misclassification
+
+- id: "R-LEO-AI-039"
+  title: "Surface-form auto-correction applies incorrect SNOMED code"
+  hazard:
+    description: "Automated correction may pick the wrong concept when terminology candidates are close."
+    category: "integrity"
+  harm:
+    description: "Incorrect coding in gold labels reduces NER training quality."
+    severity: "minor"
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: "Auto-correct only when confidence >= 0.9."
+    - control_type: "design_feature"
+      description: "Create SurfaceFormTask for human review when confidence < 0.9."
+  residual_risk_estimate:
+    risk_level: "low"

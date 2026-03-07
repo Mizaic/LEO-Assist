@@ -70,6 +70,26 @@ from libs.cypher.coding_review_queries import (
     UPSERT_CODING_IGNORE_RULE,
     UPSERT_CONTEXT_RULE,
     GET_TIER_OVERRIDE_STATS,
+    DELETE_RESOLVED_CODING_REVIEWS,
+)
+from libs.cypher.training_candidate_queries import (
+    COUNT_TRAINING_CANDIDATES_PAGE,
+    GET_TRAINING_CANDIDATE_BY_ID,
+    GET_TRAINING_CANDIDATE_STATS,
+    GET_TRAINING_CANDIDATES_PAGE,
+)
+from libs.cypher.gold_label_queries import (
+    COUNT_GOLD_LABELS_PAGE,
+    GET_ALL_GOLD_LABELS_FOR_EXPORT,
+    GET_GOLD_LABEL_BY_ID,
+    GET_GOLD_LABEL_STATS,
+    GET_GOLD_LABELS_PAGE,
+)
+from libs.cypher.surface_form_task_queries import (
+    COUNT_SURFACE_FORM_TASKS,
+    GET_SURFACE_FORM_TASK_BY_ID,
+    LIST_PENDING_SURFACE_FORM_TASKS,
+    RESOLVE_SURFACE_FORM_TASK,
 )
 from services.terminology_api.app.queries.terminology import (
     APPROVE_SURFACE_FORM,
@@ -217,6 +237,12 @@ class UpdatePostProcessorRuleRequest(BaseModel):
 class VerifyAllRequest(BaseModel):
     mode: str = "all"  # all | hitl_only | re_extract
     reset_pending: bool = False
+
+
+class ResolveSurfaceFormTaskRequest(BaseModel):
+    status: str  # approved | rejected | modified
+    resolved_concept: str | None = None
+    resolved_by: str = "operations_ui"
 
 
 # ------------------------------------------------------------------
@@ -492,73 +518,8 @@ def verification_status(scope: CallerScope = Depends(get_caller_scope)) -> dict[
 
 # ------------------------------------------------------------------
 # POST /training/labels/agentic-audit
-# GET  /training/labels/agentic-audit/status
-# POST /training/labels/agentic-audit/cancel
-# ------------------------------------------------------------------
-
-from app.services.agentic_audit_service import (  # noqa: E402
-    begin_audit_job,
-    get_audit_state,
-    request_stop_audit,
-    run_audit,
-)
-
-
-class AgenticAuditRequest(BaseModel):
-    mode: str = "all"          # all | hitl_only
-    apply: bool = False        # write safe fixes to Neo4j
-    no_agentic: bool = False   # skip pass 2 (tool-use) — cheaper, faster
-    limit: int = 0             # 0 = all labels
-
-
-@router.post("/labels/agentic-audit")
-def start_agentic_audit(
-    body: AgenticAuditRequest | None = None,
-    scope: CallerScope = Depends(get_caller_scope),
-) -> dict[str, Any]:
-    """Start a background Agentic Auditor review of training labels.
-
-    Pass 1 reviews every included label for entity quality with auto-fix.
-    Pass 2 uses agentic tool-use (Terminology API + second-opinion model)
-    to resolve SNOMED ambiguities.  When both models agree, SNOMED fields
-    can also be corrected.  Safe auto-fixes are applied if apply=true.
-    """
-    req = body or AgenticAuditRequest()
-    mode = req.mode if req.mode in {"all", "hitl_only"} else "all"
-
-    started = begin_audit_job(
-        mode=mode,
-        apply=req.apply,
-        no_agentic=req.no_agentic,
-        limit=req.limit,
-    )
-    if not started:
-        raise HTTPException(status_code=409, detail="An agentic audit job is already running")
-
-    thread = threading.Thread(target=run_audit, daemon=True)
-    thread.start()
-
-    return {
-        "status": "started",
-        "mode": mode,
-        "apply": req.apply,
-        "no_agentic": req.no_agentic,
-        "message": "Agentic audit started in background",
-    }
-
-
-@router.get("/labels/agentic-audit/status")
-def agentic_audit_status(scope: CallerScope = Depends(get_caller_scope)) -> dict[str, Any]:
-    """Return current Agentic Auditor job status and live progress counters."""
-    return get_audit_state()
-
-
-@router.post("/labels/agentic-audit/cancel")
-def cancel_agentic_audit(scope: CallerScope = Depends(get_caller_scope)) -> dict[str, Any]:
-    """Request graceful cancellation of a running Agentic Auditor job."""
-    if not request_stop_audit():
-        raise HTTPException(status_code=409, detail="No running agentic audit job to cancel")
-    return {"status": "stopping", "message": "Cancellation requested"}
+# Agentic auditor endpoints removed — replaced by verification subgraph
+# in libs/pipeline_graph/subgraphs/verification.py
 
 
 # ------------------------------------------------------------------
@@ -2762,7 +2723,6 @@ def approve_surface_form(
             row = session.run(
                 APPROVE_SURFACE_FORM,
                 normalized=normalized,
-                approved_by=scope.user_id or "reviewer",
             ).single()
         if not row:
             raise HTTPException(
@@ -2771,5 +2731,247 @@ def approve_surface_form(
             )
         logger.info("SurfaceForm approved: %s", normalized[:40])
         return {"normalized": row["normalized"], "status": row["status"]}
+    finally:
+        client.close()
+
+
+# -- Queue maintenance ------------------------------------------------------
+
+
+@router.delete("/coding-review/resolved")
+def delete_resolved_coding_reviews(
+    scope: CallerScope = Depends(require_admin),
+) -> dict[str, Any]:
+    """Delete resolved CodingReview queue items."""
+    client = PatientGraphClient()
+    try:
+        with client.session() as session:
+            summary = session.run(DELETE_RESOLVED_CODING_REVIEWS).consume()
+        return {"deleted": summary.counters.nodes_deleted}
+    finally:
+        client.close()
+
+
+# -- GDPR-isolated learning loop -------------------------------------------
+
+
+@router.get("/candidates/stats")
+def get_training_candidate_stats(
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    client = PatientGraphClient()
+    try:
+        with client.session() as session:
+            row = session.run(GET_TRAINING_CANDIDATE_STATS).single()
+        return dict(row) if row else {"total": 0, "pending": 0, "processing": 0, "completed": 0, "failed": 0}
+    finally:
+        client.close()
+
+
+@router.get("/candidates")
+def list_training_candidates(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(25, ge=1, le=200),
+    status: str | None = None,
+    source: str | None = None,
+    search: str | None = None,
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    skip = (page - 1) * page_size
+    client = PatientGraphClient()
+    try:
+        with client.session() as session:
+            rows = session.run(
+                GET_TRAINING_CANDIDATES_PAGE,
+                skip=skip,
+                limit=page_size,
+                status=status,
+                source=source,
+                search=search,
+            )
+            items = [dict(r) for r in rows]
+            count_row = session.run(
+                COUNT_TRAINING_CANDIDATES_PAGE,
+                status=status,
+                source=source,
+                search=search,
+            ).single()
+        total = count_row["total"] if count_row else 0
+        return {"items": items, "page": page, "page_size": page_size, "total": total}
+    finally:
+        client.close()
+
+
+@router.get("/candidates/{candidate_id}")
+def get_training_candidate(
+    candidate_id: str,
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    client = PatientGraphClient()
+    try:
+        with client.session() as session:
+            row = session.run(GET_TRAINING_CANDIDATE_BY_ID, candidate_id=candidate_id).single()
+        if not row:
+            raise HTTPException(status_code=404, detail=f"Candidate {candidate_id!r} not found")
+        return dict(row)
+    finally:
+        client.close()
+
+
+@router.get("/gold-labels/stats")
+def get_gold_label_stats(
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    client = PatientGraphClient()
+    try:
+        with client.session() as session:
+            row = session.run(GET_GOLD_LABEL_STATS).single()
+        return dict(row) if row else {"total": 0, "avg_quality_score": 0.0, "high_quality": 0}
+    finally:
+        client.close()
+
+
+@router.get("/gold-labels")
+def list_gold_labels(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(25, ge=1, le=200),
+    source: str | None = None,
+    search: str | None = None,
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    skip = (page - 1) * page_size
+    client = PatientGraphClient()
+    try:
+        with client.session() as session:
+            rows = session.run(
+                GET_GOLD_LABELS_PAGE,
+                skip=skip,
+                limit=page_size,
+                source=source,
+                search=search,
+            )
+            items = [dict(r) for r in rows]
+            count_row = session.run(
+                COUNT_GOLD_LABELS_PAGE,
+                source=source,
+                search=search,
+            ).single()
+        total = count_row["total"] if count_row else 0
+        return {"items": items, "page": page, "page_size": page_size, "total": total}
+    finally:
+        client.close()
+
+
+@router.get("/gold-labels/{label_id}")
+def get_gold_label(
+    label_id: str,
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    client = PatientGraphClient()
+    try:
+        with client.session() as session:
+            row = session.run(GET_GOLD_LABEL_BY_ID, label_id=label_id).single()
+        if not row:
+            raise HTTPException(status_code=404, detail=f"GoldLabel {label_id!r} not found")
+        return dict(row)
+    finally:
+        client.close()
+
+
+@router.get("/gold-labels/export")
+def export_gold_labels(
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    client = PatientGraphClient()
+    try:
+        with client.session() as session:
+            rows = session.run(GET_ALL_GOLD_LABELS_FOR_EXPORT)
+            return {"items": [dict(r) for r in rows]}
+    finally:
+        client.close()
+
+
+# -- Surface form review tasks ---------------------------------------------
+
+
+@router.get("/surface-form-tasks")
+def list_surface_form_tasks(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(25, ge=1, le=200),
+    status: str | None = Query(default="pending"),
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    skip = (page - 1) * page_size
+    client = PatientGraphClient()
+    try:
+        with client.session() as session:
+            rows = session.run(
+                LIST_PENDING_SURFACE_FORM_TASKS,
+                skip=skip,
+                limit=page_size,
+                status=status,
+            )
+            items = [dict(r) for r in rows]
+            count_row = session.run(COUNT_SURFACE_FORM_TASKS, status=status).single()
+        total = count_row["total"] if count_row else 0
+        return {"items": items, "page": page, "page_size": page_size, "total": total}
+    finally:
+        client.close()
+
+
+@router.get("/surface-form-tasks/stats")
+def surface_form_task_stats(
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    client = PatientGraphClient()
+    try:
+        with client.session() as session:
+            pending = session.run(COUNT_SURFACE_FORM_TASKS, status="pending").single()
+            resolved = session.run(COUNT_SURFACE_FORM_TASKS, status="approved").single()
+        return {
+            "pending": pending["total"] if pending else 0,
+            "approved": resolved["total"] if resolved else 0,
+        }
+    finally:
+        client.close()
+
+
+@router.get("/surface-form-tasks/{task_id}")
+def get_surface_form_task(
+    task_id: str,
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    client = PatientGraphClient()
+    try:
+        with client.session() as session:
+            row = session.run(GET_SURFACE_FORM_TASK_BY_ID, task_id=task_id).single()
+        if not row:
+            raise HTTPException(status_code=404, detail=f"SurfaceFormTask {task_id!r} not found")
+        return dict(row)
+    finally:
+        client.close()
+
+
+@router.post("/surface-form-tasks/{task_id}/resolve")
+def resolve_surface_form_task(
+    task_id: str,
+    body: ResolveSurfaceFormTaskRequest,
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    if body.status not in {"approved", "rejected", "modified"}:
+        raise HTTPException(status_code=422, detail="status must be approved|rejected|modified")
+    client = PatientGraphClient()
+    try:
+        with client.session() as session:
+            row = session.run(
+                RESOLVE_SURFACE_FORM_TASK,
+                task_id=task_id,
+                status=body.status,
+                resolved_concept=body.resolved_concept or "",
+                resolved_by=body.resolved_by or "operations_ui",
+            ).single()
+        if not row:
+            raise HTTPException(status_code=404, detail=f"SurfaceFormTask {task_id!r} not found")
+        return {"task_id": row["task_id"], "status": row["status"]}
     finally:
         client.close()

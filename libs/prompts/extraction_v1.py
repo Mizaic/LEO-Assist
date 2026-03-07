@@ -1,7 +1,12 @@
 """V1 clinical entity extraction prompt.
 
+.. deprecated::
+    This hardcoded prompt is a fallback only.  The canonical source of
+    truth is the ``PromptConfig`` node in Neo4j (name='extraction',
+    version=1).  Edit prompts via the Admin UI at /admin/prompts.
+    Run ``python -m scripts.seed_prompt_configs`` to seed Neo4j.
+
 Moved from services/api/app/services/v3/llm_extractor.py (_SYSTEM_PROMPT).
-Shared by API pipeline and coding worker.
 """
 from libs.prompts.registry import register
 

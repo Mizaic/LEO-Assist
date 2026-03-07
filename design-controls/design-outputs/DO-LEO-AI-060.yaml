@@ -1,0 +1,91 @@
+# -- DO-LEO-AI-060 -- Unified Pipeline Worker Service
+# ISO 13485 / IEC 62304 Design Output
+# Schema: design-controls/templates/design_outputs_schema.yaml
+
+- id: "DO-LEO-AI-060"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-018", "DI-LEO-AI-019", "DI-LEO-AI-060"]
+    user_needs: ["UN-LEO-AI-012"]
+    risks_addressed: ["R-LEO-AI-015"]
+    verification_tests: ["VT-LEO-AI-018", "VT-LEO-AI-019"]
+    validation_tests: []
+
+  specification:
+    title: "Unified Pipeline Worker Service"
+    description: |
+      A single worker service that consumes from the pipeline-jobs queue,
+      processes unified PipelineJobMessage payloads, and executes pipeline
+      steps by dispatching to the appropriate subgraph handlers. Replaces
+      separate coding_worker and analysis_worker job handlers with one
+      unified service backed by LangGraph and FHIR PlanDefinition-driven
+      orchestration.
+    purpose: "Process all pipeline job types from a single queue with unified message format and subgraph dispatch"
+    technical_approach: "Single message bus consumer, PipelineJobMessage schema, LangGraph subgraph routing, PlanDefinition-driven step resolution"
+    acceptance_criteria:
+      - criterion: "All job types processed from single queue"
+        type: "functional"
+        measurement: "Integration test"
+        target: "Coding, analysis, and pathway jobs complete correctly"
+      - criterion: "Unified message format"
+        type: "functional"
+        measurement: "Test"
+        target: "PipelineJobMessage parsed and routed correctly"
+      - criterion: "Subgraph dispatch"
+        type: "functional"
+        measurement: "Test"
+        target: "Jobs route to correct LangGraph subgraph based on job type"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/pipeline_worker/"
+        description: "Unified pipeline worker service; job consumer, message parsing, subgraph dispatch"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "libs/pipeline_graph/"
+        description: "Pipeline graph definitions and subgraph implementations"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "libs/workflow/"
+        description: "Workflow utilities and PlanDefinition resolution"
+        storage_location: "git"
+    technical_details:
+      language: ["Python 3.11"]
+      framework: ["FastAPI", "LangGraph"]
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions: ["Job completion guarantee", "Message delivery reliability"]
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false
+
+  production_information:
+    deployment_instructions: "Deployed as pipeline-worker container via Azure Container Apps"
+
+  documentation:
+    design_documentation: []
+    inline_documentation:
+      follows_standards: true
+
+  approval:
+    created_by: "Engineering Team"
+    created_date: "2026-03-07"
+
+  version_history:
+    - version: "1.0.0"
+      date: "2026-03-07"
+      changes: "Initial creation"
+      reason: "Implement unified pipeline worker architecture"
+      author: "Engineering Team"
+      approval_status: "draft"
+
+  metadata:
+    tags: ["pipeline", "worker", "unified", "message-bus", "langgraph"]
+    priority: "high"
+    complexity: "complex"

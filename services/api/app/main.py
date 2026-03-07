@@ -48,6 +48,8 @@ from app.routers.proxy import router as proxy_router
 from app.routers.review import router as review_router
 from app.routers.terminology import router as terminology_router
 from app.routers.terminology_admin import router as terminology_admin_router
+from app.routers.events import router as events_router
+from app.routers.prompts import router as prompts_router
 
 
 @asynccontextmanager
@@ -176,6 +178,8 @@ app.include_router(games_router)
 app.include_router(operations_router)
 app.include_router(model_registry_router)
 app.include_router(training_router)
+app.include_router(events_router)
+app.include_router(prompts_router)
 
 
 @app.get("/health")

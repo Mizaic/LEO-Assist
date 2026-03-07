@@ -1,4 +1,4 @@
-"""Tests for services/coding-worker/app/pipeline/sentence_splitter.py."""
+"""Tests for libs/nlp/sentence_splitter.py (canonical) and its re-export."""
 
 from __future__ import annotations
 
@@ -8,28 +8,28 @@ import pytest
 class TestDeduplicate:
 
     def test_removes_consecutive_duplicates(self):
-        from services.coding_worker.app.pipeline.sentence_splitter import deduplicate_lines
+        from libs.nlp.sentence_splitter import deduplicate_lines
 
         text = "Line one\nLine one\nLine two\nLine two\nLine three"
         result = deduplicate_lines(text)
         assert result == "Line one\nLine two\nLine three"
 
     def test_preserves_non_consecutive(self):
-        from services.coding_worker.app.pipeline.sentence_splitter import deduplicate_lines
+        from libs.nlp.sentence_splitter import deduplicate_lines
 
         text = "A\nB\nA\nB"
         result = deduplicate_lines(text)
         assert result == "A\nB\nA\nB"
 
     def test_empty_text(self):
-        from services.coding_worker.app.pipeline.sentence_splitter import deduplicate_lines
+        from libs.nlp.sentence_splitter import deduplicate_lines
         assert deduplicate_lines("") == ""
 
 
 class TestSentenceChunk:
 
     def test_frozen_dataclass(self):
-        from services.coding_worker.app.pipeline.sentence_splitter import SentenceChunk
+        from libs.nlp.sentence_splitter import SentenceChunk
 
         chunk = SentenceChunk(sentence_id="s0", text="Hello.", start=0, end=6)
         assert chunk.sentence_id == "s0"
@@ -41,14 +41,14 @@ class TestSentenceChunk:
 class TestSentenceSplitter:
 
     def test_split_empty_text(self):
-        from services.coding_worker.app.pipeline.sentence_splitter import SentenceSplitter
+        from libs.nlp.sentence_splitter import SentenceSplitter
 
         splitter = SentenceSplitter()
         assert splitter.split("") == []
         assert splitter.split("   ") == []
 
     def test_split_single_sentence(self):
-        from services.coding_worker.app.pipeline.sentence_splitter import SentenceSplitter
+        from libs.nlp.sentence_splitter import SentenceSplitter
 
         splitter = SentenceSplitter()
         result = splitter.split("Patient presents with cough.")
@@ -57,7 +57,7 @@ class TestSentenceSplitter:
         assert result[0].sentence_id.startswith("s")
 
     def test_split_multiple_sentences(self):
-        from services.coding_worker.app.pipeline.sentence_splitter import SentenceSplitter
+        from libs.nlp.sentence_splitter import SentenceSplitter
 
         splitter = SentenceSplitter()
         result = splitter.split("First sentence. Second sentence. Third sentence.")
@@ -67,14 +67,14 @@ class TestSentenceSplitter:
         assert result[2].text == "Third sentence."
 
     def test_split_newline_separated(self):
-        from services.coding_worker.app.pipeline.sentence_splitter import SentenceSplitter
+        from libs.nlp.sentence_splitter import SentenceSplitter
 
         splitter = SentenceSplitter()
         result = splitter.split("Line one\nLine two\nLine three")
         assert len(result) == 3
 
     def test_split_preserves_offsets(self):
-        from services.coding_worker.app.pipeline.sentence_splitter import SentenceSplitter
+        from libs.nlp.sentence_splitter import SentenceSplitter
 
         splitter = SentenceSplitter()
         text = "Abc. Def."
@@ -84,7 +84,32 @@ class TestSentenceSplitter:
         assert text[result[1].start:result[1].end] == result[1].text
 
     def test_regex_mode_by_default(self):
-        from services.coding_worker.app.pipeline.sentence_splitter import SentenceSplitter
+        from libs.nlp.sentence_splitter import SentenceSplitter
 
         splitter = SentenceSplitter()
         assert splitter.mode in ("regex", "pyrush")
+
+class TestAssertionInference:
+
+    def test_negated(self):
+        from libs.nlp.assertion_inference import infer_assertion
+        assert infer_assertion("no evidence of cancer") == "absent"
+        assert infer_assertion("ruled out malignancy") == "absent"
+
+    def test_family(self):
+        from libs.nlp.assertion_inference import infer_assertion
+        assert infer_assertion("family history of breast cancer") == "family"
+
+    def test_historical(self):
+        from libs.nlp.assertion_inference import infer_assertion
+        assert infer_assertion("history of diabetes") == "historical"
+        assert infer_assertion("Previous MI in 2019") == "historical"
+
+    def test_present(self):
+        from libs.nlp.assertion_inference import infer_assertion
+        assert infer_assertion("Patient presents with chest pain") == "present"
+
+    def test_record_disambiguation(self):
+        from libs.nlp.assertion_inference import infer_assertion
+        record = {"disambiguation": "historical"}
+        assert infer_assertion("active disease", record=record) == "historical"

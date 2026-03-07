@@ -31,6 +31,8 @@ from services.fhir_api.app.routers.measure import router as measure_router
 from services.fhir_api.app.routers.measure_report import router as measure_report_router
 from services.fhir_api.app.routers.library import router as library_router
 from services.fhir_api.app.routers.device import router as device_router
+from services.fhir_api.app.routers.plan_definition import router as plan_definition_router
+from services.fhir_api.app.routers.activity_definition import router as activity_definition_router
 from services.fhir_api.app.routers.schema import router as schema_router
 
 configure_logging(service_name="fhir-api")
@@ -40,6 +42,20 @@ logger = logging.getLogger("fhir-api")
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     logger.info("FHIR API starting")
+    import threading
+
+    def _seed_plan_definitions():
+        try:
+            from libs.neo4j_client.client import KnowledgeGraphClient
+            from scripts.seed_plan_definitions import seed_with_client
+            client = KnowledgeGraphClient()
+            seed_with_client(client)
+            client.close()
+        except Exception as exc:
+            logger.warning("PlanDefinition seed failed (non-fatal): %s", exc)
+
+    t = threading.Thread(target=_seed_plan_definitions, daemon=True)
+    t.start()
     yield
     logger.info("FHIR API shutting down")
 
@@ -67,6 +83,8 @@ app.include_router(measure_router, prefix="/fhir", tags=["Measure"])
 app.include_router(measure_report_router, prefix="/fhir", tags=["MeasureReport"])
 app.include_router(library_router, prefix="/fhir", tags=["Library"])
 app.include_router(device_router, prefix="/fhir", tags=["Device"])
+app.include_router(plan_definition_router, prefix="/fhir", tags=["PlanDefinition"])
+app.include_router(activity_definition_router, prefix="/fhir", tags=["ActivityDefinition"])
 app.include_router(schema_router, prefix="/fhir", tags=["Schema"])
 
 

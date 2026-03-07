@@ -1,0 +1,80 @@
+# -- DI-LEO-AI-060 -- FHIR PlanDefinition/ActivityDefinition-driven Clinical Pathway Orchestration
+# IEC 62304 / ISO 13485 Design Input
+# Schema: design-controls/templates/design_inputs_schema.yaml
+
+- id: "DI-LEO-AI-060"
+  type: "Functional"
+  derived_from: ["UN-LEO-AI-012"]
+  requirement: >
+    The system SHALL orchestrate clinical pathways using FHIR PlanDefinition
+    and ActivityDefinition resources as the canonical workflow definition
+    format, enabling pathway steps to be defined, versioned, and executed
+    in a standards-compliant manner.
+  rationale: >
+    FHIR PlanDefinition provides a mature, interoperable standard for
+    defining clinical workflows. Using it as the orchestration source
+    enables pathway portability, tooling compatibility, and alignment
+    with healthcare interoperability standards.
+
+  machine_spec:
+    agent_prompt: |
+      Implement FHIR PlanDefinition/ActivityDefinition-driven pathway
+      orchestration (~250 LOC).
+
+      SINGLE PURPOSE: Load and execute clinical pathways from FHIR
+      PlanDefinition resources, dispatching ActivityDefinition steps
+      to the appropriate subgraphs.
+
+      REQUIREMENTS:
+      1. Parse FHIR PlanDefinition JSON/XML into executable workflow.
+      2. Map PlanDefinition.action to workflow nodes.
+      3. Map ActivityDefinition to step implementations.
+      4. Support dynamicValue for runtime parameter binding.
+      5. Persist pathway definitions in versioned storage.
+
+      METHODS:
+      - load_plandefinition(id): Load and parse PlanDefinition.
+      - build_graph(plandef): Convert to executable graph.
+      - resolve_activity(activity_def): Map to step handler.
+      - execute_pathway(pathway_id, input): Run pathway with input.
+
+    acceptance_criteria:
+      - type: "test"
+        spec: "PlanDefinition loads and parses correctly"
+      - type: "test"
+        spec: "ActivityDefinition steps dispatch to correct handlers"
+      - type: "test"
+        spec: "dynamicValue expressions resolve at runtime"
+
+    constraints:
+      - type: "architecture"
+        spec: "PlanDefinition is source of truth; no duplicate workflow definitions"
+      - type: "interoperability"
+        spec: "Support FHIR R4 PlanDefinition and ActivityDefinition structure"
+
+    dependencies: ["DI-LEO-AI-018"]
+
+    downstream_impacts:
+      - "Pathway Builder UI"
+      - "Pipeline Worker Service"
+      - "FHIR Workflow Engine"
+
+    technical_details:
+      language: "Python"
+      framework: "FastAPI"
+      libraries: ["fhir.resources", "langgraph>=0.4"]
+      file_structure:
+        - "libs/workflow/plandefinition_loader.py"
+        - "libs/workflow/activity_resolver.py"
+        - "libs/pipeline_graph/plandef_graph_builder.py"
+      estimated_loc: 250
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: "PlanDefinition-driven pathways execute correctly; ActivityDefinition steps resolve and run"
+    test_protocol: "VT-LEO-AI-060"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-015"]
+  tags: ["fhir", "plandefinition", "activitydefinition", "pathway", "orchestration"]

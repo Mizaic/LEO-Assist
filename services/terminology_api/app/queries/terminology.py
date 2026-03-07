@@ -248,7 +248,6 @@ UNWIND $rows AS r
 MATCH (c:Concept {id: r.concept_id})
 MERGE (sf:SurfaceForm {normalized: r.normalized})
 ON CREATE SET sf.created_at = datetime(),
-              sf.created_by = r.approved_by,
               sf.status     = r.status
 ON MATCH SET  sf.status = CASE
                   WHEN sf.status = 'pending' AND r.status = 'pending'
@@ -259,9 +258,8 @@ SET sf.form         = r.form,
     sf.source       = r.source,
     sf.last_seen_at = datetime()
 MERGE (sf)-[m:MAPS_TO]->(c)
-ON CREATE SET m.created_at = datetime(), m.created_by = r.approved_by
+ON CREATE SET m.created_at = datetime()
 SET m.confidence  = r.confidence,
-    m.approved_by = r.approved_by,
     m.approved_at = datetime(),
     m.provenance  = r.provenance
 RETURN count(sf) AS written
@@ -301,8 +299,7 @@ APPROVE_SURFACE_FORM = """
 MATCH (sf:SurfaceForm {normalized: $normalized})
 WHERE sf.status = 'pending'
 SET sf.status = 'approved',
-    sf.approved_at = datetime(),
-    sf.approved_by = $approved_by
+    sf.approved_at = datetime()
 RETURN sf.normalized AS normalized, sf.status AS status
 """
 
@@ -312,20 +309,17 @@ WHERE ($q IS NULL OR toLower(sf.form) CONTAINS toLower($q))
   AND ($concept_id IS NULL OR c.id = $concept_id)
 WITH sf, c,
      max(m.confidence)              AS confidence,
-     head(collect(m.approved_by))   AS approved_by,
      head(collect(m.provenance))    AS provenance
 RETURN sf.normalized    AS normalized,
        sf.form          AS form,
        sf.source        AS source,
        sf.status        AS status,
-       sf.created_by    AS created_by,
        toString(sf.created_at)    AS created_at,
        toString(sf.last_seen_at)  AS last_seen_at,
        c.id             AS concept_id,
        c.fsn            AS concept_fsn,
        c.semantic_tag   AS semantic_tag,
        confidence,
-       approved_by,
        provenance
 ORDER BY sf.form
 SKIP $offset
@@ -356,7 +350,6 @@ WITH c,
        normalized:  sf.normalized,
        form:        sf.form,
        source:      sf.source,
-       created_by:  sf.created_by,
        created_at:  toString(sf.created_at),
        confidence:  m.confidence
      }) AS surface_forms
@@ -415,11 +408,9 @@ MERGE (sf:SurfaceForm {normalized: $normalized})
 ON CREATE SET sf.form = $form,
               sf.source = $source,
               sf.status = 'active',
-              sf.created_at = datetime(),
-              sf.created_by = $created_by
+              sf.created_at = datetime()
 MERGE (sf)-[m:MAPS_TO]->(c)
 ON CREATE SET m.created_at = datetime(),
-              m.created_by = $created_by,
               m.approved_at = datetime()
 SET m.confidence = $confidence,
     m.provenance = $provenance

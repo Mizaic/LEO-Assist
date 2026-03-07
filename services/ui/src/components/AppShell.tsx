@@ -39,6 +39,11 @@ import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettin
 import BusinessOutlinedIcon from "@mui/icons-material/BusinessOutlined";
 import MailOutlineIcon from "@mui/icons-material/MailOutline";
 import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
+import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
+import EditNoteOutlinedIcon from "@mui/icons-material/EditNoteOutlined";
+import ModelTrainingOutlinedIcon from "@mui/icons-material/ModelTrainingOutlined";
+import SupportAgentOutlinedIcon from "@mui/icons-material/SupportAgentOutlined";
+import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import { useAuth } from "@/lib/authContext";
 import { useIdleLogout } from "@/lib/useIdleLogout";
 import Avatar from "@mui/material/Avatar";
@@ -64,7 +69,36 @@ type NavItem = {
   adminOnly?: boolean;
 };
 
-const NAV_ITEMS: NavItem[] = [
+const CARE_NAV_ITEMS: NavItem[] = [
+  { label: "Overview", path: "/care/dashboard", icon: <DashboardOutlinedIcon /> },
+  { label: "Clinical Audit", path: "/care/audit", icon: <AssignmentOutlinedIcon />, activePrefix: ["/care/audit", "/audit"] },
+  { label: "Patients", path: "/care/patients", icon: <PeopleOutlineIcon /> },
+  { label: "Referral Pathways", path: "/care/pathways", icon: <TimelineOutlinedIcon /> },
+  { label: "Safety Netting", path: "/care/safety-netting", icon: <HealthAndSafetyOutlinedIcon /> },
+  { label: "Reports", path: "/care/reports", icon: <DescriptionOutlinedIcon /> },
+  { label: "Measures", path: "/care/measures", icon: <BarChartOutlinedIcon /> },
+  { label: "Benchmarks", path: "/care/benchmarks", icon: <AssessmentOutlinedIcon /> },
+  { label: "Cohorts", path: "/care/cohorts", icon: <GroupWorkOutlinedIcon /> },
+  { label: "Wellbeing Hub", path: "/care/wellbeing", icon: <SpaOutlinedIcon /> },
+  { label: "Portal", path: "/care/portal", icon: <AdminPanelSettingsOutlinedIcon /> },
+];
+
+const ADMIN_NAV_ITEMS: NavItem[] = [
+  { label: "Operations", path: "/admin/operations", icon: <SettingsOutlinedIcon />, badgeKey: "reviewQueue" },
+  { label: "Pathways", path: "/admin/pathways", icon: <AccountTreeOutlinedIcon /> },
+  { label: "Prompts", path: "/admin/prompts", icon: <EditNoteOutlinedIcon /> },
+  { label: "Domains", path: "/admin/domains", icon: <TuneOutlinedIcon /> },
+  { label: "Models", path: "/admin/models", icon: <ModelTrainingOutlinedIcon /> },
+  { label: "Terminology", path: "/admin/terminology", icon: <LibraryBooksOutlinedIcon /> },
+  { label: "Surface Forms", path: "/admin/surface-forms", icon: <DescriptionOutlinedIcon /> },
+  { label: "Context Rules", path: "/admin/context-rules", icon: <AssessmentOutlinedIcon /> },
+  { label: "Gold Dataset", path: "/admin/gold-dataset", icon: <LibraryBooksOutlinedIcon /> },
+  { label: "Users", path: "/admin/users", icon: <PeopleOutlineIcon /> },
+  { label: "Portal", path: "/admin/portal", icon: <AdminPanelSettingsOutlinedIcon /> },
+  { label: "Support", path: "/admin/support", icon: <SupportAgentOutlinedIcon /> },
+];
+
+const LEGACY_NAV_ITEMS: NavItem[] = [
   { label: "Overview", path: "/dashboard", icon: <DashboardOutlinedIcon /> },
   { label: "Clinical Audit", path: "/audit", icon: <AssignmentOutlinedIcon />, activePrefix: ["/audit"] },
   { label: "Patients", path: "/patients", icon: <PeopleOutlineIcon /> },
@@ -94,6 +128,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [uiMode, setUiMode] = useState<"care" | "admin" | "legacy">(() => {
+    if (typeof window !== "undefined") {
+      const stored = window.localStorage.getItem("leo-ui-mode");
+      if (stored === "care" || stored === "admin") return stored;
+    }
+    return "legacy";
+  });
 
   const [reviewBadge, setReviewBadge] = useState<number>(0);
 
@@ -121,7 +162,23 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   const badgeCounts: Record<string, number> = { reviewQueue: reviewBadge };
 
-  const visibleNavItems = NAV_ITEMS.filter((item) => !item.adminOnly || isPlatformAdmin);
+  const navItemsForMode = uiMode === "care"
+    ? CARE_NAV_ITEMS
+    : uiMode === "admin"
+      ? ADMIN_NAV_ITEMS
+      : LEGACY_NAV_ITEMS;
+
+  const visibleNavItems = navItemsForMode.filter((item) => !item.adminOnly || isPlatformAdmin);
+
+  const toggleUiMode = useCallback(() => {
+    setUiMode((prev) => {
+      const next = prev === "legacy" ? "care" : prev === "care" ? "admin" : "care";
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem("leo-ui-mode", next);
+      }
+      return next;
+    });
+  }, []);
 
   const isEditor = isEditorRoute(pathname);
   // Listing public exceptions is safer than enumerating every protected path.
@@ -332,6 +389,21 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           })}
         </List>
       </Box>
+
+      {isPlatformAdmin && (
+        <Box sx={{ px: 1.5, py: 1 }}>
+          <Button
+            fullWidth
+            size="small"
+            variant="outlined"
+            startIcon={<SwapHorizIcon />}
+            onClick={toggleUiMode}
+            sx={{ textTransform: "none", fontSize: "0.75rem" }}
+          >
+            {uiMode === "care" ? "Switch to Admin" : uiMode === "admin" ? "Switch to Care" : "Switch to Care"}
+          </Button>
+        </Box>
+      )}
 
       {session?.user && (
         <Box

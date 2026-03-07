@@ -148,6 +148,7 @@ def seed_tenant_defaults(client: PatientGraphClient) -> None:
     _seed_system_config(client)
     _seed_mizaic_org_and_group(client)
     _seed_platform_admins(client)
+    _seed_prompt_configs(client)
 
 
 # ------------------------------------------------------------------
@@ -247,3 +248,28 @@ def _seed_platform_admins(client: PatientGraphClient) -> None:
             gid=MIZAIC_GROUP_ID,
         )
         logger.info("[Tenant] Platform admin seeded: %s", email)
+
+
+def _seed_prompt_configs(client: PatientGraphClient) -> None:
+    """Seed all hardcoded Python prompts into Neo4j as PromptConfig nodes."""
+    try:
+        from libs.cypher.prompt_config_queries import UPSERT_SEED_PROMPT
+        from libs.prompts.registry import list_prompts, _REGISTRY
+
+        for name, version in list_prompts():
+            text = _REGISTRY.get((name, version), "")
+            if not text:
+                continue
+            client.run(
+                UPSERT_SEED_PROMPT,
+                id=str(uuid.uuid4()),
+                name=name,
+                version=version,
+                system_prompt=text,
+                output_schema="{}",
+                verification=False,
+                few_shot_examples="[]",
+            )
+        logger.info("[Tenant] PromptConfig nodes seeded (%d prompts)", len(list_prompts()))
+    except Exception as exc:
+        logger.warning("[Tenant] PromptConfig seed failed (non-fatal): %s", exc)

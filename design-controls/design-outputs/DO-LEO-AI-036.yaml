@@ -20,7 +20,8 @@
   specification:
     title: "Agentic Training Label Auditor with Terminology Tool-Use"
     description: |
-      A two-pass automated audit system for TrainingLabel records:
+      A two-pass automated audit system for TrainingLabel records (verification
+      subgraph, not standalone auditor):
 
       Pass 1 — Standard Audit (no tools):
       - Opus reviews every entity for span, assertion, label, and value errors

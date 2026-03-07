@@ -57,6 +57,10 @@ All SOUP items are assessed for:
 | 18 | **langchain-aws** | >= 0.2.0 | PyPI | LangChain Bedrock integration | Medium | Wrapper for boto3 Bedrock calls |
 | 19 | **langchain-openai** | >= 0.2.0 | PyPI | LangChain Azure OpenAI integration | Medium | Wrapper for openai Azure calls |
 | 20 | **PyJWT** | >= 2.8.0 | PyPI | JWT decoding; Azure AD token validation | Medium | Auth boundary; invalid tokens rejected |
+| 21 | **langgraph** | >= 0.4.0 | PyPI | Pipeline orchestration | Medium | Pipeline orchestration; failures surface as errors |
+| 22 | **opentelemetry-api** | >= 1.20.0 | PyPI | Observability | Low | Observability only; no clinical impact |
+| 23 | **opentelemetry-sdk** | >= 1.20.0 | PyPI | Observability | Low | Observability only; no clinical impact |
+| 24 | **opentelemetry-exporter-otlp** | >= 1.20.0 | PyPI | Observability | Low | Observability only; no clinical impact |
 
 ### 3.1 ML Models (not packaged, downloaded at runtime)
 

@@ -1,5 +1,9 @@
 """V2 label verification prompt for dual-model NER review.
 
+.. deprecated::
+    Hardcoded fallback only. Canonical source: ``PromptConfig`` node in
+    Neo4j. Edit via Admin UI at /admin/prompts.
+
 Focused on consistent multi-entity, multi-class decisions with boundary rules.
 """
 from libs.prompts.registry import register

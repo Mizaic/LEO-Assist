@@ -149,8 +149,31 @@ export default function GoldDatasetPanel() {
     setLoading(true);
     setError(null);
     try {
-      const data = await api.get<GoldStats>("/pipeline/gold-dataset-stats");
-      setStats(data);
+      const [gold, candidates] = await Promise.all([
+        api.get<{ total: number; avg_quality_score: number | null }>("/api/training/gold-labels/stats"),
+        api.get<{ total: number; completed?: number; pending?: number }>("/api/training/candidates/stats"),
+      ]);
+      const converted: GoldStats = {
+        generated_at: new Date().toISOString(),
+        total_reviewed: Number(candidates.total || 0),
+        overall_approval_rate_pct:
+          candidates.total ? Math.round((Number(gold.total || 0) / Number(candidates.total)) * 100) : null,
+        reviewers: [],
+        gold_entities_by_tag: {},
+        total_gold_entities: Number(gold.total || 0),
+        patients_covered: 0,
+        encounters_covered: Number(gold.total || 0),
+        date_from: null,
+        date_to: null,
+        per_tag_scorecard: [],
+        outcomes: {
+          approved: Number(gold.total || 0),
+          rejected: 0,
+          edited: 0,
+          escalated: Number(candidates.pending || 0),
+        },
+      };
+      setStats(converted);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load gold dataset stats");
     } finally {
