@@ -21,8 +21,6 @@ import ListItemText from "@mui/material/ListItemText";
 import CircularProgress from "@mui/material/CircularProgress";
 import Alert from "@mui/material/Alert";
 import Collapse from "@mui/material/Collapse";
-import FormControlLabel from "@mui/material/FormControlLabel";
-import Switch from "@mui/material/Switch";
 import Tooltip from "@mui/material/Tooltip";
 import Breadcrumbs from "@mui/material/Breadcrumbs";
 import Link from "@mui/material/Link";
@@ -32,6 +30,7 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import SearchIcon from "@mui/icons-material/Search";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import AccountTreeIcon from "@mui/icons-material/AccountTree";
+import DownloadIcon from "@mui/icons-material/Download";
 import {
   fetchDomain,
   createSubdomain,
@@ -39,7 +38,7 @@ import {
   updateSubdomain,
   addConceptToSubdomain,
   removeConceptFromSubdomain,
-  batchAddConceptsToSubdomain,
+  exportSubdomain,
   type DomainDetail,
   type SubdomainSummary,
   type SubdomainDetail,
@@ -71,7 +70,7 @@ export default function DomainDetailPage() {
   >([]);
   const [searchLoading, setSearchLoading] = useState(false);
 
-  // Descendant preview state
+  // Descendant preview state (tree icon = "coverage preview", adds parent only)
   const [descendantPreview, setDescendantPreview] = useState<{
     parentId: string;
     parentTerm: string;
@@ -79,7 +78,12 @@ export default function DomainDetailPage() {
   } | null>(null);
   const [descendantLoading, setDescendantLoading] = useState<string | null>(null);
   const [descendantListOpen, setDescendantListOpen] = useState(false);
-  const [descendantFilterSf, setDescendantFilterSf] = useState(false);
+  const [exportLoading, setExportLoading] = useState<"concepts" | "expanded" | null>(null);
+
+  // Benchmark key capture: when user clicks "Add" on a search result we first
+  // ask for an optional benchmark_key before confirming the add.
+  const [pendingConcept, setPendingConcept] = useState<{ conceptId: number; term: string } | null>(null);
+  const [addBenchmarkKey, setAddBenchmarkKey] = useState("");
 
   // Available SNOMED semantic tags (fetched once)
   const [allSemanticTags, setAllSemanticTags] = useState<string[]>([]);
@@ -157,7 +161,8 @@ export default function DomainDetailPage() {
     setDescendantPreview(null);
     setDescendantLoading(null);
     setDescendantListOpen(false);
-    setDescendantFilterSf(false);
+    setPendingConcept(null);
+    setAddBenchmarkKey("");
     try {
       setConfigSub(await fetchSubdomain(domainId, sub.name));
     } catch (e) {
@@ -166,7 +171,7 @@ export default function DomainDetailPage() {
     }
   };
 
-  const handleAddConcept = async (conceptId: number, term: string) => {
+  const handleAddConcept = async (conceptId: number, term: string, benchmarkKey?: string) => {
     if (!configSub) return;
     setConfigSubmitting(true);
     try {
@@ -175,10 +180,14 @@ export default function DomainDetailPage() {
         configSub.name,
         conceptId,
         term,
+        [],
+        benchmarkKey || undefined,
       );
       setConfigSub(updated);
       setSearchQuery("");
       setSearchResults([]);
+      setPendingConcept(null);
+      setAddBenchmarkKey("");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to add concept");
     } finally {
@@ -235,28 +244,50 @@ export default function DomainDetailPage() {
     }
   };
 
+  // Adds only the parent concept (descendants are expanded at query time via IS_A)
   const handleConfirmDescendants = async () => {
     if (!configSub || !descendantPreview) return;
     setConfigSubmitting(true);
     try {
-      const toAdd = descendantFilterSf
-        ? descendantPreview.results.filter((r) => r.surface_form_count > 0)
-        : descendantPreview.results;
-      const payload = toAdd.map((r) => ({
-        concept_id: parseInt(r.snomed_concept_id, 10),
-        term: r.term,
-      }));
-      const updated = await batchAddConceptsToSubdomain(domainId, configSub.name, payload);
+      const updated = await addConceptToSubdomain(
+        domainId,
+        configSub.name,
+        parseInt(descendantPreview.parentId, 10),
+        descendantPreview.parentTerm,
+        [],
+        addBenchmarkKey || undefined,
+      );
       setConfigSub(updated);
       setDescendantPreview(null);
       setDescendantListOpen(false);
-      setDescendantFilterSf(false);
       setSearchQuery("");
       setSearchResults([]);
+      setAddBenchmarkKey("");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to add descendants");
+      setError(e instanceof Error ? e.message : "Failed to add concept");
     } finally {
       setConfigSubmitting(false);
+    }
+  };
+
+  const handleExport = async (includeChildren: boolean) => {
+    if (!configSub) return;
+    setExportLoading(includeChildren ? "expanded" : "concepts");
+    try {
+      const data = await exportSubdomain(domainId, configSub.name, includeChildren);
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = includeChildren
+        ? `${configSub.name}-expanded.json`
+        : `${configSub.name}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Export failed");
+    } finally {
+      setExportLoading(null);
     }
   };
 
@@ -611,44 +642,77 @@ export default function DomainDetailPage() {
                 )}
                 {searchResults.length > 0 && (
                   <List dense sx={{ mt: 1, maxHeight: 220, overflow: "auto" }}>
-                    {searchResults.map((r) => {
+                    {searchResults.map((r, i) => {
                       const cid = parseInt(r.snomed_concept_id, 10);
                       const alreadyAdded = existingConceptIds.has(cid);
                       const isLoadingDescendants = descendantLoading === r.snomed_concept_id;
+                      const childCount = (r as { child_count?: number }).child_count ?? 0;
+                      const isBroad = childCount > 5;
                       return (
                         <ListItem
-                          key={r.snomed_concept_id}
+                          key={`${r.snomed_concept_id}-${i}`}
                           secondaryAction={
                             !alreadyAdded ? (
-                              <Box sx={{ display: "flex", gap: 0.5 }}>
+                              <Box sx={{ display: "flex", gap: 0.5, alignItems: "center" }}>
                                 <Button
                                   size="small"
-                                  onClick={() => handleAddConcept(cid, r.term)}
+                                  onClick={() => {
+                                    setPendingConcept({ conceptId: cid, term: r.term });
+                                    setAddBenchmarkKey("");
+                                    setDescendantPreview(null);
+                                  }}
                                   disabled={configSubmitting || isLoadingDescendants}
                                 >
                                   Add
                                 </Button>
-                                <IconButton
-                                  aria-label="Fill subdomain with all IS_A descendants"
-                                  size="small"
-                                  title="Fill subdomain with all IS_A descendants"
-                                  onClick={() =>
-                                    handleFetchDescendants(r.snomed_concept_id, r.term)
-                                  }
-                                  disabled={configSubmitting || !!descendantLoading}
-                                >
-                                  {isLoadingDescendants ? (
-                                    <CircularProgress aria-label="Loading" size={16} />
-                                  ) : (
-                                    <AccountTreeIcon fontSize="small" />
-                                  )}
-                                </IconButton>
+                                <Tooltip title={isBroad ? `Preview ${childCount} variants this concept covers (IS_A hierarchy)` : "Preview IS_A variants"}>
+                                  <span>
+                                    <IconButton
+                                      aria-label="Preview coverage via IS_A hierarchy"
+                                      size="small"
+                                      onClick={() =>
+                                        handleFetchDescendants(r.snomed_concept_id, r.term)
+                                      }
+                                      disabled={configSubmitting || !!descendantLoading}
+                                      color={isBroad ? "primary" : "default"}
+                                    >
+                                      {isLoadingDescendants ? (
+                                        <CircularProgress aria-label="Loading" size={16} />
+                                      ) : (
+                                        <AccountTreeIcon fontSize="small" />
+                                      )}
+                                    </IconButton>
+                                  </span>
+                                </Tooltip>
                               </Box>
                             ) : undefined
                           }
                         >
                           <ListItemText
-                            primary={r.term}
+                            primary={
+                              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                                <span>{r.term}</span>
+                                {isBroad && (
+                                  <Tooltip title={`Broad concept — covers ~${childCount} child variants via IS_A. Use the tree icon to confirm coverage before adding.`}>
+                                    <Chip
+                                      label={`~${childCount} variants`}
+                                      size="small"
+                                      color="primary"
+                                      variant="outlined"
+                                      sx={{ height: 18, fontSize: "0.65rem", cursor: "help" }}
+                                    />
+                                  </Tooltip>
+                                )}
+                                {childCount === 0 && (
+                                  <Chip
+                                    label="Specific"
+                                    size="small"
+                                    variant="outlined"
+                                    sx={{ height: 18, fontSize: "0.65rem", color: "text.secondary" }}
+                                  />
+                                )}
+                              </Box>
+                            }
                             secondary={
                               r.semantic_tag
                                 ? `${r.snomed_concept_id} \u00b7 ${r.semantic_tag}`
@@ -669,15 +733,68 @@ export default function DomainDetailPage() {
                   </List>
                 )}
 
-                {/* Descendant preview + confirm */}
+                {/* Pending add — benchmark key capture */}
+                {pendingConcept && (
+                  <Box
+                    sx={{
+                      mt: 1,
+                      p: 1.5,
+                      border: 1,
+                      borderColor: "primary.light",
+                      borderRadius: 1,
+                      bgcolor: "background.paper",
+                    }}
+                  >
+                    <Typography variant="body2" sx={{ mb: 1 }}>
+                      Adding: <strong>{pendingConcept.term}</strong>
+                    </Typography>
+                    <TextField
+                      size="small"
+                      fullWidth
+                      label="Benchmark key (optional)"
+                      placeholder="e.g. comorbidity_hypertension_pct"
+                      value={addBenchmarkKey}
+                      onChange={(e) => setAddBenchmarkKey(e.target.value)}
+                      helperText="Links this concept to the 2018 NCDA benchmark. Leave blank if not applicable."
+                      sx={{ mb: 1 }}
+                    />
+                    <Box sx={{ display: "flex", gap: 1, justifyContent: "flex-end" }}>
+                      <Button
+                        size="small"
+                        onClick={() => {
+                          setPendingConcept(null);
+                          setAddBenchmarkKey("");
+                        }}
+                        disabled={configSubmitting}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        size="small"
+                        variant="contained"
+                        onClick={() =>
+                          handleAddConcept(
+                            pendingConcept.conceptId,
+                            pendingConcept.term,
+                            addBenchmarkKey || undefined,
+                          )
+                        }
+                        disabled={configSubmitting}
+                      >
+                        {configSubmitting ? (
+                          <CircularProgress size={16} color="inherit" />
+                        ) : (
+                          "Confirm"
+                        )}
+                      </Button>
+                    </Box>
+                  </Box>
+                )}
+
+                {/* Descendant coverage preview — adds parent only, children expanded at query time */}
                 {descendantPreview && (() => {
-                  const sfCount = descendantPreview.results.filter(
-                    (r) => r.surface_form_count > 0,
-                  ).length;
-                  const visibleResults = descendantFilterSf
-                    ? descendantPreview.results.filter((r) => r.surface_form_count > 0)
-                    : descendantPreview.results;
-                  const addCount = descendantFilterSf ? sfCount : descendantPreview.results.length;
+                  const coverageCount = descendantPreview.results.length;
+                  const visibleResults = descendantPreview.results;
                   return (
                     <Box sx={{ mt: 1 }}>
                       <Alert
@@ -689,7 +806,7 @@ export default function DomainDetailPage() {
                               color="inherit"
                               onClick={() => setDescendantListOpen((o) => !o)}
                             >
-                              {descendantListOpen ? "Hide" : "Preview"}
+                              {descendantListOpen ? "Hide variants" : "Preview variants"}
                             </Button>
                             <Button
                               size="small"
@@ -697,7 +814,6 @@ export default function DomainDetailPage() {
                               onClick={() => {
                                 setDescendantPreview(null);
                                 setDescendantListOpen(false);
-                                setDescendantFilterSf(false);
                               }}
                               disabled={configSubmitting}
                             >
@@ -707,12 +823,12 @@ export default function DomainDetailPage() {
                               size="small"
                               variant="contained"
                               onClick={handleConfirmDescendants}
-                              disabled={configSubmitting || addCount === 0}
+                              disabled={configSubmitting || existingConceptIds.has(parseInt(descendantPreview.parentId, 10))}
                             >
                               {configSubmitting ? (
                                 <CircularProgress aria-label="Loading" size={16} color="inherit" />
                               ) : (
-                                `Add ${addCount}`
+                                `Add "${descendantPreview.parentTerm}"`
                               )}
                             </Button>
                           </Box>
@@ -720,34 +836,19 @@ export default function DomainDetailPage() {
                       >
                         <Box sx={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
                           <span>
-                            Found{" "}
-                            <strong>{descendantPreview.results.length}</strong>{" "}
-                            descendants of{" "}
-                            <strong>{descendantPreview.parentTerm}</strong>
-                            {sfCount > 0 && (
-                              <> &mdash; <strong>{sfCount}</strong> have surface forms</>
-                            )}
+                            <strong>{descendantPreview.parentTerm}</strong> covers{" "}
+                            <strong>{coverageCount}</strong> variant
+                            {coverageCount !== 1 ? "s" : ""} via IS_A hierarchy.
+                            Only the parent concept is stored — variants are matched automatically at query time.
                           </span>
-                          {sfCount > 0 && (
-                            <Tooltip title="Only add concepts that have recognised surface forms in clinical text">
-                              <FormControlLabel
-                                control={
-                                  <Switch
-                                    size="small"
-                                    checked={descendantFilterSf}
-                                    onChange={(e) => setDescendantFilterSf(e.target.checked)}
-                                    disabled={configSubmitting}
-                                  />
-                                }
-                                label={
-                                  <Typography variant="caption">
-                                    Surface forms only
-                                  </Typography>
-                                }
-                                sx={{ m: 0 }}
-                              />
-                            </Tooltip>
-                          )}
+                          <TextField
+                            size="small"
+                            label="Benchmark key (optional)"
+                            placeholder="e.g. comorbidity_hypertension_pct"
+                            value={addBenchmarkKey}
+                            onChange={(e) => setAddBenchmarkKey(e.target.value)}
+                            sx={{ minWidth: 280 }}
+                          />
                         </Box>
                       </Alert>
                       <Collapse in={descendantListOpen}>
@@ -763,44 +864,10 @@ export default function DomainDetailPage() {
                             bgcolor: "background.paper",
                           }}
                         >
-                          {visibleResults.map((d) => (
-                            <ListItem key={d.snomed_concept_id}>
+                          {visibleResults.map((d, i) => (
+                            <ListItem key={`${d.snomed_concept_id}-${i}`}>
                               <ListItemText
-                                primary={
-                                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                                    <span>{d.term}</span>
-                                    {d.surface_form_count > 0 && (() => {
-                                      const forms = d.surface_forms ?? [];
-                                      return (
-                                      <Tooltip
-                                        title={
-                                          <Box>
-                                            <Typography variant="caption" sx={{ fontWeight: 600, display: "block", mb: 0.5 }}>
-                                              Surface forms ({d.surface_form_count}
-                                              {d.surface_form_count > forms.length ? `, showing ${forms.length}` : ""})
-                                            </Typography>
-                                            {forms.map((sf) => (
-                                              <Typography key={sf} variant="caption" sx={{ display: "block" }}>
-                                                {sf}
-                                              </Typography>
-                                            ))}
-                                          </Box>
-                                        }
-                                        arrow
-                                        placement="right"
-                                      >
-                                        <Chip
-                                          label={d.surface_form_count}
-                                          size="small"
-                                          color="success"
-                                          variant="outlined"
-                                          sx={{ height: 18, fontSize: "0.65rem", cursor: "help" }}
-                                        />
-                                      </Tooltip>
-                                      );
-                                    })()}
-                                  </Box>
-                                }
+                                primary={d.term}
                                 secondary={
                                   d.semantic_tag
                                     ? `${d.snomed_concept_id} \u00b7 ${d.semantic_tag}`
@@ -811,9 +878,7 @@ export default function DomainDetailPage() {
                           ))}
                           {visibleResults.length === 0 && (
                             <ListItem>
-                              <ListItemText
-                                secondary="No descendants match the current filter."
-                              />
+                              <ListItemText secondary="No variants found." />
                             </ListItem>
                           )}
                         </List>
@@ -847,16 +912,37 @@ export default function DomainDetailPage() {
                       <ListItem
                         key={c.concept_id}
                         secondaryAction={
-                          <IconButton
-                            size="small"
-                            onClick={() =>
-                              handleRemoveConcept(c.concept_id)
-                            }
-                            disabled={configSubmitting}
-                            aria-label="Remove concept"
-                          >
-                            <DeleteOutlineIcon />
-                          </IconButton>
+                          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                            {c.child_count !== undefined && c.child_count > 0 && (
+                              <Tooltip title={`Covers ${c.child_count} child variant${c.child_count !== 1 ? "s" : ""} via IS_A hierarchy`}>
+                                <Chip
+                                  label={`+${c.child_count} variants`}
+                                  size="small"
+                                  color="info"
+                                  variant="outlined"
+                                  sx={{ height: 20, fontSize: "0.65rem", cursor: "default" }}
+                                />
+                              </Tooltip>
+                            )}
+                            {c.child_count === 0 && (
+                              <Tooltip title="Leaf concept — no child variants">
+                                <Chip
+                                  label="Specific"
+                                  size="small"
+                                  variant="outlined"
+                                  sx={{ height: 20, fontSize: "0.65rem", cursor: "default", color: "text.secondary" }}
+                                />
+                              </Tooltip>
+                            )}
+                            <IconButton
+                              size="small"
+                              onClick={() => handleRemoveConcept(c.concept_id)}
+                              disabled={configSubmitting}
+                              aria-label="Remove concept"
+                            >
+                              <DeleteOutlineIcon />
+                            </IconButton>
+                          </Box>
                         }
                       >
                         <ListItemText
@@ -864,6 +950,12 @@ export default function DomainDetailPage() {
                           secondary={
                             <Typography component="span" variant="caption">
                               {c.concept_id}
+                              {c.benchmark_key && (
+                                <>
+                                  {" \u00b7 "}
+                                  <span style={{ color: "#1976d2" }}>{c.benchmark_key}</span>
+                                </>
+                              )}
                               {c.guideline_synonyms &&
                                 c.guideline_synonyms.length > 0 && (
                                   <>
@@ -882,7 +974,47 @@ export default function DomainDetailPage() {
             </Box>
           )}
         </DialogContent>
-        <DialogActions>
+        <DialogActions sx={{ justifyContent: "space-between" }}>
+          <Box sx={{ display: "flex", gap: 1 }}>
+            <Tooltip title="Download concept list (top-level codes only)">
+              <span>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  startIcon={
+                    exportLoading === "concepts" ? (
+                      <CircularProgress size={14} />
+                    ) : (
+                      <DownloadIcon />
+                    )
+                  }
+                  onClick={() => handleExport(false)}
+                  disabled={!!exportLoading || configSubmitting || !configSub?.concepts.length}
+                >
+                  Export concepts
+                </Button>
+              </span>
+            </Tooltip>
+            <Tooltip title="Download concept list with all IS_A descendants expanded (larger file)">
+              <span>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  startIcon={
+                    exportLoading === "expanded" ? (
+                      <CircularProgress size={14} />
+                    ) : (
+                      <DownloadIcon />
+                    )
+                  }
+                  onClick={() => handleExport(true)}
+                  disabled={!!exportLoading || configSubmitting || !configSub?.concepts.length}
+                >
+                  Export with variants
+                </Button>
+              </span>
+            </Tooltip>
+          </Box>
           <Button
             onClick={() => {
               setConfigOpen(false);

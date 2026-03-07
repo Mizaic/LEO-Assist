@@ -82,6 +82,24 @@ for SNOMED CT lookup.
 - Extract the complete clinical concept, not a fragment.
 - One distinct concept per sentence only.
 
+## Comma-list / Co-reference Extraction (CRITICAL)
+
+When a sentence contains a shared assertion context (especially negation) \
+followed by multiple comma-separated clinical terms, EVERY term in the \
+list must be extracted as a separate entity — not just the first one.
+
+Examples requiring multiple entities:
+- "No associated dyspnoea, palpitations, nausea, sweating." → \
+four separate absent entities.
+- "Denies chest pain, shortness of breath, or dizziness." → \
+three separate absent entities.
+- "History of hypertension, diabetes, and hypercholesterolaemia." → \
+three separate historical entities.
+
+If the pipeline extracted only the FIRST term in such a list, report \
+the other terms as missing_entities. Each missing term should share \
+the same assertion and label as the extracted anchor entity.
+
 ## Do Not Extract
 
 - Non-clinical words: "patient", "reviewed", "discussed", "advised"
@@ -235,11 +253,13 @@ this entity"
   ],
   "missing_entities": [
     {
-      "text": "chest pain",
+      "text": "palpitations",
+      "normalized": "Palpitations",
       "label": "finding",
       "assertion": "absent",
-      "confidence": 0.92,
-      "rationale": "Negated finding not extracted"
+      "sentence_id": "s0",
+      "confidence": 0.97,
+      "rationale": "Comma-list item: same negation scope as extracted dyspnoea entity"
     }
   ]
 }
@@ -259,9 +279,16 @@ cannot suggest a concrete value, use verdict "needs_review" instead)
   - confidence: 0.0–1.0 confidence in the suggestion
   - rationale: brief reason (max 200 chars)
 - missing_entities: entities you believe should exist but are absent. \
-Include text (exact surface form from the encounter), label, \
-assertion, confidence, and rationale. Do NOT include start/end \
-offsets — the script computes those.
+Include:
+  - text: exact surface form from the encounter text (verbatim)
+  - normalized: canonical clinical term for SNOMED lookup (may equal text)
+  - label: semantic tag (finding, disorder, procedure, etc.)
+  - assertion: correct assertion (absent, present, historical, etc.)
+  - sentence_id: the __sentence_id of the sentence containing the term \
+    (e.g. "s0"). Critical for disambiguating repeated terms.
+  - confidence: 0.0–1.0
+  - rationale: brief reason (max 200 chars)
+Do NOT include start/end offsets — the script computes those from text.
 - record_verdict: "pass" if all entities are correct and no missing \
 entities; "has_issues" otherwise.
 

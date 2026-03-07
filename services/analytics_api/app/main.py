@@ -31,7 +31,7 @@ from services.analytics_api.app.routers.imd import router as imd_router
 from services.analytics_api.app.routers.cci import router as cci_router
 from services.analytics_api.app.routers.benchmarks import router as benchmark_router
 from services.analytics_api.app.routers.org_context import router as org_context_router
-from services.analytics_api.app.routers.audit import router as audit_router
+from services.analytics_api.app.routers.audit import router as audit_router, _ensure_registry
 
 configure_logging(service_name="analytics-api")
 logger = logging.getLogger("analytics-api")
@@ -44,8 +44,18 @@ async def lifespan(_app: FastAPI):
         n = seed_nhs_cohorts()
         logger.info("NHS screening cohorts seeded: %d presets", n)
     except Exception as exc:
-        # Non-fatal — graph may not be reachable at cold-start in some envs
         logger.warning("NHS cohort seeding skipped (graph unavailable?): %s", exc)
+    try:
+        from libs.neo4j_client.client import KnowledgeGraphClient
+        kg = KnowledgeGraphClient()
+        try:
+            registry = _ensure_registry(kg)
+            domain_count = len(registry.get_all_domains())
+            logger.info("DomainRegistry loaded at startup: %d domains", domain_count)
+        finally:
+            kg.close()
+    except Exception as exc:
+        logger.warning("DomainRegistry startup load skipped (graph unavailable?): %s", exc)
     yield
     logger.info("Analytics API shutting down")
 

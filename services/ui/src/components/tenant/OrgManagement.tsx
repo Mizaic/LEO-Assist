@@ -34,6 +34,7 @@ import {
   type Org,
 } from "@/lib/api/admin";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import OrgDrawer from "./OrgDrawer";
 
 // ------------------------------------------------------------------
 // Type configuration - colour, label, tooltip
@@ -41,17 +42,22 @@ import ConfirmDialog from "@/components/ConfirmDialog";
 
 const ORG_TYPE_CONFIG: Record<
   string,
-  { label: string; color: "success" | "info" | "secondary" | "default"; tip: string }
+  { label: string; color: "success" | "info" | "secondary" | "default" | "warning"; tip: string }
 > = {
   gp: {
     label: "GP Practice",
     color: "success",
     tip: "A GP practice that registers patients directly.",
   },
+  pcn: {
+    label: "PCN",
+    color: "warning",
+    tip: "Primary Care Network - a group of GP practices within an ICB.",
+  },
   icb: {
     label: "ICB",
     color: "info",
-    tip: "Integrated Care Board - oversees a group of GP practices.",
+    tip: "Integrated Care Board - oversees a group of GP practices and PCNs.",
   },
   alliance: {
     label: "Cancer Alliance",
@@ -80,7 +86,7 @@ export default function OrgManagement() {
   const [page, setPage] = useState(1);
 
   const [addOpen, setAddOpen] = useState(false);
-  const [addType, setAddType] = useState<"gp" | "icb" | "alliance">("gp");
+  const [addType, setAddType] = useState<"gp" | "icb" | "alliance" | "pcn">("gp");
   const [addName, setAddName] = useState("");
   const [addOds, setAddOds] = useState("");
   const [addParentId, setAddParentId] = useState("");
@@ -88,6 +94,7 @@ export default function OrgManagement() {
   const [addSubmitting, setAddSubmitting] = useState(false);
 
   const [deleteConfirm, setDeleteConfirm] = useState<Org | null>(null);
+  const [drawerOrg, setDrawerOrg] = useState<Org | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -178,7 +185,7 @@ export default function OrgManagement() {
             Organisations
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            All GP practices, ICBs, and Cancer Alliances in your system.{" "}
+            All GP practices, PCNs, ICBs, and Cancer Alliances in your system.{" "}
             <strong>{orgs.length}</strong> total.
           </Typography>
         </Box>
@@ -214,7 +221,7 @@ export default function OrgManagement() {
             ),
           }}
         />
-        {(["all", "gp", "icb", "alliance", "organization"] as const).map((t) => (
+        {(["all", "gp", "pcn", "icb", "alliance", "organization"] as const).map((t) => (
           <Chip
             key={t}
             label={`${t === "all" ? "All" : ORG_TYPE_CONFIG[t]?.label ?? t} (${typeCounts[t] || 0})`}
@@ -245,6 +252,7 @@ export default function OrgManagement() {
                 <TableCell>ODS code</TableCell>
                 <TableCell align="right">Patients</TableCell>
                 <TableCell>Part of</TableCell>
+                <TableCell>ODS Status</TableCell>
                 <TableCell></TableCell>
               </TableRow>
             </TableHead>
@@ -256,7 +264,8 @@ export default function OrgManagement() {
                   <TableRow
                     key={o.id}
                     hover
-                    sx={{ "&:last-child td": { border: 0 } }}
+                    onClick={() => setDrawerOrg(o)}
+                    sx={{ "&:last-child td": { border: 0 }, cursor: "pointer" }}
                   >
                     <TableCell sx={{ fontWeight: 500 }}>{o.name}</TableCell>
                     <TableCell>
@@ -286,12 +295,29 @@ export default function OrgManagement() {
                     <TableCell sx={{ color: "text.secondary", fontSize: "0.82rem" }}>
                       {parentLabel}
                     </TableCell>
-                    <TableCell align="right">
+                    <TableCell>
+                      {o.ods_sync_status === "mismatch" && (
+                        <Tooltip title="ODS data differs from LEO record — review required">
+                          <Chip label="Mismatch" color="warning" size="small" icon={<WarningAmberIcon />} />
+                        </Tooltip>
+                      )}
+                      {o.ods_sync_status === "closed" && (
+                        <Tooltip title="ODS reports this organisation as inactive — review required">
+                          <Chip label="ODS Inactive" color="error" size="small" icon={<WarningAmberIcon />} />
+                        </Tooltip>
+                      )}
+                      {o.ods_sync_status === "error" && (
+                        <Tooltip title="ODS sync encountered an error for this org">
+                          <Chip label="Sync error" color="default" size="small" />
+                        </Tooltip>
+                      )}
+                    </TableCell>
+                    <TableCell align="right" onClick={(e) => e.stopPropagation()}>
                       {o.patient_count === 0 ? (
                         <Button
                           size="small"
                           color="error"
-                          onClick={() => setDeleteConfirm(o)}
+                          onClick={(e) => { e.stopPropagation(); setDeleteConfirm(o); }}
                           sx={{ minWidth: 0, fontSize: "0.75rem" }}
                         >
                           Remove
@@ -340,9 +366,10 @@ export default function OrgManagement() {
             <Select
               value={addType}
               label="What type is it?"
-              onChange={(e) => setAddType(e.target.value as "gp" | "icb" | "alliance")}
+              onChange={(e) => setAddType(e.target.value as "gp" | "icb" | "alliance" | "pcn")}
             >
               <MenuItem value="gp">GP Practice</MenuItem>
+              <MenuItem value="pcn">PCN (Primary Care Network)</MenuItem>
               <MenuItem value="icb">ICB (Integrated Care Board)</MenuItem>
               <MenuItem value="alliance">Cancer Alliance</MenuItem>
             </Select>
@@ -405,6 +432,21 @@ export default function OrgManagement() {
           onCancel={() => setDeleteConfirm(null)}
         />
       )}
+
+      <OrgDrawer
+        org={drawerOrg}
+        onClose={() => setDrawerOrg(null)}
+        onChanged={() => {
+          load();
+          // Refresh drawer data with latest from reloaded list
+          if (drawerOrg) {
+            listOrgs().then((all) => {
+              const updated = all.find((o) => o.id === drawerOrg.id);
+              setDrawerOrg(updated ?? null);
+            }).catch(() => {});
+          }
+        }}
+      />
     </Box>
   );
 }

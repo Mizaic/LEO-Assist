@@ -38,6 +38,9 @@ ALL_PERMISSIONS = [
     "export_data",
     "view_gold_dataset",
     "configure_auth",
+    "manage_users",
+    "manage_groups",
+    "manage_sub_orgs",
 ]
 
 DEFAULT_ROLES = [
@@ -45,6 +48,16 @@ DEFAULT_ROLES = [
         "name": "platform_admin",
         "permissions": ALL_PERMISSIONS,
         "description": "Full platform access",
+    },
+    {
+        "name": "org_admin",
+        "permissions": [
+            "manage_users",
+            "manage_groups",
+            "manage_sub_orgs",
+            "view_reports",
+        ],
+        "description": "Organisation administrator — manages users, groups, and sub-organisations within their org hierarchy",
     },
     {
         "name": "auditor",
@@ -55,6 +68,16 @@ DEFAULT_ROLES = [
             "view_gold_dataset",
         ],
         "description": "View patients, review coding, reports and gold dataset",
+    },
+    {
+        "name": "clinical_coder",
+        "permissions": ["view_patients", "review_coding"],
+        "description": "GP Practice clinical coder — full access to unredacted patient data and coding review",
+    },
+    {
+        "name": "clinical_viewer",
+        "permissions": ["view_patients", "view_reports"],
+        "description": "GP Practice clinical viewer — patient data access with redaction applied (set redacted=true on HAS_ROLE)",
     },
     {
         "name": "pipeline_operator",
@@ -133,12 +156,14 @@ def seed_tenant_defaults(client: PatientGraphClient) -> None:
 
 
 def _seed_roles(client: PatientGraphClient) -> None:
-    existing = client.run("MATCH (r:Role) RETURN count(r) AS n")
-    if existing and existing[0]["n"] > 0:
-        logger.info("[Tenant] Roles already present; skipping role seed")
+    existing_rows = client.run("MATCH (r:Role) RETURN r.name AS name")
+    existing_names = {row["name"] for row in (existing_rows or [])}
+    new_roles = [r for r in DEFAULT_ROLES if r["name"] not in existing_names]
+    if not new_roles:
+        logger.debug("[Tenant] All roles already present; skipping role seed")
         return
-    logger.info("[Tenant] Seeding %d default roles", len(DEFAULT_ROLES))
-    for role in DEFAULT_ROLES:
+    logger.info("[Tenant] Seeding %d new roles: %s", len(new_roles), [r["name"] for r in new_roles])
+    for role in new_roles:
         client.run(
             "MERGE (r:Role {name: $name})"
             " SET r.permissions = $perms, r.description = $desc",

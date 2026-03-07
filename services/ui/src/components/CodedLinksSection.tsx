@@ -214,7 +214,7 @@ export default function CodedLinksSection({
             </Typography>
           ) : (
             <List disablePadding>
-              {links.map((link, idx) => {
+              {links.map((link, i) => {
                 const relProps: string[] = [];
                 if (link.evidence) relProps.push(`evidence: "${link.evidence}"`);
                 if (link.confidence != null) relProps.push(`confidence: ${Math.round(link.confidence * 100)}%`);
@@ -238,7 +238,7 @@ export default function CodedLinksSection({
                 }
                 const docTooltip = relProps.length > 0 ? relProps.join("\n") : null;
                 return (
-                <Box key={link.concept_id}>
+                <Box key={`${link.concept_id}-${i}`}>
                   <Tooltip
                     title={
                       docTooltip ? (

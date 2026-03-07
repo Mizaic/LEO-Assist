@@ -32,7 +32,7 @@ import AssessmentOutlinedIcon from "@mui/icons-material/AssessmentOutlined";
 import GroupWorkOutlinedIcon from "@mui/icons-material/GroupWorkOutlined";
 import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
 import LibraryBooksOutlinedIcon from "@mui/icons-material/LibraryBooksOutlined";
-import SportsEsportsOutlinedIcon from "@mui/icons-material/SportsEsportsOutlined";
+import SpaOutlinedIcon from "@mui/icons-material/SpaOutlined";
 import LogoutIcon from "@mui/icons-material/Logout";
 import MenuIcon from "@mui/icons-material/Menu";
 import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettingsOutlined";
@@ -75,9 +75,9 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Benchmarks", path: "/benchmarks", icon: <AssessmentOutlinedIcon /> },
   { label: "Cohorts", path: "/cohorts", icon: <GroupWorkOutlinedIcon /> },
   { label: "Operations", path: "/operations", icon: <SettingsOutlinedIcon />, badgeKey: "reviewQueue" },
-  { label: "Games", path: "/games", icon: <SportsEsportsOutlinedIcon /> },
+  { label: "Wellbeing Hub", path: "/games", icon: <SpaOutlinedIcon /> },
   { label: "Gold Dataset", path: "/gold-dataset", icon: <LibraryBooksOutlinedIcon /> },
-  { label: "Tenant", path: "/tenant", icon: <AdminPanelSettingsOutlinedIcon />, adminOnly: true },
+  { label: "Portal", path: "/portal", icon: <AdminPanelSettingsOutlinedIcon />, adminOnly: false },
   { label: "Support Mail", path: "/mail", icon: <MailOutlineIcon />, adminOnly: true },
   { label: "Settings", path: "/settings", icon: <TuneOutlinedIcon /> },
 ];

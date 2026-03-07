@@ -154,3 +154,81 @@ def emit_pipeline_event(
         entity_id=patient_id,
         entity_type="patient",
     ))
+
+
+def emit_application_event(
+    *,
+    outcome: str,
+    agent_email: str | None = None,
+    description: str = "",
+    source_service: str = "core-api",
+    entity_id: str | None = None,
+    entity_type: str | None = None,
+) -> None:
+    """General-purpose application activity audit event."""
+    _emit_async(_build_event(
+        type_code="110153",
+        type_display="Application Activity",
+        outcome=outcome,
+        agent_email=agent_email,
+        agent_role=None,
+        source_service=source_service,
+        entity_id=entity_id,
+        entity_type=entity_type,
+        description=description,
+    ))
+
+
+def emit_ods_sync_summary(
+    *,
+    run_id: str,
+    checked: int,
+    mismatches: int,
+    closures: int,
+    errors: int,
+    aborted: bool = False,
+    source_service: str = "ods-sync",
+) -> None:
+    """Emit an ODS sync run summary as a FHIR AuditEvent."""
+    outcome = "8" if aborted else "0"  # 8 = Serious Failure, 0 = Success
+    description = (
+        f"ODS sync {'ABORTED' if aborted else 'complete'}: "
+        f"run_id={run_id} checked={checked} mismatches={mismatches} "
+        f"closures={closures} errors={errors}"
+    )
+    _emit_async(_build_event(
+        type_code="110153",
+        type_display="Application Activity",
+        outcome=outcome,
+        agent_email=None,
+        agent_role="system",
+        source_service=source_service,
+        entity_id=run_id,
+        entity_type="ods-sync-run",
+        description=description,
+    ))
+
+
+def emit_ods_closure_alert(
+    *,
+    org_id: str,
+    org_name: str,
+    ods_code: str,
+    run_id: str,
+    source_service: str = "ods-sync",
+) -> None:
+    """Emit a closure alert AuditEvent when ODS reports an org as Inactive or not found."""
+    description = (
+        f"ODS closure alert: org_id={org_id} name={org_name} ods_code={ods_code} run_id={run_id}"
+    )
+    _emit_async(_build_event(
+        type_code="110110",
+        type_display="Patient Record",
+        outcome="4",  # Minor failure — informational alert requiring human review
+        agent_email=None,
+        agent_role="system",
+        source_service=source_service,
+        entity_id=org_id,
+        entity_type="organisation",
+        description=description,
+    ))

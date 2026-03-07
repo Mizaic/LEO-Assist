@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Alert from "@mui/material/Alert";
 import Avatar from "@mui/material/Avatar";
 import Box from "@mui/material/Box";
@@ -36,6 +36,8 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import ManageAccountsIcon from "@mui/icons-material/ManageAccounts";
 import PersonAddAlt1Icon from "@mui/icons-material/PersonAddAlt1";
 import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
+import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
+import InputAdornment from "@mui/material/InputAdornment";
 import {
   assignUserRole, createGroup, createUser, deleteGroup, deleteUser,
   forceLogoutUser, listGroupMembers, listGroups, listOrgs, listRoles,
@@ -95,6 +97,8 @@ export default function UserManagement() {
   const [groupAddDesc, setGroupAddDesc] = useState("");
   const [groupAddOrgId, setGroupAddOrgId] = useState("");
   const [groupAddSubmitting, setGroupAddSubmitting] = useState(false);
+
+  const [userSearch, setUserSearch] = useState("");
 
   const [logoutConfirm, setLogoutConfirm] = useState<User | null>(null);
   const [deactivateConfirm, setDeactivateConfirm] = useState<User | null>(null);
@@ -195,6 +199,16 @@ export default function UserManagement() {
     }
   };
 
+  const filteredUsers = useMemo(() => {
+    const q = userSearch.trim().toLowerCase();
+    if (!q) return users;
+    return users.filter((u) =>
+      u.name?.toLowerCase().includes(q) ||
+      u.email.toLowerCase().includes(q) ||
+      u.org_names?.some((n) => n.toLowerCase().includes(q))
+    );
+  }, [users, userSearch]);
+
   return (
     <Box>
       {error && (
@@ -211,7 +225,10 @@ export default function UserManagement() {
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                 <PeopleAltOutlinedIcon color="action" fontSize="small" />
                 <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>People</Typography>
-                <Chip label={users.length} size="small" />
+                <Chip
+                  label={filteredUsers.length < users.length ? `${filteredUsers.length} of ${users.length}` : users.length}
+                  size="small"
+                />
               </Box>
               <Button startIcon={<PersonAddAlt1Icon />} variant="contained" size="small" onClick={() => setInviteOpen(true)}>
                 Add person
@@ -221,9 +238,34 @@ export default function UserManagement() {
               Everyone who can log in to LEO. Platform admins can see and change everything.
             </Typography>
 
+            {/* ---- SEARCH ---- */}
+            {users.length > 0 && (
+              <TextField
+                size="small"
+                fullWidth
+                placeholder="Search by name, email or organisation…"
+                value={userSearch}
+                onChange={(e) => setUserSearch(e.target.value)}
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchOutlinedIcon sx={{ fontSize: 16, color: "text.disabled" }} />
+                      </InputAdornment>
+                    ),
+                  },
+                }}
+                sx={{ mb: 2 }}
+              />
+            )}
+
             {users.length === 0 ? (
               <Typography color="text.secondary" sx={{ py: 4, textAlign: "center" }}>
                 No people yet. Use &ldquo;Add person&rdquo; to get started.
+              </Typography>
+            ) : filteredUsers.length === 0 ? (
+              <Typography color="text.secondary" sx={{ py: 4, textAlign: "center" }}>
+                No people match your search.
               </Typography>
             ) : (
               <Table size="small" sx={{ tableLayout: "fixed", width: "100%" }}>
@@ -236,7 +278,7 @@ export default function UserManagement() {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {users.map((u) => {
+                  {filteredUsers.map((u) => {
                     const roleNames = (u.roles || []).map((r) => r.role).filter(Boolean);
                     const isOnline = u.active_sessions_count > 0;
                     return (
@@ -259,6 +301,15 @@ export default function UserManagement() {
                               <Typography variant="caption" color="text.secondary" noWrap sx={{ display: "block" }}>
                                 {u.email}
                               </Typography>
+                              {!u.is_platform_admin && u.org_names && u.org_names.length > 0 && (
+                                <Tooltip title={u.org_names.join(", ")} placement="top" disableHoverListener={u.org_names.length <= 1}>
+                                  <Typography variant="caption" color="text.disabled" noWrap sx={{ display: "block", fontSize: "0.65rem" }}>
+                                    {u.org_names.length === 1
+                                      ? u.org_names[0]
+                                      : `${u.org_names[0]} +${u.org_names.length - 1} more`}
+                                  </Typography>
+                                </Tooltip>
+                              )}
                             </Box>
                           </Box>
                         </TableCell>

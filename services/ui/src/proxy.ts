@@ -80,6 +80,16 @@ function proxyRewrite(request: NextRequest, dest: string): NextResponse {
   return NextResponse.rewrite(new URL(dest), { request: { headers } });
 }
 
+function termApiRewrite(request: NextRequest, dest: string): NextResponse {
+  // Forward X-Requested-With and inject the shared service secret so that
+  // write endpoints protected by verify_service_token accept the request.
+  const headers = new Headers(request.headers);
+  headers.set("X-Requested-With", "XMLHttpRequest");
+  const secret = process.env.SERVICE_AUTH_SECRET;
+  if (secret) headers.set("Authorization", `Bearer ${secret}`);
+  return NextResponse.rewrite(new URL(dest), { request: { headers } });
+}
+
 export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
 
@@ -91,7 +101,10 @@ export function proxy(request: NextRequest) {
   for (const rule of PREFIX_RULES) {
     if (pathname.startsWith(rule.prefix)) {
       const rest = pathname.slice(rule.prefix.length);
-      return proxyRewrite(request, rule.rewrite(rest) + search);
+      const rewriteFn = rule.prefix === "/api/terminology/"
+        ? termApiRewrite
+        : proxyRewrite;
+      return rewriteFn(request, rule.rewrite(rest) + search);
     }
   }
 

@@ -17,9 +17,11 @@ import json
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
+from libs.cypher.terminology_queries import DESCENDANTS_TEMPLATE
 from libs.domain_config.registry import DomainRegistry
 from libs.neo4j_client.client import KnowledgeGraphClient
 
@@ -110,17 +112,24 @@ def _parse_concepts_from_raw(raw_json: Optional[str]) -> List[Dict[str, Any]]:
                 concept_id = int(code)
             except (ValueError, TypeError):
                 concept_id = 0
+            designations = c.get("designation") or []
             synonyms = [
                 d.get("value", "")
-                for d in c.get("designation") or []
+                for d in designations
                 if (d.get("use") or {}).get("code") == "synonym"
             ]
+            benchmark_key = next(
+                (d.get("value") for d in designations
+                 if (d.get("use") or {}).get("code") == "benchmark_key"),
+                None,
+            )
             concepts.append({
                 "concept_id": concept_id,
                 "term": display,
                 "preferred_term": display,
                 "semantic_tag": None,
                 "guideline_synonyms": synonyms,
+                "benchmark_key": benchmark_key,
             })
     return concepts
 
@@ -250,6 +259,7 @@ class AddConceptRequest(BaseModel):
     concept_id: int
     term: str = Field(..., min_length=1)
     synonyms: List[str] = []
+    benchmark_key: Optional[str] = None
 
 
 # ── Domain endpoints ─────────────────────────────────────────────────────
@@ -644,6 +654,8 @@ def add_concept(
     for syn in body.synonyms:
         if syn.strip():
             designations.append({"use": {"code": "synonym"}, "value": syn.strip()})
+    if body.benchmark_key and body.benchmark_key.strip():
+        designations.append({"use": {"code": "benchmark_key"}, "value": body.benchmark_key.strip()})
 
     concepts.append({
         "code": str(body.concept_id),
@@ -831,6 +843,93 @@ def remove_concept(domain_id: str, subdomain_name: str, concept_id: str):
         semantic_tags=tags,
         concepts=_parse_concepts_from_raw(vr.get("rawJson")),
         concept_count=_count_concepts_from_raw(vr.get("rawJson")),
+    )
+
+
+# ── Export endpoint ──────────────────────────────────────────────────────
+
+
+@router.get(
+    "/domains/{domain_id}/subdomains/{subdomain_name}/export",
+)
+def export_subdomain(
+    domain_id: str,
+    subdomain_name: str,
+    include_children: bool = Query(
+        default=False,
+        description="When true, expand each concept via IS_A hierarchy and include all descendants",
+    ),
+    depth: int = Query(default=3, ge=1, le=5, description="IS_A traversal depth for child expansion"),
+):
+    """Export subdomain concept config as JSON.
+
+    Without include_children: returns the stored top-level concepts only.
+    With include_children: expands each concept's IS_A descendants and groups them under
+    their parent, providing the full set of codes that will match in queries.
+    """
+    _ensure_domain_owns_subdomain(domain_id, subdomain_name)
+
+    vs_id = _subdomain_to_valueset_id(subdomain_name)
+    raw = _get_valueset_raw(vs_id)
+    if raw is None:
+        raise HTTPException(404, f"Subdomain '{subdomain_name}' not found")
+
+    concepts = _parse_concepts_from_raw(raw)
+
+    if not include_children:
+        payload = {
+            "domain_id": domain_id,
+            "subdomain": subdomain_name,
+            "include_children": False,
+            "concepts": [
+                {
+                    "concept_id": c["concept_id"],
+                    "term": c["preferred_term"],
+                    "synonyms": c.get("guideline_synonyms", []),
+                }
+                for c in concepts
+            ],
+        }
+        return JSONResponse(
+            content=payload,
+            headers={"Content-Disposition": f'attachment; filename="{subdomain_name}.json"'},
+        )
+
+    # Expand each concept's IS_A descendants
+    kg = KnowledgeGraphClient()
+    try:
+        expanded = []
+        for c in concepts:
+            rows = kg.run(
+                DESCENDANTS_TEMPLATE.format(depth=int(depth)),
+                concept_id=str(c["concept_id"]),
+                semantic_tag=None,
+                limit=500,
+            )
+            children = [
+                {"concept_id": int(r["snomed_concept_id"]), "term": r["term"]}
+                for r in (rows or [])
+            ]
+            expanded.append({
+                "concept_id": c["concept_id"],
+                "term": c["preferred_term"],
+                "synonyms": c.get("guideline_synonyms", []),
+                "child_count": len(children),
+                "children": children,
+            })
+    finally:
+        kg.close()
+
+    payload = {
+        "domain_id": domain_id,
+        "subdomain": subdomain_name,
+        "include_children": True,
+        "expansion_depth": depth,
+        "concepts": expanded,
+    }
+    return JSONResponse(
+        content=payload,
+        headers={"Content-Disposition": f'attachment; filename="{subdomain_name}-expanded.json"'},
     )
 
 
