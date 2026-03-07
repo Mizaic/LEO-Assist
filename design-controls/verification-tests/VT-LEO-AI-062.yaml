@@ -1,0 +1,13 @@
+# -- VT-LEO-AI-062 -- Knowledge Graph Anonymity
+
+- id: "VT-LEO-AI-062"
+  version: "1.0"
+  status: "draft"
+  traceability:
+    design_inputs: ["DI-LEO-AI-055"]
+    risks: ["R-LEO-AI-041"]
+  metadata:
+    title: "SurfaceForm graph stores provenance only (no user identifiers)"
+    test_level: "unit"
+    automation_framework: "pytest"
+    test_file_paths: ["tests/test_gdpr_knowledge_graph_anonymity.py"]

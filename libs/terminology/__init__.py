@@ -1,0 +1,1 @@
+"""Shared terminology resolution client."""

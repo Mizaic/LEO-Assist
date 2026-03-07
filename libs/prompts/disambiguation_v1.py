@@ -1,5 +1,9 @@
 """V1 SNOMED disambiguation prompt.
 
+.. deprecated::
+    Hardcoded fallback only. Canonical source: ``PromptConfig`` node in
+    Neo4j (name='disambiguation', version=1). Edit via /admin/prompts.
+
 Moved from services/api/app/services/v3/disambiguator.py.
 """
 from libs.prompts.registry import register

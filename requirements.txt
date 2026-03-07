@@ -27,6 +27,14 @@ boto3>=1.36
 langchain-aws>=0.3
 langchain-openai>=0.3
 
+# --- LangGraph pipeline orchestration ---
+langgraph>=0.4
+
+# --- OpenTelemetry (observability) ---
+opentelemetry-api>=1.20
+opentelemetry-sdk>=1.20
+opentelemetry-exporter-otlp>=1.20
+
 # --- Azure Service Bus (production queue; in-memory adapter used locally) ---
 azure-servicebus>=7.13
 

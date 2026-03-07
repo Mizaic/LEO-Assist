@@ -1,0 +1,21 @@
+# -- R-LEO-AI-040 -- Learning Loop Patient Linkage
+
+- id: "R-LEO-AI-040"
+  title: "TrainingCandidate or GoldLabel includes patient or encounter linkage"
+  hazard:
+    description: "Learning-loop data may contain identifiers enabling data-subject re-identification."
+    category: "privacy"
+  harm:
+    description: "GDPR breach and regulatory non-compliance."
+    severity: "serious"
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: "No patient_id, encounter_id, tenant_id, org_id fields in TrainingCandidate/GoldLabel."
+    - control_type: "design_feature"
+      description: "Content-only IDs (SHA256(text), SHA256(text+entities))."
+    - control_type: "design_feature"
+      description: "No graph relationships from learning-loop nodes to Patient/Encounter/Tenant."
+    - control_type: "design_feature"
+      description: "DI-ID gate blocks persistence when residual PHI patterns are detected."
+  residual_risk_estimate:
+    risk_level: "low"

@@ -7,7 +7,8 @@
   derived_from: ["UN-LEO-AI-027"]
 
   requirement: >
-    The system SHALL provide an automated training label auditor that uses
+    The system SHALL provide an automated training label auditor (verification
+    subgraph replaces standalone auditor) that uses
     Claude Opus (AWS_MAX_MODEL) as an orchestrating LLM with Bedrock
     native tool-use capability, delegating terminology lookups to Claude
     Haiku (AWS_SMALL_MODEL) via the internal Terminology API. The auditor

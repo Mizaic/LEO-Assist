@@ -13,8 +13,32 @@ env:
   ACR_LOGIN_SERVER: leoaicr.azurecr.io
 
 jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pytest pytest-asyncio
+
+      - name: Run tests
+        run: pytest tests/ -v --tb=short
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
   build-push:
     name: Build ${{ matrix.service }}
+    needs: test
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -28,10 +52,8 @@ jobs:
             dockerfile: infra/dockerfiles/Dockerfile.fhir-api
           - service: analytics-api
             dockerfile: infra/dockerfiles/Dockerfile.analytics-api
-          - service: coding-worker
-            dockerfile: infra/dockerfiles/Dockerfile.coding-worker
-          - service: analysis-worker
-            dockerfile: infra/dockerfiles/Dockerfile.analysis-worker
+          - service: pipeline-worker
+            dockerfile: infra/dockerfiles/Dockerfile.pipeline-worker
           - service: model-inference
             dockerfile: infra/dockerfiles/Dockerfile.model-inference
           - service: training-worker

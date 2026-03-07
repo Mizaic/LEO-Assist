@@ -1,5 +1,9 @@
 """V1 encounter pre-classification prompt.
 
+.. deprecated::
+    Hardcoded fallback only. Canonical source: ``PromptConfig`` node in
+    Neo4j. Edit via Admin UI at /admin/prompts.
+
 New for M3a — classifies encounters as admin/document/clinical before extraction.
 """
 from libs.prompts.registry import register

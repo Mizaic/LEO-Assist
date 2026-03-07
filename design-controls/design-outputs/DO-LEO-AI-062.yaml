@@ -1,0 +1,94 @@
+# -- DO-LEO-AI-062 -- Pathway Builder UI
+# ISO 13485 / IEC 62304 Design Output
+# Schema: design-controls/templates/design_outputs_schema.yaml
+
+- id: "DO-LEO-AI-062"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-061"]
+    user_needs: ["UN-LEO-AI-012"]
+    risks_addressed: ["R-LEO-AI-015"]
+    verification_tests: ["VT-LEO-AI-061"]
+    validation_tests: []
+
+  specification:
+    title: "Pathway Builder UI"
+    description: |
+      No-code visual editor for designing clinical pathways. Provides
+      drag-and-drop node palette, graph canvas for connecting steps,
+      property panels for ActivityDefinition configuration, and
+      serialization to valid FHIR PlanDefinition JSON. Enables domain
+      experts to create and modify pathways without writing code.
+    purpose: "Enable visual design of clinical pathways that emit standards-compliant PlanDefinition"
+    technical_approach: "React Flow canvas, node palette, PlanDefinition serializer, schema validation"
+    acceptance_criteria:
+      - criterion: "Visual editing"
+        type: "functional"
+        measurement: "Test"
+        target: "Users can add nodes, connect them, and configure properties"
+      - criterion: "PlanDefinition output"
+        type: "functional"
+        measurement: "Test"
+        target: "Serialized output validates as FHIR R4 PlanDefinition"
+      - criterion: "Save and load"
+        type: "functional"
+        measurement: "Test"
+        target: "Pathways persist and load correctly"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/ui/src/components/pathway/PathwayBuilder.tsx"
+        description: "Main Pathway Builder component with canvas"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/src/components/pathway/PlanDefinitionEditor.tsx"
+        description: "PlanDefinition property editor"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/src/components/pathway/NodePalette.tsx"
+        description: "Drag-and-drop node palette"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "libs/fhir/plandefinition_serializer.ts"
+        description: "Graph to FHIR PlanDefinition serializer"
+        storage_location: "git"
+    technical_details:
+      language: ["TypeScript"]
+      framework: ["React", "React Flow"]
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions: ["PlanDefinition schema validation", "Data integrity on save"]
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false
+
+  production_information:
+    deployment_instructions: "Part of services/ui; deployed with Operations UI"
+
+  documentation:
+    design_documentation: []
+    inline_documentation:
+      follows_standards: true
+
+  approval:
+    created_by: "Engineering Team"
+    created_date: "2026-03-07"
+
+  version_history:
+    - version: "1.0.0"
+      date: "2026-03-07"
+      changes: "Initial creation"
+      reason: "Implement no-code Pathway Builder"
+      author: "Engineering Team"
+      approval_status: "draft"
+
+  metadata:
+    tags: ["pathway-builder", "ui", "no-code", "plandefinition", "visual-editor"]
+    priority: "medium"
+    complexity: "complex"

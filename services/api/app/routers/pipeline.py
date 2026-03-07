@@ -24,6 +24,7 @@ from libs.auth.org_scope import CallerScope, get_caller_scope, require_patient_i
 
 CODING_QUEUE = os.getenv("CODING_QUEUE_NAME", "coding-jobs")
 ANALYSIS_QUEUE = os.getenv("ANALYSIS_QUEUE_NAME", "analysis-jobs")
+PIPELINE_QUEUE = os.getenv("PIPELINE_QUEUE_NAME", "pipeline-jobs")
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 _PROGRESS_IDLE_TIMEOUT_S = 300  # close relay after 5 min of silence
 

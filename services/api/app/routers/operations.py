@@ -312,7 +312,23 @@ async def get_operations_metrics(
                 tt = row["task_type"] or "unknown"
                 st = row["status"] or "unknown"
                 by_type.setdefault(tt, {})[st] = row["count"]
-        return {"metrics_by_stage": by_type}
+        extra_counts = client.run(
+            """
+            OPTIONAL MATCH (s:SurfaceFormTask {status:'pending'})
+            WITH count(s) AS surface_form_tasks_pending
+            OPTIONAL MATCH (c:TrainingCandidate)
+            WITH surface_form_tasks_pending, count(c) AS training_candidates
+            OPTIONAL MATCH (g:GoldLabel)
+            RETURN surface_form_tasks_pending, training_candidates, count(g) AS gold_labels
+            """
+        )
+        first = extra_counts[0] if extra_counts else {}
+        return {
+            "metrics_by_stage": by_type,
+            "surface_form_tasks_pending": first.get("surface_form_tasks_pending", 0),
+            "training_candidates": first.get("training_candidates", 0),
+            "gold_labels": first.get("gold_labels", 0),
+        }
     finally:
         client.close()
 

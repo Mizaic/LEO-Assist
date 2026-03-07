@@ -1,5 +1,9 @@
 """V1 cancer exclusion detection prompt.
 
+.. deprecated::
+    Hardcoded fallback only. Canonical source: ``PromptConfig`` node in
+    Neo4j. Edit via Admin UI at /admin/prompts.
+
 Classifies post-referral encounter text as evidence of cancer exclusion,
 confirmation, ongoing investigation, pending letter, or not relevant.
 

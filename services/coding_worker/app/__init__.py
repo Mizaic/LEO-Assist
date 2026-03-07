@@ -1,1 +1,0 @@
-"""Coding Worker service package."""
