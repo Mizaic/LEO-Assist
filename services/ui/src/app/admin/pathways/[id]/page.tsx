@@ -92,21 +92,49 @@ const TRIGGER_OPTIONS = [
   { id: "manual", label: "Manual / API Call", description: "Pipeline is invoked manually via the API or admin UI." },
 ];
 
-const WIZARD_STEPS = ["Subgraph", "Inputs", "Configuration", "Prompt", "Review"];
+// ── Subgraph categories ───────────────────────────────────────────────────────
+// Controls which config panels and wizard steps are shown.
+type SubgraphCategory = "llm" | "persist" | "post_process" | "terminology" | "tier_classify" | "generic";
+
+const SUBGRAPH_CATEGORY: Record<string, SubgraphCategory> = {
+  extraction:       "llm",
+  verification:     "llm",
+  sbar:             "llm",
+  anchor_detect:    "llm",
+  episode_build:    "llm",
+  next_best_action: "llm",
+  quality_check:    "llm",
+  compliance:       "llm",
+  persist:          "persist",
+  post_processing:  "post_process",
+  terminology:      "terminology",
+  tier_classify:    "tier_classify",
+  safety_net:       "generic",
+};
+
+// Wizard steps — step 3 (Prompt) is hidden for non-LLM subgraphs
+const WIZARD_STEPS_LLM     = ["Subgraph", "Data flow", "Settings", "Prompt & model", "Review"];
+const WIZARD_STEPS_NO_LLM  = ["Subgraph", "Data flow", "Settings", "Review"];
 
 interface ActionConfig {
   subgraphId: string;
   label: string;
   description: string;
+  // Data flow
   inputSource: string;
   outputTarget: string;
+  // Runtime
   enableVerification: boolean;
   maxRetries: number;
-  promptConfigId: string;
-  modelProvider: string;
-  modelName: string;
-  temperature: number;
   timeout: number;
+  // LLM
+  modelProvider: string;
+  modelTier: string;       // "small" | "big" | "max"
+  temperature: number;
+  promptConfigId: string;
+  promptConfigName: string;
+  // Subgraph-specific params (stored as generic map)
+  params: Record<string, unknown>;
 }
 
 const DEFAULT_CONFIG: ActionConfig = {
@@ -117,11 +145,13 @@ const DEFAULT_CONFIG: ActionConfig = {
   outputTarget: "patient_graph",
   enableVerification: false,
   maxRetries: 2,
-  promptConfigId: "",
-  modelProvider: "auto",
-  modelName: "",
-  temperature: 0.0,
   timeout: 120,
+  modelProvider: "auto",
+  modelTier: "small",
+  temperature: 0.0,
+  promptConfigId: "",
+  promptConfigName: "",
+  params: {},
 };
 
 interface ActionNodeData {
@@ -167,12 +197,243 @@ interface PlanData {
   edges: Array<{ source: string; target: string }>;
 }
 
+// ── Prompt picker ─────────────────────────────────────────────────────────────
+interface PromptOption { id: string; name: string; version: number; description: string; }
+
+function PromptPicker({
+  value, onChange,
+}: { value: string; onChange: (id: string, name: string) => void }) {
+  const [options, setOptions] = useState<PromptOption[]>([]);
+  useEffect(() => {
+    api.get<PromptOption[]>("/api/prompts").then(setOptions).catch(() => {});
+  }, []);
+
+  return (
+    <FormControl fullWidth size="small">
+      <InputLabel>AI instructions (prompt)</InputLabel>
+      <Select
+        value={value}
+        label="AI instructions (prompt)"
+        onChange={(e) => {
+          const opt = options.find((o) => o.id === e.target.value);
+          onChange(e.target.value, opt ? `${opt.name} v${opt.version}` : "");
+        }}
+      >
+        <MenuItem value=""><em>None — step runs without a prompt</em></MenuItem>
+        {options.map((o) => (
+          <MenuItem key={o.id} value={o.id}>
+            <Stack>
+              <Typography variant="body2">{o.name} <Typography component="span" variant="caption" color="text.secondary">v{o.version}</Typography></Typography>
+              {o.description && <Typography variant="caption" color="text.secondary" noWrap sx={{ maxWidth: 340 }}>{o.description}</Typography>}
+            </Stack>
+          </MenuItem>
+        ))}
+      </Select>
+    </FormControl>
+  );
+}
+
+// ── Data-flow summary ─────────────────────────────────────────────────────────
+function DataFlowPanel({ subgraphId }: { subgraphId: string }) {
+  const io = SUBGRAPH_IO[subgraphId];
+  if (!io) return null;
+  return (
+    <Paper variant="outlined" sx={{ p: 1.5, bgcolor: "grey.50" }}>
+      <Stack spacing={1}>
+        <Box>
+          <Typography variant="caption" fontWeight={700} color="text.secondary">READS FROM PIPELINE STATE</Typography>
+          <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap sx={{ mt: 0.5 }}>
+            {io.reads.map((k) => <Chip key={k} size="small" label={k} variant="outlined" sx={{ fontFamily: "monospace", fontSize: "0.68rem" }} />)}
+          </Stack>
+        </Box>
+        <Box>
+          <Typography variant="caption" fontWeight={700} color="text.secondary">WRITES TO PIPELINE STATE</Typography>
+          <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap sx={{ mt: 0.5 }}>
+            {io.writes.map((k) => <Chip key={k} size="small" label={k} color="primary" variant="outlined" sx={{ fontFamily: "monospace", fontSize: "0.68rem" }} />)}
+          </Stack>
+        </Box>
+      </Stack>
+    </Paper>
+  );
+}
+
+// ── Per-subgraph settings panel (step 2) ─────────────────────────────────────
+function SubgraphSettingsPanel({
+  category, config, updateField, updateParam,
+}: {
+  category: SubgraphCategory;
+  config: ActionConfig;
+  updateField: <K extends keyof ActionConfig>(k: K, v: ActionConfig[K]) => void;
+  updateParam: (k: string, v: unknown) => void;
+}) {
+  if (category === "persist") {
+    return (
+      <Stack spacing={2}>
+        <Typography variant="subtitle2">Where should results be saved?</Typography>
+        {[
+          { value: "patient_graph", label: "Patient Graph", desc: "Write coded entities to the live patient record — visible in the clinical audit view." },
+          { value: "gold_training", label: "Gold Training Dataset", desc: "Write verified, de-identified labels to the NER training pipeline." },
+          { value: "next_step",    label: "Pass to next step only", desc: "Don't persist anything — hand the data to the next action in the pipeline." },
+        ].map((opt) => (
+          <Paper
+            key={opt.value}
+            variant="outlined"
+            onClick={() => updateField("outputTarget", opt.value)}
+            sx={{
+              p: 1.5, cursor: "pointer", borderRadius: 2,
+              borderColor: config.outputTarget === opt.value ? "primary.main" : "divider",
+              bgcolor: config.outputTarget === opt.value ? "primary.50" : "transparent",
+            }}
+          >
+            <Typography variant="body2" fontWeight={600}>{opt.label}</Typography>
+            <Typography variant="caption" color="text.secondary">{opt.desc}</Typography>
+          </Paper>
+        ))}
+      </Stack>
+    );
+  }
+
+  if (category === "post_process") {
+    const layers: Array<{ key: string; label: string; desc: string }> = [
+      { key: "observable_normalise", label: "Observable normalisation", desc: "Strip value, unit, and interpretation suffix from lab test span text." },
+      { key: "scope_guard",          label: "Scope guard", desc: "Remove entities that fall outside the configured clinical domain." },
+      { key: "context_detection",    label: "Context detection (ConText)", desc: "Infer assertion from surrounding sentence context (negation, family, hypothetical)." },
+      { key: "entity_type_normalise",label: "Entity type normalisation", desc: "Standardise semantic tag labels to canonical SNOMED values." },
+      { key: "value_unit_linking",   label: "Value/unit linking", desc: "Link qualifier_value entities back to their parent observable entity." },
+    ];
+    return (
+      <Stack spacing={1.5}>
+        <Typography variant="subtitle2">Which processing layers should run?</Typography>
+        {layers.map((l) => (
+          <FormControlLabel
+            key={l.key}
+            sx={{ alignItems: "flex-start", m: 0 }}
+            control={
+              <Switch
+                size="small"
+                checked={(config.params[l.key] as boolean) !== false}
+                onChange={(e) => updateParam(l.key, e.target.checked)}
+                sx={{ mt: 0.25 }}
+              />
+            }
+            label={
+              <Box sx={{ ml: 0.5 }}>
+                <Typography variant="body2">{l.label}</Typography>
+                <Typography variant="caption" color="text.secondary">{l.desc}</Typography>
+              </Box>
+            }
+          />
+        ))}
+      </Stack>
+    );
+  }
+
+  if (category === "terminology") {
+    const threshold = (config.params.confidence_threshold as number) ?? 0.7;
+    const maxCandidates = (config.params.max_candidates as number) ?? 5;
+    return (
+      <Stack spacing={2.5}>
+        <Typography variant="subtitle2">SNOMED CT matching settings</Typography>
+        <Box>
+          <Typography variant="body2" gutterBottom>
+            Minimum match confidence: <strong>{threshold.toFixed(2)}</strong>
+          </Typography>
+          <Box component="input" type="range" min={0.5} max={1.0} step={0.05}
+            value={threshold}
+            onChange={(e) => updateParam("confidence_threshold", Number(e.currentTarget.value))}
+            style={{ width: "100%" }} />
+          <Stack direction="row" justifyContent="space-between">
+            <Typography variant="caption" color="text.secondary">0.50 (lenient)</Typography>
+            <Typography variant="caption" color="text.secondary">1.00 (exact only)</Typography>
+          </Stack>
+        </Box>
+        <TextField label="Max candidates to score" type="number" size="small" fullWidth
+          value={maxCandidates}
+          onChange={(e) => updateParam("max_candidates", Math.max(1, Math.min(20, Number(e.target.value))))}
+          inputProps={{ min: 1, max: 20 }}
+          helperText="How many SNOMED concept candidates are considered per surface form (1–20)." />
+      </Stack>
+    );
+  }
+
+  if (category === "tier_classify") {
+    const gold   = (config.params.gold_threshold   as number) ?? 0.95;
+    const silver = (config.params.silver_threshold as number) ?? 0.80;
+    const bronze = (config.params.bronze_threshold as number) ?? 0.60;
+    return (
+      <Stack spacing={2.5}>
+        <Typography variant="subtitle2">Confidence tier thresholds</Typography>
+        <Alert severity="info" sx={{ fontSize: "0.78rem" }} icon={false}>
+          Entities at or above the <strong>gold</strong> threshold are auto-accepted.
+          Below <strong>bronze</strong> they are flagged for manual review.
+        </Alert>
+        {[
+          { key: "gold_threshold",   label: "Gold",   color: "#FFD700", val: gold },
+          { key: "silver_threshold", label: "Silver", color: "#C0C0C0", val: silver },
+          { key: "bronze_threshold", label: "Bronze", color: "#CD7F32", val: bronze },
+        ].map((t) => (
+          <Box key={t.key}>
+            <Typography variant="body2" gutterBottom>
+              <span style={{ color: t.color, fontWeight: 700 }}>●</span> {t.label} threshold: <strong>{t.val.toFixed(2)}</strong>
+            </Typography>
+            <Box component="input" type="range" min={0.0} max={1.0} step={0.01}
+              value={t.val}
+              onChange={(e) => updateParam(t.key, Number(e.currentTarget.value))}
+              style={{ width: "100%" }} />
+          </Box>
+        ))}
+      </Stack>
+    );
+  }
+
+  if (category === "generic") {
+    return (
+      <Alert severity="info" sx={{ fontSize: "0.8rem" }}>
+        This step runs automatically with system defaults. No step-specific configuration is required here.
+      </Alert>
+    );
+  }
+
+  // LLM: model tier and provider
+  return (
+    <Stack spacing={2.5}>
+      <Typography variant="subtitle2">Model size</Typography>
+      {[
+        { value: "small", label: "Small — fast and cheap", desc: "Best for high-volume extraction where speed matters. Uses Claude Haiku / GPT-5 mini." },
+        { value: "big",   label: "Big — accurate",         desc: "Recommended for most clinical tasks. Uses Claude Sonnet / GPT-5." },
+        { value: "max",   label: "Max — best quality",     desc: "Use for complex disambiguation or final verification. Uses Claude Opus / GPT-5." },
+      ].map((opt) => (
+        <Paper
+          key={opt.value}
+          variant="outlined"
+          onClick={() => updateField("modelTier", opt.value)}
+          sx={{
+            p: 1.5, cursor: "pointer", borderRadius: 2,
+            borderColor: config.modelTier === opt.value ? "primary.main" : "divider",
+            bgcolor: config.modelTier === opt.value ? "primary.50" : "transparent",
+          }}
+        >
+          <Typography variant="body2" fontWeight={600}>{opt.label}</Typography>
+          <Typography variant="caption" color="text.secondary">{opt.desc}</Typography>
+        </Paper>
+      ))}
+      <Divider />
+      <FormControl fullWidth size="small">
+        <InputLabel>Provider</InputLabel>
+        <Select value={config.modelProvider} label="Provider"
+          onChange={(e) => updateField("modelProvider", e.target.value)}>
+          <MenuItem value="auto">Auto — use platform default</MenuItem>
+          <MenuItem value="aws">AWS Bedrock (Claude)</MenuItem>
+          <MenuItem value="azure">Azure OpenAI (GPT)</MenuItem>
+        </Select>
+      </FormControl>
+    </Stack>
+  );
+}
+
+// ── Action configurator ───────────────────────────────────────────────────────
 function ActionConfigurator({
-  nodeId,
-  initialConfig,
-  onSave,
-  onDelete,
-  onClose,
+  nodeId, initialConfig, onSave, onDelete, onClose,
 }: {
   nodeId: string;
   initialConfig: ActionConfig;
@@ -181,265 +442,343 @@ function ActionConfigurator({
   onClose: () => void;
 }) {
   const [step, setStep] = useState(0);
-  const [config, setConfig] = useState<ActionConfig>(initialConfig);
+  const [config, setConfig] = useState<ActionConfig>({ ...DEFAULT_CONFIG, ...initialConfig, params: initialConfig.params ?? {} });
 
+  const category: SubgraphCategory = SUBGRAPH_CATEGORY[config.subgraphId] ?? "generic";
+  const isLLM = category === "llm";
+  const wizardSteps = isLLM ? WIZARD_STEPS_LLM : WIZARD_STEPS_NO_LLM;
+  const lastStep = wizardSteps.length - 1;
   const subgraph = SUBGRAPH_OPTIONS.find((s) => s.id === config.subgraphId);
-  const canProceed = step === 0 ? !!config.subgraphId && !!config.label : true;
 
-  const updateField = <K extends keyof ActionConfig>(key: K, value: ActionConfig[K]) => {
+  const updateField = <K extends keyof ActionConfig>(key: K, value: ActionConfig[K]) =>
     setConfig((prev) => ({ ...prev, [key]: value }));
-  };
+
+  const updateParam = (key: string, value: unknown) =>
+    setConfig((prev) => ({ ...prev, params: { ...prev.params, [key]: value } }));
 
   const handleSubgraphChange = (id: string) => {
     const opt = SUBGRAPH_OPTIONS.find((s) => s.id === id);
     setConfig((prev) => ({
-      ...prev,
+      ...DEFAULT_CONFIG,
       subgraphId: id,
       label: prev.label || opt?.label || "",
       description: prev.description || opt?.description || "",
+      params: {},
     }));
   };
 
-  const handleSaveAndClose = () => {
-    onSave(nodeId, config);
-    onClose();
-  };
+  // step indices shift when non-LLM (no Prompt step)
+  // LLM:    0=Subgraph  1=DataFlow  2=Settings  3=Prompt  4=Review
+  // No-LLM: 0=Subgraph  1=DataFlow  2=Settings  3=Review
+
+  const reviewStep = isLLM ? 4 : 3;
+  const promptStep = 3; // only exists in LLM mode
 
   return (
-    <Box sx={{ width: 440, p: 3, display: "flex", flexDirection: "column", height: "100%" }}>
-      <Typography variant="h6" fontWeight={600} gutterBottom>Configure Action</Typography>
-      <Typography variant="caption" color="text.secondary" sx={{ mb: 2 }}>
-        {nodeId}
-      </Typography>
+    <Box sx={{ width: 460, p: 3, display: "flex", flexDirection: "column", height: "100%" }}>
+      <Typography variant="h6" fontWeight={600} gutterBottom>Configure step</Typography>
+      {subgraph && (
+        <Chip size="small" label={subgraph.label}
+          sx={{ mb: 1.5, alignSelf: "flex-start", bgcolor: subgraph.color, color: "#fff", fontSize: "0.7rem" }} />
+      )}
 
       <Stepper activeStep={step} alternativeLabel sx={{ mb: 3 }}>
-        {WIZARD_STEPS.map((label) => (
-          <Step key={label}>
-            <StepLabel>{label}</StepLabel>
-          </Step>
+        {wizardSteps.map((label) => (
+          <Step key={label}><StepLabel sx={{ "& .MuiStepLabel-label": { fontSize: "0.68rem" } }}>{label}</StepLabel></Step>
         ))}
       </Stepper>
 
       <Box sx={{ flex: 1, overflowY: "auto", mb: 2 }}>
+
+        {/* ── Step 0: Subgraph ── */}
         {step === 0 && (
           <Stack spacing={2.5}>
-            <Typography variant="subtitle2">Which subgraph should this action run?</Typography>
+            <Typography variant="subtitle2">Which step should this action run?</Typography>
             <FormControl fullWidth size="small">
-              <InputLabel>Subgraph</InputLabel>
-              <Select
-                value={config.subgraphId}
-                label="Subgraph"
-                onChange={(e) => handleSubgraphChange(e.target.value)}
-              >
+              <InputLabel>Step type</InputLabel>
+              <Select value={config.subgraphId} label="Step type"
+                onChange={(e) => handleSubgraphChange(e.target.value)}>
                 {SUBGRAPH_OPTIONS.map((s) => (
                   <MenuItem key={s.id} value={s.id}>
                     <Stack>
                       <Typography variant="body2">{s.label}</Typography>
-                      <Typography variant="caption" color="text.secondary">{s.id}</Typography>
+                      <Typography variant="caption" color="text.secondary">{s.description}</Typography>
                     </Stack>
                   </MenuItem>
                 ))}
               </Select>
             </FormControl>
-            {subgraph && (
-              <Alert severity="info" icon={false} sx={{ fontSize: "0.8rem" }}>
-                {subgraph.description}
-              </Alert>
-            )}
-            <TextField
-              label="Display name"
-              size="small"
-              fullWidth
-              value={config.label}
+            <TextField label="Display name" size="small" fullWidth value={config.label}
               onChange={(e) => updateField("label", e.target.value)}
-              helperText="A friendly name shown on the pathway canvas."
-            />
-            <TextField
-              label="Description"
-              size="small"
-              fullWidth
-              multiline
-              minRows={2}
+              helperText="A friendly name shown on the canvas." />
+            <TextField label="What does this step do?" size="small" fullWidth multiline minRows={2}
               value={config.description}
               onChange={(e) => updateField("description", e.target.value)}
-              helperText="What does this step do in plain English?"
-            />
+              helperText="Plain English — shown in the pathway summary." />
           </Stack>
         )}
 
+        {/* ── Step 1: Data flow ── */}
         {step === 1 && (
           <Stack spacing={2.5}>
-            <Typography variant="subtitle2">Where does this step get its data?</Typography>
+            <Typography variant="subtitle2">Data this step reads and writes</Typography>
+            <DataFlowPanel subgraphId={config.subgraphId} />
+            <Divider />
+
             <FormControl fullWidth size="small">
-              <InputLabel>Input source</InputLabel>
-              <Select
-                value={config.inputSource}
-                label="Input source"
-                onChange={(e) => updateField("inputSource", e.target.value)}
-              >
-                <MenuItem value="previous_step">Previous step output</MenuItem>
-                <MenuItem value="encounter_text">Raw encounter text</MenuItem>
-                <MenuItem value="patient_graph">Patient Graph (Neo4j)</MenuItem>
-                <MenuItem value="knowledge_graph">Knowledge Graph (Neo4j)</MenuItem>
+              <InputLabel>Where does data come from?</InputLabel>
+              <Select value={config.inputSource} label="Where does data come from?"
+                onChange={(e) => {
+                  updateField("inputSource", e.target.value);
+                  // clear Neo4j node config when switching away
+                  if (!["patient_graph", "knowledge_graph"].includes(e.target.value)) {
+                    updateParam("input_node_label", "");
+                    updateParam("input_text_property", "text");
+                    updateParam("input_filter_property", "");
+                    updateParam("input_filter_value", "");
+                  }
+                }}>
+                <MenuItem value="previous_step">Output of the previous step</MenuItem>
+                <MenuItem value="encounter_text">Raw encounter text (pipeline start)</MenuItem>
+                <MenuItem value="patient_graph">Patient Graph Neo4j — pick a node type</MenuItem>
+                <MenuItem value="knowledge_graph">Knowledge Graph Neo4j — pick a node type</MenuItem>
               </Select>
             </FormControl>
-            <Divider />
-            <Typography variant="subtitle2">Where should results be written?</Typography>
+
+            {/* Neo4j node + property picker — shown when reading from either graph */}
+            {(config.inputSource === "patient_graph" || config.inputSource === "knowledge_graph") && (
+              <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
+                <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ display: "block", mb: 1.5 }}>
+                  {config.inputSource === "patient_graph" ? "PATIENT GRAPH" : "KNOWLEDGE GRAPH"} — NODE QUERY
+                </Typography>
+                <Stack spacing={1.5}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>Node label</InputLabel>
+                    <Select
+                      value={(config.params.input_node_label as string) || ""}
+                      label="Node label"
+                      onChange={(e) => updateParam("input_node_label", e.target.value)}
+                    >
+                      {config.inputSource === "patient_graph" ? (
+                        // Patient Graph — contains PII-linked clinical records
+                        [
+                          { v: "EncounterCandidate", d: "Raw encounter text candidate for coding (linked to patient)" },
+                          { v: "Encounter",          d: "A clinical encounter / consultation record" },
+                          { v: "Patient",            d: "Patient root node" },
+                          { v: "ReviewTask",         d: "A HITL coding review task awaiting clinician" },
+                          { v: "EpisodeOfCare",      d: "A grouped episode of care across encounters" },
+                          { v: "SafetyNetAlert",     d: "An overdue investigation or follow-up alert" },
+                        ].map(({ v, d }) => (
+                          <MenuItem key={v} value={v}>
+                            <Stack>
+                              <Typography variant="body2" sx={{ fontFamily: "monospace" }}>{v}</Typography>
+                              <Typography variant="caption" color="text.secondary">{d}</Typography>
+                            </Stack>
+                          </MenuItem>
+                        ))
+                      ) : (
+                        // Knowledge Graph — de-identified / anonymous clinical knowledge
+                        [
+                          { v: "TrainingCandidate",  d: "De-identified text awaiting gold labelling — GDPR-isolated, no patient IDs" },
+                          { v: "GoldLabel",          d: "Verified NER training label linked to a TrainingCandidate" },
+                          { v: "SurfaceFormTask",    d: "A surface form validation task for HITL review" },
+                          { v: "SurfaceForm",        d: "A clinical surface form / alias for a SNOMED concept" },
+                          { v: "Concept",            d: "A SNOMED CT concept node" },
+                          { v: "CodingDecision",     d: "A recorded coding decision for a surface form" },
+                          { v: "PromptConfig",       d: "An AI prompt configuration" },
+                          { v: "PipelineConfig",     d: "A pipeline configuration node" },
+                        ].map(({ v, d }) => (
+                          <MenuItem key={v} value={v}>
+                            <Stack>
+                              <Typography variant="body2" sx={{ fontFamily: "monospace" }}>{v}</Typography>
+                              <Typography variant="caption" color="text.secondary">{d}</Typography>
+                            </Stack>
+                          </MenuItem>
+                        ))
+                      )}
+                    </Select>
+                  </FormControl>
+
+                  <FormControl fullWidth size="small">
+                    <InputLabel>Property to use as encounter text</InputLabel>
+                    <Select
+                      value={(config.params.input_text_property as string) || "text"}
+                      label="Property to use as encounter text"
+                      onChange={(e) => updateParam("input_text_property", e.target.value)}
+                    >
+                      {[
+                        { v: "text",              d: "The main text/body of the node" },
+                        { v: "raw_text",          d: "Unprocessed original text" },
+                        { v: "deidentified_text", d: "De-identified version of the text" },
+                        { v: "content",           d: "Document content field" },
+                      ].map(({ v, d }) => (
+                        <MenuItem key={v} value={v}>
+                          <Typography variant="body2" sx={{ fontFamily: "monospace" }}>{v}</Typography>
+                          <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>{d}</Typography>
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+
+                  <Divider />
+                  <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                    FILTER (optional — only process nodes matching this condition)
+                  </Typography>
+                  <Stack direction="row" spacing={1}>
+                    <TextField size="small" label="Property" sx={{ flex: 1 }}
+                      placeholder="e.g. status"
+                      value={(config.params.input_filter_property as string) || ""}
+                      onChange={(e) => updateParam("input_filter_property", e.target.value)}
+                      inputProps={{ style: { fontFamily: "monospace" } }} />
+                    <TextField size="small" label="= Value" sx={{ flex: 1 }}
+                      placeholder='e.g. "pending"'
+                      value={(config.params.input_filter_value as string) || ""}
+                      onChange={(e) => updateParam("input_filter_value", e.target.value)}
+                      inputProps={{ style: { fontFamily: "monospace" } }} />
+                  </Stack>
+
+                  {config.params.input_node_label && (
+                    <Paper sx={{ p: 1, bgcolor: "grey.50", borderRadius: 1 }}>
+                      <Typography variant="caption" sx={{ fontFamily: "monospace", color: "text.secondary" }}>
+                        MATCH (n:{config.params.input_node_label as string}
+                        {config.params.input_filter_property
+                          ? ` {${config.params.input_filter_property as string}: "${config.params.input_filter_value as string || "..."}"}`
+                          : ""})
+                        {"\n"}RETURN n.{(config.params.input_text_property as string) || "text"} AS encounter_text
+                      </Typography>
+                    </Paper>
+                  )}
+                </Stack>
+              </Paper>
+            )}
+
             <FormControl fullWidth size="small">
-              <InputLabel>Output target</InputLabel>
-              <Select
-                value={config.outputTarget}
-                label="Output target"
-                onChange={(e) => updateField("outputTarget", e.target.value)}
-              >
-                <MenuItem value="patient_graph">Patient Graph</MenuItem>
-                <MenuItem value="gold_training">Gold Training Dataset</MenuItem>
-                <MenuItem value="next_step">Pass to next step only</MenuItem>
+              <InputLabel>Runtime retries on failure</InputLabel>
+              <Select value={String(config.maxRetries)} label="Runtime retries on failure"
+                onChange={(e) => updateField("maxRetries", Number(e.target.value))}>
+                {[0, 1, 2, 3, 5].map((n) => (
+                  <MenuItem key={n} value={String(n)}>{n === 0 ? "None — fail immediately" : `${n} retr${n === 1 ? "y" : "ies"}`}</MenuItem>
+                ))}
               </Select>
             </FormControl>
           </Stack>
         )}
 
+        {/* ── Step 2: Per-subgraph settings ── */}
         {step === 2 && (
-          <Stack spacing={2.5}>
-            <Typography variant="subtitle2">Runtime settings</Typography>
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={config.enableVerification}
-                  onChange={(e) => updateField("enableVerification", e.target.checked)}
-                />
-              }
-              label="Enable verification (big model confirms output)"
-            />
-            <TextField
-              label="Max retries on failure"
-              type="number"
-              size="small"
-              fullWidth
-              value={config.maxRetries}
-              onChange={(e) => updateField("maxRetries", Math.max(0, Math.min(5, Number(e.target.value))))}
-              inputProps={{ min: 0, max: 5 }}
-              helperText="How many times to retry if this step fails (0–5)."
-            />
-            <TextField
-              label="Timeout (seconds)"
-              type="number"
-              size="small"
-              fullWidth
-              value={config.timeout}
-              onChange={(e) => updateField("timeout", Math.max(10, Number(e.target.value)))}
-              inputProps={{ min: 10 }}
-              helperText="Maximum time to wait before timing out."
-            />
-          </Stack>
+          <SubgraphSettingsPanel
+            category={category}
+            config={config}
+            updateField={updateField}
+            updateParam={updateParam}
+          />
         )}
 
-        {step === 3 && (
+        {/* ── Step 3 (LLM only): Prompt & model ── */}
+        {isLLM && step === promptStep && (
           <Stack spacing={2.5}>
-            <Typography variant="subtitle2">LLM / prompt settings</Typography>
-            <Typography variant="body2" color="text.secondary">
-              If this action uses an LLM, configure the model and prompt here. Leave blank for
-              non-LLM steps (like post-processing or persist).
-            </Typography>
-            <FormControl fullWidth size="small">
-              <InputLabel>Model provider</InputLabel>
-              <Select
-                value={config.modelProvider}
-                label="Model provider"
-                onChange={(e) => updateField("modelProvider", e.target.value)}
-              >
-                <MenuItem value="auto">Auto (platform default)</MenuItem>
-                <MenuItem value="aws_bedrock">AWS Bedrock</MenuItem>
-                <MenuItem value="azure_openai">Azure OpenAI</MenuItem>
-              </Select>
-            </FormControl>
-            <TextField
-              label="Model name (optional)"
-              size="small"
-              fullWidth
-              value={config.modelName}
-              onChange={(e) => updateField("modelName", e.target.value)}
-              helperText='e.g. "claude-3-haiku" or "gpt-5-mini". Leave blank for platform default.'
-            />
-            <TextField
-              label="Temperature"
-              type="number"
-              size="small"
-              fullWidth
-              value={config.temperature}
-              onChange={(e) => updateField("temperature", Math.max(0, Math.min(2, Number(e.target.value))))}
-              inputProps={{ min: 0, max: 2, step: 0.1 }}
-            />
-            <Divider />
-            <TextField
-              label="Prompt Config ID (from Neo4j)"
-              size="small"
-              fullWidth
+            <Typography variant="subtitle2">Which AI instructions should this step use?</Typography>
+            <PromptPicker
               value={config.promptConfigId}
-              onChange={(e) => updateField("promptConfigId", e.target.value)}
-              helperText={
-                <>
-                  Link a PromptConfig stored in Neo4j. Manage prompts in{" "}
-                  <Typography
-                    component="a"
-                    href="/admin/prompts"
-                    variant="caption"
-                    color="primary"
-                    sx={{ textDecoration: "underline" }}
-                  >
-                    Prompt Tuner
-                  </Typography>.
-                </>
-              }
+              onChange={(id, name) => { updateField("promptConfigId", id); updateField("promptConfigName", name); }}
             />
+            {config.promptConfigId && (
+              <Typography variant="caption" color="text.secondary">
+                <Typography component="a" href="/admin/prompts" variant="caption" color="primary"
+                  sx={{ textDecoration: "underline" }}>
+                  Open in Prompt Tuner
+                </Typography>{" "}to edit the instructions, output schema, or teaching examples.
+              </Typography>
+            )}
+            <Divider />
+            <Typography variant="subtitle2">Temperature</Typography>
+            <Alert severity="info" sx={{ fontSize: "0.78rem" }} icon={false}>
+              For clinical extraction, keep this at <strong>0.0</strong> — the AI should give the same answer every time, not be creative.
+            </Alert>
+            <Box>
+              <Typography variant="body2" gutterBottom>
+                Temperature: <strong>{config.temperature.toFixed(1)}</strong>
+                {config.temperature === 0 && " (deterministic — recommended)"}
+                {config.temperature > 0.5 && " (creative — not recommended for clinical tasks)"}
+              </Typography>
+              <Box component="input" type="range" min={0} max={1} step={0.1}
+                value={config.temperature}
+                onChange={(e) => updateField("temperature", Number(e.currentTarget.value))}
+                style={{ width: "100%" }} />
+              <Stack direction="row" justifyContent="space-between">
+                <Typography variant="caption" color="text.secondary">0.0 — always same answer</Typography>
+                <Typography variant="caption" color="text.secondary">1.0 — creative / varied</Typography>
+              </Stack>
+            </Box>
           </Stack>
         )}
 
-        {step === 4 && (
+        {/* ── Review step ── */}
+        {step === reviewStep && (
           <Stack spacing={2}>
             <Typography variant="subtitle2">Review your configuration</Typography>
             <Paper variant="outlined" sx={{ p: 2 }}>
               <Stack spacing={1}>
-                <ReviewRow label="Subgraph" value={subgraph?.label || config.subgraphId} />
+                <ReviewRow label="Step type" value={subgraph?.label || config.subgraphId} />
                 <ReviewRow label="Display name" value={config.label} />
-                <ReviewRow label="Description" value={config.description || "—"} />
                 <Divider />
-                <ReviewRow label="Input" value={config.inputSource.replace(/_/g, " ")} />
-                <ReviewRow label="Output" value={config.outputTarget.replace(/_/g, " ")} />
-                <Divider />
-                <ReviewRow label="Verification" value={config.enableVerification ? "Enabled" : "Disabled"} />
-                <ReviewRow label="Max retries" value={String(config.maxRetries)} />
-                <ReviewRow label="Timeout" value={`${config.timeout}s`} />
-                <Divider />
-                <ReviewRow label="Model" value={config.modelProvider === "auto" ? "Platform default" : `${config.modelProvider} / ${config.modelName || "default"}`} />
-                <ReviewRow label="Temperature" value={String(config.temperature)} />
-                <ReviewRow label="Prompt config" value={config.promptConfigId || "—"} />
+                <ReviewRow label="Input source" value={config.inputSource.replace(/_/g, " ")} />
+                {(config.inputSource === "patient_graph" || config.inputSource === "knowledge_graph") && config.params.input_node_label && (
+                  <>
+                    <ReviewRow label="Node label" value={config.params.input_node_label as string} />
+                    <ReviewRow label="Text property" value={(config.params.input_text_property as string) || "text"} />
+                    {config.params.input_filter_property && (
+                      <ReviewRow label="Filter" value={`${config.params.input_filter_property} = "${config.params.input_filter_value}"`} />
+                    )}
+                  </>
+                )}
+                <ReviewRow label="Max retries" value={config.maxRetries === 0 ? "None" : `${config.maxRetries}`} />
+                {category === "persist" && <ReviewRow label="Save to" value={config.outputTarget.replace(/_/g, " ")} />}
+                {category === "terminology" && (
+                  <>
+                    <ReviewRow label="Min confidence" value={String((config.params.confidence_threshold as number) ?? 0.7)} />
+                    <ReviewRow label="Max candidates" value={String((config.params.max_candidates as number) ?? 5)} />
+                  </>
+                )}
+                {isLLM && (
+                  <>
+                    <Divider />
+                    <ReviewRow label="Model size" value={config.modelTier} />
+                    <ReviewRow label="Provider" value={config.modelProvider === "auto" ? "Platform default" : config.modelProvider === "aws" ? "AWS Bedrock (Claude)" : "Azure OpenAI (GPT)"} />
+                    <ReviewRow label="Temperature" value={config.temperature.toFixed(1)} />
+                    <ReviewRow label="Prompt" value={config.promptConfigName || config.promptConfigId || "None"} />
+                  </>
+                )}
               </Stack>
             </Paper>
+            {isLLM && !config.promptConfigId && (
+              <Alert severity="warning" sx={{ fontSize: "0.78rem" }}>
+                No prompt selected. This LLM step will use the system default instructions.
+              </Alert>
+            )}
           </Stack>
         )}
       </Box>
 
       <Divider sx={{ mb: 2 }} />
-
       <Stack direction="row" justifyContent="space-between">
-        <Tooltip title="Remove this action from the pathway">
+        <Tooltip title="Remove this step from the pathway">
           <IconButton color="error" onClick={() => { onDelete(nodeId); onClose(); }}>
             <DeleteOutlineIcon />
           </IconButton>
         </Tooltip>
         <Stack direction="row" spacing={1}>
-          {step > 0 && (
-            <Button size="small" onClick={() => setStep((s) => s - 1)}>Back</Button>
-          )}
-          {step < WIZARD_STEPS.length - 1 ? (
-            <Button size="small" variant="contained" disabled={!canProceed} onClick={() => setStep((s) => s + 1)}>
+          {step > 0 && <Button size="small" onClick={() => setStep((s) => s - 1)}>Back</Button>}
+          {step < lastStep ? (
+            <Button size="small" variant="contained"
+              disabled={step === 0 && (!config.subgraphId || !config.label)}
+              onClick={() => setStep((s) => s + 1)}>
               Next
             </Button>
           ) : (
-            <Button size="small" variant="contained" color="success" onClick={handleSaveAndClose}>
-              Save action
+            <Button size="small" variant="contained" color="success"
+              onClick={() => { onSave(nodeId, config); onClose(); }}>
+              Save step
             </Button>
           )}
         </Stack>
@@ -740,7 +1079,7 @@ export default function PathwayBuilderPage() {
           if (trig?.event) setTriggerEvent(trig.event);
           const configs: Record<string, ActionConfig> = {};
           const loadedNodes: Node[] = (data.actions || []).map((a, i) => {
-            const cfg: ActionConfig = { ...DEFAULT_CONFIG, subgraphId: a.subgraphId, label: a.label || a.subgraphId, ...a.config };
+            const cfg: ActionConfig = { ...DEFAULT_CONFIG, subgraphId: a.subgraphId, label: a.label || a.subgraphId, ...a.config, params: (a.config as ActionConfig)?.params ?? {} };
             configs[a.id] = cfg;
             return {
               id: a.id,

@@ -140,9 +140,13 @@ class PatientGraphClient(_BaseClient):
 class KnowledgeGraphClient(_BaseClient):
     """Connects to the Knowledge Graph (KNOWLEDGE_GRAPH_NEO4J_URI).
 
-    Contains: Concept, Term, SurfaceForm, ReadCode, Icd10Code,
-    ValueSet, ConceptMap, Measure, Library, MeasureReport, Device,
-    PlanDefinition, Organization.
+    Contains anonymous/de-identified model knowledge — no patient identifiers:
+      Terminology:   Concept, Term, SurfaceForm, ReadCode, Icd10Code, ValueSet,
+                     ConceptMap, CodingDecision, SurfaceFormTask
+      Learning loop: TrainingCandidate, GoldLabel  (GDPR-isolated)
+      Pipeline:      PromptConfig, PipelineConfig, Device, PlanDefinition,
+                     ModelVersion, ModelRegistryConfig, ModelPreset
+      Org/FHIR:      Measure, Library, MeasureReport, Organization
     """
 
     def __init__(self) -> None:

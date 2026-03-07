@@ -1,14 +1,11 @@
-"""V1 cancer exclusion detection prompt.
+"""V1 cancer exclusion detection prompt — INSTRUCTIONS ONLY.
 
-.. deprecated::
-    Hardcoded fallback only. Canonical source: ``PromptConfig`` node in
-    Neo4j. Edit via Admin UI at /admin/prompts.
+Output schema and few-shot examples are stored separately in Neo4j and
+assembled at runtime. Do NOT add output format sections or inline examples
+to this file — manage them via the Admin UI at /admin/prompts
+(name='exclusion_detect', version=1).
 
-Classifies post-referral encounter text as evidence of cancer exclusion,
-confirmation, ongoing investigation, pending letter, or not relevant.
-
-Designed for 2-model consensus (AWS small + Azure small) following the
-encounter_classifier pattern.
+Run ``python -m scripts.seed_prompt_configs`` to push changes to Neo4j.
 """
 from libs.prompts.registry import register
 
@@ -19,15 +16,6 @@ for suspected cancer.
 
 Your task: determine whether this encounter contains evidence about the OUTCOME
 of that cancer referral.
-
-Return ONLY valid JSON matching this schema. No explanation, no markdown.
-
-{
-  "outcome": "<cancer_excluded | cancer_confirmed | still_investigating | pending_letter | not_relevant>",
-  "confidence": <0.0 to 1.0>,
-  "evidence_text": "<the specific phrase(s) that support your classification>",
-  "reasoning": "<one sentence explaining your decision>"
-}
 
 ## Outcomes
 

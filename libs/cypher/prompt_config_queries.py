@@ -89,6 +89,7 @@ UPSERT_SEED_PROMPT = """
 MERGE (p:PromptConfig {name: $name, version: $version})
 ON CREATE SET
   p.id = $id,
+  p.description = $description,
   p.system_prompt = $system_prompt,
   p.output_schema = $output_schema,
   p.verification = $verification,
@@ -97,8 +98,10 @@ ON CREATE SET
   p.created_at = datetime(),
   p.updated_at = datetime()
 ON MATCH SET
+  p.description = CASE WHEN p.source = 'seed' THEN $description ELSE p.description END,
   p.system_prompt = CASE WHEN p.source = 'seed' THEN $system_prompt ELSE p.system_prompt END,
   p.output_schema = CASE WHEN p.source = 'seed' THEN $output_schema ELSE p.output_schema END,
+  p.few_shot_examples = CASE WHEN p.source = 'seed' THEN $few_shot_examples ELSE p.few_shot_examples END,
   p.updated_at = datetime()
 RETURN p.id AS id, p.source AS source
 """

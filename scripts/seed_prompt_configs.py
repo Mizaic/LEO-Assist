@@ -15,6 +15,7 @@ import logging
 import os
 import sys
 import uuid
+from typing import Any
 from pathlib import Path
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
@@ -42,7 +43,14 @@ logger = logging.getLogger(__name__)
 SEED_PROMPTS: list[dict] = []
 
 
-def _add(name: str, version: int, variable_path: str) -> None:
+def _add(
+    name: str,
+    version: int,
+    variable_path: str,
+    output_schema: str = "{}",
+    few_shot_examples: list[dict] | None = None,
+    description: str = "",
+) -> None:
     """Resolve a prompt text from libs.prompts at import time."""
     parts = variable_path.rsplit(".", 1)
     mod = __import__(parts[0], fromlist=[parts[1]])
@@ -50,23 +58,62 @@ def _add(name: str, version: int, variable_path: str) -> None:
     SEED_PROMPTS.append({
         "name": name,
         "version": version,
+        "description": description,
         "system_prompt": text,
-        "output_schema": "{}",
+        "output_schema": output_schema,
         "verification": False,
+        "few_shot_examples": few_shot_examples or [],
     })
 
 
-_add("extraction", 1, "libs.prompts.extraction_v1.EXTRACTION_SYSTEM_V1")
-_add("disambiguation", 1, "libs.prompts.disambiguation_v1.DISAMBIGUATION_SYSTEM_V1")
-_add("episode_builder_system", 1, "libs.prompts.episode_builder_v1.EPISODE_BUILDER_SYSTEM_V1")
-_add("episode_builder_task", 1, "libs.prompts.episode_builder_v1.EPISODE_BUILDER_TASK_V1")
-_add("episode_consolidation_system", 1, "libs.prompts.episode_builder_v1.EPISODE_CONSOLIDATION_SYSTEM_V1")
-_add("episode_consolidation_task", 1, "libs.prompts.episode_builder_v1.EPISODE_CONSOLIDATION_TASK_V1")
-_add("encounter_classify", 1, "libs.prompts.encounter_classify_v1.ENCOUNTER_CLASSIFY_SYSTEM_V1")
-_add("anchor_domain_review", 1, "libs.prompts.anchor_domain_review_v1.ANCHOR_DOMAIN_REVIEW_V1")
-_add("exclusion_detect", 1, "libs.prompts.exclusion_detect_v1.EXCLUSION_DETECT_SYSTEM_V1")
-_add("label_verification", 2, "libs.prompts.label_verification_v2.LABEL_VERIFICATION_V2")
-_add("label_disambiguation", 1, "libs.prompts.label_disambiguation_v1.LABEL_DISAMBIGUATION_V1")
+# ── Extraction — structured output schema + example library ─────────────────
+from libs.prompts.extraction_output_schema import EXTRACTION_OUTPUT_SCHEMA
+from libs.prompts.extraction_examples import EXTRACTION_EXAMPLES
+
+_add(
+    "extraction", 1,
+    "libs.prompts.extraction_v1.EXTRACTION_SYSTEM_V1",
+    output_schema=json.dumps(EXTRACTION_OUTPUT_SCHEMA),
+    few_shot_examples=[
+        {
+            "id": f"seed_ex_{i:03d}",
+            "input": ex["input"],
+            "output": ex["output"],
+            "deidentified": True,
+            "category": ex.get("category", ""),
+            "model_scope": ex.get("model_scope", "any"),
+            "description": ex.get("description", ""),
+        }
+        for i, ex in enumerate(EXTRACTION_EXAMPLES)
+    ],
+    description=(
+        "Extracts SNOMED CT-codable clinical entities from de-identified GP "
+        "consultation text. Produces surface forms, semantic tags, assertions, "
+        "and structured measurement fields for observable entities and staging scales."
+    ),
+)
+
+# ── Other prompts ────────────────────────────────────────────────────────────
+_add("disambiguation", 1, "libs.prompts.disambiguation_v1.DISAMBIGUATION_SYSTEM_V1",
+     description="Disambiguates extracted entities against candidate SNOMED concepts.")
+_add("episode_builder_system", 1, "libs.prompts.episode_builder_v1.EPISODE_BUILDER_SYSTEM_V1",
+     description="System role for the episode builder — groups coded entities into clinical episodes.")
+_add("episode_builder_task", 1, "libs.prompts.episode_builder_v1.EPISODE_BUILDER_TASK_V1",
+     description="Task instructions for the episode builder — structures entities per clinical encounter.")
+_add("episode_consolidation_system", 1, "libs.prompts.episode_builder_v1.EPISODE_CONSOLIDATION_SYSTEM_V1",
+     description="System role for cross-encounter episode consolidation.")
+_add("episode_consolidation_task", 1, "libs.prompts.episode_builder_v1.EPISODE_CONSOLIDATION_TASK_V1",
+     description="Task instructions for consolidating episodes across multiple encounters.")
+_add("encounter_classify", 1, "libs.prompts.encounter_classify_v1.ENCOUNTER_CLASSIFY_SYSTEM_V1",
+     description="Classifies encounters by type and clinical tier before extraction.")
+_add("anchor_domain_review", 1, "libs.prompts.anchor_domain_review_v1.ANCHOR_DOMAIN_REVIEW_V1",
+     description="Reviews extracted entities against configured anchor domains to check relevance.")
+_add("exclusion_detect", 1, "libs.prompts.exclusion_detect_v1.EXCLUSION_DETECT_SYSTEM_V1",
+     description="Detects and flags entities that should be excluded from coding based on exclusion rules.")
+_add("label_verification", 2, "libs.prompts.label_verification_v2.LABEL_VERIFICATION_V2",
+     description="Verifies extracted label quality against the source text before gold-label persistence.")
+_add("label_disambiguation", 1, "libs.prompts.label_disambiguation_v1.LABEL_DISAMBIGUATION_V1",
+     description="Disambiguates uncertain labels using context from the full encounter.")
 
 
 def main() -> None:
@@ -92,14 +139,19 @@ def main() -> None:
                 id=str(uuid.uuid4()),
                 name=prompt["name"],
                 version=prompt["version"],
+                description=prompt.get("description", ""),
                 system_prompt=prompt["system_prompt"],
                 output_schema=prompt["output_schema"],
                 verification=prompt["verification"],
-                few_shot_examples="[]",
+                few_shot_examples=json.dumps(prompt.get("few_shot_examples", [])),
             ).single()
             source = result["source"] if result else "unknown"
             action = "created" if source == "seed" else "skipped (user-edited)"
-            logger.info("  %s v%d — %s", prompt["name"], prompt["version"], action)
+            n_examples = len(prompt.get("few_shot_examples", []))
+            logger.info(
+                "  %s v%d — %s (%d examples)",
+                prompt["name"], prompt["version"], action, n_examples,
+            )
             seeded += 1
 
     driver.close()

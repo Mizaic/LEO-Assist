@@ -79,8 +79,29 @@ def extract_entities(state: ExtractionState) -> dict[str, Any]:
     try:
         from libs.pipeline_graph.subgraphs._extractor import build_extractor
 
+        cfg = state.get("prompt_config") or {}
         system_prompt = _resolve_system_prompt(state)
-        extractor = build_extractor(system_prompt=system_prompt)
+
+        # Pass output schema + examples so the extractor can assemble the full prompt
+        output_schema_json: str | None = cfg.get("outputSchema") or None
+        few_shot_raw = cfg.get("fewShotExamples")
+        few_shot_examples: list[dict] | None = None
+        if few_shot_raw:
+            import json as _json
+            try:
+                few_shot_examples = (
+                    _json.loads(few_shot_raw)
+                    if isinstance(few_shot_raw, str)
+                    else few_shot_raw
+                )
+            except Exception:
+                few_shot_examples = None
+
+        extractor = build_extractor(
+            system_prompt=system_prompt,
+            output_schema_json=output_schema_json,
+            few_shot_examples=few_shot_examples,
+        )
         chunks = [
             SentenceChunk(
                 sentence_id=s.get("sentence_id", ""),
