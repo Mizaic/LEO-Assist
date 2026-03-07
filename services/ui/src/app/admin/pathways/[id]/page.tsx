@@ -20,6 +20,7 @@ import Step from "@mui/material/Step";
 import StepLabel from "@mui/material/StepLabel";
 import Divider from "@mui/material/Divider";
 import Alert from "@mui/material/Alert";
+import CircularProgress from "@mui/material/CircularProgress";
 import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
 import Paper from "@mui/material/Paper";
@@ -128,8 +129,8 @@ interface ActionConfig {
   maxRetries: number;
   timeout: number;
   // LLM
-  modelProvider: string;
-  modelTier: string;       // "small" | "big" | "max"
+  modelPresetId: string;
+  modelPresetName: string;
   temperature: number;
   promptConfigId: string;
   promptConfigName: string;
@@ -146,8 +147,8 @@ const DEFAULT_CONFIG: ActionConfig = {
   enableVerification: false,
   maxRetries: 2,
   timeout: 120,
-  modelProvider: "auto",
-  modelTier: "small",
+  modelPresetId: "",
+  modelPresetName: "",
   temperature: 0.0,
   promptConfigId: "",
   promptConfigName: "",
@@ -197,6 +198,90 @@ interface PlanData {
   edges: Array<{ source: string; target: string }>;
 }
 
+// ── Model preset picker ───────────────────────────────────────────────────────
+interface ModelPreset {
+  preset_id: string;
+  name: string;
+  description: string;
+  color: string;
+  extractor: string;       // "llm" | "ner" | "ner+llm"
+  primary_model: string;   // "aws:small" | "azure:big" | "ner" etc.
+  consensus_mode: boolean;
+  is_default: boolean;
+  is_system: boolean;
+  prompt_config_id: string;
+}
+
+function ModelPresetPicker({
+  value, onChange,
+}: { value: string; onChange: (presetId: string, preset: ModelPreset | null) => void }) {
+  const [presets, setPresets] = useState<ModelPreset[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/presets", { credentials: "include", headers: { "X-Requested-With": "XMLHttpRequest" } })
+      .then((r) => r.ok ? r.json() : Promise.reject(r.statusText))
+      .then((data) => setPresets(Array.isArray(data) ? data : data.presets ?? []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <Alert severity="info" sx={{ fontSize: "0.78rem" }}>Loading model presets…</Alert>;
+
+  if (presets.length === 0) {
+    return (
+      <Alert severity="warning" sx={{ fontSize: "0.78rem" }}>
+        No model presets found. Create presets in{" "}
+        <Typography component="a" href="/admin/models" variant="caption" color="primary" sx={{ textDecoration: "underline" }}>
+          AI Models
+        </Typography>{" "}first.
+      </Alert>
+    );
+  }
+
+  return (
+    <Stack spacing={1}>
+      {presets.map((p) => {
+        const selected = value === p.preset_id;
+        return (
+          <Paper
+            key={p.preset_id}
+            variant="outlined"
+            onClick={() => onChange(p.preset_id, p)}
+            sx={{
+              p: 1.5, cursor: "pointer", borderRadius: 2,
+              borderColor: selected ? "primary.main" : "divider",
+              borderWidth: selected ? 2 : 1,
+              bgcolor: selected ? "primary.50" : "transparent",
+            }}
+          >
+            <Stack direction="row" alignItems="flex-start" spacing={1.5}>
+              <Box sx={{ width: 10, height: 10, borderRadius: "50%", bgcolor: p.color || "#999", mt: "5px", flexShrink: 0 }} />
+              <Box sx={{ flex: 1 }}>
+                <Stack direction="row" spacing={0.75} alignItems="center" flexWrap="wrap" useFlexGap>
+                  <Typography variant="body2" fontWeight={700}>{p.name}</Typography>
+                  {p.is_default && <Chip size="small" label="Default" color="primary" sx={{ height: 16, fontSize: "0.6rem" }} />}
+                  {p.is_system && <Chip size="small" label="System" variant="outlined" sx={{ height: 16, fontSize: "0.6rem" }} />}
+                  <Chip size="small" label={p.extractor} variant="outlined"
+                    sx={{ height: 16, fontSize: "0.6rem", fontFamily: "monospace" }} />
+                  <Chip size="small" label={p.primary_model}
+                    sx={{ height: 16, fontSize: "0.6rem", fontFamily: "monospace", bgcolor: "grey.100" }} />
+                  {p.consensus_mode && <Chip size="small" label="consensus" color="secondary" sx={{ height: 16, fontSize: "0.6rem" }} />}
+                </Stack>
+                {p.description && (
+                  <Typography variant="caption" color="text.secondary" sx={{ mt: 0.25, display: "block" }}>
+                    {p.description}
+                  </Typography>
+                )}
+              </Box>
+            </Stack>
+          </Paper>
+        );
+      })}
+    </Stack>
+  );
+}
+
 // ── Prompt picker ─────────────────────────────────────────────────────────────
 interface PromptOption { id: string; name: string; version: number; description: string; }
 
@@ -205,7 +290,10 @@ function PromptPicker({
 }: { value: string; onChange: (id: string, name: string) => void }) {
   const [options, setOptions] = useState<PromptOption[]>([]);
   useEffect(() => {
-    api.get<PromptOption[]>("/api/prompts").then(setOptions).catch(() => {});
+    fetch("/api/prompts", { credentials: "include", headers: { "X-Requested-With": "XMLHttpRequest" } })
+      .then((r) => r.ok ? r.json() : Promise.reject(r.statusText))
+      .then((data) => setOptions(Array.isArray(data) ? data : data.prompts ?? data.items ?? []))
+      .catch(() => {});
   }, []);
 
   return (
@@ -234,26 +322,83 @@ function PromptPicker({
 }
 
 // ── Data-flow summary ─────────────────────────────────────────────────────────
-function DataFlowPanel({ subgraphId }: { subgraphId: string }) {
+function DataFlowPanel({
+  subgraphId,
+  prevStepWrites,
+}: {
+  subgraphId: string;
+  prevStepWrites: string[] | null; // null = not reading from previous step
+}) {
   const io = SUBGRAPH_IO[subgraphId];
   if (!io) return null;
+
+  const provided  = prevStepWrites ? new Set(prevStepWrites) : null;
+  const missing   = provided ? io.reads.filter((k) => !provided.has(k)) : [];
+  const satisfied = provided ? io.reads.filter((k) =>  provided.has(k)) : [];
+  const extra     = provided ? prevStepWrites!.filter((k) => !io.reads.includes(k)) : [];
+
   return (
-    <Paper variant="outlined" sx={{ p: 1.5, bgcolor: "grey.50" }}>
-      <Stack spacing={1}>
-        <Box>
-          <Typography variant="caption" fontWeight={700} color="text.secondary">READS FROM PIPELINE STATE</Typography>
-          <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap sx={{ mt: 0.5 }}>
-            {io.reads.map((k) => <Chip key={k} size="small" label={k} variant="outlined" sx={{ fontFamily: "monospace", fontSize: "0.68rem" }} />)}
-          </Stack>
-        </Box>
-        <Box>
-          <Typography variant="caption" fontWeight={700} color="text.secondary">WRITES TO PIPELINE STATE</Typography>
-          <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap sx={{ mt: 0.5 }}>
-            {io.writes.map((k) => <Chip key={k} size="small" label={k} color="primary" variant="outlined" sx={{ fontFamily: "monospace", fontSize: "0.68rem" }} />)}
-          </Stack>
-        </Box>
-      </Stack>
-    </Paper>
+    <Stack spacing={1.5}>
+      <Paper variant="outlined" sx={{ p: 1.5, bgcolor: "grey.50" }}>
+        <Stack spacing={1}>
+          <Box>
+            <Typography variant="caption" fontWeight={700} color="text.secondary">READS FROM PIPELINE STATE</Typography>
+            <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap sx={{ mt: 0.5 }}>
+              {io.reads.map((k) => {
+                const ok      = provided && provided.has(k);
+                const unknown = provided === null;
+                return (
+                  <Chip
+                    key={k}
+                    size="small"
+                    label={k}
+                    variant={unknown ? "outlined" : ok ? "filled" : "outlined"}
+                    color={unknown ? "default" : ok ? "success" : "error"}
+                    sx={{ fontFamily: "monospace", fontSize: "0.68rem" }}
+                  />
+                );
+              })}
+            </Stack>
+          </Box>
+          <Box>
+            <Typography variant="caption" fontWeight={700} color="text.secondary">WRITES TO PIPELINE STATE</Typography>
+            <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap sx={{ mt: 0.5 }}>
+              {io.writes.map((k) => <Chip key={k} size="small" label={k} color="primary" variant="outlined" sx={{ fontFamily: "monospace", fontSize: "0.68rem" }} />)}
+            </Stack>
+          </Box>
+        </Stack>
+      </Paper>
+
+      {/* Compatibility banner — only when reading from previous step */}
+      {provided && (
+        missing.length > 0 ? (
+          <Alert severity="warning" sx={{ fontSize: "0.78rem" }} icon={false}>
+            <Typography variant="caption" fontWeight={700} display="block" sx={{ mb: 0.5 }}>
+              ⚠ {missing.length} key{missing.length > 1 ? "s" : ""} not provided by the previous step
+            </Typography>
+            <Typography variant="caption" color="text.secondary" display="block">
+              Missing: {missing.map((k) => <Box key={k} component="span" sx={{ fontFamily: "monospace", bgcolor: "warning.100", px: 0.5, borderRadius: 0.5, mr: 0.5 }}>{k}</Box>)}
+            </Typography>
+            {extra.length > 0 && (
+              <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
+                Available but not used: {extra.map((k) => <Box key={k} component="span" sx={{ fontFamily: "monospace", px: 0.5, mr: 0.5 }}>{k}</Box>)}
+              </Typography>
+            )}
+          </Alert>
+        ) : (
+          <Alert severity="success" sx={{ fontSize: "0.78rem" }} icon={false}>
+            <Typography variant="caption" fontWeight={700}>
+              ✓ All {satisfied.length} required key{satisfied.length > 1 ? "s" : ""} are provided by the previous step
+            </Typography>
+            {extra.length > 0 && (
+              <Typography variant="caption" color="text.secondary" display="block">
+                Also available (unused): {extra.map((k) => <Box key={k} component="span" sx={{ fontFamily: "monospace", px: 0.5, mr: 0.5 }}>{k}</Box>)}
+              </Typography>
+            )}
+          </Alert>
+        )
+      )}
+    </Stack>
   );
 }
 
@@ -394,52 +539,287 @@ function SubgraphSettingsPanel({
     );
   }
 
-  // LLM: model tier and provider
+  // LLM: model preset picker
   return (
-    <Stack spacing={2.5}>
-      <Typography variant="subtitle2">Model size</Typography>
-      {[
-        { value: "small", label: "Small — fast and cheap", desc: "Best for high-volume extraction where speed matters. Uses Claude Haiku / GPT-5 mini." },
-        { value: "big",   label: "Big — accurate",         desc: "Recommended for most clinical tasks. Uses Claude Sonnet / GPT-5." },
-        { value: "max",   label: "Max — best quality",     desc: "Use for complex disambiguation or final verification. Uses Claude Opus / GPT-5." },
-      ].map((opt) => (
-        <Paper
-          key={opt.value}
-          variant="outlined"
-          onClick={() => updateField("modelTier", opt.value)}
-          sx={{
-            p: 1.5, cursor: "pointer", borderRadius: 2,
-            borderColor: config.modelTier === opt.value ? "primary.main" : "divider",
-            bgcolor: config.modelTier === opt.value ? "primary.50" : "transparent",
+    <Stack spacing={2}>
+      <Box>
+        <Typography variant="subtitle2" gutterBottom>Model preset</Typography>
+        <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1.5 }}>
+          Choose a preset from your model library. Presets set the AI engine, size, and consensus mode for this step.
+          Manage presets in{" "}
+          <Typography component="a" href="/admin/models" target="_blank" variant="caption" color="primary" sx={{ textDecoration: "underline" }}>
+            AI Models
+          </Typography>.
+        </Typography>
+        <ModelPresetPicker
+          value={config.modelPresetId}
+          onChange={(presetId, preset) => {
+            updateField("modelPresetId", presetId);
+            updateField("modelPresetName", preset?.name ?? "");
           }}
-        >
-          <Typography variant="body2" fontWeight={600}>{opt.label}</Typography>
-          <Typography variant="caption" color="text.secondary">{opt.desc}</Typography>
-        </Paper>
-      ))}
-      <Divider />
-      <FormControl fullWidth size="small">
-        <InputLabel>Provider</InputLabel>
-        <Select value={config.modelProvider} label="Provider"
-          onChange={(e) => updateField("modelProvider", e.target.value)}>
-          <MenuItem value="auto">Auto — use platform default</MenuItem>
-          <MenuItem value="aws">AWS Bedrock (Claude)</MenuItem>
-          <MenuItem value="azure">Azure OpenAI (GPT)</MenuItem>
-        </Select>
-      </FormControl>
+        />
+      </Box>
+    </Stack>
+  );
+}
+
+// ── Schema alignment panel ────────────────────────────────────────────────────
+// Fetches the prompt's output schema and lets the user map schema keys →
+// pipeline state write keys, flagging any gaps.
+// Parsed representation of the prompt output schema
+interface ParsedPromptSchema {
+  // top-level keys the LLM returns, e.g. ["terms"]
+  topLevelKeys: string[];
+  // for each top-level key that is an array of objects, the fields inside each item
+  itemFields: Record<string, Array<{ name: string; type: string; description: string; required: boolean }>>;
+}
+
+const PIPELINE_GENERATED_SENTINEL = "__pipeline_generated__";
+
+function SchemaAlignmentPanel({
+  promptConfigId,
+  pipelineWriteKeys,
+  mapping,
+  onMappingChange,
+}: {
+  promptConfigId: string;
+  pipelineWriteKeys: string[];
+  mapping: Record<string, string>;
+  onMappingChange: (m: Record<string, string>) => void;
+}) {
+  const [schema, setSchema] = useState<ParsedPromptSchema | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [expandedKey, setExpandedKey] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!promptConfigId) return;
+    setLoading(true);
+    fetch(`/api/prompts/${promptConfigId}`, {
+      credentials: "include",
+      headers: { "X-Requested-With": "XMLHttpRequest" },
+    })
+      .then((r) => r.ok ? r.json() : Promise.reject(r.statusText))
+      .then((data) => {
+        const raw = data.outputSchema;
+        if (!raw) { setSchema(null); return; }
+        try {
+          const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
+          const topProps: Record<string, unknown> = parsed?.properties ?? {};
+          const topLevelKeys = Object.keys(topProps);
+          const itemFields: ParsedPromptSchema["itemFields"] = {};
+          for (const key of topLevelKeys) {
+            const prop = topProps[key] as Record<string, unknown>;
+            if (prop?.type === "array") {
+              const itemProps = (prop.items as Record<string, unknown>)?.properties as Record<string, unknown> | undefined;
+              const required = ((prop.items as Record<string, unknown>)?.required as string[]) ?? [];
+              if (itemProps) {
+                itemFields[key] = Object.entries(itemProps).map(([name, def]) => {
+                  const d = def as Record<string, unknown>;
+                  const t = Array.isArray(d.type) ? d.type.join(" | ") : String(d.type ?? "");
+                  return { name, type: t, description: String(d.description ?? ""), required: required.includes(name) };
+                });
+              }
+            }
+          }
+          setSchema({ topLevelKeys, itemFields });
+        } catch { setSchema(null); }
+      })
+      .catch(() => setSchema(null))
+      .finally(() => setLoading(false));
+  }, [promptConfigId]);
+
+  if (loading) return <Alert severity="info" sx={{ fontSize: "0.78rem" }} icon={false}>Loading schema…</Alert>;
+
+  if (!schema || schema.topLevelKeys.length === 0) {
+    return (
+      <Alert severity="warning" sx={{ fontSize: "0.78rem" }} icon={false}>
+        This prompt has no output schema defined. Add one in the{" "}
+        <Typography component="a" href="/admin/prompts" variant="caption" color="primary" sx={{ textDecoration: "underline" }}>
+          Prompt Tuner
+        </Typography>.
+      </Alert>
+    );
+  }
+
+  const autoMatch = (writeKey: string) =>
+    schema.topLevelKeys.find((sk) => sk.toLowerCase() === writeKey.toLowerCase());
+
+  // A pipeline write key is "resolved" if it's explicitly mapped, auto-matched, or marked as pipeline-generated
+  const isResolved = (k: string) =>
+    mapping[k] === PIPELINE_GENERATED_SENTINEL || !!mapping[k] || !!autoMatch(k);
+
+  const llmSourcedCount  = pipelineWriteKeys.filter((k) => mapping[k] !== PIPELINE_GENERATED_SENTINEL && (mapping[k] || autoMatch(k))).length;
+  const pipelineGenCount = pipelineWriteKeys.filter((k) => mapping[k] === PIPELINE_GENERATED_SENTINEL).length;
+  const unmappedCount    = pipelineWriteKeys.filter((k) => !isResolved(k)).length;
+
+  return (
+    <Stack spacing={1.5}>
+      {/* Header */}
+      <Stack direction="row" alignItems="center" spacing={1} flexWrap="wrap" useFlexGap>
+        <Typography variant="subtitle2">Schema → pipeline state</Typography>
+        {unmappedCount === 0
+          ? <Chip size="small" label="All accounted for ✓" color="success" sx={{ fontSize: "0.65rem", height: 18 }} />
+          : <Chip size="small" label={`${unmappedCount} not yet mapped`} color="warning" sx={{ fontSize: "0.65rem", height: 18 }} />}
+      </Stack>
+      <Typography variant="caption" color="text.secondary">
+        The LLM returns named keys. Map each pipeline state write-key to either a prompt output key or mark it
+        as <em>pipeline-generated</em> (produced internally — not by the LLM).
+      </Typography>
+
+      {/* LLM output keys + expandable field list */}
+      <Paper variant="outlined" sx={{ p: 1.5, bgcolor: "grey.50", borderRadius: 1.5 }}>
+        <Typography variant="caption" fontWeight={700} color="text.secondary" display="block" sx={{ mb: 0.75 }}>
+          LLM OUTPUT KEYS (what the prompt returns)
+        </Typography>
+        <Stack spacing={0.5}>
+          {schema.topLevelKeys.map((k) => {
+            const mappedTo = pipelineWriteKeys.find((wk) => (mapping[wk] || autoMatch(wk)) === k);
+            const hasItems = !!schema.itemFields[k];
+            const open = expandedKey === k;
+            return (
+              <Box key={k}>
+                <Stack direction="row" alignItems="center" spacing={0.75}>
+                  <Chip
+                    size="small"
+                    label={`${k}${hasItems ? "[]" : ""}`}
+                    color={mappedTo ? "success" : "default"}
+                    variant={mappedTo ? "filled" : "outlined"}
+                    sx={{ fontFamily: "monospace", fontSize: "0.68rem" }}
+                  />
+                  {mappedTo && (
+                    <Typography variant="caption" color="success.main">→ {mappedTo}</Typography>
+                  )}
+                  {hasItems && (
+                    <Typography
+                      variant="caption"
+                      color="primary"
+                      sx={{ cursor: "pointer", textDecoration: "underline", ml: "auto" }}
+                      onClick={() => setExpandedKey(open ? null : k)}
+                    >
+                      {open ? "hide fields ▲" : `${schema.itemFields[k].length} fields ▼`}
+                    </Typography>
+                  )}
+                </Stack>
+                {open && hasItems && (
+                  <Paper variant="outlined" sx={{ mt: 0.75, p: 1, bgcolor: "background.paper", borderRadius: 1 }}>
+                    <Stack spacing={0.25}>
+                      {schema.itemFields[k].map((f) => (
+                        <Stack key={f.name} direction="row" spacing={1} alignItems="flex-start">
+                          <Box sx={{ fontFamily: "monospace", fontSize: "0.68rem", fontWeight: f.required ? 700 : 400, minWidth: 120, color: f.required ? "text.primary" : "text.secondary" }}>
+                            {f.name}{f.required ? " *" : ""}
+                          </Box>
+                          <Box sx={{ fontFamily: "monospace", fontSize: "0.65rem", color: "info.main", minWidth: 60 }}>{f.type}</Box>
+                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.65rem" }}>{f.description}</Typography>
+                        </Stack>
+                      ))}
+                      <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, fontSize: "0.62rem" }}>
+                        * required field
+                      </Typography>
+                    </Stack>
+                  </Paper>
+                )}
+              </Box>
+            );
+          })}
+        </Stack>
+      </Paper>
+
+      {/* Mapping table */}
+      <Box>
+        <Typography variant="caption" fontWeight={700} color="text.secondary" display="block" sx={{ mb: 0.75 }}>
+          PIPELINE STATE WRITE KEYS
+        </Typography>
+        <Stack spacing={0.75}>
+          {pipelineWriteKeys.map((writeKey) => {
+            const auto     = autoMatch(writeKey);
+            const explicit = mapping[writeKey];
+            const isPipelineGen = explicit === PIPELINE_GENERATED_SENTINEL;
+            const selectValue   = isPipelineGen ? PIPELINE_GENERATED_SENTINEL : explicit || (auto ? `__auto__${auto}` : "");
+            const resolved = isResolved(writeKey);
+
+            return (
+              <Stack key={writeKey} direction="row" alignItems="center" spacing={1}>
+                <Chip
+                  size="small"
+                  label={writeKey}
+                  color={isPipelineGen ? "default" : resolved ? "primary" : "error"}
+                  variant="outlined"
+                  sx={{ fontFamily: "monospace", fontSize: "0.68rem", minWidth: 90, opacity: isPipelineGen ? 0.6 : 1 }}
+                />
+                <Typography variant="caption" color="text.secondary">←</Typography>
+                <FormControl size="small" sx={{ flex: 1 }}>
+                  <Select
+                    value={selectValue}
+                    displayEmpty
+                    onChange={(e) => {
+                      const val = e.target.value as string;
+                      const newMap = { ...mapping };
+                      if (!val || val.startsWith("__auto__")) {
+                        delete newMap[writeKey];
+                      } else {
+                        newMap[writeKey] = val; // stores schema key OR sentinel
+                      }
+                      onMappingChange(newMap);
+                    }}
+                    sx={{ fontSize: "0.75rem", fontFamily: "monospace" }}
+                  >
+                    <MenuItem value="">
+                      <em style={{ color: "#999", fontSize: "0.75rem" }}>— not mapped —</em>
+                    </MenuItem>
+                    {/* Auto-match option */}
+                    {!explicit && auto && (
+                      <MenuItem value={`__auto__${auto}`}>
+                        <Stack direction="row" alignItems="center" spacing={0.5}>
+                          <Box sx={{ color: "success.main", fontSize: "0.7rem", fontWeight: 700 }}>✓ auto</Box>
+                          <Box sx={{ fontFamily: "monospace", fontSize: "0.75rem" }}>{auto}</Box>
+                        </Stack>
+                      </MenuItem>
+                    )}
+                    {/* LLM schema keys */}
+                    {schema.topLevelKeys.map((k) => (
+                      <MenuItem key={k} value={k} sx={{ fontFamily: "monospace", fontSize: "0.75rem" }}>
+                        {k}{schema.itemFields[k] ? "[ ]" : ""}
+                      </MenuItem>
+                    ))}
+                    <Divider />
+                    {/* Pipeline-generated option */}
+                    <MenuItem value={PIPELINE_GENERATED_SENTINEL} sx={{ fontSize: "0.75rem", fontStyle: "italic", color: "text.secondary" }}>
+                      Pipeline-generated (not from LLM)
+                    </MenuItem>
+                  </Select>
+                </FormControl>
+              </Stack>
+            );
+          })}
+        </Stack>
+        <Typography variant="caption" color="text.secondary" sx={{ mt: 0.75, display: "block", fontSize: "0.67rem" }}>
+          {llmSourcedCount > 0 && `${llmSourcedCount} from LLM`}
+          {llmSourcedCount > 0 && pipelineGenCount > 0 && " · "}
+          {pipelineGenCount > 0 && `${pipelineGenCount} pipeline-generated`}
+          {unmappedCount > 0 && ` · ⚠ ${unmappedCount} not yet mapped`}
+        </Typography>
+      </Box>
+
+      {unmappedCount > 0 && (
+        <Alert severity="warning" sx={{ fontSize: "0.78rem" }} icon={false}>
+          Unresolved write keys will be empty at runtime. Map them to an LLM output key or mark as pipeline-generated.
+        </Alert>
+      )}
     </Stack>
   );
 }
 
 // ── Action configurator ───────────────────────────────────────────────────────
 function ActionConfigurator({
-  nodeId, initialConfig, onSave, onDelete, onClose,
+  nodeId, initialConfig, onSave, onDelete, onClose, onPathwaySave, prevStepWrites,
 }: {
   nodeId: string;
   initialConfig: ActionConfig;
   onSave: (nodeId: string, config: ActionConfig) => void;
   onDelete: (nodeId: string) => void;
   onClose: () => void;
+  onPathwaySave: () => Promise<void>;
+  prevStepWrites: string[] | null;
 }) {
   const [step, setStep] = useState(0);
   const [config, setConfig] = useState<ActionConfig>({ ...DEFAULT_CONFIG, ...initialConfig, params: initialConfig.params ?? {} });
@@ -522,7 +902,10 @@ function ActionConfigurator({
         {step === 1 && (
           <Stack spacing={2.5}>
             <Typography variant="subtitle2">Data this step reads and writes</Typography>
-            <DataFlowPanel subgraphId={config.subgraphId} />
+            <DataFlowPanel
+              subgraphId={config.subgraphId}
+              prevStepWrites={config.inputSource === "previous_step" ? prevStepWrites : null}
+            />
             <Divider />
 
             <FormControl fullWidth size="small">
@@ -683,12 +1066,20 @@ function ActionConfigurator({
               onChange={(id, name) => { updateField("promptConfigId", id); updateField("promptConfigName", name); }}
             />
             {config.promptConfigId && (
-              <Typography variant="caption" color="text.secondary">
-                <Typography component="a" href="/admin/prompts" variant="caption" color="primary"
-                  sx={{ textDecoration: "underline" }}>
-                  Open in Prompt Tuner
-                </Typography>{" "}to edit the instructions, output schema, or teaching examples.
-              </Typography>
+              <>
+                <Typography variant="caption" color="text.secondary">
+                  <Typography component="a" href="/admin/prompts" variant="caption" color="primary"
+                    sx={{ textDecoration: "underline" }}>
+                    Open in Prompt Tuner
+                  </Typography>{" "}to edit the instructions, output schema, or teaching examples.
+                </Typography>
+                <SchemaAlignmentPanel
+                  promptConfigId={config.promptConfigId}
+                  pipelineWriteKeys={SUBGRAPH_IO[config.subgraphId]?.writes ?? []}
+                  mapping={(config.params.output_key_map as Record<string, string>) ?? {}}
+                  onMappingChange={(m) => updateParam("output_key_map", m)}
+                />
+              </>
             )}
             <Divider />
             <Typography variant="subtitle2">Temperature</Typography>
@@ -743,10 +1134,17 @@ function ActionConfigurator({
                 {isLLM && (
                   <>
                     <Divider />
-                    <ReviewRow label="Model size" value={config.modelTier} />
-                    <ReviewRow label="Provider" value={config.modelProvider === "auto" ? "Platform default" : config.modelProvider === "aws" ? "AWS Bedrock (Claude)" : "Azure OpenAI (GPT)"} />
+                    <ReviewRow label="Model preset" value={config.modelPresetName || config.modelPresetId || "Not set"} />
                     <ReviewRow label="Temperature" value={config.temperature.toFixed(1)} />
                     <ReviewRow label="Prompt" value={config.promptConfigName || config.promptConfigId || "None"} />
+                    {config.params.output_key_map && Object.keys(config.params.output_key_map as Record<string, string>).length > 0 && (
+                      <ReviewRow
+                        label="Schema mapping"
+                        value={Object.entries(config.params.output_key_map as Record<string, string>)
+                          .map(([k, v]) => `${v}→${k}`)
+                          .join(", ")}
+                      />
+                    )}
                   </>
                 )}
               </Stack>
@@ -756,6 +1154,29 @@ function ActionConfigurator({
                 No prompt selected. This LLM step will use the system default instructions.
               </Alert>
             )}
+            {(() => {
+              if (config.inputSource !== "previous_step" || !prevStepWrites) return null;
+              const io = SUBGRAPH_IO[config.subgraphId];
+              if (!io) return null;
+              const provided = new Set(prevStepWrites);
+              const missing = io.reads.filter((k) => !provided.has(k));
+              if (missing.length === 0) return null;
+              return (
+                <Alert severity="error" sx={{ fontSize: "0.78rem" }}>
+                  <Typography variant="caption" fontWeight={700} display="block">
+                    Pipeline key mismatch — step will likely fail
+                  </Typography>
+                  <Typography variant="caption">
+                    This step needs{" "}
+                    {missing.map((k) => (
+                      <Box key={k} component="span" sx={{ fontFamily: "monospace", bgcolor: "error.50", px: 0.5, borderRadius: 0.5, mr: 0.5 }}>{k}</Box>
+                    ))}
+                    but the previous step does not produce {missing.length > 1 ? "them" : "it"}.
+                    Go back to Data flow to change the input source.
+                  </Typography>
+                </Alert>
+              );
+            })()}
           </Stack>
         )}
       </Box>
@@ -772,18 +1193,68 @@ function ActionConfigurator({
           {step < lastStep ? (
             <Button size="small" variant="contained"
               disabled={step === 0 && (!config.subgraphId || !config.label)}
-              onClick={() => setStep((s) => s + 1)}>
+              onClick={() => { onSave(nodeId, config); setStep((s) => s + 1); }}>
               Next
             </Button>
           ) : (
-            <Button size="small" variant="contained" color="success"
-              onClick={() => { onSave(nodeId, config); onClose(); }}>
-              Save step
-            </Button>
+            <SaveStepButton
+              onSave={() => onSave(nodeId, config)}
+              onPathwaySave={onPathwaySave}
+              onClose={onClose}
+            />
           )}
         </Stack>
       </Stack>
     </Box>
+  );
+}
+
+function SaveStepButton({
+  onSave, onPathwaySave, onClose,
+}: {
+  onSave: () => void;
+  onPathwaySave: () => Promise<void>;
+  onClose: () => void;
+}) {
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleClick = async () => {
+    setSaving(true);
+    setError(null);
+    try {
+      onSave();               // update local nodeConfigs state
+      await onPathwaySave();  // persist to server
+      setSaved(true);
+      setTimeout(() => { setSaved(false); onClose(); }, 800);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Save failed");
+      setSaving(false);
+    }
+  };
+
+  if (error) {
+    return (
+      <Tooltip title={error}>
+        <Button size="small" variant="contained" color="error" onClick={handleClick}>
+          Retry save
+        </Button>
+      </Tooltip>
+    );
+  }
+
+  return (
+    <Button
+      size="small"
+      variant="contained"
+      color={saved ? "success" : "primary"}
+      disabled={saving}
+      onClick={handleClick}
+      startIcon={saving ? <CircularProgress size={14} color="inherit" /> : undefined}
+    >
+      {saving ? "Saving…" : saved ? "Saved ✓" : "Save step"}
+    </Button>
   );
 }
 
@@ -939,21 +1410,37 @@ function useValidationWarnings(
     }
 
     const ordered = [...nodes].sort((a, b) => (a.position?.y ?? 0) - (b.position?.y ?? 0));
-    const availableKeys = new Set(["encounter_text", "patient_id", "encounter_id", "run_id"]);
 
-    for (const node of ordered) {
+    // Global keys always available at pipeline start
+    const GLOBAL_KEYS = new Set(["encounter_text", "patient_id", "encounter_id", "run_id"]);
+
+    // Edge-aware key alignment: for each node, check that every key it reads
+    // is either a global key or produced by one of its direct predecessors.
+    for (const node of nodes) {
+      const cfg = nodeConfigs[node.id];
+      const inputSource = cfg?.inputSource ?? "previous_step";
+      // Only check alignment when reading from previous pipeline step
+      if (inputSource !== "previous_step") continue;
+
       const subgraphId = (node.data as ActionNodeData)?.subgraphId || "";
       const io = SUBGRAPH_IO[subgraphId];
       if (!io) continue;
-      for (const key of io.reads) {
-        if (!availableKeys.has(key) && !["patient_id", "encounter_id", "run_id"].includes(key)) {
-          warnings.push({
-            severity: "warning",
-            message: `"${(node.data as ActionNodeData).label}" reads "${key}" but no upstream step produces it.`,
-          });
-        }
+
+      const predecessorIds = edges.filter((e) => e.target === node.id).map((e) => e.source);
+      const predecessorWrites = new Set<string>([...GLOBAL_KEYS]);
+      for (const predId of predecessorIds) {
+        const predNode = nodes.find((n) => n.id === predId);
+        const predSubgraphId = (predNode?.data as ActionNodeData | undefined)?.subgraphId;
+        if (predSubgraphId) SUBGRAPH_IO[predSubgraphId]?.writes.forEach((w) => predecessorWrites.add(w));
       }
-      for (const wk of io.writes) availableKeys.add(wk);
+
+      const missingKeys = io.reads.filter((k) => !predecessorWrites.has(k));
+      for (const key of missingKeys) {
+        warnings.push({
+          severity: predecessorIds.length === 0 ? "warning" : "error",
+          message: `"${(node.data as ActionNodeData).label}" needs key "${key}" but ${predecessorIds.length === 0 ? "has no connected predecessor" : "the previous step does not produce it"}.`,
+        });
+      }
     }
 
     const hasVerify = nodes.some(n => (n.data as ActionNodeData)?.subgraphId === "verification");
@@ -1058,6 +1545,7 @@ export default function PathwayBuilderPage() {
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerKey, setDrawerKey] = useState(0);
   const [nodeConfigs, setNodeConfigs] = useState<Record<string, ActionConfig>>({});
   const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -1065,6 +1553,7 @@ export default function PathwayBuilderPage() {
 
   const openConfigurator = useCallback((nodeId: string) => {
     setSelectedNode(nodeId);
+    setDrawerKey((k) => k + 1); // force remount so step resets to 0 and initialConfig re-applies
     setDrawerOpen(true);
   }, []);
 
@@ -1161,6 +1650,25 @@ export default function PathwayBuilderPage() {
     return nodeConfigs[selectedNode] || DEFAULT_CONFIG;
   }, [selectedNode, nodeConfigs]);
 
+  // Compute what all predecessor steps write into the pipeline state.
+  // Used to validate key alignment when inputSource === "previous_step".
+  const prevStepWrites = useMemo<string[] | null>(() => {
+    if (!selectedNode) return null;
+    const predecessorIds = edges
+      .filter((e) => e.target === selectedNode)
+      .map((e) => e.source);
+    if (predecessorIds.length === 0) return null;
+    const allWrites = new Set<string>();
+    for (const predId of predecessorIds) {
+      const predNode = nodes.find((n) => n.id === predId);
+      const predSubgraphId = (predNode?.data as ActionNodeData | undefined)?.subgraphId;
+      if (predSubgraphId) {
+        SUBGRAPH_IO[predSubgraphId]?.writes.forEach((w) => allWrites.add(w));
+      }
+    }
+    return allWrites.size > 0 ? Array.from(allWrites) : null;
+  }, [selectedNode, edges, nodes]);
+
   const handleSave = useCallback(async () => {
     setSaveError(null);
     const payload = {
@@ -1220,7 +1728,7 @@ export default function PathwayBuilderPage() {
             ))}
           </Select>
         </FormControl>
-        <Button variant="contained" startIcon={<SaveIcon />} onClick={handleSave}>Save</Button>
+        <Button variant="contained" startIcon={<SaveIcon />} onClick={handleSave}>Save pathway</Button>
       </Box>
 
       <TriggerContextPanel
@@ -1251,11 +1759,14 @@ export default function PathwayBuilderPage() {
       <Drawer anchor="right" open={drawerOpen} onClose={() => setDrawerOpen(false)}>
         {selectedNode && (
           <ActionConfigurator
+            key={`${selectedNode}-${drawerKey}`}
             nodeId={selectedNode}
             initialConfig={selectedConfig}
             onSave={handleConfigSave}
             onDelete={handleDeleteNode}
             onClose={() => setDrawerOpen(false)}
+            onPathwaySave={handleSave}
+            prevStepWrites={prevStepWrites}
           />
         )}
       </Drawer>
