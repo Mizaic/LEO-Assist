@@ -1,6 +1,6 @@
 """Versioned prompt registry with Neo4j-first resolution.
 
-Prompts are stored as ``PromptConfig`` nodes in the patient graph.
+Prompts are stored as ``PromptConfig`` nodes in the Knowledge Graph.
 This module tries Neo4j first, then falls back to the hardcoded Python
 prompts bundled in ``libs/prompts/*.py`` (which are deprecated and will
 be removed once all prompts are managed through the Admin UI).
@@ -44,10 +44,9 @@ def _try_neo4j(name: str, version: int) -> str | None:
 
     try:
         from libs.cypher.prompt_config_queries import GET_PROMPT_BY_NAME
+        from libs.neo4j_client.client import KnowledgeGraphClient
 
-        from app.db.neo4j_client import PatientGraphClient
-
-        client = PatientGraphClient()
+        client = KnowledgeGraphClient()
         try:
             with client.session() as session:
                 row = session.run(
@@ -111,9 +110,9 @@ def get_prompt_with_few_shot(name: str, version: int = 1) -> tuple[str, list[dic
     if _NEO4J_AVAILABLE is not False:
         try:
             from libs.cypher.prompt_config_queries import GET_PROMPT_BY_NAME
-            from app.db.neo4j_client import PatientGraphClient
+            from libs.neo4j_client.client import KnowledgeGraphClient
 
-            client = PatientGraphClient()
+            client = KnowledgeGraphClient()
             try:
                 with client.session() as session:
                     row = session.run(

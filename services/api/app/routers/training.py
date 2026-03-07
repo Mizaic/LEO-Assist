@@ -51,6 +51,7 @@ from libs.cypher.coding_review_queries import (
     COUNT_CODING_REVIEW_GROUPS,
     COUNT_CODING_REVIEW_PENDING,
     DEACTIVATE_CODING_IGNORE_RULE,
+    DELETE_ALL_CODING_REVIEWS_UNCONDITIONAL,
     GET_ALL_CODING_IGNORE_RULES,
     GET_ASSERTION_REVIEW_QUEUE,
     GET_CODING_IGNORE_RULES,
@@ -72,6 +73,7 @@ from libs.cypher.coding_review_queries import (
     GET_TIER_OVERRIDE_STATS,
     DELETE_RESOLVED_CODING_REVIEWS,
 )
+from libs.cypher.exclusion_queries import DELETE_ALL_HITL_TASKS
 from libs.cypher.training_candidate_queries import (
     COUNT_TRAINING_CANDIDATES_PAGE,
     GET_TRAINING_CANDIDATE_BY_ID,
@@ -87,6 +89,7 @@ from libs.cypher.gold_label_queries import (
 )
 from libs.cypher.surface_form_task_queries import (
     COUNT_SURFACE_FORM_TASKS,
+    DELETE_ALL_SURFACE_FORM_TASKS,
     GET_SURFACE_FORM_TASK_BY_ID,
     LIST_PENDING_SURFACE_FORM_TASKS,
     RESOLVE_SURFACE_FORM_TASK,
@@ -2752,14 +2755,45 @@ def delete_resolved_coding_reviews(
         client.close()
 
 
-# -- GDPR-isolated learning loop -------------------------------------------
+@router.delete("/review-queue/all")
+def delete_all_review_queue_items(
+    scope: CallerScope = Depends(require_admin),
+) -> dict[str, Any]:
+    """Delete all review queue items (CodingReview, SurfaceFormTask, HITLTask).
+    Use when clearing items from an old pipeline before running the new one."""
+    pg_client = PatientGraphClient()
+    kg_client = KnowledgeGraphClient()
+    try:
+        with pg_client.session() as session:
+            cr_summary = session.run(DELETE_ALL_CODING_REVIEWS_UNCONDITIONAL).consume()
+            hitl_summary = session.run(DELETE_ALL_HITL_TASKS).consume()
+        with kg_client.session() as session:
+            sf_summary = session.run(DELETE_ALL_SURFACE_FORM_TASKS).consume()
+        return {
+            "coding_reviews_deleted": cr_summary.counters.nodes_deleted,
+            "surface_form_tasks_deleted": sf_summary.counters.nodes_deleted,
+            "hitl_tasks_deleted": hitl_summary.counters.nodes_deleted,
+            "total_deleted": (
+                cr_summary.counters.nodes_deleted
+                + sf_summary.counters.nodes_deleted
+                + hitl_summary.counters.nodes_deleted
+            ),
+        }
+    finally:
+        pg_client.close()
+        kg_client.close()
+
+
+# -- GDPR-isolated learning loop (Knowledge Graph) -------------------------
+# TrainingCandidate, GoldLabel and SurfaceFormTask are de-identified model
+# knowledge and belong in the Knowledge Graph, not the Patient Graph.
 
 
 @router.get("/candidates/stats")
 def get_training_candidate_stats(
     scope: CallerScope = Depends(get_caller_scope),
 ) -> dict[str, Any]:
-    client = PatientGraphClient()
+    client = KnowledgeGraphClient()
     try:
         with client.session() as session:
             row = session.run(GET_TRAINING_CANDIDATE_STATS).single()
@@ -2778,7 +2812,7 @@ def list_training_candidates(
     scope: CallerScope = Depends(get_caller_scope),
 ) -> dict[str, Any]:
     skip = (page - 1) * page_size
-    client = PatientGraphClient()
+    client = KnowledgeGraphClient()
     try:
         with client.session() as session:
             rows = session.run(
@@ -2807,7 +2841,7 @@ def get_training_candidate(
     candidate_id: str,
     scope: CallerScope = Depends(get_caller_scope),
 ) -> dict[str, Any]:
-    client = PatientGraphClient()
+    client = KnowledgeGraphClient()
     try:
         with client.session() as session:
             row = session.run(GET_TRAINING_CANDIDATE_BY_ID, candidate_id=candidate_id).single()
@@ -2822,7 +2856,7 @@ def get_training_candidate(
 def get_gold_label_stats(
     scope: CallerScope = Depends(get_caller_scope),
 ) -> dict[str, Any]:
-    client = PatientGraphClient()
+    client = KnowledgeGraphClient()
     try:
         with client.session() as session:
             row = session.run(GET_GOLD_LABEL_STATS).single()
@@ -2840,7 +2874,7 @@ def list_gold_labels(
     scope: CallerScope = Depends(get_caller_scope),
 ) -> dict[str, Any]:
     skip = (page - 1) * page_size
-    client = PatientGraphClient()
+    client = KnowledgeGraphClient()
     try:
         with client.session() as session:
             rows = session.run(
@@ -2867,7 +2901,7 @@ def get_gold_label(
     label_id: str,
     scope: CallerScope = Depends(get_caller_scope),
 ) -> dict[str, Any]:
-    client = PatientGraphClient()
+    client = KnowledgeGraphClient()
     try:
         with client.session() as session:
             row = session.run(GET_GOLD_LABEL_BY_ID, label_id=label_id).single()
@@ -2882,7 +2916,7 @@ def get_gold_label(
 def export_gold_labels(
     scope: CallerScope = Depends(get_caller_scope),
 ) -> dict[str, Any]:
-    client = PatientGraphClient()
+    client = KnowledgeGraphClient()
     try:
         with client.session() as session:
             rows = session.run(GET_ALL_GOLD_LABELS_FOR_EXPORT)
@@ -2891,7 +2925,7 @@ def export_gold_labels(
         client.close()
 
 
-# -- Surface form review tasks ---------------------------------------------
+# -- Surface form review tasks (Knowledge Graph) ---------------------------
 
 
 @router.get("/surface-form-tasks")
@@ -2902,7 +2936,7 @@ def list_surface_form_tasks(
     scope: CallerScope = Depends(get_caller_scope),
 ) -> dict[str, Any]:
     skip = (page - 1) * page_size
-    client = PatientGraphClient()
+    client = KnowledgeGraphClient()
     try:
         with client.session() as session:
             rows = session.run(
@@ -2923,7 +2957,7 @@ def list_surface_form_tasks(
 def surface_form_task_stats(
     scope: CallerScope = Depends(get_caller_scope),
 ) -> dict[str, Any]:
-    client = PatientGraphClient()
+    client = KnowledgeGraphClient()
     try:
         with client.session() as session:
             pending = session.run(COUNT_SURFACE_FORM_TASKS, status="pending").single()
@@ -2941,7 +2975,7 @@ def get_surface_form_task(
     task_id: str,
     scope: CallerScope = Depends(get_caller_scope),
 ) -> dict[str, Any]:
-    client = PatientGraphClient()
+    client = KnowledgeGraphClient()
     try:
         with client.session() as session:
             row = session.run(GET_SURFACE_FORM_TASK_BY_ID, task_id=task_id).single()
@@ -2960,7 +2994,7 @@ def resolve_surface_form_task(
 ) -> dict[str, Any]:
     if body.status not in {"approved", "rejected", "modified"}:
         raise HTTPException(status_code=422, detail="status must be approved|rejected|modified")
-    client = PatientGraphClient()
+    client = KnowledgeGraphClient()
     try:
         with client.session() as session:
             row = session.run(

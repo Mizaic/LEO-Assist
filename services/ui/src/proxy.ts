@@ -64,9 +64,20 @@ const PREFIX_RULES: PrefixRule[] = [
     rewrite: (r) => `${coreApi()}/operations/${r}`,
   },
   {
+    prefix: "/api/model-registry/inference/",
+    rewrite: (r) => `${coreApi()}/model-registry/inference/${r}`,
+  },
+  {
     prefix: "/api/model-registry/",
     rewrite: (r) => `${coreApi()}/model-registry/${r}`,
   },
+  {
+    prefix: "/api/devices/",
+    rewrite: (r) => `${coreApi()}/devices/${r}`,
+  },
+  { prefix: "/api/devices", rewrite: () => `${coreApi()}/devices` },
+  { prefix: "/api/presets/", rewrite: (r) => `${coreApi()}/presets/${r}` },
+  { prefix: "/api/presets", rewrite: () => `${coreApi()}/presets` },
   { prefix: "/api/prompts/", rewrite: (r) => `${coreApi()}/prompts/${r}` },
   { prefix: "/api/training/", rewrite: (r) => `${coreApi()}/training/${r}` },
   {
@@ -129,6 +140,10 @@ export const config = {
     "/api/terminology/:path*",
     "/api/operations/:path*",
     "/api/model-registry/:path*",
+    "/api/devices",
+    "/api/devices/:path*",
+    "/api/presets",
+    "/api/presets/:path*",
     "/api/prompts",
     "/api/prompts/:path*",
     "/api/training/:path*",

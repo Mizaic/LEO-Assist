@@ -31,6 +31,13 @@ _PROGRESS_IDLE_TIMEOUT_S = 300  # close relay after 5 min of silence
 router = APIRouter(prefix="/pipeline", tags=["pipeline"])
 
 
+class RunGoldTrainingRequest(BaseModel):
+    plan_definition_id: str = "pd-gold-training-audit"
+    mode: Literal["all_pending", "specific"] = "all_pending"
+    candidate_ids: list[str] = []  # used when mode="specific"
+    preview: bool = False
+
+
 class RunPatientRequest(BaseModel):
     patient_id: str
     action: Literal["code_new", "recode_all", "run_analysis", "full_pipeline"]
@@ -556,6 +563,105 @@ def _clean_patients(patient_ids: list[str]) -> dict:
         )
 
     return totals
+
+
+@router.get("/gold-training/stats")
+async def gold_training_stats(_: CallerScope = Depends(get_caller_scope)) -> dict:
+    """Return counts of TrainingCandidates by status for the run UI."""
+    from libs.cypher.training_candidate_queries import GET_TRAINING_CANDIDATE_STATS
+    client = CodingGraphClient()
+    try:
+        with client.session() as session:
+            row = session.run(GET_TRAINING_CANDIDATE_STATS).single()
+            if not row:
+                return {"total": 0, "pending": 0, "processing": 0, "completed": 0, "failed": 0}
+            return dict(row)
+    finally:
+        client.close()
+
+
+@router.post("/run-gold-training")
+async def run_gold_training(
+    payload: RunGoldTrainingRequest,
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict:
+    """Queue gold training pipeline jobs — one per TrainingCandidate.
+
+    Fetches pending (or specified) TrainingCandidate nodes from the Knowledge
+    Graph and publishes one pipeline-job message per candidate to the Service
+    Bus pipeline queue.  The pipeline worker picks each up and runs the
+    gold training PlanDefinition, writing GoldLabel outputs back to the KG.
+    """
+    from libs.cypher.training_candidate_queries import (
+        GET_TRAINING_CANDIDATES_PAGE,
+        GET_TRAINING_CANDIDATE_BY_ID,
+    )
+    from libs.message_bus.base import Message
+    from libs.message_bus.factory import create_message_bus
+
+    client = CodingGraphClient()
+    candidates: list[dict] = []
+    try:
+        with client.session() as session:
+            if payload.mode == "specific" and payload.candidate_ids:
+                for cid in payload.candidate_ids:
+                    row = session.run(GET_TRAINING_CANDIDATE_BY_ID, candidate_id=cid).single()
+                    if row:
+                        candidates.append(dict(row))
+            else:
+                # All pending candidates (paginated in batches of 500)
+                skip = 0
+                while True:
+                    batch = list(session.run(
+                        GET_TRAINING_CANDIDATES_PAGE,
+                        status="pending",
+                        source=None,
+                        search=None,
+                        skip=skip,
+                        limit=500,
+                    ))
+                    if not batch:
+                        break
+                    candidates.extend(dict(r) for r in batch)
+                    if len(batch) < 500:
+                        break
+                    skip += 500
+    finally:
+        client.close()
+
+    if not candidates:
+        raise HTTPException(status_code=404, detail="No matching TrainingCandidates found.")
+
+    run_id = str(uuid.uuid4())
+    bus = create_message_bus()
+    try:
+        for cand in candidates:
+            msg = Message(
+                body={
+                    "event_type": "gold-training-run",
+                    "patient_id": "",          # not patient-scoped
+                    "encounter_id": None,
+                    "plan_definition_id": payload.plan_definition_id,
+                    "context": {
+                        "candidate_id":     cand["candidate_id"],
+                        "encounter_text":   cand.get("text", ""),
+                        "output_target":    "gold_training",
+                        "dry_run":          payload.preview,
+                    },
+                },
+                correlation_id=run_id,
+            )
+            await bus.send(PIPELINE_QUEUE, msg)
+    finally:
+        await bus.close()
+
+    return {
+        "run_id":    run_id,
+        "queued":    len(candidates),
+        "mode":      payload.mode,
+        "preview":   payload.preview,
+        "stream_path": f"/api/pipeline/progress/{run_id}",
+    }
 
 
 @router.post("/run-patient")
