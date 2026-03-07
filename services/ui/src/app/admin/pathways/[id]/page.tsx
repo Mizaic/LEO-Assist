@@ -68,20 +68,102 @@ const SUBGRAPH_OPTIONS = [
   { id: "next_best_action", label: "Next Best Action", color: "#673AB7", description: "Generate recommended next actions based on clinical context and guidelines." },
 ];
 
-const SUBGRAPH_IO: Record<string, { reads: string[]; writes: string[] }> = {
-  extraction: { reads: ["encounter_text"], writes: ["entities", "sentences", "errors"] },
-  post_processing: { reads: ["entities", "encounter_text"], writes: ["entities", "errors"] },
-  verification: { reads: ["entities", "encounter_text"], writes: ["is_verified", "verification_result", "errors"] },
-  terminology: { reads: ["entities"], writes: ["entities", "errors"] },
-  tier_classify: { reads: ["entities"], writes: ["entities", "tier_decisions"] },
-  persist: { reads: ["entities", "encounter_id", "patient_id", "output_target"], writes: ["documents_written", "training_labels_written"] },
-  sbar: { reads: ["entities", "encounter_text", "patient_id"], writes: ["sbar_report"] },
-  compliance: { reads: ["entities"], writes: ["compliance_result"] },
-  anchor_detect: { reads: ["entities"], writes: ["anchors"] },
-  episode_build: { reads: ["entities", "patient_id"], writes: ["episodes"] },
-  safety_net: { reads: ["entities", "patient_id"], writes: ["safety_net_alerts"] },
-  quality_check: { reads: ["entities"], writes: ["quality_issues"] },
-  next_best_action: { reads: ["entities", "patient_id"], writes: ["recommendations"] },
+// requiredFields: per state-key, the sub-fields this step MUST find on each item.
+// These drive field-level validation when a predecessor provides field_mappings.
+const SUBGRAPH_IO: Record<string, {
+  reads: string[];
+  writes: string[];
+  requiredFields?: Record<string, string[]>;
+}> = {
+  extraction: {
+    reads:  ["encounter_text"],
+    writes: ["entities", "sentences", "errors"],
+    // extraction produces all entity fields — nothing required from upstream entities
+  },
+  post_processing: {
+    reads:  ["entities", "encounter_text"],
+    writes: ["entities", "errors"],
+    requiredFields: {
+      entities: ["text", "semantic_tag", "assertion"],
+    },
+  },
+  verification: {
+    reads:  ["entities", "encounter_text"],
+    writes: ["is_verified", "verification_result", "errors"],
+    requiredFields: {
+      entities: ["text", "lookup_term", "semantic_tag", "assertion"],
+    },
+  },
+  terminology: {
+    reads:  ["entities"],
+    writes: ["entities", "errors"],
+    requiredFields: {
+      entities: ["text", "lookup_term", "semantic_tag"],
+    },
+  },
+  tier_classify: {
+    reads:  ["entities"],
+    writes: ["entities", "tier_decisions"],
+    requiredFields: {
+      entities: ["text", "semantic_tag", "assertion"],
+    },
+  },
+  persist: {
+    reads:  ["entities", "encounter_id", "patient_id", "output_target"],
+    writes: ["documents_written", "training_labels_written"],
+    requiredFields: {
+      entities: ["text", "lookup_term", "semantic_tag", "assertion"],
+    },
+  },
+  sbar: {
+    reads:  ["entities", "encounter_text", "patient_id"],
+    writes: ["sbar_report"],
+    requiredFields: {
+      entities: ["text", "semantic_tag", "assertion"],
+    },
+  },
+  compliance: {
+    reads:  ["entities"],
+    writes: ["compliance_result"],
+    requiredFields: {
+      entities: ["text", "semantic_tag", "assertion"],
+    },
+  },
+  anchor_detect: {
+    reads:  ["entities"],
+    writes: ["anchors"],
+    requiredFields: {
+      entities: ["text", "semantic_tag", "assertion"],
+    },
+  },
+  episode_build: {
+    reads:  ["entities", "patient_id"],
+    writes: ["episodes"],
+    requiredFields: {
+      entities: ["text", "semantic_tag", "assertion"],
+    },
+  },
+  safety_net: {
+    reads:  ["entities", "patient_id"],
+    writes: ["safety_net_alerts"],
+    requiredFields: {
+      entities: ["text", "semantic_tag", "assertion"],
+    },
+  },
+  quality_check: {
+    reads:  ["entities"],
+    writes: ["quality_issues"],
+    requiredFields: {
+      entities: ["text", "lookup_term", "semantic_tag", "assertion"],
+    },
+  },
+  next_best_action: {
+    reads:  ["entities", "patient_id"],
+    writes: ["recommendations"],
+    requiredFields: {
+      entities: ["text", "semantic_tag", "assertion"],
+    },
+  },
 };
 
 const TRIGGER_OPTIONS = [
@@ -322,20 +404,59 @@ function PromptPicker({
 }
 
 // ── Data-flow summary ─────────────────────────────────────────────────────────
+
+/** Build the set of pipeline state paths produced by a predecessor's field mappings.
+ *  e.g. { "entities": Set(["text","lookup_term","semantic_tag"]) }
+ */
+function buildProducedFields(mappings: FieldMappingRow[]): Record<string, Set<string>> {
+  const result: Record<string, Set<string>> = {};
+  for (const row of mappings) {
+    // statePath is like "entities[].text" or "entities[].lookup_term"
+    const match = row.statePath.match(/^(\w+)\[\]\.(.+)$/);
+    if (!match) continue;
+    const [, key, field] = match;
+    if (!result[key]) result[key] = new Set();
+    result[key].add(field);
+  }
+  return result;
+}
+
 function DataFlowPanel({
   subgraphId,
   prevStepWrites,
+  prevStepFieldMappings,
 }: {
   subgraphId: string;
-  prevStepWrites: string[] | null; // null = not reading from previous step
+  prevStepWrites: string[] | null;
+  prevStepFieldMappings: FieldMappingRow[] | null;
 }) {
   const io = SUBGRAPH_IO[subgraphId];
   if (!io) return null;
 
-  const provided  = prevStepWrites ? new Set(prevStepWrites) : null;
-  const missing   = provided ? io.reads.filter((k) => !provided.has(k)) : [];
-  const satisfied = provided ? io.reads.filter((k) =>  provided.has(k)) : [];
-  const extra     = provided ? prevStepWrites!.filter((k) => !io.reads.includes(k)) : [];
+  const provided      = prevStepWrites ? new Set(prevStepWrites) : null;
+  const missingKeys   = provided ? io.reads.filter((k) => !provided.has(k)) : [];
+  const satisfiedKeys = provided ? io.reads.filter((k) =>  provided.has(k)) : [];
+  const extraKeys     = provided ? prevStepWrites!.filter((k) => !io.reads.includes(k)) : [];
+
+  // Field-level analysis — only meaningful when we have field mappings AND required fields
+  const producedFields = prevStepFieldMappings ? buildProducedFields(prevStepFieldMappings) : null;
+  const requiredFields = io.requiredFields;
+
+  // For each state key that has both requiredFields and producedFields, classify sub-fields
+  const fieldReport = useMemo<Record<string, { ok: string[]; missing: string[] }>>(() => {
+    if (!producedFields || !requiredFields) return {};
+    const report: Record<string, { ok: string[]; missing: string[] }> = {};
+    for (const [stateKey, reqFields] of Object.entries(requiredFields)) {
+      const produced = producedFields[stateKey];
+      const ok      = reqFields.filter((f) => produced?.has(f));
+      const missing = reqFields.filter((f) => !produced?.has(f));
+      report[stateKey] = { ok, missing };
+    }
+    return report;
+  }, [producedFields, requiredFields]);
+
+  const fieldMismatches = Object.values(fieldReport).some((r) => r.missing.length > 0);
+  const allFieldsOk     = producedFields && requiredFields && !fieldMismatches;
 
   return (
     <Stack spacing={1.5}>
@@ -369,34 +490,65 @@ function DataFlowPanel({
         </Stack>
       </Paper>
 
-      {/* Compatibility banner — only when reading from previous step */}
+      {/* Key-level compatibility banner */}
       {provided && (
-        missing.length > 0 ? (
+        missingKeys.length > 0 ? (
           <Alert severity="warning" sx={{ fontSize: "0.78rem" }} icon={false}>
             <Typography variant="caption" fontWeight={700} display="block" sx={{ mb: 0.5 }}>
-              ⚠ {missing.length} key{missing.length > 1 ? "s" : ""} not provided by the previous step
+              ⚠ {missingKeys.length} key{missingKeys.length > 1 ? "s" : ""} not provided by the previous step
             </Typography>
             <Typography variant="caption" color="text.secondary" display="block">
-              Missing: {missing.map((k) => <Box key={k} component="span" sx={{ fontFamily: "monospace", bgcolor: "warning.100", px: 0.5, borderRadius: 0.5, mr: 0.5 }}>{k}</Box>)}
+              Missing: {missingKeys.map((k) => <Box key={k} component="span" sx={{ fontFamily: "monospace", bgcolor: "warning.100", px: 0.5, borderRadius: 0.5, mr: 0.5 }}>{k}</Box>)}
             </Typography>
-            {extra.length > 0 && (
+            {extraKeys.length > 0 && (
               <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
-                Available but not used: {extra.map((k) => <Box key={k} component="span" sx={{ fontFamily: "monospace", px: 0.5, mr: 0.5 }}>{k}</Box>)}
+                Available but not used: {extraKeys.map((k) => <Box key={k} component="span" sx={{ fontFamily: "monospace", px: 0.5, mr: 0.5 }}>{k}</Box>)}
               </Typography>
             )}
           </Alert>
         ) : (
           <Alert severity="success" sx={{ fontSize: "0.78rem" }} icon={false}>
             <Typography variant="caption" fontWeight={700}>
-              ✓ All {satisfied.length} required key{satisfied.length > 1 ? "s" : ""} are provided by the previous step
+              ✓ All {satisfiedKeys.length} required key{satisfiedKeys.length > 1 ? "s" : ""} are provided by the previous step
             </Typography>
-            {extra.length > 0 && (
+            {extraKeys.length > 0 && (
               <Typography variant="caption" color="text.secondary" display="block">
-                Also available (unused): {extra.map((k) => <Box key={k} component="span" sx={{ fontFamily: "monospace", px: 0.5, mr: 0.5 }}>{k}</Box>)}
+                Also available (unused): {extraKeys.map((k) => <Box key={k} component="span" sx={{ fontFamily: "monospace", px: 0.5, mr: 0.5 }}>{k}</Box>)}
               </Typography>
             )}
           </Alert>
         )
+      )}
+
+      {/* Field-level breakdown — shown when predecessor has field_mappings configured */}
+      {producedFields && requiredFields && Object.keys(fieldReport).length > 0 && (
+        <Paper variant="outlined" sx={{ p: 1.5, borderColor: fieldMismatches ? "warning.light" : "success.light", bgcolor: fieldMismatches ? "warning.50" : "success.50" }}>
+          <Typography variant="caption" fontWeight={700} color="text.secondary" display="block" sx={{ mb: 1 }}>
+            FIELD-LEVEL COMPATIBILITY
+          </Typography>
+          {Object.entries(fieldReport).map(([stateKey, { ok, missing }]) => (
+            <Box key={stateKey} sx={{ mb: 1 }}>
+              <Typography variant="caption" fontWeight={600} sx={{ fontFamily: "monospace" }}>
+                {stateKey}[]
+              </Typography>
+              <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap sx={{ mt: 0.4 }}>
+                {ok.map((f) => (
+                  <Chip key={f} size="small" label={`.${f}`} color="success" variant="filled"
+                    sx={{ fontFamily: "monospace", fontSize: "0.65rem", height: 18 }} />
+                ))}
+                {missing.map((f) => (
+                  <Chip key={f} size="small" label={`.${f} ✗`} color="error" variant="outlined"
+                    sx={{ fontFamily: "monospace", fontSize: "0.65rem", height: 18 }} />
+                ))}
+              </Stack>
+            </Box>
+          ))}
+          <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: "block" }}>
+            {allFieldsOk
+              ? "✓ All required fields are mapped by the previous step."
+              : "✗ Some fields this step needs are not mapped by the previous step. Update the previous step's field mappings."}
+          </Typography>
+        </Paper>
       )}
     </Stack>
   );
@@ -566,30 +718,53 @@ function SubgraphSettingsPanel({
 // ── Schema alignment panel ────────────────────────────────────────────────────
 // Fetches the prompt's output schema and lets the user map schema keys →
 // pipeline state write keys, flagging any gaps.
-// Parsed representation of the prompt output schema
-interface ParsedPromptSchema {
-  // top-level keys the LLM returns, e.g. ["terms"]
-  topLevelKeys: string[];
-  // for each top-level key that is an array of objects, the fields inside each item
-  itemFields: Record<string, Array<{ name: string; type: string; description: string; required: boolean }>>;
+// ── Schema field-level mapping panel ─────────────────────────────────────────
+// Maps every field inside the LLM output array (e.g. terms[].text) to a
+// pipeline state path (e.g. entities[].text). Users can edit the target path
+// and add custom rows for downstream enrichment fields.
+
+interface FieldMappingRow {
+  id: string;         // stable React key
+  llmField: string;   // e.g. "terms[].sentence_id"
+  type: string;       // e.g. "string" or "string | null"
+  description: string;
+  required: boolean;
+  statePath: string;  // editable — where this lands in pipeline state
+  custom: boolean;    // user-added row (not derived from schema)
 }
 
-const PIPELINE_GENERATED_SENTINEL = "__pipeline_generated__";
+function buildDefaultRows(
+  topKey: string,
+  fields: Array<{ name: string; type: string; description: string; required: boolean }>,
+): FieldMappingRow[] {
+  // Default target container = first word of topKey pluralised if needed
+  // e.g. "terms" → "entities" is conventional but unknowable; default to same name
+  return fields.map((f) => ({
+    id: `${topKey}.${f.name}`,
+    llmField: `${topKey}[].${f.name}`,
+    type: f.type,
+    description: f.description,
+    required: f.required,
+    statePath: `${topKey}[].${f.name}`,
+    custom: false,
+  }));
+}
 
 function SchemaAlignmentPanel({
   promptConfigId,
-  pipelineWriteKeys,
-  mapping,
-  onMappingChange,
+  fieldMappings,
+  onFieldMappingsChange,
 }: {
   promptConfigId: string;
-  pipelineWriteKeys: string[];
-  mapping: Record<string, string>;
-  onMappingChange: (m: Record<string, string>) => void;
+  fieldMappings: FieldMappingRow[];
+  onFieldMappingsChange: (rows: FieldMappingRow[]) => void;
 }) {
-  const [schema, setSchema] = useState<ParsedPromptSchema | null>(null);
+  const [schemaFields, setSchemaFields] = useState<{
+    topKey: string;
+    fields: Array<{ name: string; type: string; description: string; required: boolean }>;
+  } | null>(null);
   const [loading, setLoading] = useState(false);
-  const [expandedKey, setExpandedKey] = useState<string | null>(null);
+  const initialised = fieldMappings.length > 0;
 
   useEffect(() => {
     if (!promptConfigId) return;
@@ -601,39 +776,60 @@ function SchemaAlignmentPanel({
       .then((r) => r.ok ? r.json() : Promise.reject(r.statusText))
       .then((data) => {
         const raw = data.outputSchema;
-        if (!raw) { setSchema(null); return; }
-        try {
-          const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
-          const topProps: Record<string, unknown> = parsed?.properties ?? {};
-          const topLevelKeys = Object.keys(topProps);
-          const itemFields: ParsedPromptSchema["itemFields"] = {};
-          for (const key of topLevelKeys) {
-            const prop = topProps[key] as Record<string, unknown>;
-            if (prop?.type === "array") {
-              const itemProps = (prop.items as Record<string, unknown>)?.properties as Record<string, unknown> | undefined;
-              const required = ((prop.items as Record<string, unknown>)?.required as string[]) ?? [];
-              if (itemProps) {
-                itemFields[key] = Object.entries(itemProps).map(([name, def]) => {
-                  const d = def as Record<string, unknown>;
-                  const t = Array.isArray(d.type) ? d.type.join(" | ") : String(d.type ?? "");
-                  return { name, type: t, description: String(d.description ?? ""), required: required.includes(name) };
-                });
-              }
-            }
+        if (!raw) { setSchemaFields(null); return; }
+        const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
+        const topProps: Record<string, unknown> = parsed?.properties ?? {};
+        // Find first array key — that's the entity collection
+        for (const [topKey, propDef] of Object.entries(topProps)) {
+          const prop = propDef as Record<string, unknown>;
+          if (prop?.type !== "array") continue;
+          const itemProps = (prop.items as Record<string, unknown>)?.properties as Record<string, unknown> | undefined;
+          const required = ((prop.items as Record<string, unknown>)?.required as string[]) ?? [];
+          if (!itemProps) continue;
+          const fields = Object.entries(itemProps).map(([name, def]) => {
+            const d = def as Record<string, unknown>;
+            const t = Array.isArray(d.type) ? (d.type as string[]).join(" | ") : String(d.type ?? "");
+            return { name, type: t, description: String(d.description ?? ""), required: required.includes(name) };
+          });
+          setSchemaFields({ topKey, fields });
+          // Auto-populate rows on first load if not already set
+          if (!initialised) {
+            onFieldMappingsChange(buildDefaultRows(topKey, fields));
           }
-          setSchema({ topLevelKeys, itemFields });
-        } catch { setSchema(null); }
+          return;
+        }
+        setSchemaFields(null);
       })
-      .catch(() => setSchema(null))
+      .catch(() => setSchemaFields(null))
       .finally(() => setLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [promptConfigId]);
+
+  const updateRow = (id: string, patch: Partial<FieldMappingRow>) =>
+    onFieldMappingsChange(fieldMappings.map((r) => r.id === id ? { ...r, ...patch } : r));
+
+  const removeRow = (id: string) =>
+    onFieldMappingsChange(fieldMappings.filter((r) => r.id !== id));
+
+  const addCustomRow = () => {
+    const newRow: FieldMappingRow = {
+      id: `custom_${Date.now()}`,
+      llmField: "",
+      type: "string",
+      description: "",
+      required: false,
+      statePath: "",
+      custom: true,
+    };
+    onFieldMappingsChange([...fieldMappings, newRow]);
+  };
 
   if (loading) return <Alert severity="info" sx={{ fontSize: "0.78rem" }} icon={false}>Loading schema…</Alert>;
 
-  if (!schema || schema.topLevelKeys.length === 0) {
+  if (!schemaFields && fieldMappings.length === 0) {
     return (
       <Alert severity="warning" sx={{ fontSize: "0.78rem" }} icon={false}>
-        This prompt has no output schema defined. Add one in the{" "}
+        This prompt has no array output schema. Add one in the{" "}
         <Typography component="a" href="/admin/prompts" variant="caption" color="primary" sx={{ textDecoration: "underline" }}>
           Prompt Tuner
         </Typography>.
@@ -641,177 +837,127 @@ function SchemaAlignmentPanel({
     );
   }
 
-  const autoMatch = (writeKey: string) =>
-    schema.topLevelKeys.find((sk) => sk.toLowerCase() === writeKey.toLowerCase());
-
-  // A pipeline write key is "resolved" if it's explicitly mapped, auto-matched, or marked as pipeline-generated
-  const isResolved = (k: string) =>
-    mapping[k] === PIPELINE_GENERATED_SENTINEL || !!mapping[k] || !!autoMatch(k);
-
-  const llmSourcedCount  = pipelineWriteKeys.filter((k) => mapping[k] !== PIPELINE_GENERATED_SENTINEL && (mapping[k] || autoMatch(k))).length;
-  const pipelineGenCount = pipelineWriteKeys.filter((k) => mapping[k] === PIPELINE_GENERATED_SENTINEL).length;
-  const unmappedCount    = pipelineWriteKeys.filter((k) => !isResolved(k)).length;
+  const unmapped = fieldMappings.filter((r) => !r.statePath.trim()).length;
 
   return (
     <Stack spacing={1.5}>
-      {/* Header */}
-      <Stack direction="row" alignItems="center" spacing={1} flexWrap="wrap" useFlexGap>
-        <Typography variant="subtitle2">Schema → pipeline state</Typography>
-        {unmappedCount === 0
-          ? <Chip size="small" label="All accounted for ✓" color="success" sx={{ fontSize: "0.65rem", height: 18 }} />
-          : <Chip size="small" label={`${unmappedCount} not yet mapped`} color="warning" sx={{ fontSize: "0.65rem", height: 18 }} />}
+
+      <Stack direction="row" alignItems="center" justifyContent="space-between">
+        <Stack direction="row" alignItems="center" spacing={1}>
+          <Typography variant="subtitle2">LLM field → pipeline state</Typography>
+          {unmapped === 0
+            ? <Chip size="small" label="All mapped ✓" color="success" sx={{ fontSize: "0.65rem", height: 18 }} />
+            : <Chip size="small" label={`${unmapped} unmapped`} color="warning" sx={{ fontSize: "0.65rem", height: 18 }} />}
+        </Stack>
+        {schemaFields && (
+          <Typography variant="caption" color="text.secondary" sx={{ fontFamily: "monospace", fontSize: "0.68rem" }}>
+            from <strong>{schemaFields.topKey}[]</strong>
+          </Typography>
+        )}
       </Stack>
+
       <Typography variant="caption" color="text.secondary">
-        The LLM returns named keys. Map each pipeline state write-key to either a prompt output key or mark it
-        as <em>pipeline-generated</em> (produced internally — not by the LLM).
+        Each row maps one field from the LLM output to a pipeline state path downstream steps can read.
+        Edit the <em>Pipeline state path</em> column to rename or re-route. Add rows for enrichment fields
+        the LLM produces beyond the schema.
       </Typography>
 
-      {/* LLM output keys + expandable field list */}
-      <Paper variant="outlined" sx={{ p: 1.5, bgcolor: "grey.50", borderRadius: 1.5 }}>
-        <Typography variant="caption" fontWeight={700} color="text.secondary" display="block" sx={{ mb: 0.75 }}>
-          LLM OUTPUT KEYS (what the prompt returns)
-        </Typography>
+      {/* Column headers */}
+      <Box>
+        <Stack direction="row" spacing={1} sx={{ px: 0.5, mb: 0.5 }}>
+          <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ flex: "0 0 160px", fontSize: "0.65rem" }}>LLM OUTPUT FIELD</Typography>
+          <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ flex: "0 0 80px", fontSize: "0.65rem" }}>TYPE</Typography>
+          <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ flex: 1, fontSize: "0.65rem" }}>PIPELINE STATE PATH</Typography>
+          <Box sx={{ width: 28 }} />
+        </Stack>
+
         <Stack spacing={0.5}>
-          {schema.topLevelKeys.map((k) => {
-            const mappedTo = pipelineWriteKeys.find((wk) => (mapping[wk] || autoMatch(wk)) === k);
-            const hasItems = !!schema.itemFields[k];
-            const open = expandedKey === k;
-            return (
-              <Box key={k}>
-                <Stack direction="row" alignItems="center" spacing={0.75}>
-                  <Chip
+          {fieldMappings.map((row) => (
+            <Stack key={row.id} direction="row" spacing={1} alignItems="center">
+              {/* LLM field — locked for schema rows, editable for custom */}
+              <Box sx={{ flex: "0 0 160px" }}>
+                {row.custom ? (
+                  <TextField
                     size="small"
-                    label={`${k}${hasItems ? "[]" : ""}`}
-                    color={mappedTo ? "success" : "default"}
-                    variant={mappedTo ? "filled" : "outlined"}
-                    sx={{ fontFamily: "monospace", fontSize: "0.68rem" }}
+                    value={row.llmField}
+                    onChange={(e) => updateRow(row.id, { llmField: e.target.value })}
+                    placeholder="terms[].fieldName"
+                    inputProps={{ style: { fontFamily: "monospace", fontSize: "0.72rem", padding: "3px 6px" } }}
+                    sx={{ width: "100%" }}
                   />
-                  {mappedTo && (
-                    <Typography variant="caption" color="success.main">→ {mappedTo}</Typography>
-                  )}
-                  {hasItems && (
-                    <Typography
-                      variant="caption"
-                      color="primary"
-                      sx={{ cursor: "pointer", textDecoration: "underline", ml: "auto" }}
-                      onClick={() => setExpandedKey(open ? null : k)}
-                    >
-                      {open ? "hide fields ▲" : `${schema.itemFields[k].length} fields ▼`}
-                    </Typography>
-                  )}
-                </Stack>
-                {open && hasItems && (
-                  <Paper variant="outlined" sx={{ mt: 0.75, p: 1, bgcolor: "background.paper", borderRadius: 1 }}>
-                    <Stack spacing={0.25}>
-                      {schema.itemFields[k].map((f) => (
-                        <Stack key={f.name} direction="row" spacing={1} alignItems="flex-start">
-                          <Box sx={{ fontFamily: "monospace", fontSize: "0.68rem", fontWeight: f.required ? 700 : 400, minWidth: 120, color: f.required ? "text.primary" : "text.secondary" }}>
-                            {f.name}{f.required ? " *" : ""}
-                          </Box>
-                          <Box sx={{ fontFamily: "monospace", fontSize: "0.65rem", color: "info.main", minWidth: 60 }}>{f.type}</Box>
-                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.65rem" }}>{f.description}</Typography>
-                        </Stack>
-                      ))}
-                      <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, fontSize: "0.62rem" }}>
-                        * required field
-                      </Typography>
-                    </Stack>
-                  </Paper>
+                ) : (
+                  <Tooltip title={row.description} placement="top-start">
+                    <Box sx={{
+                      fontFamily: "monospace",
+                      fontSize: "0.72rem",
+                      color: row.required ? "text.primary" : "text.secondary",
+                      fontWeight: row.required ? 600 : 400,
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      cursor: "help",
+                    }}>
+                      {row.llmField}{row.required ? " *" : ""}
+                    </Box>
+                  </Tooltip>
                 )}
               </Box>
-            );
-          })}
-        </Stack>
-      </Paper>
 
-      {/* Mapping table */}
-      <Box>
-        <Typography variant="caption" fontWeight={700} color="text.secondary" display="block" sx={{ mb: 0.75 }}>
-          PIPELINE STATE WRITE KEYS
-        </Typography>
-        <Stack spacing={0.75}>
-          {pipelineWriteKeys.map((writeKey) => {
-            const auto     = autoMatch(writeKey);
-            const explicit = mapping[writeKey];
-            const isPipelineGen = explicit === PIPELINE_GENERATED_SENTINEL;
-            const selectValue   = isPipelineGen ? PIPELINE_GENERATED_SENTINEL : explicit || (auto ? `__auto__${auto}` : "");
-            const resolved = isResolved(writeKey);
+              {/* Type */}
+              <Box sx={{ flex: "0 0 80px", fontFamily: "monospace", fontSize: "0.65rem", color: "info.main", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {row.type || "—"}
+              </Box>
 
-            return (
-              <Stack key={writeKey} direction="row" alignItems="center" spacing={1}>
-                <Chip
-                  size="small"
-                  label={writeKey}
-                  color={isPipelineGen ? "default" : resolved ? "primary" : "error"}
-                  variant="outlined"
-                  sx={{ fontFamily: "monospace", fontSize: "0.68rem", minWidth: 90, opacity: isPipelineGen ? 0.6 : 1 }}
-                />
-                <Typography variant="caption" color="text.secondary">←</Typography>
-                <FormControl size="small" sx={{ flex: 1 }}>
-                  <Select
-                    value={selectValue}
-                    displayEmpty
-                    onChange={(e) => {
-                      const val = e.target.value as string;
-                      const newMap = { ...mapping };
-                      if (!val || val.startsWith("__auto__")) {
-                        delete newMap[writeKey];
-                      } else {
-                        newMap[writeKey] = val; // stores schema key OR sentinel
-                      }
-                      onMappingChange(newMap);
-                    }}
-                    sx={{ fontSize: "0.75rem", fontFamily: "monospace" }}
-                  >
-                    <MenuItem value="">
-                      <em style={{ color: "#999", fontSize: "0.75rem" }}>— not mapped —</em>
-                    </MenuItem>
-                    {/* Auto-match option */}
-                    {!explicit && auto && (
-                      <MenuItem value={`__auto__${auto}`}>
-                        <Stack direction="row" alignItems="center" spacing={0.5}>
-                          <Box sx={{ color: "success.main", fontSize: "0.7rem", fontWeight: 700 }}>✓ auto</Box>
-                          <Box sx={{ fontFamily: "monospace", fontSize: "0.75rem" }}>{auto}</Box>
-                        </Stack>
-                      </MenuItem>
-                    )}
-                    {/* LLM schema keys */}
-                    {schema.topLevelKeys.map((k) => (
-                      <MenuItem key={k} value={k} sx={{ fontFamily: "monospace", fontSize: "0.75rem" }}>
-                        {k}{schema.itemFields[k] ? "[ ]" : ""}
-                      </MenuItem>
-                    ))}
-                    <Divider />
-                    {/* Pipeline-generated option */}
-                    <MenuItem value={PIPELINE_GENERATED_SENTINEL} sx={{ fontSize: "0.75rem", fontStyle: "italic", color: "text.secondary" }}>
-                      Pipeline-generated (not from LLM)
-                    </MenuItem>
-                  </Select>
-                </FormControl>
-              </Stack>
-            );
-          })}
+              {/* Target pipeline state path — always editable */}
+              <TextField
+                size="small"
+                value={row.statePath}
+                onChange={(e) => updateRow(row.id, { statePath: e.target.value })}
+                placeholder="e.g. entities[].text"
+                error={!row.statePath.trim()}
+                inputProps={{ style: { fontFamily: "monospace", fontSize: "0.72rem", padding: "3px 6px" } }}
+                sx={{ flex: 1 }}
+              />
+
+              {/* Remove */}
+              <IconButton
+                size="small"
+                onClick={() => removeRow(row.id)}
+                sx={{ width: 28, height: 28, color: "text.disabled", "&:hover": { color: "error.main" } }}
+              >
+                <Box component="span" sx={{ fontSize: "0.8rem", lineHeight: 1 }}>✕</Box>
+              </IconButton>
+            </Stack>
+          ))}
         </Stack>
-        <Typography variant="caption" color="text.secondary" sx={{ mt: 0.75, display: "block", fontSize: "0.67rem" }}>
-          {llmSourcedCount > 0 && `${llmSourcedCount} from LLM`}
-          {llmSourcedCount > 0 && pipelineGenCount > 0 && " · "}
-          {pipelineGenCount > 0 && `${pipelineGenCount} pipeline-generated`}
-          {unmappedCount > 0 && ` · ⚠ ${unmappedCount} not yet mapped`}
-        </Typography>
+
+        {fieldMappings.some((r) => r.required && !r.statePath.trim()) && (
+          <Alert severity="error" sx={{ mt: 1, fontSize: "0.75rem" }} icon={false}>
+            Required fields (* marked) must have a pipeline state path.
+          </Alert>
+        )}
       </Box>
 
-      {unmappedCount > 0 && (
-        <Alert severity="warning" sx={{ fontSize: "0.78rem" }} icon={false}>
-          Unresolved write keys will be empty at runtime. Map them to an LLM output key or mark as pipeline-generated.
-        </Alert>
-      )}
+      {/* Add row */}
+      <Button
+        size="small"
+        variant="outlined"
+        onClick={addCustomRow}
+        sx={{ alignSelf: "flex-start", fontSize: "0.75rem", textTransform: "none" }}
+      >
+        + Add enrichment field
+      </Button>
+
+      <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.67rem" }}>
+        * required by schema &nbsp;·&nbsp; Hover any locked field name to see its description
+      </Typography>
     </Stack>
   );
 }
 
 // ── Action configurator ───────────────────────────────────────────────────────
 function ActionConfigurator({
-  nodeId, initialConfig, onSave, onDelete, onClose, onPathwaySave, prevStepWrites,
+  nodeId, initialConfig, onSave, onDelete, onClose, onPathwaySave, prevStepWrites, prevStepFieldMappings,
 }: {
   nodeId: string;
   initialConfig: ActionConfig;
@@ -820,6 +966,7 @@ function ActionConfigurator({
   onClose: () => void;
   onPathwaySave: () => Promise<void>;
   prevStepWrites: string[] | null;
+  prevStepFieldMappings: FieldMappingRow[] | null;
 }) {
   const [step, setStep] = useState(0);
   const [config, setConfig] = useState<ActionConfig>({ ...DEFAULT_CONFIG, ...initialConfig, params: initialConfig.params ?? {} });
@@ -905,6 +1052,7 @@ function ActionConfigurator({
             <DataFlowPanel
               subgraphId={config.subgraphId}
               prevStepWrites={config.inputSource === "previous_step" ? prevStepWrites : null}
+              prevStepFieldMappings={config.inputSource === "previous_step" ? prevStepFieldMappings : null}
             />
             <Divider />
 
@@ -1075,9 +1223,8 @@ function ActionConfigurator({
                 </Typography>
                 <SchemaAlignmentPanel
                   promptConfigId={config.promptConfigId}
-                  pipelineWriteKeys={SUBGRAPH_IO[config.subgraphId]?.writes ?? []}
-                  mapping={(config.params.output_key_map as Record<string, string>) ?? {}}
-                  onMappingChange={(m) => updateParam("output_key_map", m)}
+                  fieldMappings={(config.params.field_mappings as FieldMappingRow[]) ?? []}
+                  onFieldMappingsChange={(rows) => updateParam("field_mappings", rows)}
                 />
               </>
             )}
@@ -1137,12 +1284,10 @@ function ActionConfigurator({
                     <ReviewRow label="Model preset" value={config.modelPresetName || config.modelPresetId || "Not set"} />
                     <ReviewRow label="Temperature" value={config.temperature.toFixed(1)} />
                     <ReviewRow label="Prompt" value={config.promptConfigName || config.promptConfigId || "None"} />
-                    {config.params.output_key_map && Object.keys(config.params.output_key_map as Record<string, string>).length > 0 && (
+                    {Array.isArray(config.params.field_mappings) && (config.params.field_mappings as FieldMappingRow[]).length > 0 && (
                       <ReviewRow
-                        label="Schema mapping"
-                        value={Object.entries(config.params.output_key_map as Record<string, string>)
-                          .map(([k, v]) => `${v}→${k}`)
-                          .join(", ")}
+                        label="Field mappings"
+                        value={`${(config.params.field_mappings as FieldMappingRow[]).filter((r) => r.statePath).length} of ${(config.params.field_mappings as FieldMappingRow[]).length} mapped`}
                       />
                     )}
                   </>
@@ -1441,6 +1586,29 @@ function useValidationWarnings(
           message: `"${(node.data as ActionNodeData).label}" needs key "${key}" but ${predecessorIds.length === 0 ? "has no connected predecessor" : "the previous step does not produce it"}.`,
         });
       }
+
+      // Field-level validation: if this step has requiredFields and any predecessor
+      // has configured field_mappings, check that all required sub-fields are covered.
+      if (io.requiredFields) {
+        for (const predId of predecessorIds) {
+          const predCfg = nodeConfigs[predId];
+          const mappings = predCfg?.params?.field_mappings as FieldMappingRow[] | undefined;
+          if (!mappings || mappings.length === 0) continue;
+
+          const producedFields = buildProducedFields(mappings);
+          for (const [stateKey, reqFields] of Object.entries(io.requiredFields)) {
+            const produced = producedFields[stateKey];
+            const missingFields = reqFields.filter((f) => !produced?.has(f));
+            if (missingFields.length > 0) {
+              const label = (node.data as ActionNodeData).label;
+              warnings.push({
+                severity: "error",
+                message: `"${label}" needs ${stateKey}[].${missingFields.join(", " + stateKey + "[].") } but the previous step's field mappings do not include ${missingFields.length === 1 ? "it" : "them"}. Update the previous step's Schema Alignment.`,
+              });
+            }
+          }
+        }
+      }
     }
 
     const hasVerify = nodes.some(n => (n.data as ActionNodeData)?.subgraphId === "verification");
@@ -1669,6 +1837,22 @@ export default function PathwayBuilderPage() {
     return allWrites.size > 0 ? Array.from(allWrites) : null;
   }, [selectedNode, edges, nodes]);
 
+  // Collect field-level mappings from DIRECT predecessors (first predecessor wins per key).
+  // Only direct predecessors matter — each step reads from the immediately preceding step.
+  const prevStepFieldMappings = useMemo<FieldMappingRow[] | null>(() => {
+    if (!selectedNode) return null;
+    const predecessorIds = edges
+      .filter((e) => e.target === selectedNode)
+      .map((e) => e.source);
+    if (predecessorIds.length === 0) return null;
+    for (const predId of predecessorIds) {
+      const predCfg = nodeConfigs[predId];
+      const mappings = predCfg?.params?.field_mappings as FieldMappingRow[] | undefined;
+      if (mappings && mappings.length > 0) return mappings;
+    }
+    return null;
+  }, [selectedNode, edges, nodeConfigs]);
+
   const handleSave = useCallback(async () => {
     setSaveError(null);
     const payload = {
@@ -1767,6 +1951,7 @@ export default function PathwayBuilderPage() {
             onClose={() => setDrawerOpen(false)}
             onPathwaySave={handleSave}
             prevStepWrites={prevStepWrites}
+            prevStepFieldMappings={prevStepFieldMappings}
           />
         )}
       </Drawer>
