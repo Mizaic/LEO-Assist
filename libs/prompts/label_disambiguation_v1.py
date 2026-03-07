@@ -1,8 +1,11 @@
-"""Prompt for resolving label disagreements in NER verification.
+"""Prompt for resolving label disagreements in NER verification — INSTRUCTIONS ONLY.
 
-.. deprecated::
-    Hardcoded fallback only. Canonical source: ``PromptConfig`` node in
-    Neo4j. Edit via Admin UI at /admin/prompts.
+Output schema and few-shot examples are stored separately in Neo4j and
+assembled at runtime. Do NOT add output format sections or inline examples
+to this file — manage them via the Admin UI at /admin/prompts
+(name='label_disambiguation', version=1).
+
+Run ``python -m scripts.seed_prompt_configs`` to push changes to Neo4j.
 """
 from libs.prompts.registry import register
 
@@ -54,13 +57,6 @@ Boundary reminders:
 - chemo, HRT, radiotherapy in treatment context = regime_therapy
 - "drop in eGFR from 24 to 19" = finding (narrative, NOT observable_entity)
 - Formal staging (FIGO IB1, Dukes C, Clark IV) = tumor_staging
-
-Return strict JSON only:
-{
-  "resolved_label": "finding",
-  "confidence": 0.0,
-  "reason": "short reason"
-}
 
 Rules:
 - confidence in [0.0, 1.0]

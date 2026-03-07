@@ -93,27 +93,206 @@ _add(
     ),
 )
 
-# ── Other prompts ────────────────────────────────────────────────────────────
-_add("disambiguation", 1, "libs.prompts.disambiguation_v1.DISAMBIGUATION_SYSTEM_V1",
-     description="Disambiguates extracted entities against candidate SNOMED concepts.")
-_add("episode_builder_system", 1, "libs.prompts.episode_builder_v1.EPISODE_BUILDER_SYSTEM_V1",
-     description="System role for the episode builder — groups coded entities into clinical episodes.")
-_add("episode_builder_task", 1, "libs.prompts.episode_builder_v1.EPISODE_BUILDER_TASK_V1",
-     description="Task instructions for the episode builder — structures entities per clinical encounter.")
-_add("episode_consolidation_system", 1, "libs.prompts.episode_builder_v1.EPISODE_CONSOLIDATION_SYSTEM_V1",
-     description="System role for cross-encounter episode consolidation.")
-_add("episode_consolidation_task", 1, "libs.prompts.episode_builder_v1.EPISODE_CONSOLIDATION_TASK_V1",
-     description="Task instructions for consolidating episodes across multiple encounters.")
-_add("encounter_classify", 1, "libs.prompts.encounter_classify_v1.ENCOUNTER_CLASSIFY_SYSTEM_V1",
-     description="Classifies encounters by type and clinical tier before extraction.")
-_add("anchor_domain_review", 1, "libs.prompts.anchor_domain_review_v1.ANCHOR_DOMAIN_REVIEW_V1",
-     description="Reviews extracted entities against configured anchor domains to check relevance.")
-_add("exclusion_detect", 1, "libs.prompts.exclusion_detect_v1.EXCLUSION_DETECT_SYSTEM_V1",
-     description="Detects and flags entities that should be excluded from coding based on exclusion rules.")
-_add("label_verification", 2, "libs.prompts.label_verification_v2.LABEL_VERIFICATION_V2",
-     description="Verifies extracted label quality against the source text before gold-label persistence.")
-_add("label_disambiguation", 1, "libs.prompts.label_disambiguation_v1.LABEL_DISAMBIGUATION_V1",
-     description="Disambiguates uncertain labels using context from the full encounter.")
+# ── Disambiguation ────────────────────────────────────────────────────────────
+from libs.prompts.disambiguation_output_schema import DISAMBIGUATION_OUTPUT_SCHEMA
+from libs.prompts.disambiguation_examples import DISAMBIGUATION_EXAMPLES
+
+_add(
+    "disambiguation", 1,
+    "libs.prompts.disambiguation_v1.DISAMBIGUATION_SYSTEM_V1",
+    output_schema=json.dumps(DISAMBIGUATION_OUTPUT_SCHEMA),
+    few_shot_examples=[
+        {
+            "id": f"seed_disambig_{i:03d}",
+            "input": ex["input"],
+            "output": ex["output"],
+            "deidentified": True,
+            "category": ex.get("category", ""),
+            "model_scope": ex.get("model_scope", "any"),
+            "description": ex.get("description", ""),
+        }
+        for i, ex in enumerate(DISAMBIGUATION_EXAMPLES)
+    ],
+    description="Disambiguates extracted entities against candidate SNOMED concepts.",
+)
+
+# ── Episode builder ────────────────────────────────────────────────────────────
+from libs.prompts.episode_builder_output_schema import (
+    EPISODE_BUILDER_OUTPUT_SCHEMA,
+    EPISODE_CONSOLIDATION_OUTPUT_SCHEMA,
+)
+from libs.prompts.episode_builder_examples import EPISODE_BUILDER_EXAMPLES
+
+_builder_examples = [
+    {
+        "id": f"seed_epbuild_{i:03d}",
+        "input": ex["input"],
+        "output": ex["output"],
+        "deidentified": True,
+        "category": ex.get("category", ""),
+        "model_scope": ex.get("model_scope", "any"),
+        "description": ex.get("description", ""),
+    }
+    for i, ex in enumerate(EPISODE_BUILDER_EXAMPLES)
+    if ex.get("category", "").startswith("episode:")
+]
+_consolidation_examples = [
+    {
+        "id": f"seed_epcons_{i:03d}",
+        "input": ex["input"],
+        "output": ex["output"],
+        "deidentified": True,
+        "category": ex.get("category", ""),
+        "model_scope": ex.get("model_scope", "any"),
+        "description": ex.get("description", ""),
+    }
+    for i, ex in enumerate(EPISODE_BUILDER_EXAMPLES)
+    if ex.get("category", "").startswith("consolidation:")
+]
+
+_add(
+    "episode_builder_system", 1,
+    "libs.prompts.episode_builder_v1.EPISODE_BUILDER_SYSTEM_V1",
+    output_schema=json.dumps(EPISODE_BUILDER_OUTPUT_SCHEMA),
+    few_shot_examples=_builder_examples,
+    description="System role for the episode builder — groups coded entities into clinical episodes.",
+)
+_add(
+    "episode_builder_task", 1,
+    "libs.prompts.episode_builder_v1.EPISODE_BUILDER_TASK_V1",
+    output_schema=json.dumps(EPISODE_BUILDER_OUTPUT_SCHEMA),
+    few_shot_examples=_builder_examples,
+    description="Task instructions for the episode builder — structures entities per clinical encounter.",
+)
+_add(
+    "episode_consolidation_system", 1,
+    "libs.prompts.episode_builder_v1.EPISODE_CONSOLIDATION_SYSTEM_V1",
+    output_schema=json.dumps(EPISODE_CONSOLIDATION_OUTPUT_SCHEMA),
+    few_shot_examples=_consolidation_examples,
+    description="System role for cross-encounter episode consolidation.",
+)
+_add(
+    "episode_consolidation_task", 1,
+    "libs.prompts.episode_builder_v1.EPISODE_CONSOLIDATION_TASK_V1",
+    output_schema=json.dumps(EPISODE_CONSOLIDATION_OUTPUT_SCHEMA),
+    few_shot_examples=_consolidation_examples,
+    description="Task instructions for consolidating episodes across multiple encounters.",
+)
+
+# ── Encounter classify ─────────────────────────────────────────────────────────
+from libs.prompts.encounter_classify_output_schema import ENCOUNTER_CLASSIFY_OUTPUT_SCHEMA
+from libs.prompts.encounter_classify_examples import ENCOUNTER_CLASSIFY_EXAMPLES
+
+_add(
+    "encounter_classify", 1,
+    "libs.prompts.encounter_classify_v1.ENCOUNTER_CLASSIFY_SYSTEM_V1",
+    output_schema=json.dumps(ENCOUNTER_CLASSIFY_OUTPUT_SCHEMA),
+    few_shot_examples=[
+        {
+            "id": f"seed_encclass_{i:03d}",
+            "input": ex["input"],
+            "output": ex["output"],
+            "deidentified": True,
+            "category": ex.get("category", ""),
+            "model_scope": ex.get("model_scope", "any"),
+            "description": ex.get("description", ""),
+        }
+        for i, ex in enumerate(ENCOUNTER_CLASSIFY_EXAMPLES)
+    ],
+    description="Classifies encounters by type and clinical tier before extraction.",
+)
+
+# ── Anchor domain review ───────────────────────────────────────────────────────
+from libs.prompts.anchor_domain_review_output_schema import ANCHOR_DOMAIN_REVIEW_OUTPUT_SCHEMA
+from libs.prompts.anchor_domain_review_examples import ANCHOR_DOMAIN_REVIEW_EXAMPLES
+
+_add(
+    "anchor_domain_review", 1,
+    "libs.prompts.anchor_domain_review_v1.ANCHOR_DOMAIN_REVIEW_V1",
+    output_schema=json.dumps(ANCHOR_DOMAIN_REVIEW_OUTPUT_SCHEMA),
+    few_shot_examples=[
+        {
+            "id": f"seed_anchor_{i:03d}",
+            "input": ex["input"],
+            "output": ex["output"],
+            "deidentified": True,
+            "category": ex.get("category", ""),
+            "model_scope": ex.get("model_scope", "any"),
+            "description": ex.get("description", ""),
+        }
+        for i, ex in enumerate(ANCHOR_DOMAIN_REVIEW_EXAMPLES)
+    ],
+    description="Reviews anchor training records: assigns clinical domains, validates SNOMED concepts, generates medspaCy TargetRules.",
+)
+
+# ── Exclusion detect ───────────────────────────────────────────────────────────
+from libs.prompts.exclusion_detect_output_schema import EXCLUSION_DETECT_OUTPUT_SCHEMA
+from libs.prompts.exclusion_detect_examples import EXCLUSION_DETECT_EXAMPLES
+
+_add(
+    "exclusion_detect", 1,
+    "libs.prompts.exclusion_detect_v1.EXCLUSION_DETECT_SYSTEM_V1",
+    output_schema=json.dumps(EXCLUSION_DETECT_OUTPUT_SCHEMA),
+    few_shot_examples=[
+        {
+            "id": f"seed_excl_{i:03d}",
+            "input": ex["input"],
+            "output": ex["output"],
+            "deidentified": True,
+            "category": ex.get("category", ""),
+            "model_scope": ex.get("model_scope", "any"),
+            "description": ex.get("description", ""),
+        }
+        for i, ex in enumerate(EXCLUSION_DETECT_EXAMPLES)
+    ],
+    description="Classifies post-referral encounters as cancer_excluded / confirmed / still_investigating / pending_letter / not_relevant.",
+)
+
+# ── Label verification ─────────────────────────────────────────────────────────
+from libs.prompts.label_verification_output_schema import LABEL_VERIFICATION_OUTPUT_SCHEMA
+from libs.prompts.label_verification_examples import LABEL_VERIFICATION_EXAMPLES
+
+_add(
+    "label_verification", 2,
+    "libs.prompts.label_verification_v2.LABEL_VERIFICATION_V2",
+    output_schema=json.dumps(LABEL_VERIFICATION_OUTPUT_SCHEMA),
+    few_shot_examples=[
+        {
+            "id": f"seed_labver_{i:03d}",
+            "input": ex["input"],
+            "output": ex["output"],
+            "deidentified": True,
+            "category": ex.get("category", ""),
+            "model_scope": ex.get("model_scope", "any"),
+            "description": ex.get("description", ""),
+        }
+        for i, ex in enumerate(LABEL_VERIFICATION_EXAMPLES)
+    ],
+    description="Verifies extracted label quality against the source text before gold-label persistence.",
+)
+
+# ── Label disambiguation ───────────────────────────────────────────────────────
+from libs.prompts.label_disambiguation_output_schema import LABEL_DISAMBIGUATION_OUTPUT_SCHEMA
+from libs.prompts.label_disambiguation_examples import LABEL_DISAMBIGUATION_EXAMPLES
+
+_add(
+    "label_disambiguation", 1,
+    "libs.prompts.label_disambiguation_v1.LABEL_DISAMBIGUATION_V1",
+    output_schema=json.dumps(LABEL_DISAMBIGUATION_OUTPUT_SCHEMA),
+    few_shot_examples=[
+        {
+            "id": f"seed_labdis_{i:03d}",
+            "input": ex["input"],
+            "output": ex["output"],
+            "deidentified": True,
+            "category": ex.get("category", ""),
+            "model_scope": ex.get("model_scope", "any"),
+            "description": ex.get("description", ""),
+        }
+        for i, ex in enumerate(LABEL_DISAMBIGUATION_EXAMPLES)
+    ],
+    description="Disambiguates uncertain NER labels using context from the full encounter — resolves model disagreements.",
+)
 
 
 def main() -> None:
