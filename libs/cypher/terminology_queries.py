@@ -1,5 +1,12 @@
 """Shared Cypher query templates for terminology operations."""
 
+SEMANTIC_TAGS_QUERY = """
+MATCH (c:Concept)
+WHERE c.active = true AND c.semantic_tag IS NOT NULL AND c.semantic_tag <> ''
+RETURN DISTINCT c.semantic_tag AS semantic_tag
+ORDER BY c.semantic_tag
+"""
+
 # Neo4j does not support parameterised variable-length path bounds.
 DESCENDANTS_TEMPLATE = """
 MATCH (ancestor:Concept {{id: $concept_id}})<-[:IS_A*1..{depth}]-(d:Concept)

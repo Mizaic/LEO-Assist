@@ -11,18 +11,34 @@ const ADMIN_BASE = '/api/admin';
 // Types
 // ------------------------------------------------------------------
 
+export interface OrgSubscription {
+  id: string;
+  tier: string;
+  credits_purchased: number;
+  credits_consumed: number;
+  expires_at?: string;
+}
+
 export interface Org {
   id: string;
   name: string;
   odsCode?: string;
   short_name?: string;
-  type: string; // gp | icb | alliance | organization
+  entra_tenant_id?: string;
+  onboarding_status?: string;
+  ods_sync_status?: string;
+  ods_discrepancy?: Record<string, { ods: string; leo: string }>;
+  ods_sync_last_checked?: string;
+  type: string; // gp | icb | alliance | pcn | organization
   labels: string[];
   patient_count: number;
   parent_id?: string;
   parent_name?: string;
   alliance_id?: string;
   alliance_name?: string;
+  pcn_id?: string;
+  pcn_name?: string;
+  subscription?: OrgSubscription | null;
 }
 
 export interface User {
@@ -75,8 +91,35 @@ export async function listOrgs(): Promise<Org[]> {
   return api.get<Org[]>(`${ADMIN_BASE}/orgs`);
 }
 
+export interface OrgGraphNode {
+  id: string;
+  name: string;
+  short_name?: string;
+  odsCode?: string;
+  type: string;
+  ods_sync_status?: string;
+  ods_parent_ods_code?: string;
+  ods_address?: { line1?: string; city?: string; postcode?: string };
+  onboarding_status?: string;
+  patient_count: number;
+}
+
+export interface OrgGraphEdge {
+  source: string;
+  target: string;
+}
+
+export interface OrgGraph {
+  nodes: OrgGraphNode[];
+  edges: OrgGraphEdge[];
+}
+
+export async function getOrgGraph(): Promise<OrgGraph> {
+  return api.get<OrgGraph>(`${ADMIN_BASE}/orgs/graph`);
+}
+
 export async function createOrg(body: {
-  type: 'gp' | 'icb' | 'alliance';
+  type: 'gp' | 'icb' | 'alliance' | 'pcn';
   name: string;
   ods_code?: string;
   short_name?: string;
@@ -105,6 +148,34 @@ export async function linkOrg(
   body: { link_type: string; parent_id: string }
 ): Promise<{ id: string }> {
   return api.post<{ id: string }>(`${ADMIN_BASE}/orgs/${orgId}/link`, body);
+}
+
+export async function listOrgUsers(orgId: string): Promise<User[]> {
+  return api.get<User[]>(`${ADMIN_BASE}/orgs/${encodeURIComponent(orgId)}/users`);
+}
+
+export async function addUserToOrg(orgId: string, email: string): Promise<{ email: string; org_id: string; action: string }> {
+  return api.post(`${ADMIN_BASE}/orgs/${encodeURIComponent(orgId)}/users/${encodeURIComponent(email)}`, {});
+}
+
+export async function removeUserFromOrg(orgId: string, email: string): Promise<{ email: string; org_id: string; action: string }> {
+  return apiFetch(`${ADMIN_BASE}/orgs/${encodeURIComponent(orgId)}/users/${encodeURIComponent(email)}`, { method: 'DELETE' });
+}
+
+export async function assignOrgRole(email: string, orgId: string, roleName: string): Promise<{ role: string; org_id?: string }> {
+  return api.post(`${ADMIN_BASE}/users/${encodeURIComponent(email)}/roles`, { role_name: roleName, org_id: orgId });
+}
+
+export async function removeOrgRole(email: string, roleName: string): Promise<{ role: string }> {
+  return api.delete(`${ADMIN_BASE}/users/${encodeURIComponent(email)}/roles/${encodeURIComponent(roleName)}`);
+}
+
+export async function acquireGpToPcn(gpId: string, pcnId: string): Promise<{ gp_id: string; pcn_id: string; action: string }> {
+  return api.post(`${ADMIN_BASE}/orgs/${gpId}/pcn/${pcnId}`, {});
+}
+
+export async function releaseGpFromPcn(gpId: string, pcnId: string): Promise<{ gp_id: string; pcn_id: string; action: string }> {
+  return apiFetch(`${ADMIN_BASE}/orgs/${gpId}/pcn/${pcnId}`, { method: 'DELETE' });
 }
 
 // ------------------------------------------------------------------
@@ -272,4 +343,42 @@ export async function patchAuthConfig(body: {
 
 export async function listRoles(): Promise<Role[]> {
   return api.get<Role[]>(`${ADMIN_BASE}/roles`);
+}
+
+// ------------------------------------------------------------------
+// Onboarding
+// ------------------------------------------------------------------
+
+export interface OnboardRequest {
+  organisation: {
+    name: string;
+    type: 'gp' | 'icb' | 'alliance' | 'pcn';
+    ods_code: string;
+    parent_org_id?: string;
+    region?: string;
+    subscription?: {
+      tier: string;
+      credits?: number;
+      expires_at?: string;
+      purchase_ref?: string;
+    };
+  };
+  primary_user: {
+    email: string;
+    given_name: string;
+    family_name: string;
+    job_title?: string;
+    phone?: string;
+  };
+}
+
+export interface OnboardResponse {
+  org_id: string;
+  user_email: string;
+  onboarding_status: string;
+  message: string;
+}
+
+export async function onboardOrg(body: OnboardRequest): Promise<OnboardResponse> {
+  return apiFetch<OnboardResponse>('/api/onboard', { method: 'POST', body });
 }

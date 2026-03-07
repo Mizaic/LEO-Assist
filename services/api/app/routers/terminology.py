@@ -26,43 +26,22 @@ from app.models.neo4j_schema import (
     DEDUPLICATE_SURFACE_FORM_RELS,
     AUDIT_SURFACE_FORM_DUPLICATES,
 )
+from libs.cypher.terminology_queries import SEMANTIC_TAGS_QUERY
 from services.terminology_api.app.services.writeback_service import writeback_approved_terms
 
 
 router = APIRouter(prefix="/terminology", tags=["terminology"])
 
-SNOMED_SEMANTIC_TAGS = [
-    "body structure",
-    "clinical drug",
-    "disorder",
-    "environment",
-    "ethnic group",
-    "event",
-    "finding",
-    "medicinal product",
-    "morphologic abnormality",
-    "observable entity",
-    "occupation",
-    "organism",
-    "person",
-    "physical object",
-    "procedure",
-    "qualifier value",
-    "record artifact",
-    "regime/therapy",
-    "situation",
-    "social concept",
-    "specimen",
-    "staging scale",
-    "substance",
-    "tumor staging",
-]
-
 
 @router.get("/semantic-tags")
 def list_semantic_tags():
-    """Return the fixed set of clinically relevant SNOMED CT semantic tags."""
-    return SNOMED_SEMANTIC_TAGS
+    """Return all distinct SNOMED CT semantic tags present in the knowledge graph."""
+    client = CodingGraphClient()
+    try:
+        rows = client.run(SEMANTIC_TAGS_QUERY)
+        return [r["semantic_tag"] for r in rows]
+    finally:
+        client.close()
 
 
 @router.get("/search")

@@ -4,8 +4,9 @@ Resolves a caller's email to their organizational scope using the Neo4j
 Practitioner/WORKS_AT graph.  Platform admins bypass all scope checks.
 
 Org hierarchy:
-    (GPPractice)-[:COMMISSIONED_BY]->(ICB)-[:PART_OF_ALLIANCE]->(CancerAlliance)
-    (Practitioner)-[:WORKS_AT]->(GPPractice | ICB | CancerAlliance)
+    (GPPractice)-[:PART_OF_PCN]->(PCN)-[:COMMISSIONED_BY]->(ICB)-[:PART_OF_ALLIANCE]->(CancerAlliance)
+    (GPPractice)-[:COMMISSIONED_BY]->(ICB)  # direct link still supported
+    (Practitioner)-[:WORKS_AT]->(GPPractice | PCN | ICB | CancerAlliance)
 
 Usage in FastAPI endpoints::
 
@@ -28,10 +29,11 @@ from libs.neo4j_client.client import PatientGraphClient
 
 logger = logging.getLogger("libs.auth.org_scope")
 
-ScopeType = Literal["gp", "icb", "alliance"]
+ScopeType = Literal["gp", "pcn", "icb", "alliance"]
 
 _LABEL_TO_SCOPE: dict[str, ScopeType] = {
     "GPPractice": "gp",
+    "PCN": "pcn",
     "ICB": "icb",
     "CancerAlliance": "alliance",
 }
@@ -121,6 +123,8 @@ def resolve_caller_scope(
     # Expand to all orgs in the hierarchy visible from this scope level.
     if scope_type == "gp":
         all_ids = _expand_gp_scope(client, primary_id)
+    elif scope_type == "pcn":
+        all_ids = _expand_pcn_scope(client, primary_id)
     elif scope_type == "icb":
         all_ids = _expand_icb_scope(client, primary_id)
     else:
@@ -136,16 +140,43 @@ def resolve_caller_scope(
 
 
 def _expand_gp_scope(client: PatientGraphClient, gp_id: str) -> list[str]:
-    """GP scope: own GP + parent ICB + grandparent Alliance."""
+    """GP scope: own GP + parent PCN (if any) + parent ICB + grandparent Alliance."""
     rows = client.run(
         "MATCH (gp {id: $gp_id}) "
-        "OPTIONAL MATCH (gp)-[:COMMISSIONED_BY]->(icb:ICB) "
+        "OPTIONAL MATCH (gp)-[:PART_OF_PCN]->(pcn:PCN) "
+        "OPTIONAL MATCH (gp)-[:COMMISSIONED_BY]->(icb_direct:ICB) "
+        "OPTIONAL MATCH (pcn)-[:COMMISSIONED_BY]->(icb_via_pcn:ICB) "
+        "WITH gp, pcn, coalesce(icb_direct, icb_via_pcn) AS icb "
         "OPTIONAL MATCH (icb)-[:PART_OF_ALLIANCE]->(ca:CancerAlliance) "
-        "RETURN gp.id AS gp_id, icb.id AS icb_id, ca.id AS ca_id",
+        "RETURN gp.id AS gp_id, pcn.id AS pcn_id, icb.id AS icb_id, ca.id AS ca_id",
         gp_id=gp_id,
     )
     ids = {gp_id}
     if rows:
+        if rows[0].get("pcn_id"):
+            ids.add(rows[0]["pcn_id"])
+        if rows[0].get("icb_id"):
+            ids.add(rows[0]["icb_id"])
+        if rows[0].get("ca_id"):
+            ids.add(rows[0]["ca_id"])
+    return list(ids)
+
+
+def _expand_pcn_scope(client: PatientGraphClient, pcn_id: str) -> list[str]:
+    """PCN scope: own PCN + all member GPs (active relationships) + parent ICB + grandparent Alliance."""
+    rows = client.run(
+        "MATCH (pcn:PCN {id: $pcn_id}) "
+        "OPTIONAL MATCH (gp:GPPractice)-[r:PART_OF_PCN]->(pcn) WHERE r.effective_to IS NULL "
+        "OPTIONAL MATCH (pcn)-[:COMMISSIONED_BY]->(icb:ICB) "
+        "OPTIONAL MATCH (icb)-[:PART_OF_ALLIANCE]->(ca:CancerAlliance) "
+        "RETURN collect(DISTINCT gp.id) AS gp_ids, icb.id AS icb_id, ca.id AS ca_id",
+        pcn_id=pcn_id,
+    )
+    ids = {pcn_id}
+    if rows:
+        for gid in (rows[0].get("gp_ids") or []):
+            if gid:
+                ids.add(gid)
         if rows[0].get("icb_id"):
             ids.add(rows[0]["icb_id"])
         if rows[0].get("ca_id"):
@@ -154,17 +185,28 @@ def _expand_gp_scope(client: PatientGraphClient, gp_id: str) -> list[str]:
 
 
 def _expand_icb_scope(client: PatientGraphClient, icb_id: str) -> list[str]:
-    """ICB scope: own ICB + all child GPs + parent Alliance."""
+    """ICB scope: own ICB + all child PCNs + all child GPs + parent Alliance."""
     rows = client.run(
         "MATCH (icb:ICB {id: $icb_id}) "
-        "OPTIONAL MATCH (gp:GPPractice)-[:COMMISSIONED_BY]->(icb) "
+        "OPTIONAL MATCH (pcn:PCN)-[:COMMISSIONED_BY]->(icb) "
+        "OPTIONAL MATCH (gp_direct:GPPractice)-[:COMMISSIONED_BY]->(icb) "
+        "OPTIONAL MATCH (gp_via_pcn:GPPractice)-[r:PART_OF_PCN]->(pcn) WHERE r.effective_to IS NULL "
         "OPTIONAL MATCH (icb)-[:PART_OF_ALLIANCE]->(ca:CancerAlliance) "
-        "RETURN collect(DISTINCT gp.id) AS gp_ids, ca.id AS ca_id",
+        "RETURN collect(DISTINCT pcn.id) AS pcn_ids, "
+        "       collect(DISTINCT gp_direct.id) AS gp_direct_ids, "
+        "       collect(DISTINCT gp_via_pcn.id) AS gp_pcn_ids, "
+        "       ca.id AS ca_id",
         icb_id=icb_id,
     )
     ids = {icb_id}
     if rows:
-        for gid in (rows[0].get("gp_ids") or []):
+        for pid in (rows[0].get("pcn_ids") or []):
+            if pid:
+                ids.add(pid)
+        for gid in (rows[0].get("gp_direct_ids") or []):
+            if gid:
+                ids.add(gid)
+        for gid in (rows[0].get("gp_pcn_ids") or []):
             if gid:
                 ids.add(gid)
         if rows[0].get("ca_id"):
@@ -173,13 +215,17 @@ def _expand_icb_scope(client: PatientGraphClient, icb_id: str) -> list[str]:
 
 
 def _expand_alliance_scope(client: PatientGraphClient, ca_id: str) -> list[str]:
-    """Alliance scope: own Alliance + all child ICBs + all grandchild GPs."""
+    """Alliance scope: own Alliance + all child ICBs + all PCNs + all grandchild GPs."""
     rows = client.run(
         "MATCH (ca:CancerAlliance {id: $ca_id}) "
         "OPTIONAL MATCH (icb:ICB)-[:PART_OF_ALLIANCE]->(ca) "
-        "OPTIONAL MATCH (gp:GPPractice)-[:COMMISSIONED_BY]->(icb) "
+        "OPTIONAL MATCH (pcn:PCN)-[:COMMISSIONED_BY]->(icb) "
+        "OPTIONAL MATCH (gp_direct:GPPractice)-[:COMMISSIONED_BY]->(icb) "
+        "OPTIONAL MATCH (gp_via_pcn:GPPractice)-[r:PART_OF_PCN]->(pcn) WHERE r.effective_to IS NULL "
         "RETURN collect(DISTINCT icb.id) AS icb_ids, "
-        "       collect(DISTINCT gp.id) AS gp_ids",
+        "       collect(DISTINCT pcn.id) AS pcn_ids, "
+        "       collect(DISTINCT gp_direct.id) AS gp_direct_ids, "
+        "       collect(DISTINCT gp_via_pcn.id) AS gp_pcn_ids",
         ca_id=ca_id,
     )
     ids = {ca_id}
@@ -187,7 +233,13 @@ def _expand_alliance_scope(client: PatientGraphClient, ca_id: str) -> list[str]:
         for iid in (rows[0].get("icb_ids") or []):
             if iid:
                 ids.add(iid)
-        for gid in (rows[0].get("gp_ids") or []):
+        for pid in (rows[0].get("pcn_ids") or []):
+            if pid:
+                ids.add(pid)
+        for gid in (rows[0].get("gp_direct_ids") or []):
+            if gid:
+                ids.add(gid)
+        for gid in (rows[0].get("gp_pcn_ids") or []):
             if gid:
                 ids.add(gid)
     return list(ids)

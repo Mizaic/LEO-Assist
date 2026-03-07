@@ -22,16 +22,20 @@ CALL {
 }
 OPTIONAL MATCH (c)-[:MAPS_TO_READ]->(rd:ReadCode)
 OPTIONAL MATCH (c)-[:MAPS_TO_ICD10]->(icd:Icd10Code)
+OPTIONAL MATCH (child:Concept)-[:IS_A]->(c)
+WHERE child.active = true
 WITH c, max(weighted_score) AS best_score,
      collect(DISTINCT rd.code)[0] AS read_code,
-     collect(DISTINCT icd.code)[0] AS icd10
+     collect(DISTINCT icd.code)[0] AS icd10,
+     count(DISTINCT child) AS child_count
 RETURN c.id AS snomed_concept_id,
        c.fsn AS term,
        c.semantic_tag AS semantic_tag,
        c.module_id AS module_id,
        icd10,
        read_code,
-       best_score AS score
+       best_score AS score,
+       child_count
 ORDER BY best_score DESC
 LIMIT $limit
 """
@@ -58,16 +62,20 @@ CALL {
 }
 OPTIONAL MATCH (c)-[:MAPS_TO_READ]->(rd:ReadCode)
 OPTIONAL MATCH (c)-[:MAPS_TO_ICD10]->(icd:Icd10Code)
+OPTIONAL MATCH (child:Concept)-[:IS_A]->(c)
+WHERE child.active = true
 WITH c, max(weighted_score) AS best_score,
      collect(DISTINCT rd.code)[0] AS read_code,
-     collect(DISTINCT icd.code)[0] AS icd10
+     collect(DISTINCT icd.code)[0] AS icd10,
+     count(DISTINCT child) AS child_count
 RETURN c.id AS snomed_concept_id,
        c.fsn AS term,
        c.semantic_tag AS semantic_tag,
        c.module_id AS module_id,
        icd10,
        read_code,
-       best_score AS score
+       best_score AS score,
+       child_count
 ORDER BY best_score DESC
 LIMIT $limit
 """

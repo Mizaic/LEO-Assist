@@ -26,6 +26,7 @@ import {
   fetchAuditCancerType,
   fetchAuditCancerStage,
   fetchAuditDemographics,
+  fetchAuditComorbidities,
   fetchAuditPlaceOfPresentation,
   fetchAuditConsultations,
   fetchAuditInvestigations,
@@ -37,6 +38,7 @@ import {
   type AuditCancerTypeRow,
   type AuditCancerStageRow,
   type AuditDemographics,
+  type AuditComorbidities,
   type AuditPlaceRow,
   type AuditConsultations,
   type AuditInvestigations,
@@ -87,6 +89,7 @@ interface SectionLoading {
   cancerType: boolean;
   cancerStage: boolean;
   demographics: boolean;
+  comorbidities: boolean;
   placeOfPresentation: boolean;
   consultations: boolean;
   investigations: boolean;
@@ -101,13 +104,13 @@ interface SectionErrors {
 }
 
 const allTrue = (): SectionLoading => ({
-  summary: true, cancerType: true, cancerStage: true, demographics: true,
+  summary: true, cancerType: true, cancerStage: true, demographics: true, comorbidities: true,
   placeOfPresentation: true, consultations: true, investigations: true,
   referrals: true, intervals: true, safetyNetting: true, avoidableDelays: true,
 });
 
 const allFalse = (): SectionLoading => ({
-  summary: false, cancerType: false, cancerStage: false, demographics: false,
+  summary: false, cancerType: false, cancerStage: false, demographics: false, comorbidities: false,
   placeOfPresentation: false, consultations: false, investigations: false,
   referrals: false, intervals: false, safetyNetting: false, avoidableDelays: false,
 });
@@ -150,6 +153,7 @@ export default function AuditPage() {
   const [cancerType, setCancerType] = useState<AuditSectionResult<AuditCancerTypeRow[]> | null>(null);
   const [cancerStage, setCancerStage] = useState<AuditSectionResult<AuditCancerStageRow[]> | null>(null);
   const [demographics, setDemographics] = useState<AuditSectionResult<AuditDemographics> | null>(null);
+  const [comorbidities, setComorbidities] = useState<AuditSectionResult<AuditComorbidities> | null>(null);
   const [placeOfPresentation, setPlaceOfPresentation] = useState<AuditSectionResult<AuditPlaceRow[]> | null>(null);
   const [consultations, setConsultations] = useState<AuditSectionResult<AuditConsultations> | null>(null);
   const [investigations, setInvestigations] = useState<AuditSectionResult<AuditInvestigations> | null>(null);
@@ -203,6 +207,7 @@ export default function AuditPage() {
         settle("cancerType", fetchAuditCancerType(orgId, from, to, effectiveBenchmarkSetId), setCancerType),
         settle("cancerStage", fetchAuditCancerStage(orgId, from, to, effectiveBenchmarkSetId), setCancerStage),
         settle("demographics", fetchAuditDemographics(orgId, from, to, effectiveBenchmarkSetId), setDemographics),
+        settle("comorbidities", fetchAuditComorbidities(orgId, from, to, effectiveBenchmarkSetId), setComorbidities),
         settle("placeOfPresentation", fetchAuditPlaceOfPresentation(orgId, from, to, effectiveBenchmarkSetId), setPlaceOfPresentation),
         settle("consultations", fetchAuditConsultations(orgId, from, to, effectiveBenchmarkSetId), setConsultations),
         settle("investigations", fetchAuditInvestigations(orgId, from, to, effectiveBenchmarkSetId), setInvestigations),
@@ -438,7 +443,8 @@ export default function AuditPage() {
 
         <DemographicsSection
           result={demographics}
-          loading={loading.demographics}
+          comorbidities={comorbidities}
+          loading={loading.demographics || loading.comorbidities}
           error={errors.demographics}
           orgSelected={orgSelected}
         />

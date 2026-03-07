@@ -35,6 +35,17 @@ PATIENT_SCHEMA_CONSTRAINTS = [
     "CREATE CONSTRAINT practitioner_id IF NOT EXISTS FOR (pr:Practitioner) REQUIRE pr.id IS UNIQUE",
     "CREATE INDEX practitioner_email IF NOT EXISTS FOR (pr:Practitioner) ON (pr.email)",
     "CREATE INDEX group_org_id IF NOT EXISTS FOR (g:Group) ON (g.org_id)",
+    # PCN (Primary Care Network) — new org tier between ICB and GP Practice
+    "CREATE CONSTRAINT pcn_id IF NOT EXISTS FOR (p:PCN) REQUIRE p.id IS UNIQUE",
+    "CREATE INDEX pcn_ods_code IF NOT EXISTS FOR (p:PCN) ON (p.odsCode)",
+    # Subscription — linked to Organization nodes
+    "CREATE CONSTRAINT subscription_id IF NOT EXISTS FOR (s:Subscription) REQUIRE s.id IS UNIQUE",
+    "CREATE INDEX subscription_org_id IF NOT EXISTS FOR (s:Subscription) ON (s.org_id)",
+    # ODS sync tracking indexes
+    "CREATE INDEX organization_ods_code IF NOT EXISTS FOR (o:Organization) ON (o.odsCode)",
+    "CREATE INDEX organization_ods_sync_status IF NOT EXISTS FOR (o:Organization) ON (o.ods_sync_status)",
+    "CREATE INDEX organization_entra_tenant IF NOT EXISTS FOR (o:Organization) ON (o.entra_tenant_id)",
+    "CREATE INDEX organization_onboarding_status IF NOT EXISTS FOR (o:Organization) ON (o.onboarding_status)",
 ]
 
 CODING_SCHEMA_CONSTRAINTS: list[str] = [

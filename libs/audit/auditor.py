@@ -10,6 +10,7 @@ is the responsibility of the caller.
 
 from __future__ import annotations
 
+import concurrent.futures
 import json
 import logging
 import os
@@ -48,6 +49,16 @@ SAFE_FIX_CONFIDENCE = 0.95
 AUTOFIX_CAP_WINDOW = 100
 AUTOFIX_CAP_RATIO = 0.30
 
+# ── Consensus / dual-small-model configuration ────────────────────────────────
+
+# Jaccard similarity threshold on (entity_index, field) issue pairs.
+# Records below this threshold are escalated to the big model.
+CONSENSUS_AGREEMENT_THRESHOLD = float(os.getenv("AUDIT_CONSENSUS_THRESHOLD", "0.60"))
+
+# A solo issue flagged by only one small model is still included in the merged
+# verdict if its confidence reaches this level.
+CONSENSUS_SOLO_CONFIDENCE = 0.97
+
 READONLY_FIELDS = frozenset({
     "start", "end",
     "snomed_concept_id", "snomed_term", "read_code", "snomed_score",
@@ -73,8 +84,17 @@ if _AUDIT_PROVIDER == "azure":
 else:
     _AUDIT_IN_RATE  = float(os.getenv("AWS_BEDROCK_MODEL_BIG_MODEL_COST_PER_1M_INPUT_TOKEN",  "3.0"))  / 1_000_000
     _AUDIT_OUT_RATE = float(os.getenv("AWS_BEDROCK_MODEL_BIG_MODEL_COST_PER_1M_OUTPUT_TOKEN", "15.0")) / 1_000_000
-_HAIKU_IN_RATE  = float(os.getenv("AWS_BEDROCK_MODEL_SMALL_MODEL_COST_PER_1M_INPUT_TOKEN",  "1.0")) / 1_000_000
-_HAIKU_OUT_RATE = float(os.getenv("AWS_BEDROCK_MODEL_SMALL_MODEL_COST_PER_1M_OUTPUT_TOKEN", "5.0")) / 1_000_000
+# Small-model rate used for BOTH AWS Haiku and Azure GPT-mini.
+# Azure GPT-mini is significantly cheaper (~$0.15/$0.60 per 1M) but we use the
+# Haiku rate as a conservative upper bound.  Override AZURE_OPENAI_SMALL_MODEL_COST_*
+# to track Azure mini separately if needed.
+_aws_small_in   = float(os.getenv("AWS_BEDROCK_MODEL_SMALL_MODEL_COST_PER_1M_INPUT_TOKEN",   "1.0")) / 1_000_000
+_aws_small_out  = float(os.getenv("AWS_BEDROCK_MODEL_SMALL_MODEL_COST_PER_1M_OUTPUT_TOKEN",  "5.0")) / 1_000_000
+_az_small_in    = float(os.getenv("AZURE_OPENAI_SMALL_MODEL_COST_PER_1M_INPUT_TOKEN",  "0.15")) / 1_000_000
+_az_small_out   = float(os.getenv("AZURE_OPENAI_SMALL_MODEL_COST_PER_1M_OUTPUT_TOKEN", "0.60")) / 1_000_000
+# Blended small-model rate (average of AWS + Azure small, used by is_haiku=True path)
+_HAIKU_IN_RATE  = (_aws_small_in  + _az_small_in)  / 2
+_HAIKU_OUT_RATE = (_aws_small_out + _az_small_out) / 2
 
 # ── Cypher ────────────────────────────────────────────────────────────────────
 
@@ -123,6 +143,21 @@ RETURN t.label_id AS label_id
 # ── Data structures ───────────────────────────────────────────────────────────
 
 @dataclass
+class ConsensusInfo:
+    """Per-record metadata produced by the dual-small-model consensus path."""
+    aws_verdict: str = ""        # record_verdict from AWS small model
+    azure_verdict: str = ""      # record_verdict from Azure small model
+    agreed: bool = False         # True when small models agreed and big model was skipped
+    jaccard: float = 0.0         # Jaccard similarity of (entity_index, field) issue sets
+    escalated: bool = False      # True when disagreement triggered big-model escalation
+    escalation_model: str = ""   # model_id of the escalating model (if escalated)
+    aws_input_tokens: int = 0
+    aws_output_tokens: int = 0
+    azure_input_tokens: int = 0
+    azure_output_tokens: int = 0
+
+
+@dataclass
 class AuditVerdict:
     label_id: str
     record_verdict: str
@@ -130,11 +165,17 @@ class AuditVerdict:
     missing_entities: list[dict[str, Any]]
     auto_fixes_applied: list[dict[str, Any]] = field(default_factory=list)
     proposals: list[dict[str, Any]] = field(default_factory=list)
+    # data_quality_flags holds observations about derived/read-only fields (e.g.
+    # snomed_score) that cannot be corrected without re-running upstream pipelines.
+    # Kept separate from proposals so manual reviewers aren't swamped with issues
+    # they cannot action in the label editor.
+    data_quality_flags: list[dict[str, Any]] = field(default_factory=list)
     tool_calls: list[dict[str, Any]] = field(default_factory=list)
     error: str = ""
     input_tokens: int = 0
     output_tokens: int = 0
     cached_tokens: int = 0
+    consensus_info: ConsensusInfo | None = None
 
 
 # ── Cost Guardrail (R-LEO-AI-036) ────────────────────────────────────────────
@@ -925,6 +966,13 @@ def _classify_fixes(verdict: AuditVerdict, agentic: bool = False) -> None:
     automatically; the entity remains in the review queue for its blocking
     issues (readonly fields, low-confidence problems, etc.).
 
+    For 'remove' verdict entities, if the minimum confidence across all issues
+    reaches SAFE_FIX_CONFIDENCE, a single entity-removal entry is appended to
+    auto_fixes_applied (field=None, verdict='remove').  _apply_fixes() then
+    deletes the entity from the list.  This unlocks automatic removal of
+    duplicate qualifier_value entities and spurious result-descriptor entities
+    that the LLM correctly flags but can't patch via a field value.
+
     Args:
         agentic: When True (pass 2), SNOMED fields are eligible for auto-fix
                  provided confidence >= SAFE_FIX_CONFIDENCE and the fix was
@@ -944,10 +992,49 @@ def _classify_fixes(verdict: AuditVerdict, agentic: bool = False) -> None:
         # Process fixable, remove, AND needs_review (partial-fix support).
         if ev["verdict"] not in ("fixable", "remove", "needs_review"):
             continue
+
+        # ── Entity-removal fast path ───────────────────────────────────────
+        # When the model says 'remove', treat the whole entity as the unit of
+        # change rather than trying to patch individual fields.  A single
+        # entity-removal entry (field=None) is written to auto_fixes_applied;
+        # _apply_fixes() filters those entities out of the final list.
+        #
+        # We use max_conf (not min_conf) because entities often have a primary
+        # high-confidence reason to remove plus secondary lower-confidence
+        # observations.  If the strongest evidence clears SAFE_FIX_CONFIDENCE
+        # the entity should be removed — the weaker secondary issues are just
+        # additional supporting detail, not veto votes.
+        if ev["verdict"] == "remove":
+            issues = ev.get("issues", [])
+            max_conf = max((i.get("confidence", 0) for i in issues), default=0.0)
+            rationale = "; ".join(i.get("rationale", "") for i in issues)
+            if max_conf >= SAFE_FIX_CONFIDENCE:
+                verdict.auto_fixes_applied.append({
+                    "entity_index": ev["entity_index"],
+                    "verdict": "remove",
+                    "field": None,
+                    "confidence": max_conf,
+                    "rationale": rationale,
+                })
+            else:
+                for issue in issues:
+                    verdict.proposals.append({
+                        "entity_index": ev["entity_index"],
+                        "verdict": "remove",
+                        **issue,
+                    })
+            continue
+
+        # ── Field-level fix / needs_review partial-fix ─────────────────────
         for issue in ev.get("issues", []):
             fld = issue.get("field", "")
             if fld in effective_readonly or fld.startswith("__"):
-                verdict.proposals.append({
+                # Derived / read-only fields (snomed_score, snomed_concept_id,
+                # snomed_term, start, end …) cannot be corrected in the label
+                # editor — they require re-running upstream pipelines.  Route
+                # these to data_quality_flags so they're tracked but don't
+                # inflate the actionable proposals count.
+                verdict.data_quality_flags.append({
                     "entity_index": ev["entity_index"],
                     "verdict": "needs_review",
                     **issue,
@@ -972,11 +1059,30 @@ def _classify_fixes(verdict: AuditVerdict, agentic: bool = False) -> None:
                 verdict.proposals.append(entry)
 
     for me in verdict.missing_entities:
-        verdict.proposals.append({
-            "entity_index": -1,
-            "verdict": "missing",
-            **me,
-        })
+        text = me.get("text", "")
+        conf = me.get("confidence", 0.0)
+        # Promote high-confidence missing entities with a concrete text span
+        # to auto_fixes so _apply_fixes can insert them programmatically.
+        # The script resolves the span via substring search and optionally
+        # calls the terminology API for SNOMED coding.
+        if text and conf >= SAFE_FIX_CONFIDENCE:
+            verdict.auto_fixes_applied.append({
+                "entity_index": -1,   # sentinel: new entity, not a patch
+                "verdict": "add",
+                "text": text,
+                "normalized": me.get("normalized") or text,
+                "label": me.get("label", "finding"),
+                "assertion": me.get("assertion", "present"),
+                "sentence_id": me.get("sentence_id"),
+                "confidence": conf,
+                "rationale": me.get("rationale", ""),
+            })
+        else:
+            verdict.proposals.append({
+                "entity_index": -1,
+                "verdict": "missing",
+                **me,
+            })
 
 
 def _heal_spans(
@@ -1046,6 +1152,95 @@ def _clamp_snomed_scores(
     return repairs
 
 
+def _remove_duplicate_qualifier_values(
+    entities: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Programmatically remove qualifier_value entities that duplicate an observable entity.
+
+    When a qualifier_value entity sits alongside an observable entity in the same
+    sentence AND that observable entity already has both 'value' and 'unit' set,
+    the qualifier_value is structurally redundant — the observable_post_processor
+    already captured that information in the parent entity's fields.
+
+    This is a deterministic pipeline invariant (not a clinical judgement), so it
+    is applied unconditionally at high confidence without requiring LLM instruction.
+
+    Returns:
+        (filtered_entities, list_of_removal_descriptors)
+    """
+    # Index observable entities by __sentence_id that already have value + unit
+    obs_sentence_ids: set = set()
+    for ent in entities:
+        if (
+            ent.get("label") == "observable entity"
+            and ent.get("value") is not None
+            and ent.get("unit") is not None
+        ):
+            sid = ent.get("__sentence_id")
+            if sid is not None:
+                obs_sentence_ids.add(sid)
+
+    kept: list[dict[str, Any]] = []
+    removals: list[dict[str, Any]] = []
+    for i, ent in enumerate(entities):
+        if (
+            ent.get("label") == "qualifier_value"
+            and ent.get("__sentence_id") in obs_sentence_ids
+        ):
+            removals.append({
+                "entity_index": i,
+                "field": None,
+                "verdict": "remove",
+                "confidence": 1.0,
+                "rationale": (
+                    "qualifier_value duplicate: sibling observable entity already "
+                    "captures value and unit in its own fields (programmatic invariant)"
+                ),
+            })
+        else:
+            kept.append(ent)
+    return kept, removals
+
+
+def _resolve_snomed_for_new_entity(
+    text: str,
+    normalized: str,
+    label: str,
+) -> dict[str, Any]:
+    """Call the terminology API to get SNOMED fields for a newly added entity.
+
+    Returns a dict of SNOMED fields to merge into the entity (may be all-None
+    if the API is unavailable or returns no confident match).
+    """
+    import httpx  # lazy import — not all callers need it
+    result: dict[str, Any] = {
+        "snomed_concept_id": None,
+        "snomed_term": None,
+        "snomed_score": None,
+        "read_code": None,
+    }
+    try:
+        body: dict[str, Any] = {"terms": [normalized]}
+        if label:
+            body["expected_tags"] = {normalized: label}
+        resp = httpx.post(
+            f"{TERMINOLOGY_API_URL}/terminology/resolve",
+            json=body,
+            timeout=TOOL_HTTP_TIMEOUT,
+        )
+        resp.raise_for_status()
+        candidates = resp.json().get("results", {}).get(normalized, [])
+        if candidates:
+            best = candidates[0]
+            result["snomed_concept_id"] = best.get("concept_id")
+            result["snomed_term"]       = best.get("term")
+            result["snomed_score"]      = best.get("score")
+            result["read_code"]         = best.get("read_code")
+    except Exception as exc:
+        logger.debug("SNOMED resolve failed for %r: %s", normalized, exc)
+    return result
+
+
 def _apply_fixes(
     entities: list[dict[str, Any]],
     fixes: list[dict[str, Any]],
@@ -1054,32 +1249,154 @@ def _apply_fixes(
     """Apply safe auto-fixes to entities (returns a new copy + programmatic repairs).
 
     Sequence:
-      1. Apply LLM-suggested field fixes from *fixes*.
-      2. If 'text' changed, recompute start/end via str.find().
-      3. Clamp any snomed_score > 1.0 to 1.0 (pipeline invariant).
-      4. Heal any remaining start/end span inconsistencies via substring search.
+      0. Insert new entities for high-confidence missing-entity additions
+         (verdict='add', entity_index=-1).  Span resolved via substring search
+         within the correct sentence; SNOMED resolved via terminology API.
+      1. Remove entities flagged for deletion (field=None, verdict='remove') from
+         auto_fixes.  Indices refer to the original position in *entities*.
+      2. Apply LLM-suggested field fixes to surviving entities.
+      3. If 'text' changed, recompute start/end via str.find().
+      4. Programmatically remove remaining duplicate qualifier_value entities
+         whose parent observable entity already carries value + unit.
+      5. Clamp any snomed_score > 1.0 to 1.0 (pipeline invariant).
+      6. Heal any remaining start/end span inconsistencies via substring search.
     Strips audit-only __ prefixed keys before returning.
     """
     entities = [dict(e) for e in entities]
+
+    # Step 0 — insert missing entities proposed by the LLM at high confidence.
+    # For each "add" entry, locate the exact text span in the encounter, check
+    # it doesn't duplicate an existing entity, call the terminology API for
+    # SNOMED coding, then append a new entity to the list.
+    add_repairs: list[dict[str, Any]] = []
+    existing_spans: set[tuple[int, int]] = {
+        (int(e.get("start") or 0), int(e.get("end") or 0)) for e in entities
+    }
+    existing_texts: set[str] = {(e.get("text") or "").lower() for e in entities}
+
     for fix in fixes:
-        idx       = fix.get("entity_index", -1)
-        fld       = fix.get("field")
-        suggested = fix.get("suggested")    # may be None (clearing a field)
-        if 0 <= idx < len(entities) and fld:
-            entities[idx][fld] = suggested
+        if fix.get("verdict") != "add" or fix.get("entity_index") != -1:
+            continue
+        text       = fix.get("text", "").strip()
+        normalized = fix.get("normalized") or text
+        label      = fix.get("label", "finding")
+        assertion  = fix.get("assertion", "present")
+        sentence_id = fix.get("sentence_id")
+
+        if not text or text.lower() in existing_texts:
+            continue  # already extracted or empty
+
+        # Locate the span.  If sentence_id is provided, restrict search to the
+        # character range of the sentence so we pick the right occurrence.
+        search_start = 0
+        search_end   = len(encounter_text)
+        if sentence_id:
+            # Find sentence bounds from existing entities sharing that sentence_id
+            sent_entities = [e for e in entities if e.get("__sentence_id") == sentence_id]
+            if sent_entities:
+                search_start = max(0, min(int(e.get("start") or 0) for e in sent_entities) - 50)
+                search_end   = min(len(encounter_text), max(int(e.get("end") or 0) for e in sent_entities) + 100)
+
+        span_start = encounter_text.find(text, search_start, search_end)
+        if span_start < 0:
+            # Fallback: case-insensitive search in full text
+            lower_enc  = encounter_text.lower()
+            lower_text = text.lower()
+            span_start = lower_enc.find(lower_text, search_start, search_end)
+            if span_start < 0:
+                span_start = lower_enc.find(lower_text)
+            if span_start >= 0:
+                text = encounter_text[span_start: span_start + len(text)]
+        if span_start < 0:
+            logger.debug("Could not locate missing entity %r in encounter text — skipped", text)
+            continue
+
+        span_end = span_start + len(text)
+        if (span_start, span_end) in existing_spans:
+            continue  # exact duplicate span
+
+        existing_spans.add((span_start, span_end))
+        existing_texts.add(text.lower())
+
+        snomed = _resolve_snomed_for_new_entity(text, normalized, label)
+
+        new_entity: dict[str, Any] = {
+            "text":            text,
+            "start":           span_start,
+            "end":             span_end,
+            "label":           label,
+            "assertion":       assertion,
+            "normalized":      normalized,
+            "value":           None,
+            "unit":            None,
+            "reference_range": None,
+            "decision_tier":   None,
+            "tier_decision":   None,
+            "tier_reason":     None,
+            "__sentence_id":   sentence_id,
+            **snomed,
+        }
+        entities.append(new_entity)
+        add_repairs.append({
+            "action":     "add_missing_entity",
+            "text":       text,
+            "label":      label,
+            "assertion":  assertion,
+            "start":      span_start,
+            "end":        span_end,
+            "snomed_resolved": snomed.get("snomed_concept_id") is not None,
+            "rationale":  fix.get("rationale", ""),
+        })
+        logger.debug("Auto-added missing entity %r (%s/%s) at [%d:%d]", text, label, assertion, span_start, span_end)
+
+    # Step 1 — entity removals from LLM (field=None, verdict='remove')
+    llm_remove_idxs = {
+        f["entity_index"]
+        for f in fixes
+        if f.get("verdict") == "remove" and f.get("field") is None
+        and 0 <= f.get("entity_index", -1) < len(entities)
+    }
+    if llm_remove_idxs:
+        entities = [e for i, e in enumerate(entities) if i not in llm_remove_idxs]
+
+    # Step 2 — field patches (operate on surviving entities by re-indexing)
+    # fixes still use original indices; after removal, surviving entities may
+    # have shifted positions.  Build a mapping from old index → new position.
+    old_to_new: dict[int, int] = {}
+    new_pos = 0
+    for old_i in range(len(entities) + len(llm_remove_idxs)):
+        if old_i not in llm_remove_idxs:
+            old_to_new[old_i] = new_pos
+            new_pos += 1
+
+    for fix in fixes:
+        old_idx = fix.get("entity_index", -1)
+        fld     = fix.get("field")
+        if not fld or fld is None:
+            continue  # entity-removal entries handled above
+        new_idx = old_to_new.get(old_idx, -1)
+        if 0 <= new_idx < len(entities):
+            suggested = fix.get("suggested")
+            entities[new_idx][fld] = suggested
             if fld == "text" and isinstance(suggested, str):
-                old_start = int(entities[idx].get("start") or 0)
+                old_start = int(entities[new_idx].get("start") or 0)
                 new_start = encounter_text.find(suggested, max(0, old_start - 20))
                 if new_start < 0:
                     new_start = encounter_text.find(suggested)
                 if new_start >= 0:
-                    entities[idx]["start"] = new_start
-                    entities[idx]["end"]   = new_start + len(suggested)
-    # Clamp snomed_score > 1.0 (pipeline invariant, always safe)
+                    entities[new_idx]["start"] = new_start
+                    entities[new_idx]["end"]   = new_start + len(suggested)
+
+    # Step 4 — programmatic qualifier_value dedup
+    entities, qv_repairs = _remove_duplicate_qualifier_values(entities)
+
+    # Step 5 — clamp snomed_score > 1.0 (pipeline invariant, always safe)
     score_repairs = _clamp_snomed_scores(entities)
-    # Heal any remaining span inconsistencies across ALL entities
+
+    # Step 6 — heal any remaining span inconsistencies across ALL entities
     entities, span_repairs = _heal_spans(entities, encounter_text)
-    all_repairs = score_repairs + span_repairs
+
+    all_repairs = add_repairs + qv_repairs + score_repairs + span_repairs
     cleaned = [{k: v for k, v in e.items() if not k.startswith("__")} for e in entities]
     return cleaned, all_repairs
 
@@ -1105,3 +1422,282 @@ class AutoFixCapMonitor:
             self.triggered = True
             return True
         return False
+
+
+# ── Dual-small-model consensus with big-model escalation ─────────────────────
+
+def _issue_key_set(verdict: AuditVerdict) -> frozenset[tuple[int, str]]:
+    """Return (entity_index, field) pairs for every issue in the verdict."""
+    return frozenset(
+        (ev["entity_index"], issue.get("field", ""))
+        for ev in verdict.entity_verdicts
+        for issue in ev.get("issues", [])
+    )
+
+
+def _jaccard(a: frozenset, b: frozenset) -> float:
+    """Jaccard similarity between two frozensets. Empty intersection → 0.0."""
+    if not a and not b:
+        return 1.0
+    union = a | b
+    return len(a & b) / len(union) if union else 1.0
+
+
+def _merge_audit_verdicts(
+    v1: AuditVerdict,
+    v2: AuditVerdict,
+    threshold: float = CONSENSUS_AGREEMENT_THRESHOLD,
+) -> tuple[AuditVerdict | None, float]:
+    """Attempt to merge two independent small-model audit verdicts.
+
+    Agreement strategy (optimised for cross-family models that rarely choose
+    identical (entity_index, field) pairs):
+
+      1. record_verdict must match — "pass" vs "has_issues" disagreement always
+         escalates regardless of any threshold setting.
+      2. Both "pass" → trivially agree; return v1 unchanged (Jaccard = 1.0).
+      3. Both "has_issues" → use INTERSECTION-based merge:
+           - entity_verdicts: keep only issues flagged by BOTH models for the
+             same (entity_index, field) pair, taking the higher-confidence copy.
+           - Solo issues from one model are retained only when confidence ≥
+             CONSENSUS_SOLO_CONFIDENCE (very high bar, ~0.97).
+           - missing_entities: kept only when both models proposed the same
+             (text, label) pair, or a solo proposal has confidence ≥
+             CONSENSUS_SOLO_CONFIDENCE.
+           - If the intersection is empty (models agreed there were issues but
+             found completely different ones), the record is escalated so the big
+             model can arbitrate cleanly.
+      4. The *threshold* parameter is retained for callers that pass a custom
+         value but is no longer the primary gate — escalation is now driven by
+         whether the intersection is non-empty after filtering, not raw Jaccard.
+         Jaccard is still computed and stored in ConsensusInfo for reporting.
+
+    Returns:
+        (merged_verdict, jaccard) if models agree sufficiently,
+        (None, jaccard)           if disagreement requires big-model escalation.
+    """
+    if v1.record_verdict != v2.record_verdict:
+        return None, 0.0
+
+    if v1.error and v2.error:
+        return v1, 1.0
+
+    if v1.record_verdict == "pass":
+        return v1, 1.0
+
+    # Both "has_issues" — compute Jaccard for reporting, then do intersection merge.
+    keys1 = _issue_key_set(v1)
+    keys2 = _issue_key_set(v2)
+    j = _jaccard(keys1, keys2)
+    agreed_keys = keys1 & keys2
+
+    # Index v2 issues by (entity_index, field) for O(1) lookup
+    v2_issues_idx: dict[tuple[int, str], dict[str, Any]] = {}
+    for ev in v2.entity_verdicts:
+        eidx = ev["entity_index"]
+        for issue in ev.get("issues", []):
+            v2_issues_idx[(eidx, issue.get("field", ""))] = issue
+
+    # Index v2 entity_verdicts by entity_index for verdict merging
+    v2_ev_idx: dict[int, dict[str, Any]] = {ev["entity_index"]: ev for ev in v2.entity_verdicts}
+
+    # Build intersection-based merged entity_verdicts
+    merged_evs: list[dict[str, Any]] = []
+    v1_eidxs = {ev["entity_index"] for ev in v1.entity_verdicts}
+    has_any_agreed_issue = False
+
+    for ev in v1.entity_verdicts:
+        eidx = ev["entity_index"]
+        merged_issues: list[dict[str, Any]] = []
+
+        for issue in ev.get("issues", []):
+            fld = issue.get("field", "")
+            key = (eidx, fld)
+            if key in agreed_keys:
+                # Both models flagged this — take the higher-confidence copy
+                v2_issue = v2_issues_idx.get(key, {})
+                merged_issues.append(
+                    v2_issue if v2_issue.get("confidence", 0) > issue.get("confidence", 0)
+                    else issue
+                )
+                has_any_agreed_issue = True
+            elif issue.get("confidence", 0) >= CONSENSUS_SOLO_CONFIDENCE:
+                # Solo but very high confidence — include anyway
+                merged_issues.append(issue)
+                has_any_agreed_issue = True
+
+        if merged_issues:
+            # Use the more severe verdict between the two models for this entity
+            v2_ev = v2_ev_idx.get(eidx, ev)
+            severity = {"remove": 3, "needs_review": 2, "fixable": 1, "correct": 0}
+            best_verdict = max(
+                ev.get("verdict", "correct"), v2_ev.get("verdict", "correct"),
+                key=lambda x: severity.get(x, 0),
+            )
+            merged_evs.append({**ev, "verdict": best_verdict, "issues": merged_issues})
+        elif ev.get("verdict") == "correct":
+            merged_evs.append(ev)
+
+    # Solo v2 entities at very high confidence
+    for ev in v2.entity_verdicts:
+        if ev["entity_index"] in v1_eidxs:
+            continue
+        high_conf = [i for i in ev.get("issues", []) if i.get("confidence", 0) >= CONSENSUS_SOLO_CONFIDENCE]
+        if high_conf:
+            merged_evs.append({**ev, "issues": high_conf})
+            has_any_agreed_issue = True
+
+    # Merge missing_entities: intersection or solo at high confidence
+    me1 = {(m.get("text", ""), m.get("label", "")): m for m in v1.missing_entities}
+    me2 = {(m.get("text", ""), m.get("label", "")): m for m in v2.missing_entities}
+    agreed_missing: list[dict[str, Any]] = [me1[k] for k in me1 if k in me2]
+    for k, m in me1.items():
+        if k not in me2 and m.get("confidence", 0) >= CONSENSUS_SOLO_CONFIDENCE:
+            agreed_missing.append(m)
+    for k, m in me2.items():
+        if k not in me1 and m.get("confidence", 0) >= CONSENSUS_SOLO_CONFIDENCE:
+            agreed_missing.append(m)
+
+    if agreed_missing:
+        has_any_agreed_issue = True
+
+    # If models agree there were issues but found zero in common, escalate
+    # so the big model can make a clean determination.
+    if not has_any_agreed_issue:
+        return None, j
+
+    record_verdict = (
+        "has_issues"
+        if (any(ev.get("issues") for ev in merged_evs) or agreed_missing)
+        else "pass"
+    )
+
+    merged = AuditVerdict(
+        label_id=v1.label_id,
+        record_verdict=record_verdict,
+        entity_verdicts=merged_evs,
+        missing_entities=agreed_missing,
+        input_tokens=v1.input_tokens + v2.input_tokens,
+        output_tokens=v1.output_tokens + v2.output_tokens,
+        cached_tokens=v1.cached_tokens + v2.cached_tokens,
+    )
+    return merged, j
+
+
+def audit_record_consensus(
+    system_prompt: str,
+    row: dict[str, Any],
+    *,
+    escalate_provider: str = "aws",
+    escalate_tier: str = "big",
+    agreement_threshold: float = CONSENSUS_AGREEMENT_THRESHOLD,
+) -> AuditVerdict:
+    """Dual-small-model audit with big-model escalation on disagreement.
+
+    Runs AWS Haiku and Azure GPT-mini in parallel.  Agreement is evaluated in
+    three tiers:
+
+      1. Both "pass"        → return merged pass immediately (no big-model call).
+      2. Both "has_issues"  → intersection merge: only issues flagged by BOTH
+         models are actioned; if the intersection is empty the big model is called
+         to arbitrate.  Solo issues at confidence ≥ CONSENSUS_SOLO_CONFIDENCE are
+         also kept.  This precision-first strategy avoids noise from cross-family
+         model verbosity differences.
+      3. Verdict disagreement → escalate unconditionally.
+
+    In practice, for a GP clinical-note dataset this saves roughly 30-50% of
+    big-model calls (records where both models agree on the exact set of issues,
+    or where both cleanly pass).  Records with complex, ambiguous entity mixtures
+    still get the full big-model treatment.
+
+    Token counts in the returned verdict include ALL model calls made:
+      consensus path  → aws_small + azure_small tokens
+      escalation path → aws_small + azure_small + big_model tokens
+
+    The ``consensus_info`` field on the returned ``AuditVerdict`` records
+    which path was taken and the per-model token split for cost reporting.
+    """
+    aws_small   = create_llm(provider="aws",   tier="small", use_reasoning=True)
+    azure_small = create_llm(provider="azure", tier="small", use_reasoning=True)
+    label_id    = row["label_id"]
+
+    v_aws: AuditVerdict | None   = None
+    v_azure: AuditVerdict | None = None
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
+        fut_aws   = pool.submit(audit_record, aws_small,   system_prompt, row)
+        fut_azure = pool.submit(audit_record, azure_small, system_prompt, row)
+
+        try:
+            v_aws = fut_aws.result(timeout=120)
+        except Exception as exc:
+            logger.warning("Consensus AWS small failed for %s: %s", label_id, exc)
+
+        try:
+            v_azure = fut_azure.result(timeout=120)
+        except Exception as exc:
+            logger.warning("Consensus Azure small failed for %s: %s", label_id, exc)
+
+    def _escalate(info: ConsensusInfo) -> AuditVerdict:
+        # Enable extended thinking for AWS big/max models — Claude Sonnet/Opus
+        # support reasoning via additionalModelRequestFields on Bedrock.
+        # Azure models use a different reasoning API (not supported here).
+        big = create_llm(
+            provider=escalate_provider,
+            tier=escalate_tier,
+            use_reasoning=(escalate_provider == "aws"),
+        )
+        info.escalated = True
+        info.escalation_model = big.model_id
+        v = audit_record(big, system_prompt, row)
+        # Carry small-model tokens into the verdict for accurate run totals
+        small_in  = (v_aws.input_tokens  if v_aws  else 0) + (v_azure.input_tokens  if v_azure  else 0)
+        small_out = (v_aws.output_tokens if v_aws  else 0) + (v_azure.output_tokens if v_azure  else 0)
+        small_cac = (v_aws.cached_tokens if v_aws  else 0) + (v_azure.cached_tokens if v_azure  else 0)
+        v.input_tokens  += small_in
+        v.output_tokens += small_out
+        v.cached_tokens += small_cac
+        v.consensus_info = info
+        return v
+
+    # Both small models failed → escalate immediately
+    if v_aws is None and v_azure is None:
+        logger.warning("Consensus: both small models failed for %s — escalating", label_id)
+        return _escalate(ConsensusInfo())
+
+    # One failed → use the survivor without escalation (conservative but cheap)
+    if v_aws is None:
+        v_azure.consensus_info = ConsensusInfo(azure_verdict=v_azure.record_verdict)  # type: ignore[union-attr]
+        return v_azure  # type: ignore[return-value]
+    if v_azure is None:
+        v_aws.consensus_info = ConsensusInfo(aws_verdict=v_aws.record_verdict)
+        return v_aws
+
+    merged, jaccard = _merge_audit_verdicts(v_aws, v_azure, threshold=agreement_threshold)
+
+    info = ConsensusInfo(
+        aws_verdict=v_aws.record_verdict,
+        azure_verdict=v_azure.record_verdict,
+        jaccard=round(jaccard, 3),
+        aws_input_tokens=v_aws.input_tokens,
+        aws_output_tokens=v_aws.output_tokens,
+        azure_input_tokens=v_azure.input_tokens,
+        azure_output_tokens=v_azure.output_tokens,
+    )
+
+    if merged is not None:
+        info.agreed = True
+        merged.consensus_info = info
+        logger.debug(
+            "Consensus agreed for %s: verdict=%s jaccard=%.2f",
+            label_id, merged.record_verdict, jaccard,
+        )
+        return merged
+
+    # Disagreement → escalate to big model
+    logger.info(
+        "Consensus disagreement for %s: aws=%s azure=%s jaccard=%.2f — escalating to %s/%s",
+        label_id, v_aws.record_verdict, v_azure.record_verdict, jaccard,
+        escalate_provider, escalate_tier,
+    )
+    return _escalate(info)

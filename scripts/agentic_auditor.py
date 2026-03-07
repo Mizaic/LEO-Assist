@@ -29,6 +29,12 @@ Usage
     # Use Azure GPT-5.2 instead of the default AWS max model:
     python -m scripts.agentic_auditor --provider azure --tier big --apply
 
+    # Consensus mode — dual small models, big model only on disagreement (~60-70% cheaper):
+    python -m scripts.agentic_auditor --consensus --provider azure --tier big --apply --skip-audited
+
+    # Consensus with tighter agreement threshold (escalate more aggressively):
+    python -m scripts.agentic_auditor --consensus --consensus-threshold 0.75 --apply
+
     # Full options:
     python -m scripts.agentic_auditor \\
         --limit 500 --offset 0 --apply --skip-audited --provider azure --tier big
@@ -37,7 +43,7 @@ Environment variables
 ---------------------
     AUDIT_WORKERS              Thread pool size (default: 5).
     AUDIT_TOKEN_BUDGET         Max cumulative tokens for the run (default: 2_000_000).
-    AUDIT_COST_CAP             Max USD cost for the run (default: 50.0).
+    AUDIT_COST_CAP             Max USD cost for the run (default: 50.0). Override per-run with --cost-cap.
     TERMINOLOGY_API_URL        Terminology service base URL (default: http://localhost:8001).
     NEO4J_URI / NEO4J_USER / NEO4J_PASSWORD
     AWS_DEFAULT_REGION         Bedrock region.
@@ -52,6 +58,7 @@ import json
 import logging
 import sys
 import time
+from typing import Any
 
 # Suppress PyRuSH sentence-splitter debug noise (uses loguru, not stdlib logging)
 try:
@@ -76,8 +83,10 @@ load_dotenv(_SECRETS / ".env", override=False)
 # All core logic lives in the shared lib — import from there
 from libs.audit.auditor import (  # noqa: E402
     AUTOFIX_CAP_RATIO,
+    CONSENSUS_AGREEMENT_THRESHOLD,
     AuditVerdict,
     AutoFixCapMonitor,
+    ConsensusInfo,
     CostGuardrail,
     MAX_WORKERS,
     SecondOpinionProvider,
@@ -91,6 +100,7 @@ from libs.audit.auditor import (  # noqa: E402
     _parse_entities,
     _pass_two,
     audit_record,
+    audit_record_consensus,
 )
 from libs.llm_client.factory import create_llm
 from libs.llm_client.prompt_safety import INJECTION_GUARD
@@ -112,21 +122,36 @@ def _write_trail_entry(
     verdict: AuditVerdict,
     applied: bool,
 ) -> None:
-    entry = {
-        "label_id":        verdict.label_id,
-        "record_verdict":  verdict.record_verdict,
-        "timestamp":       datetime.now(timezone.utc).isoformat(),
-        "applied":         applied,
-        "auto_fixes":      verdict.auto_fixes_applied,
-        "proposals":       verdict.proposals,
-        "missing_entities": verdict.missing_entities,
-        "entity_verdicts": verdict.entity_verdicts,
-        "tool_calls":      verdict.tool_calls,
-        "input_tokens":    verdict.input_tokens,
-        "output_tokens":   verdict.output_tokens,
-        "cached_tokens":   verdict.cached_tokens,
-        "error":           verdict.error,
+    entry: dict[str, Any] = {
+        "label_id":         verdict.label_id,
+        "record_verdict":   verdict.record_verdict,
+        "timestamp":        datetime.now(timezone.utc).isoformat(),
+        "applied":          applied,
+        "auto_fixes":           verdict.auto_fixes_applied,
+        "proposals":            verdict.proposals,
+        "data_quality_flags":   verdict.data_quality_flags,
+        "missing_entities":     verdict.missing_entities,
+        "entity_verdicts":  verdict.entity_verdicts,
+        "tool_calls":       verdict.tool_calls,
+        "input_tokens":     verdict.input_tokens,
+        "output_tokens":    verdict.output_tokens,
+        "cached_tokens":    verdict.cached_tokens,
+        "error":            verdict.error,
     }
+    if verdict.consensus_info is not None:
+        ci = verdict.consensus_info
+        entry["consensus"] = {
+            "aws_verdict":        ci.aws_verdict,
+            "azure_verdict":      ci.azure_verdict,
+            "agreed":             ci.agreed,
+            "jaccard":            ci.jaccard,
+            "escalated":          ci.escalated,
+            "escalation_model":   ci.escalation_model,
+            "aws_input_tokens":   ci.aws_input_tokens,
+            "aws_output_tokens":  ci.aws_output_tokens,
+            "azure_input_tokens": ci.azure_input_tokens,
+            "azure_output_tokens": ci.azure_output_tokens,
+        }
     with open(trail_path, "a", encoding="utf-8") as f:
         f.write(json.dumps(entry, default=str) + "\n")
 
@@ -144,6 +169,11 @@ def _generate_report(
     errors     = sum(1 for v in verdicts if v.error)
     passed     = sum(1 for v in verdicts if v.record_verdict == "pass")
     has_issues = sum(1 for v in verdicts if v.record_verdict == "has_issues")
+
+    # Consensus stats (only present when --consensus was used)
+    consensus_verdicts = [v for v in verdicts if v.consensus_info is not None]
+    consensus_agreed   = sum(1 for v in consensus_verdicts if v.consensus_info and v.consensus_info.agreed)
+    consensus_escalated = sum(1 for v in consensus_verdicts if v.consensus_info and v.consensus_info.escalated)
 
     verdict_counts: Counter[str] = Counter()
     for v in verdicts:
@@ -219,6 +249,21 @@ def _generate_report(
         f"| Total agentic tool calls | {total_tool_calls} |",
         f"| Second opinions requested | {second_opinions} |",
         "",
+    ]
+    if consensus_verdicts:
+        agree_pct   = 100 * consensus_agreed   / max(len(consensus_verdicts), 1)
+        escalate_pct = 100 * consensus_escalated / max(len(consensus_verdicts), 1)
+        lines += [
+            "## Consensus Mode",
+            "",
+            "| Metric | Value |",
+            "|--------|-------|",
+            f"| Records via consensus (small models) | {len(consensus_verdicts)} |",
+            f"| Small models agreed (no escalation) | {consensus_agreed} ({agree_pct:.1f}%) |",
+            f"| Escalated to big model | {consensus_escalated} ({escalate_pct:.1f}%) |",
+            "",
+        ]
+    lines += [
         "## Entity Verdict Breakdown",
         "",
         "| Verdict | Count |",
@@ -343,10 +388,32 @@ def main() -> None:
         "--no-autofix-cap", action="store_true",
         help="Disable the sliding-window auto-fix cap (use for known-systemic bulk runs)",
     )
+    parser.add_argument(
+        "--consensus", action="store_true",
+        help=(
+            "Dual-small-model mode: run AWS Haiku + Azure GPT-mini in parallel and "
+            "only escalate to the primary big model when they disagree. "
+            "Typically cuts big-model calls by 60-70%%. "
+            "Requires both AZURE_OPENAI_* and AWS_* credentials."
+        ),
+    )
+    parser.add_argument(
+        "--consensus-threshold", type=float, default=CONSENSUS_AGREEMENT_THRESHOLD,
+        metavar="FLOAT",
+        help=(
+            f"Jaccard similarity threshold for small-model agreement (default: "
+            f"{CONSENSUS_AGREEMENT_THRESHOLD:.2f}). Lower = more escalations."
+        ),
+    )
+    parser.add_argument(
+        "--cost-cap", type=float, default=None, metavar="USD",
+        help="Override the AUDIT_COST_CAP dollar ceiling for this run (default: $50).",
+    )
     args = parser.parse_args()
 
     mode_label = "APPLY" if args.apply else "DRY-RUN"
-    logger.info("=== Agentic Auditor [%s] ===", mode_label)
+    consensus_label = "+CONSENSUS" if args.consensus else ""
+    logger.info("=== Agentic Auditor [%s%s] ===", mode_label, consensus_label)
 
     skip_clause   = "AND t.audited_at IS NULL" if args.skip_audited else ""
     limit_clause  = f"LIMIT {args.limit}"  if args.limit  else ""
@@ -379,9 +446,16 @@ def main() -> None:
     opus          = create_llm(provider=args.provider, tier=args.tier)
     system_prompt = INJECTION_GUARD + get_prompt("agentic_audit", version=1)
     logger.info("Using audit model (%s/%s): %s", args.provider, args.tier, opus.model_id)
+    if args.consensus:
+        logger.info(
+            "Consensus mode ENABLED — agreement threshold=%.2f  "
+            "Small models: AWS small + Azure small  "
+            "Escalation: %s/%s",
+            args.consensus_threshold, args.provider, args.tier,
+        )
 
     so_provider  = SecondOpinionProvider(guardrail=CostGuardrail())  # temp guardrail for SO
-    guardrail    = CostGuardrail()
+    guardrail    = CostGuardrail(cost_cap=args.cost_cap)
     # Wire SO provider to share the run's guardrail
     so_provider._guardrail = guardrail
 
@@ -403,6 +477,14 @@ def main() -> None:
     t_start = time.monotonic()
 
     def _process_one(row: dict) -> AuditVerdict:
+        if args.consensus:
+            return audit_record_consensus(
+                system_prompt,
+                row,
+                escalate_provider=args.provider,
+                escalate_tier=args.tier,
+                agreement_threshold=args.consensus_threshold,
+            )
         return audit_record(opus, system_prompt, row)
 
     with ThreadPoolExecutor(max_workers=args.workers) as pool:
@@ -422,7 +504,18 @@ def main() -> None:
                     error=str(exc),
                 )
 
-            guardrail.record(verdict.input_tokens, verdict.output_tokens, is_haiku=False)
+            # In consensus mode, small-model tokens must be billed at the small
+            # rate — not the big rate.  ConsensusInfo carries the per-model split.
+            ci = verdict.consensus_info
+            if ci is not None:
+                small_in  = ci.aws_input_tokens  + ci.azure_input_tokens
+                small_out = ci.aws_output_tokens + ci.azure_output_tokens
+                big_in    = max(0, verdict.input_tokens  - small_in)
+                big_out   = max(0, verdict.output_tokens - small_out)
+                guardrail.record(small_in, small_out, is_haiku=True)
+                guardrail.record(big_in,   big_out,   is_haiku=False)
+            else:
+                guardrail.record(verdict.input_tokens, verdict.output_tokens, is_haiku=False)
 
             if not args.no_agentic and not verdict.error:
                 try:
@@ -499,18 +592,37 @@ def main() -> None:
                 elapsed    = time.monotonic() - t_start
                 rate       = i / elapsed if elapsed > 0 else 0
                 tool_total = sum(len(v.tool_calls) for v in verdicts)
-                logger.info(
-                    "Progress: %d/%d (%.1f rec/s) | pass=%d issues=%d errors=%d "
-                    "fixes=%d proposals=%d tools=%d cost=$%.2f",
-                    i, total, rate,
-                    sum(1 for v in verdicts if v.record_verdict == "pass"),
-                    sum(1 for v in verdicts if v.record_verdict == "has_issues"),
-                    sum(1 for v in verdicts if v.error),
-                    sum(len(v.auto_fixes_applied) for v in verdicts),
-                    sum(len(v.proposals) for v in verdicts),
-                    tool_total,
-                    guardrail.estimated_cost,
-                )
+                if args.consensus:
+                    con_total     = sum(1 for v in verdicts if v.consensus_info is not None)
+                    con_agreed    = sum(1 for v in verdicts if v.consensus_info and v.consensus_info.agreed)
+                    con_escalated = sum(1 for v in verdicts if v.consensus_info and v.consensus_info.escalated)
+                    logger.info(
+                        "Progress: %d/%d (%.1f rec/s) | pass=%d issues=%d errors=%d "
+                        "fixes=%d proposals=%d dqf=%d | consensus agreed=%d escalated=%d (of %d) cost=$%.2f",
+                        i, total, rate,
+                        sum(1 for v in verdicts if v.record_verdict == "pass"),
+                        sum(1 for v in verdicts if v.record_verdict == "has_issues"),
+                        sum(1 for v in verdicts if v.error),
+                        sum(len(v.auto_fixes_applied) for v in verdicts),
+                        sum(len(v.proposals) for v in verdicts),
+                        sum(len(v.data_quality_flags) for v in verdicts),
+                        con_agreed, con_escalated, con_total,
+                        guardrail.estimated_cost,
+                    )
+                else:
+                    logger.info(
+                        "Progress: %d/%d (%.1f rec/s) | pass=%d issues=%d errors=%d "
+                        "fixes=%d proposals=%d dqf=%d tools=%d cost=$%.2f",
+                        i, total, rate,
+                        sum(1 for v in verdicts if v.record_verdict == "pass"),
+                        sum(1 for v in verdicts if v.record_verdict == "has_issues"),
+                        sum(1 for v in verdicts if v.error),
+                        sum(len(v.auto_fixes_applied) for v in verdicts),
+                        sum(len(v.proposals) for v in verdicts),
+                        sum(len(v.data_quality_flags) for v in verdicts),
+                        tool_total,
+                        guardrail.estimated_cost,
+                    )
 
     elapsed_s = time.monotonic() - t_start
     logger.info("Audit complete in %.0fs", elapsed_s)

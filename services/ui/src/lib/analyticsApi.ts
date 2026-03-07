@@ -366,15 +366,37 @@ export interface DomainDetail extends DomainSummary {
   subdomains: SubdomainSummary[];
 }
 
+export interface SubdomainConcept {
+  concept_id: number;
+  term: string;
+  preferred_term: string;
+  semantic_tag?: string;
+  subdomain: string;
+  guideline_synonyms?: string[];
+  /** Number of direct IS_A children in SNOMED — 0 means leaf, >0 means broader concept */
+  child_count?: number;
+  /** Key linking to ncda_2018_benchmarks.json (e.g. comorbidity_hypertension_pct) */
+  benchmark_key?: string;
+}
+
 export interface SubdomainDetail extends SubdomainSummary {
-  concepts: Array<{
-    concept_id: number;
-    term: string;
-    preferred_term: string;
-    semantic_tag?: string;
-    subdomain: string;
-    guideline_synonyms?: string[];
-  }>;
+  concepts: SubdomainConcept[];
+}
+
+export interface SubdomainExportConcept {
+  concept_id: number;
+  term: string;
+  synonyms: string[];
+  child_count?: number;
+  children?: Array<{ concept_id: number; term: string }>;
+}
+
+export interface SubdomainExport {
+  domain_id: string;
+  subdomain: string;
+  include_children: boolean;
+  expansion_depth?: number;
+  concepts: SubdomainExportConcept[];
 }
 
 export async function fetchDomains(): Promise<DomainSummary[]> {
@@ -482,13 +504,19 @@ export async function addConceptToSubdomain(
   conceptId: number,
   term: string,
   synonyms: string[] = [],
+  benchmarkKey?: string,
 ): Promise<SubdomainDetail> {
   return fetchJson<SubdomainDetail>(
     `${ANALYTICS_BASE}/analytics/domains/${encodeURIComponent(domainId)}/subdomains/${encodeURIComponent(subdomainName)}/concepts`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ concept_id: conceptId, term, synonyms }),
+      body: JSON.stringify({
+        concept_id: conceptId,
+        term,
+        synonyms,
+        ...(benchmarkKey ? { benchmark_key: benchmarkKey } : {}),
+      }),
     },
   );
 }
@@ -501,6 +529,21 @@ export async function removeConceptFromSubdomain(
   return fetchJson<SubdomainDetail>(
     `${ANALYTICS_BASE}/analytics/domains/${encodeURIComponent(domainId)}/subdomains/${encodeURIComponent(subdomainName)}/concepts/${conceptId}`,
     { method: "DELETE" },
+  );
+}
+
+export async function exportSubdomain(
+  domainId: string,
+  subdomainName: string,
+  includeChildren: boolean,
+  depth = 3,
+): Promise<SubdomainExport> {
+  const params = new URLSearchParams({
+    include_children: String(includeChildren),
+    depth: String(depth),
+  });
+  return fetchJson<SubdomainExport>(
+    `${ANALYTICS_BASE}/analytics/domains/${encodeURIComponent(domainId)}/subdomains/${encodeURIComponent(subdomainName)}/export?${params}`,
   );
 }
 
@@ -566,6 +609,7 @@ export interface AuditCancerStageRow {
 export interface AuditDemographics {
   sex: Array<{ gender: string; n: number; pct: number }>;
   age_bands: Array<{ age_band: string; n: number; pct: number }>;
+  median_age: number | null;
   ethnicity: Array<{ ethnicity: string; n: number; pct: number }>;
 }
 
@@ -625,6 +669,19 @@ export interface AuditSafetyNetting {
   recorded_n: number;
   recorded_pct: number;
   not_recorded_pct: number;
+}
+
+export interface AuditComorbidityRow {
+  condition: string;
+  n: number;
+  pct: number;
+  /** Key linking to ncda_2018_benchmarks.json (e.g. comorbidity_hypertension_pct) */
+  benchmark_key?: string;
+}
+
+export interface AuditComorbidities {
+  comorbidities: AuditComorbidityRow[];
+  total_patients: number;
 }
 
 export interface AuditAvoidableDelays {
@@ -725,6 +782,12 @@ export async function fetchAuditAvoidableDelays(
   orgId?: string, dateFrom?: string, dateTo?: string, benchmarkSetId?: string,
 ): Promise<AuditSectionResult<AuditAvoidableDelays>> {
   return fetchJson(`${ANALYTICS_BASE}/analytics/audit/avoidable-delays${_auditParams(orgId, dateFrom, dateTo, benchmarkSetId)}`);
+}
+
+export async function fetchAuditComorbidities(
+  orgId?: string, dateFrom?: string, dateTo?: string, benchmarkSetId?: string,
+): Promise<AuditSectionResult<AuditComorbidities>> {
+  return fetchJson(`${ANALYTICS_BASE}/analytics/audit/comorbidities${_auditParams(orgId, dateFrom, dateTo, benchmarkSetId)}`);
 }
 
 export async function batchAddConceptsToSubdomain(

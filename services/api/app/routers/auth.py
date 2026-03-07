@@ -44,12 +44,15 @@ REDIRECT_URI = os.getenv("AUTH_REDIRECT_URI") or f"{os.getenv('FRONTEND_URL', 'h
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 SCOPE = os.getenv("AZURE_AD_SCOPE", "openid profile email api://c97f7ad9-845f-420c-ae3f-fa5c5d815bcd/.default")
 
-# v2.0 endpoints only (not v1.0 / sts.windows.net). Requires accessTokenAcceptedVersion: 2 in app manifest.
-AUTH_URL = f"https://login.microsoftonline.com/{TENANT_ID}/oauth2/v2.0/authorize"
-TOKEN_URL = f"https://login.microsoftonline.com/{TENANT_ID}/oauth2/v2.0/token"
+# Multi-tenant: use /common/ endpoints so users from any NHS Entra tenant can authenticate
+# without needing guest accounts in the Mizaic tenant. The app registration signInAudience
+# is already AzureADMultipleOrgs. Issuer validation is done by tid-allowlist (see below).
+AUTH_URL = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize"
+TOKEN_URL = "https://login.microsoftonline.com/common/oauth2/v2.0/token"
 ANALYTICS_BASE = os.getenv("ANALYTICS_API_BASE", "http://localhost:8003")
 
 # JWKS cache — fetched once per process, refreshed when keys change.
+# /common/ JWKS returns all current Microsoft signing keys (valid across all tenants).
 # Azure AD rotates keys infrequently; 1-hour TTL is conservative.
 _JWKS_CACHE: dict = {}
 _JWKS_FETCHED_AT: float = 0.0
@@ -57,12 +60,12 @@ _JWKS_TTL = 3600  # seconds
 
 
 def _get_jwks() -> dict:
-    """Return Azure AD JWKS, refreshing the cache if older than _JWKS_TTL."""
+    """Return Azure AD JWKS from /common/, refreshing the cache if older than _JWKS_TTL."""
     global _JWKS_CACHE, _JWKS_FETCHED_AT
     now = time.monotonic()
     if _JWKS_CACHE and (now - _JWKS_FETCHED_AT) < _JWKS_TTL:
         return _JWKS_CACHE
-    jwks_uri = f"https://login.microsoftonline.com/{TENANT_ID}/discovery/v2.0/keys"
+    jwks_uri = "https://login.microsoftonline.com/common/discovery/v2.0/keys"
     try:
         with httpx.Client(timeout=10) as client:
             resp = client.get(jwks_uri)
@@ -78,14 +81,46 @@ def _get_jwks() -> dict:
     return _JWKS_CACHE
 
 
+def _is_tenant_allowed(tid: str) -> bool:
+    """Check the token's tenant ID against the allowlist of onboarded organisations.
+
+    Permits:
+    - Mizaic's own tenant (for platform admins)
+    - Any tenant registered on an active Organisation node in Neo4j
+
+    This is the multi-tenant trust boundary: only pre-registered NHS tenants can sign in.
+    """
+    if not tid:
+        return False
+    # Always permit Mizaic's own tenant for platform admins
+    if TENANT_ID and tid == TENANT_ID:
+        return True
+    try:
+        from libs.neo4j_client.client import PatientGraphClient
+        from libs.cypher.admin_queries import GET_ORG_BY_ENTRA_TENANT
+        client = PatientGraphClient()
+        rows = client.run(GET_ORG_BY_ENTRA_TENANT, entra_tenant_id=tid)
+        client.close()
+        return bool(rows)
+    except Exception as exc:
+        logger.error("Tenant allowlist check failed for tid=%s: %s", tid, exc)
+        return False
+
+
 def _verify_id_token(id_token: str) -> dict:
     """Verify and decode an Azure AD id_token using JWKS.
 
-    Validates: signature, issuer, audience, expiry.
-    Raises HTTPException(401) on any failure.
+    Multi-tenant validation strategy:
+    1. Verify RS256 signature against /common/ JWKS (cryptographic trust)
+    2. Verify audience matches our CLIENT_ID
+    3. Verify expiry and not-before
+    4. Reject v1.0 tokens (sts.windows.net issuer checked in callback)
+    5. Validate tid claim against tenant allowlist (business trust boundary)
+
+    Issuer is NOT checked against a single tenant — the app is AzureADMultipleOrgs.
     GAP-002 fix: replaces insecure base64 decode with cryptographic verification.
     """
-    if not TENANT_ID or not CLIENT_ID:
+    if not CLIENT_ID:
         raise HTTPException(500, "Azure AD not configured")
     try:
         jwks = _get_jwks()
@@ -94,8 +129,11 @@ def _verify_id_token(id_token: str) -> dict:
             jwks,
             algorithms=["RS256"],
             audience=CLIENT_ID,
-            issuer=f"https://login.microsoftonline.com/{TENANT_ID}/v2.0",
-            options={"verify_exp": True, "verify_nbf": True},
+            options={
+                "verify_exp": True,
+                "verify_nbf": True,
+                "verify_iss": False,  # multi-tenant: issuer varies per NHS tenant; validated via tid allowlist below
+            },
         )
         return claims
     except JWTError as exc:
@@ -150,7 +188,7 @@ def _fetch_org_context(email: str) -> tuple[bool, list[dict]]:
 @router.get("/login")
 def login(request: Request, next_url: str = "/"):
     """Redirect to Azure AD login with a session nonce for CSRF protection (GAP-010)."""
-    if not TENANT_ID or not CLIENT_ID:
+    if not CLIENT_ID:
         raise HTTPException(500, "Azure AD not configured")
     import secrets as _secrets
     nonce = _secrets.token_urlsafe(16)
@@ -247,6 +285,16 @@ def callback(
         emit_token_rejected(reason="v1_issuer", ip=client_ip)
         emit_login_failure(reason="token_v1_not_allowed", ip=client_ip)
         return RedirectResponse(url=f"{FRONTEND_URL}/sign-in?error=token_v1_not_allowed", status_code=302)
+
+    # Multi-tenant trust boundary: validate the tid (tenant ID) claim against the
+    # allowlist of onboarded organisations. Tokens from unknown tenants are rejected
+    # even if cryptographically valid — prevents any Microsoft tenant signing in.
+    tid = id_claims.get("tid", "")
+    if not _is_tenant_allowed(tid):
+        logger.warning("Rejecting token from unknown tenant tid=%s", tid)
+        emit_token_rejected(reason="tenant_not_allowed", ip=client_ip)
+        emit_login_failure(reason="tenant_not_allowed", ip=client_ip)
+        return RedirectResponse(url=f"{FRONTEND_URL}/sign-in?error=tenant_not_allowed", status_code=302)
 
     email = (
         id_claims.get("preferred_username")

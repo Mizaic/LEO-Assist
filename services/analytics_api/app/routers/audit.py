@@ -24,6 +24,7 @@ from typing import Any, Optional
 from fastapi import APIRouter, Depends, Query
 
 from libs.auth.org_scope import CallerScope, ORG_PATIENT_FILTER, get_caller_scope
+from libs.domain_config.registry import DomainRegistry
 from libs.neo4j_client.client import KnowledgeGraphClient, PatientGraphClient
 
 router = APIRouter()
@@ -264,6 +265,13 @@ def _q_demographics(base: str, params: dict, client: PatientGraphClient) -> dict
         "RETURN age_band, count(*) AS n ORDER BY age_band",
         **params,
     )
+    age_vals_rows = client.run(
+        f"{base}"
+        "WHERE p.birthDate IS NOT NULL AND ep.referral_date IS NOT NULL "
+        "WITH duration.inDays(date(p.birthDate), date(toString(ep.referral_date))).days / 365 AS age "
+        "RETURN age ORDER BY age",
+        **params,
+    )
     eth_rows = client.run(
         f"{base}"
         "WHERE p.ethnicity IS NOT NULL "
@@ -273,9 +281,15 @@ def _q_demographics(base: str, params: dict, client: PatientGraphClient) -> dict
     ts = sum(r["n"] for r in sex_rows) or 1
     ta = sum(r["n"] for r in age_rows) or 1
     te = sum(r["n"] for r in eth_rows) or 1
+    age_vals = sorted([r["age"] for r in age_vals_rows if r.get("age") is not None])
+    n_age = len(age_vals)
+    median_age = round(
+        (age_vals[n_age // 2] if n_age % 2 else (age_vals[n_age // 2 - 1] + age_vals[n_age // 2]) / 2), 1
+    ) if age_vals else None
     return {
         "sex": [{"gender": r["gender"], "n": r["n"], "pct": round(r["n"] * 100.0 / ts, 1)} for r in sex_rows],
         "age_bands": [{"age_band": r["age_band"], "n": r["n"], "pct": round(r["n"] * 100.0 / ta, 1)} for r in age_rows],
+        "median_age": median_age,
         "ethnicity": [{"ethnicity": r["ethnicity"], "n": r["n"], "pct": round(r["n"] * 100.0 / te, 1)} for r in eth_rows],
     }
 
@@ -336,7 +350,7 @@ def _q_investigations(base: str, params: dict, client: PatientGraphClient) -> di
     summary_rows = client.run(
         f"{base}"
         "OPTIONAL MATCH (enc:Encounter)-[:IS_PART_OF]->(ep) "
-        "  WHERE enc.encounter_type IN ['investigation','blood_test','imaging','urinalysis','biopsy','endoscopy','other_investigation'] "
+        "  WHERE enc.encounter_type IN ['investigation','blood_test','imaging','urinalysis','biopsy','endoscopy','symptomatic_fit','other_investigation'] "
         "WITH ep, count(enc) AS inv_count "
         "RETURN "
         "  count(ep) AS total_episodes, "
@@ -347,7 +361,7 @@ def _q_investigations(base: str, params: dict, client: PatientGraphClient) -> di
     type_rows = client.run(
         f"{base}"
         "MATCH (enc:Encounter)-[:IS_PART_OF]->(ep) "
-        "  WHERE enc.encounter_type IN ['investigation','blood_test','imaging','urinalysis','biopsy','endoscopy','other_investigation'] "
+        "  WHERE enc.encounter_type IN ['investigation','blood_test','imaging','urinalysis','biopsy','endoscopy','symptomatic_fit','other_investigation'] "
         "RETURN enc.encounter_type AS investigation_type, count(DISTINCT ep.episode_id) AS n "
         "ORDER BY n DESC",
         **params,
@@ -810,5 +824,204 @@ def audit_avoidable_delays(
     client = PatientGraphClient()
     try:
         return _run_multi_scope(_q_avoidable_delays, org_id, scope, date_from, date_to, benchmark_set_id, "avoidable_delays", client)
+    finally:
+        client.close()
+
+
+# ---------------------------------------------------------------------------
+# Comorbidities (dynamic — reads config from cancer_audit domain)
+# ---------------------------------------------------------------------------
+
+
+# Fallback map for comorbidity concepts that don't yet have benchmark_key in their
+# ValueSet designation.  Keys are SNOMED concept IDs (strings); values are
+# (friendly display label, ncda_2018_benchmarks key).
+_COMORBIDITY_CODE_META: dict[str, tuple[str, str]] = {
+    "38341003":  ("Hypertension",           "comorbidity_hypertension_pct"),
+    "49601007":  ("Cardiovascular disease",  "comorbidity_cvd_pct"),
+    "3723001":   ("Arthritis",              "comorbidity_arthritis_pct"),
+    "928000":    ("Musculoskeletal disorder","comorbidity_arthritis_pct"),
+    "73211009":  ("Diabetes mellitus",      "comorbidity_diabetes_pct"),
+    "13645005":  ("COPD",                   "comorbidity_copd_pct"),
+    "62914000":  ("Cerebrovascular disease", "comorbidity_cvd_pct"),
+    "386806002": ("Impaired cognition",     "comorbidity_mental_health_pct"),
+    "74732009":  ("Mental health disorder",  "comorbidity_mental_health_pct"),
+    "21134002":  ("Disability",             "comorbidity_disability_pct"),
+    "266987004": ("Previous cancer",        "comorbidity_previous_cancer_pct"),
+}
+
+
+def _ensure_registry(kg: KnowledgeGraphClient) -> DomainRegistry:
+    """Return (or lazily bootstrap) the DomainRegistry singleton.
+
+    The registry is normally seeded at startup, but if the analytics-api starts
+    before the KG is available the singleton may be uninitialised. This helper
+    performs a one-shot bootstrap from ncda-* ValueSet nodes in the KG so that
+    the comorbidities query always has a valid registry to work with.
+    """
+    try:
+        return DomainRegistry.get_instance()
+    except RuntimeError:
+        pass  # Bootstrap below
+
+    rows = kg.run(
+        "MATCH (v:ValueSet) WHERE v.id STARTS WITH 'ncda-' "
+        "RETURN v.id AS id, v.rawJson AS raw_json"
+    )
+    valuesets: dict = {}
+    import json as _json
+    for r in (rows or []):
+        raw = r.get("raw_json")
+        if not raw:
+            continue
+        try:
+            vs_dict = _json.loads(raw) if isinstance(raw, str) else raw
+            valuesets[r["id"]] = vs_dict
+        except Exception:
+            pass
+
+    if valuesets:
+        return DomainRegistry.from_fhir(valuesets)
+    # No ValueSets found — return a defaults-based registry so we at least have configs
+    return DomainRegistry.from_defaults()
+
+
+def _q_comorbidities(base: str, params: dict, client: PatientGraphClient) -> dict:
+    """Query comorbidity prevalence from HAS_DISEASE relationships.
+
+    Top-level concepts are loaded from the cancer_audit/comorbidities subdomain.
+    Each concept is expanded via IS_A hierarchy to capture all clinical variants.
+    Results are grouped back to the top-level category term.
+    """
+    kg = KnowledgeGraphClient()
+    try:
+        registry = _ensure_registry(kg)
+    except Exception:
+        kg.close()
+        return {"comorbidities": [], "total_patients": 0}
+
+    try:
+        concept_groups = registry.get_concept_id_groups("comorbidities", kg, depth=3)
+    finally:
+        kg.close()
+
+    if not concept_groups:
+        return {"comorbidities": [], "total_patients": 0}
+
+    # Build display-name and benchmark-key lookups from registry concepts.
+    # concept_groups is keyed by benchmark_key (when set) or display term.
+    # We need both the human-readable label AND the benchmark key per group.
+    domain_concepts = registry.get_domain_concepts("comorbidities")
+    group_key_to_display: dict[str, str] = {}
+    group_key_to_bm_key: dict[str, Optional[str]] = {}
+    for concept in domain_concepts:
+        gk = concept.benchmark_key or concept.term
+        code_str = str(concept.concept_id)
+        # Prefer stored benchmark_key; fall back to the hard-coded map for codes
+        # where the ValueSet designation was populated before benchmark_key support.
+        if code_str in _COMORBIDITY_CODE_META and not concept.benchmark_key:
+            friendly_label, fallback_bm_key = _COMORBIDITY_CODE_META[code_str]
+        else:
+            friendly_label = concept.preferred_term
+            fallback_bm_key = concept.benchmark_key
+        if gk not in group_key_to_display:
+            group_key_to_display[gk] = friendly_label
+            group_key_to_bm_key[gk] = fallback_bm_key
+
+    # Build reverse map: child_id (as string) -> group_key
+    id_to_term: dict[str, str] = {}
+    all_ids: list[str] = []
+    for term, ids in concept_groups.items():
+        for cid in ids:
+            cid_str = str(cid)
+            if cid_str not in id_to_term:
+                id_to_term[cid_str] = term
+            if cid_str not in all_ids:
+                all_ids.append(cid_str)
+
+    # Total patients in scope (denominator)
+    total_rows = client.run(
+        f"{base}"
+        "RETURN count(DISTINCT p) AS n",
+        **params,
+    )
+    total = (total_rows[0]["n"] if total_rows else 0) or 1
+
+    # Dual-path query: covers both
+    #   Path 1 — HAS_DISEASE (migrated legacy data + future direct writes)
+    #   Path 2 — DOCUMENTS (new NER pipeline, any node label — Situation/Clinical_finding/Disease)
+    # OPTIONAL MATCH + collect/UNWIND deduplicates patients appearing on both paths.
+    # Comorbidities are chronic conditions — we do NOT filter by documentation date.
+    # The HAS_DISEASE path covers migrated legacy data + direct writes.
+    # The DOCUMENTS path covers the NER pipeline output (any node label).
+    disease_rows = client.run(
+        f"{base}"
+        "WITH p "
+        "OPTIONAL MATCH (p)-[r1:HAS_DISEASE]->(d1) "
+        "  WHERE d1.conceptId IN $concept_ids AND r1.domain = 'comorbidities' "
+        "OPTIONAL MATCH (p)-[:HAS_ENCOUNTER]->(enc)-[r2:DOCUMENTS]->(d2) "
+        "  WHERE d2.conceptId IN $concept_ids AND r2.domain = 'comorbidities' "
+        "WITH p, collect(DISTINCT d1.conceptId) + collect(DISTINCT d2.conceptId) AS cids "
+        "UNWIND cids AS concept_id "
+        "WITH p, concept_id WHERE concept_id IS NOT NULL "
+        "RETURN concept_id, count(DISTINCT p) AS n",
+        **{**params, "concept_ids": all_ids},
+    )
+
+    # Group by top-level term
+    counts: dict[str, int] = {term: 0 for term in concept_groups}
+    for row in disease_rows:
+        cid_str = str(row.get("concept_id") or "")
+        if not cid_str:
+            continue
+        top_term = id_to_term.get(cid_str)
+        if top_term and top_term in counts:
+            counts[top_term] += row["n"]
+
+    comorbidities = sorted(
+        [
+            {
+                # Use the human-readable display term for the UI label
+                "condition": group_key_to_display.get(term, term),
+                "n": n,
+                "pct": round(n * 100.0 / total, 1),
+                # benchmark_key for resolveBenchmarkValue lookups against ncda_2018_benchmarks
+                "benchmark_key": group_key_to_bm_key.get(term),
+            }
+            for term, n in counts.items()
+        ],
+        key=lambda x: x["pct"],
+        reverse=True,
+    )
+
+    return {"comorbidities": comorbidities, "total_patients": total}
+
+
+@router.get("/audit/comorbidities")
+def audit_comorbidities(
+    scope: CallerScope = Depends(get_caller_scope),
+    org_id: Optional[str] = Query(default=None),
+    date_from: Optional[str] = Query(default=None),
+    date_to: Optional[str] = Query(default=None),
+    benchmark_set_id: Optional[str] = Query(default=None),
+):
+    """Comorbidity prevalence from HAS_DISEASE relationships.
+
+    Concept list is read dynamically from the cancer_audit/comorbidities subdomain.
+    Each top-level concept is expanded via the SNOMED IS_A hierarchy so all clinical
+    variants are captured and results are grouped back to the top-level category.
+    """
+    client = PatientGraphClient()
+    try:
+        return _run_multi_scope(
+            _q_comorbidities,
+            org_id,
+            scope,
+            date_from,
+            date_to,
+            benchmark_set_id,
+            "comorbidities",
+            client,
+        )
     finally:
         client.close()

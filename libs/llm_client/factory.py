@@ -66,13 +66,48 @@ class LLMResponse:
     tool_uses: list[dict[str, Any]] = field(default_factory=list)
 
 
+# Thinking-token budgets per tier (AWS extended thinking).
+# Small models get a lighter budget — Haiku doesn't need 8k thinking tokens for
+# most audit verdicts, and it keeps per-record cost reasonable.
+_REASONING_BUDGET_BY_TIER: dict[str, int] = {
+    "small": int(os.getenv("AUDIT_REASONING_BUDGET_SMALL", "2000")),
+    "big":   int(os.getenv("AUDIT_REASONING_BUDGET_BIG",   "8000")),
+    "max":   int(os.getenv("AUDIT_REASONING_BUDGET_MAX",  "10000")),
+}
+_DEFAULT_REASONING_BUDGET = int(os.getenv("AUDIT_REASONING_BUDGET_TOKENS", "8000"))
+
+# Azure reasoning_effort per tier.
+# Small models use "low" — they're fast and we run two in parallel; the cost
+# of heavy reasoning on every cheap-consensus record adds up quickly.
+# Big/max use "high" — only called on escalated records, worth the extra thinking.
+_AZURE_REASONING_EFFORT_BY_TIER: dict[str, str] = {
+    "small": os.getenv("AZURE_REASONING_EFFORT_SMALL", "low"),
+    "big":   os.getenv("AZURE_REASONING_EFFORT_BIG",   "high"),
+    "max":   os.getenv("AZURE_REASONING_EFFORT_MAX",   "high"),
+}
+_AZURE_REASONING_EFFORT = os.getenv("AZURE_REASONING_EFFORT", "high")  # legacy override
+
+
 class LLMClient:
     """Sync LLM client wrapping a single provider + model."""
 
-    def __init__(self, provider: str, model_id: str, region: str | None = None):
+    def __init__(
+        self,
+        provider: str,
+        model_id: str,
+        tier: str = "big",
+        region: str | None = None,
+        use_reasoning: bool = False,
+        reasoning_budget: int = _DEFAULT_REASONING_BUDGET,
+        azure_reasoning_effort: str = _AZURE_REASONING_EFFORT,
+    ):
         self.provider = provider
         self.model_id = model_id
+        self.tier = tier
         self.region = region
+        self.use_reasoning = use_reasoning
+        self.reasoning_budget = reasoning_budget
+        self.azure_reasoning_effort = azure_reasoning_effort
         self._client: Any = None
 
     def _get_client(self) -> Any:
@@ -148,13 +183,32 @@ class LLMClient:
                 content = [{"text": content}]
             bedrock_messages.append({"role": role, "content": content})
 
+        # Extended thinking: temperature must be 1.0 (Bedrock hard requirement).
+        # maxTokens must cover both thinking budget AND the response — add them.
+        effective_temp      = 1.0 if self.use_reasoning else temperature
+        effective_max_tokens = max_tokens + self.reasoning_budget if self.use_reasoning else max_tokens
+
         converse_kwargs: dict[str, Any] = dict(
             model_id=self.model_id,
             system=[{"text": system}],
             messages=bedrock_messages,
-            inferenceConfig={"maxTokens": max_tokens, "temperature": temperature},
+            inferenceConfig={"maxTokens": effective_max_tokens, "temperature": effective_temp},
         )
-        if tool_config is not None:
+
+        if self.use_reasoning:
+            converse_kwargs["additionalModelRequestFields"] = {
+                "thinking": {
+                    "type": "enabled",
+                    "budget_tokens": self.reasoning_budget,
+                }
+            }
+            if tool_config is not None:
+                # Extended thinking and tool_config cannot be combined on Bedrock.
+                logger.warning(
+                    "use_reasoning=True is incompatible with tool_config on Bedrock — "
+                    "tools disabled for this call (%s)", self.model_id,
+                )
+        elif tool_config is not None:
             converse_kwargs["toolConfig"] = tool_config
 
         response = converse_with_retry(client, **converse_kwargs)
@@ -169,6 +223,9 @@ class LLMClient:
                 text_parts.append(item["text"])
             elif "toolUse" in item:
                 tool_uses.append(item["toolUse"])
+            # reasoningContent blocks (extended thinking) are intentionally omitted
+            # from the returned text — they represent internal chain-of-thought and
+            # are not part of the structured audit verdict JSON.
 
         usage = response.get("usage", {})
         return LLMResponse(
@@ -184,7 +241,11 @@ class LLMClient:
     def _converse_azure(
         self, client: Any, system: str, messages: list[dict], max_tokens: int, temperature: float,
     ) -> LLMResponse:
-        oai_messages = [{"role": "system", "content": system}]
+        # GPT-5 / o-series reasoning models prefer "developer" over "system".
+        # Both work (the API treats them identically), but "developer" is the
+        # recommended role per the Azure Foundry reasoning docs.
+        system_role = "developer" if self.use_reasoning else "system"
+        oai_messages = [{"role": system_role, "content": system}]
         for msg in messages:
             role = msg.get("role", "user")
             content = msg.get("content", "")
@@ -194,16 +255,57 @@ class LLMClient:
                 )
             oai_messages.append({"role": role, "content": content})
 
-        kwargs: dict[str, Any] = {
-            "model": self.model_id,
-            "messages": oai_messages,
-            "max_completion_tokens": max_tokens,
-        }
-        if temperature != 0.0:
-            kwargs["temperature"] = temperature
-        response = client.chat.completions.create(**kwargs)
+        kwargs: dict[str, Any] = {"model": self.model_id, "messages": oai_messages}
+
+        if self.use_reasoning:
+            # Pick tier-appropriate effort; individual override via azure_reasoning_effort.
+            effort = _AZURE_REASONING_EFFORT_BY_TIER.get(self.tier, self.azure_reasoning_effort)
+            kwargs["reasoning_effort"] = effort
+            # max_completion_tokens must cover reasoning tokens + response tokens.
+            # GPT-5/o-series reasoning can consume thousands of tokens internally;
+            # if the budget runs out before the response, we get empty content.
+            # Scale up: response budget × 4 floor-capped at 16 000 for big models.
+            scale = 2 if self.tier == "small" else 4
+            kwargs["max_completion_tokens"] = max(max_tokens * scale, 8000)
+            # temperature, top_p etc. are not supported by reasoning models.
+        else:
+            kwargs["max_completion_tokens"] = max_tokens
+            if temperature != 0.0:
+                kwargs["temperature"] = temperature
+
+        try:
+            response = client.chat.completions.create(**kwargs)
+        except Exception as exc:
+            # Graceful fallback: if the API rejects reasoning_effort (shouldn't
+            # happen for gpt-5 / gpt-5-mini, but guards against mis-config),
+            # retry without it using a standard call.
+            if self.use_reasoning and kwargs.get("reasoning_effort") is not None:
+                logger.warning(
+                    "Azure model %s rejected reasoning params — retrying without: %s",
+                    self.model_id, exc,
+                )
+                kwargs.pop("reasoning_effort", None)
+                kwargs["max_completion_tokens"] = max_tokens
+                if temperature != 0.0:
+                    kwargs["temperature"] = temperature
+                response = client.chat.completions.create(**kwargs)
+            else:
+                raise
+
         choice = response.choices[0] if response.choices else None
         usage = response.usage
+        # Extract reasoning_tokens from completion_tokens_details if present
+        reasoning_tokens = 0
+        if usage:
+            ctd = getattr(usage, "completion_tokens_details", None)
+            if ctd:
+                reasoning_tokens = getattr(ctd, "reasoning_tokens", 0) or 0
+        if self.use_reasoning and reasoning_tokens:
+            logger.debug(
+                "Azure %s reasoning_tokens=%d response_tokens=%d",
+                self.model_id, reasoning_tokens,
+                (usage.completion_tokens - reasoning_tokens) if usage else 0,
+            )
         return LLMResponse(
             text=choice.message.content.strip() if choice and choice.message.content else "",
             input_tokens=usage.prompt_tokens if usage else 0,
@@ -220,6 +322,9 @@ def create_llm(
     *,
     model_id: str | None = None,
     region: str | None = None,
+    use_reasoning: bool = False,
+    reasoning_budget: int | None = None,
+    azure_reasoning_effort: str | None = None,
 ) -> LLMClient:
     """Create an LLM client for the given provider and tier.
 
@@ -228,6 +333,21 @@ def create_llm(
         tier: ``"small"``, ``"big"``, or ``"max"``.
         model_id: Explicit model ID (overrides tier lookup).
         region: AWS region (only for Bedrock).
+        use_reasoning: Enable reasoning / extended thinking on the model.
+
+            * **AWS Bedrock (Claude)**: passes ``additionalModelRequestFields`` with
+              ``{"thinking": {"type": "enabled", "budget_tokens": N}}``.  Forces
+              ``temperature=1.0`` (Bedrock hard requirement).  Incompatible with
+              ``tool_config`` — tools are silently dropped when both are set.
+
+            * **Azure OpenAI (o-series)**: passes ``reasoning_effort`` (default
+              ``"high"``).  Non-o-series deployments that don't support the param
+              fall back gracefully to a standard call.
+
+        reasoning_budget: AWS thinking-token budget.  Defaults to a tier-appropriate
+            value (small=2000, big=8000, max=10000) from env vars.
+        azure_reasoning_effort: Override for the Azure ``reasoning_effort`` value.
+            Defaults to ``AZURE_REASONING_EFFORT`` env var (``"high"``).
     """
     if provider is None:
         provider = os.getenv("PIPELINE_MODEL_PROVIDER", "aws")
@@ -240,4 +360,16 @@ def create_llm(
         if not model_id:
             raise ValueError(f"No model configured for provider={provider}, tier={tier}")
 
-    return LLMClient(provider=provider, model_id=model_id, region=region)
+    # Tier-appropriate thinking budget — smaller models don't need 8k thinking tokens.
+    budget = reasoning_budget if reasoning_budget is not None else _REASONING_BUDGET_BY_TIER.get(tier, _DEFAULT_REASONING_BUDGET)
+    effort = azure_reasoning_effort if azure_reasoning_effort is not None else _AZURE_REASONING_EFFORT
+
+    return LLMClient(
+        provider=provider,
+        model_id=model_id,
+        tier=tier,
+        region=region,
+        use_reasoning=use_reasoning,
+        reasoning_budget=budget,
+        azure_reasoning_effort=effort,
+    )
