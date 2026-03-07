@@ -39,6 +39,12 @@ def _get_patient_graph_client():
     return PatientGraphClient()
 
 
+def _get_knowledge_graph_client():
+    """TrainingCandidate and GoldLabel are de-identified model knowledge → Knowledge Graph."""
+    from app.db.neo4j_client import CodingGraphClient
+    return CodingGraphClient()
+
+
 def _candidate_id(encounter_text: str) -> str:
     """GDPR-safe candidate id: content-only hash."""
     return hashlib.sha256((encounter_text or "").encode()).hexdigest()
@@ -149,7 +155,7 @@ def write_gold_training(state: PersistState) -> dict[str, Any]:
                     UPDATE_TRAINING_CANDIDATE_STATUS,
                     UPSERT_TRAINING_CANDIDATE,
                 )
-                client = _get_patient_graph_client()
+                client = _get_knowledge_graph_client()
                 try:
                     with client.session() as session:
                         session.run(
@@ -176,7 +182,7 @@ def write_gold_training(state: PersistState) -> dict[str, Any]:
                 "status": "deid_failed",
             }
 
-        client = _get_patient_graph_client()
+        client = _get_knowledge_graph_client()
         try:
             with client.session() as session:
                 session.run(

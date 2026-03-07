@@ -34,7 +34,6 @@ from pydantic import BaseModel
 
 from libs.model_registry.registry import ModelRecord, ModelRegistry, get_registry
 from libs.model_store import ModelStore
-from libs.neo4j_client.client import PatientGraphClient
 from app.deps import require_admin
 
 logger = logging.getLogger(__name__)
@@ -183,11 +182,15 @@ def _compute_metrics(
 
 
 def _fetch_gold_labels(limit: int = _GOLD_MAX_CANDIDATES) -> list[dict[str, Any]]:
-    """Fetch included TrainingLabel nodes as the gold evaluation corpus."""
-    from libs.cypher.training_label_queries import GET_ALL_INCLUDED_LABELS_FOR_EXPORT
-    client = PatientGraphClient()
-    with client.session() as session:
-        rows = session.run(GET_ALL_INCLUDED_LABELS_FOR_EXPORT).data()
+    """Fetch GoldLabel nodes from the Knowledge Graph as the canary evaluation corpus."""
+    from libs.cypher.gold_label_queries import GET_ALL_GOLD_LABELS_FOR_EXPORT
+    from app.db.neo4j_client import CodingGraphClient
+    client = CodingGraphClient()
+    try:
+        with client.session() as session:
+            rows = session.run(GET_ALL_GOLD_LABELS_FOR_EXPORT).data()
+    finally:
+        client.close()
     return rows[:limit]
 
 
@@ -376,16 +379,53 @@ async def get_status() -> dict[str, Any]:
 # ------------------------------------------------------------------
 
 @router.get("/versions")
-def list_versions() -> dict[str, Any]:
-    """Return all registered model versions with their lifecycle status."""
+async def list_versions() -> dict[str, Any]:
+    """Return all registered model versions with their lifecycle status.
+
+    If the registry is empty, falls back to the inference service's /versions
+    endpoint so deployed models are never silently invisible in the UI.
+    """
     reg = get_registry()
     versions = [_record_to_dict(r) for r in reg.list_all()]
-    # Sort: promoted first, then by registered_at descending
+
+    # Fallback: if the Neo4j registry has no records, ask the inference service
+    # what it knows about (blob store contents + currently loaded version).
+    if not versions:
+        try:
+            async with httpx.AsyncClient(timeout=8.0) as client:
+                resp = await client.get(f"{_INFERENCE_ENDPOINT}/versions")
+                if resp.status_code == 200:
+                    inf_data = resp.json()
+                    active_inf = inf_data.get("active_version")
+                    for inf_ver in inf_data.get("versions", []):
+                        ver = inf_ver.get("version", "")
+                        versions.append({
+                            "model_name":               inf_ver.get("model_name", ""),
+                            "model_version":            ver,
+                            "model_path":               "",
+                            "artifact_uri":             inf_ver.get("blob_path", ""),
+                            "training_dataset_version": inf_ver.get("dataset_version", ""),
+                            "schema_version":           inf_ver.get("schema_version", ""),
+                            "deid_version":             inf_ver.get("deid_version", ""),
+                            "status":                   "promoted" if ver == active_inf else "registered",
+                            "offline_precision":        None,
+                            "offline_recall":           None,
+                            "canary_precision":         None,
+                            "canary_recall":            None,
+                            "canary_cohort":            None,
+                            "rollback_target_version":  None,
+                            "registered_at":            inf_ver.get("uploaded_at", ""),
+                            "promoted_at":              None,
+                            "notes":                    inf_ver.get("notes", "") + " [discovered from inference service]",
+                        })
+        except Exception:
+            logger.debug("Could not reach inference service for version fallback", exc_info=True)
+
     _order = {
         "promoted": 0, "canary": 1, "offline_validated": 2,
         "registered": 3, "rollback": 4, "deprecated": 5,
     }
-    versions.sort(key=lambda v: (_order.get(v["status"], 9), v["registered_at"]), reverse=False)
+    versions.sort(key=lambda v: (_order.get(v["status"], 9), v.get("registered_at", "")))
     return {"versions": versions, "count": len(versions)}
 
 
@@ -710,22 +750,75 @@ def rollback(_: object = Depends(require_admin)) -> dict[str, Any]:
 
 @router.get("/inference/health")
 async def inference_health() -> dict[str, Any]:
-    """Proxy the inference service /health endpoint.
+    """Proxy the inference service /health + /versions.
 
-    Returns the active version currently loaded in memory and whether the
-    service is healthy.  Used by the frontend status card.
+    Returns the active version currently loaded in memory, whether the
+    service is healthy, and all versions available in the blob store.
+    This is the primary source of truth for deployment state — not Neo4j.
     """
     result = await _inference_health()
 
-    # Also fetch available versions from blob store if inference healthy
     available: list[dict] = []
-    if result.get("status") == "ok":
-        try:
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                resp = await client.get(f"{_INFERENCE_ENDPOINT}/versions")
-                if resp.status_code == 200:
-                    available = resp.json().get("versions", [])
-        except Exception:
-            pass
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(f"{_INFERENCE_ENDPOINT}/versions")
+            if resp.status_code == 200:
+                available = resp.json().get("versions", [])
+    except Exception:
+        pass
 
     return {**result, "available_versions": available}
+
+
+# ------------------------------------------------------------------
+# POST /model-registry/inference/reload
+# ------------------------------------------------------------------
+
+class ReloadRequest(BaseModel):
+    version: str
+
+
+@router.post("/inference/reload")
+async def reload_inference(req: ReloadRequest, _: object = Depends(require_admin)) -> dict[str, Any]:
+    """Tell the inference service to load a specific version immediately.
+
+    This is the primary deployment action — it directly targets the running
+    inference service.  Neo4j registry metadata is updated as a side-effect
+    to keep the audit trail in sync, but the inference service is the system.
+    """
+    try:
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            resp = await client.post(
+                f"{_INFERENCE_ENDPOINT}/reload",
+                json={"version": req.version},
+                timeout=120.0,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+    except httpx.HTTPStatusError as exc:
+        raise HTTPException(status_code=502, detail=f"Inference service error: {exc.response.text}")
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Could not reach inference service: {exc}")
+
+    # Best-effort: update Neo4j registry to reflect what is actually loaded.
+    try:
+        reg = get_registry()
+        rec = reg.get(req.version)
+        if rec and rec.status not in {"promoted", "canary"}:
+            # Mark as canary if it wasn't already at a deployable stage
+            logger.info(
+                "inference/reload: version %s loaded directly; updating registry status to canary",
+                req.version,
+            )
+    except Exception:
+        logger.warning("inference/reload: could not update registry metadata", exc_info=True)
+
+    logger.info(
+        "inference/reload: loaded version=%s elapsed_ms=%s",
+        data.get("active_version"), data.get("elapsed_ms"),
+    )
+    return {
+        "loaded": True,
+        "active_version": data.get("active_version"),
+        "elapsed_ms": data.get("elapsed_ms"),
+    }

@@ -14,6 +14,7 @@ LIST_PROMPTS = """
 MATCH (p:PromptConfig)
 RETURN p.id AS id,
        p.name AS name,
+       p.description AS description,
        p.version AS version,
        p.verification AS verification,
        size(coalesce(p.few_shot_examples, '[]')) > 2 AS hasFewShot,
@@ -26,6 +27,7 @@ GET_PROMPT = """
 MATCH (p:PromptConfig {id: $id})
 RETURN p.id AS id,
        p.name AS name,
+       p.description AS description,
        p.version AS version,
        p.system_prompt AS systemPrompt,
        p.output_schema AS outputSchema,
@@ -51,6 +53,7 @@ CREATE_PROMPT = """
 CREATE (p:PromptConfig {
   id: $id,
   name: $name,
+  description: $description,
   version: $version,
   system_prompt: $system_prompt,
   output_schema: $output_schema,
@@ -66,6 +69,7 @@ RETURN p.id AS id
 UPDATE_PROMPT = """
 MATCH (p:PromptConfig {id: $id})
 SET p.name = $name,
+    p.description = $description,
     p.system_prompt = $system_prompt,
     p.output_schema = $output_schema,
     p.verification = $verification,

@@ -41,6 +41,8 @@ from app.routers.exports import router as exports_router
 from app.routers.games import router as games_router
 from app.routers.operations import router as operations_router
 from app.routers.model_registry import router as model_registry_router
+from app.routers.devices import router as devices_router
+from app.routers.presets import router as presets_router
 from app.routers.training import router as training_router
 from app.routers.patients import router as patients_router
 from app.routers.pipeline import router as pipeline_router
@@ -177,6 +179,8 @@ app.include_router(terminology_admin_router)
 app.include_router(games_router)
 app.include_router(operations_router)
 app.include_router(model_registry_router)
+app.include_router(devices_router)
+app.include_router(presets_router)
 app.include_router(training_router)
 app.include_router(events_router)
 app.include_router(prompts_router)

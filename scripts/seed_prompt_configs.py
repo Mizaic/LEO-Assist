@@ -72,9 +72,10 @@ _add("label_disambiguation", 1, "libs.prompts.label_disambiguation_v1.LABEL_DISA
 def main() -> None:
     from neo4j import GraphDatabase
 
-    uri = os.getenv("NEO4J_URI", "bolt://localhost:7687")
-    user = os.getenv("NEO4J_USER", os.getenv("NEO4J_USERNAME", "neo4j"))
-    password = os.getenv("NEO4J_PASSWORD", "password")
+    # PromptConfig nodes belong in the Knowledge Graph (AI system config, not patient data)
+    uri = os.getenv("KNOWLEDGE_GRAPH_NEO4J_URI", os.getenv("NEO4J_URI", "bolt://localhost:7687"))
+    user = os.getenv("KNOWLEDGE_GRAPH_NEO4J_USERNAME", os.getenv("NEO4J_USER", os.getenv("NEO4J_USERNAME", "neo4j")))
+    password = os.getenv("KNOWLEDGE_GRAPH_NEO4J_PASSWORD", os.getenv("NEO4J_PASSWORD", "password"))
 
     driver = GraphDatabase.driver(uri, auth=(user, password))
 

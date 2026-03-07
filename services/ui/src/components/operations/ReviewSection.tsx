@@ -152,11 +152,13 @@ function surfaceFormTaskToItem(t: SurfaceFormTask): ReviewItem {
 
 interface Props {
   onStatsChange?: () => void;
+  /** When this changes, the queue is reloaded (e.g. after delete-all). */
+  refreshKey?: number;
 }
 
 type FilterKey = "all" | "coding" | "hitl" | "context" | "tier1" | "tier2" | "tier3" | "surface";
 
-export default function ReviewSection({ onStatsChange }: Props) {
+export default function ReviewSection({ onStatsChange, refreshKey }: Props) {
   const [queue, setQueue] = useState<ReviewItem[]>([]);
   const [index, setIndex] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -216,7 +218,7 @@ export default function ReviewSection({ onStatsChange }: Props) {
 
   useEffect(() => {
     loadQueue();
-  }, [loadQueue]);
+  }, [loadQueue, refreshKey]);
 
   const filtered = queue.filter((item) => {
     if (filter === "all") return true;

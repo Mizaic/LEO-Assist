@@ -1,136 +1,268 @@
 "use client";
 
-/**
- * Gold dataset health and extraction model quality scorecard.
- *
- * Shows:
- *  - Summary (total reviewed, overall approval rate, gold entities, patients)
- *  - Per-semantic-tag scorecard table — approval / edit / rejection rates per
- *    entity type, mirroring the classification per-class performance view
- *  - Download buttons for MedSpaCy training data
- *
- * "Approval rate" is used as a precision proxy: if the model extracted a term
- * of type X and the reviewer kept it without changes, the model was correct.
- * Rejection rate is the FP proxy. Edit rate indicates partial correctness.
- */
-
-import { useState } from "react";
-import {
-  Alert,
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Chip,
-  CircularProgress,
-  Divider,
-  Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-  Tooltip,
-  Typography,
-} from "@mui/material";
-import AssessmentOutlinedIcon from "@mui/icons-material/AssessmentOutlined";
+import { useCallback, useEffect, useRef, useState } from "react";
+import Alert from "@mui/material/Alert";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Card from "@mui/material/Card";
+import CardContent from "@mui/material/CardContent";
+import Chip from "@mui/material/Chip";
+import CircularProgress from "@mui/material/CircularProgress";
+import Divider from "@mui/material/Divider";
+import InputAdornment from "@mui/material/InputAdornment";
+import Pagination from "@mui/material/Pagination";
+import Skeleton from "@mui/material/Skeleton";
+import Stack from "@mui/material/Stack";
+import Tab from "@mui/material/Tab";
+import Tabs from "@mui/material/Tabs";
+import TextField from "@mui/material/TextField";
+import Tooltip from "@mui/material/Tooltip";
+import Typography from "@mui/material/Typography";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import DownloadIcon from "@mui/icons-material/Download";
-import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
-import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
-import { api } from "@/lib/api";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
+import HourglassEmptyIcon from "@mui/icons-material/HourglassEmpty";
+import SearchIcon from "@mui/icons-material/Search";
+import SyncIcon from "@mui/icons-material/Sync";
+import VerifiedIcon from "@mui/icons-material/Verified";
 import { exportMedSpaCyTraining } from "@/lib/api/legacy";
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
-interface TagRow {
-  tag: string;
-  total_candidates: number;
-  approved: number;
-  edited: number;
-  rejected: number;
-  escalated: number;
-  human_verified: number;
-  approval_rate_pct: number | null;
-  rejection_rate_pct: number | null;
-  gold_entities: number;
+interface CandidateStats {
+  total: number;
+  pending: number;
+  processing: number;
+  completed: number;
+  failed: number;
 }
 
 interface GoldStats {
-  generated_at: string;
-  total_reviewed: number;
-  overall_approval_rate_pct: number | null;
-  reviewers: string[];
-  gold_entities_by_tag: Record<string, number>;
-  total_gold_entities: number;
-  patients_covered: number;
-  encounters_covered: number;
-  date_from: string | null;
-  date_to: string | null;
-  per_tag_scorecard: TagRow[];
-  outcomes: Record<string, number>;
+  total: number;
+  avg_quality_score: number | null;
+  high_quality: number;
+}
+
+interface Candidate {
+  candidate_id: string;
+  text: string;
+  source: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface GoldLabel {
+  label_id: string;
+  text: string;
+  entities_json: string | null;
+  quality_score: number | null;
+  source: string;
+  verified_by: string | null;
+  verified_at: string | null;
+  candidate_id: string | null;
+  updated_at: string;
+}
+
+interface Entity {
+  text: string;
+  label?: string;
+  semantic_tag?: string;
+  snomed_concept_id?: string;
 }
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-const TAG_LABELS: Record<string, string> = {
-  finding: "Finding",
-  disorder: "Disorder",
-  procedure: "Procedure",
-  observable_entity: "Observable entity",
-  body_structure: "Body structure",
-  substance: "Substance",
-  product: "Product",
-  situation: "Situation",
-  event: "Event",
-  qualifier_value: "Qualifier value",
-  unknown: "Unknown",
-};
-
-const TAG_COLORS: Record<string, string> = {
-  finding: "#1976d2",
-  disorder: "#d32f2f",
-  procedure: "#388e3c",
-  observable_entity: "#7b1fa2",
-  body_structure: "#f57c00",
-  substance: "#0288d1",
-  product: "#455a64",
-};
-
-function tagLabel(tag: string) {
-  return TAG_LABELS[tag] ?? tag.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+async function jsonFetch<T>(url: string): Promise<T> {
+  const res = await fetch(url, { credentials: "include", headers: { "X-Requested-With": "XMLHttpRequest" } });
+  if (!res.ok) throw new Error(`${res.status}`);
+  return res.json() as Promise<T>;
 }
 
-function tagColor(tag: string) {
-  return TAG_COLORS[tag] ?? "#607d8b";
+function parseEntities(json: string | null): Entity[] {
+  if (!json) return [];
+  try {
+    const parsed = JSON.parse(json);
+    if (Array.isArray(parsed)) return parsed as Entity[];
+    return [];
+  } catch {
+    return [];
+  }
 }
 
-function rateColor(pct: number | null, invert = false): string {
-  if (pct === null) return "text.secondary";
-  const val = invert ? 100 - pct : pct;
-  if (val >= 80) return invert ? "error.main" : "success.main";
-  if (val >= 60) return "warning.main";
-  return invert ? "success.main" : "error.main";
+function truncate(text: string, max = 140) {
+  if (!text) return "—";
+  return text.length > max ? text.slice(0, max) + "…" : text;
 }
 
-function fmt(val: number | null, suffix = "%"): string {
-  return val === null ? "—" : `${val}${suffix}`;
+function formatDate(iso: string | null) {
+  if (!iso) return "—";
+  try {
+    return new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  } catch {
+    return iso;
+  }
+}
+
+function qualityColor(score: number | null): "success" | "warning" | "error" | "default" {
+  if (score === null) return "default";
+  if (score >= 0.8) return "success";
+  if (score >= 0.5) return "warning";
+  return "error";
+}
+
+function statusColor(status: string): "success" | "warning" | "error" | "info" | "default" {
+  switch (status) {
+    case "completed": return "success";
+    case "pending": return "warning";
+    case "processing": return "info";
+    case "failed": return "error";
+    default: return "default";
+  }
+}
+
+function statusIcon(status: string) {
+  switch (status) {
+    case "completed": return <CheckCircleOutlineIcon sx={{ fontSize: 14 }} />;
+    case "failed": return <ErrorOutlineIcon sx={{ fontSize: 14 }} />;
+    case "processing": return <SyncIcon sx={{ fontSize: 14 }} />;
+    default: return <HourglassEmptyIcon sx={{ fontSize: 14 }} />;
+  }
 }
 
 // ---------------------------------------------------------------------------
-// Sub-components
+// Stat tile
 // ---------------------------------------------------------------------------
 
-function OutcomeChip({ label, count, color }: { label: string; count: number; color: "success" | "warning" | "error" | "info" | "default" }) {
+function StatTile({ label, value, sub, color }: { label: string; value: string | number; sub?: string; color?: string }) {
   return (
-    <Box sx={{ textAlign: "center", p: 1.5, border: "1px solid", borderColor: "divider", borderRadius: 2, minWidth: 110 }}>
-      <Typography variant="h5" sx={{ fontWeight: 700 }}>{count}</Typography>
-      <Chip label={label} color={color} size="small" sx={{ mt: 0.5, fontWeight: 600, fontSize: "0.7rem" }} />
+    <Box sx={{ p: 2, border: "1px solid", borderColor: "divider", borderRadius: 2, minWidth: 130, textAlign: "center" }}>
+      <Typography variant="h5" sx={{ fontWeight: 700, color: color ?? "text.primary" }}>
+        {value}
+      </Typography>
+      <Typography variant="caption" color="text.secondary" display="block">{label}</Typography>
+      {sub && <Typography variant="caption" color="text.disabled" display="block">{sub}</Typography>}
     </Box>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Candidate row
+// ---------------------------------------------------------------------------
+
+function CandidateRow({ item }: { item: Candidate }) {
+  return (
+    <Card variant="outlined" sx={{ mb: 1.5 }}>
+      <CardContent sx={{ py: 1.5, "&:last-child": { pb: 1.5 } }}>
+        <Stack direction="row" alignItems="flex-start" justifyContent="space-between" spacing={2}>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography variant="body2" sx={{ fontFamily: "monospace", fontSize: "0.8rem", color: "text.secondary", mb: 0.5 }}>
+              {item.candidate_id.slice(0, 12)}…
+            </Typography>
+            <Typography variant="body2" sx={{ wordBreak: "break-word" }}>
+              {truncate(item.text)}
+            </Typography>
+          </Box>
+          <Stack alignItems="flex-end" spacing={0.5} sx={{ flexShrink: 0 }}>
+            <Chip
+              icon={statusIcon(item.status)}
+              label={item.status}
+              color={statusColor(item.status)}
+              size="small"
+              sx={{ fontWeight: 600, textTransform: "capitalize" }}
+            />
+            {item.source && (
+              <Chip label={item.source} size="small" variant="outlined" sx={{ fontSize: "0.7rem" }} />
+            )}
+            <Typography variant="caption" color="text.disabled">{formatDate(item.updated_at)}</Typography>
+          </Stack>
+        </Stack>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Gold label row
+// ---------------------------------------------------------------------------
+
+function GoldLabelRow({ item }: { item: GoldLabel }) {
+  const entities = parseEntities(item.entities_json);
+  const shortId = item.label_id ? `${item.label_id.slice(0, 12)}…` : "—";
+
+  return (
+    <Card variant="outlined" sx={{ mb: 1.5 }}>
+      <CardContent sx={{ py: 1.5, "&:last-child": { pb: 1.5 } }}>
+        <Stack direction="row" alignItems="flex-start" justifyContent="space-between" spacing={2}>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography variant="body2" sx={{ fontFamily: "monospace", fontSize: "0.8rem", color: "text.secondary", mb: 0.5 }}>
+              {shortId}
+            </Typography>
+            <Typography variant="body2" sx={{ wordBreak: "break-word", mb: 1 }}>
+              {truncate(item.text)}
+            </Typography>
+            {entities.length > 0 && (
+              <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
+                {entities.slice(0, 6).map((e, i) => (
+                  <Tooltip
+                    key={i}
+                    title={[e.label ?? e.semantic_tag, e.snomed_concept_id].filter(Boolean).join(" · ")}
+                  >
+                    <Chip
+                      label={e.text}
+                      size="small"
+                      sx={{
+                        fontSize: "0.72rem",
+                        bgcolor: "primary.50",
+                        borderColor: "primary.200",
+                        fontWeight: 500,
+                        cursor: "default",
+                        mb: 0.5,
+                      }}
+                      variant="outlined"
+                    />
+                  </Tooltip>
+                ))}
+                {entities.length > 6 && (
+                  <Chip label={`+${entities.length - 6} more`} size="small" variant="outlined" sx={{ fontSize: "0.72rem", mb: 0.5 }} />
+                )}
+              </Stack>
+            )}
+          </Box>
+          <Stack alignItems="flex-end" spacing={0.5} sx={{ flexShrink: 0 }}>
+            <Chip
+              icon={<VerifiedIcon sx={{ fontSize: 14 }} />}
+              label={item.quality_score !== null ? `${Math.round(item.quality_score * 100)}%` : "verified"}
+              color={qualityColor(item.quality_score)}
+              size="small"
+              sx={{ fontWeight: 700 }}
+            />
+            {item.source && (
+              <Chip label={item.source} size="small" variant="outlined" sx={{ fontSize: "0.7rem" }} />
+            )}
+            <Typography variant="caption" color="text.disabled">{formatDate(item.verified_at ?? item.updated_at)}</Typography>
+          </Stack>
+        </Stack>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Skeleton list
+// ---------------------------------------------------------------------------
+
+function SkeletonList() {
+  return (
+    <>
+      {[0, 1, 2, 3, 4].map((i) => (
+        <Skeleton key={i} variant="rounded" height={80} sx={{ mb: 1.5 }} />
+      ))}
+    </>
   );
 }
 
@@ -138,50 +270,93 @@ function OutcomeChip({ label, count, color }: { label: string; count: number; co
 // Main component
 // ---------------------------------------------------------------------------
 
+const PAGE_SIZE = 20;
+
 export default function GoldDatasetPanel() {
-  const [stats, setStats] = useState<GoldStats | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [tab, setTab] = useState<"candidates" | "gold">("candidates");
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [page, setPage] = useState(1);
+
+  const [candidateStats, setCandidateStats] = useState<CandidateStats | null>(null);
+  const [goldStats, setGoldStats] = useState<GoldStats | null>(null);
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [statsError, setStatsError] = useState<string | null>(null);
+
+  const [items, setItems] = useState<(Candidate | GoldLabel)[]>([]);
+  const [total, setTotal] = useState(0);
+  const [listLoading, setListLoading] = useState(true);
+  const [listError, setListError] = useState<string | null>(null);
+
   const [exporting, setExporting] = useState(false);
   const [exportMsg, setExportMsg] = useState<string | null>(null);
 
-  async function load() {
-    setLoading(true);
-    setError(null);
-    try {
-      const [gold, candidates] = await Promise.all([
-        api.get<{ total: number; avg_quality_score: number | null }>("/api/training/gold-labels/stats"),
-        api.get<{ total: number; completed?: number; pending?: number }>("/api/training/candidates/stats"),
-      ]);
-      const converted: GoldStats = {
-        generated_at: new Date().toISOString(),
-        total_reviewed: Number(candidates.total || 0),
-        overall_approval_rate_pct:
-          candidates.total ? Math.round((Number(gold.total || 0) / Number(candidates.total)) * 100) : null,
-        reviewers: [],
-        gold_entities_by_tag: {},
-        total_gold_entities: Number(gold.total || 0),
-        patients_covered: 0,
-        encounters_covered: Number(gold.total || 0),
-        date_from: null,
-        date_to: null,
-        per_tag_scorecard: [],
-        outcomes: {
-          approved: Number(gold.total || 0),
-          rejected: 0,
-          edited: 0,
-          escalated: Number(candidates.pending || 0),
-        },
-      };
-      setStats(converted);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load gold dataset stats");
-    } finally {
-      setLoading(false);
-    }
-  }
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  async function downloadTrainingData() {
+  // Debounce search input
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 350);
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, [search]);
+
+  // Load stats on mount
+  useEffect(() => {
+    setStatsLoading(true);
+    setStatsError(null);
+    Promise.all([
+      jsonFetch<CandidateStats>("/api/training/candidates/stats"),
+      jsonFetch<GoldStats>("/api/training/gold-labels/stats"),
+    ])
+      .then(([cs, gs]) => {
+        setCandidateStats(cs);
+        setGoldStats(gs);
+      })
+      .catch((e) => setStatsError(e instanceof Error ? e.message : "Could not load stats"))
+      .finally(() => setStatsLoading(false));
+  }, []);
+
+  // Load list when tab / page / search changes
+  const loadList = useCallback(async () => {
+    setListLoading(true);
+    setListError(null);
+    try {
+      const skip = (page - 1) * PAGE_SIZE;
+      if (tab === "candidates") {
+        const url = `/api/training/candidates?page=${page}&page_size=${PAGE_SIZE}${debouncedSearch ? `&search=${encodeURIComponent(debouncedSearch)}` : ""}`;
+        const data = await jsonFetch<{ items: Candidate[]; total: number }>(url);
+        setItems(data.items);
+        setTotal(data.total);
+      } else {
+        const url = `/api/training/gold-labels?page=${page}&page_size=${PAGE_SIZE}${debouncedSearch ? `&search=${encodeURIComponent(debouncedSearch)}` : ""}`;
+        const data = await jsonFetch<{ items: GoldLabel[]; total: number }>(url);
+        setItems(data.items);
+        setTotal(data.total);
+      }
+    } catch (e) {
+      setListError(e instanceof Error ? e.message : "Could not load records");
+    } finally {
+      setListLoading(false);
+    }
+  }, [tab, page, debouncedSearch]);
+
+  useEffect(() => {
+    loadList();
+  }, [loadList]);
+
+  // Reset page when tab changes — also clear items to prevent rendering stale typed data
+  const handleTabChange = (_: React.SyntheticEvent, val: "candidates" | "gold") => {
+    setItems([]);
+    setTotal(0);
+    setTab(val);
+    setPage(1);
+    setSearch("");
+  };
+
+  async function handleExport() {
     setExporting(true);
     setExportMsg(null);
     try {
@@ -190,230 +365,161 @@ export default function GoldDatasetPanel() {
         `Export complete — ${result.entity_count} entities, ${result.kb_count} KB entries from ${result.encounter_count} encounters. Saved to: ${result.export_path}`
       );
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Export failed");
+      setListError(e instanceof Error ? e.message : "Export failed");
     } finally {
       setExporting(false);
     }
   }
 
-  const outcomes = stats?.outcomes ?? {};
-  const approvedCount = (outcomes["approve"] ?? 0) + (outcomes["approved"] ?? 0);
-  const editedCount = outcomes["edit"] ?? outcomes["edited"] ?? 0;
-  const rejectedCount = outcomes["reject"] ?? outcomes["rejected"] ?? 0;
-  const escalatedCount = outcomes["escalate"] ?? outcomes["escalated"] ?? 0;
+  const totalPages = Math.ceil(total / PAGE_SIZE);
 
   return (
-    <Box sx={{ maxWidth: 1100, mx: "auto", py: 4, px: 3 }}>
+    <Box sx={{ maxWidth: 1000, mx: "auto", py: 4, px: 3 }}>
+
       {/* Header */}
-      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 3 }}>
+      <Stack direction="row" alignItems="flex-start" justifyContent="space-between" sx={{ mb: 3 }} flexWrap="wrap" spacing={2}>
         <Box>
-          <Typography variant="h5" component="h1" sx={{ fontWeight: 700 }}>
-            Gold Dataset &amp; Extraction Scorecard
-          </Typography>
+          <Typography variant="h5" sx={{ fontWeight: 700 }}>Verification Examples</Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-            Human-reviewed coding quality signals and training data for MedSpaCy.
+            Raw candidates processed by the pipeline, and the verified gold labels ready for training.
           </Typography>
         </Box>
-        <Stack direction="row" spacing={1}>
-          {stats && (
-            <Tooltip title="Export all approved candidates as MedSpaCy .jsonl training files">
-              <Button
-                variant="outlined"
-                startIcon={exporting ? <CircularProgress aria-label="Loading" size={14} /> : <DownloadIcon />}
-                disabled={exporting}
-                onClick={downloadTrainingData}
-                size="small"
-              >
-                Download Training Data
-              </Button>
-            </Tooltip>
-          )}
+        <Tooltip title="Export all verified gold labels as MedSpaCy training data">
           <Button
-            variant={stats ? "text" : "contained"}
-            startIcon={loading ? <CircularProgress aria-label="Loading" size={14} /> : <AssessmentOutlinedIcon />}
-            disabled={loading}
-            onClick={load}
+            variant="outlined"
+            startIcon={exporting ? <CircularProgress size={14} /> : <DownloadIcon />}
+            disabled={exporting || !goldStats || goldStats.total === 0}
+            onClick={handleExport}
             size="small"
           >
-            {stats ? "Refresh" : "Load Stats"}
+            Export training data
           </Button>
-        </Stack>
+        </Tooltip>
       </Stack>
 
-      {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
+      {/* Stats row */}
+      {statsError && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setStatsError(null)}>{statsError}</Alert>}
+      <Stack direction="row" spacing={2} sx={{ mb: 3 }} flexWrap="wrap" useFlexGap>
+        {statsLoading ? (
+          [0, 1, 2, 3, 4].map((i) => <Skeleton key={i} variant="rounded" width={130} height={76} />)
+        ) : (
+          <>
+            <StatTile label="Candidates total" value={candidateStats?.total ?? 0} />
+            <StatTile
+              label="Completed"
+              value={candidateStats?.completed ?? 0}
+              color="success.main"
+            />
+            <StatTile
+              label="Failed"
+              value={candidateStats?.failed ?? 0}
+              color={candidateStats?.failed ? "error.main" : undefined}
+            />
+            <Divider orientation="vertical" flexItem sx={{ display: { xs: "none", sm: "block" } }} />
+            <StatTile
+              label="Verified gold labels"
+              value={goldStats?.total ?? 0}
+              color="primary.main"
+            />
+            <StatTile
+              label="Avg quality score"
+              value={goldStats?.avg_quality_score !== null && goldStats?.avg_quality_score !== undefined
+                ? `${Math.round((goldStats.avg_quality_score ?? 0) * 100)}%`
+                : "—"}
+              sub={goldStats && goldStats.total > 0 ? `${goldStats.high_quality} high quality` : undefined}
+              color={goldStats?.avg_quality_score !== null && goldStats?.avg_quality_score !== undefined
+                ? goldStats.avg_quality_score >= 0.8 ? "success.main" : goldStats.avg_quality_score >= 0.5 ? "warning.main" : "error.main"
+                : undefined}
+            />
+          </>
+        )}
+      </Stack>
+
       {exportMsg && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setExportMsg(null)}>{exportMsg}</Alert>}
 
-      {!stats && !loading && (
-        <Box sx={{ p: 4, textAlign: "center", bgcolor: "action.hover", borderRadius: 2 }}>
-          <Typography variant="body2" color="text.secondary">
-            Load stats to see extraction model quality and gold dataset health.
+      {/* Tabs */}
+      <Tabs value={tab} onChange={handleTabChange} sx={{ mb: 2, borderBottom: 1, borderColor: "divider" }}>
+        <Tab
+          value="candidates"
+          label={
+            <Stack direction="row" spacing={0.75} alignItems="center">
+              <span>Candidates</span>
+              {candidateStats && (
+                <Chip label={candidateStats.total} size="small" sx={{ height: 18, fontSize: "0.7rem" }} />
+              )}
+            </Stack>
+          }
+        />
+        <Tab
+          value="gold"
+          label={
+            <Stack direction="row" spacing={0.75} alignItems="center">
+              <span>Verified gold</span>
+              {goldStats && (
+                <Chip label={goldStats.total} size="small" color="primary" sx={{ height: 18, fontSize: "0.7rem" }} />
+              )}
+            </Stack>
+          }
+        />
+      </Tabs>
+
+      {/* Search */}
+      <TextField
+        size="small"
+        placeholder={tab === "candidates" ? "Search candidate text…" : "Search gold label text…"}
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        fullWidth
+        sx={{ mb: 2 }}
+        slotProps={{
+          input: {
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon fontSize="small" />
+              </InputAdornment>
+            ),
+          },
+        }}
+      />
+
+      {/* List */}
+      {listError && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setListError(null)}>{listError}</Alert>}
+
+      {listLoading ? (
+        <SkeletonList />
+      ) : items.length === 0 ? (
+        <Box sx={{ py: 6, textAlign: "center" }}>
+          <Typography color="text.secondary">
+            {debouncedSearch
+              ? `No ${tab === "candidates" ? "candidates" : "verified labels"} matching "${debouncedSearch}".`
+              : tab === "candidates"
+                ? "No training candidates yet. Run the pipeline to generate them."
+                : "No verified gold labels yet. Complete candidates will appear here once the pipeline verifies them."}
           </Typography>
         </Box>
-      )}
-
-      {stats && (
+      ) : (
         <>
-          {/* Summary row */}
-          <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ mb: 3 }} flexWrap="wrap">
-            <OutcomeChip label="Approved" count={approvedCount} color="success" />
-            <OutcomeChip label="Edited" count={editedCount} color="warning" />
-            <OutcomeChip label="Rejected" count={rejectedCount} color="error" />
-            {escalatedCount > 0 && <OutcomeChip label="Escalated" count={escalatedCount} color="info" />}
-
-            <Box sx={{ flex: 1 }} />
-
-            {[
-              { label: "Overall approval rate", value: fmt(stats.overall_approval_rate_pct), color: rateColor(stats.overall_approval_rate_pct) },
-              { label: "Gold entities", value: stats.total_gold_entities.toLocaleString(), color: "text.primary" },
-              { label: "Patients covered", value: String(stats.patients_covered), color: "text.primary" },
-              { label: "Encounters in gold", value: String(stats.encounters_covered), color: "text.primary" },
-            ].map(({ label, value, color }) => (
-              <Box key={label} sx={{ p: 1.5, border: "1px solid", borderColor: "divider", borderRadius: 2, minWidth: 130, textAlign: "center" }}>
-                <Typography variant="h6" sx={{ fontWeight: 700, color }}>{value}</Typography>
-                <Typography variant="caption" color="text.secondary">{label}</Typography>
-              </Box>
-            ))}
-          </Stack>
-
-          {stats.reviewers.length > 0 && (
-            <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 2 }}>
-              Reviewers: {stats.reviewers.join(", ")} · Period: {stats.date_from ?? "—"} → {stats.date_to ?? "—"}
-            </Typography>
-          )}
-
-          <Divider sx={{ mb: 3 }} />
-
-          {/* Per-tag scorecard — mirrors the classification per-class view */}
-          <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5, textTransform: "uppercase", letterSpacing: 0.5, fontSize: "0.72rem", color: "text.secondary" }}>
-            Extraction model — per-semantic-tag quality
-          </Typography>
-          <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1.5 }}>
-            Approval rate = candidates where the model&apos;s extracted terms were kept unchanged.
-            Rejection rate = candidates where the reviewer discarded all terms. Scoped to reviewed candidates only.
-          </Typography>
-
-          <Card variant="outlined">
-            <Table size="small" sx={{ "& td, & th": { fontSize: "0.82rem" } }}>
-              <TableHead>
-                <TableRow sx={{ bgcolor: "action.hover" }}>
-                  <TableCell sx={{ fontWeight: 700 }}>
-                    <Tooltip title="SNOMED semantic tag assigned by the LLM">
-                      <span style={{ borderBottom: "1px dashed", cursor: "help" }}>Semantic tag</span>
-                    </Tooltip>
-                  </TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 700 }}>
-                    <Tooltip title="Distinct encounter candidates containing at least one term with this tag">
-                      <span style={{ borderBottom: "1px dashed", cursor: "help" }}>Cases reviewed</span>
-                    </Tooltip>
-                  </TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 700 }}>
-                    <Tooltip title="Candidates approved without any edits — model was correct">
-                      <span style={{ borderBottom: "1px dashed", cursor: "help" }}>Approval rate</span>
-                    </Tooltip>
-                  </TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 700 }}>
-                    <Tooltip title="Candidates that needed reviewer corrections — model was partially correct">
-                      <span style={{ borderBottom: "1px dashed", cursor: "help" }}>Edit rate</span>
-                    </Tooltip>
-                  </TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 700 }}>
-                    <Tooltip title="Candidates rejected outright — model was wrong on these">
-                      <span style={{ borderBottom: "1px dashed", cursor: "help" }}>Rejection rate</span>
-                    </Tooltip>
-                  </TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 700 }}>
-                    <Tooltip title="Candidates approved or edited (human-verified gold)">
-                      <span style={{ borderBottom: "1px dashed", cursor: "help" }}>Gold</span>
-                    </Tooltip>
-                  </TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 700 }}>
-                    <Tooltip title="Candidates rejected (false alarm proxy)">
-                      <span style={{ borderBottom: "1px dashed", cursor: "help" }}>Rejected</span>
-                    </Tooltip>
-                  </TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 700 }}>
-                    <Tooltip title="Total entities of this type in the approved gold set">
-                      <span style={{ borderBottom: "1px dashed", cursor: "help" }}>Gold entities</span>
-                    </Tooltip>
-                  </TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {stats.per_tag_scorecard.map((row) => {
-                  const editRate = row.total_candidates > 0
-                    ? Math.round(row.edited / row.total_candidates * 100)
-                    : null;
-                  return (
-                    <TableRow key={row.tag} hover>
-                      <TableCell>
-                        <Chip
-                          label={tagLabel(row.tag)}
-                          size="small"
-                          sx={{
-                            fontWeight: 600,
-                            bgcolor: tagColor(row.tag) + "22",
-                            color: tagColor(row.tag),
-                            border: `1px solid ${tagColor(row.tag)}44`,
-                          }}
-                        />
-                      </TableCell>
-                      <TableCell align="center">{row.total_candidates}</TableCell>
-                      <TableCell align="center" sx={{ fontWeight: 700, color: rateColor(row.approval_rate_pct) }}>
-                        {fmt(row.approval_rate_pct)}
-                      </TableCell>
-                      <TableCell align="center" sx={{ fontWeight: 600, color: editRate !== null && editRate > 20 ? "warning.main" : "text.primary" }}>
-                        {editRate !== null ? `${editRate}%` : "—"}
-                      </TableCell>
-                      <TableCell align="center" sx={{ fontWeight: 700, color: rateColor(row.rejection_rate_pct, true) }}>
-                        {fmt(row.rejection_rate_pct)}
-                      </TableCell>
-                      <TableCell align="center">
-                        <Stack direction="row" spacing={0.5} justifyContent="center" alignItems="center">
-                          <CheckCircleOutlineIcon sx={{ fontSize: 14, color: "success.main" }} />
-                          <span>{row.human_verified}</span>
-                        </Stack>
-                      </TableCell>
-                      <TableCell align="center">
-                        <Stack direction="row" spacing={0.5} justifyContent="center" alignItems="center">
-                          <CancelOutlinedIcon sx={{ fontSize: 14, color: row.rejected > 0 ? "error.main" : "text.disabled" }} />
-                          <span style={{ color: row.rejected > 0 ? undefined : "#bbb" }}>{row.rejected}</span>
-                        </Stack>
-                      </TableCell>
-                      <TableCell align="center" sx={{ fontWeight: 600 }}>{row.gold_entities.toLocaleString()}</TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </Card>
-
-          <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
-            Approval rate is a precision proxy for each entity type — it measures how often the extraction model&apos;s output was correct without requiring human correction.
-            True precision/recall requires a held-out annotated test set; this view uses the review queue outcomes as the signal.
-          </Typography>
-
-          {/* Gold entity distribution */}
-          {Object.keys(stats.gold_entities_by_tag).length > 0 && (
-            <>
-              <Divider sx={{ my: 3 }} />
-              <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5, textTransform: "uppercase", letterSpacing: 0.5, fontSize: "0.72rem", color: "text.secondary" }}>
-                Gold dataset — entity distribution
+          {tab === "candidates"
+            ? (items as Candidate[]).map((item, i) => (
+                <CandidateRow key={item.candidate_id ?? `c-${i}`} item={item} />
+              ))
+            : (items as GoldLabel[]).filter((item) => item.label_id).map((item, i) => (
+                <GoldLabelRow key={item.label_id ?? `g-${i}`} item={item} />
+              ))
+          }
+          {totalPages > 1 && (
+            <Stack alignItems="center" sx={{ mt: 2 }}>
+              <Pagination
+                count={totalPages}
+                page={page}
+                onChange={(_, p) => setPage(p)}
+                color="primary"
+                size="small"
+              />
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>
+                {total.toLocaleString()} total · page {page} of {totalPages}
               </Typography>
-              <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                {Object.entries(stats.gold_entities_by_tag)
-                  .sort(([, a], [, b]) => b - a)
-                  .map(([tag, count]) => (
-                    <Box key={tag} sx={{ p: 1.5, border: "1px solid", borderColor: "divider", borderRadius: 2, minWidth: 120, textAlign: "center", mb: 1 }}>
-                      <Typography variant="h6" sx={{ fontWeight: 700, color: tagColor(tag) }}>
-                        {count.toLocaleString()}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {tagLabel(tag)}
-                      </Typography>
-                    </Box>
-                  ))}
-              </Stack>
-            </>
+            </Stack>
           )}
         </>
       )}

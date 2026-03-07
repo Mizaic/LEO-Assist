@@ -131,6 +131,11 @@ WHERE cr.resolved = true
 DETACH DELETE cr
 """
 
+DELETE_ALL_CODING_REVIEWS_UNCONDITIONAL = """
+MATCH (cr:CodingReview)
+DETACH DELETE cr
+"""
+
 GET_PENDING_FOR_RECHECK = """
 MATCH (cr:CodingReview)-[:REVIEWS_CODING]->(t:TrainingLabel)
 WHERE cr.resolved = false

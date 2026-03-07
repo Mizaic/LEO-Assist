@@ -91,6 +91,11 @@ SET
 RETURN t.task_id AS task_id, t.status AS status
 """
 
+DELETE_ALL_SURFACE_FORM_TASKS = """
+MATCH (t:SurfaceFormTask)
+DETACH DELETE t
+"""
+
 
 def make_surface_form_task_id(candidate_id: str, entity_text: str, current_concept: str) -> str:
     return str(uuid.uuid5(uuid.NAMESPACE_URL, f"{candidate_id}|{entity_text}|{current_concept}"))

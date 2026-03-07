@@ -14,7 +14,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
-from app.db.neo4j_client import PatientGraphClient
+from app.db.neo4j_client import CodingGraphClient
 from libs.auth.org_scope import CallerScope, get_caller_scope
 from libs.cypher.prompt_config_queries import (
     CREATE_PROMPT,
@@ -38,6 +38,7 @@ class FewShotExample(BaseModel):
 
 class PromptCreateRequest(BaseModel):
     name: str
+    description: str = ""
     systemPrompt: str
     outputSchema: str = "{}"
     verification: bool = False
@@ -46,6 +47,7 @@ class PromptCreateRequest(BaseModel):
 
 class PromptUpdateRequest(BaseModel):
     name: str
+    description: str = ""
     systemPrompt: str
     outputSchema: str = "{}"
     verification: bool = False
@@ -68,7 +70,7 @@ def _count_few_shot(raw: str | None) -> int:
 
 @router.get("")
 def list_prompts(scope: CallerScope = Depends(get_caller_scope)):
-    client = PatientGraphClient()
+    client = CodingGraphClient()
     try:
         with client.session() as session:
             rows = [dict(r) for r in session.run(LIST_PROMPTS)]
@@ -77,6 +79,7 @@ def list_prompts(scope: CallerScope = Depends(get_caller_scope)):
             prompts.append({
                 "id": row["id"],
                 "name": row["name"],
+                "description": row.get("description") or "",
                 "version": row.get("version", 1),
                 "verification": bool(row.get("verification")),
                 "fewShotCount": 1 if row.get("hasFewShot") else 0,
@@ -89,7 +92,7 @@ def list_prompts(scope: CallerScope = Depends(get_caller_scope)):
 
 @router.get("/{prompt_id}")
 def get_prompt(prompt_id: str, scope: CallerScope = Depends(get_caller_scope)):
-    client = PatientGraphClient()
+    client = CodingGraphClient()
     try:
         with client.session() as session:
             row = session.run(GET_PROMPT, id=prompt_id).single()
@@ -103,6 +106,7 @@ def get_prompt(prompt_id: str, scope: CallerScope = Depends(get_caller_scope)):
         return {
             "id": row["id"],
             "name": row["name"],
+            "description": row.get("description") or "",
             "version": row.get("version", 1),
             "systemPrompt": row["systemPrompt"],
             "outputSchema": row.get("outputSchema") or "{}",
@@ -117,13 +121,14 @@ def get_prompt(prompt_id: str, scope: CallerScope = Depends(get_caller_scope)):
 def create_prompt(body: PromptCreateRequest, scope: CallerScope = Depends(get_caller_scope)):
     prompt_id = str(uuid.uuid4())
     few_shot_json = json.dumps([e.model_dump() for e in body.fewShotExamples])
-    client = PatientGraphClient()
+    client = CodingGraphClient()
     try:
         with client.session() as session:
             session.run(
                 CREATE_PROMPT,
                 id=prompt_id,
                 name=body.name,
+                description=body.description,
                 version=1,
                 system_prompt=body.systemPrompt,
                 output_schema=body.outputSchema,
@@ -143,13 +148,14 @@ def update_prompt(
     scope: CallerScope = Depends(get_caller_scope),
 ):
     few_shot_json = json.dumps([e.model_dump() for e in body.fewShotExamples])
-    client = PatientGraphClient()
+    client = CodingGraphClient()
     try:
         with client.session() as session:
             row = session.run(
                 UPDATE_PROMPT,
                 id=prompt_id,
                 name=body.name,
+                description=body.description,
                 system_prompt=body.systemPrompt,
                 output_schema=body.outputSchema,
                 verification=body.verification,
@@ -164,7 +170,7 @@ def update_prompt(
 
 @router.delete("/{prompt_id}")
 def delete_prompt(prompt_id: str, scope: CallerScope = Depends(get_caller_scope)):
-    client = PatientGraphClient()
+    client = CodingGraphClient()
     try:
         with client.session() as session:
             row = session.run(DELETE_PROMPT, id=prompt_id).single()
