@@ -1,12 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
 import IconButton from "@mui/material/IconButton";
-import Drawer from "@mui/material/Drawer";
 import TextField from "@mui/material/TextField";
 import Select from "@mui/material/Select";
 import MenuItem from "@mui/material/MenuItem";
@@ -33,7 +32,14 @@ import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import CloseIcon from "@mui/icons-material/Close";
+import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import HistoryIcon from "@mui/icons-material/History";
+import ReplayIcon from "@mui/icons-material/Replay";
+import Drawer from "@mui/material/Drawer";
+import List from "@mui/material/List";
+import ListItem from "@mui/material/ListItem";
+import Dialog from "@mui/material/Dialog";
 import {
   ReactFlow,
   Background,
@@ -52,7 +58,6 @@ import "@xyflow/react/dist/style.css";
 import { api } from "@/lib/api";
 import { nodeTypes as pathwayNodeTypes } from "@/components/pathway/nodes/nodeTypes";
 import { PortEdge } from "@/components/pathway/edges/PortEdge";
-import { SidePanel } from "@/components/pathway/panel/SidePanel";
 
 const SUBGRAPH_OPTIONS = [
   { id: "extraction", label: "Entity Extraction", color: "#4CAF50", description: "Extract clinical entities (findings, conditions, procedures) from encounter text using NER or LLM." },
@@ -249,6 +254,7 @@ interface ActionNodeData {
   subgraphId: string;
   color: string;
   config?: Partial<ActionConfig>;
+  fieldMappings?: FieldMappingRow[];
   onConfigure: () => void;
 }
 
@@ -295,12 +301,14 @@ interface ModelPreset {
   name: string;
   description: string;
   color: string;
-  extractor: string;       // "llm" | "ner" | "ner+llm"
-  primary_model: string;   // "aws:small" | "azure:big" | "ner" etc.
+  extractor: string;           // "llm" | "ner" | "ner+llm"
+  primary_model: string;       // "aws:small" | "azure:big" | "ner" etc.
   consensus_mode: boolean;
   is_default: boolean;
   is_system: boolean;
   prompt_config_id: string;
+  /** Set in /admin/models — false for GPT-5 and NER presets. Defaults true for old presets. */
+  supports_temperature: boolean;
 }
 
 function ModelPresetPicker({
@@ -584,12 +592,14 @@ function DataFlowPanel({
 
 // ── Per-subgraph settings panel (step 2) ─────────────────────────────────────
 function SubgraphSettingsPanel({
-  category, config, updateField, updateParam,
+  category, config, updateField, updateParam, onPresetSelected,
 }: {
   category: SubgraphCategory;
   config: ActionConfig;
   updateField: <K extends keyof ActionConfig>(k: K, v: ActionConfig[K]) => void;
   updateParam: (k: string, v: unknown) => void;
+  /** Called when the user selects a preset, so callers can read supports_temperature. */
+  onPresetSelected?: (preset: ModelPreset | null) => void;
 }) {
   if (category === "persist") {
     return (
@@ -736,6 +746,7 @@ function SubgraphSettingsPanel({
           onChange={(presetId, preset) => {
             updateField("modelPresetId", presetId);
             updateField("modelPresetName", preset?.name ?? "");
+            onPresetSelected?.(preset);
           }}
         />
       </Box>
@@ -1082,6 +1093,25 @@ function ActionConfigurator({
 }) {
   const [step, setStep] = useState(0);
   const [config, setConfig] = useState<ActionConfig>({ ...DEFAULT_CONFIG, ...initialConfig, params: initialConfig.params ?? {} });
+  const [presetSupportsTemp, setPresetSupportsTemp] = useState<boolean>(true);
+  const isNerOnlyPreset = !presetSupportsTemp;
+  // "idle" | "saving" | "saved" | "error"
+  const [autoSave, setAutoSave] = useState<"idle" | "saving" | "saved" | "error">("idle");
+
+  // Fire a non-blocking draft save to the server (called on each Next click).
+  const backgroundSave = useCallback((latestConfig: ActionConfig) => {
+    onSave(nodeId, latestConfig);   // sync local state first
+    setAutoSave("saving");
+    onPathwaySave()
+      .then(() => {
+        setAutoSave("saved");
+        setTimeout(() => setAutoSave("idle"), 2500);
+      })
+      .catch(() => {
+        setAutoSave("error");
+        setTimeout(() => setAutoSave("idle"), 3500);
+      });
+  }, [nodeId, onSave, onPathwaySave]);
 
   const category: SubgraphCategory = SUBGRAPH_CATEGORY[config.subgraphId] ?? "generic";
   const isLLM = category === "llm";
@@ -1114,25 +1144,98 @@ function ActionConfigurator({
   const promptStep = 3; // only exists in LLM mode
 
   return (
-    <Box sx={{ width: 460, p: 3, display: "flex", flexDirection: "column", height: "100%" }}>
-      <Typography variant="h6" fontWeight={600} gutterBottom>Configure step</Typography>
-      {subgraph && (
-        <Chip size="small" label={subgraph.label}
-          sx={{ mb: 1.5, alignSelf: "flex-start", bgcolor: subgraph.color, color: "#fff", fontSize: "0.7rem" }} />
-      )}
+    <Box sx={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
 
-      <Stepper activeStep={step} alternativeLabel sx={{ mb: 3 }}>
-        {wizardSteps.map((label) => (
-          <Step key={label}><StepLabel sx={{ "& .MuiStepLabel-label": { fontSize: "0.68rem" } }}>{label}</StepLabel></Step>
-        ))}
-      </Stepper>
+      {/* ── Header ─────────────────────────────────────────────────────────── */}
+      <Box sx={{
+        px: 3, pt: 2.5, pb: 2, flexShrink: 0,
+        borderBottom: 1, borderColor: "divider",
+        bgcolor: subgraph ? `${subgraph.color}0d` : "grey.50",
+        borderLeft: "4px solid",
+        borderLeftColor: subgraph?.color || "primary.main",
+      }}>
+        <Stack direction="row" alignItems="flex-start" spacing={1}>
+          <Box sx={{ flex: 1 }}>
+            <Typography sx={{ fontSize: "0.6rem", fontWeight: 700, letterSpacing: 1.4, color: "text.disabled", textTransform: "uppercase", lineHeight: 1 }}>
+              Pipeline Step
+            </Typography>
+            <Typography variant="h6" fontWeight={700} sx={{ mt: 0.4, lineHeight: 1.2 }}>Configure step</Typography>
+          </Box>
+          {/* Auto-save status indicator */}
+          {autoSave !== "idle" && (
+            <Stack direction="row" alignItems="center" spacing={0.5} sx={{ mt: 0.75 }}>
+              {autoSave === "saving" && <CircularProgress size={10} thickness={5} />}
+              <Typography sx={{
+                fontSize: "0.62rem",
+                color: autoSave === "error" ? "error.main" : autoSave === "saving" ? "text.disabled" : "success.main",
+              }}>
+                {autoSave === "saving" ? "Saving…" : autoSave === "saved" ? "Draft saved ✓" : "Save failed"}
+              </Typography>
+            </Stack>
+          )}
+          <IconButton size="small" onClick={onClose} sx={{ color: "text.secondary", mt: -0.5, mr: -0.75 }}>
+            <CloseIcon sx={{ fontSize: "1.1rem" }} />
+          </IconButton>
+        </Stack>
+        {subgraph && (
+          <Chip
+            size="small"
+            label={subgraph.label}
+            sx={{ mt: 1.25, bgcolor: subgraph.color, color: "#fff", fontSize: "0.68rem", fontWeight: 600, height: 22, borderRadius: "6px" }}
+          />
+        )}
+      </Box>
 
-      <Box sx={{ flex: 1, overflowY: "auto", mb: 2 }}>
+      {/* ── Step progress indicator ─────────────────────────────────────────── */}
+      <Box sx={{ px: 3, pt: 2.25, pb: 1.5, flexShrink: 0, bgcolor: "background.paper" }}>
+        <Box sx={{ display: "flex", alignItems: "flex-start" }}>
+          {wizardSteps.map((label, idx) => (
+            <Fragment key={label}>
+              <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0 }}>
+                <Box sx={{
+                  width: 28, height: 28, borderRadius: "50%",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  bgcolor: idx < step ? "primary.main" : idx === step ? "primary.main" : "grey.100",
+                  color: idx <= step ? "#fff" : "text.disabled",
+                  fontSize: "0.7rem", fontWeight: 700,
+                  border: "2px solid",
+                  borderColor: idx <= step ? "primary.main" : "grey.200",
+                  boxShadow: idx === step ? "0 0 0 4px rgba(25,118,210,0.12)" : "none",
+                  transition: "all 0.25s ease",
+                }}>
+                  {idx < step ? "✓" : idx + 1}
+                </Box>
+                <Typography sx={{
+                  mt: 0.75, fontSize: "0.59rem", textAlign: "center", lineHeight: 1.3,
+                  color: idx === step ? "primary.main" : idx < step ? "text.secondary" : "text.disabled",
+                  fontWeight: idx === step ? 700 : 400,
+                }}>
+                  {label}
+                </Typography>
+              </Box>
+              {idx < wizardSteps.length - 1 && (
+                <Box sx={{
+                  flex: 1, height: 2, mt: "13px", mx: 0.75,
+                  bgcolor: idx < step ? "primary.main" : "grey.200",
+                  borderRadius: 1, transition: "background-color 0.25s ease",
+                }} />
+              )}
+            </Fragment>
+          ))}
+        </Box>
+      </Box>
+
+      <Box sx={{ flex: 1, overflowY: "auto", px: 3, py: 2 }}>
 
         {/* ── Step 0: Subgraph ── */}
         {step === 0 && (
           <Stack spacing={2.5}>
-            <Typography variant="subtitle2">Which step should this action run?</Typography>
+            <Box>
+              <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>Which step should this action run?</Typography>
+              <Typography variant="caption" color="text.secondary">
+                Choose the type of processing this step performs in the pipeline.
+              </Typography>
+            </Box>
             <FormControl fullWidth size="small">
               <InputLabel>Step type</InputLabel>
               <Select value={config.subgraphId} label="Step type"
@@ -1140,17 +1243,24 @@ function ActionConfigurator({
                 {SUBGRAPH_OPTIONS.map((s) => (
                   <MenuItem key={s.id} value={s.id}>
                     <Stack>
-                      <Typography variant="body2">{s.label}</Typography>
+                      <Typography variant="body2" fontWeight={500}>{s.label}</Typography>
                       <Typography variant="caption" color="text.secondary">{s.description}</Typography>
                     </Stack>
                   </MenuItem>
                 ))}
               </Select>
             </FormControl>
+            <Divider />
+            <Box>
+              <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>Step details</Typography>
+              <Typography variant="caption" color="text.secondary">
+                Name and describe this step for the pipeline canvas.
+              </Typography>
+            </Box>
             <TextField label="Display name" size="small" fullWidth value={config.label}
               onChange={(e) => updateField("label", e.target.value)}
               helperText="A friendly name shown on the canvas." />
-            <TextField label="What does this step do?" size="small" fullWidth multiline minRows={2}
+            <TextField label="What does this step do?" size="small" fullWidth multiline minRows={3}
               value={config.description}
               onChange={(e) => updateField("description", e.target.value)}
               helperText="Plain English — shown in the pathway summary." />
@@ -1314,13 +1424,14 @@ function ActionConfigurator({
             config={config}
             updateField={updateField}
             updateParam={updateParam}
+            onPresetSelected={(preset) => setPresetSupportsTemp(preset?.supports_temperature ?? true)}
           />
         )}
 
         {/* ── Step 3 (LLM only): Prompt & model ── */}
         {isLLM && step === promptStep && (
           <Stack spacing={2.5}>
-            <Typography variant="subtitle2">Which AI instructions should this step use?</Typography>
+            <Typography variant="subtitle2">AI instructions (prompt)</Typography>
             <PromptPicker
               value={config.promptConfigId}
               onChange={(id, name) => { updateField("promptConfigId", id); updateField("promptConfigName", name); }}
@@ -1341,26 +1452,41 @@ function ActionConfigurator({
                 />
               </>
             )}
-            <Divider />
-            <Typography variant="subtitle2">Temperature</Typography>
-            <Alert severity="info" sx={{ fontSize: "0.78rem" }} icon={false}>
-              For clinical extraction, keep this at <strong>0.0</strong> — the AI should give the same answer every time, not be creative.
-            </Alert>
-            <Box>
-              <Typography variant="body2" gutterBottom>
-                Temperature: <strong>{config.temperature.toFixed(1)}</strong>
-                {config.temperature === 0 && " (deterministic — recommended)"}
-                {config.temperature > 0.5 && " (creative — not recommended for clinical tasks)"}
-              </Typography>
-              <Box component="input" type="range" min={0} max={1} step={0.1}
-                value={config.temperature}
-                onChange={(e) => updateField("temperature", Number(e.currentTarget.value))}
-                style={{ width: "100%" }} />
-              <Stack direction="row" justifyContent="space-between">
-                <Typography variant="caption" color="text.secondary">0.0 — always same answer</Typography>
-                <Typography variant="caption" color="text.secondary">1.0 — creative / varied</Typography>
-              </Stack>
-            </Box>
+            {/* Temperature — shown when no preset chosen (assume LLM) or preset is not NER-only.
+                Bedrock Claude and Azure OpenAI (GPT-4o, GPT-5 family) both honour temperature.
+                NER-only presets (extractor = "ner") do not use temperature. */}
+            {!isNerOnlyPreset ? (
+              <>
+                <Divider />
+                <Typography variant="subtitle2">Temperature</Typography>
+                <Alert severity="info" sx={{ fontSize: "0.78rem" }} icon={false}>
+                  Supported by Bedrock Claude (3.x / 3.5) and Azure OpenAI GPT-4o.
+                  Not supported by GPT-5 or NER-only presets — those are configured in <strong>AI Models</strong>.
+                  Keep at <strong>0.0</strong> for clinical extraction — deterministic output is safer.
+                </Alert>
+                <Box>
+                  <Typography variant="body2" gutterBottom>
+                    Temperature: <strong>{config.temperature.toFixed(1)}</strong>
+                    {config.temperature === 0 && " (deterministic — recommended)"}
+                    {config.temperature > 0.5 && " (creative — not recommended for clinical tasks)"}
+                  </Typography>
+                  <Box component="input" type="range" min={0} max={1} step={0.1}
+                    value={config.temperature}
+                    onChange={(e) => updateField("temperature", Number(e.currentTarget.value))}
+                    style={{ width: "100%" }} />
+                  <Stack direction="row" justifyContent="space-between">
+                    <Typography variant="caption" color="text.secondary">0.0 — always same answer</Typography>
+                    <Typography variant="caption" color="text.secondary">1.0 — creative / varied</Typography>
+                  </Stack>
+                </Box>
+              </>
+            ) : (
+              <Alert severity="info" sx={{ fontSize: "0.78rem" }} icon={false}>
+                Temperature is not supported by the selected model preset. This is configured per-preset
+                in <strong>AI Models → Edit preset</strong>. GPT-5 family models and NER-only presets
+                do not honour temperature.
+              </Alert>
+            )}
           </Stack>
         )}
 
@@ -1439,30 +1565,53 @@ function ActionConfigurator({
         )}
       </Box>
 
-      <Divider sx={{ mb: 2 }} />
-      <Stack direction="row" justifyContent="space-between">
-        <Tooltip title="Remove this step from the pathway">
-          <IconButton color="error" onClick={() => { onDelete(nodeId); onClose(); }}>
-            <DeleteOutlineIcon />
-          </IconButton>
-        </Tooltip>
-        <Stack direction="row" spacing={1}>
-          {step > 0 && <Button size="small" onClick={() => setStep((s) => s - 1)}>Back</Button>}
-          {step < lastStep ? (
-            <Button size="small" variant="contained"
-              disabled={step === 0 && (!config.subgraphId || !config.label)}
-              onClick={() => { onSave(nodeId, config); setStep((s) => s + 1); }}>
-              Next
-            </Button>
-          ) : (
-            <SaveStepButton
-              onSave={() => onSave(nodeId, config)}
-              onPathwaySave={onPathwaySave}
-              onClose={onClose}
-            />
-          )}
+      {/* ── Footer ─────────────────────────────────────────────────────────── */}
+      <Box sx={{ px: 3, py: 2, borderTop: 1, borderColor: "divider", bgcolor: "grey.50", flexShrink: 0 }}>
+        <Stack direction="row" justifyContent="space-between" alignItems="center">
+          <Tooltip title="Remove this step from the pathway">
+            <IconButton
+              color="error"
+              size="small"
+              onClick={() => { onDelete(nodeId); onClose(); }}
+              sx={{ border: "1px solid", borderColor: "error.200", borderRadius: 1.5, "&:hover": { bgcolor: "error.50" } }}
+            >
+              <DeleteOutlineIcon sx={{ fontSize: "1.15rem" }} />
+            </IconButton>
+          </Tooltip>
+          <Stack direction="row" spacing={1} alignItems="center">
+            {step > 0 && (
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={() => setStep((s) => s - 1)}
+                sx={{ textTransform: "none", minWidth: 80, borderRadius: 2 }}
+              >
+                Back
+              </Button>
+            )}
+            {step < lastStep ? (
+              <Button
+                variant="contained"
+                size="small"
+                disabled={step === 0 && (!config.subgraphId || !config.label)}
+                onClick={() => {
+                  backgroundSave(config);  // persists draft to server in background
+                  setStep((s) => s + 1);
+                }}
+                sx={{ textTransform: "none", minWidth: 80, borderRadius: 2, px: 3 }}
+              >
+                Next
+              </Button>
+            ) : (
+              <SaveStepButton
+                onSave={() => onSave(nodeId, config)}
+                onPathwaySave={onPathwaySave}
+                onClose={onClose}
+              />
+            )}
+          </Stack>
         </Stack>
-      </Stack>
+      </Box>
     </Box>
   );
 }
@@ -1495,7 +1644,8 @@ function SaveStepButton({
   if (error) {
     return (
       <Tooltip title={error}>
-        <Button size="small" variant="contained" color="error" onClick={handleClick}>
+        <Button size="small" variant="contained" color="error" onClick={handleClick}
+          sx={{ textTransform: "none", minWidth: 100, borderRadius: 2, px: 3 }}>
           Retry save
         </Button>
       </Tooltip>
@@ -1510,6 +1660,7 @@ function SaveStepButton({
       disabled={saving}
       onClick={handleClick}
       startIcon={saving ? <CircularProgress size={14} color="inherit" /> : undefined}
+      sx={{ textTransform: "none", minWidth: 100, borderRadius: 2, px: 3 }}
     >
       {saving ? "Saving…" : saved ? "Saved ✓" : "Save step"}
     </Button>
@@ -1812,6 +1963,29 @@ function ValidationPanel({ warnings }: { warnings: ValidationWarning[] }) {
   );
 }
 
+interface VersionEntry {
+  versionId: number;
+  publishedAt: string;
+  versionNotes: string;
+  status: string;
+  name?: string;
+}
+
+function formatSaveTime(date: Date): string {
+  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+function formatVersionDate(iso: string): string {
+  if (!iso) return "—";
+  try {
+    const d = new Date(iso);
+    return d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }) +
+      " " + d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  } catch {
+    return iso;
+  }
+}
+
 export default function PathwayBuilderPage() {
   const params = useParams();
   const router = useRouter();
@@ -1829,6 +2003,14 @@ export default function PathwayBuilderPage() {
   const [drawerKey, setDrawerKey] = useState(0);
   const [nodeConfigs, setNodeConfigs] = useState<Record<string, ActionConfig>>({});
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [publishDialogOpen, setPublishDialogOpen] = useState(false);
+  const [versionNotes, setVersionNotes] = useState("");
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [versions, setVersions] = useState<VersionEntry[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [restoringVid, setRestoringVid] = useState<number | null>(null);
 
   const validationWarnings = useValidationWarnings(nodes, edges, nodeConfigs, triggerEvent);
 
@@ -1861,6 +2043,8 @@ export default function PathwayBuilderPage() {
                 color: SUBGRAPH_OPTIONS.find((s) => s.id === a.subgraphId)?.color || "#999",
                 nodeType: a.nodeType || cfg.nodeType || "action",
                 config: a.config,
+                // Restore saved field mappings so output port handles appear immediately on load.
+                fieldMappings: (cfg.params.field_mappings as FieldMappingRow[]) ?? [],
                 onConfigure: () => openConfigurator(a.id),
               },
             };
@@ -2001,6 +2185,8 @@ export default function PathwayBuilderPage() {
                 rules: config.params.rules,
                 defaultPort: config.params.defaultPort,
                 connectorType: config.nodeType,
+                // Propagate field mappings so the canvas node renders live output port handles.
+                fieldMappings: (config.params.field_mappings as FieldMappingRow[]) ?? [],
               },
             }
           : n
@@ -2058,12 +2244,16 @@ export default function PathwayBuilderPage() {
     return null;
   }, [selectedNode, edges, nodeConfigs]);
 
-  const handleSave = useCallback(async () => {
+  const handleSave = useCallback(async (statusOverride?: string) => {
     setSaveError(null);
-    const payload = {
+    setIsSaving(true);
+    const effectiveStatus = statusOverride ?? planStatus;
+    const payload: Record<string, unknown> = {
       name: planName,
-      status: planStatus,
+      status: effectiveStatus,
       description: planDescription,
+      // Include version notes when publishing so the backend can snapshot them.
+      ...(effectiveStatus === "active" && versionNotes ? { versionNotes } : {}),
       trigger: triggerEvent ? { event: triggerEvent, type: "data-changed" } : undefined,
       actions: nodes.map((n) => ({
         id: n.id,
@@ -2086,35 +2276,118 @@ export default function PathwayBuilderPage() {
         router.push(`/admin/pathways/${result.id}`);
       } else {
         await api.put(`/fhir/PlanDefinition/${planId}`, payload);
+        if (statusOverride) setPlanStatus(statusOverride);
+        setLastSaved(new Date());
       }
     } catch (e) {
       setSaveError(e instanceof Error ? e.message : "Failed to save pathway");
+    } finally {
+      setIsSaving(false);
     }
-  }, [planName, planStatus, planDescription, triggerEvent, nodes, edges, nodeConfigs, isNew, planId, router]);
+  }, [planName, planStatus, planDescription, triggerEvent, versionNotes, nodes, edges, nodeConfigs, isNew, planId, router]);
+
+  const handlePublish = useCallback(() => {
+    const errCount = validationWarnings.filter((w) => w.severity === "error").length;
+    if (errCount > 0) {
+      setSaveError(`Fix ${errCount} validation error${errCount > 1 ? "s" : ""} before publishing to live.`);
+      return;
+    }
+    setVersionNotes("");
+    setPublishDialogOpen(true);
+  }, [validationWarnings]);
+
+  const confirmPublish = useCallback(async () => {
+    await handleSave("active");
+    setPublishDialogOpen(false);
+  }, [handleSave]);
+
+  const loadHistory = useCallback(() => {
+    if (isNew) return;
+    setHistoryLoading(true);
+    api.get<{ entry: Array<{ resource: { meta: { versionId: string; lastUpdated: string; versionNotes: string }; status: string; name: string } }> }>(
+      `/fhir/PlanDefinition/${planId}/_history`,
+    )
+      .then((data) => {
+        setVersions(
+          (data.entry || []).map((e) => ({
+            versionId: Number(e.resource.meta.versionId),
+            publishedAt: e.resource.meta.lastUpdated,
+            versionNotes: e.resource.meta.versionNotes,
+            status: e.resource.status,
+            name: e.resource.name,
+          })),
+        );
+      })
+      .catch(() => setVersions([]))
+      .finally(() => setHistoryLoading(false));
+  }, [isNew, planId]);
+
+  const openHistory = useCallback(() => {
+    setHistoryOpen(true);
+    loadHistory();
+  }, [loadHistory]);
+
+  const handleRestore = useCallback(async (vid: number) => {
+    setRestoringVid(vid);
+    try {
+      await api.post(`/fhir/PlanDefinition/${planId}/_restore/${vid}`, {});
+      setPlanStatus("active");
+      setLastSaved(new Date());
+      setHistoryOpen(false);
+      // Reload the full pathway state from the server
+      window.location.reload();
+    } catch {
+      setSaveError(`Failed to restore version v${vid}. Please try again.`);
+    } finally {
+      setRestoringVid(null);
+    }
+  }, [planId]);
 
   return (
     <Box sx={{ height: "100vh", display: "flex", flexDirection: "column" }}>
-      <Box sx={{ p: 2, display: "flex", alignItems: "center", gap: 2, borderBottom: 1, borderColor: "divider" }}>
-        <IconButton onClick={() => router.push("/admin/pathways")}><ArrowBackIcon /></IconButton>
+      <Box sx={{ px: 2, py: 1.25, display: "flex", alignItems: "center", gap: 1.5, borderBottom: 1, borderColor: "divider" }}>
+        <IconButton size="small" onClick={() => router.push("/admin/pathways")}><ArrowBackIcon /></IconButton>
         <TextField
           size="small" placeholder="Pathway name" value={planName}
-          onChange={(e) => setPlanName(e.target.value)} sx={{ width: 300 }}
+          onChange={(e) => setPlanName(e.target.value)} sx={{ width: 260 }}
         />
-        <FormControl size="small" sx={{ minWidth: 120 }}>
-          <InputLabel>Status</InputLabel>
-          <Select value={planStatus} label="Status" onChange={(e) => setPlanStatus(e.target.value)}>
-            <MenuItem value="draft">Draft</MenuItem>
-            <MenuItem value="active">Active</MenuItem>
-            <MenuItem value="retired">Retired</MenuItem>
-          </Select>
-        </FormControl>
+        {/* Status badge — read-only display; changed via Publish / Retire */}
+        <Chip
+          size="small"
+          label={planStatus.charAt(0).toUpperCase() + planStatus.slice(1)}
+          color={planStatus === "active" ? "success" : planStatus === "retired" ? "default" : "warning"}
+          variant="outlined"
+          sx={{ fontWeight: 600, fontSize: "0.72rem" }}
+        />
+        {/* Retire action */}
+        {planStatus !== "retired" && (
+          <Tooltip title="Mark this pathway as retired (no longer in use)">
+            <Button size="small" variant="text" color="inherit"
+              sx={{ textTransform: "none", fontSize: "0.72rem", color: "text.disabled", minWidth: 0, px: 1 }}
+              onClick={() => handleSave("retired")}
+            >
+              Retire
+            </Button>
+          </Tooltip>
+        )}
         <Box sx={{ flex: 1 }} />
+        {/* Last-saved indicator */}
+        {isSaving ? (
+          <Stack direction="row" alignItems="center" spacing={0.75}>
+            <CircularProgress size={11} thickness={5} />
+            <Typography variant="caption" color="text.disabled" sx={{ fontSize: "0.7rem" }}>Saving…</Typography>
+          </Stack>
+        ) : lastSaved ? (
+          <Typography variant="caption" color="text.disabled" sx={{ fontSize: "0.7rem" }}>
+            Draft saved {formatSaveTime(lastSaved)}
+          </Typography>
+        ) : null}
         {saveError && (
-          <Alert severity="error" sx={{ py: 0, fontSize: "0.75rem" }} onClose={() => setSaveError(null)}>
+          <Alert severity="error" sx={{ py: 0, fontSize: "0.72rem" }} onClose={() => setSaveError(null)}>
             {saveError}
           </Alert>
         )}
-        <FormControl size="small" sx={{ minWidth: 200 }}>
+        <FormControl size="small" sx={{ minWidth: 190 }}>
           <InputLabel>Add Action</InputLabel>
           <Select label="Add Action" value="" onChange={(e) => addAction(e.target.value)}>
             <MenuItem value="">Add action...</MenuItem>
@@ -2133,7 +2406,41 @@ export default function PathwayBuilderPage() {
             <MenuItem value="queue_publish">Queue Publish</MenuItem>
           </Select>
         </FormControl>
-        <Button variant="contained" startIcon={<SaveIcon />} onClick={handleSave}>Save pathway</Button>
+        {/* Version history */}
+        {!isNew && (
+          <Tooltip title="Version history — view and restore previous published versions">
+            <IconButton size="small" onClick={openHistory} sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1.5 }}>
+              <HistoryIcon sx={{ fontSize: "1.1rem" }} />
+            </IconButton>
+          </Tooltip>
+        )}
+        {/* Save draft — always safe, never changes live status */}
+        <Button
+          variant="outlined"
+          size="small"
+          startIcon={isSaving ? <CircularProgress size={13} color="inherit" /> : <SaveIcon />}
+          disabled={isSaving}
+          onClick={() => handleSave()}
+          sx={{ textTransform: "none", minWidth: 110 }}
+        >
+          Save draft
+        </Button>
+        {/* Publish — validates first, sets status=active */}
+        <Tooltip title={planStatus === "active" ? "Re-publish to apply latest draft changes to live" : "Validate and publish this pathway to live"}>
+          <span>
+            <Button
+              variant="contained"
+              size="small"
+              color="success"
+              startIcon={<CloudUploadIcon />}
+              disabled={isSaving}
+              onClick={handlePublish}
+              sx={{ textTransform: "none", minWidth: 100 }}
+            >
+              Publish
+            </Button>
+          </span>
+        </Tooltip>
       </Box>
 
       <TriggerContextPanel
@@ -2146,38 +2453,222 @@ export default function PathwayBuilderPage() {
 
       <ValidationPanel warnings={validationWarnings} />
 
-      <Box sx={{ flex: 1, display: "flex", minHeight: 0 }}>
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            nodeTypes={pathwayNodeTypes}
-            edgeTypes={edgeTypes}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
-            fitView
-          >
-            <Background />
-            <Controls />
-            <MiniMap />
-          </ReactFlow>
-        </Box>
-        {drawerOpen && selectedNode && (
-          <SidePanel
+      <Box sx={{ flex: 1, minHeight: 0 }}>
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          nodeTypes={pathwayNodeTypes}
+          edgeTypes={edgeTypes}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          fitView
+        >
+          <Background />
+          <Controls />
+          <MiniMap />
+        </ReactFlow>
+      </Box>
+
+      {/* Node configuration dialog — wizard stays open while canvas is visible behind */}
+      <Dialog
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{ sx: { height: "90vh", display: "flex", flexDirection: "column", borderRadius: 3, overflow: "hidden" } }}
+      >
+        {selectedNode && (
+          <ActionConfigurator
             key={`${selectedNode}-${drawerKey}`}
             nodeId={selectedNode}
-            config={selectedConfig}
-            prevStepWrites={prevStepWrites}
-            onConfigChange={handleConfigSave}
-            onDelete={(nodeId) => {
-              handleDeleteNode(nodeId);
-              setDrawerOpen(false);
-            }}
+            initialConfig={selectedConfig}
+            onSave={handleConfigSave}
+            onDelete={handleDeleteNode}
             onClose={() => setDrawerOpen(false)}
+            onPathwaySave={handleSave}
+            prevStepWrites={prevStepWrites}
+            prevStepFieldMappings={prevStepFieldMappings}
           />
         )}
-      </Box>
+      </Dialog>
+
+      {/* ── Version history drawer ───────────────────────────────────────── */}
+      <Drawer
+        anchor="right"
+        open={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        PaperProps={{ sx: { width: 380, display: "flex", flexDirection: "column" } }}
+      >
+        {/* Header */}
+        <Box sx={{ px: 2.5, py: 2, borderBottom: 1, borderColor: "divider", flexShrink: 0 }}>
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <HistoryIcon color="action" />
+            <Box sx={{ flex: 1 }}>
+              <Typography variant="subtitle1" fontWeight={700}>Version history</Typography>
+              <Typography variant="caption" color="text.secondary">{planName}</Typography>
+            </Box>
+            <IconButton size="small" onClick={() => setHistoryOpen(false)}><CloseIcon fontSize="small" /></IconButton>
+          </Stack>
+        </Box>
+
+        {/* Version list */}
+        <Box sx={{ flex: 1, overflowY: "auto", py: 1 }}>
+          {historyLoading ? (
+            <Stack alignItems="center" sx={{ pt: 4, gap: 1 }}>
+              <CircularProgress size={24} />
+              <Typography variant="caption" color="text.secondary">Loading versions…</Typography>
+            </Stack>
+          ) : versions.length === 0 ? (
+            <Box sx={{ px: 2.5, pt: 4, textAlign: "center" }}>
+              <Typography color="text.secondary" variant="body2">No published versions yet.</Typography>
+              <Typography variant="caption" color="text.disabled" sx={{ mt: 0.5, display: "block" }}>
+                Click "Publish" to create the first live version.
+              </Typography>
+            </Box>
+          ) : (
+            <List disablePadding>
+              {versions.map((v, i) => (
+                <ListItem
+                  key={v.versionId}
+                  disableGutters
+                  sx={{ px: 2.5, py: 1.25, borderBottom: "1px solid", borderColor: "divider", alignItems: "flex-start" }}
+                >
+                  <Box sx={{ flex: 1 }}>
+                    <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.4 }}>
+                      {/* Version badge */}
+                      <Chip
+                        label={`v${v.versionId}`}
+                        size="small"
+                        color={i === 0 ? "success" : "default"}
+                        sx={{ height: 20, fontSize: "0.65rem", fontWeight: 700 }}
+                      />
+                      {i === 0 && (
+                        <Typography sx={{ fontSize: "0.62rem", color: "success.main", fontWeight: 700 }}>
+                          ● Live
+                        </Typography>
+                      )}
+                    </Stack>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: "block", fontSize: "0.68rem" }}>
+                      {formatVersionDate(v.publishedAt)}
+                    </Typography>
+                    {v.versionNotes && (
+                      <Typography variant="caption" sx={{ display: "block", mt: 0.5, color: "text.primary", fontSize: "0.72rem", fontStyle: "italic" }}>
+                        "{v.versionNotes}"
+                      </Typography>
+                    )}
+                  </Box>
+                  {/* Restore button — only for non-current versions */}
+                  {i > 0 && (
+                    <Tooltip title={`Restore v${v.versionId} to live — creates a new version entry`}>
+                      <span>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          color="warning"
+                          startIcon={restoringVid === v.versionId ? <CircularProgress size={11} color="inherit" /> : <ReplayIcon sx={{ fontSize: "0.9rem !important" }} />}
+                          disabled={restoringVid !== null}
+                          onClick={() => handleRestore(v.versionId)}
+                          sx={{ textTransform: "none", fontSize: "0.7rem", mt: 0.5 }}
+                        >
+                          Restore
+                        </Button>
+                      </span>
+                    </Tooltip>
+                  )}
+                </ListItem>
+              ))}
+            </List>
+          )}
+        </Box>
+
+        {/* Footer note */}
+        <Box sx={{ px: 2.5, py: 1.5, borderTop: 1, borderColor: "divider", bgcolor: "grey.50", flexShrink: 0 }}>
+          <Typography variant="caption" color="text.disabled" sx={{ fontSize: "0.67rem" }}>
+            Restoring creates a new v{(versions[0]?.versionId ?? 0) + 1} entry — history is never deleted.
+          </Typography>
+        </Box>
+      </Drawer>
+
+      {/* ── Publish confirmation dialog ───────────────────────────────────── */}
+      {(() => {
+        const errCount  = validationWarnings.filter((w) => w.severity === "error").length;
+        const warnCount = validationWarnings.filter((w) => w.severity === "warning").length;
+        const stepCount = nodes.length;
+        return (
+          <Dialog
+            open={publishDialogOpen}
+            onClose={() => !isSaving && setPublishDialogOpen(false)}
+            maxWidth="xs"
+            fullWidth
+            PaperProps={{ sx: { borderRadius: 3 } }}
+          >
+            <Box sx={{ px: 3, pt: 2.5, pb: 1, borderBottom: 1, borderColor: "divider" }}>
+              <Stack direction="row" alignItems="center" spacing={1}>
+                <CloudUploadIcon color="success" />
+                <Typography variant="h6" fontWeight={700}>Publish to live</Typography>
+              </Stack>
+              <Typography variant="caption" color="text.secondary">
+                {planName || "This pathway"} will immediately be used by the runtime for new executions.
+              </Typography>
+            </Box>
+
+            <Box sx={{ px: 3, py: 2 }}>
+              {/* Validation summary */}
+              <Stack spacing={0.75} sx={{ mb: 2 }}>
+                <Stack direction="row" justifyContent="space-between">
+                  <Typography variant="caption" color="text.secondary">Pipeline steps</Typography>
+                  <Typography variant="caption" fontWeight={600}>{stepCount}</Typography>
+                </Stack>
+                <Stack direction="row" justifyContent="space-between">
+                  <Typography variant="caption" color="text.secondary">Validation errors</Typography>
+                  <Typography variant="caption" fontWeight={600} color={errCount > 0 ? "error.main" : "success.main"}>
+                    {errCount === 0 ? "None ✓" : `${errCount} error${errCount > 1 ? "s" : ""}`}
+                  </Typography>
+                </Stack>
+                {warnCount > 0 && (
+                  <Stack direction="row" justifyContent="space-between">
+                    <Typography variant="caption" color="text.secondary">Warnings</Typography>
+                    <Typography variant="caption" fontWeight={600} color="warning.main">{warnCount}</Typography>
+                  </Stack>
+                )}
+              </Stack>
+
+              <Alert severity="info" icon={false} sx={{ mb: 2, fontSize: "0.75rem" }}>
+                To roll back: edit the pathway, adjust the steps, and publish again.
+                For a clean rollback, duplicate a known-good version as a new draft and publish that.
+              </Alert>
+
+              <TextField
+                label="Version notes (optional)"
+                placeholder="e.g. Added verification step before persist; updated extraction prompt to v3"
+                multiline
+                minRows={2}
+                fullWidth
+                size="small"
+                value={versionNotes}
+                onChange={(e) => setVersionNotes(e.target.value)}
+              />
+            </Box>
+
+            <Box sx={{ px: 3, pb: 2.5, display: "flex", justifyContent: "flex-end", gap: 1 }}>
+              <Button onClick={() => setPublishDialogOpen(false)} disabled={isSaving} sx={{ textTransform: "none" }}>
+                Cancel
+              </Button>
+              <Button
+                variant="contained"
+                color="success"
+                disabled={isSaving}
+                startIcon={isSaving ? <CircularProgress size={13} color="inherit" /> : <CloudUploadIcon />}
+                onClick={confirmPublish}
+                sx={{ textTransform: "none" }}
+              >
+                {isSaving ? "Publishing…" : "Publish to live"}
+              </Button>
+            </Box>
+          </Dialog>
+        );
+      })()}
     </Box>
   );
 }

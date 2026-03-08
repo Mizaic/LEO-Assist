@@ -14,7 +14,6 @@ import CloseIcon from "@mui/icons-material/Close";
 import { OverviewTab } from "./OverviewTab";
 import { InputsTab } from "./InputsTab";
 import { OutputsTab } from "./OutputsTab";
-import { SettingsTab } from "./SettingsTab";
 import { ReviewTab } from "./ReviewTab";
 import { ConditionRuleBuilder } from "./ConditionRuleBuilder";
 import type { ActionConfig, FieldMappingRow } from "../config/types";
@@ -55,7 +54,6 @@ export function SidePanel({
         <Tab label="Overview" />
         <Tab label="Inputs" />
         <Tab label="Outputs" />
-        <Tab label="Settings" />
         <Tab label="Review" />
       </Tabs>
       <Divider />
@@ -79,8 +77,7 @@ export function SidePanel({
             onRowsChange={(rows: FieldMappingRow[]) => patchParams({ field_mappings: rows })}
           />
         )}
-        {tab === 3 && <SettingsTab config={config} onChange={patchConfig} />}
-        {tab === 4 && <ReviewTab config={config} />}
+        {tab === 3 && <ReviewTab config={config} />}
       </Box>
       <Divider />
       <Stack direction="row" spacing={1} sx={{ p: 1.5 }}>

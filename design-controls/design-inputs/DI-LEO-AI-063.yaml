@@ -1,0 +1,95 @@
+# -- DI-LEO-AI-063 -- NICE Syndication API Client and Structured Guideline Ingest
+
+- id: "DI-LEO-AI-063"
+  type: "Functional"
+  derived_from: ["UN-LEO-AI-028"]
+  requirement: >
+    The system SHALL provide an async client for the NICE Syndication API that fetches
+    guideline documents, chapters, and sections as structured JSON, and a searchable
+    guideline catalogue cached in Redis. A FastAPI router SHALL expose endpoints for
+    catalogue search, ingest job submission (fire-and-track), SSE progress streaming,
+    and job status. Ingested content SHALL be stored as Guideline, Recommendation, and
+    Section nodes in Neo4j via idempotent MERGE operations. No LLM SHALL be used in
+    this pipeline.
+  rationale: >
+    Authoritative guideline text must enter the system from the official NICE
+    Syndication API rather than from PDFs or manual entry. Structured JSON from the
+    API is clean enough to store directly without LLM extraction. A Redis-cached
+    catalogue lets the admin UI provide a typeahead search so users do not need to
+    know NICE codes.
+
+  machine_spec:
+    agent_prompt: |
+      Implement the NICE Syndication API ingest pipeline (~300 LOC across 3 files).
+      No LLM anywhere in this pipeline.
+
+      FILES:
+      - services/api/app/services/nice_api_client.py
+        - NiceApiClient class using httpx.AsyncClient
+        - Methods: get_guidance(code), get_chapters(code), get_sections(chapter_uri),
+          fetch_catalogue() -- navigates NICE API hierarchy for all NG/CG codes + titles
+        - Azure Key Vault secret: nice-api-key (cached 15 min)
+        - Retry: 3 attempts, exponential back-off
+      - services/api/app/services/nice_graph_upserter.py
+        - NiceGraphUpserter class using neo4j.AsyncDriver
+        - Methods: upsert_guideline(guidance_json), upsert_recommendations(code, recs),
+          upsert_sections(code, sections)
+        - Idempotent MERGE on Guideline.id, Recommendation.id, Section.sectionId
+        - Stores verbatim text, urgency, strength directly from API JSON
+      - services/api/app/routers/nice_guidance.py
+        - FastAPI router (no prefix -- defines own paths)
+        - GET /nice/catalogue?q= -- Redis-cached 24h, substring filter, returns top 20
+        - POST /nice/ingest -- 202 + {job_id}, fires background task
+        - GET /nice/events?job_id= -- SSE StreamingResponse
+        - GET /nice/jobs/{job_id}/status
+        - GET /nice/jobs
+        - All endpoints: Depends(get_caller_scope) + require ai.admin role
+      Register router in services/api/app/main.py.
+
+    acceptance_criteria:
+      - type: "test"
+        spec: "NiceApiClient.get_guidance returns structured JSON for a valid code"
+      - type: "test"
+        spec: "NiceApiClient retries 3 times on transient errors before raising"
+      - type: "test"
+        spec: "fetch_catalogue result is cached in Redis with 24h TTL"
+      - type: "test"
+        spec: "NiceGraphUpserter.upsert_guideline is idempotent -- calling twice creates one Guideline node"
+      - type: "test"
+        spec: "POST /nice/ingest returns 202 with job_id immediately"
+      - type: "test"
+        spec: "Non-admin caller receives 403 on all /nice/ endpoints"
+
+    constraints:
+      - type: "safety"
+        spec: "No LLM call anywhere in this pipeline -- structured JSON only"
+      - type: "performance"
+        spec: "GET /nice/catalogue must return within 200ms when Redis cache is warm"
+      - type: "traceability"
+        spec: "All Guideline nodes store guidanceNumber and source: nice_syndication_api"
+
+    dependencies: []
+    downstream_impacts:
+      - "DI-LEO-AI-064 reads Recommendation nodes created by this pipeline"
+      - "DI-LEO-AI-066 admin UI calls these endpoints"
+
+    technical_details:
+      language: "Python"
+      framework: "FastAPI"
+      libraries: ["httpx", "neo4j", "redis", "pydantic"]
+      file_structure:
+        - "services/api/app/services/nice_api_client.py"
+        - "services/api/app/services/nice_graph_upserter.py"
+        - "services/api/app/routers/nice_guidance.py"
+        - "services/api/app/main.py"
+      estimated_loc: 320
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: "All acceptance criteria pass with mocked NICE API and Neo4j"
+    test_protocol: "VT-LEO-AI-063"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-042", "R-LEO-AI-043"]
+  tags: ["nice", "syndication-api", "neo4j", "ingest", "no-llm", "guidelines"]

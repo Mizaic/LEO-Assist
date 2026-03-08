@@ -379,6 +379,28 @@ describe("VT-036-TC-024: ModelLifecyclePanel status labels (static)", () => {
   });
 });
 
+// -- VT-062-TC-001: Prompt tuning runtime controls ----------------------------
+
+describe("VT-062-TC-001: Prompt editor runtime controls (static)", () => {
+  const promptEditor = readUISrc("app/admin/prompts/[id]/page.tsx");
+
+  it("contains max few-shot runtime control", () => {
+    expect(promptEditor).toContain("Max examples used at runtime");
+    expect(promptEditor).toContain("maxFewShot");
+    expect(promptEditor).toContain("inputProps={{ min: 1, max: 100 }}");
+  });
+
+  it("contains per-example core toggle", () => {
+    expect(promptEditor).toContain("Core (always included)");
+    expect(promptEditor).toContain('onChange(ex.id, "core", e.target.checked)');
+  });
+
+  it("shows core count in teaching examples tab summary", () => {
+    expect(promptEditor).toContain("core)");
+    expect(promptEditor).toContain("coreCount");
+  });
+});
+
 // -- VT-036-TC-008 (supplementary): Error boundary files exist ---------------
 
 describe("VT-036-TC-008: Error boundary files exist", () => {

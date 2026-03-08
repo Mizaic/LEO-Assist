@@ -52,6 +52,8 @@ export interface ActionNodeData {
   color: string;
   config?: Partial<ActionConfig>;
   nodeType?: string;
+  /** Field mappings saved from the wizard — used to derive live output port handles on the canvas. */
+  fieldMappings?: FieldMappingRow[];
   onConfigure: () => void;
 }
 

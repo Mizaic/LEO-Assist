@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import Accordion from "@mui/material/Accordion";
 import AccordionDetails from "@mui/material/AccordionDetails";
 import AccordionSummary from "@mui/material/AccordionSummary";
@@ -72,6 +72,10 @@ interface ModelPreset {
   strict: boolean;
   prompt_config_id: string;
   color: string;
+  /** Whether the model behind this preset honours the temperature parameter.
+   *  GPT-5 and NER models do not. Claude on Bedrock does.
+   *  Defaults to true for backwards compatibility with existing presets. */
+  supports_temperature: boolean;
   is_default: boolean;
   is_system: boolean;
   created_at: string;
@@ -746,17 +750,18 @@ function PresetDialog({
   const firstLlm  = llmOptions[0]?.key ?? "";
   const secondLlm = llmOptions[1]?.key ?? firstLlm;
 
-  const [name,       setName]       = useState("");
-  const [desc,       setDesc]       = useState("");
-  const [consensus,  setConsensus]  = useState(false);
-  const [primary,    setPrimary]    = useState<ModelKey>(firstLlm);
+  const [name,               setName]               = useState("");
+  const [desc,               setDesc]               = useState("");
+  const [consensus,          setConsensus]          = useState(false);
+  const [primary,            setPrimary]            = useState<ModelKey>(firstLlm);
   // single NER: llm backup device_id or "" for none; dual: second AI device_id
-  const [secondary,  setSecondary]  = useState<ModelKey>(secondLlm);
-  const [tiebreaker, setTiebreaker] = useState<ModelKey>(firstLlm);
-  const [nerBackup,  setNerBackup]  = useState(false); // single NER only
-  const [color,      setColor]      = useState("primary");
-  const [saving,     setSaving]     = useState(false);
-  const [err,        setErr]        = useState<string | null>(null);
+  const [secondary,          setSecondary]          = useState<ModelKey>(secondLlm);
+  const [tiebreaker,         setTiebreaker]         = useState<ModelKey>(firstLlm);
+  const [nerBackup,          setNerBackup]          = useState(false); // single NER only
+  const [color,              setColor]              = useState("primary");
+  const [supportsTemp,       setSupportsTemp]       = useState(true);
+  const [saving,             setSaving]             = useState(false);
+  const [err,                setErr]                = useState<string | null>(null);
 
   const primaryIsNer = allOptions.find((o) => o.key === primary)?.isNer ?? false;
 
@@ -774,6 +779,8 @@ function PresetDialog({
     // Infer nerBackup from stored extractor or secondary being set
     setNerBackup(pIsNer && !!s && s !== "");
     setColor(initial?.color ?? "primary");
+    // Default to true for existing presets that predate this field
+    setSupportsTemp(initial?.supports_temperature ?? true);
     setErr(null);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initial]);
@@ -785,18 +792,19 @@ function PresetDialog({
       // Derive extractor from model choices — not exposed as a separate question
       const extractor = deriveExtractor(primaryIsNer, nerBackup);
       const body = {
-        preset_id:        initial?.preset_id ?? "",
-        name:             name.trim(),
-        description:      desc.trim(),
-        consensus_mode:   consensus,
-        primary_model:    primary,
+        preset_id:             initial?.preset_id ?? "",
+        name:                  name.trim(),
+        description:           desc.trim(),
+        consensus_mode:        consensus,
+        primary_model:         primary,
         // single NER: backup LLM or ""; dual: second AI
-        secondary_model:  consensus ? secondary : (primaryIsNer && nerBackup ? secondary : ""),
-        tiebreaker_model: consensus ? tiebreaker : "",
+        secondary_model:       consensus ? secondary : (primaryIsNer && nerBackup ? secondary : ""),
+        tiebreaker_model:      consensus ? tiebreaker : "",
         extractor,
-        strict:           initial?.strict ?? false,
-        prompt_config_id: initial?.prompt_config_id ?? "",
+        strict:                initial?.strict ?? false,
+        prompt_config_id:      initial?.prompt_config_id ?? "",
         color,
+        supports_temperature:  supportsTemp,
       };
       await fetch("/api/presets", {
         method: "POST",
@@ -957,6 +965,36 @@ function PresetDialog({
               </Box>
             </>
           )}
+
+          {/* ── Temperature support ─────────────────────────────────── */}
+          <Box>
+            <Typography variant="subtitle2" fontWeight={700} gutterBottom>
+              Temperature control
+            </Typography>
+            <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1.5 }}>
+              Does the model behind this preset honour the <code>temperature</code> parameter?
+              Turn this <strong>off</strong> for GPT-5 family models (Azure OpenAI GPT-5, GPT-5-mini) —
+              they ignore temperature and use a fixed internal reasoning approach.
+              Leave it <strong>on</strong> for Bedrock Claude models (3.x / 3.5 / Sonnet) which do
+              support it. NER-only presets should also have this turned off.
+            </Typography>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={supportsTemp}
+                  onChange={(e) => setSupportsTemp(e.target.checked)}
+                  color="primary"
+                />
+              }
+              label={
+                <Typography variant="body2">
+                  {supportsTemp
+                    ? "Temperature supported — slider will appear in the pathway wizard"
+                    : "Temperature not supported — slider will be hidden in the pathway wizard"}
+                </Typography>
+              }
+            />
+          </Box>
 
           {/* ── Card colour ─────────────────────────────────────────── */}
           <Box>
@@ -1708,6 +1746,11 @@ export default function ModelsPage() {
             ))
           )}
           </SectionCard>
+
+          {/* Cost rates — always visible regardless of health state */}
+          <SectionCard title="Cost rates" description="Per-token USD rates for each model. Seeded from environment variables; editable here without a deployment." icon={null} defaultOpen={false}>
+            <ModelCostRates />
+          </SectionCard>
         </>
       )}
 
@@ -1727,3 +1770,271 @@ export default function ModelsPage() {
     </Box>
   );
 }
+
+// =============================================================================
+// ModelCostRates — inline cost-rate editor for each ModelConfig
+// =============================================================================
+
+const KNOWN_PROVIDERS = ["aws", "azure"] as const;
+
+function ModelCostRates() {
+  type MCRow = {
+    key: string; provider: string; tier: string; displayName: string; modelId: string;
+    costPer1mInput: number; costPer1mCachedInput: number; costPer1mOutput: number;
+    isActive: boolean; source: string; updatedAt: string;
+  };
+
+  const EMPTY_NEW: Partial<MCRow> = {
+    key: "", provider: "aws", tier: "small", displayName: "", modelId: "",
+    costPer1mInput: 0, costPer1mCachedInput: 0, costPer1mOutput: 0, isActive: true,
+  };
+
+  const [rows, setRows]           = React.useState<MCRow[]>([]);
+  const [editing, setEditing]     = React.useState<string | null>(null);
+  const [draft, setDraft]         = React.useState<Partial<MCRow>>({});
+  const [saving, setSaving]       = React.useState(false);
+  const [deleting, setDeleting]   = React.useState<string | null>(null);
+  const [addOpen, setAddOpen]     = React.useState(false);
+  const [newRow, setNewRow]       = React.useState<Partial<MCRow>>(EMPTY_NEW);
+  const [addErr, setAddErr]       = React.useState<string | null>(null);
+
+  const load = React.useCallback(() => {
+    apiFetch<{ modelConfigs: MCRow[] }>("/api/model-configs")
+      .then((d) => setRows(d.modelConfigs || []))
+      .catch(() => {});
+  }, []);
+
+  React.useEffect(() => { load(); }, [load]);
+
+  const startEdit = (row: MCRow) => { setEditing(row.key); setDraft({ ...row }); };
+  const cancel    = () => { setEditing(null); setDraft({}); };
+
+  const save = async () => {
+    if (!editing) return;
+    setSaving(true);
+    try {
+      await apiFetch(`/api/model-configs/${encodeURIComponent(editing)}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          displayName:          draft.displayName,
+          modelId:              draft.modelId,
+          costPer1mInput:       Number(draft.costPer1mInput),
+          costPer1mCachedInput: Number(draft.costPer1mCachedInput),
+          costPer1mOutput:      Number(draft.costPer1mOutput),
+          isActive:             draft.isActive ?? true,
+        }),
+      });
+      cancel();
+      load();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deleteRow = async (key: string) => {
+    setDeleting(key);
+    try {
+      await apiFetch(`/api/model-configs/${encodeURIComponent(key)}`, { method: "DELETE" });
+      load();
+    } finally {
+      setDeleting(null);
+    }
+  };
+
+  const createRow = async () => {
+    if (!newRow.key?.trim()) { setAddErr("Key is required (e.g. aws:small)."); return; }
+    if (!newRow.displayName?.trim()) { setAddErr("Display name is required."); return; }
+    setSaving(true); setAddErr(null);
+    try {
+      await apiFetch("/api/model-configs", {
+        method: "POST",
+        body: JSON.stringify({
+          key:                  newRow.key!.trim(),
+          provider:             newRow.provider || "aws",
+          tier:                 newRow.tier || "small",
+          displayName:          newRow.displayName!.trim(),
+          modelId:              newRow.modelId || "",
+          costPer1mInput:       Number(newRow.costPer1mInput ?? 0),
+          costPer1mCachedInput: Number(newRow.costPer1mCachedInput ?? 0),
+          costPer1mOutput:      Number(newRow.costPer1mOutput ?? 0),
+          isActive:             true,
+        }),
+      });
+      setAddOpen(false);
+      setNewRow(EMPTY_NEW);
+      load();
+    } catch (e) {
+      setAddErr(e instanceof Error ? e.message : "Could not create — try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Group rows: known providers first (ordered), then any others
+  const providerRows = (prov: string) => rows.filter((r) => r.key.startsWith(prov + ":"));
+  const knownKeys    = new Set(KNOWN_PROVIDERS.flatMap((p) => rows.filter((r) => r.key.startsWith(p + ":")).map((r) => r.key)));
+  const otherRows    = rows.filter((r) => !knownKeys.has(r.key));
+
+  const RateField = ({ label, field, src }: {
+    label: string;
+    field: "costPer1mInput" | "costPer1mCachedInput" | "costPer1mOutput";
+    src: Partial<MCRow>;
+    onChange?: (v: string) => void;
+  }) => null; // placeholder to keep TS happy — we inline below
+
+  const rateDisplay = (row: MCRow) => (
+    <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+      <Chip size="small" variant="outlined" label={`Input $${row.costPer1mInput.toFixed(3)}/1M`} sx={{ height: 18, fontSize: "0.62rem" }} />
+      <Chip size="small" variant="outlined" color="success" label={`Cached $${row.costPer1mCachedInput.toFixed(3)}/1M`} sx={{ height: 18, fontSize: "0.62rem" }} />
+      <Chip size="small" variant="outlined" color="secondary" label={`Output $${row.costPer1mOutput.toFixed(3)}/1M`} sx={{ height: 18, fontSize: "0.62rem" }} />
+    </Stack>
+  );
+
+  const rateEdit = (d: Partial<MCRow>, set: (f: string, v: string) => void) => (
+    <Stack spacing={0.75}>
+      {(["costPer1mInput", "costPer1mCachedInput", "costPer1mOutput"] as const).map((f, i) => (
+        <Stack key={f} direction="row" justifyContent="space-between" alignItems="center">
+          <Typography variant="caption" color="text.secondary">
+            {["Input ($/1M tokens)", "Cached input ($/1M tokens)", "Output ($/1M tokens)"][i]}
+          </Typography>
+          <TextField size="small" type="number" value={d[f] ?? ""}
+            onChange={(e) => set(f, e.target.value)}
+            inputProps={{ step: 0.001, min: 0 }}
+            sx={{ width: 110 }}
+            InputProps={{ startAdornment: <Typography variant="caption" sx={{ mr: 0.25 }}>$</Typography> }} />
+        </Stack>
+      ))}
+    </Stack>
+  );
+
+  const ModelRow = ({ row }: { row: MCRow }) => {
+    const isEditing = editing === row.key;
+    const tier = row.tier || row.key.split(":")[1] || "";
+    return (
+      <Paper key={row.key} variant="outlined" sx={{ p: 1.5, borderRadius: 2 }}>
+        <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 0.75 }}>
+          <Stack direction="row" spacing={0.75} alignItems="center" flexWrap="wrap" useFlexGap>
+            <Chip size="small" label={tier}
+              color={tier === "small" ? "default" : tier === "big" ? "primary" : "secondary"}
+              sx={{ height: 20, fontSize: "0.62rem" }} />
+            <Typography variant="caption" fontWeight={600}>{row.displayName}</Typography>
+            {row.source === "user" && <Chip size="small" label="edited" color="warning" variant="outlined" sx={{ height: 18, fontSize: "0.58rem" }} />}
+          </Stack>
+          {isEditing ? (
+            <Stack direction="row" spacing={0.5}>
+              <Button size="small" onClick={cancel}>Cancel</Button>
+              <Button size="small" variant="contained" onClick={save} disabled={saving}>
+                {saving ? <CircularProgress size={14} /> : "Save"}
+              </Button>
+            </Stack>
+          ) : (
+            <Stack direction="row" spacing={0.5}>
+              <Button size="small" variant="outlined" onClick={() => startEdit(row)}>Edit rates</Button>
+              <Tooltip title="Remove this cost entry">
+                <span>
+                  <IconButton size="small" color="error" disabled={!!deleting}
+                    onClick={() => deleteRow(row.key)}>
+                    {deleting === row.key ? <CircularProgress size={14} /> : <ErrorOutlineIcon fontSize="small" />}
+                  </IconButton>
+                </span>
+              </Tooltip>
+            </Stack>
+          )}
+        </Stack>
+        <Typography variant="caption" color="text.disabled" sx={{ fontFamily: "monospace", fontSize: "0.6rem", display: "block", mb: 0.75 }}>
+          {row.modelId || "—"}
+        </Typography>
+        {isEditing
+          ? rateEdit(draft, (f, v) => setDraft((d) => ({ ...d, [f]: v })))
+          : rateDisplay(row)}
+      </Paper>
+    );
+  };
+
+  const ProviderSection = ({ prov, label }: { prov: string; label: string }) => {
+    const prows = providerRows(prov);
+    if (prows.length === 0) return null;
+    return (
+      <Box sx={{ mb: 2 }}>
+        <Typography variant="caption" fontWeight={700} color="text.disabled" sx={{ textTransform: "uppercase", letterSpacing: 1 }}>
+          {label}
+        </Typography>
+        <Stack spacing={1} sx={{ mt: 0.75 }}>
+          {prows.map((row) => <ModelRow key={row.key} row={row} />)}
+        </Stack>
+      </Box>
+    );
+  };
+
+  return (
+    <Box sx={{ mt: 3 }}>
+      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1.5 }}>
+        <Typography variant="h6" fontWeight={700}>Model cost rates</Typography>
+        <Button size="small" variant="outlined" startIcon={<AddIcon />} onClick={() => { setNewRow(EMPTY_NEW); setAddErr(null); setAddOpen(true); }}>
+          Add model
+        </Button>
+      </Stack>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        Cost rates used for spend reporting. Rates are set here — no deployment needed.
+        Use the delete button (
+        <ErrorOutlineIcon sx={{ fontSize: 12, verticalAlign: "middle", color: "error.main" }} />) to remove stale entries.
+      </Typography>
+
+      <ProviderSection prov="aws"   label="AWS Bedrock" />
+      <ProviderSection prov="azure" label="Azure OpenAI" />
+
+      {otherRows.length > 0 && (
+        <Box sx={{ mb: 2 }}>
+          <Typography variant="caption" fontWeight={700} color="text.disabled" sx={{ textTransform: "uppercase", letterSpacing: 1 }}>
+            Other
+          </Typography>
+          <Stack spacing={1} sx={{ mt: 0.75 }}>
+            {otherRows.map((row) => <ModelRow key={row.key} row={row} />)}
+          </Stack>
+        </Box>
+      )}
+
+      {/* Add model dialog */}
+      <Dialog open={addOpen} onClose={() => setAddOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Add cost rate entry</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Add a cost rate entry for a model. The key must be unique (e.g. <code>aws:small</code> or <code>azure:big</code>).
+            This only affects spend reporting — to make a model available in presets, add it to
+            <code> scripts/seed_devices.py</code> and run the script.
+          </Typography>
+          <Stack spacing={2}>
+            {addErr && <Alert severity="error">{addErr}</Alert>}
+            <Stack direction="row" spacing={1.5}>
+              <TextField label="Key *" size="small" sx={{ flex: 1 }}
+                placeholder="e.g. aws:small" value={newRow.key ?? ""}
+                onChange={(e) => setNewRow((r) => ({ ...r, key: e.target.value }))} />
+              <TextField label="Provider" size="small" sx={{ flex: 1 }}
+                placeholder="aws / azure / custom" value={newRow.provider ?? ""}
+                onChange={(e) => setNewRow((r) => ({ ...r, provider: e.target.value }))} />
+              <TextField label="Tier" size="small" sx={{ flex: 1 }}
+                placeholder="small / big / max" value={newRow.tier ?? ""}
+                onChange={(e) => setNewRow((r) => ({ ...r, tier: e.target.value }))} />
+            </Stack>
+            <TextField label="Display name *" size="small" fullWidth
+              placeholder="e.g. Claude Haiku (AWS Bedrock)" value={newRow.displayName ?? ""}
+              onChange={(e) => setNewRow((r) => ({ ...r, displayName: e.target.value }))} />
+            <TextField label="Model ID" size="small" fullWidth
+              placeholder="e.g. eu.anthropic.claude-haiku-4-5-20251001-v1:0" value={newRow.modelId ?? ""}
+              onChange={(e) => setNewRow((r) => ({ ...r, modelId: e.target.value }))} />
+            {rateEdit(newRow, (f, v) => setNewRow((r) => ({ ...r, [f]: v })))}
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setAddOpen(false)} disabled={saving}>Cancel</Button>
+          <Button variant="contained" onClick={createRow} disabled={saving}
+            startIcon={saving ? <CircularProgress size={14} /> : <AddIcon />}>
+            Add
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  );
+}
+
+export { ModelCostRates };

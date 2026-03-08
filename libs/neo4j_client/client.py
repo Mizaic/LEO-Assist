@@ -13,10 +13,12 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-# Load secrets/.env so services (FHIR API, analytics, terminology, workers) get
-# Neo4j credentials when run directly (uvicorn, debug) without the startup script.
+# Fallback for scripts and test harnesses that import this lib directly without
+# going through a service main.py (which calls load_keyvault_secrets() first).
+# Services always call load_keyvault_secrets() before importing, so KV wins.
 _REPO_ROOT = Path(__file__).resolve().parents[2]
-load_dotenv(_REPO_ROOT / "secrets" / ".env")
+load_dotenv(_REPO_ROOT / "secrets" / ".env.config", override=True)
+load_dotenv(_REPO_ROOT / "secrets" / ".env", override=False)
 import random
 import time
 from contextlib import contextmanager

@@ -62,18 +62,24 @@
     technical_details:
       language: "Python"
       framework: "FastAPI"
-      libraries: ["fhir.resources", "langgraph>=0.4"]
+      libraries: ["langgraph>=0.4", "neo4j"]
       file_structure:
-        - "libs/workflow/plandefinition_loader.py"
-        - "libs/workflow/activity_resolver.py"
-        - "libs/pipeline_graph/plandef_graph_builder.py"
-      estimated_loc: 250
+        - "libs/workflow/engine.py"
+        - "services/fhir_api/app/routers/plan_definition.py"
+        - "libs/pipeline_graph/registry.py"
+        - "libs/pipeline_graph/subgraphs/rest_connector.py"
+        - "libs/pipeline_graph/subgraphs/queue_publish.py"
+        - "services/api/app/routers/pipeline.py"
+      estimated_loc: 600
 
   verification:
     method: "Test"
     phase: "OQ"
-    acceptance: "PlanDefinition-driven pathways execute correctly; ActivityDefinition steps resolve and run"
-    test_protocol: "VT-LEO-AI-060"
+    acceptance: >
+      PlanDefinition-driven pathways execute correctly; ActivityDefinition steps
+      resolve and run; config persists via dynamicValues; trigger propagation
+      correct; condition branching follows correct port; connector subgraphs execute
+    test_protocol: "VT-LEO-AI-063"
 
   safety_class: "B"
   risks: ["R-LEO-AI-015"]

@@ -8,10 +8,10 @@
   status: "draft"
 
   traceability:
-    design_inputs: ["DI-LEO-AI-018", "DI-LEO-AI-019", "DI-LEO-AI-060"]
+    design_inputs: ["DI-LEO-AI-018", "DI-LEO-AI-019", "DI-LEO-AI-060", "DI-LEO-AI-063"]
     user_needs: ["UN-LEO-AI-012"]
     risks_addressed: ["R-LEO-AI-015"]
-    verification_tests: ["VT-LEO-AI-018", "VT-LEO-AI-019"]
+    verification_tests: ["VT-LEO-AI-018", "VT-LEO-AI-019", "VT-LEO-AI-063"]
     validation_tests: []
 
   specification:
@@ -47,11 +47,19 @@
         storage_location: "git"
       - artifact_type: "source_code"
         location: "libs/pipeline_graph/"
-        description: "Pipeline graph definitions and subgraph implementations"
+        description: "Pipeline graph definitions and subgraph implementations including rest_connector, queue_publish"
         storage_location: "git"
       - artifact_type: "source_code"
-        location: "libs/workflow/"
-        description: "Workflow utilities and PlanDefinition resolution"
+        location: "libs/workflow/engine.py"
+        description: "WorkflowEngine with graph traversal, condition routing, config injection from ActivityDefinition"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/fhir_api/app/routers/plan_definition.py"
+        description: "PlanDefinition CRUD; _ui_actions_to_fhir creates ActivityDefinitions with dynamicValues"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/api/app/routers/pipeline.py"
+        description: "GET /pipeline/subgraphs endpoint with port I/O metadata"
         storage_location: "git"
     technical_details:
       language: ["Python 3.11"]

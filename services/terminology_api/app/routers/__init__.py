@@ -5,6 +5,7 @@ from services.terminology_api.app.routers.valueset import router as valueset_rou
 from services.terminology_api.app.routers.conceptmap import router as conceptmap_router
 from services.terminology_api.app.routers.concepts import router as concepts_router
 from services.terminology_api.app.routers.surface_forms import router as surface_forms_router
+from services.terminology_api.app.routers.guidelines import router as guidelines_router
 
 __all__ = [
     "search_router",
@@ -14,4 +15,5 @@ __all__ = [
     "conceptmap_router",
     "concepts_router",
     "surface_forms_router",
+    "guidelines_router",
 ]

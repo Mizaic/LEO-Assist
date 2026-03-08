@@ -1,0 +1,117 @@
+# -- UN-LEO-AI-028 -- NICE Guideline Ingestion, LLM Rule Authoring, and Bitmap Deployment
+
+- id: "UN-LEO-AI-028"
+  title: "Administrators need to load official NICE guidelines, have the system generate referral criteria automatically, review and approve those criteria in plain language, and deploy them so the system can match patients to the right guidance -- without needing technical knowledge or clinical coding skills."
+  description: |
+    The system currently has no way to bring in NICE clinical guidelines or
+    to evaluate whether a patient's clinical findings match a published guideline
+    recommendation. Administrators need a self-service capability that:
+    (1) lets them search for and load a NICE guideline using plain-language terms
+        rather than knowing its code,
+    (2) automatically generates the decision criteria (SNOMED-coded findings that
+        trigger each recommendation) using the existing LLM pipeline,
+    (3) presents those criteria in plain English for a human to review, approve,
+        or reject before they go anywhere near live patients, and
+    (4) compiles the approved criteria into a fast lookup that the inference
+        pipeline can use to match patient findings to guideline recommendations.
+
+  stakeholder:
+    type: "internal_user"
+    role: "Clinical Administrator / Platform Engineer"
+    organization: "LEO AI Engineering"
+
+  priority: "MUST"
+
+  rationale: |
+    Referral recommendations must be grounded in authoritative clinical evidence.
+    The NICE Syndication API provides the official source. Without a structured
+    pipeline from that source into the inference graph, recommendations remain
+    vector-search approximations rather than exact, auditable rule matches.
+    The bitmap evaluation approach gives microsecond-level deterministic matching
+    that can be explained and audited -- an important property for a clinical
+    decision-support tool regulated under IEC 62304 Class B.
+
+  benefit: |
+    Clinically-grounded, auditable, fast guideline matching. Administrators
+    can load a guideline in minutes rather than hours of manual graph editing.
+    The HITL gate means no LLM-generated rule affects patients without a human
+    having read and confirmed it in plain English.
+
+  use_case: |
+    1. Administrator opens the Guidance admin page.
+    2. They type a condition name (e.g. "bowel cancer") into a search box and
+       select the matching NICE guideline (e.g. NG151) from a dropdown.
+    3. They click "Load this guideline" -- the system fetches the official NICE
+       guidance and saves it to the knowledge graph. A progress bar shows each step.
+    4. They click "Generate rules" -- the system reads each recommendation from
+       the loaded guideline and uses the AI pipeline to work out what patient
+       findings should trigger that recommendation.
+    5. A list of plain-English rules appears for review. Each rule says something
+       like "Trigger this recommendation when the patient HAS rectal bleeding
+       and does NOT HAVE known bowel disease."
+    6. The administrator reads each rule and clicks "Looks right", "Edit", or
+       "Reject". They can approve the whole set at once if they are satisfied.
+    7. Once rules are approved, they click "Compile rules" to build the fast
+       lookup index. A new version is created.
+    8. They click "Make this live" (with a confirmation prompt) to deploy the
+       new version. From this point on, the inference pipeline uses it.
+
+  current_solution: |
+    None. Guidelines are not currently loaded from the NICE API. Guideline
+    matching uses vector search over document chunks, which is approximate
+    and not auditable at the rule level.
+
+  pain_points:
+    - "No connection to the official NICE guideline source"
+    - "No auditable, explainable guideline matching -- only vector similarity"
+    - "Clinical experts would need to hand-write graph Cypher to add rules"
+    - "No HITL gate between AI-generated logic and live patient matching"
+    - "No admin UI for managing guideline lifecycle (load, review, compile, deploy)"
+
+  acceptance_criteria:
+    - "Administrator can search for NICE guidelines by condition name without knowing the code"
+    - "Loaded guidelines are stored as Guideline, Recommendation, and Section nodes in Neo4j"
+    - "LLM pipeline generates AppropriatenessRule candidates from each Recommendation node"
+    - "Every generated rule shows status pending_review until a human approves it"
+    - "HITL review queue displays rules in plain English (reading age 11), not SNOMED IDs"
+    - "Only approved rules (status: active) are included in bitmap compilation"
+    - "Bitmap versions are numbered and the active version is set explicitly by an admin"
+    - "The inference pipeline can evaluate patient SNOMED codes against the active bitmap in under 10ms"
+
+  success_metrics:
+    - metric: "Time to load a new NICE guideline"
+      target: "Under 5 minutes from search to Neo4j nodes created"
+      baseline: "Not currently possible"
+    - metric: "Rule generation coverage"
+      target: "At least one AppropriatenessRule candidate generated per Recommendation"
+      baseline: "0%"
+    - metric: "Bitmap evaluation latency"
+      target: "Under 10ms per patient evaluation (p99)"
+      baseline: "No deterministic matching exists"
+
+  regulatory_impact: "high"
+  safety_impact: "high"
+
+  derived_from:
+    - "Intended Use Statement DC-IU-001"
+    - "IEC 62304:2006/AMD1:2015 Class B software lifecycle"
+    - "ISO 14971:2019 risk management for clinical decision-support software"
+    - "NICE Evidence Standards Framework for Digital Health Technologies"
+
+  related_standards:
+    - "IEC 62304:2006/AMD1:2015"
+    - "ISO 13485:2016"
+    - "ISO 14971:2019"
+
+  metadata:
+    created_by: "Engineering Team"
+    created_date: "2026-03-08"
+    status: "draft"
+
+  design_inputs:
+    - "DI-LEO-AI-063"
+    - "DI-LEO-AI-064"
+    - "DI-LEO-AI-065"
+    - "DI-LEO-AI-066"
+  validation_tests: []
+  tags: ["nice", "guidelines", "bitmap", "hitl", "admin-ui", "rule-authoring", "syndication-api"]

@@ -1,4 +1,4 @@
-import type { PortDefinition } from "./types";
+import type { FieldMappingRow, PortDefinition } from "./types";
 
 export const SUBGRAPH_OPTIONS = [
   { id: "extraction", label: "Entity Extraction", color: "#4CAF50", description: "Extract clinical entities (findings, conditions, procedures) from encounter text using NER or LLM." },
@@ -129,25 +129,63 @@ export function inferDataType(key: string): PortDefinition["dataType"] {
   return "string";
 }
 
-export function getPortsFromDescriptor(
-  subgraphId: string,
-  requiredFields?: Record<string, string[]>,
-): PortDefinition[] {
-  const io = SUBGRAPH_IO[subgraphId];
-  if (!io) return [];
-  const inputs = io.reads.map((key) => ({
-    key,
-    direction: "input" as const,
-    dataType: inferDataType(key),
-    required: true,
-    fields: requiredFields?.[key] ?? io.requiredFields?.[key],
-  }));
-  const outputs = io.writes.map((key) => ({
+/**
+ * Derive output port handles from the user's saved field mappings.
+ * Extracts unique top-level state keys from statePath values
+ * (e.g. "entities[].text" → port key "entities").
+ * Falls back to an empty array when no mappings have a resolved statePath.
+ */
+export function getPortsFromFieldMappings(fieldMappings: FieldMappingRow[]): PortDefinition[] {
+  const seen = new Set<string>();
+  for (const row of fieldMappings) {
+    const path = row.statePath?.trim();
+    if (!path) continue;
+    // passthrough rows still produce an output port
+    const match = path.match(/^(\w+)/);
+    if (match) seen.add(match[1]);
+  }
+  return Array.from(seen).map((key) => ({
     key,
     direction: "output" as const,
     dataType: inferDataType(key),
     required: false,
   }));
+}
+
+export function getPortsFromDescriptor(
+  subgraphId: string,
+  fieldMappings?: FieldMappingRow[],
+): PortDefinition[] {
+  const io = SUBGRAPH_IO[subgraphId];
+  if (!io) return [];
+
+  const inputs = io.reads.map((key) => ({
+    key,
+    direction: "input" as const,
+    dataType: inferDataType(key),
+    required: true,
+    fields: io.requiredFields?.[key],
+  }));
+
+  // When the user has explicitly configured field mappings, derive output ports
+  // from those mappings instead of the static SUBGRAPH_IO writes. This makes
+  // the canvas ports reflect what was actually wired up in the wizard (n8n style).
+  const dynamicOutputs =
+    fieldMappings && fieldMappings.length > 0
+      ? getPortsFromFieldMappings(fieldMappings)
+      : [];
+
+  const outputs =
+    dynamicOutputs.length > 0
+      ? dynamicOutputs
+      : io.writes.map((key) => ({
+          key,
+          direction: "output" as const,
+          dataType: inferDataType(key),
+          required: false,
+        }));
+
   return [...inputs, ...outputs];
 }
+
 

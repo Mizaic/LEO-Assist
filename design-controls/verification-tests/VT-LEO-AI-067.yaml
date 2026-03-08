@@ -1,0 +1,110 @@
+# -- VT-LEO-AI-067 -- Pathway Version History, Draft/Publish, and Rollback
+# IEC 62304 Verification Test Protocol
+
+- id: "VT-LEO-AI-067"
+  version: "1.0"
+  status: "executed"
+  result: "pass"
+  executed_date: "2026-03-08"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-067"]
+    design_outputs: ["DO-LEO-AI-067"]
+    risks: ["R-LEO-AI-015"]
+
+  metadata:
+    title: "Pathway version history endpoints and UI draft/publish separation"
+    test_level: "unit"
+    automation_framework: "pytest"
+    test_file_paths:
+      - "services/fhir_api/tests/test_plan_definition_version_history.py"
+
+  automated_tests:
+    - id: "VT-067-001"
+      function: "test_get_history_returns_bundle_sorted_newest_first"
+      criterion: "GET /_history returns Bundle with versions sorted newest-first"
+      result: "pass"
+
+    - id: "VT-067-002"
+      function: "test_get_history_empty_bundle_when_no_versions"
+      criterion: "GET /_history returns empty Bundle (total=0) when no versions exist"
+      result: "pass"
+
+    - id: "VT-067-003"
+      function: "test_get_history_404_when_plan_not_found"
+      criterion: "GET /_history returns 404 when PlanDefinition does not exist"
+      result: "pass"
+
+    - id: "VT-067-004"
+      function: "test_restore_publishes_snapshot_with_active_status"
+      criterion: "POST /_restore/{vid} returns 200 and resource with status=active"
+      result: "pass"
+
+    - id: "VT-067-005"
+      function: "test_restore_404_when_version_missing"
+      criterion: "POST /_restore/{vid} returns 404 when version does not exist"
+      result: "pass"
+
+    - id: "VT-067-006"
+      function: "test_put_creates_version_snapshot_when_status_is_active"
+      criterion: "PUT with status=active creates exactly one PlanDefinitionVersion via HAS_VERSION"
+      result: "pass"
+
+    - id: "VT-067-007"
+      function: "test_put_no_version_snapshot_when_status_is_draft"
+      criterion: "PUT with status=draft makes only 2 Neo4j calls (MERGE + delete actions); no version node"
+      result: "pass"
+
+    - id: "VT-067-008"
+      function: "test_put_strips_version_notes_from_stored_raw_json"
+      criterion: "versionNotes absent from both the response body and the rawJson written to Neo4j"
+      result: "pass"
+
+    - id: "VT-067-009"
+      function: "test_put_version_notes_stored_in_snapshot_node"
+      criterion: "versionNotes kwarg passed to the CREATE PlanDefinitionVersion Cypher call"
+      result: "pass"
+
+    - id: "VT-067-010"
+      function: "test_put_version_notes_accepted_via_meta_field"
+      criterion: "versionNotes accepted nested under meta.versionNotes (list-page publish path)"
+      result: "pass"
+
+    - id: "VT-067-011"
+      function: "test_delete_removes_version_nodes"
+      criterion: "DELETE query includes HAS_VERSION and PlanDefinitionVersion in DETACH DELETE"
+      result: "pass"
+
+  manual_review_items:
+    - id: "VT-067-M01"
+      criterion: "Publish button is disabled when the validation panel shows one or more red errors"
+      method: "Manual review of handlePublish() in page.tsx — blocks on errCount > 0"
+      result: "pass"
+      notes: "Verified by code inspection: setSaveError shown, setPublishDialogOpen not called"
+
+    - id: "VT-067-M02"
+      criterion: "Restore creates a new version entry; no existing PlanDefinitionVersion is mutated"
+      method: "Code inspection of restore_plan_definition_version() — delegates to upsert with status=active"
+      result: "pass"
+      notes: "Upsert CREATE path always creates a new node; no UPDATE on existing version nodes"
+
+    - id: "VT-067-M03"
+      criterion: "Draft save (Save draft button) does not alter planStatus state"
+      method: "Code inspection of handleSave() — statusOverride is undefined for Save draft path"
+      result: "pass"
+
+  test_run_summary:
+    automated_total: 11
+    automated_pass: 11
+    automated_fail: 0
+    manual_total: 3
+    manual_pass: 3
+    manual_fail: 0
+    overall_result: "pass"
+
+  execution_environment:
+    python_version: "3.13.1"
+    pytest_version: "9.0.2"
+    platform: "win32"
+    neo4j_connection: "mocked (KnowledgeGraphClient patched)"
+    command: "python -m pytest services/fhir_api/tests/test_plan_definition_version_history.py -v"

@@ -116,8 +116,8 @@ def extract_entities(state: ExtractionState) -> dict[str, Any]:
             )
             for s in raw_sentences
         ]
-        items = extractor.extract_batch(encounter_text, chunks)
-        return {"entities": _items_to_dicts(items)}
+        items, llm_tokens = extractor.extract_batch_with_usage(encounter_text, chunks)
+        return {"entities": _items_to_dicts(items), "llm_tokens": llm_tokens}
     except ImportError as e:
         logger.warning("Extractor unavailable: %s", e)
         return {"entities": [], "errors": [str(e)]}

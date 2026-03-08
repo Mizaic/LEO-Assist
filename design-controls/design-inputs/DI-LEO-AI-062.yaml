@@ -6,10 +6,10 @@
   type: "Functional"
   derived_from: ["UN-LEO-AI-001"]
   requirement: >
-    The system SHALL provide an AI-assisted PromptConfig tuner that uses
-    de-identified few-shot examples to optimise prompt parameters,
-    enabling iterative improvement of LLM prompt configurations while
-    preserving patient data privacy.
+    The system SHALL provide PromptConfig controls for smart few-shot selection
+    and prompt caching, including a configurable maximum few-shot count,
+    a per-example core flag, and provider-aware runtime selection of relevant
+    examples while preserving de-identification and auditability.
   rationale: >
     Prompt engineering is iterative; systematic tuning with real-world
     examples improves coding accuracy. De-identification ensures
@@ -40,11 +40,13 @@
 
     acceptance_criteria:
       - type: "test"
-        spec: "De-identification validated before example use"
+        spec: "Core examples are always included in static system prompt"
       - type: "test"
-        spec: "Tuning improves accuracy on held-out examples"
+        spec: "Dynamic examples are selected at runtime with maxFewShot cap applied"
       - type: "test"
-        spec: "Exported config integrates with pipeline"
+        spec: "Bedrock requests include cachePoint marker for prompt prefix caching"
+      - type: "test"
+        spec: "Admin prompt UI persists maxFewShot and core fields"
 
     constraints:
       - type: "safety"
@@ -73,7 +75,7 @@
   verification:
     method: "Test"
     phase: "OQ"
-    acceptance: "De-identification enforced; tuning improves metrics; config export works"
+    acceptance: "Prompt caching and smart few-shot controls are enforced and persisted end-to-end"
     test_protocol: "VT-LEO-AI-062"
 
   safety_class: "B"

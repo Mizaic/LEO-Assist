@@ -46,12 +46,26 @@
         spec: "Serialized output validates as FHIR PlanDefinition"
       - type: "test"
         spec: "Saved pathways load correctly"
+      - type: "test"
+        spec: "Canvas output port handles are derived from configured field_mappings when present, falling back to static SUBGRAPH_IO writes when no mappings are set"
+      - type: "test"
+        spec: "getPortsFromFieldMappings extracts unique top-level state keys from statePath values (e.g. 'entities[].text' produces port key 'entities')"
+      - type: "review"
+        spec: "Wizard Next button auto-saves draft to server in background; 'Draft saved ✓' indicator appears in dialog header"
+      - type: "review"
+        spec: "Publish is separated from Save draft in toolbar; Publish opens confirmation dialog with validation summary and version notes field"
+      - type: "review"
+        spec: "Configure step dialog has coloured left-border header, custom circle stepper with connecting lines and active-step glow, and consistent footer buttons"
 
     constraints:
       - type: "usability"
         spec: "No code required; all configuration via UI"
       - type: "data"
         spec: "Output MUST be valid FHIR R4 PlanDefinition"
+      - type: "safety"
+        spec: "fieldMappings must be propagated into node data on every handleConfigSave call and on load; stale static ports must not be shown when dynamic mappings are configured"
+      - type: "ux"
+        spec: "Auto-save (on Next) is non-blocking; wizard step advances immediately regardless of save result; save errors surface as a subtle header indicator, not a blocking alert"
 
     dependencies: ["DI-LEO-AI-060"]
 
@@ -62,20 +76,48 @@
 
     technical_details:
       language: "TypeScript"
-      framework: "React"
-      libraries: ["react-flow", "fhir/r4"]
+      framework: "Next.js / React"
+      libraries: ["@xyflow/react@12", "@mui/material@7", "zustand@5", "immer"]
       file_structure:
-        - "services/ui/src/components/pathway/PathwayBuilder.tsx"
-        - "services/ui/src/components/pathway/PlanDefinitionEditor.tsx"
-        - "services/ui/src/components/pathway/NodePalette.tsx"
-        - "libs/fhir/plandefinition_serializer.ts"
-      estimated_loc: 400
+        - "services/ui/src/app/admin/pathways/[id]/page.tsx"
+        - "services/ui/src/components/pathway/config/types.ts"
+        - "services/ui/src/components/pathway/config/subgraphs.ts"
+        - "services/ui/src/components/pathway/config/triggers.ts"
+        - "services/ui/src/components/pathway/nodes/ActionNode.tsx"
+        - "services/ui/src/components/pathway/nodes/ConditionNode.tsx"
+        - "services/ui/src/components/pathway/nodes/ConnectorNode.tsx"
+        - "services/ui/src/components/pathway/nodes/TriggerNode.tsx"
+        - "services/ui/src/components/pathway/nodes/ParallelNode.tsx"
+        - "services/ui/src/components/pathway/nodes/MergeNode.tsx"
+        - "services/ui/src/components/pathway/nodes/TransformNode.tsx"
+        - "services/ui/src/components/pathway/nodes/nodeTypes.ts"
+        - "services/ui/src/components/pathway/edges/PortEdge.tsx"
+        - "services/ui/src/components/pathway/hooks/usePathwayStore.ts"
+        - "services/ui/src/components/pathway/hooks/useValidation.tsx"
+        - "services/ui/src/components/pathway/hooks/usePredecessorIO.ts"
+        - "services/ui/src/components/pathway/wiring/FieldWiringPanel.tsx"
+        - "services/ui/src/components/pathway/wiring/WiringPill.tsx"
+        - "services/ui/src/components/pathway/wiring/useFieldMappings.ts"
+        - "services/ui/src/app/admin/integrations/page.tsx"
+        - "services/ui/src/app/admin/pathways/page.tsx"
+      estimated_loc: 2800
+      notes: >
+        Port-aware canvas with named input/output handles derived from SUBGRAPH_IO
+        (static) or field_mappings (dynamic, user-configured). Node configuration
+        opens in a Dialog with stepper wizard featuring coloured left-border header,
+        custom circle stepper, and auto-save on Next. Grouped node palette: Pipeline
+        Steps / Flow Control / Connectors. Condition nodes with rule builder. REST
+        and Queue Publish connector nodes. Draft/publish separation with validation
+        gate. See DI-LEO-AI-067 for version history and rollback.
 
   verification:
     method: "Test"
     phase: "OQ"
-    acceptance: "Pathway Builder produces valid PlanDefinition; visual editing works correctly"
-    test_protocol: "VT-LEO-AI-061"
+    acceptance: >
+      Pathway canvas renders named ports; node connection persists sourceHandle/targetHandle;
+      config saves to ActivityDefinition.dynamicValues; wizard covers all subgraph categories;
+      condition node routing enforced; valid PlanDefinition emitted
+    test_protocol: "VT-LEO-AI-063"
 
   safety_class: "B"
   risks: ["R-LEO-AI-015"]

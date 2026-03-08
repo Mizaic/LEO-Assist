@@ -1,4 +1,4 @@
-# -- DO-LEO-AI-062 -- Pathway Builder UI
+# -- DO-LEO-AI-062 -- Smart Few-Shot Selection + Prompt Caching
 # ISO 13485 / IEC 62304 Design Output
 # Schema: design-controls/templates/design_outputs_schema.yaml
 
@@ -8,68 +8,75 @@
   status: "draft"
 
   traceability:
-    design_inputs: ["DI-LEO-AI-061"]
-    user_needs: ["UN-LEO-AI-012"]
-    risks_addressed: ["R-LEO-AI-015"]
-    verification_tests: ["VT-LEO-AI-061"]
+    design_inputs: ["DI-LEO-AI-062"]
+    user_needs: ["UN-LEO-AI-001"]
+    risks_addressed: ["R-LEO-AI-030", "R-LEO-AI-014"]
+    verification_tests: ["VT-LEO-AI-062"]
     validation_tests: []
 
   specification:
-    title: "Pathway Builder UI"
+    title: "Smart Few-Shot Selection + Prompt Caching"
     description: |
-      No-code visual editor for designing clinical pathways. Provides
-      drag-and-drop node palette, graph canvas for connecting steps,
-      property panels for ActivityDefinition configuration, and
-      serialization to valid FHIR PlanDefinition JSON. Enables domain
-      experts to create and modify pathways without writing code.
-    purpose: "Enable visual design of clinical pathways that emit standards-compliant PlanDefinition"
-    technical_approach: "React Flow canvas, node palette, PlanDefinition serializer, schema validation"
+      Runtime prompt assembly enhancement with static core examples, dynamic
+      few-shot retrieval by similarity, and Bedrock cache-point marking.
+      Includes PromptConfig schema/API/UI support for maxFewShot and core flags
+      persisted in Neo4j.
+    purpose: "Reduce prompt token cost and size while improving relevance of in-context examples"
+    technical_approach: "Core/dynamic split, in-process vector similarity selection, provider caching marker, Neo4j-backed configuration"
     acceptance_criteria:
       - criterion: "Visual editing"
         type: "functional"
         measurement: "Test"
-        target: "Users can add nodes, connect them, and configure properties"
+        target: "Users can set maxFewShot and per-example core flag in admin prompt editor"
       - criterion: "PlanDefinition output"
         type: "functional"
         measurement: "Test"
-        target: "Serialized output validates as FHIR R4 PlanDefinition"
+        target: "Extractor applies maxFewShot cap and splits core/dynamic examples correctly"
       - criterion: "Save and load"
         type: "functional"
         measurement: "Test"
-        target: "Pathways persist and load correctly"
+        target: "Prompt config fields persist/load via API and Neo4j"
 
   implementation:
     artifacts:
       - artifact_type: "source_code"
-        location: "services/ui/src/components/pathway/PathwayBuilder.tsx"
-        description: "Main Pathway Builder component with canvas"
+        location: "libs/pipeline_graph/subgraphs/_extractor.py"
+        description: "Core/dynamic few-shot split and dynamic selection integration"
         storage_location: "git"
       - artifact_type: "source_code"
-        location: "services/ui/src/components/pathway/PlanDefinitionEditor.tsx"
-        description: "PlanDefinition property editor"
+        location: "libs/prompts/few_shot_selector.py"
+        description: "FewShotSelector similarity ranking with graceful fallback"
         storage_location: "git"
       - artifact_type: "source_code"
-        location: "services/ui/src/components/pathway/NodePalette.tsx"
-        description: "Drag-and-drop node palette"
+        location: "libs/llm_client/factory.py"
+        description: "Bedrock cachePoint prompt marker"
         storage_location: "git"
       - artifact_type: "source_code"
-        location: "libs/fhir/plandefinition_serializer.ts"
-        description: "Graph to FHIR PlanDefinition serializer"
+        location: "services/ui/src/app/admin/prompts/[id]/page.tsx"
+        description: "Prompt editor controls for maxFewShot and core toggle"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/api/app/routers/prompts.py"
+        description: "Prompt API persistence of maxFewShot/core"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "libs/cypher/prompt_config_queries.py"
+        description: "Neo4j prompt config schema/query fields for max_few_shot"
         storage_location: "git"
     technical_details:
       language: ["TypeScript"]
-      framework: ["React", "React Flow"]
+      framework: ["Python", "FastAPI", "Next.js", "React"]
 
   safety_characteristics:
     safety_class: "B"
-    safety_critical_functions: ["PlanDefinition schema validation", "Data integrity on save"]
+    safety_critical_functions: ["Prompt token budget control", "Deterministic fallback selection", "Configuration persistence integrity"]
 
   verification_status:
     verification_method: "Test"
     verification_complete: false
 
   production_information:
-    deployment_instructions: "Part of services/ui; deployed with Operations UI"
+    deployment_instructions: "Backend + UI prompt-management deployment; no data migration required (defaults apply)"
 
   documentation:
     design_documentation: []
@@ -83,12 +90,12 @@
   version_history:
     - version: "1.0.0"
       date: "2026-03-07"
-      changes: "Initial creation"
-      reason: "Implement no-code Pathway Builder"
+      changes: "Implement smart few-shot selection and Bedrock prompt caching controls"
+      reason: "Control prompt size/cost while preserving extraction quality"
       author: "Engineering Team"
       approval_status: "draft"
 
   metadata:
-    tags: ["pathway-builder", "ui", "no-code", "plandefinition", "visual-editor"]
+    tags: ["prompt", "few-shot", "caching", "neo4j", "admin-ui"]
     priority: "medium"
     complexity: "complex"

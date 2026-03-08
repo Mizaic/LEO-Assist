@@ -51,21 +51,24 @@ def _slug(name: str) -> str:
 
 def _row(rec: dict[str, Any]) -> dict[str, Any]:
     return {
-        "preset_id":        rec.get("preset_id", ""),
-        "name":             rec.get("name", ""),
-        "description":      rec.get("description", ""),
-        "consensus_mode":   bool(rec.get("consensus_mode", False)),
-        "primary_model":    rec.get("primary_model") or "aws:small",
-        "secondary_model":  rec.get("secondary_model") or "azure:small",
-        "tiebreaker_model": rec.get("tiebreaker_model") or "aws:big",
-        "extractor":        rec.get("extractor") or "llm",
-        "strict":           bool(rec.get("strict", False)),
-        "prompt_config_id": rec.get("prompt_config_id") or "",
-        "color":            rec.get("color") or "primary",
-        "is_default":       bool(rec.get("is_default", False)),
-        "is_system":        bool(rec.get("is_system", False)),
-        "created_at":       rec.get("created_at"),
-        "updated_at":       rec.get("updated_at"),
+        "preset_id":             rec.get("preset_id", ""),
+        "name":                  rec.get("name", ""),
+        "description":           rec.get("description", ""),
+        "consensus_mode":        bool(rec.get("consensus_mode", False)),
+        "primary_model":         rec.get("primary_model") or "aws:small",
+        "secondary_model":       rec.get("secondary_model") or "azure:small",
+        "tiebreaker_model":      rec.get("tiebreaker_model") or "aws:big",
+        "extractor":             rec.get("extractor") or "llm",
+        "strict":                bool(rec.get("strict", False)),
+        "prompt_config_id":      rec.get("prompt_config_id") or "",
+        "color":                 rec.get("color") or "primary",
+        # GPT-5 and NER models do not honour temperature; explicitly stored on the preset
+        # so the pathway builder can show/hide the temperature slider without heuristics.
+        "supports_temperature":  bool(rec.get("supports_temperature", True)),
+        "is_default":            bool(rec.get("is_default", False)),
+        "is_system":             bool(rec.get("is_system", False)),
+        "created_at":            rec.get("created_at"),
+        "updated_at":            rec.get("updated_at"),
     }
 
 
@@ -82,6 +85,9 @@ class PresetRequest(BaseModel):
     prompt_config_id: str = ""
     color: str = "primary"
     preset_id: str = ""
+    # GPT-5 and NER models ignore temperature; set explicitly so the pathway
+    # builder can show or hide the temperature slider without provider heuristics.
+    supports_temperature: bool = True
 
 
 @router.get("")
@@ -132,6 +138,7 @@ def upsert_preset(body: PresetRequest) -> dict[str, Any]:
                 strict=body.strict,
                 prompt_config_id=body.prompt_config_id or None,
                 color=body.color,
+                supports_temperature=body.supports_temperature,
                 is_default=None,
                 is_system=None,
             )

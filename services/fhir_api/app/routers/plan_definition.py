@@ -1,8 +1,10 @@
-"""FHIR PlanDefinition CRUD and $apply endpoints."""
+"""FHIR PlanDefinition CRUD, version history, and $apply endpoints."""
 
 from __future__ import annotations
 
 import json
+import uuid
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
@@ -11,6 +13,8 @@ from libs.neo4j_client.client import KnowledgeGraphClient
 
 router = APIRouter()
 
+
+# ── Search ─────────────────────────────────────────────────────────────────────
 
 @router.get("/PlanDefinition")
 def search_plan_definitions(
@@ -49,6 +53,8 @@ def search_plan_definitions(
         client.close()
 
 
+# ── Single fetch ───────────────────────────────────────────────────────────────
+
 @router.get("/PlanDefinition/{plan_id}")
 def get_plan_definition(plan_id: str):
     client = KnowledgeGraphClient()
@@ -64,10 +70,91 @@ def get_plan_definition(plan_id: str):
         client.close()
 
 
+# ── Version history ────────────────────────────────────────────────────────────
+
+@router.get("/PlanDefinition/{plan_id}/_history")
+def get_plan_definition_history(plan_id: str):
+    """Return all published version snapshots for this pathway as a FHIR history Bundle."""
+    client = KnowledgeGraphClient()
+    try:
+        plan_rows = client.run(
+            "MATCH (pd:PlanDefinition {id: $pid}) RETURN pd.id AS id LIMIT 1",
+            pid=plan_id,
+        )
+        if not plan_rows:
+            raise HTTPException(404, f"PlanDefinition/{plan_id} not found")
+
+        rows = client.run(
+            "MATCH (pd:PlanDefinition {id: $pid})-[:HAS_VERSION]->(v:PlanDefinitionVersion) "
+            "RETURN v.versionId AS versionId, v.rawJson AS rawJson, "
+            "       v.publishedAt AS publishedAt, v.versionNotes AS versionNotes, "
+            "       v.status AS status "
+            "ORDER BY v.versionId DESC",
+            pid=plan_id,
+        )
+
+        entries = []
+        for r in rows:
+            try:
+                resource = json.loads(r["rawJson"])
+            except Exception:
+                resource = {"id": plan_id, "resourceType": "PlanDefinition"}
+
+            resource["meta"] = {
+                "versionId": str(r["versionId"]),
+                "lastUpdated": r.get("publishedAt") or "",
+                "versionNotes": r.get("versionNotes") or "",
+            }
+            entries.append({
+                "fullUrl": f"PlanDefinition/{plan_id}/_history/{r['versionId']}",
+                "resource": resource,
+            })
+
+        return {
+            "resourceType": "Bundle",
+            "type": "history",
+            "total": len(entries),
+            "entry": entries,
+        }
+    finally:
+        client.close()
+
+
+# ── Restore a previous version ─────────────────────────────────────────────────
+
+@router.post("/PlanDefinition/{plan_id}/_restore/{version_id}")
+def restore_plan_definition_version(plan_id: str, version_id: int):
+    """Restore a previous published snapshot to live. Creates a new version entry."""
+    client = KnowledgeGraphClient()
+    try:
+        rows = client.run(
+            "MATCH (:PlanDefinition {id: $pid})-[:HAS_VERSION]->(v:PlanDefinitionVersion {versionId: $vid}) "
+            "RETURN v.rawJson AS rawJson LIMIT 1",
+            pid=plan_id, vid=version_id,
+        )
+        if not rows or not rows[0].get("rawJson"):
+            raise HTTPException(404, f"Version {version_id} not found for PlanDefinition/{plan_id}")
+        raw: Dict[str, Any] = json.loads(rows[0]["rawJson"])
+    finally:
+        client.close()
+
+    # Publish the restored snapshot; this will create a new version entry in the history.
+    raw["status"] = "active"
+    raw["versionNotes"] = f"Rolled back to v{version_id}"
+    return upsert_plan_definition(plan_id, raw)
+
+
+# ── Upsert (create / update) ───────────────────────────────────────────────────
+
 @router.put("/PlanDefinition/{plan_id}")
 def upsert_plan_definition(plan_id: str, resource: Dict[str, Any]):
     resource["id"] = plan_id
     resource.setdefault("resourceType", "PlanDefinition")
+
+    # Pull version notes out before they pollute rawJson.
+    version_notes: str = resource.pop("versionNotes", "") or ""
+    if not version_notes and isinstance(resource.get("meta"), dict):
+        version_notes = resource["meta"].pop("versionNotes", "") or ""
 
     ui_actions = resource.get("actions")
     fhir_actions: List[Dict[str, Any]] = resource.get("action", [])
@@ -81,6 +168,7 @@ def upsert_plan_definition(plan_id: str, resource: Dict[str, Any]):
 
     client = KnowledgeGraphClient()
     try:
+        # 1. Upsert the live node (MERGE ensures the node exists before we link versions).
         client.run(
             "MERGE (pd:PlanDefinition {id: $pid}) "
             "SET pd.rawJson = $raw, pd.status = $status, "
@@ -90,6 +178,32 @@ def upsert_plan_definition(plan_id: str, resource: Dict[str, Any]):
             status=resource.get("status"),
             name=resource.get("name"),
         )
+
+        # 2. When publishing to active, snapshot the current state as an immutable version.
+        if resource.get("status") == "active":
+            ver_rows = client.run(
+                "MATCH (pd:PlanDefinition {id: $pid})-[:HAS_VERSION]->(v:PlanDefinitionVersion) "
+                "RETURN coalesce(max(v.versionId), 0) AS max_ver",
+                pid=plan_id,
+            )
+            next_ver = (ver_rows[0]["max_ver"] or 0) + 1 if ver_rows else 1
+            now = datetime.now(timezone.utc).isoformat()
+            client.run(
+                "MATCH (pd:PlanDefinition {id: $pid}) "
+                "CREATE (pd)-[:HAS_VERSION]->(v:PlanDefinitionVersion {"
+                "  id: $vid, planId: $pid, versionId: $ver, "
+                "  status: 'active', rawJson: $raw, "
+                "  publishedAt: $now, versionNotes: $notes "
+                "})",
+                pid=plan_id,
+                vid=str(uuid.uuid4()),
+                ver=next_ver,
+                raw=json.dumps(resource),
+                now=now,
+                notes=version_notes,
+            )
+
+        # 3. Rebuild the action graph.
         client.run(
             "MATCH (pd:PlanDefinition {id: $pid})-[r:HAS_ACTION]->(a:Action) "
             "DETACH DELETE a",
@@ -97,10 +211,85 @@ def upsert_plan_definition(plan_id: str, resource: Dict[str, Any]):
         )
         for action in fhir_actions:
             _upsert_action(client, plan_id, action)
+
         return resource
     finally:
         client.close()
 
+
+# ── Delete ─────────────────────────────────────────────────────────────────────
+
+@router.delete("/PlanDefinition/{plan_id}", status_code=204)
+def delete_plan_definition(plan_id: str):
+    client = KnowledgeGraphClient()
+    try:
+        client.run(
+            "MATCH (pd:PlanDefinition {id: $pid}) "
+            "OPTIONAL MATCH (pd)-[:HAS_ACTION]->(a:Action) "
+            "OPTIONAL MATCH (pd)-[:HAS_VERSION]->(v:PlanDefinitionVersion) "
+            "DETACH DELETE a, v, pd",
+            pid=plan_id,
+        )
+    finally:
+        client.close()
+
+
+# ── $apply ─────────────────────────────────────────────────────────────────────
+
+@router.post("/PlanDefinition/{plan_id}/$apply")
+def apply_plan_definition(plan_id: str, body: Dict[str, Any]):
+    """Evaluate which actions should trigger for a patient given the current event."""
+    event_type = body.get("event_type", "")
+    patient_id = body.get("patient_id", "")
+    if not event_type or not patient_id:
+        raise HTTPException(400, "event_type and patient_id are required")
+
+    client = KnowledgeGraphClient()
+    try:
+        rows = client.run(
+            "MATCH (pd:PlanDefinition {id: $pid}) RETURN pd.status AS status LIMIT 1",
+            pid=plan_id,
+        )
+        if not rows:
+            raise HTTPException(404, f"PlanDefinition/{plan_id} not found")
+        if rows[0].get("status") != "active":
+            raise HTTPException(409, "PlanDefinition is not active")
+
+        action_rows = client.run(
+            "MATCH (pd:PlanDefinition {id: $pid})-[:HAS_ACTION]->(a:Action) "
+            "WHERE a.trigger_type = 'data-changed' AND a.trigger_name = $evt "
+            "OPTIONAL MATCH (a)-[:USES_DEFINITION]->(ad:ActivityDefinition) "
+            "RETURN a.id AS actionId, a.trigger_type AS triggerType, "
+            "       a.trigger_name AS triggerName, a.condition AS condition, "
+            "       ad.subgraphId AS subgraphId, ad.id AS activityId "
+            "ORDER BY a.sequence",
+            pid=plan_id, evt=event_type,
+        )
+        matched = [
+            {
+                "actionId": r["actionId"],
+                "triggerType": r["triggerType"],
+                "triggerName": r["triggerName"],
+                "condition": r.get("condition"),
+                "subgraphId": r.get("subgraphId"),
+                "activityDefinitionId": r.get("activityId"),
+            }
+            for r in action_rows
+        ]
+        return {
+            "resourceType": "Parameters",
+            "parameter": [
+                {"name": "planDefinitionId", "valueString": plan_id},
+                {"name": "patientId", "valueString": patient_id},
+                {"name": "matchedActions", "valueInteger": len(matched)},
+                {"name": "actions", "resource": matched},
+            ],
+        }
+    finally:
+        client.close()
+
+
+# ── Internal helpers ───────────────────────────────────────────────────────────
 
 def _ui_actions_to_fhir(
     ui_actions: List[Dict[str, Any]],
@@ -153,76 +342,6 @@ def _ui_actions_to_fhir(
     return fhir_actions
 
 
-@router.delete("/PlanDefinition/{plan_id}", status_code=204)
-def delete_plan_definition(plan_id: str):
-    client = KnowledgeGraphClient()
-    try:
-        client.run(
-            "MATCH (pd:PlanDefinition {id: $pid}) "
-            "OPTIONAL MATCH (pd)-[:HAS_ACTION]->(a:Action) "
-            "DETACH DELETE a, pd",
-            pid=plan_id,
-        )
-    finally:
-        client.close()
-
-
-@router.post("/PlanDefinition/{plan_id}/$apply")
-def apply_plan_definition(
-    plan_id: str,
-    body: Dict[str, Any],
-):
-    """Evaluate which actions should trigger for a patient given the current event."""
-    event_type = body.get("event_type", "")
-    patient_id = body.get("patient_id", "")
-    if not event_type or not patient_id:
-        raise HTTPException(400, "event_type and patient_id are required")
-
-    client = KnowledgeGraphClient()
-    try:
-        rows = client.run(
-            "MATCH (pd:PlanDefinition {id: $pid}) RETURN pd.status AS status LIMIT 1",
-            pid=plan_id,
-        )
-        if not rows:
-            raise HTTPException(404, f"PlanDefinition/{plan_id} not found")
-        if rows[0].get("status") != "active":
-            raise HTTPException(409, "PlanDefinition is not active")
-
-        action_rows = client.run(
-            "MATCH (pd:PlanDefinition {id: $pid})-[:HAS_ACTION]->(a:Action) "
-            "WHERE a.trigger_type = 'data-changed' AND a.trigger_name = $evt "
-            "OPTIONAL MATCH (a)-[:USES_DEFINITION]->(ad:ActivityDefinition) "
-            "RETURN a.id AS actionId, a.trigger_type AS triggerType, "
-            "       a.trigger_name AS triggerName, a.condition AS condition, "
-            "       ad.subgraphId AS subgraphId, ad.id AS activityId "
-            "ORDER BY a.sequence",
-            pid=plan_id, evt=event_type,
-        )
-        matched = [
-            {
-                "actionId": r["actionId"],
-                "triggerType": r["triggerType"],
-                "triggerName": r["triggerName"],
-                "condition": r.get("condition"),
-                "subgraphId": r.get("subgraphId"),
-                "activityDefinitionId": r.get("activityId"),
-            }
-            for r in action_rows
-        ]
-        return {
-            "resourceType": "Parameters",
-            "parameter": [
-                {"name": "planDefinitionId", "valueString": plan_id},
-                {"name": "patientId", "valueString": patient_id},
-                {"name": "matchedActions", "valueInteger": len(matched)},
-                {"name": "actions", "resource": matched},
-            ],
-        }
-    finally:
-        client.close()
-
-
 def _upsert_action(client: KnowledgeGraphClient, plan_id: str, action: Dict[str, Any]) -> None:
     action_id = action.get("id", "")
     trigger = (action.get("trigger") or [{}])[0]
@@ -236,16 +355,15 @@ def _upsert_action(client: KnowledgeGraphClient, plan_id: str, action: Dict[str,
     definition_ref = action.get("definitionCanonical") or action.get("definitionUri", "")
     related_defs = action.get("relatedAction") or []
     related_ids = [r.get("actionId", "") for r in related_defs]
-    related_edges = []
-    for rel in related_defs:
-        related_edges.append(
-            {
-                "actionId": rel.get("actionId", ""),
-                "relationship": rel.get("relationship", "after-end"),
-                "sourceHandle": rel.get("sourceHandle"),
-                "targetHandle": rel.get("targetHandle"),
-            }
-        )
+    related_edges = [
+        {
+            "actionId": rel.get("actionId", ""),
+            "relationship": rel.get("relationship", "after-end"),
+            "sourceHandle": rel.get("sourceHandle"),
+            "targetHandle": rel.get("targetHandle"),
+        }
+        for rel in related_defs
+    ]
 
     client.run(
         "MATCH (pd:PlanDefinition {id: $pid}) "
@@ -286,9 +404,6 @@ def _upsert_action(client: KnowledgeGraphClient, plan_id: str, action: Dict[str,
                 }
             ),
         )
-
-    if definition_ref:
-        activity_id = definition_ref.split("/")[-1]
         client.run(
             "MATCH (a:Action {id: $aid}) "
             "MATCH (ad:ActivityDefinition {id: $adid}) "

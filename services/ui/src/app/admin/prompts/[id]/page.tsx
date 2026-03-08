@@ -34,6 +34,8 @@ import FilterListIcon from "@mui/icons-material/FilterList";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import EditIcon from "@mui/icons-material/Edit";
 import VisibilityIcon from "@mui/icons-material/Visibility";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import ScienceIcon from "@mui/icons-material/Science";
 import MarkdownEditor from "@/components/markdown-editor";
 import type { MarkdownEditorHandle } from "@/components/markdown-editor";
 import SchemaBuilder from "@/components/schema-builder/SchemaBuilder";
@@ -397,6 +399,46 @@ export default function PromptTunerPage() {
   const [filterCat,   setFilterCat]   = useState("");
   const [filterScope, setFilterScope] = useState("");
 
+  // Sandbox (Tab 3) state
+  const [sandboxText,     setSandboxText]     = useState("");
+  const [sandboxPresetId, setSandboxPresetId] = useState<string>("__custom__");
+  const [sandboxProvider, setSandboxProvider] = useState<"aws" | "azure">("aws");
+  const [sandboxTier,     setSandboxTier]     = useState<"small" | "big" | "max">("small");
+  const [sandboxDryRun,   setSandboxDryRun]   = useState(true);
+  const [sandboxRunning,  setSandboxRunning]  = useState(false);
+  const [sandboxError,    setSandboxError]    = useState<string | null>(null);
+
+  type CostBreakdown = { totalCost: number; inputCost?: number; outputCost?: number; cachedInputCost?: number; uncachedInputCost?: number };
+  type CostEstimate = {
+    role: "primary" | "secondary";
+    model: { key: string; displayName: string; modelId: string; costPer1mInput: number; costPer1mCachedInput: number; costPer1mOutput: number };
+    systemTokens: number; userTokens: number; estOutputTokens: number;
+    withoutCache: CostBreakdown; withCache: CostBreakdown; cacheSavingPct: number;
+  };
+
+  const [sandboxResult, setSandboxResult] = useState<null | {
+    presetName: string;
+    consensusMode: boolean;
+    systemPrompt: string;
+    coreExamples: { category: string; description: string; input: string; output: string }[];
+    selectedDynamicExamples: { category: string; description: string; input: string; output: string; _similarity_score?: number }[];
+    userMessage: string;
+    tokenEstimate: { approxSystemTokens: number; approxUserTokens: number; estOutputTokens: number };
+    costEstimates: CostEstimate[];
+    llmResponse: string | null;
+    llmTokenUsage: { inputTokens: number; outputTokens: number; cachedInputTokens: number } | null;
+    llmActualCostUsd: number | null;
+  }>(null);
+
+  type PresetItem = { preset_id: string; name: string; primary_model: string; secondary_model: string; consensus_mode: boolean; color: string };
+  const [presets, setPresets] = useState<PresetItem[]>([]);
+
+  useEffect(() => {
+    api.get<{ presets: PresetItem[] }>("/api/presets")
+      .then((data) => setPresets(data.presets || []))
+      .catch(() => { /* presets unavailable — fall back to custom */ });
+  }, []);
+
   useEffect(() => {
     if (!isNew) {
       api.get<PromptConfigData>(`/api/prompts/${promptId}`)
@@ -495,6 +537,31 @@ export default function PromptTunerPage() {
     [],
   );
 
+  const handleSandboxRun = useCallback(async () => {
+    if (!sandboxText.trim() || isNew) return;
+    setSandboxRunning(true);
+    setSandboxError(null);
+    setSandboxResult(null);
+    try {
+      const payload: Record<string, unknown> = {
+        encounterText: sandboxText,
+        dryRun: sandboxDryRun,
+      };
+      if (sandboxPresetId && sandboxPresetId !== "__custom__") {
+        payload.presetId = sandboxPresetId;
+      } else {
+        payload.provider = sandboxProvider;
+        payload.tier = sandboxTier;
+      }
+      const result = await api.post(`/api/prompts/${promptId}/simulate`, payload);
+      setSandboxResult(result as typeof sandboxResult);
+    } catch (err: unknown) {
+      setSandboxError(err instanceof Error ? err.message : "Simulation failed");
+    } finally {
+      setSandboxRunning(false);
+    }
+  }, [sandboxText, sandboxPresetId, sandboxProvider, sandboxTier, sandboxDryRun, promptId, isNew]);
+
   const filteredExamples = fewShotExamples.filter((ex) => {
     if (filterCat && ex.category !== filterCat) return false;
     if (filterScope && ex.model_scope !== filterScope) return false;
@@ -574,6 +641,15 @@ export default function PromptTunerPage() {
                 sx={{ height: 18, fontSize: "0.68rem",
                   bgcolor: fewShotExamples.length > 0 ? "primary.100" : "grey.200",
                   color: fewShotExamples.length > 0 ? "primary.main" : "text.disabled" }} />
+            </Stack>
+          }
+        />
+        <Tab
+          disabled={isNew}
+          label={
+            <Stack direction="row" alignItems="center" spacing={0.5}>
+              <ScienceIcon sx={{ fontSize: 15 }} />
+              <span>Test it</span>
             </Stack>
           }
         />
@@ -752,6 +828,274 @@ export default function PromptTunerPage() {
                 onChange={updateExample} onRemove={removeExample}
                 startInEdit={!ex.input && !ex.output} />
             ))
+          )}
+        </Box>
+      )}
+
+      {/* ── Tab 3: Test it (Prompt Sandbox) ─────────────────────────────── */}
+      {tab === 3 && (
+        <Box sx={{ pt: 2 }}>
+          <Alert severity="info" sx={{ mb: 2 }} icon={<ScienceIcon />}>
+            <Typography variant="body2" fontWeight={600} gutterBottom>
+              Prompt sandbox
+            </Typography>
+            <Typography variant="body2">
+              Paste encounter text below. The AI assembles the full prompt using this config — showing which core
+              examples go into the system prompt and which examples the RAG selector picks for the user message.
+              Toggle "Call the LLM" to get a live response.
+            </Typography>
+          </Alert>
+
+          {/* Controls strip */}
+          <Paper variant="outlined" sx={{ p: 1.5, mb: 2, borderRadius: 2 }}>
+            <Stack spacing={1.5}>
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} alignItems={{ xs: "stretch", sm: "center" }}>
+
+                {/* Preset selector */}
+                <FormControl size="small" sx={{ minWidth: 230 }}>
+                  <InputLabel>Pipeline preset</InputLabel>
+                  <Select label="Pipeline preset" value={sandboxPresetId} onChange={(e) => setSandboxPresetId(e.target.value)}>
+                    <MenuItem value="__custom__">
+                      <em>Custom (choose below)</em>
+                    </MenuItem>
+                    {presets.map((p) => (
+                      <MenuItem key={p.preset_id} value={p.preset_id}>
+                        <Stack direction="row" spacing={0.75} alignItems="center">
+                          <span>{p.name}</span>
+                          {p.consensus_mode && <Chip size="small" label="Consensus" color="info" sx={{ height: 16, fontSize: "0.6rem" }} />}
+                          <Typography variant="caption" color="text.disabled">{p.primary_model}</Typography>
+                        </Stack>
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+
+                {/* Fallback custom selectors — visible only when no preset chosen */}
+                {sandboxPresetId === "__custom__" && (
+                  <>
+                    <FormControl size="small" sx={{ minWidth: 160 }}>
+                      <InputLabel>Provider</InputLabel>
+                      <Select label="Provider" value={sandboxProvider} onChange={(e) => setSandboxProvider(e.target.value as "aws" | "azure")}>
+                        <MenuItem value="aws">AWS (Claude / Bedrock)</MenuItem>
+                        <MenuItem value="azure">Azure (OpenAI / GPT)</MenuItem>
+                      </Select>
+                    </FormControl>
+                    <FormControl size="small" sx={{ minWidth: 130 }}>
+                      <InputLabel>Model tier</InputLabel>
+                      <Select label="Model tier" value={sandboxTier} onChange={(e) => setSandboxTier(e.target.value as "small" | "big" | "max")}>
+                        <MenuItem value="small">Small (fast)</MenuItem>
+                        <MenuItem value="big">Big (quality)</MenuItem>
+                        <MenuItem value="max">Max (best)</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </>
+                )}
+
+                <FormControlLabel
+                  control={
+                    <Switch size="small" checked={!sandboxDryRun}
+                      onChange={(e) => setSandboxDryRun(!e.target.checked)} color="warning" />
+                  }
+                  label={
+                    <Stack direction="row" alignItems="center" spacing={0.5}>
+                      <Typography variant="caption">Call the LLM</Typography>
+                      <Tooltip title="When off, shows assembled prompt only (no tokens used). When on, sends it to the model and shows the real response.">
+                        <InfoOutlinedIcon sx={{ fontSize: 14, color: "text.disabled" }} />
+                      </Tooltip>
+                      {!sandboxDryRun && <Chip size="small" label="Live" color="warning" sx={{ height: 16, fontSize: "0.65rem" }} />}
+                    </Stack>
+                  }
+                  sx={{ m: 0 }}
+                />
+                <Box sx={{ flex: 1 }} />
+                <Button
+                  variant="contained"
+                  color="secondary"
+                  startIcon={sandboxRunning ? <CircularProgress size={16} color="inherit" /> : <PlayArrowIcon />}
+                  onClick={handleSandboxRun}
+                  disabled={sandboxRunning || !sandboxText.trim()}
+                >
+                  {sandboxRunning ? "Assembling…" : "Assemble prompt"}
+                </Button>
+              </Stack>
+            </Stack>
+          </Paper>
+
+          {/* Encounter text input */}
+          <TextField
+            fullWidth
+            multiline
+            minRows={5}
+            size="small"
+            label="Encounter text (paste clinical note here)"
+            placeholder={"[s0] Patient reports no chest pain.\n[s1] BP 142/88 mmHg.\n[s2] Known T2DM, HbA1c 58 mmol/mol."}
+            value={sandboxText}
+            onChange={(e) => setSandboxText(e.target.value)}
+            sx={{ mb: 2, fontFamily: "monospace" }}
+            inputProps={{ style: { fontFamily: "monospace", fontSize: "0.82rem" } }}
+          />
+
+          {sandboxError && (
+            <Alert severity="error" sx={{ mb: 2 }} onClose={() => setSandboxError(null)}>
+              {sandboxError}
+            </Alert>
+          )}
+
+          {sandboxResult && (
+            <Stack spacing={2}>
+
+              {/* Cost table */}
+              <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 2 }}>
+                <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
+                  <Typography variant="caption" fontWeight={700} color="text.secondary">
+                    COST ESTIMATE
+                  </Typography>
+                  {sandboxResult.presetName && (
+                    <Chip size="small" label={sandboxResult.presetName} color="primary" variant="outlined" sx={{ height: 18, fontSize: "0.62rem" }} />
+                  )}
+                  {sandboxResult.consensusMode && (
+                    <Chip size="small" label="Consensus" color="info" sx={{ height: 18, fontSize: "0.62rem" }} />
+                  )}
+                  <Stack direction="row" spacing={0.5} sx={{ ml: "auto" }}>
+                    <Chip size="small" label={`System ${sandboxResult.tokenEstimate.approxSystemTokens.toLocaleString()} tok`} variant="outlined" sx={{ height: 18, fontSize: "0.6rem" }} />
+                    <Chip size="small" label={`User ${sandboxResult.tokenEstimate.approxUserTokens.toLocaleString()} tok`} variant="outlined" color="secondary" sx={{ height: 18, fontSize: "0.6rem" }} />
+                    <Chip size="small" label={`Output ~${sandboxResult.tokenEstimate.estOutputTokens} tok`} variant="outlined" color="info" sx={{ height: 18, fontSize: "0.6rem" }} />
+                    <Chip size="small" label={`Core: ${sandboxResult.coreExamples.length}  Dynamic: ${sandboxResult.selectedDynamicExamples.length}`} variant="outlined" color="success" sx={{ height: 18, fontSize: "0.6rem" }} />
+                  </Stack>
+                </Stack>
+
+                {/* Header row */}
+                <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 80px", gap: 0.5, mb: 0.5 }}>
+                  {["Model", "Without cache (call 1)", "With cache (call 2+)", "Saving"].map((h) => (
+                    <Typography key={h} variant="caption" fontWeight={700} color="text.disabled" sx={{ fontSize: "0.65rem" }}>{h}</Typography>
+                  ))}
+                </Box>
+                <Divider sx={{ mb: 0.75 }} />
+
+                {sandboxResult.costEstimates.map((ce, idx) => (
+                  <Box key={idx} sx={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 80px", gap: 0.5, mb: 0.75, alignItems: "start" }}>
+                    {/* Model cell */}
+                    <Stack spacing={0.25}>
+                      <Stack direction="row" spacing={0.5} alignItems="center">
+                        {ce.role === "secondary" && <Chip size="small" label="2nd" color="secondary" sx={{ height: 16, fontSize: "0.58rem" }} />}
+                        <Typography variant="caption" fontWeight={600} sx={{ fontSize: "0.7rem", lineHeight: 1.2 }}>
+                          {ce.model.displayName}
+                        </Typography>
+                      </Stack>
+                      <Typography variant="caption" color="text.disabled" sx={{ fontFamily: "monospace", fontSize: "0.58rem" }}>
+                        ${ce.model.costPer1mInput}/M in · ${ce.model.costPer1mCachedInput}/M cached · ${ce.model.costPer1mOutput}/M out
+                      </Typography>
+                    </Stack>
+
+                    {/* Without cache */}
+                    <Stack spacing={0.2}>
+                      <Typography variant="caption" fontWeight={700} sx={{ fontSize: "0.72rem", color: "warning.dark" }}>
+                        ${ce.withoutCache.totalCost.toFixed(5)}
+                      </Typography>
+                      <Typography variant="caption" color="text.disabled" sx={{ fontSize: "0.6rem" }}>
+                        Input ${ce.withoutCache.inputCost?.toFixed(5)} + Out ${ce.withoutCache.outputCost?.toFixed(5)}
+                      </Typography>
+                    </Stack>
+
+                    {/* With cache */}
+                    <Stack spacing={0.2}>
+                      <Typography variant="caption" fontWeight={700} sx={{ fontSize: "0.72rem", color: "success.dark" }}>
+                        ${ce.withCache.totalCost.toFixed(5)}
+                      </Typography>
+                      <Typography variant="caption" color="text.disabled" sx={{ fontSize: "0.6rem" }}>
+                        Cached ${ce.withCache.cachedInputCost?.toFixed(5)} + User ${ce.withCache.uncachedInputCost?.toFixed(5)} + Out ${ce.withCache.outputCost?.toFixed(5)}
+                      </Typography>
+                    </Stack>
+
+                    {/* Saving */}
+                    <Chip
+                      size="small"
+                      label={`${ce.cacheSavingPct.toFixed(1)}%`}
+                      color={ce.cacheSavingPct > 50 ? "success" : ce.cacheSavingPct > 20 ? "warning" : "default"}
+                      sx={{ height: 22, fontSize: "0.65rem", fontWeight: 700, alignSelf: "center" }}
+                    />
+                  </Box>
+                ))}
+
+                {/* Actual LLM token usage (live call only) */}
+                {sandboxResult.llmTokenUsage && (
+                  <>
+                    <Divider sx={{ my: 0.75 }} />
+                    <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap alignItems="center">
+                      <Typography variant="caption" color="text.disabled" fontWeight={600}>ACTUAL (live call)</Typography>
+                      <Chip size="small" label={`Input ${sandboxResult.llmTokenUsage.inputTokens.toLocaleString()} tok`} color="primary" sx={{ height: 18, fontSize: "0.62rem" }} />
+                      {sandboxResult.llmTokenUsage.cachedInputTokens > 0 && (
+                        <Chip size="small" label={`Cached ${sandboxResult.llmTokenUsage.cachedInputTokens.toLocaleString()} tok`} color="success" sx={{ height: 18, fontSize: "0.62rem" }} />
+                      )}
+                      <Chip size="small" label={`Output ${sandboxResult.llmTokenUsage.outputTokens.toLocaleString()} tok`} color="secondary" sx={{ height: 18, fontSize: "0.62rem" }} />
+                      {sandboxResult.llmActualCostUsd != null && (
+                        <Chip size="small" label={`$${sandboxResult.llmActualCostUsd.toFixed(5)}`}
+                          sx={{ height: 20, fontSize: "0.68rem", bgcolor: "success.100", color: "success.dark", fontWeight: 700 }} />
+                      )}
+                    </Stack>
+                  </>
+                )}
+              </Paper>
+
+              {/* Dynamic examples selected */}
+              {sandboxResult.selectedDynamicExamples.length > 0 && (
+                <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 2 }}>
+                  <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ display: "block", mb: 1 }}>
+                    RAG-SELECTED DYNAMIC EXAMPLES (placed in user message)
+                  </Typography>
+                  <Stack spacing={0.75}>
+                    {sandboxResult.selectedDynamicExamples.map((ex, i) => (
+                      <Stack key={i} direction="row" spacing={0.75} alignItems="center" flexWrap="wrap" useFlexGap>
+                        <Chip size="small" label={`#${i + 1}`} sx={{ height: 18, fontSize: "0.62rem" }} />
+                        {ex.category && <Chip size="small" label={ex.category} color={categoryColor(ex.category)} sx={{ height: 18, fontSize: "0.62rem" }} />}
+                        {ex.description && <Typography variant="caption" color="text.secondary" fontStyle="italic">{ex.description}</Typography>}
+                        {ex._similarity_score !== undefined && (
+                          <Chip size="small" label={`score: ${ex._similarity_score.toFixed(3)}`} variant="outlined" sx={{ height: 18, fontSize: "0.62rem" }} />
+                        )}
+                      </Stack>
+                    ))}
+                  </Stack>
+                </Paper>
+              )}
+
+              {/* Assembled system prompt */}
+              <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 2 }}>
+                <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ display: "block", mb: 0.75 }}>
+                  ASSEMBLED SYSTEM PROMPT (static cacheable prefix)
+                </Typography>
+                <Box component="pre"
+                  sx={{ fontFamily: "monospace", fontSize: "0.72rem", whiteSpace: "pre-wrap", wordBreak: "break-word",
+                    maxHeight: 320, overflow: "auto", bgcolor: "grey.50", p: 1, borderRadius: 1, m: 0 }}>
+                  {sandboxResult.systemPrompt}
+                </Box>
+              </Paper>
+
+              {/* User message */}
+              <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 2 }}>
+                <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ display: "block", mb: 0.75 }}>
+                  USER MESSAGE (dynamic examples + encounter)
+                </Typography>
+                <Box component="pre"
+                  sx={{ fontFamily: "monospace", fontSize: "0.72rem", whiteSpace: "pre-wrap", wordBreak: "break-word",
+                    maxHeight: 320, overflow: "auto", bgcolor: "grey.50", p: 1, borderRadius: 1, m: 0 }}>
+                  {sandboxResult.userMessage}
+                </Box>
+              </Paper>
+
+              {/* LLM response */}
+              {sandboxResult.llmResponse !== null && (
+                <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 2, borderColor: sandboxResult.llmResponse.startsWith("[LLM") ? "warning.main" : "success.main" }}>
+                  <Typography variant="caption" fontWeight={700} color={sandboxResult.llmResponse.startsWith("[LLM") ? "warning.main" : "success.main"} sx={{ display: "block", mb: 0.75 }}>
+                    LLM RESPONSE
+                  </Typography>
+                  <Box component="pre"
+                    sx={{ fontFamily: "monospace", fontSize: "0.72rem", whiteSpace: "pre-wrap", wordBreak: "break-word",
+                      maxHeight: 400, overflow: "auto", bgcolor: "grey.50", p: 1, borderRadius: 1, m: 0 }}>
+                    {sandboxResult.llmResponse}
+                  </Box>
+                </Paper>
+              )}
+            </Stack>
           )}
         </Box>
       )}

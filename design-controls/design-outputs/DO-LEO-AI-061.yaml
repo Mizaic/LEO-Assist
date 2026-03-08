@@ -8,10 +8,10 @@
   status: "draft"
 
   traceability:
-    design_inputs: ["DI-LEO-AI-060", "DI-LEO-AI-018"]
-    user_needs: ["UN-LEO-AI-012"]
-    risks_addressed: ["R-LEO-AI-015"]
-    verification_tests: ["VT-LEO-AI-060"]
+    design_inputs: ["DI-LEO-AI-060", "DI-LEO-AI-061", "DI-LEO-AI-063"]
+    user_needs: ["UN-LEO-AI-012", "UN-LEO-AI-011"]
+    risks_addressed: ["R-LEO-AI-015", "R-LEO-AI-025"]
+    verification_tests: ["VT-LEO-AI-063"]
     validation_tests: []
 
   specification:
@@ -42,16 +42,12 @@
   implementation:
     artifacts:
       - artifact_type: "source_code"
-        location: "libs/workflow/plandefinition_loader.py"
-        description: "Load and parse FHIR PlanDefinition resources"
+        location: "services/ui/src/app/admin/pathways/[id]/page.tsx"
+        description: "Main canvas page: Dialog wizard, grouped node palette, port-to-port edge persistence"
         storage_location: "git"
       - artifact_type: "source_code"
-        location: "libs/workflow/activity_resolver.py"
-        description: "Resolve ActivityDefinition to step handlers"
-        storage_location: "git"
-      - artifact_type: "source_code"
-        location: "libs/pipeline_graph/plandef_graph_builder.py"
-        description: "Convert PlanDefinition to LangGraph executable"
+        location: "services/ui/src/components/pathway/"
+        description: "Modular canvas components: nodes, edges, hooks, wiring, config"
         storage_location: "git"
     technical_details:
       language: ["Python 3.11"]

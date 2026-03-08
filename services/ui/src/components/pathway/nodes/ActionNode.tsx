@@ -18,7 +18,10 @@ const PORT_COLORS: Record<PortDefinition["dataType"], string> = {
 
 function ActionNodeComponent({ data, selected }: NodeProps) {
   const actionData = data as unknown as ActionNodeData;
-  const ports = useMemo(() => getPortsFromDescriptor(actionData.subgraphId), [actionData.subgraphId]);
+  const ports = useMemo(
+    () => getPortsFromDescriptor(actionData.subgraphId, actionData.fieldMappings),
+    [actionData.subgraphId, actionData.fieldMappings],
+  );
   const inputs = ports.filter((p) => p.direction === "input");
   const outputs = ports.filter((p) => p.direction === "output");
 

@@ -10,52 +10,24 @@ See infra/bicep/modules/ods-sync-job.bicep for the job configuration.
 from __future__ import annotations
 
 import logging
-import os
 import sys
+from pathlib import Path
 
+from dotenv import load_dotenv
+from libs.keyvault.loader import load_keyvault_secrets
 from libs.utils.logging import configure_logging
+
+_ROOT = Path(__file__).resolve().parents[3]
+load_dotenv(_ROOT / "secrets" / ".env.config", override=True)
+load_keyvault_secrets()
 
 configure_logging(service_name="ods-sync")
 
 logger = logging.getLogger(__name__)
 
 
-def _load_secrets_from_keyvault() -> None:
-    """Attempt to load secrets from Azure Key Vault into environment variables.
-
-    Falls back silently if Key Vault is not configured (local dev / test).
-    """
-    vault_url = os.environ.get("AZURE_KEYVAULT_URL", "")
-    if not vault_url:
-        logger.info("[ODS Sync] No AZURE_KEYVAULT_URL — using environment variables")
-        return
-    try:
-        from azure.identity import ManagedIdentityCredential
-        from azure.keyvault.secrets import SecretClient
-        credential = ManagedIdentityCredential()
-        client = SecretClient(vault_url=vault_url, credential=credential)
-        secret_map = {
-            "NEO4J-PATIENT-URI": "NEO4J_PATIENT_URI",
-            "NEO4J-PATIENT-USER": "NEO4J_PATIENT_USER",
-            "NEO4J-PATIENT-PASSWORD": "NEO4J_PATIENT_PASSWORD",
-        }
-        for kv_name, env_name in secret_map.items():
-            if not os.environ.get(env_name):
-                try:
-                    secret = client.get_secret(kv_name)
-                    os.environ[env_name] = secret.value or ""
-                    logger.debug("[ODS Sync] Loaded %s from Key Vault", env_name)
-                except Exception as exc:
-                    logger.warning("[ODS Sync] Could not load %s from Key Vault: %s", kv_name, exc)
-    except ImportError:
-        logger.warning("[ODS Sync] azure-keyvault-secrets not installed — skipping Key Vault")
-    except Exception as exc:
-        logger.error("[ODS Sync] Key Vault initialisation failed: %s", exc)
-
-
 def main() -> int:
     """Run the ODS sync job. Returns 0 on success, 1 on fatal error."""
-    _load_secrets_from_keyvault()
 
     try:
         from libs.neo4j_client.client import PatientGraphClient

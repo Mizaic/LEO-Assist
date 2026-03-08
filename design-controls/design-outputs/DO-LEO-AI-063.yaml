@@ -1,0 +1,93 @@
+# -- DO-LEO-AI-063 -- NICE Syndication API Client and Structured Guideline Ingest
+
+- id: "DO-LEO-AI-063"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-063"]
+    user_needs: ["UN-LEO-AI-028"]
+    risks_addressed: ["R-LEO-AI-042", "R-LEO-AI-043"]
+    verification_tests: ["VT-LEO-AI-063"]
+    validation_tests: []
+
+  specification:
+    title: "NICE Syndication API Client and Guideline Ingest Pipeline"
+    description: |
+      Three-file implementation providing: async NICE API client with Redis-cached
+      guideline catalogue; idempotent Neo4j upsert of Guideline, Recommendation,
+      and Section nodes; FastAPI router with catalogue search, fire-and-track ingest,
+      SSE progress stream, and job status endpoints. No LLM anywhere in this pipeline.
+    purpose: "Load authoritative NICE guideline content into Neo4j from the official API"
+    technical_approach: "httpx async client + Neo4j MERGE + Redis catalogue cache + SSE"
+    acceptance_criteria:
+      - criterion: "Idempotent ingest"
+        type: "functional"
+        measurement: "Test"
+        target: "Calling upsert_guideline twice creates exactly one Guideline node"
+      - criterion: "Catalogue search performance"
+        type: "non-functional"
+        measurement: "Test"
+        target: "GET /nice/catalogue responds within 200ms from warm Redis cache"
+      - criterion: "No LLM"
+        type: "safety"
+        measurement: "Code review"
+        target: "Zero references to run_consensus, escalate_*, or any LLM factory call"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/api/app/services/nice_api_client.py"
+        description: "NiceApiClient: async NICE Syndication API client with retry and catalogue fetch"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/api/app/services/nice_graph_upserter.py"
+        description: "NiceGraphUpserter: idempotent Neo4j MERGE for Guideline/Recommendation/Section"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/api/app/routers/nice_guidance.py"
+        description: "FastAPI router: catalogue, ingest, SSE, job status endpoints"
+        storage_location: "git"
+      - artifact_type: "test"
+        location: "services/api/tests/test_nice_api_client.py"
+        description: "Pytest unit tests for NiceApiClient"
+        storage_location: "git"
+      - artifact_type: "test"
+        location: "services/api/tests/test_nice_graph_upserter.py"
+        description: "Pytest unit tests for NiceGraphUpserter"
+        storage_location: "git"
+
+    technical_details:
+      language: ["Python"]
+      framework: ["FastAPI", "httpx", "neo4j", "redis"]
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Idempotent Guideline node creation (no duplicates)"
+      - "source field set to nice_syndication_api on all created nodes"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false
+
+  production_information:
+    deployment_instructions: "Add NICE_API_KEY to Azure Key Vault. No database migration required -- new node labels."
+
+  approval:
+    created_by: "Engineering Team"
+    created_date: "2026-03-08"
+
+  version_history:
+    - version: "1.0.0"
+      date: "2026-03-08"
+      changes: "Initial implementation"
+      reason: "New capability -- NICE guideline ingest"
+      author: "Engineering Team"
+      approval_status: "draft"
+
+  metadata:
+    tags: ["nice", "syndication-api", "ingest", "neo4j", "redis"]
+    priority: "high"
+    complexity: "moderate"

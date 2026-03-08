@@ -1,75 +1,455 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
-import Card from "@mui/material/Card";
-import CardContent from "@mui/material/CardContent";
-import CardActionArea from "@mui/material/CardActionArea";
-import Grid from "@mui/material/Grid";
+import IconButton from "@mui/material/IconButton";
 import Chip from "@mui/material/Chip";
+import Stack from "@mui/material/Stack";
+import Divider from "@mui/material/Divider";
+import Tooltip from "@mui/material/Tooltip";
+import CircularProgress from "@mui/material/CircularProgress";
+import Alert from "@mui/material/Alert";
+import Dialog from "@mui/material/Dialog";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import DialogActions from "@mui/material/DialogActions";
+import TextField from "@mui/material/TextField";
 import AddIcon from "@mui/icons-material/Add";
+import EditIcon from "@mui/icons-material/Edit";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import CloudUploadIcon from "@mui/icons-material/CloudUpload";
+import ArchiveIcon from "@mui/icons-material/Archive";
+import ReplayIcon from "@mui/icons-material/Replay";
+import PlayCircleOutlineIcon from "@mui/icons-material/PlayCircleOutline";
+import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import { api } from "@/lib/api";
 
 interface PlanDefinition {
   id: string;
   name: string;
-  status: string;
+  status: "draft" | "active" | "retired" | string;
   description?: string;
+  version?: string;
+  date?: string;
+  trigger?: { event?: string };
+  actions?: Array<{ id: string }>;
   actionCount?: number;
 }
+
+// ── Per-card actions ───────────────────────────────────────────────────────────
+
+function statusColor(status: string): "success" | "warning" | "default" | "error" {
+  if (status === "active") return "success";
+  if (status === "draft")  return "warning";
+  if (status === "retired") return "default";
+  return "default";
+}
+
+function statusLabel(status: string) {
+  if (status === "active")  return "Live";
+  if (status === "draft")   return "Draft";
+  if (status === "retired") return "Retired";
+  return status;
+}
+
+interface CardProps {
+  plan: PlanDefinition;
+  onEdit: () => void;
+  onPublish: () => void;
+  onDuplicate: () => void;
+  onRetire: () => void;
+  onReactivate: () => void;
+  busy: boolean;
+}
+
+function PathwayCard({ plan, onEdit, onPublish, onDuplicate, onRetire, onReactivate, busy }: CardProps) {
+  const actionCount = plan.actionCount ?? plan.actions?.length ?? 0;
+  const triggerLabel = plan.trigger?.event?.replace(/-/g, " ") ?? null;
+
+  return (
+    <Box
+      sx={{
+        display: "flex",
+        borderRadius: 2,
+        border: "1px solid",
+        borderColor: "divider",
+        overflow: "hidden",
+        bgcolor: "background.paper",
+        transition: "box-shadow 0.15s",
+        "&:hover": { boxShadow: 2 },
+      }}
+    >
+      {/* Status accent bar */}
+      <Box sx={{
+        width: 4,
+        flexShrink: 0,
+        bgcolor: plan.status === "active" ? "success.main" : plan.status === "draft" ? "warning.main" : "grey.300",
+      }} />
+
+      <Box sx={{ flex: 1, p: 2 }}>
+        <Stack direction="row" alignItems="flex-start" spacing={1}>
+          <Box sx={{ flex: 1 }}>
+            <Stack direction="row" alignItems="center" spacing={1} flexWrap="wrap" useFlexGap>
+              <Typography variant="subtitle2" fontWeight={700} sx={{ lineHeight: 1.3 }}>
+                {plan.name || "Untitled pathway"}
+              </Typography>
+              <Chip
+                label={statusLabel(plan.status)}
+                size="small"
+                color={statusColor(plan.status)}
+                sx={{ height: 18, fontSize: "0.62rem", fontWeight: 700 }}
+              />
+              {plan.version && (
+                <Typography variant="caption" color="text.disabled" sx={{ fontSize: "0.62rem" }}>
+                  v{plan.version}
+                </Typography>
+              )}
+            </Stack>
+            <Typography variant="caption" color="text.secondary" sx={{ mt: 0.4, display: "block", lineHeight: 1.4 }}>
+              {plan.description || "No description"}
+            </Typography>
+          </Box>
+
+          {/* Primary edit button */}
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={<EditIcon sx={{ fontSize: "0.9rem !important" }} />}
+            onClick={onEdit}
+            sx={{ textTransform: "none", fontSize: "0.75rem", flexShrink: 0 }}
+          >
+            Edit
+          </Button>
+        </Stack>
+
+        {/* Metadata row */}
+        <Stack direction="row" spacing={1.5} sx={{ mt: 1.25 }} alignItems="center" flexWrap="wrap" useFlexGap>
+          {actionCount > 0 && (
+            <Stack direction="row" alignItems="center" spacing={0.4}>
+              <AccountTreeIcon sx={{ fontSize: "0.75rem", color: "text.disabled" }} />
+              <Typography variant="caption" color="text.disabled" sx={{ fontSize: "0.68rem" }}>
+                {actionCount} step{actionCount !== 1 ? "s" : ""}
+              </Typography>
+            </Stack>
+          )}
+          {triggerLabel && (
+            <Stack direction="row" alignItems="center" spacing={0.4}>
+              <PlayCircleOutlineIcon sx={{ fontSize: "0.75rem", color: "text.disabled" }} />
+              <Typography variant="caption" color="text.disabled" sx={{ fontSize: "0.68rem", textTransform: "capitalize" }}>
+                {triggerLabel}
+              </Typography>
+            </Stack>
+          )}
+          {plan.date && (
+            <Typography variant="caption" color="text.disabled" sx={{ fontSize: "0.68rem" }}>
+              Updated {new Date(plan.date).toLocaleDateString()}
+            </Typography>
+          )}
+        </Stack>
+
+        <Divider sx={{ my: 1.25 }} />
+
+        {/* Secondary actions */}
+        <Stack direction="row" spacing={0.75} alignItems="center">
+          {plan.status === "draft" && (
+            <Tooltip title="Publish this draft to live — it will immediately be used by the runtime">
+              <span>
+                <Button
+                  size="small"
+                  variant="contained"
+                  color="success"
+                  startIcon={busy ? <CircularProgress size={11} color="inherit" /> : <CloudUploadIcon sx={{ fontSize: "0.9rem !important" }} />}
+                  disabled={busy}
+                  onClick={onPublish}
+                  sx={{ textTransform: "none", fontSize: "0.72rem" }}
+                >
+                  Publish to live
+                </Button>
+              </span>
+            </Tooltip>
+          )}
+
+          {plan.status === "active" && (
+            <Tooltip title="Save a draft copy to edit without affecting the live version">
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={<ContentCopyIcon sx={{ fontSize: "0.9rem !important" }} />}
+                onClick={onDuplicate}
+                disabled={busy}
+                sx={{ textTransform: "none", fontSize: "0.72rem" }}
+              >
+                New draft
+              </Button>
+            </Tooltip>
+          )}
+
+          {plan.status !== "active" && (
+            <Tooltip title="Duplicate as a new draft">
+              <IconButton size="small" onClick={onDuplicate} disabled={busy} sx={{ color: "text.secondary" }}>
+                <ContentCopyIcon sx={{ fontSize: "1rem" }} />
+              </IconButton>
+            </Tooltip>
+          )}
+
+          {plan.status === "retired" && (
+            <Tooltip title="Reactivate — publish this back to live">
+              <Button
+                size="small"
+                variant="outlined"
+                color="warning"
+                startIcon={<ReplayIcon sx={{ fontSize: "0.9rem !important" }} />}
+                onClick={onReactivate}
+                disabled={busy}
+                sx={{ textTransform: "none", fontSize: "0.72rem" }}
+              >
+                Reactivate
+              </Button>
+            </Tooltip>
+          )}
+
+          <Box sx={{ flex: 1 }} />
+
+          {plan.status !== "retired" && (
+            <Tooltip title={plan.status === "active" ? "Retire this pathway from live use" : "Mark as retired"}>
+              <IconButton
+                size="small"
+                onClick={onRetire}
+                disabled={busy}
+                sx={{ color: "text.disabled", "&:hover": { color: "error.main" } }}
+              >
+                <ArchiveIcon sx={{ fontSize: "1rem" }} />
+              </IconButton>
+            </Tooltip>
+          )}
+        </Stack>
+      </Box>
+    </Box>
+  );
+}
+
+// ── Main page ──────────────────────────────────────────────────────────────────
 
 export default function PathwaysPage() {
   const router = useRouter();
   const [plans, setPlans] = useState<PlanDefinition[]>([]);
   const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<Record<string, boolean>>({});
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  // Publish confirmation dialog
+  const [publishTarget, setPublishTarget] = useState<PlanDefinition | null>(null);
+  const [versionNotes, setVersionNotes] = useState("");
+  const [publishing, setPublishing] = useState(false);
+
+  const load = useCallback(() => {
+    setLoading(true);
     api.get<{ entry: Array<{ resource: PlanDefinition }> }>("/fhir/PlanDefinition")
-      .then((data) => {
-        setPlans((data.entry || []).map((e) => e.resource));
-      })
+      .then((data) => setPlans((data.entry || []).map((e) => e.resource)))
       .catch(() => setPlans([]))
       .finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => { load(); }, [load]);
+
+  const setBusyFor = (id: string, val: boolean) =>
+    setBusy((prev) => ({ ...prev, [id]: val }));
+
+  const patchStatus = async (plan: PlanDefinition, status: string) => {
+    setBusyFor(plan.id, true);
+    try {
+      await api.put(`/fhir/PlanDefinition/${plan.id}`, { ...plan, status });
+      setPlans((prev) => prev.map((p) => p.id === plan.id ? { ...p, status } : p));
+    } catch {
+      setError("Failed to update pathway status. Please try again.");
+    } finally {
+      setBusyFor(plan.id, false);
+    }
+  };
+
+  const handleDuplicate = async (plan: PlanDefinition) => {
+    setBusyFor(plan.id, true);
+    try {
+      const { id: _id, ...rest } = plan;
+      const newPlan = { ...rest, name: `Copy of ${plan.name}`, status: "draft", version: undefined };
+      await api.post("/fhir/PlanDefinition", newPlan);
+      load();
+    } catch {
+      setError("Failed to duplicate pathway.");
+    } finally {
+      setBusyFor(plan.id, false);
+    }
+  };
+
+  const confirmPublish = async () => {
+    if (!publishTarget) return;
+    setPublishing(true);
+    try {
+      await api.put(`/fhir/PlanDefinition/${publishTarget.id}`, {
+        ...publishTarget,
+        status: "active",
+        // version notes stored in meta if the API supports it; harmless if not
+        meta: { ...(publishTarget as any).meta, versionNotes },
+      });
+      setPlans((prev) => prev.map((p) => p.id === publishTarget.id ? { ...p, status: "active" } : p));
+      setPublishTarget(null);
+      setVersionNotes("");
+    } catch {
+      setError("Publish failed. Please try again.");
+    } finally {
+      setPublishing(false);
+    }
+  };
+
+  const active  = plans.filter((p) => p.status === "active");
+  const drafts  = plans.filter((p) => p.status === "draft");
+  const retired = plans.filter((p) => p.status === "retired");
+
+  const cardProps = (plan: PlanDefinition): CardProps => ({
+    plan,
+    busy: !!busy[plan.id],
+    onEdit: () => router.push(`/admin/pathways/${plan.id}`),
+    onPublish: () => { setPublishTarget(plan); setVersionNotes(""); },
+    onDuplicate: () => handleDuplicate(plan),
+    onRetire: () => patchStatus(plan, "retired"),
+    onReactivate: () => { setPublishTarget(plan); setVersionNotes(""); },
+  });
+
   return (
-    <Box sx={{ p: 3 }}>
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
-        <Typography variant="h5" fontWeight={600}>Clinical Pathways</Typography>
+    <Box sx={{ p: 3, maxWidth: 960, mx: "auto" }}>
+      {/* Page header */}
+      <Stack direction="row" alignItems="center" sx={{ mb: 3 }}>
+        <Box sx={{ flex: 1 }}>
+          <Typography variant="h5" fontWeight={700}>Clinical Pathways</Typography>
+          <Typography variant="caption" color="text.secondary">
+            {active.length} live · {drafts.length} draft{drafts.length !== 1 ? "s" : ""} · {retired.length} retired
+          </Typography>
+        </Box>
         <Button variant="contained" startIcon={<AddIcon />} onClick={() => router.push("/admin/pathways/new")}>
-          New Pathway
+          New pathway
         </Button>
-      </Box>
-      {loading ? (
-        <Typography color="text.secondary">Loading pathways...</Typography>
-      ) : plans.length === 0 ? (
-        <Typography color="text.secondary">No pathways configured yet. Create your first pathway to get started.</Typography>
-      ) : (
-        <Grid container spacing={2}>
-          {plans.map((plan) => (
-            <Grid size={{ xs: 12, sm: 6, md: 4 }} key={plan.id}>
-              <Card variant="outlined">
-                <CardActionArea onClick={() => router.push(`/admin/pathways/${plan.id}`)}>
-                  <CardContent>
-                    <Typography variant="subtitle1" fontWeight={600}>{plan.name}</Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                      {plan.description || "No description"}
-                    </Typography>
-                    <Chip
-                      label={plan.status}
-                      size="small"
-                      color={plan.status === "active" ? "success" : "default"}
-                    />
-                  </CardContent>
-                </CardActionArea>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
+      </Stack>
+
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>
       )}
+
+      {loading ? (
+        <Stack alignItems="center" sx={{ pt: 6 }}>
+          <CircularProgress size={28} />
+          <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>Loading pathways…</Typography>
+        </Stack>
+      ) : plans.length === 0 ? (
+        <Box sx={{ textAlign: "center", py: 8 }}>
+          <AccountTreeIcon sx={{ fontSize: 48, color: "text.disabled", mb: 1 }} />
+          <Typography color="text.secondary" gutterBottom>No pathways configured yet.</Typography>
+          <Button variant="contained" startIcon={<AddIcon />} onClick={() => router.push("/admin/pathways/new")} sx={{ mt: 1 }}>
+            Create your first pathway
+          </Button>
+        </Box>
+      ) : (
+        <Stack spacing={3}>
+
+          {/* ── Live ── */}
+          {active.length > 0 && (
+            <Box>
+              <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
+                <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: "success.main" }} />
+                <Typography variant="overline" sx={{ fontSize: "0.65rem", letterSpacing: 1.4, lineHeight: 1, color: "text.secondary" }}>
+                  Live — running on patient data
+                </Typography>
+              </Stack>
+              <Stack spacing={1.5}>
+                {active.map((plan) => <PathwayCard key={plan.id} {...cardProps(plan)} />)}
+              </Stack>
+            </Box>
+          )}
+
+          {/* ── Drafts ── */}
+          {drafts.length > 0 && (
+            <Box>
+              <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
+                <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: "warning.main" }} />
+                <Typography variant="overline" sx={{ fontSize: "0.65rem", letterSpacing: 1.4, lineHeight: 1, color: "text.secondary" }}>
+                  In draft — not yet live
+                </Typography>
+              </Stack>
+              <Stack spacing={1.5}>
+                {drafts.map((plan) => <PathwayCard key={plan.id} {...cardProps(plan)} />)}
+              </Stack>
+            </Box>
+          )}
+
+          {/* ── Retired ── */}
+          {retired.length > 0 && (
+            <Box>
+              <Divider sx={{ mb: 2 }} />
+              <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
+                <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: "grey.400" }} />
+                <Typography variant="overline" sx={{ fontSize: "0.65rem", letterSpacing: 1.4, lineHeight: 1, color: "text.disabled" }}>
+                  Retired
+                </Typography>
+              </Stack>
+              <Stack spacing={1.5}>
+                {retired.map((plan) => <PathwayCard key={plan.id} {...cardProps(plan)} />)}
+              </Stack>
+            </Box>
+          )}
+        </Stack>
+      )}
+
+      {/* ── Publish confirmation dialog ───────────────────────────────────────── */}
+      <Dialog
+        open={!!publishTarget}
+        onClose={() => !publishing && setPublishTarget(null)}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 3 } }}
+      >
+        <DialogTitle sx={{ pb: 0.5 }}>
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <CloudUploadIcon color="success" sx={{ fontSize: "1.3rem" }} />
+            <Typography variant="h6" fontWeight={700}>Publish to live</Typography>
+          </Stack>
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            <strong>{publishTarget?.name}</strong> will become the live version immediately.
+            The runtime will begin using it for new pipeline executions.
+          </Typography>
+          <Alert severity="info" icon={false} sx={{ mb: 2, fontSize: "0.78rem" }}>
+            To roll back, edit the pathway and publish again, or duplicate a previous version.
+          </Alert>
+          <TextField
+            label="Version notes (optional)"
+            placeholder="e.g. Added verification step before persist, updated extraction prompt to v3"
+            multiline
+            minRows={2}
+            fullWidth
+            size="small"
+            value={versionNotes}
+            onChange={(e) => setVersionNotes(e.target.value)}
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setPublishTarget(null)} disabled={publishing} sx={{ textTransform: "none" }}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            color="success"
+            disabled={publishing}
+            startIcon={publishing ? <CircularProgress size={13} color="inherit" /> : <CloudUploadIcon />}
+            onClick={confirmPublish}
+            sx={{ textTransform: "none" }}
+          >
+            {publishing ? "Publishing…" : "Publish to live"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

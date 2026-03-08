@@ -44,6 +44,7 @@ import EditNoteOutlinedIcon from "@mui/icons-material/EditNoteOutlined";
 import ModelTrainingOutlinedIcon from "@mui/icons-material/ModelTrainingOutlined";
 import SupportAgentOutlinedIcon from "@mui/icons-material/SupportAgentOutlined";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
+import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
 import { useAuth } from "@/lib/authContext";
 import { useIdleLogout } from "@/lib/useIdleLogout";
 import Avatar from "@mui/material/Avatar";
@@ -89,6 +90,7 @@ const ADMIN_NAV_ITEMS: NavItem[] = [
   { label: "Prompts", path: "/admin/prompts", icon: <EditNoteOutlinedIcon /> },
   { label: "Domains", path: "/admin/domains", icon: <TuneOutlinedIcon /> },
   { label: "Models", path: "/admin/models", icon: <ModelTrainingOutlinedIcon /> },
+  { label: "Guidance", path: "/admin/guidance", icon: <MenuBookOutlinedIcon /> },
   { label: "Terminology", path: "/admin/terminology", icon: <LibraryBooksOutlinedIcon /> },
   { label: "Surface Forms", path: "/admin/surface-forms", icon: <DescriptionOutlinedIcon /> },
   { label: "Context Rules", path: "/admin/context-rules", icon: <AssessmentOutlinedIcon /> },
@@ -234,7 +236,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           component="img"
           src="/leo-icon.svg"
           alt="LEO"
-          onClick={() => handleNav("/dashboard")}
+          onClick={() => handleNav(uiMode === "admin" ? "/admin/operations" : uiMode === "care" ? "/care/dashboard" : "/dashboard")}
           sx={{ width: 28, height: 28, mb: 1.5, cursor: "pointer" }}
         />
       </Tooltip>
