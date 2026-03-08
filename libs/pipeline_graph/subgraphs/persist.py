@@ -58,6 +58,10 @@ def _entity_fingerprint(encounter_text: str, entities: list[dict]) -> str:
 
 
 def write_patient_graph(state: PersistState) -> dict[str, Any]:
+    if state.get("dry_run"):
+        logger.info("dry_run=True — skipping patient graph write")
+        return {"documents_written": 0, "errors": list(state.get("errors") or [])}
+
     entities = state.get("entities") or []
     encounter_id = state.get("encounter_id") or ""
     patient_id = state.get("patient_id") or ""
@@ -106,6 +110,10 @@ def write_patient_graph(state: PersistState) -> dict[str, Any]:
 
 
 def write_gold_training(state: PersistState) -> dict[str, Any]:
+    if state.get("dry_run"):
+        logger.info("dry_run=True — skipping gold training write")
+        return {"training_labels_written": 0, "errors": list(state.get("errors") or [])}
+
     entities = state.get("entities") or []
     encounter_text = state.get("encounter_text") or ""
     verification = state.get("verification_result") or {}

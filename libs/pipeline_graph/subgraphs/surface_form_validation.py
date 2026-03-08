@@ -100,6 +100,11 @@ def _apply_or_queue(state: SurfaceFormValidationState) -> dict[str, Any]:
     if not mismatches:
         return {"entities": entities, "surface_form_tasks_created": 0, "errors": errors}
 
+    if state.get("dry_run"):
+        import logging as _logging
+        _logging.getLogger(__name__).info("dry_run=True — skipping SurfaceFormTask writes")
+        return {"entities": entities, "surface_form_tasks_created": 0, "errors": errors}
+
     try:
         from app.db.neo4j_client import CodingGraphClient
 
