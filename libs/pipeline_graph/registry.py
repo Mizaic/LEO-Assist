@@ -99,6 +99,8 @@ def _register_defaults(registry: SubgraphRegistry) -> None:
     from libs.pipeline_graph.subgraphs.surface_form_validation import (
         build_surface_form_validation_subgraph,
     )
+    from libs.pipeline_graph.subgraphs.rest_connector import build_rest_connector_subgraph
+    from libs.pipeline_graph.subgraphs.queue_publish import build_queue_publish_subgraph
 
     registry.register("extraction", build_extraction_subgraph, description="NER/LLM entity extraction")
     registry.register("post_processing", build_post_processing_subgraph, description="9-layer post-processing pipeline")
@@ -117,4 +119,14 @@ def _register_defaults(registry: SubgraphRegistry) -> None:
         "surface_form_validation",
         build_surface_form_validation_subgraph,
         description="Validate/correct surface form to SNOMED mappings",
+    )
+    registry.register(
+        "rest_connector",
+        build_rest_connector_subgraph,
+        description="External REST API connector step",
+    )
+    registry.register(
+        "queue_publish",
+        build_queue_publish_subgraph,
+        description="Queue publish connector step",
     )

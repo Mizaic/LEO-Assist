@@ -45,9 +45,11 @@ class ActionDefinition:
     subgraph_id: str
     trigger_type: str
     trigger_name: str
+    node_type: str = "action"
     condition: str | None = None
     config: dict[str, Any] = field(default_factory=dict)
     related_actions: list[str] = field(default_factory=list)
+    related_edges: list[dict[str, Any]] = field(default_factory=list)
     sequence: int = 0
 
 
@@ -78,8 +80,10 @@ class WorkflowEngine:
 
     async def handle_event(self, event: WorkflowEvent) -> dict[str, Any]:
         """Execute the full pipeline chain for an event."""
-        chain = await self._resolve_action_chain(event)
-        if not chain:
+        all_actions = await self._get_all_plan_actions(event.plan_definition_id) if (
+            self._driver and event.plan_definition_id
+        ) else await self._resolve_action_chain(event)
+        if not all_actions:
             logger.warning("No actions matched event %s for plan %s",
                            event.event_type, event.plan_definition_id)
             return {"status": "no_match", "steps": []}
@@ -94,11 +98,49 @@ class WorkflowEngine:
 
         step_results: list[StepResult] = []
         final_status = "completed"
+        action_by_id = {a.action_id: a for a in all_actions}
+        outgoing = self._build_outgoing_edges(all_actions)
+        has_graph_edges = any(outgoing.values())
+        trigger_ids = [
+            a.action_id
+            for a in all_actions
+            if a.trigger_name == event.event_type or a.node_type == "trigger"
+        ]
+        if not trigger_ids:
+            trigger_ids = [all_actions[0].action_id] if all_actions else []
 
-        for action in chain:
-            step_state = self._build_step_state(action, pipeline_state)
+        queue = list(trigger_ids)
+        executed: set[str] = set()
+        fallback_enqueued = False
 
-            step_result = await self._execute_step(action, step_state)
+        while queue:
+            action_id = queue.pop(0)
+            action = action_by_id.get(action_id)
+            if not action or action_id in executed:
+                continue
+            executed.add(action_id)
+
+            selected_port: str | None = None
+            if action.node_type == "trigger":
+                step_result = StepResult(
+                    action_id=action.action_id,
+                    subgraph_id=action.subgraph_id or "trigger",
+                    status="completed",
+                    duration_ms=0,
+                    output={},
+                )
+            elif action.node_type == "condition":
+                selected_port = self._evaluate_condition_port(action, pipeline_state)
+                step_result = StepResult(
+                    action_id=action.action_id,
+                    subgraph_id=action.subgraph_id or "condition",
+                    status="completed",
+                    duration_ms=0,
+                    output={"condition_port": selected_port},
+                )
+            else:
+                step_state = self._build_step_state(action, pipeline_state)
+                step_result = await self._execute_step(action, step_state)
             step_results.append(step_result)
 
             if step_result.status == "error":
@@ -122,6 +164,30 @@ class WorkflowEngine:
                     logger.info("Verification failed — pipeline halted for review")
                     break
 
+            next_edges = outgoing.get(action.action_id, [])
+            if action.node_type == "condition":
+                default_ports = {"default", "else", "failed"}
+                if selected_port:
+                    selected = [e for e in next_edges if e.get("sourceHandle") == selected_port]
+                    if not selected:
+                        selected = [e for e in next_edges if (e.get("sourceHandle") or "").lower() in default_ports]
+                    next_edges = selected
+
+            if next_edges:
+                next_targets = sorted(
+                    (e.get("target") for e in next_edges if e.get("target")),
+                    key=lambda tid: action_by_id.get(tid).sequence if action_by_id.get(tid) else 0,
+                )
+                queue.extend(next_targets)
+
+            if not queue and not fallback_enqueued and (not has_graph_edges or len(executed) < len(all_actions)):
+                remainder = sorted(
+                    (a.action_id for a in all_actions if a.action_id not in executed),
+                    key=lambda aid: action_by_id[aid].sequence,
+                )
+                queue.extend(remainder)
+                fallback_enqueued = True
+
         await self._write_audit_event(event, step_results, final_status, pipeline_state)
 
         return {
@@ -141,6 +207,69 @@ class WorkflowEngine:
             ],
             "entity_count": len(pipeline_state.get("entities") or []),
         }
+
+    @staticmethod
+    def _build_outgoing_edges(actions: list[ActionDefinition]) -> dict[str, list[dict[str, Any]]]:
+        outgoing: dict[str, list[dict[str, Any]]] = {}
+        for action in actions:
+            for edge in action.related_edges:
+                source_id = edge.get("actionId")
+                if not source_id:
+                    continue
+                outgoing.setdefault(source_id, []).append(
+                    {
+                        "target": action.action_id,
+                        "sourceHandle": edge.get("sourceHandle"),
+                        "targetHandle": edge.get("targetHandle"),
+                    }
+                )
+        return outgoing
+
+    @staticmethod
+    def _resolve_state_value(path: str, state: dict[str, Any]) -> Any:
+        if not path:
+            return None
+        cursor: Any = state
+        for part in path.split("."):
+            if isinstance(cursor, dict) and part in cursor:
+                cursor = cursor[part]
+            else:
+                return None
+        return cursor
+
+    def _evaluate_condition_port(self, action: ActionDefinition, state: dict[str, Any]) -> str:
+        params = action.config.get("params", {}) if isinstance(action.config, dict) else {}
+        rules = params.get("rules") or action.config.get("rules") or []
+        default_port = str(params.get("defaultPort") or action.config.get("defaultPort") or "else")
+        for rule in rules:
+            field = str(rule.get("field") or "")
+            operator = str(rule.get("operator") or "==")
+            expected = rule.get("value")
+            output_port = str(rule.get("outputPort") or "matched")
+            actual = self._resolve_state_value(field, state)
+            if self._rule_matches(actual, operator, expected):
+                return output_port
+        return default_port
+
+    @staticmethod
+    def _rule_matches(actual: Any, operator: str, expected: Any) -> bool:
+        if operator == "exists":
+            return actual is not None
+        if operator == "contains":
+            return expected is not None and actual is not None and str(expected) in str(actual)
+        if operator == "!=":
+            return str(actual) != str(expected)
+        if operator == ">":
+            try:
+                return float(actual) > float(expected)
+            except (TypeError, ValueError):
+                return False
+        if operator == "<":
+            try:
+                return float(actual) < float(expected)
+            except (TypeError, ValueError):
+                return False
+        return str(actual) == str(expected)
 
     async def evaluate_plan(self, event: WorkflowEvent) -> list[ActionDefinition]:
         """Find actions in the PlanDefinition whose triggers match this event."""
@@ -403,14 +532,23 @@ class WorkflowEngine:
                 config = json.loads(ad_node["dynamicValues"])
             except (json.JSONDecodeError, TypeError):
                 pass
+        related_edges_raw = action_node.get("relatedActionEdges")
+        related_edges: list[dict[str, Any]] = []
+        if related_edges_raw:
+            try:
+                related_edges = json.loads(related_edges_raw)
+            except (json.JSONDecodeError, TypeError):
+                related_edges = []
         return ActionDefinition(
             action_id=action_node["id"],
             subgraph_id=ad_node["subgraphId"] if ad_node else action_node.get("subgraphId", ""),
             trigger_type=action_node.get("trigger_type", ""),
             trigger_name=action_node.get("trigger_name", ""),
+            node_type=action_node.get("nodeType", "action"),
             condition=action_node.get("condition"),
             config=config,
             related_actions=action_node.get("relatedActions", []),
+            related_edges=related_edges,
             sequence=int(action_node.get("sequence", 0)),
         )
 

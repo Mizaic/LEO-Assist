@@ -73,7 +73,11 @@ def upsert_plan_definition(plan_id: str, resource: Dict[str, Any]):
     fhir_actions: List[Dict[str, Any]] = resource.get("action", [])
 
     if ui_actions is not None and not fhir_actions:
-        fhir_actions = _ui_actions_to_fhir(ui_actions, resource.get("edges", []))
+        fhir_actions = _ui_actions_to_fhir(
+            ui_actions,
+            resource.get("edges", []),
+            resource.get("trigger"),
+        )
 
     client = KnowledgeGraphClient()
     try:
@@ -101,23 +105,50 @@ def upsert_plan_definition(plan_id: str, resource: Dict[str, Any]):
 def _ui_actions_to_fhir(
     ui_actions: List[Dict[str, Any]],
     ui_edges: List[Dict[str, Any]],
+    plan_trigger: Dict[str, Any] | None,
 ) -> List[Dict[str, Any]]:
     """Convert UI pathway-builder actions/edges to FHIR action array for graph storage."""
-    edge_lookup: Dict[str, str] = {}
+    edge_lookup: Dict[str, Dict[str, Any]] = {}
     for e in ui_edges:
-        edge_lookup[e["target"]] = e["source"]
+        target_id = e.get("target")
+        if not target_id:
+            continue
+        edge_lookup[target_id] = {
+            "source": e.get("source", ""),
+            "sourceHandle": e.get("sourceHandle"),
+            "targetHandle": e.get("targetHandle"),
+        }
 
     fhir_actions = []
     for i, ua in enumerate(ui_actions):
+        action_id = ua["id"]
+        config = ua.get("config") or {}
+        definition_id = f"{action_id}-config"
         act: Dict[str, Any] = {
-            "id": ua["id"],
+            "id": action_id,
             "title": ua.get("label", ua.get("subgraphId", "")),
             "_sequence": i,
             "_subgraphId": ua.get("subgraphId", ""),
+            "_nodeType": ua.get("nodeType", "action"),
+            "definitionCanonical": f"ActivityDefinition/{definition_id}",
+            "_dynamicValues": config,
         }
-        source = edge_lookup.get(ua["id"])
-        if source:
-            act["relatedAction"] = [{"actionId": source, "relationship": "after-end"}]
+        source_edge = edge_lookup.get(action_id)
+        if source_edge and source_edge.get("source"):
+            rel: Dict[str, Any] = {
+                "actionId": source_edge["source"],
+                "relationship": "after-end",
+            }
+            if source_edge.get("sourceHandle"):
+                rel["sourceHandle"] = source_edge["sourceHandle"]
+            if source_edge.get("targetHandle"):
+                rel["targetHandle"] = source_edge["targetHandle"]
+            act["relatedAction"] = [rel]
+        if i == 0 and plan_trigger:
+            trigger_name = plan_trigger.get("event", "")
+            trigger_type = plan_trigger.get("type", "data-changed")
+            if trigger_name:
+                act["trigger"] = [{"type": trigger_type, "name": trigger_name}]
         fhir_actions.append(act)
     return fhir_actions
 
@@ -203,16 +234,25 @@ def _upsert_action(client: KnowledgeGraphClient, plan_id: str, action: Dict[str,
         trigger_name = trigger_name[0] if trigger_name else ""
 
     definition_ref = action.get("definitionCanonical") or action.get("definitionUri", "")
-    related_ids = [
-        r.get("actionId", "") for r in (action.get("relatedAction") or [])
-    ]
+    related_defs = action.get("relatedAction") or []
+    related_ids = [r.get("actionId", "") for r in related_defs]
+    related_edges = []
+    for rel in related_defs:
+        related_edges.append(
+            {
+                "actionId": rel.get("actionId", ""),
+                "relationship": rel.get("relationship", "after-end"),
+                "sourceHandle": rel.get("sourceHandle"),
+                "targetHandle": rel.get("targetHandle"),
+            }
+        )
 
     client.run(
         "MATCH (pd:PlanDefinition {id: $pid}) "
         "CREATE (pd)-[:HAS_ACTION]->(a:Action {"
         "  id: $aid, trigger_type: $tt, trigger_name: $tn, "
         "  condition: $cond, sequence: $seq, subgraphId: $sgid, "
-        "  relatedActions: $related"
+        "  nodeType: $ntype, relatedActions: $related, relatedActionEdges: $related_edges"
         "}) ",
         pid=plan_id,
         aid=action_id,
@@ -221,8 +261,31 @@ def _upsert_action(client: KnowledgeGraphClient, plan_id: str, action: Dict[str,
         cond=action.get("condition", [{}])[0].get("expression", {}).get("expression") if action.get("condition") else None,
         seq=action.get("_sequence", 0),
         sgid=action.get("_subgraphId", ""),
+        ntype=action.get("_nodeType", "action"),
         related=related_ids,
+        related_edges=json.dumps(related_edges),
     )
+
+    if definition_ref:
+        activity_id = definition_ref.split("/")[-1]
+        dynamic_values = action.get("_dynamicValues") or {}
+        client.run(
+            "MERGE (ad:ActivityDefinition {id: $adid}) "
+            "SET ad.subgraphId = $sgid, ad.dynamicValues = $dvals, ad.rawJson = $raw, "
+            "    ad.name = coalesce(ad.name, $adid), ad.status = coalesce(ad.status, 'active')",
+            adid=activity_id,
+            sgid=action.get("_subgraphId", ""),
+            dvals=json.dumps(dynamic_values),
+            raw=json.dumps(
+                {
+                    "resourceType": "ActivityDefinition",
+                    "id": activity_id,
+                    "status": "active",
+                    "subgraphId": action.get("_subgraphId", ""),
+                    "dynamicValues": dynamic_values,
+                }
+            ),
+        )
 
     if definition_ref:
         activity_id = definition_ref.split("/")[-1]
