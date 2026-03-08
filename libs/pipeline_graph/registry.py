@@ -6,6 +6,7 @@ WorkflowEngine when dispatching ActivityDefinition-driven pipeline steps.
 
 from __future__ import annotations
 
+import json
 import logging
 from typing import Any, Callable
 
@@ -101,6 +102,9 @@ def _register_defaults(registry: SubgraphRegistry) -> None:
     )
     from libs.pipeline_graph.subgraphs.rest_connector import build_rest_connector_subgraph
     from libs.pipeline_graph.subgraphs.queue_publish import build_queue_publish_subgraph
+    from libs.pipeline_graph.subgraphs.guidance_rule_extraction import (
+        build_guidance_rule_extraction_subgraph,
+    )
 
     registry.register("extraction", build_extraction_subgraph, description="NER/LLM entity extraction")
     registry.register("post_processing", build_post_processing_subgraph, description="9-layer post-processing pipeline")
@@ -129,4 +133,26 @@ def _register_defaults(registry: SubgraphRegistry) -> None:
         "queue_publish",
         build_queue_publish_subgraph,
         description="Queue publish connector step",
+    )
+    registry.register(
+        "guidance_rule_extraction",
+        build_guidance_rule_extraction_subgraph,
+        description=(
+            "NICE → AppropriatenessRule: extracts patient criteria (present/absent "
+            "SNOMED findings) and the recommended action (SNOMED procedure) from a "
+            "single NICE recommendation using the dual-model consensus pipeline."
+        ),
+        input_schema=json.dumps({
+            "recommendation": "Recommendation dict (id, verbatim, title, urgency, strength, section_title, chapter_title)",
+            "guideline_id": "NICE guideline code e.g. NG12",
+            "prompt_config": "Optional PromptConfig dict (systemPrompt key) — loaded from /admin/prompts if omitted",
+        }),
+        output_schema=json.dumps({
+            "coded_criteria": {
+                "present": "list of {term, snomed_concept_id, preferred_term, semantic_tag}",
+                "absent":  "list of {term, snomed_concept_id, preferred_term, semantic_tag}",
+                "action":  "{term, snomed_concept_id, preferred_term, semantic_tag} or null",
+            },
+            "errors": "list of error strings",
+        }),
     )

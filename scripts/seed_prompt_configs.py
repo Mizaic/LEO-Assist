@@ -316,6 +316,37 @@ _add(
     description="Disambiguates uncertain NER labels using context from the full encounter — resolves model disagreements.",
 )
 
+# ── NICE → Rules: guidance rule extraction ────────────────────────────────────
+from libs.prompts.guidance_rule_extraction_output_schema import (
+    GUIDANCE_RULE_EXTRACTION_OUTPUT_SCHEMA,
+    GUIDANCE_RULE_EXTRACTION_EXAMPLES,
+)
+
+_add(
+    "guidance_rule_extraction", 1,
+    "libs.prompts.guidance_rule_extraction_v1.GUIDANCE_RULE_EXTRACTION_SYSTEM_V1",
+    output_schema=json.dumps(GUIDANCE_RULE_EXTRACTION_OUTPUT_SCHEMA),
+    few_shot_examples=[
+        {
+            "id": ex["id"],
+            "input": ex["input"],
+            "output": ex["output"],
+            "deidentified": ex.get("deidentified", True),
+            "category": ex.get("category", "guidance_rule_extraction"),
+            "model_scope": ex.get("model_scope", "any"),
+            "description": ex.get("description", ""),
+            "core": bool(ex.get("core", True)),
+        }
+        for ex in GUIDANCE_RULE_EXTRACTION_EXAMPLES
+    ],
+    max_few_shot=4,
+    description=(
+        "Extracts patient-level clinical criteria (present / absent) from a single "
+        "NICE recommendation to produce an AppropriatenessRule for bitmap matching. "
+        "Part of the NICE \u2192 Rules AI pipeline — editable at runtime via /admin/prompts."
+    ),
+)
+
 
 def main() -> None:
     from neo4j import GraphDatabase
