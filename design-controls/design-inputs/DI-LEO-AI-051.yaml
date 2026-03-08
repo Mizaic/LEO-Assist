@@ -4,7 +4,7 @@
   version: "1.0"
   status: "approved"
   date: "2026-03-03"
-  derived_from: ["R-LEO-AI-030", "R-LEO-AI-031", "R-LEO-AI-032"]
+  derived_from: ["UN-LEO-AI-021"]
   risk_references:
     - "GAP-002: JWT tokens accepted without JWKS signature verification"
     - "GAP-004: Terminology surface form write endpoints unauthenticated"
@@ -115,3 +115,6 @@
         - "deidentify_text(ner=True) applies _ner_redact after regex pass"
         - "Only PERSON entities replaced; ORG/GPE entities left intact"
         - "NER pass silently disabled when model unavailable (logged at WARNING)"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-030", "R-LEO-AI-031", "R-LEO-AI-032"]

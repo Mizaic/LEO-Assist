@@ -514,12 +514,25 @@ MERGE (a)-[:USES_DEFINITION]->(ad)
 """
 
 
+COUNT_PLANS = "MATCH (pd:PlanDefinition) RETURN count(pd) AS cnt"
+
+
 def seed_with_client(client) -> None:
-    """Seed PlanDefinitions using an existing KnowledgeGraphClient (for startup hooks)."""
+    """Seed PlanDefinitions using an existing KnowledgeGraphClient (for startup hooks).
+
+    Only seeds when no PlanDefinitions exist in Neo4j, to avoid
+    overwriting user-modified pipelines.
+    """
     try:
         client.run("CREATE CONSTRAINT plan_def_id IF NOT EXISTS FOR (pd:PlanDefinition) REQUIRE pd.id IS UNIQUE")
         client.run("CREATE CONSTRAINT activity_def_id IF NOT EXISTS FOR (ad:ActivityDefinition) REQUIRE ad.id IS UNIQUE")
         client.run("CREATE CONSTRAINT action_id IF NOT EXISTS FOR (a:Action) REQUIRE a.id IS UNIQUE")
+
+        result = client.run(COUNT_PLANS)
+        existing = result[0]["cnt"] if result else 0
+        if existing > 0:
+            logger.info("[Seed] Skipped — %d PlanDefinition(s) already present.", existing)
+            return
 
         for ad in ACTIVITY_DEFINITIONS:
             dv = ad.get("dynamicValue", [])
@@ -570,6 +583,14 @@ def main() -> None:
         session.run("CREATE CONSTRAINT activity_def_id IF NOT EXISTS FOR (ad:ActivityDefinition) REQUIRE ad.id IS UNIQUE")
         session.run("CREATE CONSTRAINT action_id IF NOT EXISTS FOR (a:Action) REQUIRE a.id IS UNIQUE")
     logger.info("Constraints ensured.")
+
+    with driver.session() as session:
+        result = session.run(COUNT_PLANS).single()
+        existing = result["cnt"] if result else 0
+    if existing > 0:
+        logger.info("Skipped — %d PlanDefinition(s) already present.", existing)
+        driver.close()
+        return
 
     for ad in ACTIVITY_DEFINITIONS:
         dv = ad.get("dynamicValue", [])

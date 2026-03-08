@@ -4,7 +4,7 @@
 
 - id: "DI-LEO-AI-046"
   type: "Safety"
-  derived_from: ["R-LEO-AI-031", "R-LEO-AI-027"]
+  derived_from: ["UN-LEO-AI-021"]
   requirement: >
     The system SHALL restrict mutation of clinical rules (ConText rules and
     post-processor rules) to platform-admin users only, and SHALL validate all

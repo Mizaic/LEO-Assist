@@ -25,13 +25,13 @@
   mitigation_measures:
     - control_type: "protective_measure"
       description: "Context flags (negated, uncertain, family, resolved, plan) visible in review UI for reviewer verification"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-005"]
+      verified_by: ["VT-LEO-AI-002"]
       effectiveness: "effective"
     - control_type: "information_for_safety"
       description: "Reviewer training on context flag interpretation"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-005"]
+      verified_by: ["VT-LEO-AI-002"]
       effectiveness: "effective"
 
   residual_risk_estimate:

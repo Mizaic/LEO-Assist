@@ -60,7 +60,7 @@ def _ensure_default_domain() -> None:
         domain_id = "cancer_audit"
         client.run(
             "MERGE (d:AuditDomain {id: $id}) "
-            "SET d.name = $name, d.description = $desc",
+            "SET d.name = $name, d.description = $desc, d.source = 'platform'",
             id=domain_id,
             name="Cancer Audit",
             desc="National Cancer Diagnosis Audit domains",
@@ -224,6 +224,7 @@ class DomainSummary(BaseModel):
     name: str
     description: str
     subdomain_count: int = 0
+    source: str = "tenant"
 
 
 class DomainDetail(DomainSummary):
@@ -266,24 +267,44 @@ class AddConceptRequest(BaseModel):
 
 
 @router.get("/domains", response_model=List[DomainSummary])
-def list_domains():
-    """List all audit domains."""
+def list_domains(source: Optional[str] = Query(default=None, description="Filter by source: nice, platform, or tenant")):
+    """List all audit domains.
+
+    Use the ``source`` query parameter to filter:
+    - ``nice`` — areas from official NICE guidelines
+    - ``platform`` — built-in domains provided out of the box
+    - ``tenant`` — domains created by your organisation
+    """
     _ensure_default_domain()
     client = KnowledgeGraphClient()
     try:
-        rows = client.run(
-            "MATCH (d:AuditDomain) "
-            "OPTIONAL MATCH (d)-[:HAS_SUBDOMAIN]->(v:ValueSet) "
-            "RETURN d.id AS id, d.name AS name, d.description AS description, "
-            "count(v) AS subdomain_count "
-            "ORDER BY d.name"
-        )
+        if source:
+            cypher = (
+                "MATCH (d:AuditDomain) "
+                "WHERE coalesce(d.source, 'tenant') = $source "
+                "OPTIONAL MATCH (d)-[:HAS_SUBDOMAIN]->(v:ValueSet) "
+                "RETURN d.id AS id, d.name AS name, d.description AS description, "
+                "coalesce(d.source, 'tenant') AS source, "
+                "count(v) AS subdomain_count "
+                "ORDER BY d.name"
+            )
+            rows = client.run(cypher, source=source)
+        else:
+            rows = client.run(
+                "MATCH (d:AuditDomain) "
+                "OPTIONAL MATCH (d)-[:HAS_SUBDOMAIN]->(v:ValueSet) "
+                "RETURN d.id AS id, d.name AS name, d.description AS description, "
+                "coalesce(d.source, 'tenant') AS source, "
+                "count(v) AS subdomain_count "
+                "ORDER BY d.name"
+            )
         return [
             DomainSummary(
                 id=r["id"],
                 name=r["name"] or r["id"],
                 description=r.get("description") or "",
                 subdomain_count=r.get("subdomain_count", 0),
+                source=r.get("source", "tenant"),
             )
             for r in rows
         ]
@@ -303,7 +324,7 @@ def create_domain(body: DomainCreateRequest):
         if existing:
             raise HTTPException(400, f"Domain '{body.name}' already exists")
         client.run(
-            "CREATE (d:AuditDomain {id: $id, name: $name, description: $desc})",
+            "CREATE (d:AuditDomain {id: $id, name: $name, description: $desc, source: 'tenant', createdAt: datetime()})",
             id=domain_id,
             name=body.name,
             desc=body.description,
@@ -313,6 +334,7 @@ def create_domain(body: DomainCreateRequest):
             name=body.name,
             description=body.description,
             subdomain_count=0,
+            source="tenant",
         )
     finally:
         client.close()
@@ -326,7 +348,8 @@ def get_domain(domain_id: str):
     try:
         rows = client.run(
             "MATCH (d:AuditDomain {id: $id}) "
-            "RETURN d.id AS id, d.name AS name, d.description AS description",
+            "RETURN d.id AS id, d.name AS name, d.description AS description, "
+            "coalesce(d.source, 'tenant') AS source",
             id=domain_id,
         )
         if not rows:
@@ -370,6 +393,7 @@ def get_domain(domain_id: str):
             description=d.get("description") or "",
             subdomain_count=len(subdomains),
             subdomains=subdomains,
+            source=d.get("source", "tenant"),
         )
     finally:
         client.close()
@@ -420,14 +444,27 @@ def update_domain(domain_id: str, body: DomainUpdateRequest):
 
 @router.delete("/domains/{domain_id}", status_code=204)
 def delete_domain(domain_id: str):
-    """Delete an audit domain (does not delete subdomains/ValueSets)."""
+    """Delete an audit domain (does not delete subdomains/ValueSets).
+
+    NICE domains (source=nice) and platform domains (source=platform)
+    cannot be deleted. These are protected system domains.
+    """
     client = KnowledgeGraphClient()
     try:
         existing = client.run(
-            "MATCH (d:AuditDomain {id: $id}) RETURN d.id AS id", id=domain_id
+            "MATCH (d:AuditDomain {id: $id}) RETURN d.id AS id, coalesce(d.source, 'tenant') AS source",
+            id=domain_id,
         )
         if not existing:
             raise HTTPException(404, f"Domain '{domain_id}' not found")
+        domain_source = existing[0].get("source", "tenant")
+        if domain_source in ("nice", "platform"):
+            raise HTTPException(
+                403,
+                f"This domain cannot be deleted because it is a "
+                f"{'NICE guideline' if domain_source == 'nice' else 'built-in platform'} domain. "
+                "You can manage its concepts, but you cannot delete it.",
+            )
         client.run("MATCH (d:AuditDomain {id: $id}) DETACH DELETE d", id=domain_id)
     finally:
         client.close()

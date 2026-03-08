@@ -1,11 +1,13 @@
 """Seed FHIR Device and ValueSet resources into the Knowledge Graph.
 
 Creates the baseline agent configuration (Device) and clinical domain
-definitions (ValueSet) that the episode engine relies on. Idempotent:
-uses MERGE so repeated runs are safe.
+definitions (ValueSet) that the episode engine relies on.
 
 Usage:
     python scripts/seed_fhir_config.py
+
+Only seeds when no Device or ValueSet resources exist; skips if any are
+already present to avoid overwriting user-modified config.
 """
 
 from __future__ import annotations
@@ -153,6 +155,26 @@ def _seed_node(client: KnowledgeGraphClient, resource: dict) -> None:
 
 def main() -> None:
     client = KnowledgeGraphClient()
+
+    existing_devices = client.run(
+        "MATCH (r:Device) WHERE r.id IN $ids RETURN count(r) AS cnt",
+        ids=[d["id"] for d in DEVICE_RESOURCES],
+    )
+    cnt = existing_devices[0]["cnt"] if existing_devices else 0
+    if cnt > 0:
+        logger.info("Skipped — %d Device resource(s) already present.", cnt)
+        client.close()
+        return
+
+    existing_valuesets = client.run(
+        "MATCH (r:ValueSet) WHERE r.id IN $ids RETURN count(r) AS cnt",
+        ids=[vs["id"] for vs in VALUESET_RESOURCES],
+    )
+    cnt_vs = existing_valuesets[0]["cnt"] if existing_valuesets else 0
+    if cnt_vs > 0:
+        logger.info("Skipped — %d ValueSet resource(s) already present.", cnt_vs)
+        client.close()
+        return
 
     logger.info("Seeding %d Device resources...", len(DEVICE_RESOURCES))
     for device in DEVICE_RESOURCES:

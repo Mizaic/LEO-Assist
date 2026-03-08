@@ -351,6 +351,7 @@ export interface DomainSummary {
   name: string;
   description: string;
   subdomain_count: number;
+  source?: "nice" | "platform" | "tenant";
 }
 
 export interface SubdomainSummary {
@@ -399,8 +400,11 @@ export interface SubdomainExport {
   concepts: SubdomainExportConcept[];
 }
 
-export async function fetchDomains(): Promise<DomainSummary[]> {
-  return fetchJson<DomainSummary[]>(`${ANALYTICS_BASE}/analytics/domains`);
+export async function fetchDomains(source?: "nice" | "platform" | "tenant"): Promise<DomainSummary[]> {
+  const url = source
+    ? `${ANALYTICS_BASE}/analytics/domains?source=${source}`
+    : `${ANALYTICS_BASE}/analytics/domains`;
+  return fetchJson<DomainSummary[]>(url);
 }
 
 export async function fetchDomain(domainId: string): Promise<DomainDetail> {

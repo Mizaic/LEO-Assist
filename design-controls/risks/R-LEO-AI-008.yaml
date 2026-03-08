@@ -25,23 +25,23 @@
   mitigation_measures:
     - control_type: "inherent_safety"
       description: "Architectural separation: Patient and Coding databases are physically separate Neo4j instances with independent connection strings"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-023"]
+      verified_by: ["VT-LEO-AI-014"]
       effectiveness: "highly_effective"
     - control_type: "protective_measure"
       description: "Schema constraints prevent patient-identifiable node types in Coding database"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-023"]
+      verified_by: ["VT-LEO-AI-014"]
       effectiveness: "effective"
     - control_type: "protective_measure"
       description: "Code review and unit tests verify no patient data crosses the database boundary"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-023"]
+      verified_by: ["VT-LEO-AI-014"]
       effectiveness: "effective"
     - control_type: "procedural_control"
       description: "Periodic audit of Coding database contents for patient data presence"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-023"]
+      verified_by: ["VT-LEO-AI-014"]
       effectiveness: "effective"
 
   residual_risk_estimate:

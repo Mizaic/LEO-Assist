@@ -20,7 +20,7 @@
     probability: 3
     detectability: 3
     rpn: 27
-    risk_level: "high"
+    risk_level: "medium"
 
   mitigation_measures:
     - control_type: "protective_measure"

@@ -25,18 +25,18 @@
   mitigation_measures:
     - control_type: "protective_measure"
       description: "Human review of milestone assignments before episode finalisation"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-007", "DI-LEO-AI-009", "DI-LEO-AI-010", "DI-LEO-AI-013"]
+      verified_by: ["VT-LEO-AI-005", "VT-LEO-AI-007", "VT-LEO-AI-008"]
       effectiveness: "highly_effective"
     - control_type: "protective_measure"
       description: "Milestone detection accuracy validated against gold-standard data with threshold >= 0.90"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-007", "DI-LEO-AI-009", "DI-LEO-AI-010", "DI-LEO-AI-013"]
+      verified_by: ["VT-LEO-AI-005", "VT-LEO-AI-007", "VT-LEO-AI-008"]
       effectiveness: "highly_effective"
     - control_type: "protective_measure"
       description: "Quality validation step detects temporal anomalies in milestone sequences"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-007", "DI-LEO-AI-009", "DI-LEO-AI-010", "DI-LEO-AI-013"]
+      verified_by: ["VT-LEO-AI-005", "VT-LEO-AI-007", "VT-LEO-AI-008"]
       effectiveness: "effective"
 
   residual_risk_estimate:

@@ -8,22 +8,62 @@ Run with:
 
 Skip in CI with:
     pytest -m "not integration" ...
+
+Coverage:
+  - Guidance index search (by condition name, by code)
+  - Individual guideline fetch (top-level doc, chapters, recommendations)
+  - Full index sync (Redis-backed catalogue)
+  - Taxonomy walk (4-level HATEOAS tree: root → taxonomy → categories → subcategories)
 """
 
 from __future__ import annotations
 
 import os
+from pathlib import Path
 
 import pytest
 
 pytestmark = pytest.mark.integration
 
+_REPO_ROOT = Path(__file__).resolve().parents[4]
+
+
+def _bootstrap_secrets() -> None:
+    """Load .env.config then pull secrets from Azure Key Vault.
+
+    The integration tests run outside the normal service startup path, so
+    ``app.config`` is not auto-imported.  We replicate its two-step bootstrap
+    here so that NICE_API_KEY is available before the client is instantiated.
+
+    Falls back gracefully if Key Vault is unreachable (e.g. no ``az login``).
+    """
+    from dotenv import load_dotenv
+    load_dotenv(_REPO_ROOT / "secrets" / ".env.config", override=False)
+
+    # Only attempt KV load when AZURE_KEYVAULT_URL is configured.
+    if os.environ.get("AZURE_KEYVAULT_URL"):
+        try:
+            from libs.keyvault.loader import load_keyvault_secrets
+            load_keyvault_secrets()
+        except Exception as exc:  # noqa: BLE001
+            # Don't fail here -- the api_key_required fixture will skip cleanly.
+            print(f"[integration] Key Vault load failed (will skip if key absent): {exc}")
+
+
+@pytest.fixture(scope="module", autouse=True)
+def load_secrets() -> None:
+    """Bootstrap secrets from Key Vault once per module."""
+    _bootstrap_secrets()
+
 
 @pytest.fixture(scope="module")
 def api_key_required() -> None:
-    """Skip the whole module if NICE_API_KEY is not set."""
+    """Skip the whole module if NICE_API_KEY is not set after Key Vault load."""
     if not os.getenv("NICE_API_KEY"):
-        pytest.skip("NICE_API_KEY not set -- skipping NICE integration tests")
+        pytest.skip(
+            "NICE_API_KEY not available (not in env and not found in Key Vault). "
+            "Ensure AZURE_KEYVAULT_URL is set and you have run 'az login'."
+        )
 
 
 @pytest.fixture(scope="module")
@@ -55,24 +95,40 @@ async def test_search_index_by_condition_name_returns_results(client):
 
 
 @pytest.mark.asyncio
-async def test_search_index_by_condition_name_bowel(client):
-    """Searching 'bowel' finds NG151 (Bowel cancer: recognition, referral and early diagnosis)."""
-    results = await client.search_index("bowel")
-    assert len(results) > 0, "Expected results for 'bowel'"
-    codes = {r["code"] for r in results}
-    # NG151 is the canonical bowel cancer recognition guideline
-    assert "NG151" in codes or any("bowel" in r["title"].lower() for r in results), (
-        f"Expected NG151 or bowel-related guideline in results, got: {results[:3]}"
-    )
+async def test_search_index_returns_guidance_items(client):
+    """search_index returns a list of valid guidance items from the NICE index.
+
+    NOTE: The NICE guidance index endpoint does NOT support free-text ?q= search
+    parameters -- it ignores them and returns the first page of the index
+    alphabetically.  Text-based condition search is handled by ``_ranked_search``
+    operating over the Redis-cached catalogue (populated by sync_catalogue_from_index).
+
+    This test validates the structural contract: each item has code, title, type.
+    """
+    results = await client.search_index("cancer")   # query is ignored by the API
+    assert isinstance(results, list), "search_index must return a list"
+    assert len(results) > 0, "Expected at least one guidance item from the index"
+    for r in results:
+        assert r.get("code"), f"Every item must have a code: {r}"
+        assert r.get("title"), f"Every item must have a title: {r}"
+        assert "type" in r, f"Every item must have a type key: {r}"
 
 
 @pytest.mark.asyncio
-async def test_search_index_by_nice_code(client):
-    """Searching by exact NICE code returns that guideline."""
-    results = await client.search_index("NG12")
-    assert len(results) > 0, "Expected NG12 to be found by code search"
-    codes = {r["code"] for r in results}
-    assert "NG12" in codes, f"Expected NG12 in results, got: {codes}"
+async def test_search_index_cold_cache_fallback_returns_items(client):
+    """search_index is used as cold-cache fallback and must return at least some items.
+
+    The primary search path uses the Redis catalogue (via sync_catalogue_from_index
+    and _ranked_search in the router).  search_index is only called when Redis is
+    empty.  Its results are unordered (alphabetical), which is acceptable for the
+    fallback path -- the UI shows a loading hint to run 'Refresh guideline list'.
+    """
+    results = await client.search_index("bowel")
+    assert isinstance(results, list)
+    # May return unrelated items -- just verify the structural shape
+    assert all("code" in r and "title" in r for r in results), (
+        "All items must have code and title fields"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -136,6 +192,120 @@ async def test_sync_catalogue_from_index_returns_guidelines(client):
     assert count > 100, (
         f"NICE has 1000+ guidelines. Getting only {count} suggests pagination "
         "may have stopped early or the index response structure changed."
+    )
+
+
+# ---------------------------------------------------------------------------
+# Taxonomy walk (4-level HATEOAS tree)
+# ---------------------------------------------------------------------------
+
+# Known top-level categories from NICE API guide Appendix D.
+# We check for a subset so the test stays green if NICE reorganises slightly.
+_EXPECTED_CATEGORIES = {
+    "conditions and diseases",
+    "health and social care delivery",
+    "lifestyle and wellbeing",
+    "population groups",
+}
+
+# Known subcategories that must be present under "conditions and diseases".
+_EXPECTED_SUBCATEGORIES = {"cancer"}
+
+
+@pytest.mark.asyncio
+async def test_fetch_taxonomy_returns_categories(client):
+    """fetch_taxonomy returns at least the known top-level NICE categories.
+
+    Validates the full 4-step HATEOAS walk:
+      1. root → taxonomy link
+      2. taxonomy doc → category links (NOT inline subcategories -- the real API
+         uses links here, which caused the 2026-03-08 production failure)
+      3. category link → subcategory links
+      4. subcategory link → guideline list
+    """
+    entries = await client.fetch_taxonomy()
+    assert isinstance(entries, list), "fetch_taxonomy must return a list"
+    assert len(entries) > 0, (
+        "Expected at least one taxonomy entry. "
+        "If this is 0, the 4-level HATEOAS walk is broken -- check "
+        "that category links are being followed (not just the taxonomy root)."
+    )
+
+    found_categories = {e["category_title"].lower() for e in entries}
+    for expected in _EXPECTED_CATEGORIES:
+        assert expected in found_categories, (
+            f"Expected top-level category '{expected}' in taxonomy. "
+            f"Categories found: {sorted(found_categories)}"
+        )
+
+
+@pytest.mark.asyncio
+async def test_fetch_taxonomy_cancer_subcategory_has_ng_guidelines(client):
+    """The 'cancer' subcategory must contain NG-prefixed clinical guidelines.
+
+    NG12 (Suspected cancer) is the canonical cancer referral guideline and must
+    appear in the taxonomy's cancer subcategory.
+    """
+    entries = await client.fetch_taxonomy()
+    cancer_entries = [
+        e for e in entries
+        if "cancer" in e.get("subcategory_title", "").lower()
+    ]
+    assert cancer_entries, (
+        "No 'cancer' subcategory found in taxonomy. "
+        f"Subcategories present: {[e['subcategory_title'] for e in entries][:10]}"
+    )
+
+    cancer_codes = {code for e in cancer_entries for code in e.get("guideline_codes", [])}
+    assert cancer_codes, (
+        "Cancer subcategory found but contains no guideline codes. "
+        "Check that subcategory URI is being fetched and guidance list parsed."
+    )
+    ng_codes = {c for c in cancer_codes if c.startswith("NG")}
+    assert ng_codes, (
+        f"Expected NG-prefixed clinical guidelines in cancer subcategory. "
+        f"Codes found: {sorted(cancer_codes)[:10]}"
+    )
+    assert "NG12" in cancer_codes, (
+        f"NG12 (Suspected cancer) must be in the cancer subcategory. "
+        f"Codes found: {sorted(cancer_codes)[:20]}"
+    )
+
+
+@pytest.mark.asyncio
+async def test_fetch_taxonomy_all_entries_have_required_fields(client):
+    """Every taxonomy entry must have category_title, subcategory_title, and guideline_codes."""
+    entries = await client.fetch_taxonomy()
+    assert entries, "Taxonomy must return at least one entry"
+    for entry in entries:
+        assert entry.get("category_id"), f"Missing category_id: {entry}"
+        assert entry.get("category_title"), f"Missing category_title: {entry}"
+        assert entry.get("subcategory_id"), f"Missing subcategory_id: {entry}"
+        assert entry.get("subcategory_title"), f"Missing subcategory_title: {entry}"
+        assert isinstance(entry.get("guideline_codes"), list), (
+            f"guideline_codes must be a list: {entry}"
+        )
+        # Codes must all be valid NICE codes
+        from app.services.nice_api_client import NICE_CODE_RE
+        for code in entry["guideline_codes"]:
+            assert NICE_CODE_RE.match(code), (
+                f"Invalid NICE code '{code}' in subcategory '{entry['subcategory_title']}'"
+            )
+
+
+@pytest.mark.asyncio
+async def test_fetch_taxonomy_subcategory_count_is_plausible(client):
+    """Taxonomy must return a plausible number of subcategories.
+
+    Appendix D of the NICE API guide lists ~50 subcategories across all
+    top-level categories. If the count is 0 the walk is broken; if it is
+    much lower than expected, category links may not be followed correctly.
+    """
+    entries = await client.fetch_taxonomy()
+    subcategory_count = len(entries)
+    assert subcategory_count >= 20, (
+        f"Expected at least 20 subcategories from the NICE taxonomy, got {subcategory_count}. "
+        "This suggests the 4-level category-link walk is not working."
     )
 
 

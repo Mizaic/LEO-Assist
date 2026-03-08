@@ -15,6 +15,9 @@ import TableCell from "@mui/material/TableCell";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import Stack from "@mui/material/Stack";
+import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
+import TaxonomyBrowserDrawer from "./TaxonomyBrowserDrawer";
+
 
 interface GuidelineOption {
   code: string;
@@ -54,6 +57,7 @@ export default function NiceLoaderSection({ onGuidelineLoaded }: Props) {
   const [refreshJobs, setRefreshJobs] = useState(0);
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
+  const [browseOpen, setBrowseOpen] = useState(false);
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -88,7 +92,7 @@ export default function NiceLoaderSection({ onGuidelineLoaded }: Props) {
       const poll = setInterval(async () => {
         const s = await fetch(`/api/nice/jobs/${job_id}/status`).then((r) => r.json()).catch(() => null);
         if (s?.status === "done") {
-          setSyncMessage(`Catalogue updated. ${s.recommendations ?? 0} guidelines now available to search.`);
+          setSyncMessage(`Catalogue updated. ${s.catalogue_count ?? 0} guidelines now available to search.`);
           setSyncing(false);
           clearInterval(poll);
         } else if (s?.status === "error") {
@@ -102,6 +106,16 @@ export default function NiceLoaderSection({ onGuidelineLoaded }: Props) {
       setSyncing(false);
     }
   }, []);
+
+  /** Called when user clicks Load inside the taxonomy drawer. */
+  const handleBrowseSelect = useCallback(
+    (code: string) => {
+      setBrowseOpen(false);
+      setInputValue(code);
+      setSelected(null);
+    },
+    [],
+  );
 
   const handleIngest = useCallback(async () => {
     if (!selected && !inputValue.trim()) return;
@@ -151,8 +165,8 @@ export default function NiceLoaderSection({ onGuidelineLoaded }: Props) {
         code directly (for example, NG151).
       </Typography>
 
-      {/* Catalogue sync -- populates the search list from the full NICE index */}
-      <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
+      {/* Catalogue sync + taxonomy browser */}
+      <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" sx={{ mb: 2 }}>
         <Button
           size="small"
           variant="outlined"
@@ -162,10 +176,19 @@ export default function NiceLoaderSection({ onGuidelineLoaded }: Props) {
         >
           {syncing ? "Refreshing list…" : "Refresh guideline list"}
         </Button>
+        <Button
+          size="small"
+          variant="outlined"
+          startIcon={<AccountTreeOutlinedIcon />}
+          onClick={() => setBrowseOpen(true)}
+          aria-label="Browse guidelines by clinical area"
+        >
+          Browse by area
+        </Button>
         <Typography variant="caption" color="text.secondary">
-          Run this once to make all NICE guidelines searchable by name.
+          Run &lsquo;Refresh&rsquo; once to make all NICE guidelines searchable by name, or browse by clinical area.
         </Typography>
-      </Box>
+      </Stack>
       {syncMessage && (
         <Alert
           severity={syncMessage.includes("failed") || syncMessage.includes("Could not") ? "error" : "success"}
@@ -285,6 +308,12 @@ export default function NiceLoaderSection({ onGuidelineLoaded }: Props) {
           </Table>
         </Box>
       )}
+
+      <TaxonomyBrowserDrawer
+        open={browseOpen}
+        onClose={() => setBrowseOpen(false)}
+        onSelectGuideline={handleBrowseSelect}
+      />
     </Box>
   );
 }

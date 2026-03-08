@@ -6,6 +6,9 @@ Run once (or re-run safely — queries are idempotent):
 Presets are named, reusable pipeline configurations that pathway designers
 pick when building workflow steps.  System presets (is_system=True) cannot
 be deleted via the UI.
+
+Only seeds when no ModelPreset nodes exist; skips if any are already present
+to avoid overwriting user-modified presets.
 """
 
 from __future__ import annotations
@@ -101,6 +104,12 @@ def main() -> None:
 
     try:
         with client.session() as session:
+            result = session.run("MATCH (p:ModelPreset) RETURN count(p) AS cnt").single()
+            existing = result["cnt"] if result else 0
+            if existing > 0:
+                print(f"Skipped — {existing} ModelPreset(s) already present.")
+                return
+
             for p in PRESETS:
                 session.run(
                     UPSERT_PRESET,

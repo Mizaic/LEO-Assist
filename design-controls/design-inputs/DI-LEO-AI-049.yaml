@@ -4,7 +4,7 @@
 
 - id: "DI-LEO-AI-049"
   type: "Functional"
-  derived_from: ["DI-LEO-AI-035", "DI-LEO-AI-033"]
+  derived_from: ["UN-LEO-AI-023"]
   requirement: >
     The terminology API SHALL expose a surface form management API enabling
     authorised administrators to:

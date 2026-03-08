@@ -7,6 +7,9 @@ enabled/disabled status, and pipeline routing config.
 
 Run:
     python scripts/seed_devices.py
+
+Only seeds when no Device nodes exist; skips if any are already present
+to avoid overwriting user-modified device config.
 """
 from __future__ import annotations
 
@@ -193,6 +196,13 @@ def main() -> None:
     print(f"Seeding Device nodes into Knowledge Graph...")
 
     with client.session() as session:
+        result = session.run("MATCH (d:Device) RETURN count(d) AS cnt").single()
+        existing = result["cnt"] if result else 0
+        if existing > 0:
+            print(f"Skipped — {existing} Device(s) already present.")
+            client.close()
+            return
+
         # Ensure indexes
         for idx in CREATE_DEVICE_INDEXES:
             try:

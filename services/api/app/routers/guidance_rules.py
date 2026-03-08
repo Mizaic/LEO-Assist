@@ -1,11 +1,12 @@
 """HITL rule review endpoints for LLM-generated AppropriatenessRules.
 
 Provides:
-  POST /guidance/rules/generate            -- trigger rule generation for a guideline
-  GET  /guidance/rules/review              -- list pending rules
-  GET  /guidance/rules/review/{rule_id}    -- rule detail with plain-English summary
-  POST /guidance/rules/review/{rule_id}/decision -- approve / edit / reject
-  POST /guidance/rules/review/approve-all  -- bulk approve all pending rules
+  POST /guidance/rules/generate                           -- trigger rule generation
+  GET  /guidance/rules/review                             -- list pending rules
+  GET  /guidance/rules/review/{rule_id}                   -- rule detail
+  POST /guidance/rules/review/{rule_id}/decision          -- approve / edit / reject
+  POST /guidance/rules/review/{rule_id}/promote-to-domain -- add SNOMED to NICE domain
+  POST /guidance/rules/review/approve-all                 -- bulk approve
 
 All endpoints require the ai.admin role.
 """
@@ -100,6 +101,52 @@ WHERE ($guideline_id IS NULL OR
          MATCH (g:Guideline {id: $guideline_id})-[:HAS_RECOMMENDATION]->()-[:HAS_RULE]->(rule)
        })
 RETURN rule.id AS rule_id
+"""
+
+_FETCH_RULE_FOR_PROMOTION = """
+MATCH (rule:AppropriatenessRule {id: $rule_id})
+OPTIONAL MATCH (rule)<-[:HAS_RULE]-()<-[:HAS_RECOMMENDATION]-(g:Guideline)
+OPTIONAL MATCH (g)<-[:CLASSIFIES_GUIDELINE]-(sub:TaxonomySubcategory)-[:HAS_DOMAIN]->(domain:AuditDomain {source: 'nice'})
+OPTIONAL MATCH (rule)-[:HAS_CRITERIA_GROUP]->(grp)-[:HAS_CRITERIA]->(concept)
+RETURN rule.status AS status,
+       g.id AS guideline_id,
+       domain.id AS domain_id,
+       domain.name AS domain_name,
+       collect(DISTINCT {concept_id: concept.conceptId, term: coalesce(concept.term, concept.conceptId)}) AS concepts
+"""
+
+_PROMOTE_CONCEPT_TO_DOMAIN = """
+MATCH (domain:AuditDomain {id: $domain_id})
+MERGE (vs:ValueSet {id: $valueset_id})
+ON CREATE SET
+    vs.name        = $domain_name + ' concepts',
+    vs.domainId    = $domain_id,
+    vs.createdAt   = datetime()
+MERGE (domain)-[:HAS_VALUESET]->(vs)
+WITH vs
+UNWIND $concepts AS c
+MERGE (concept:SnomedConcept {conceptId: c.concept_id})
+ON CREATE SET concept.term = c.term
+MERGE (vs)-[r:INCLUDES_CONCEPT]->(concept)
+ON CREATE SET r.addedAt    = datetime(),
+              r.ruleId     = $rule_id,
+              r.source     = 'guidance_promotion'
+RETURN count(concept) AS added
+"""
+
+_WRITE_PROMOTION_AUDIT = """
+MERGE (audit:GuidanceAuditEvent {id: $event_id})
+ON CREATE SET
+    audit.type       = 'domain_promotion',
+    audit.ruleId     = $rule_id,
+    audit.domainId   = $domain_id,
+    audit.conceptIds = $concept_ids,
+    audit.reviewer   = $reviewer,
+    audit.timestamp  = datetime(),
+    audit.immutable  = true
+WITH audit
+MATCH (rule:AppropriatenessRule {id: $rule_id})
+MERGE (rule)-[:HAS_AUDIT_EVENT]->(audit)
 """
 
 
@@ -210,6 +257,91 @@ def decide_rule(
         if not records:
             raise HTTPException(status_code=404, detail="Rule not found")
         return {"rule_id": rule_id, "status": new_status}
+    finally:
+        client.close()
+
+
+@router.post("/rules/review/{rule_id}/promote-to-domain")
+def promote_rule_to_domain(
+    rule_id: str,
+    reviewer: str = Query(..., min_length=2, description="Email of the admin promoting this rule"),
+    scope: CallerScope = Depends(require_admin),
+) -> dict:
+    """Add the SNOMED codes from an approved rule into its NICE domain.
+
+    The rule must be ``active`` (approved by a human reviewer). This action:
+
+    1. Finds the NICE ``AuditDomain`` linked to the guideline's taxonomy subcategory.
+    2. MERGEs each SNOMED concept from the rule's criteria into a ``ValueSet``
+       under that domain.
+    3. Writes an immutable ``GuidanceAuditEvent`` recording who did this and when.
+
+    Returns the domain ID, name, and number of concepts added.
+    """
+    client = _kg_client()
+    try:
+        records = client.run(_FETCH_RULE_FOR_PROMOTION, rule_id=rule_id)
+        if not records:
+            raise HTTPException(status_code=404, detail="Rule not found")
+
+        row = records[0]
+        status = row.get("status")
+        if status != "active":
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    f"Rule must be active before it can be added to a domain. "
+                    f"Current status: '{status}'. "
+                    "Please approve the rule first."
+                ),
+            )
+
+        domain_id = row.get("domain_id")
+        domain_name = row.get("domain_name", "")
+        if not domain_id:
+            raise HTTPException(
+                status_code=404,
+                detail=(
+                    "No NICE domain is linked to this guideline. "
+                    "Run a catalogue sync first to build the NICE taxonomy."
+                ),
+            )
+
+        concepts = [c for c in (row.get("concepts") or []) if c.get("concept_id")]
+        if not concepts:
+            return {
+                "domain_id": domain_id,
+                "domain_name": domain_name,
+                "concepts_added": 0,
+                "message": "Rule has no SNOMED criteria to promote.",
+            }
+
+        valueset_id = f"{domain_id}:vs"
+        concept_ids = [c["concept_id"] for c in concepts]
+
+        client.run(
+            _PROMOTE_CONCEPT_TO_DOMAIN,
+            domain_id=domain_id,
+            valueset_id=valueset_id,
+            domain_name=domain_name,
+            concepts=concepts,
+            rule_id=rule_id,
+        )
+
+        client.run(
+            _WRITE_PROMOTION_AUDIT,
+            event_id=str(uuid.uuid4()),
+            rule_id=rule_id,
+            domain_id=domain_id,
+            concept_ids=concept_ids,
+            reviewer=reviewer,
+        )
+
+        return {
+            "domain_id": domain_id,
+            "domain_name": domain_name,
+            "concepts_added": len(concepts),
+        }
     finally:
         client.close()
 

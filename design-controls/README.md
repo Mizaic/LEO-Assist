@@ -331,6 +331,63 @@ coding review UI.
 
 ---
 
+## Per-Tenant Billing, Margin Configuration, and Discount Management — Design Control Summary
+
+Adds an admin-only billing subsystem with configurable gross margin, per-tenant discount
+management (promo and life-of-contract), and platform operating cost visibility.
+Safety class **A** — purely commercial/financial feature, no patient data in pricing calculations.
+
+### User Need
+
+| ID | Title |
+|----|-------|
+| UN-LEO-AI-029 | Platform administrators need per-tenant AI spend visibility with configurable margin and discount management |
+
+### Design Inputs
+
+| ID | Title | Safety Class | Verification |
+|----|-------|-------------|-------------|
+| DI-LEO-AI-068 | Per-Tenant Billing, Margin Configuration, and Discount Management | A | VT-LEO-AI-068 |
+| DI-LEO-AI-069 | ModelConfig Create and Delete via Admin API | A | VT-LEO-AI-069 |
+
+### Design Outputs
+
+| ID | Title | Source |
+|----|-------|--------|
+| DO-LEO-AI-068 | Billing Subsystem Implementation | libs/cypher/pricing_queries.py · services/api/app/routers/pricing.py · services/ui/src/app/admin/billing/page.tsx |
+| DO-LEO-AI-069 | ModelConfig Create/Delete | libs/cypher/model_config_queries.py · services/api/app/routers/model_configs.py · services/ui/src/app/admin/models/page.tsx |
+
+### Verification Tests
+
+| ID | Title | Test File | Cases | Status |
+|----|-------|-----------|-------|--------|
+| VT-LEO-AI-068 | Per-Tenant Billing and Pricing Router Verification | services/api/tests/test_pricing_router.py | 16 | Pending |
+| VT-LEO-AI-069 | ModelConfig Create and Delete Router Verification | services/api/tests/test_model_configs_router.py | 6 | Pending |
+
+### Risk
+
+| ID | Title | Residual | Acceptability |
+|----|-------|---------|---------------|
+| R-LEO-AI-045 | Unauthorized access to commercial pricing and margin data | Low | Acceptable |
+
+### Infrastructure Bug Fixes (Problem Resolution entries — no new design controls required)
+
+The following corrections were made to existing implemented features. Each is recorded
+as a problem resolution entry in DC-PR-001 rather than requiring a new DI/DO/VT chain,
+as they correct defects in already-approved design outputs.
+
+| Fix | File(s) | Root Cause |
+|-----|---------|------------|
+| PromptConfig seed missing `description` and `max_few_shot` parameters | `services/api/app/services/tenant_seed.py` | Parameters referenced in Cypher query but not passed to `client.run()` |
+| ModelConfig EU pricing defaults (all models showing $0.00 or US rates) | `services/api/app/services/model_config_seed.py` | Seed defaulted to `"0"` for all costs; EU cross-region profiles carry 10% premium over US |
+| `azure:max` duplicate removed from seed | `services/api/app/services/model_config_seed.py` | Previously seeded as duplicate of `azure:big`; no corresponding device or use case |
+| `SECRET_MAP` missing Neo4j usernames | `libs/keyvault/loader.py` | `NEO4J_USER` and `KNOWLEDGE_GRAPH_NEO4J_USERNAME` were not in KV secret map; loaded from `.env` only |
+| `ods_sync` private KV loader used wrong secret/env var names | `services/ods_sync/app/main.py` | Loaded into `NEO4J_PATIENT_URI` but `PatientGraphClient` reads `NEO4J_URI`; replaced with shared `load_keyvault_secrets()` |
+| `neo4j_client` module-level dotenv missing `.env.config` | `libs/neo4j_client/client.py` | Scripts importing this lib without running a service `main.py` did not get config-only env vars |
+| Proxy routes missing for `/api/analytics/`, `/api/model-configs`, `/api/pricing/` | `services/ui/src/proxy.ts` | Three API prefixes not registered in Next.js middleware; requests fell through to 404 silently |
+
+---
+
 ## HITL Safety Layer Tier Reasoning -- Design Control Summary
 
 Running the three-tier safety classifier in HITL mode and surfacing its reasoning
