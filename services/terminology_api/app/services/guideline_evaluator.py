@@ -135,6 +135,7 @@ def _format_match(rule: dict) -> dict:
         "strength": rule.get("strength"),
         "guideline_id": rule.get("guideline_id"),
         "guideline_title": rule.get("guideline_title"),
+        "chapter_title": rule.get("chapter_title"),
         "recommendation_verbatim": rule.get("recommendation_verbatim"),
         "confidence": 1.0,
     }

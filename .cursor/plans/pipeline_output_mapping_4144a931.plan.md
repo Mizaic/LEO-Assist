@@ -4,19 +4,19 @@ overview: Fix the "Prompt & model" step (Step 4) in the pipeline wizard so that 
 todos:
   - id: fix-buildDefaultRows
     content: "Change buildDefaultRows() in useFieldMappings.ts: set default statePath to \"\" instead of mirroring the AI topKey"
-    status: pending
+    status: completed
   - id: add-subgraphId-prop
     content: Add subgraphId prop to SchemaAlignmentPanel and pass it from the call site (page.tsx line 1447)
-    status: pending
+    status: completed
   - id: add-coverage-summary
     content: Add mandatory output coverage summary strip above the field rows in SchemaAlignmentPanel, using SUBGRAPH_IO[subgraphId].writes
-    status: pending
+    status: completed
   - id: split-key-control
     content: Replace the statePath free-text TextField with a split key-dropdown + sub-field TextField control in SchemaAlignmentPanel
-    status: pending
+    status: completed
   - id: unrecognised-key-warning
     content: Add per-row warning when statePath top-level key is not in SUBGRAPH_IO[subgraphId].writes
-    status: pending
+    status: completed
 isProject: false
 ---
 

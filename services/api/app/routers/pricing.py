@@ -52,7 +52,7 @@ DEFAULT_TARGET_MARGIN = 0.75  # 75% gross margin
 # ── Guards ────────────────────────────────────────────────────────────────────
 
 def _require_admin(scope: CallerScope) -> None:
-    if "admin" not in (scope.permissions or []):
+    if not scope.is_admin:
         raise HTTPException(403, "Admin permission required")
 
 

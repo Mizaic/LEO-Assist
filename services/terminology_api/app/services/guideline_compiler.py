@@ -25,6 +25,7 @@ _FETCH_ACTIVE_RULES = """
 MATCH (g:Guideline)-[:HAS_RECOMMENDATION]->(rec:Recommendation)
     -[:HAS_RULE]->(rule:AppropriatenessRule {status: 'active'})
     -[:HAS_CRITERIA_GROUP]->(grp:CriteriaGroup)
+OPTIONAL MATCH (rec)<-[:HAS_RECOMMENDATION]-(ch:Chapter)
 OPTIONAL MATCH (grp)-[hc:HAS_CRITERIA]->(concept)
 OPTIONAL MATCH (rule)-[:HAS_ACTION_GROUP]->(ag:ActionGroup)-[ha:HAS_ACTION]->(proc:Procedure)
 RETURN
@@ -33,6 +34,7 @@ RETURN
     rule.strength        AS strength,
     g.id                 AS guideline_id,
     g.title              AS guideline_title,
+    ch.title             AS chapter_title,
     rec.verbatim         AS recommendation_verbatim,
     grp.id               AS group_id,
     coalesce(grp.type, 'ALL') AS group_mode,
@@ -122,6 +124,7 @@ class GuidelineCompiler:
                     "strength": row["strength"],
                     "guideline_id": row["guideline_id"],
                     "guideline_title": row["guideline_title"],
+                    "chapter_title": row.get("chapter_title"),
                     "recommendation_verbatim": row.get("recommendation_verbatim", ""),
                     "req_all": [],
                     "forbid": [],

@@ -170,13 +170,14 @@ class NiceApiClient:
     async def get_chapter_content(self, chapter_uri: str) -> dict[str, Any]:
         """Fetch the raw JSON for a single chapter resource.
 
-        Chapter JSON contains ``Items`` (nested recommendation groups and
-        individual recommendations with ``Title`` and ``Text`` fields).
-        Use :func:`nice_guidance._collect_leaf_items` to extract leaf
-        recommendation items from the returned dict.
+        The chapter JSON contains a ``Resources`` array of section links whose
+        ``Rel`` value is ``/linkrels/guidance/section``.  To get the actual
+        recommendation text, callers must then fetch each section URI and parse
+        the ``Content`` XHTML field — see :meth:`get_section_uris` and
+        :meth:`get_section_content`.
 
         Args:
-            chapter_uri: Fully-qualified or relative NICE API URI for a chapter.
+            chapter_uri: Fully-qualified NICE API URI for a chapter.
 
         Returns:
             Parsed JSON dict for the chapter resource.
@@ -185,6 +186,52 @@ class NiceApiClient:
             RuntimeError: If the fetch fails after all retries.
         """
         url = chapter_uri if chapter_uri.endswith(".json") else f"{chapter_uri}.json"
+        async with httpx.AsyncClient() as client:
+            return await _get(client, url)
+
+    def get_section_uris(self, chapter_json: dict[str, Any]) -> list[str]:
+        """Extract section URIs from a chapter's Resources array.
+
+        The NICE Syndication API advertises intra-chapter sections via
+        ``Resources`` entries whose ``Rel`` field is
+        ``/linkrels/guidance/section``.  Each section contains the actual
+        recommendation text in its ``Content`` field as XHTML.
+
+        Args:
+            chapter_json: Parsed JSON dict for a chapter (from
+                :meth:`get_chapter_content`).
+
+        Returns:
+            Ordered list of section URIs.  Empty if the chapter has no
+            section links (e.g. appendix-only chapters).
+        """
+        uris: list[str] = []
+        for res in chapter_json.get("Resources", []):
+            if (res or {}).get("Rel") == "/linkrels/guidance/section":
+                uri = (res or {}).get("Uri") or (res or {}).get("Href")
+                if uri:
+                    uris.append(uri)
+        return uris
+
+    async def get_section_content(self, section_uri: str) -> dict[str, Any]:
+        """Fetch a single section JSON, which contains the actual recommendation HTML.
+
+        Each section returned by the NICE Syndication API has a ``Content``
+        field containing XHTML.  That HTML contains
+        ``<article class="numbered-paragraph">`` elements — one per
+        recommendation — with the full clinical text.
+
+        Args:
+            section_uri: Fully-qualified NICE API URI for a section.
+
+        Returns:
+            Parsed JSON dict including ``Content`` (XHTML string), ``Title``,
+            and ``SectionId``.
+
+        Raises:
+            RuntimeError: If the fetch fails after all retries.
+        """
+        url = section_uri if section_uri.endswith(".json") else f"{section_uri}.json"
         async with httpx.AsyncClient() as client:
             return await _get(client, url)
 

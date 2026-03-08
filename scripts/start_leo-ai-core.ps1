@@ -47,19 +47,22 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$RepoRoot           = Split-Path -Parent $PSScriptRoot
-$VenvDir            = Join-Path $RepoRoot ".venv"
-$VenvPython         = Join-Path $VenvDir  "Scripts\python.exe"
-# $VenvPip            = Join-Path $VenvDir  "Scripts\pip.exe"
-$UiDir              = Join-Path $RepoRoot "services\ui"
-$ApiDir             = Join-Path $RepoRoot "services\api"
-$ModelInferenceDir  = Join-Path $RepoRoot "services\model_inference"
-$TrainingWorkerDir  = Join-Path $RepoRoot "services\training_worker"
-$ReqFile            = Join-Path $RepoRoot "requirements.txt"
-$ApiReq             = Join-Path $ApiDir "requirements.txt"
-$ModelInferenceReq  = Join-Path $ModelInferenceDir "requirements.txt"
-$TrainingWorkerReq  = Join-Path $TrainingWorkerDir "requirements.txt"
-$ModelCacheDir      = Join-Path $RepoRoot ".model_cache"
+$RepoRoot               = Split-Path -Parent $PSScriptRoot
+$VenvDir                = Join-Path $RepoRoot ".venv"
+$VenvPython             = Join-Path $VenvDir  "Scripts\python.exe"
+# Separate venv for the training worker — keeps cupy/torch/spacy-transformers
+# out of the shared venv so other services don't load GPU libs unnecessarily.
+$TrainingVenvDir        = Join-Path $RepoRoot ".venv-training"
+$TrainingVenvPython     = Join-Path $TrainingVenvDir "Scripts\python.exe"
+$UiDir                  = Join-Path $RepoRoot "services\ui"
+$ApiDir                 = Join-Path $RepoRoot "services\api"
+$ModelInferenceDir      = Join-Path $RepoRoot "services\model_inference"
+$TrainingWorkerDir      = Join-Path $RepoRoot "services\training_worker"
+$ReqFile                = Join-Path $RepoRoot "requirements.txt"
+$ApiReq                 = Join-Path $ApiDir "requirements.txt"
+$ModelInferenceReq      = Join-Path $ModelInferenceDir "requirements.txt"
+$TrainingWorkerReq      = Join-Path $TrainingWorkerDir "requirements.txt"
+$ModelCacheDir          = Join-Path $RepoRoot ".model_cache"
 
 Write-Host ""
 Write-Host "  LEO-AI-CORE - Local Dev Startup" -ForegroundColor Cyan
@@ -135,16 +138,25 @@ if (-not (Test-Path $ModelCacheDir)) {
     Write-Host "  [dir]  Created .model_cache/ for NER model artifacts." -ForegroundColor Green
 }
 
-# -- Python virtual environment --------------------------------------------
+# -- Python virtual environment (shared — no GPU/cupy deps) ----------------
 if (-not (Test-Path $VenvPython)) {
-    Write-Host "  [venv] Creating virtual environment..." -ForegroundColor Yellow
+    Write-Host "  [venv] Creating shared virtual environment (.venv)..." -ForegroundColor Yellow
     python -m venv $VenvDir
     Write-Host "  [venv] .venv created." -ForegroundColor Green
 }
 
+# -- Training worker virtual environment (isolated — cupy + torch + spacy-transformers) --
+if (-not $NoTrainingWorker) {
+    if (-not (Test-Path $TrainingVenvPython)) {
+        Write-Host "  [venv] Creating training worker virtual environment (.venv-training)..." -ForegroundColor Yellow
+        python -m venv $TrainingVenvDir
+        Write-Host "  [venv] .venv-training created." -ForegroundColor Green
+    }
+}
+
 # -- Python dependencies ---------------------------------------------------
 if (-not $SkipInstall) {
-    Write-Host "  [pip]  Installing / upgrading Python dependencies..." -ForegroundColor Yellow
+    Write-Host "  [pip]  Installing / upgrading shared Python dependencies..." -ForegroundColor Yellow
     & $VenvPython -m pip install --quiet --upgrade pip
     & $VenvPython -m pip install --quiet --upgrade -r $ReqFile
     # Core API has its own requirements (slowapi, azure-identity, etc.)
@@ -156,10 +168,15 @@ if (-not $SkipInstall) {
     if (Test-Path $ModelInferenceReq) {
         & $VenvPython -m pip install --quiet --upgrade -r $ModelInferenceReq
     }
+    Write-Host "  [pip]  Shared Python dependencies up to date." -ForegroundColor Green
+
+    # Training worker installs into its own venv to keep GPU libs isolated.
     if (-not $NoTrainingWorker -and (Test-Path $TrainingWorkerReq)) {
-        & $VenvPython -m pip install --quiet --upgrade -r $TrainingWorkerReq
+        Write-Host "  [pip]  Installing training worker dependencies (.venv-training)..." -ForegroundColor Yellow
+        & $TrainingVenvPython -m pip install --quiet --upgrade pip
+        & $TrainingVenvPython -m pip install --quiet --upgrade -r $TrainingWorkerReq
+        Write-Host "  [pip]  Training worker dependencies up to date." -ForegroundColor Green
     }
-    Write-Host "  [pip]  Python dependencies up to date." -ForegroundColor Green
 }
 
 # -- Node dependencies -----------------------------------------------------
@@ -279,7 +296,7 @@ if (-not $NoTrainingWorker -and (ShouldStart "training_worker")) {
         Write-Host "    Training Worker    [killed existing PID $procId]" -ForegroundColor Yellow
         Start-Sleep -Seconds 2
     }
-    $twCmd = "& '$VenvPython' -m uvicorn app.main:app --app-dir '$TrainingWorkerDir' --host 0.0.0.0 --port $TrainingWorkerPort"
+    $twCmd = "& '$TrainingVenvPython' -m uvicorn app.main:app --app-dir '$TrainingWorkerDir' --host 0.0.0.0 --port $TrainingWorkerPort"
     Start-ServiceWindow -Title "Training Worker :$TrainingWorkerPort" -Command $twCmd -WorkDir $RepoRoot
     Write-Host "    Training Worker    http://localhost:$TrainingWorkerPort  (NER fine-tuning /train/jobs /train/progress)" -ForegroundColor White
     $windowCount++

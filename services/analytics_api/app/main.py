@@ -41,7 +41,8 @@ async def lifespan(_app: FastAPI):
     logger.info("Analytics API starting")
     try:
         n = seed_nhs_cohorts()
-        logger.info("NHS screening cohorts seeded: %d presets", n)
+        if n > 0:
+            logger.info("NHS screening cohorts seeded: %d presets", n)
     except Exception as exc:
         logger.warning("NHS cohort seeding skipped (graph unavailable?): %s", exc)
     try:

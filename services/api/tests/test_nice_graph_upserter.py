@@ -1,8 +1,15 @@
 """Tests for NiceGraphUpserter -- VT-LEO-AI-063.
 
 Graph model asserted by these tests:
+
     (Guideline)-[:HAS_CHAPTER]->(Chapter)-[:HAS_RECOMMENDATION]->(Recommendation)
-    (Guideline)-[:HAS_RECOMMENDATION]->(Recommendation)   # shortcut edge (always present)
+    (Guideline)-[:HAS_RECOMMENDATION]->(Recommendation)  # shortcut edge for bitmap compiler
+
+Versioning contract:
+    - upsert_guideline() returns (id, version) tuple.
+    - Version is embedded in child node IDs: NG151:v1:CH000:R000.
+    - clear_guideline_content() marks rules as 'superseded' and detaches
+      shortcut edges — it never deletes AppropriatenessRule or audit nodes.
 """
 
 from __future__ import annotations
@@ -19,11 +26,15 @@ from app.services.nice_graph_upserter import (
 )
 
 
-def _make_session_mock(return_value=None):
-    """Return a mock Neo4j session context manager."""
+def _make_session_mock(return_value=None, version=1):
+    """Return a mock Neo4j session context manager.
+
+    The mock returns a record containing both ``id`` and ``version`` so that
+    ``upsert_guideline()`` can unpack them as a tuple.
+    """
     session = MagicMock()
     result = MagicMock()
-    result.single.return_value = {"id": return_value or "NG151"}
+    result.single.return_value = {"id": return_value or "NG151", "version": version}
     session.run.return_value = result
     ctx = MagicMock()
     ctx.__enter__ = MagicMock(return_value=session)
@@ -37,14 +48,14 @@ def upserter():
 
 
 def test_upsert_guideline_is_idempotent(upserter):
-    """Calling upsert_guideline twice uses MERGE -- only one node created."""
+    """Calling upsert_guideline twice uses MERGE and returns (id, version) tuples."""
     guidance = {
         "GuidanceNumber": "NG151",
         "Title": "Bowel cancer: recognition, referral and review",
         "Type": "clinical-guideline",
         "PublicationDate": "2023-01-01",
     }
-    session, ctx = _make_session_mock("NG151")
+    session, ctx = _make_session_mock("NG151", version=1)
 
     with patch("app.services.nice_graph_upserter._kg_driver") as mock_driver:
         mock_drv = MagicMock()
@@ -55,17 +66,18 @@ def test_upsert_guideline_is_idempotent(upserter):
         result1 = upserter.upsert_guideline(guidance)
         result2 = upserter.upsert_guideline(guidance)
 
-    assert result1 == "NG151"
-    assert result2 == "NG151"
+    assert result1 == ("NG151", 1)
+    assert result2 == ("NG151", 1)
     assert session.run.call_count == 2
     query_text = session.run.call_args_list[0][0][0]
     assert "MERGE" in query_text
+    assert "ingestVersion" in query_text
 
 
 def test_upsert_guideline_sets_source_field(upserter):
     """Guideline node is created with source = nice_syndication_api."""
     guidance = {"GuidanceNumber": "CG89", "Title": "Test", "Type": "cg"}
-    session, ctx = _make_session_mock("CG89")
+    session, ctx = _make_session_mock("CG89", version=1)
 
     with patch("app.services.nice_graph_upserter._kg_driver") as mock_driver:
         mock_drv = MagicMock()
@@ -79,9 +91,10 @@ def test_upsert_guideline_sets_source_field(upserter):
 
 
 def test_upsert_recommendation_links_to_guideline(upserter):
-    """Recommendation node is MERGEd and linked to parent Guideline."""
+    """Recommendation node is MERGEd and linked to parent Guideline via version-scoped ID."""
     rec = {"Title": "1.1.1", "Text": "Refer if rectal bleeding > 50."}
-    session, ctx = _make_session_mock("NG151:CH000:R000")
+    rec_id = "NG151:v1:CH000:R000"
+    session, ctx = _make_session_mock(rec_id)
 
     with patch("app.services.nice_graph_upserter._kg_driver") as mock_driver:
         mock_drv = MagicMock()
@@ -89,9 +102,9 @@ def test_upsert_recommendation_links_to_guideline(upserter):
         mock_drv.close = MagicMock()
         mock_driver.return_value = mock_drv
 
-        result = upserter.upsert_recommendation("NG151", "NG151:CH000:R000", rec)
+        result = upserter.upsert_recommendation("NG151", rec_id, rec, version_id="NG151:v1")
 
-    assert result == "NG151:CH000:R000"
+    assert result == rec_id
     cypher = session.run.call_args[0][0]
     assert "HAS_RECOMMENDATION" in cypher
 
@@ -99,7 +112,7 @@ def test_upsert_recommendation_links_to_guideline(upserter):
 def test_upsert_recommendation_links_to_chapter_when_chapter_id_given(upserter):
     """When chapter_id is supplied, the Recommendation is also linked to its Chapter."""
     rec = {"Title": "1.1.1", "Text": "Offer urgent referral for suspected colorectal cancer."}
-    session, ctx = _make_session_mock("NG151:CH000:R000")
+    session, ctx = _make_session_mock("NG151:v1:CH000:R000")
 
     with patch("app.services.nice_graph_upserter._kg_driver") as mock_driver:
         mock_drv = MagicMock()
@@ -108,19 +121,21 @@ def test_upsert_recommendation_links_to_chapter_when_chapter_id_given(upserter):
         mock_driver.return_value = mock_drv
 
         upserter.upsert_recommendation(
-            "NG151", "NG151:CH000:R000", rec, chapter_id="NG151:CH000"
+            "NG151", "NG151:v1:CH000:R000", rec,
+            chapter_id="NG151:v1:CH000", version_id="NG151:v1",
         )
 
     cypher = session.run.call_args[0][0]
     # FOREACH block in the Cypher creates the Chapter→Recommendation edge
     assert "FOREACH" in cypher
     kwargs = session.run.call_args[1]
-    assert kwargs.get("chapter_id") == "NG151:CH000"
+    assert kwargs.get("chapter_id") == "NG151:v1:CH000"
 
 
 def test_upsert_chapter_creates_chapter_node(upserter):
-    """upsert_chapter creates a Chapter node linked to the parent Guideline."""
-    session, ctx = _make_session_mock("NG151:CH000")
+    """upsert_chapter creates a version-scoped Chapter node linked to the parent Guideline."""
+    chapter_id = "NG151:v1:CH000"
+    session, ctx = _make_session_mock(chapter_id)
 
     with patch("app.services.nice_graph_upserter._kg_driver") as mock_driver:
         mock_drv = MagicMock()
@@ -128,18 +143,38 @@ def test_upsert_chapter_creates_chapter_node(upserter):
         mock_drv.close = MagicMock()
         mock_driver.return_value = mock_drv
 
-        result = upserter.upsert_chapter("NG151", "NG151:CH000", "Recommendations", 0)
+        result = upserter.upsert_chapter(
+            "NG151", chapter_id, "Recommendations", 0, version_id="NG151:v1"
+        )
 
-    assert result == "NG151:CH000"
+    assert result == chapter_id
     cypher = session.run.call_args[0][0]
     assert "HAS_CHAPTER" in cypher
     assert "MERGE (ch:Chapter" in cypher
+    kwargs = session.run.call_args[1]
+    assert kwargs.get("version_id") == "NG151:v1"
 
 
-def test_clear_guideline_content_detach_deletes_chapters_and_recs(upserter):
-    """clear_guideline_content runs DETACH DELETE on Chapter, Recommendation, Section nodes."""
-    session, ctx = _make_session_mock()
-    session.run.return_value = MagicMock()
+def test_clear_guideline_content_supersedes_rules_not_deletes(upserter):
+    """clear_guideline_content marks rules as 'superseded' without deleting nodes.
+
+    Regulatory requirement: AppropriatenessRule nodes and their GuidanceAuditEvent
+    children must never be deleted.  clear_guideline_content must:
+    1. Run a query that sets rule.status = 'superseded'.
+    2. Run a query that removes HAS_CHAPTER / HAS_RECOMMENDATION shortcut edges.
+    It must NOT run DETACH DELETE on Chapter or Recommendation nodes.
+    """
+    # First call (supersede rules) returns a count; second call (detach links) returns None.
+    supersede_result = MagicMock()
+    supersede_result.single.return_value = {"superseded_count": 3}
+    detach_result = MagicMock()
+    detach_result.single.return_value = None
+
+    session = MagicMock()
+    session.run.side_effect = [supersede_result, detach_result]
+    ctx = MagicMock()
+    ctx.__enter__ = MagicMock(return_value=session)
+    ctx.__exit__ = MagicMock(return_value=False)
 
     with patch("app.services.nice_graph_upserter._kg_driver") as mock_driver:
         mock_drv = MagicMock()
@@ -147,12 +182,18 @@ def test_clear_guideline_content_detach_deletes_chapters_and_recs(upserter):
         mock_drv.close = MagicMock()
         mock_driver.return_value = mock_drv
 
-        upserter.clear_guideline_content("NG151")
+        superseded = upserter.clear_guideline_content("NG151")
 
-    cypher = session.run.call_args[0][0]
-    assert "DETACH DELETE" in cypher
-    assert "Chapter" in cypher
-    assert "Recommendation" in cypher
+    assert superseded == 3
+    assert session.run.call_count == 2
+
+    cyphers = [call[0][0] for call in session.run.call_args_list]
+    # First query marks rules superseded (never deletes them)
+    assert "superseded" in cyphers[0].lower()
+    assert "DETACH DELETE" not in cyphers[0]
+    # Second query removes the shortcut edges
+    assert "DELETE hch" in cyphers[1] or "DELETE" in cyphers[1]
+    assert "DETACH DELETE" not in cyphers[1]
 
 
 def test_upsert_taxonomy_creates_category_subcategory_and_domain(upserter):

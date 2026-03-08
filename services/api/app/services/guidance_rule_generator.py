@@ -91,11 +91,29 @@ ON CREATE SET
 
 _FETCH_RECOMMENDATIONS = """
 MATCH (g:Guideline {id: $guideline_id})-[:HAS_RECOMMENDATION]->(r:Recommendation)
+WHERE coalesce(r.isNormative, false) = true
+OPTIONAL MATCH (r)<-[:HAS_RECOMMENDATION]-(ch:Chapter)
 RETURN r.id AS id,
        r.verbatim AS verbatim,
        r.title AS title,
        r.urgency AS urgency,
-       r.strength AS strength
+       r.strength AS strength,
+       r.sectionTitle AS section_title,
+       ch.title AS chapter_title,
+       ch.order AS chapter_order
+"""
+
+_LINK_SUPERSEDES = """
+MATCH (new_rule:AppropriatenessRule {id: $rule_id})
+OPTIONAL MATCH (pred:AppropriatenessRule {
+    status:                     'superseded',
+    supersededByGuidelineId:    $guideline_id,
+    previousRecommendationText: $verbatim
+})
+FOREACH (p IN CASE WHEN pred IS NOT NULL THEN [pred] ELSE [] END |
+    MERGE (new_rule)-[:SUPERSEDES]->(p)
+)
+RETURN new_rule.id AS id
 """
 
 
@@ -223,11 +241,15 @@ class GuidanceRuleGenerator:
         rec: dict[str, Any],
         criteria: dict[str, list[str]],
     ) -> str:
-        """Write AppropriatenessRule, CriteriaGroups, and ReviewTask to Neo4j.
+        """Write AppropriatenessRule, CriteriaGroups, ReviewTask, and SUPERSEDES link.
+
+        The ``SUPERSEDES`` relationship links the new rule to any superseded rule
+        that was derived from a recommendation with identical verbatim text.
+        This provides the lineage needed for the diff view and audit trail.
 
         Args:
             guideline_id: Parent guideline ID.
-            rec: Recommendation record dict.
+            rec: Recommendation record dict (includes ``verbatim``).
             criteria: Parsed ``{present, absent}`` criteria dict.
 
         Returns:
@@ -235,6 +257,7 @@ class GuidanceRuleGenerator:
         """
         rule_id = f"rule:{rec['id']}:{str(uuid.uuid4())[:8]}"
         task_id = str(uuid.uuid4())
+        verbatim = rec.get("verbatim") or rec.get("title") or ""
 
         with self._driver.session() as session:
             session.run(
@@ -255,6 +278,13 @@ class GuidanceRuleGenerator:
                 task_id=task_id,
                 rule_id=rule_id,
                 guideline_id=guideline_id,
+            )
+            # Link to superseded predecessor (if this guideline was re-ingested)
+            session.run(
+                _LINK_SUPERSEDES,
+                rule_id=rule_id,
+                guideline_id=guideline_id,
+                verbatim=verbatim,
             )
         return rule_id
 

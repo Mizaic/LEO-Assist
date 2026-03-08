@@ -15,7 +15,7 @@ from libs.auth.org_scope import CallerScope
 
 
 def _patch_scope():
-    scope = CallerScope(email="admin@example.com", org_id="org-1", permissions=["admin"])
+    scope = CallerScope(email="admin@example.com", is_admin=True, org_ids=[])
     return patch("app.deps.get_caller_scope_from_request", return_value=scope)
 
 

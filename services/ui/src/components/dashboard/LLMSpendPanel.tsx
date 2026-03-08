@@ -76,8 +76,8 @@ function CostSummaryRow({ label, value, highlight = false }: { label: string; va
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function LLMSpendPanel() {
-  const { user } = useAuth();
-  const isAdmin = (user?.permissions ?? []).includes("admin");
+  const { session } = useAuth();
+  const isAdmin = session?.isPlatformAdmin ?? false;
 
   const [period, setPeriod] = useState<"today" | "7d" | "30d">("7d");
   const [loading, setLoading] = useState(false);

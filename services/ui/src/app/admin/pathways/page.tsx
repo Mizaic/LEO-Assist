@@ -17,6 +17,7 @@ import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 import TextField from "@mui/material/TextField";
+import Paper from "@mui/material/Paper";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
@@ -25,7 +26,232 @@ import ArchiveIcon from "@mui/icons-material/Archive";
 import ReplayIcon from "@mui/icons-material/Replay";
 import PlayCircleOutlineIcon from "@mui/icons-material/PlayCircleOutline";
 import AccountTreeIcon from "@mui/icons-material/AccountTree";
+import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import { api } from "@/lib/api";
+
+// ── Pathway templates ──────────────────────────────────────────────────────────
+
+interface PathwayTemplate {
+  id: string;
+  name: string;
+  description: string;
+  stepCount: number;
+  payload: Record<string, unknown>;
+}
+
+const PATHWAY_TEMPLATES: PathwayTemplate[] = [
+  {
+    id: "blank",
+    name: "Start from scratch",
+    description: "Empty canvas — add and connect steps yourself.",
+    stepCount: 0,
+    payload: { name: "New pathway", status: "draft", description: "", actions: [], edges: [] },
+  },
+  {
+    id: "extraction-only",
+    name: "Find clinical facts",
+    description: "Read patient notes, extract clinical facts with AI, and save them to the patient record.",
+    stepCount: 2,
+    payload: {
+      name: "Find Clinical Facts",
+      status: "draft",
+      description: "Extract clinical facts from patient encounter notes and save them.",
+      trigger: { event: "encounter-created", type: "data-changed" },
+      actions: [
+        {
+          id: "step_extract",
+          subgraphId: "extraction",
+          label: "Find Clinical Facts",
+          nodeType: "action",
+          position: { x: 200, y: 200 },
+          config: { subgraphId: "extraction", label: "Find Clinical Facts", description: "Read patient notes and pull out clinical facts.", inputSource: "encounter_text", outputTarget: "patient_graph", enableVerification: false, maxRetries: 2, timeout: 120, modelPresetId: "", modelPresetName: "", temperature: 0, promptConfigId: "", promptConfigName: "", params: {} },
+        },
+        {
+          id: "step_persist",
+          subgraphId: "persist",
+          label: "Save Results",
+          nodeType: "action",
+          position: { x: 520, y: 200 },
+          config: { subgraphId: "persist", label: "Save Results", description: "Write extracted facts to the patient record.", inputSource: "previous_step", outputTarget: "patient_graph", enableVerification: false, maxRetries: 2, timeout: 120, modelPresetId: "", modelPresetName: "", temperature: 0, promptConfigId: "", promptConfigName: "", params: {} },
+        },
+      ],
+      edges: [{ source: "step_extract", target: "step_persist" }],
+    },
+  },
+  {
+    id: "extraction-verify-persist",
+    name: "Find, double-check, then save",
+    description: "Extract clinical facts, run a second AI pass to check for errors, then save to the patient record.",
+    stepCount: 3,
+    payload: {
+      name: "Find, Verify and Save",
+      status: "draft",
+      description: "Extract clinical facts, verify them with a second AI, then save.",
+      trigger: { event: "encounter-created", type: "data-changed" },
+      actions: [
+        {
+          id: "step_extract",
+          subgraphId: "extraction",
+          label: "Find Clinical Facts",
+          nodeType: "action",
+          position: { x: 160, y: 200 },
+          config: { subgraphId: "extraction", label: "Find Clinical Facts", description: "Read patient notes and pull out clinical facts.", inputSource: "encounter_text", outputTarget: "patient_graph", enableVerification: false, maxRetries: 2, timeout: 120, modelPresetId: "", modelPresetName: "", temperature: 0, promptConfigId: "", promptConfigName: "", params: {} },
+        },
+        {
+          id: "step_verify",
+          subgraphId: "verification",
+          label: "Double-Check with AI",
+          nodeType: "action",
+          position: { x: 460, y: 200 },
+          config: { subgraphId: "verification", label: "Double-Check with AI", description: "Run a second AI to catch any errors before saving.", inputSource: "previous_step", outputTarget: "patient_graph", enableVerification: false, maxRetries: 1, timeout: 120, modelPresetId: "", modelPresetName: "", temperature: 0, promptConfigId: "", promptConfigName: "", params: {} },
+        },
+        {
+          id: "step_persist",
+          subgraphId: "persist",
+          label: "Save Results",
+          nodeType: "action",
+          position: { x: 760, y: 200 },
+          config: { subgraphId: "persist", label: "Save Results", description: "Write verified facts to the patient record.", inputSource: "previous_step", outputTarget: "patient_graph", enableVerification: false, maxRetries: 2, timeout: 120, modelPresetId: "", modelPresetName: "", temperature: 0, promptConfigId: "", promptConfigName: "", params: {} },
+        },
+      ],
+      edges: [
+        { source: "step_extract", target: "step_verify" },
+        { source: "step_verify", target: "step_persist" },
+      ],
+    },
+  },
+  {
+    id: "training-audit",
+    name: "Training data audit",
+    description: "Extract facts from de-identified notes, verify them, and store as gold-labelled training data.",
+    stepCount: 3,
+    payload: {
+      name: "Training Data Audit",
+      status: "draft",
+      description: "Extract and verify clinical facts from de-identified notes for gold-standard training labels.",
+      trigger: { event: "training-candidate-ready", type: "data-changed" },
+      actions: [
+        {
+          id: "step_extract",
+          subgraphId: "extraction",
+          label: "Find Clinical Facts",
+          nodeType: "action",
+          position: { x: 160, y: 200 },
+          config: { subgraphId: "extraction", label: "Find Clinical Facts", description: "Extract clinical facts from de-identified notes.", inputSource: "knowledge_graph", outputTarget: "gold_training", enableVerification: false, maxRetries: 2, timeout: 120, modelPresetId: "", modelPresetName: "", temperature: 0, promptConfigId: "", promptConfigName: "", params: { input_node_label: "TrainingCandidate", input_text_property: "text" } },
+        },
+        {
+          id: "step_verify",
+          subgraphId: "verification",
+          label: "Double-Check with AI",
+          nodeType: "action",
+          position: { x: 460, y: 200 },
+          config: { subgraphId: "verification", label: "Double-Check with AI", description: "Verify extracted facts against the source text.", inputSource: "previous_step", outputTarget: "gold_training", enableVerification: false, maxRetries: 1, timeout: 120, modelPresetId: "", modelPresetName: "", temperature: 0, promptConfigId: "", promptConfigName: "", params: {} },
+        },
+        {
+          id: "step_persist",
+          subgraphId: "persist",
+          label: "Save as Training Labels",
+          nodeType: "action",
+          position: { x: 760, y: 200 },
+          config: { subgraphId: "persist", label: "Save as Training Labels", description: "Write gold-labelled facts to the training dataset.", inputSource: "previous_step", outputTarget: "gold_training", enableVerification: false, maxRetries: 2, timeout: 120, modelPresetId: "", modelPresetName: "", temperature: 0, promptConfigId: "", promptConfigName: "", params: {} },
+        },
+      ],
+      edges: [
+        { source: "step_extract", target: "step_verify" },
+        { source: "step_verify", target: "step_persist" },
+      ],
+    },
+  },
+];
+
+// ── Template picker dialog ─────────────────────────────────────────────────────
+
+function NewPathwayDialog({
+  open,
+  onClose,
+  onCreate,
+  creating,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onCreate: (template: PathwayTemplate) => void;
+  creating: boolean;
+}) {
+  const [selected, setSelected] = useState<string>("blank");
+  const template = PATHWAY_TEMPLATES.find((t) => t.id === selected) ?? PATHWAY_TEMPLATES[0];
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
+      <DialogTitle sx={{ pb: 0.5 }}>
+        <Stack direction="row" alignItems="center" spacing={1}>
+          <AutoFixHighIcon color="primary" sx={{ fontSize: "1.3rem" }} />
+          <Typography variant="h6" fontWeight={700}>Start a new pathway</Typography>
+        </Stack>
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+          Pick a ready-made starting point or build from scratch.
+        </Typography>
+      </DialogTitle>
+      <DialogContent sx={{ pt: 1.5 }}>
+        <Stack spacing={1.25}>
+          {PATHWAY_TEMPLATES.map((t) => (
+            <Paper
+              key={t.id}
+              variant="outlined"
+              onClick={() => setSelected(t.id)}
+              sx={{
+                p: 1.75,
+                borderRadius: 2,
+                cursor: "pointer",
+                borderColor: selected === t.id ? "primary.main" : "divider",
+                borderWidth: selected === t.id ? 2 : 1,
+                bgcolor: selected === t.id ? "primary.50" : "background.paper",
+                transition: "all 0.15s",
+                "&:hover": { borderColor: "primary.light", boxShadow: 1 },
+              }}
+            >
+              <Stack direction="row" alignItems="flex-start" spacing={1.5}>
+                <Box sx={{ flex: 1 }}>
+                  <Stack direction="row" alignItems="center" spacing={1}>
+                    <Typography variant="subtitle2" fontWeight={700}>{t.name}</Typography>
+                    {t.stepCount > 0 && (
+                      <Chip size="small" label={`${t.stepCount} step${t.stepCount !== 1 ? "s" : ""} ready`}
+                        color="success" variant="outlined"
+                        sx={{ height: 18, fontSize: "0.6rem" }} />
+                    )}
+                  </Stack>
+                  <Typography variant="caption" color="text.secondary" sx={{ mt: 0.25, display: "block", lineHeight: 1.4 }}>
+                    {t.description}
+                  </Typography>
+                </Box>
+                <Box sx={{
+                  width: 20, height: 20, borderRadius: "50%", border: "2px solid",
+                  borderColor: selected === t.id ? "primary.main" : "grey.300",
+                  bgcolor: selected === t.id ? "primary.main" : "transparent",
+                  flexShrink: 0, mt: 0.25,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                  {selected === t.id && <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: "#fff" }} />}
+                </Box>
+              </Stack>
+            </Paper>
+          ))}
+        </Stack>
+      </DialogContent>
+      <DialogActions sx={{ px: 3, pb: 2 }}>
+        <Button onClick={onClose} disabled={creating} sx={{ textTransform: "none" }}>Cancel</Button>
+        <Button
+          variant="contained"
+          disabled={creating}
+          startIcon={creating ? <CircularProgress size={13} color="inherit" /> : <AddIcon />}
+          onClick={() => onCreate(template)}
+          sx={{ textTransform: "none" }}
+        >
+          {creating ? "Creating…" : template.id === "blank" ? "Create blank pathway" : "Use this template"}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+}
 
 interface PlanDefinition {
   id: string;
@@ -240,6 +466,10 @@ export default function PathwaysPage() {
   const [busy, setBusy] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<string | null>(null);
 
+  // Template picker dialog
+  const [newDialogOpen, setNewDialogOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
+
   // Publish confirmation dialog
   const [publishTarget, setPublishTarget] = useState<PlanDefinition | null>(null);
   const [versionNotes, setVersionNotes] = useState("");
@@ -281,6 +511,17 @@ export default function PathwaysPage() {
       setError("Failed to duplicate pathway.");
     } finally {
       setBusyFor(plan.id, false);
+    }
+  };
+
+  const handleCreateFromTemplate = async (template: PathwayTemplate) => {
+    setCreating(true);
+    try {
+      const result = await api.post<{ id: string }>("/fhir/PlanDefinition", template.payload);
+      router.push(`/admin/pathways/${result.id}`);
+    } catch {
+      setError("Could not create pathway. Please try again.");
+      setCreating(false);
     }
   };
 
@@ -328,7 +569,7 @@ export default function PathwaysPage() {
             {active.length} live · {drafts.length} draft{drafts.length !== 1 ? "s" : ""} · {retired.length} retired
           </Typography>
         </Box>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={() => router.push("/admin/pathways/new")}>
+        <Button variant="contained" startIcon={<AddIcon />} onClick={() => setNewDialogOpen(true)}>
           New pathway
         </Button>
       </Stack>
@@ -346,7 +587,7 @@ export default function PathwaysPage() {
         <Box sx={{ textAlign: "center", py: 8 }}>
           <AccountTreeIcon sx={{ fontSize: 48, color: "text.disabled", mb: 1 }} />
           <Typography color="text.secondary" gutterBottom>No pathways configured yet.</Typography>
-          <Button variant="contained" startIcon={<AddIcon />} onClick={() => router.push("/admin/pathways/new")} sx={{ mt: 1 }}>
+          <Button variant="contained" startIcon={<AddIcon />} onClick={() => setNewDialogOpen(true)} sx={{ mt: 1 }}>
             Create your first pathway
           </Button>
         </Box>
@@ -400,6 +641,14 @@ export default function PathwaysPage() {
           )}
         </Stack>
       )}
+
+      {/* ── New pathway / template picker ────────────────────────────────────── */}
+      <NewPathwayDialog
+        open={newDialogOpen}
+        onClose={() => setNewDialogOpen(false)}
+        onCreate={handleCreateFromTemplate}
+        creating={creating}
+      />
 
       {/* ── Publish confirmation dialog ───────────────────────────────────────── */}
       <Dialog

@@ -17,7 +17,12 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from app.routers.nice_guidance import _collect_leaf_items, _ranked_search, router
+from app.routers.nice_guidance import (
+    _collect_leaf_items,
+    _extract_recommendations_from_section,
+    _ranked_search,
+    router,
+)
 from app import deps
 
 
@@ -310,6 +315,117 @@ class TestGetTaxonomy:
 
 
 # ── _collect_leaf_items unit tests ────────────────────────────────────────
+
+
+class TestExtractRecommendationsFromSection:
+    """Unit tests for _extract_recommendations_from_section (section HTML parser).
+
+    This function is the critical bridge between the NICE Syndication API and
+    Neo4j.  It parses the ``Content`` XHTML field that every section-level
+    JSON response contains, extracting the actual clinical recommendation text
+    from ``<article class="numbered-paragraph">`` elements.
+    """
+
+    _NG12_SECTION_HTML = """
+    <div>
+      <article class="numbered-paragraph" id="ng12-chapter-1-recommendation-1-1-1">
+        <h5>1.1.1</h5>
+        <p>Offer a 2-week-wait referral for colorectal cancer in adults aged 40 and over
+        with unexplained weight loss and abdominal pain.</p>
+      </article>
+      <article class="numbered-paragraph" id="ng12-chapter-1-recommendation-1-1-2">
+        <h5>1.1.2</h5>
+        <p>Consider a 2-week-wait referral for colorectal cancer in adults with rectal
+        bleeding and any of the following unexplained symptoms: abdominal pain, change
+        in bowel habit, weight loss, iron-deficiency anaemia.</p>
+      </article>
+    </div>
+    """
+
+    def test_extracts_two_articles(self):
+        """Parser returns one dict per <article> element."""
+        section_json = {"Content": self._NG12_SECTION_HTML, "SectionId": "sec-1.1", "Title": "1.1"}
+        recs = _extract_recommendations_from_section(section_json, "NG12")
+        assert len(recs) == 2
+
+    def test_verbatim_text_is_full_paragraph(self):
+        """The ``Text`` key contains the full clinical recommendation text (not just the heading)."""
+        section_json = {"Content": self._NG12_SECTION_HTML, "SectionId": "sec-1.1", "Title": "1.1"}
+        recs = _extract_recommendations_from_section(section_json, "NG12")
+        assert "2-week-wait referral" in recs[0]["Text"]
+        assert "aged 40 and over" in recs[0]["Text"]
+
+    def test_title_is_recommendation_number(self):
+        """The ``Title`` key contains the recommendation number from the heading."""
+        section_json = {"Content": self._NG12_SECTION_HTML, "SectionId": "sec-1.1"}
+        recs = _extract_recommendations_from_section(section_json, "NG12")
+        assert recs[0]["Title"] == "1.1.1"
+        assert recs[1]["Title"] == "1.1.2"
+
+    def test_empty_content_returns_empty_list(self):
+        """Sections with no Content field return an empty list."""
+        assert _extract_recommendations_from_section({}, "NG12") == []
+        assert _extract_recommendations_from_section({"Content": ""}, "NG12") == []
+
+    def test_no_fallback_for_cross_reference_sections(self):
+        """Sections without <article> elements return an empty list.
+
+        NICE guidelines contain two presentations of their recommendations:
+        (1) numbered-paragraph chapters (canonical) and (2) cross-reference
+        tables organised by symptom/sign.  The cross-reference chapters must
+        NOT be ingested as recommendations — they would create duplicate,
+        corrupt data.  The parser intentionally returns [] for such sections.
+        """
+        html = "<div class='section'><p>All patients should be referred promptly.</p></div>"
+        section_json = {"Content": html, "SectionId": "sec-2", "Title": "2. Referral"}
+        recs = _extract_recommendations_from_section(section_json, "NG12")
+        assert recs == []
+
+    def test_chapter_id_is_propagated(self):
+        """chapter_id argument is reflected in ChapterId field of returned dicts."""
+        section_json = {"Content": self._NG12_SECTION_HTML, "SectionId": "sec-1.1"}
+        recs = _extract_recommendations_from_section(
+            section_json, "NG12", chapter_id="NG12:v1:CH000"
+        )
+        assert all(r["ChapterId"] == "NG12:v1:CH000" for r in recs)
+
+    def test_chapter_id_from_api_takes_precedence(self):
+        """ChapterId from the section JSON takes precedence over the argument."""
+        html = """
+        <article class="numbered-paragraph">
+          <h5>3.1.1</h5><p>Refer patients immediately.</p>
+        </article>"""
+        section_json = {"Content": html, "SectionId": "sec-3.1", "ChapterId": "api-chapter-3"}
+        recs = _extract_recommendations_from_section(
+            section_json, "NG12", chapter_id="fallback-chapter"
+        )
+        assert recs[0]["ChapterId"] == "api-chapter-3"
+
+    def test_section_title_propagated_to_all_recs(self):
+        """SectionTitle from the section JSON (cancer site) appears on every returned rec."""
+        section_json = {
+            "Content": self._NG12_SECTION_HTML,
+            "SectionId": "sec-1.1",
+            "Title": "Lung cancer",
+        }
+        recs = _extract_recommendations_from_section(section_json, "NG12")
+        assert all(r["SectionTitle"] == "Lung cancer" for r in recs)
+
+    def test_section_title_empty_when_no_title(self):
+        """SectionTitle is an empty string when the section JSON has no Title."""
+        section_json = {"Content": self._NG12_SECTION_HTML, "SectionId": "sec-1.1"}
+        recs = _extract_recommendations_from_section(section_json, "NG12")
+        assert all(r["SectionTitle"] == "" for r in recs)
+
+    def test_is_normative_true_on_article_recs(self):
+        """Each rec extracted from an <article> element carries isNormative=True."""
+        section_json = {
+            "Content": self._NG12_SECTION_HTML,
+            "SectionId": "sec-1.1",
+            "Title": "Lung cancer",
+        }
+        recs = _extract_recommendations_from_section(section_json, "NG12")
+        assert all(r["isNormative"] is True for r in recs)
 
 
 class TestCollectLeafItems:

@@ -29,8 +29,10 @@ import TableRow from "@mui/material/TableRow";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import AutoFixHighOutlinedIcon from "@mui/icons-material/AutoFixHighOutlined";
+import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import GuidelineSubgraphDrawer from "./GuidelineSubgraphDrawer";
 
 interface LoadedGuideline {
   code: string;
@@ -94,6 +96,9 @@ export default function LoadedGuidelinesPanel({ refreshKey, onRulesGenerated }: 
   const [generating, setGenerating] = useState<string | null>(null);
   const [generateError, setGenerateError] = useState<string | null>(null);
   const [confirmCode, setConfirmCode] = useState<string | null>(null);
+
+  // Subgraph inspect drawer
+  const [inspectCode, setInspectCode] = useState<string | null>(null);
 
   const fetchLoaded = useCallback(async () => {
     setLoading(true);
@@ -192,6 +197,7 @@ export default function LoadedGuidelinesPanel({ refreshKey, onRulesGenerated }: 
             <TableCell sx={{ fontWeight: 700 }} align="center">Recommendations</TableCell>
             <TableCell sx={{ fontWeight: 700 }}>Rule status</TableCell>
             <TableCell sx={{ fontWeight: 700 }}>Actions</TableCell>
+            <TableCell sx={{ fontWeight: 700 }}>Inspect</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -255,6 +261,18 @@ export default function LoadedGuidelinesPanel({ refreshKey, onRulesGenerated }: 
                     </span>
                   </Tooltip>
                 </TableCell>
+                <TableCell>
+                  <Tooltip title="Inspect what is stored in Neo4j for this guideline">
+                    <IconButton
+                      size="small"
+                      onClick={() => setInspectCode(g.code)}
+                      aria-label={`Inspect Neo4j subgraph for ${g.code}`}
+                      color={g.recommendation_count === 0 ? "error" : "default"}
+                    >
+                      <AccountTreeIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                </TableCell>
               </TableRow>
             );
           })}
@@ -272,6 +290,11 @@ export default function LoadedGuidelinesPanel({ refreshKey, onRulesGenerated }: 
           onCancel={() => setConfirmCode(null)}
         />
       )}
+
+      <GuidelineSubgraphDrawer
+        code={inspectCode}
+        onClose={() => setInspectCode(null)}
+      />
     </Box>
   );
 }
