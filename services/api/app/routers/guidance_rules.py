@@ -2,6 +2,7 @@
 
 Provides:
   POST /guidance/rules/generate                           -- trigger rule generation
+  POST /guidance/rules/test/{recommendation_id}           -- dry-run extraction (no writes)
   GET  /guidance/rules/review                             -- list pending rules
   GET  /guidance/rules/review/{rule_id}                   -- rule detail
   POST /guidance/rules/review/{rule_id}/decision          -- approve / edit / reject
@@ -20,12 +21,14 @@ from datetime import datetime, timezone
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from app.db.neo4j_client import CodingGraphClient
 from app.deps import require_admin
 from app.services.guidance_rule_generator import GuidanceRuleGenerator
 from libs.auth.org_scope import CallerScope
+from libs.pipeline_graph.registry import get_registry
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/guidance", tags=["guidance-rules"])
@@ -218,6 +221,140 @@ class RuleDecisionRequest(BaseModel):
 
 def _kg_client() -> CodingGraphClient:
     return CodingGraphClient()
+
+
+_FETCH_SINGLE_RECOMMENDATION = """
+MATCH (r:Recommendation {id: $rec_id})
+OPTIONAL MATCH (r)<-[:HAS_RECOMMENDATION]-(ch:Chapter)
+OPTIONAL MATCH (ch)<-[:HAS_CHAPTER]-(g:Guideline)
+RETURN r.id          AS id,
+       r.verbatim    AS verbatim,
+       r.title       AS title,
+       r.urgency     AS urgency,
+       r.strength    AS strength,
+       r.sectionTitle AS section_title,
+       r.isNormative  AS is_normative,
+       ch.title       AS chapter_title,
+       g.id           AS guideline_id,
+       g.title        AS guideline_title
+"""
+
+
+@router.post("/rules/test/{recommendation_id:path}", status_code=200)
+def test_rule_extraction(
+    recommendation_id: str,
+    scope: CallerScope = Depends(require_admin),
+) -> dict:
+    """Dry-run the rule extraction pipeline on a single recommendation.
+
+    Runs the full ``guidance_rule_extraction`` LangGraph subgraph — prompt
+    resolution, dual-model consensus LLM, Terminology API SNOMED coding —
+    but does **not** write anything to Neo4j or Redis.
+
+    Use this to preview what criteria and action the AI would extract before
+    committing to a full rule generation run.
+
+    Args:
+        recommendation_id: Neo4j Recommendation node ID
+            (e.g. ``NG12:v1:CH000:SEC000:R000``).
+
+    Returns:
+        ``{recommendation, raw_criteria, coded_criteria, errors}`` where:
+        - ``recommendation`` — the stored verbatim text and metadata
+        - ``raw_criteria`` — plain-text LLM output ``{criteria_groups, action}``
+        - ``coded_criteria`` — SNOMED-resolved ``{criteria_groups, action, applies_to}``
+          ``{present: [{term, snomed_concept_id, preferred_term, semantic_tag}], ...}``
+        - ``errors`` — any pipeline warnings
+    """
+    client = _kg_client()
+    try:
+        rows = client.run(_FETCH_SINGLE_RECOMMENDATION, rec_id=recommendation_id)
+    finally:
+        client.close()
+
+    if not rows:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Recommendation {recommendation_id!r} not found in Neo4j.",
+        )
+
+    row = rows[0]
+    rec = {
+        "id":            row["id"],
+        "verbatim":      row.get("verbatim", ""),
+        "title":         row.get("title", ""),
+        "urgency":       row.get("urgency", ""),
+        "strength":      row.get("strength", ""),
+        "section_title": row.get("section_title", ""),
+        "chapter_title": row.get("chapter_title", ""),
+    }
+    guideline_id = row.get("guideline_id", "")
+
+    if not rec["verbatim"]:
+        raise HTTPException(
+            status_code=422,
+            detail="Recommendation has no verbatim text stored — re-ingest the guideline first.",
+        )
+
+    if not row.get("is_normative"):
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "This recommendation is marked as a cross-reference entry "
+                "(isNormative=false) and would not be used for rule generation. "
+                "Only canonical numbered recommendations are eligible."
+            ),
+        )
+
+    # Run the subgraph dry-run (no writes)
+    try:
+        subgraph = get_registry().build("guidance_rule_extraction")
+        result = subgraph.invoke({
+            "recommendation": rec,
+            "guideline_id": guideline_id,
+        })
+    except Exception as exc:
+        logger.exception("Rule extraction test failed for %s", recommendation_id)
+        raise HTTPException(status_code=500, detail=f"Extraction pipeline error: {exc}")
+
+    errors = result.get("errors") or []
+    coded = result.get("coded_criteria")
+    raw = result.get("raw_criteria")
+
+    response_body = {
+        "recommendation": {
+            **rec,
+            "guideline_id":    guideline_id,
+            "guideline_title": row.get("guideline_title", ""),
+        },
+        "raw_criteria":   raw,
+        "coded_criteria": coded,
+        "errors":         errors,
+        # Indicates whether this result would be written to Neo4j by the rule
+        # generator.  False when any term failed to SNOMED-code (partial results).
+        "would_write":    coded is not None and not any(
+            "terminology_api_unavailable" in e for e in errors
+        ),
+    }
+
+    if coded is None:
+        # Pipeline produced no coded output at all — hard failure.
+        logger.error(
+            "Rule extraction test FAILED for %s — coded_criteria is None. Errors: %s",
+            recommendation_id, errors,
+        )
+        return JSONResponse(status_code=422, content=response_body)
+
+    if errors:
+        # Partial results — coded_criteria exists but some terms failed or
+        # Azure was offline.  Return 200 with warnings in the body so the UI
+        # can show what DID get coded plus highlight the failures.
+        logger.warning(
+            "Rule extraction test PARTIAL for %s — coded_criteria returned with warnings: %s",
+            recommendation_id, errors,
+        )
+
+    return response_body
 
 
 @router.post("/rules/generate", status_code=202)

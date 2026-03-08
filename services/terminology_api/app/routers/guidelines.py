@@ -33,6 +33,15 @@ class EvaluateRequest(BaseModel):
 
     patient_codes: list[str]
     pathway_id: str | None = None
+    patient_age: float | None = None
+    """Patient age in decimal years.  Required for rules with age-based
+    ``APPLIES_TO`` constraints (e.g. age >= 40).  Rules that require an age
+    check are skipped when this is not supplied."""
+    patient_sex: str | None = None
+    """``"female"`` or ``"male"``.  When supplied the corresponding SNOMED
+    finding code (248152002 / 248153007) is injected into the patient bitmap
+    so sex-based ``HAS_CRITERIA`` rules fire without the caller having to know
+    the SNOMED code."""
 
 
 @router.post("/guidelines/evaluate")
@@ -46,7 +55,12 @@ def evaluate_patient(req: EvaluateRequest) -> dict:
     Fast: typically completes in under 10ms for rulesets of up to 500 rules.
     """
     evaluator = GuidelineEvaluator()
-    return evaluator.evaluate_patient(req.patient_codes, req.pathway_id)
+    return evaluator.evaluate_patient(
+        req.patient_codes,
+        req.pathway_id,
+        patient_age=req.patient_age,
+        patient_sex=req.patient_sex,
+    )
 
 
 @router.post("/guidelines/bitmap/compile", status_code=202)

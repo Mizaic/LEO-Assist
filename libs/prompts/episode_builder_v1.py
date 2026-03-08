@@ -6,7 +6,6 @@ to this file — manage them via the Admin UI at /admin/prompts.
 
 Run ``python -m scripts.seed_prompt_configs`` to push changes to Neo4j.
 """
-from libs.prompts.registry import register
 
 EPISODE_BUILDER_SYSTEM_V1 = """\
 CRITICAL INSTRUCTION: Your entire response must be a single valid JSON object.
@@ -158,7 +157,3 @@ and agent reasoning. Determine:
 \
 """
 
-register("episode_builder_system", version=1, text=EPISODE_BUILDER_SYSTEM_V1)
-register("episode_builder_task", version=1, text=EPISODE_BUILDER_TASK_V1)
-register("episode_consolidation_system", version=1, text=EPISODE_CONSOLIDATION_SYSTEM_V1)
-register("episode_consolidation_task", version=1, text=EPISODE_CONSOLIDATION_TASK_V1)

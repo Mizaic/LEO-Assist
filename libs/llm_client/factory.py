@@ -23,6 +23,8 @@ from __future__ import annotations
 
 import logging
 import os
+import random
+import time
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -136,11 +138,24 @@ class LLMClient:
         )
 
     def _init_azure(self) -> Any:
+        import httpx
         from openai import AzureOpenAI
+
+        # Explicit timeout so the client fails fast with a clear error rather than
+        # hanging until concurrent.futures kills the thread (which leaves a zombie).
+        # Set lower than the consensus runner's fut_azure.result(timeout=60) so we
+        # get a clean openai.APITimeoutError rather than a Future TimeoutError.
+        connect_timeout = float(os.getenv("AZURE_OPENAI_CONNECT_TIMEOUT", "10.0"))
+        read_timeout = float(os.getenv("AZURE_OPENAI_READ_TIMEOUT", "45.0"))
+
         return AzureOpenAI(
             azure_endpoint=os.environ["AZURE_OPENAI_ENDPOINT"],
             api_key=os.environ["AZURE_OPENAI_API_KEY"],
             api_version=os.getenv("AZURE_OPENAI_API_VERSION", "2024-12-01-preview"),
+            timeout=httpx.Timeout(read_timeout, connect=connect_timeout),
+            # Disable the SDK's built-in retries — we handle them ourselves in
+            # _converse_azure so we can log each attempt at the right severity.
+            max_retries=0,
         )
 
     def converse(
@@ -229,18 +244,41 @@ class LLMClient:
             # are not part of the structured audit verdict JSON.
 
         usage = response.get("usage", {})
+        stop_reason = response.get("stopReason", "")
+        text = "\n".join(text_parts).strip()
+
+        if not text and not tool_uses:
+            logger.warning(
+                "Bedrock %s returned empty text content "
+                "(stop_reason=%r, output_tokens=%d, reasoning_blocks_skipped=%d) "
+                "-- possible guardrail, max_tokens exhaustion, or transient API issue",
+                self.model_id,
+                stop_reason,
+                usage.get("outputTokens", 0),
+                sum(1 for item in output_content if isinstance(item, dict) and "reasoningContent" in item),
+            )
+
         return LLMResponse(
-            text="\n".join(text_parts).strip(),
+            text=text,
             input_tokens=usage.get("inputTokens", 0),
             output_tokens=usage.get("outputTokens", 0),
             cached_input_tokens=usage.get("cacheReadInputTokenCount", 0),
-            stop_reason=response.get("stopReason", ""),
+            stop_reason=stop_reason,
             model_id=self.model_id,
             tool_uses=tool_uses,
         )
 
     def _converse_azure(
-        self, client: Any, system: str, messages: list[dict], max_tokens: int, temperature: float,
+        self,
+        client: Any,
+        system: str,
+        messages: list[dict],
+        max_tokens: int,
+        temperature: float,
+        *,
+        _max_retries: int = 3,
+        _base_delay: float = 1.0,
+        _max_delay: float = 30.0,
     ) -> LLMResponse:
         # GPT-5 / o-series reasoning models prefer "developer" over "system".
         # Both work (the API treats them identically), but "developer" is the
@@ -274,23 +312,127 @@ class LLMClient:
             if temperature != 0.0:
                 kwargs["temperature"] = temperature
 
-        try:
-            response = client.chat.completions.create(**kwargs)
-        except Exception as exc:
-            # Graceful fallback: if the API rejects reasoning_effort (shouldn't
-            # happen for gpt-5 / gpt-5-mini, but guards against mis-config),
-            # retry without it using a standard call.
-            if self.use_reasoning and kwargs.get("reasoning_effort") is not None:
-                logger.warning(
-                    "Azure model %s rejected reasoning params — retrying without: %s",
-                    self.model_id, exc,
-                )
-                kwargs.pop("reasoning_effort", None)
-                kwargs["max_completion_tokens"] = max_tokens
-                if temperature != 0.0:
-                    kwargs["temperature"] = temperature
+        from openai import APIConnectionError, APIStatusError, APITimeoutError
+
+        _RETRYABLE_STATUS = frozenset({429, 500, 502, 503, 504})
+
+        # Redact key for logging — show last 4 chars only
+        _endpoint = os.getenv("AZURE_OPENAI_ENDPOINT", "<not set>")
+        _key_hint = (os.getenv("AZURE_OPENAI_API_KEY") or "")[-4:] or "<not set>"
+        _api_version = os.getenv("AZURE_OPENAI_API_VERSION", "2024-12-01-preview")
+
+        logger.debug(
+            "Azure call START: model=%s endpoint=%s api_version=%s key=****%s "
+            "max_completion_tokens=%s reasoning_effort=%s use_reasoning=%s",
+            self.model_id, _endpoint, _api_version, _key_hint,
+            kwargs.get("max_completion_tokens"), kwargs.get("reasoning_effort"), self.use_reasoning,
+        )
+
+        last_exc: Exception | None = None
+        for attempt in range(1, _max_retries + 1):
+            t0 = time.monotonic()
+            try:
                 response = client.chat.completions.create(**kwargs)
-            else:
+                elapsed = time.monotonic() - t0
+
+                if attempt > 1:
+                    logger.info(
+                        "Azure %s: recovered on attempt %d/%d (%.1fs).",
+                        self.model_id, attempt, _max_retries, elapsed,
+                    )
+                else:
+                    logger.debug(
+                        "Azure %s: OK in %.1fs (attempt %d/%d).",
+                        self.model_id, elapsed, attempt, _max_retries,
+                    )
+                break
+
+            except APITimeoutError as exc:
+                elapsed = time.monotonic() - t0
+                last_exc = exc
+                if attempt == _max_retries:
+                    logger.error(
+                        "Azure %s: TIMEOUT after %.1fs on final attempt %d/%d. "
+                        "endpoint=%s model=%s key=****%s — check Azure portal for "
+                        "deployment health and regional capacity.",
+                        self.model_id, elapsed, attempt, _max_retries,
+                        _endpoint, self.model_id, _key_hint,
+                    )
+                    raise
+                delay = min(_max_delay, _base_delay * (2 ** (attempt - 1))) + random.uniform(0, 0.5)
+                logger.warning(
+                    "Azure %s: TIMEOUT after %.1fs on attempt %d/%d — retrying in %.1fs. "
+                    "endpoint=%s key=****%s",
+                    self.model_id, elapsed, attempt, _max_retries, delay,
+                    _endpoint, _key_hint,
+                )
+                time.sleep(delay)
+                continue
+
+            except APIConnectionError as exc:
+                elapsed = time.monotonic() - t0
+                last_exc = exc
+                if attempt == _max_retries:
+                    logger.error(
+                        "Azure %s: CONNECTION ERROR after %.1fs on final attempt %d/%d. "
+                        "endpoint=%s key=****%s — is the endpoint reachable from this host? "
+                        "Error: %s",
+                        self.model_id, elapsed, attempt, _max_retries,
+                        _endpoint, _key_hint, exc,
+                    )
+                    raise
+                delay = min(_max_delay, _base_delay * (2 ** (attempt - 1))) + random.uniform(0, 0.5)
+                logger.warning(
+                    "Azure %s: connection error after %.1fs on attempt %d/%d — retrying in %.1fs: %s",
+                    self.model_id, elapsed, attempt, _max_retries, delay, exc,
+                )
+                time.sleep(delay)
+                continue
+
+            except APIStatusError as exc:
+                elapsed = time.monotonic() - t0
+                if exc.status_code in _RETRYABLE_STATUS and attempt < _max_retries:
+                    last_exc = exc
+                    delay = min(_max_delay, _base_delay * (2 ** (attempt - 1))) + random.uniform(0, 0.5)
+                    logger.warning(
+                        "Azure %s: HTTP %d after %.1fs on attempt %d/%d — retrying in %.1fs. "
+                        "response_id=%s body=%.200s",
+                        self.model_id, exc.status_code, elapsed, attempt, _max_retries, delay,
+                        getattr(exc, "request_id", "?"),
+                        str(getattr(exc, "response", ""))[:200],
+                    )
+                    time.sleep(delay)
+                    continue
+                logger.error(
+                    "Azure %s: HTTP %s after %.1fs (not retrying). "
+                    "endpoint=%s model=%s key=****%s request_id=%s body=%.300s",
+                    self.model_id, exc.status_code, elapsed,
+                    _endpoint, self.model_id, _key_hint,
+                    getattr(exc, "request_id", "?"),
+                    str(getattr(exc, "response", ""))[:300],
+                )
+                raise
+
+            except Exception as exc:
+                elapsed = time.monotonic() - t0
+                # Graceful fallback: if the API rejects reasoning_effort (shouldn't
+                # happen for gpt-5 / gpt-5-mini, but guards against mis-config),
+                # retry without it using a standard call (one-time only).
+                if self.use_reasoning and kwargs.get("reasoning_effort") is not None and attempt == 1:
+                    logger.warning(
+                        "Azure model %s rejected reasoning params after %.1fs — "
+                        "retrying without reasoning_effort: %s",
+                        self.model_id, elapsed, exc,
+                    )
+                    kwargs.pop("reasoning_effort", None)
+                    kwargs["max_completion_tokens"] = max_tokens
+                    if temperature != 0.0:
+                        kwargs["temperature"] = temperature
+                    continue
+                logger.error(
+                    "Azure %s: unexpected error after %.1fs on attempt %d/%d: %s",
+                    self.model_id, elapsed, attempt, _max_retries, exc, exc_info=True,
+                )
                 raise
 
         choice = response.choices[0] if response.choices else None

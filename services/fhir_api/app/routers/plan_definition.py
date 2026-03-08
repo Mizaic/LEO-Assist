@@ -141,13 +141,28 @@ def restore_plan_definition_version(plan_id: str, version_id: int):
     # Publish the restored snapshot; this will create a new version entry in the history.
     raw["status"] = "active"
     raw["versionNotes"] = f"Rolled back to v{version_id}"
-    return upsert_plan_definition(plan_id, raw)
+    return _save_plan_definition(plan_id, raw)
+
+
+# ── Create (new pathway) ───────────────────────────────────────────────────────
+
+@router.post("/PlanDefinition", status_code=201)
+def create_plan_definition(resource: Dict[str, Any]):
+    """Create a new PlanDefinition with a server-generated ID and return it."""
+    new_id = str(uuid.uuid4())
+    resource.setdefault("status", "draft")
+    result = _save_plan_definition(new_id, resource)
+    return {"id": new_id, **result}
 
 
 # ── Upsert (create / update) ───────────────────────────────────────────────────
 
 @router.put("/PlanDefinition/{plan_id}")
 def upsert_plan_definition(plan_id: str, resource: Dict[str, Any]):
+    return _save_plan_definition(plan_id, resource)
+
+
+def _save_plan_definition(plan_id: str, resource: Dict[str, Any]) -> Dict[str, Any]:
     resource["id"] = plan_id
     resource.setdefault("resourceType", "PlanDefinition")
 
@@ -169,10 +184,11 @@ def upsert_plan_definition(plan_id: str, resource: Dict[str, Any]):
     client = KnowledgeGraphClient()
     try:
         # 1. Upsert the live node (MERGE ensures the node exists before we link versions).
+        #    source='user' marks this as user-authored so the seed script won't overwrite it.
         client.run(
             "MERGE (pd:PlanDefinition {id: $pid}) "
             "SET pd.rawJson = $raw, pd.status = $status, "
-            "    pd.name = $name, pd.isGlobal = true",
+            "    pd.name = $name, pd.isGlobal = true, pd.source = 'user'",
             pid=plan_id,
             raw=json.dumps(resource),
             status=resource.get("status"),

@@ -9,7 +9,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Query
 from fastapi.responses import JSONResponse
 
-from libs.neo4j_client.client import PatientGraphClient, run_with_retry
+from libs.neo4j_client.client import KnowledgeGraphClient, PatientGraphClient, run_with_retry
 
 router = APIRouter()
 
@@ -142,3 +142,54 @@ def get_distinct_filter_values(
             status_code=500,
             content={"detail": str(e)},
         )
+
+
+@router.get("/schema/sample-node")
+def get_sample_node(
+    node_label: str = Query(..., description="Node label to sample (e.g. EncounterCandidate)"),
+    graph: str = Query("patient", description="Which graph to query: 'patient' or 'knowledge'"),
+    text_property: str = Query("text", description="Property that holds the main text — highlighted in the preview"),
+):
+    """Return one sample node of the given label so users can verify field names.
+
+    Returns a sanitised dict of property names → truncated values. Long text
+    fields are truncated to 300 characters so the preview stays readable.
+    Sensitive fields (e.g. NHS number, DOB) are redacted.
+    """
+    _REDACT = {"nhs_number", "date_of_birth", "dob", "birthdate", "birthDate", "postcode"}
+    _MAX_TEXT = 300
+
+    try:
+        if graph == "knowledge":
+            client = KnowledgeGraphClient()
+        else:
+            client = PatientGraphClient()
+
+        cypher = f"MATCH (n:{node_label}) RETURN properties(n) AS props LIMIT 1"
+        rows = run_with_retry(client, cypher)
+        if not rows:
+            return JSONResponse(status_code=404, content={"detail": f"No {node_label} nodes found in the {graph} graph."})
+
+        raw: dict = dict(rows[0]["props"])
+
+        def _sanitise(k: str, v):
+            if k.lower() in _REDACT:
+                return "***redacted***"
+            if isinstance(v, str) and len(v) > _MAX_TEXT:
+                return v[:_MAX_TEXT] + "…"
+            # Neo4j datetime / date objects
+            if hasattr(v, "iso_format"):
+                return v.iso_format()
+            return v
+
+        preview = {k: _sanitise(k, v) for k, v in raw.items()}
+        # Ensure the selected text property appears first if present
+        ordered = {}
+        if text_property in preview:
+            ordered[text_property] = preview.pop(text_property)
+        ordered.update(preview)
+
+        return {"nodeLabel": node_label, "graph": graph, "textProperty": text_property, "properties": ordered}
+
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"detail": str(e)})

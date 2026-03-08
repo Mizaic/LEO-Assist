@@ -67,7 +67,7 @@ class TestPromoteToDomain:
         with patch("app.routers.guidance_rules._kg_client") as mock_cls:
             mock_cls.return_value = _mock_kg_client([[pending_row]])
             resp = test_client.post(
-                "/rules/review/rule-123/promote-to-domain?reviewer=admin@test.com"
+                "/guidance/rules/review/rule-123/promote-to-domain?reviewer=admin@test.com"
             )
 
         assert resp.status_code == 409
@@ -78,7 +78,7 @@ class TestPromoteToDomain:
         with patch("app.routers.guidance_rules._kg_client") as mock_cls:
             mock_cls.return_value = _mock_kg_client([[]])  # empty result
             resp = test_client.post(
-                "/rules/review/nonexistent-rule/promote-to-domain?reviewer=admin@test.com"
+                "/guidance/rules/review/nonexistent-rule/promote-to-domain?reviewer=admin@test.com"
             )
 
         assert resp.status_code == 404
@@ -96,7 +96,7 @@ class TestPromoteToDomain:
         with patch("app.routers.guidance_rules._kg_client") as mock_cls:
             mock_cls.return_value = _mock_kg_client([[row_no_domain]])
             resp = test_client.post(
-                "/rules/review/rule-123/promote-to-domain?reviewer=admin@test.com"
+                "/guidance/rules/review/rule-123/promote-to-domain?reviewer=admin@test.com"
             )
 
         assert resp.status_code == 404
@@ -120,7 +120,7 @@ class TestPromoteToDomain:
             ])
             mock_cls.return_value = mock_client
             resp = test_client.post(
-                "/rules/review/rule-abc/promote-to-domain?reviewer=admin@test.com"
+                "/guidance/rules/review/rule-abc/promote-to-domain?reviewer=admin@test.com"
             )
 
         assert resp.status_code == 200
@@ -145,7 +145,7 @@ class TestPromoteToDomain:
         with patch("app.routers.guidance_rules._kg_client") as mock_cls:
             mock_cls.return_value = _mock_kg_client([[active_no_concepts]])
             resp = test_client.post(
-                "/rules/review/rule-empty/promote-to-domain?reviewer=admin@test.com"
+                "/guidance/rules/review/rule-empty/promote-to-domain?reviewer=admin@test.com"
             )
 
         assert resp.status_code == 200
@@ -177,7 +177,7 @@ class TestListPendingRules:
 
         with patch("app.routers.guidance_rules._kg_client") as mock_cls:
             mock_cls.return_value = _mock_kg_client([[raw_row]])
-            resp = test_client.get("/rules/review")
+            resp = test_client.get("/guidance/rules/review")
 
         assert resp.status_code == 200
         rules = resp.json()
@@ -190,7 +190,7 @@ class TestListPendingRules:
         """list_pending_rules returns empty list when no rules exist."""
         with patch("app.routers.guidance_rules._kg_client") as mock_cls:
             mock_cls.return_value = _mock_kg_client([[]])
-            resp = test_client.get("/rules/review")
+            resp = test_client.get("/guidance/rules/review")
 
         assert resp.status_code == 200
         assert resp.json() == []
@@ -215,7 +215,7 @@ class TestListPendingRules:
 
         with patch("app.routers.guidance_rules._kg_client") as mock_cls:
             mock_cls.return_value = _mock_kg_client([[raw_row]])
-            resp = test_client.get("/rules/review?status=pending_review")
+            resp = test_client.get("/guidance/rules/review?status=pending_review")
 
         assert resp.status_code == 200
         rules = resp.json()
@@ -341,7 +341,7 @@ class TestRuleDiffEndpoint:
                 [self._rule_row(has_predecessor=True)],  # _FETCH_RULE_BY_ID
                 [self._diff_row()],                       # _FETCH_RULE_DIFF
             ])
-            resp = test_client.get("/rules/review/rule:NG12:v2:CH000:R000:xyz/diff")
+            resp = test_client.get("/guidance/rules/review/rule:NG12:v2:CH000:R000:xyz/diff")
 
         assert resp.status_code == 200
         body = resp.json()
@@ -359,7 +359,7 @@ class TestRuleDiffEndpoint:
             mock_cls.return_value = _mock_kg_client([
                 [self._rule_row(has_predecessor=False)],
             ])
-            resp = test_client.get("/rules/review/rule:NG12:v1:CH000:R000:xyz/diff")
+            resp = test_client.get("/guidance/rules/review/rule:NG12:v1:CH000:R000:xyz/diff")
 
         assert resp.status_code == 200
         assert resp.json()["has_predecessor"] is False
@@ -368,6 +368,107 @@ class TestRuleDiffEndpoint:
         """Diff endpoint returns 404 when the rule_id does not exist."""
         with patch("app.routers.guidance_rules._kg_client") as mock_cls:
             mock_cls.return_value = _mock_kg_client([[]])
-            resp = test_client.get("/rules/review/nonexistent/diff")
+            resp = test_client.get("/guidance/rules/review/nonexistent/diff")
 
         assert resp.status_code == 404
+
+
+# ── Test extraction dry-run endpoint ─────────────────────────────────────
+
+
+class TestRuleExtractionTest:
+    """POST /guidance/rules/test/{recommendation_id}"""
+
+    _REC_ROW = {
+        "id": "NG12:v1:CH000:SEC000:R000",
+        "verbatim": "Refer immediately if rectal bleeding with weight loss.",
+        "title": "1.1.1",
+        "urgency": "urgent_2w",
+        "strength": "refer",
+        "section_title": "Colorectal cancer",
+        "chapter_title": "Symptoms and signs",
+        "guideline_id": "NG12",
+        "guideline_title": "Suspected cancer: recognition and referral",
+        "is_normative": True,
+    }
+
+    def test_returns_200_with_extraction_result(self, test_client):
+        """Happy path: normative recommendation with verbatim → extraction runs."""
+        coded = {
+            "present": [{"term": "rectal bleeding", "snomed_concept_id": "12345", "preferred_term": "Rectal bleeding", "semantic_tag": "finding"}],
+            "absent": [],
+            "action": {"term": "suspected cancer pathway referral", "snomed_concept_id": "306206005", "preferred_term": "Referral to service", "semantic_tag": "procedure"},
+        }
+        raw = {"present": ["rectal bleeding"], "absent": [], "action": "suspected cancer pathway referral"}
+
+        with (
+            patch("app.routers.guidance_rules._kg_client") as mock_cls,
+            patch("app.routers.guidance_rules.get_registry") as mock_reg,
+        ):
+            mock_cls.return_value = _mock_kg_client([[self._REC_ROW]])
+            mock_subgraph = MagicMock()
+            mock_subgraph.invoke.return_value = {
+                "raw_criteria": raw,
+                "coded_criteria": coded,
+                "errors": [],
+            }
+            mock_reg.return_value.build.return_value = mock_subgraph
+
+            resp = test_client.post("/guidance/rules/test/NG12%3Av1%3ACH000%3ASEC000%3AR000")
+
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["raw_criteria"]["present"] == ["rectal bleeding"]
+        assert body["coded_criteria"]["present"][0]["snomed_concept_id"] == "12345"
+        assert body["recommendation"]["id"] == "NG12:v1:CH000:SEC000:R000"
+        assert body["errors"] == []
+
+    def test_returns_404_when_rec_not_found(self, test_client):
+        """Returns 404 when the recommendation ID is not in Neo4j."""
+        with patch("app.routers.guidance_rules._kg_client") as mock_cls:
+            mock_cls.return_value = _mock_kg_client([[]])
+            resp = test_client.post("/guidance/rules/test/UNKNOWN%3AREC")
+
+        assert resp.status_code == 404
+
+    def test_returns_422_for_non_normative_rec(self, test_client):
+        """Rejects cross-reference table entries (isNormative=false)."""
+        cross_ref_row = {**self._REC_ROW, "is_normative": False}
+        with patch("app.routers.guidance_rules._kg_client") as mock_cls:
+            mock_cls.return_value = _mock_kg_client([[cross_ref_row]])
+            resp = test_client.post("/guidance/rules/test/NG12%3Av1%3ACH000%3ASEC000%3AR000")
+
+        assert resp.status_code == 422
+        assert "cross-reference" in resp.json()["detail"]
+
+    def test_returns_422_for_rec_with_no_verbatim(self, test_client):
+        """Rejects recommendations that have no verbatim text stored."""
+        no_text_row = {**self._REC_ROW, "verbatim": None}
+        with patch("app.routers.guidance_rules._kg_client") as mock_cls:
+            mock_cls.return_value = _mock_kg_client([[no_text_row]])
+            resp = test_client.post("/guidance/rules/test/NG12%3Av1%3ACH000%3ASEC000%3AR000")
+
+        assert resp.status_code == 422
+        assert "no verbatim text" in resp.json()["detail"]
+
+    def test_surfaces_pipeline_errors_in_response(self, test_client):
+        """Pipeline warnings in the errors list are returned in the response body."""
+        with (
+            patch("app.routers.guidance_rules._kg_client") as mock_cls,
+            patch("app.routers.guidance_rules.get_registry") as mock_reg,
+        ):
+            mock_cls.return_value = _mock_kg_client([[self._REC_ROW]])
+            mock_subgraph = MagicMock()
+            mock_subgraph.invoke.return_value = {
+                "raw_criteria": None,
+                "coded_criteria": None,
+                "errors": ["prompt_registry_unavailable: connection refused"],
+            }
+            mock_reg.return_value.build.return_value = mock_subgraph
+
+            resp = test_client.post("/guidance/rules/test/NG12%3Av1%3ACH000%3ASEC000%3AR000")
+
+        assert resp.status_code == 200
+        body = resp.json()
+        assert "prompt_registry_unavailable" in body["errors"][0]
+        assert body["coded_criteria"] is None

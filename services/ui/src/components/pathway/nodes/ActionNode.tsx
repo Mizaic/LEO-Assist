@@ -9,6 +9,7 @@ import { Handle, Position, type NodeProps } from "@xyflow/react";
 import { getPortsFromDescriptor } from "../config/subgraphs";
 import { SUBGRAPH_OPTIONS } from "../config/subgraphs";
 import type { ActionNodeData, PortDefinition } from "../config/types";
+import { usePipelineTest } from "../context/PipelineTestContext";
 
 const PORT_COLORS: Record<PortDefinition["dataType"], string> = {
   string: "#2196F3",
@@ -18,9 +19,11 @@ const PORT_COLORS: Record<PortDefinition["dataType"], string> = {
   object: "#607D8B",
 };
 
-function ActionNodeComponent({ data, selected }: NodeProps) {
+function ActionNodeComponent({ id, data, selected }: NodeProps) {
   const actionData = data as unknown as ActionNodeData;
   const [outputHovered, setOutputHovered] = useState(false);
+  const { testTrace, isTestRunning } = usePipelineTest();
+  const stepResult = testTrace?.[id] ?? null;
 
   const subgraphLabel = useMemo(
     () => SUBGRAPH_OPTIONS.find((s) => s.id === actionData.subgraphId)?.label ?? actionData.subgraphId,
@@ -84,7 +87,28 @@ function ActionNodeComponent({ data, selected }: NodeProps) {
         </Tooltip>
       ))}
 
-      <Typography variant="body2" fontWeight={600}>{actionData.label}</Typography>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+        <Typography variant="body2" fontWeight={600} sx={{ flex: 1 }}>{actionData.label}</Typography>
+        {/* Test-run status badge */}
+        {isTestRunning && !stepResult && (
+          <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: "grey.400", flexShrink: 0, opacity: 0.6 }} />
+        )}
+        {stepResult?.status === "completed" && (
+          <Tooltip title={`Passed in ${(stepResult.duration_ms / 1000).toFixed(2)}s`}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 0.4 }}>
+              <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: "success.main", flexShrink: 0 }} />
+              <Typography variant="caption" sx={{ fontSize: "0.6rem", color: "success.dark", fontWeight: 700 }}>
+                {stepResult.duration_ms < 1000 ? `${stepResult.duration_ms}ms` : `${(stepResult.duration_ms / 1000).toFixed(1)}s`}
+              </Typography>
+            </Box>
+          </Tooltip>
+        )}
+        {stepResult?.status === "error" && (
+          <Tooltip title={stepResult.error ?? "Step failed"}>
+            <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: "error.main", flexShrink: 0 }} />
+          </Tooltip>
+        )}
+      </Box>
       <Chip
         label={subgraphLabel}
         size="small"

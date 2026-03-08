@@ -71,14 +71,15 @@ RETURN p.id AS id
 
 UPDATE_PROMPT = """
 MATCH (p:PromptConfig {id: $id})
-SET p.name = $name,
-    p.description = $description,
-    p.system_prompt = $system_prompt,
-    p.output_schema = $output_schema,
-    p.verification = $verification,
+SET p.name             = $name,
+    p.description      = $description,
+    p.system_prompt    = $system_prompt,
+    p.output_schema    = $output_schema,
+    p.verification     = $verification,
     p.few_shot_examples = $few_shot_examples,
-    p.max_few_shot = $max_few_shot,
-    p.updated_at = datetime()
+    p.max_few_shot     = $max_few_shot,
+    p.source           = 'user',
+    p.updated_at       = datetime()
 RETURN p.id AS id
 """
 

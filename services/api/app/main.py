@@ -94,12 +94,24 @@ async def lifespan(app: object):
                 "[ModelConfig] Seed failed (non-fatal): %s", exc
             )
 
+    def _prompt_seed():
+        try:
+            from scripts.seed_prompt_configs import seed_if_missing
+            seed_if_missing()
+        except Exception as exc:
+            import logging
+            logging.getLogger(__name__).warning(
+                "[PromptSeed] Seed failed (non-fatal): %s", exc
+            )
+
     t1 = threading.Thread(target=_preload, daemon=True)
     t1.start()
     t2 = threading.Thread(target=_tenant_seed, daemon=True)
     t2.start()
     t3 = threading.Thread(target=_model_config_seed, daemon=True)
     t3.start()
+    t4 = threading.Thread(target=_prompt_seed, daemon=True)
+    t4.start()
     # Don't block startup; embedder loads in background; pipeline will wait if needed
     yield
 

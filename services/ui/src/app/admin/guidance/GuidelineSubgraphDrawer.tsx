@@ -13,12 +13,14 @@
 import { useCallback, useEffect, useState } from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
 import Collapse from "@mui/material/Collapse";
 import Divider from "@mui/material/Divider";
 import Drawer from "@mui/material/Drawer";
 import IconButton from "@mui/material/IconButton";
+import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
@@ -26,10 +28,13 @@ import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import CloseIcon from "@mui/icons-material/Close";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import GavelIcon from "@mui/icons-material/Gavel";
 import HourglassEmptyIcon from "@mui/icons-material/HourglassEmpty";
 import MenuBookIcon from "@mui/icons-material/MenuBook";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import ScienceIcon from "@mui/icons-material/Science";
 import TextSnippetIcon from "@mui/icons-material/TextSnippet";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -81,6 +86,82 @@ interface Props {
   onClose: () => void;
 }
 
+// ── Extraction test types ─────────────────────────────────────────────────────
+
+interface CriterionResult {
+  term: string;
+  snomed_concept_id: string | null;
+  preferred_term: string;
+  semantic_tag: string;
+}
+
+/** Demographic constraint stored via APPLIES_TO edge (e.g. age >= 40 years). */
+interface AppliesToConstraint {
+  raw_term: string;
+  concept_id: string;
+  preferred_term: string;
+  semantic_tag: string;
+  operator: string;   // ">=", "<=", ">", "<", "="
+  value: number | null;
+  unit: string | null;
+}
+
+interface CriteriaGroupRaw {
+  mode: "ANY" | "ALL" | "NOT";
+  terms: string[];
+}
+
+interface CriteriaGroupCoded {
+  mode: "ANY" | "ALL" | "NOT";
+  coded_terms: CriterionResult[];
+}
+
+interface CodedCriteria {
+  criteria_groups: CriteriaGroupCoded[];
+  action: CriterionResult | null;
+  /** Demographic constraints evaluated via APPLIES_TO (e.g. age, sex). */
+  applies_to?: AppliesToConstraint[];
+}
+
+interface ExtractionTestResult {
+  recommendation: {
+    id: string;
+    verbatim: string;
+    guideline_id: string;
+    chapter_title: string;
+    section_title: string;
+  };
+  raw_criteria: { criteria_groups: CriteriaGroupRaw[]; action: string | null } | null;
+  coded_criteria: CodedCriteria | null;
+  errors: string[];
+  /** False when Terminology API failures mean this result would NOT be written
+   *  to Neo4j by the rule generator (partial results only). */
+  would_write?: boolean;
+}
+
+/** Keyed by rec_id — populated during a "Test All" run. */
+type TestAllResults = Record<string, { result?: ExtractionTestResult; error?: string }>;
+
+async function runExtractionTest(recId: string): Promise<ExtractionTestResult> {
+  const encoded = encodeURIComponent(recId);
+  const res = await fetch(`/api/guidance/rules/test/${encoded}`, { method: "POST" });
+
+  // 422 = pipeline returned partial results (some terms failed) — parse body and
+  // surface it in the UI with warnings rather than throwing and showing nothing.
+  if (res.status === 422 || res.ok) {
+    const body = await res.json().catch(() => null);
+    if (body && (body.coded_criteria !== undefined || body.raw_criteria !== undefined)) {
+      return body as ExtractionTestResult;
+    }
+  }
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body?.detail ?? body?.errors?.[0] ?? `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const URGENCY_LABEL: Record<string, string> = {
@@ -122,32 +203,235 @@ function RuleChip({ rule }: { rule: RuleEntry }) {
   );
 }
 
-function RecommendationRow({ rec }: { rec: RecEntry }) {
+// ── Extraction test result panel ──────────────────────────────────────────────
+
+function AppliesToChip({ constraint }: { constraint: AppliesToConstraint }) {
+  const label = `${constraint.operator} ${constraint.value ?? "?"} ${constraint.unit ?? ""}`.trim();
+  return (
+    <Tooltip
+      title={`SNOMED: ${constraint.concept_id} · ${constraint.preferred_term} · raw: "${constraint.raw_term}"`}
+      arrow
+    >
+      <Chip
+        label={label}
+        size="small"
+        color="secondary"
+        variant="filled"
+        sx={{ height: 20, fontSize: "0.68rem", mr: 0.4, mb: 0.4 }}
+      />
+    </Tooltip>
+  );
+}
+
+function SnomedChip({ item }: { item: CriterionResult }) {
+  const resolved = !!item.snomed_concept_id;
+  return (
+    <Tooltip
+      title={
+        resolved
+          ? `SNOMED: ${item.snomed_concept_id} · ${item.semantic_tag}`
+          : "Not resolved — no SNOMED match found"
+      }
+      arrow
+    >
+      <Chip
+        label={resolved ? item.preferred_term : `⚠ ${item.term}`}
+        size="small"
+        color={resolved ? "success" : "warning"}
+        variant={resolved ? "filled" : "outlined"}
+        sx={{ height: 20, fontSize: "0.68rem", mr: 0.4, mb: 0.4 }}
+      />
+    </Tooltip>
+  );
+}
+
+function ExtractionResultPanel({ result }: { result: ExtractionTestResult }) {
+  const coded = result.coded_criteria;
+  const raw = result.raw_criteria;
+
+  return (
+    <Box
+      sx={{
+        mt: 1,
+        p: 1.5,
+        bgcolor: "primary.50",
+        border: "1px solid",
+        borderColor: "primary.200",
+        borderRadius: 1,
+      }}
+    >
+      <Typography variant="caption" sx={{ fontWeight: 700, color: "primary.dark", display: "block", mb: 1 }}>
+        AI Extraction Preview (dry run — nothing saved)
+      </Typography>
+
+      {result.errors.length > 0 && (() => {
+        const hasApiFailure = result.errors.some((e) => e.includes("terminology_api_unavailable"));
+        const hasHardFailure = result.errors.some((e) =>
+          e.includes("prompt_missing") || e.includes("extraction_blocked") || e.includes("llm_error")
+        );
+        const severity = hasHardFailure ? "error" : hasApiFailure ? "warning" : "info";
+        const prefix = hasHardFailure
+          ? "Pipeline failure"
+          : hasApiFailure
+          ? result.would_write === false
+            ? "Partial results — Terminology API unavailable for some terms. Rule would NOT be saved."
+            : "Warning"
+          : "Note";
+        return (
+          <Alert severity={severity} icon={<ErrorOutlineIcon fontSize="small" />} sx={{ mb: 1, py: 0.3, fontSize: "0.75rem" }}>
+            <strong>{prefix}:</strong>{" "}
+            {result.errors
+              .map((e) => e.replace(/^terminology_api_unavailable:[^:]+:/, "Terminology API: "))
+              .join(" · ")}
+          </Alert>
+        );
+      })()}
+
+      {!coded && !raw && (
+        <Typography variant="body2" color="text.disabled" sx={{ fontSize: "0.78rem", fontStyle: "italic" }}>
+          The AI could not extract clinical criteria from this recommendation.
+        </Typography>
+      )}
+
+      {raw && (
+        <>
+          {/* Criteria groups */}
+          {raw.criteria_groups.map((rawGroup, gi) => {
+            const codedGroup = coded?.criteria_groups?.[gi];
+            const modeColors: Record<string, "success" | "warning" | "error"> = {
+              ALL: "success",
+              ANY: "warning",
+              NOT: "error",
+            };
+            const modeLabels: Record<string, string> = {
+              ALL: "ALL must be present",
+              ANY: "ANY one must be present",
+              NOT: "NONE may be present",
+            };
+            const color = modeColors[rawGroup.mode] ?? "success";
+            const label = modeLabels[rawGroup.mode] ?? rawGroup.mode;
+            return (
+              <Box key={gi} sx={{ mb: 1 }}>
+                <Typography variant="caption" color={`${color}.dark`} sx={{ fontWeight: 600, display: "block", mb: 0.3 }}>
+                  {label}
+                </Typography>
+                <Box>
+                  {codedGroup
+                    ? codedGroup.coded_terms.map((c, i) => <SnomedChip key={i} item={c} />)
+                    : rawGroup.terms.map((t, i) => (
+                        <Chip
+                          key={i}
+                          label={t}
+                          size="small"
+                          variant="outlined"
+                          color={color}
+                          sx={{ mr: 0.4, mb: 0.4, fontSize: "0.68rem", height: 20 }}
+                        />
+                      ))}
+                </Box>
+              </Box>
+            );
+          })}
+
+          {/* Recommended action */}
+          {raw.action && (
+            <Box sx={{ mb: coded?.applies_to?.length ? 1 : 0 }}>
+              <Typography variant="caption" color="info.dark" sx={{ fontWeight: 600, display: "block", mb: 0.3 }}>
+                Recommended action
+              </Typography>
+              {coded?.action ? (
+                <SnomedChip item={coded.action} />
+              ) : (
+                <Chip label={raw.action} size="small" variant="outlined" color="info" sx={{ fontSize: "0.68rem", height: 20 }} />
+              )}
+            </Box>
+          )}
+
+          {/* Demographic / APPLIES_TO constraints */}
+          {coded?.applies_to && coded.applies_to.length > 0 && (
+            <Box>
+              <Typography variant="caption" color="secondary.dark" sx={{ fontWeight: 600, display: "block", mb: 0.3 }}>
+                Applies to (demographic)
+              </Typography>
+              <Box>
+                {coded.applies_to.map((c, i) => (
+                  <AppliesToChip key={i} constraint={c} />
+                ))}
+              </Box>
+            </Box>
+          )}
+        </>
+      )}
+    </Box>
+  );
+}
+
+// ── Recommendation row ────────────────────────────────────────────────────────
+
+interface RecommendationRowProps {
+  rec: RecEntry;
+  /** Result pushed from a "Test All" run in the parent. */
+  externalResult?: ExtractionTestResult | null;
+  externalError?: string | null;
+  externalTesting?: boolean;
+}
+
+function RecommendationRow({ rec, externalResult, externalError, externalTesting }: RecommendationRowProps) {
   const [open, setOpen] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<ExtractionTestResult | null>(null);
+  const [testError, setTestError] = useState<string | null>(null);
+
+  // Auto-expand when an external result arrives
+  useEffect(() => {
+    if (externalResult || externalError) setOpen(true);
+  }, [externalResult, externalError]);
+
   const hasText = rec.verbatim && rec.verbatim.trim().length > 0;
   const preview = rec.verbatim ? rec.verbatim.slice(0, 120) : "(no text stored)";
   const borderColor = rec.is_normative ? "grey.200" : "warning.light";
 
+  // Merge individual and external state — individual run takes precedence if active
+  const displayResult = testResult ?? externalResult ?? null;
+  const displayError = testError ?? externalError ?? null;
+  const displayTesting = testing || (!testResult && !testError && !!externalTesting);
+
+  async function handleTest(e: React.MouseEvent) {
+    e.stopPropagation();
+    setTesting(true);
+    setTestResult(null);
+    setTestError(null);
+    setOpen(true);
+    try {
+      const result = await runExtractionTest(rec.rec_id);
+      setTestResult(result);
+    } catch (err) {
+      setTestError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setTesting(false);
+    }
+  }
+
   return (
     <Box sx={{ borderLeft: "2px solid", borderColor, pl: 1.5, mb: 0.5 }}>
-      <Stack
-        direction="row"
-        alignItems="flex-start"
-        spacing={0.5}
-        sx={{ cursor: hasText ? "pointer" : "default" }}
-        onClick={() => hasText && setOpen((o) => !o)}
-      >
-        {hasText ? (
-          open ? (
-            <ExpandMoreIcon sx={{ fontSize: 16, mt: 0.3, color: "text.secondary", flexShrink: 0 }} />
+      <Stack direction="row" alignItems="flex-start" spacing={0.5}>
+        {/* Expand toggle */}
+        <Box
+          sx={{ cursor: hasText ? "pointer" : "default", display: "flex", alignItems: "flex-start", pt: 0.3 }}
+          onClick={() => hasText && setOpen((o) => !o)}
+        >
+          {hasText ? (
+            open ? (
+              <ExpandMoreIcon sx={{ fontSize: 16, color: "text.secondary", flexShrink: 0 }} />
+            ) : (
+              <ChevronRightIcon sx={{ fontSize: 16, color: "text.secondary", flexShrink: 0 }} />
+            )
           ) : (
-            <ChevronRightIcon sx={{ fontSize: 16, mt: 0.3, color: "text.secondary", flexShrink: 0 }} />
-          )
-        ) : (
-          <Box sx={{ width: 16, flexShrink: 0 }} />
-        )}
+            <Box sx={{ width: 16, flexShrink: 0 }} />
+          )}
+        </Box>
 
-        <Box sx={{ flex: 1, minWidth: 0 }}>
+        <Box sx={{ flex: 1, minWidth: 0 }} onClick={() => hasText && setOpen((o) => !o)} style={{ cursor: hasText ? "pointer" : "default" }}>
           <Stack direction="row" spacing={0.8} alignItems="center" flexWrap="wrap">
             {rec.rec_title && (
               <Typography
@@ -210,27 +494,68 @@ function RecommendationRow({ rec }: { rec: RecEntry }) {
             </Box>
           )}
         </Box>
+
+        {/* Test button — only on canonical normative recs that have text */}
+        {rec.is_normative && hasText && (
+          <Tooltip title="Test rule extraction (AI dry run)" arrow>
+            <span>
+              <IconButton
+                size="small"
+                onClick={handleTest}
+                disabled={testing}
+                sx={{ color: "primary.main", flexShrink: 0, mt: 0.1 }}
+              >
+                {testing ? (
+                  <CircularProgress size={14} />
+                ) : (
+                  <ScienceIcon sx={{ fontSize: 16 }} />
+                )}
+              </IconButton>
+            </span>
+          </Tooltip>
+        )}
       </Stack>
 
-      {/* Full text */}
+      {/* Collapsible content: full text + test result */}
       <Collapse in={open}>
-        <Box
-          sx={{
-            mt: 0.5,
-            ml: 2,
-            p: 1.2,
-            bgcolor: "grey.50",
-            borderRadius: 1,
-            border: "1px solid",
-            borderColor: "grey.200",
-          }}
-        >
-          <Typography variant="body2" sx={{ fontSize: "0.82rem", lineHeight: 1.6 }}>
-            {rec.verbatim}
-          </Typography>
-          <Typography variant="caption" color="text.disabled" sx={{ mt: 0.5, display: "block" }}>
-            ID: {rec.rec_id}
-          </Typography>
+        <Box sx={{ ml: 2, mt: 0.5 }}>
+          {/* Full verbatim text */}
+          <Box
+            sx={{
+              p: 1.2,
+              bgcolor: "grey.50",
+              borderRadius: 1,
+              border: "1px solid",
+              borderColor: "grey.200",
+            }}
+          >
+            <Typography variant="body2" sx={{ fontSize: "0.82rem", lineHeight: 1.6 }}>
+              {rec.verbatim}
+            </Typography>
+            <Typography variant="caption" color="text.disabled" sx={{ mt: 0.5, display: "block" }}>
+              ID: {rec.rec_id}
+            </Typography>
+          </Box>
+
+          {/* Test running indicator */}
+          {displayTesting && (
+            <Box sx={{ mt: 1 }}>
+              <LinearProgress sx={{ borderRadius: 1 }} />
+              <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.3 }}>
+                Running AI extraction and SNOMED coding…
+              </Typography>
+            </Box>
+          )}
+
+          {/* Test error */}
+          {displayError && (
+            <Alert severity="error" sx={{ mt: 1, fontSize: "0.78rem", py: 0.3 }}>
+              {displayError}
+            </Alert>
+          )}
+
+          {/* Test result */}
+          {displayResult && <ExtractionResultPanel result={displayResult} />}
         </Box>
       </Collapse>
     </Box>
@@ -257,7 +582,15 @@ function groupBySectionTitle(recs: RecEntry[]): [string, RecEntry[]][] {
   });
 }
 
-function ChapterAccordion({ chapter }: { chapter: ChapterEntry }) {
+function ChapterAccordion({
+  chapter,
+  testAllResults,
+  testAllRunning,
+}: {
+  chapter: ChapterEntry;
+  testAllResults?: TestAllResults;
+  testAllRunning?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const ruleCount = chapter.recommendations.reduce((n, r) => n + r.rules.length, 0);
   const normativeCount = chapter.recommendations.filter((r) => r.is_normative).length;
@@ -357,7 +690,13 @@ function ChapterAccordion({ chapter }: { chapter: ChapterEntry }) {
                   />
                 </Stack>
                 {recs.map((rec) => (
-                  <RecommendationRow key={rec.rec_id} rec={rec} />
+                  <RecommendationRow
+                    key={rec.rec_id}
+                    rec={rec}
+                    externalResult={testAllResults?.[rec.rec_id]?.result}
+                    externalError={testAllResults?.[rec.rec_id]?.error}
+                    externalTesting={testAllRunning && !testAllResults?.[rec.rec_id]}
+                  />
                 ))}
               </Box>
             ))
@@ -365,7 +704,15 @@ function ChapterAccordion({ chapter }: { chapter: ChapterEntry }) {
             /* ── Flat list (normative, no section grouping) ── */
             chapter.recommendations
               .filter((r) => r.is_normative)
-              .map((rec) => <RecommendationRow key={rec.rec_id} rec={rec} />)
+              .map((rec) => (
+                <RecommendationRow
+                  key={rec.rec_id}
+                  rec={rec}
+                  externalResult={testAllResults?.[rec.rec_id]?.result}
+                  externalError={testAllResults?.[rec.rec_id]?.error}
+                  externalTesting={testAllRunning && !testAllResults?.[rec.rec_id]}
+                />
+              ))
           )}
 
           {/* ── Cross-reference entries (not used for rules) ── */}
@@ -394,6 +741,39 @@ export default function GuidelineSubgraphDrawer({ code, onClose }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [testAllRunning, setTestAllRunning] = useState(false);
+  const [testAllProgress, setTestAllProgress] = useState<{ done: number; total: number } | null>(null);
+  const [testAllResults, setTestAllResults] = useState<TestAllResults>({});
+
+  async function handleTestAll() {
+    if (!data) return;
+    const normativeRecs = data.chapters.flatMap((ch) =>
+      ch.recommendations.filter((r) => r.is_normative && r.verbatim?.trim())
+    );
+    if (normativeRecs.length === 0) return;
+
+    setTestAllRunning(true);
+    setTestAllResults({});
+    setTestAllProgress({ done: 0, total: normativeRecs.length });
+
+    await Promise.all(
+      normativeRecs.map(async (rec) => {
+        try {
+          const result = await runExtractionTest(rec.rec_id);
+          setTestAllResults((prev) => ({ ...prev, [rec.rec_id]: { result } }));
+        } catch (err) {
+          setTestAllResults((prev) => ({
+            ...prev,
+            [rec.rec_id]: { error: err instanceof Error ? err.message : String(err) },
+          }));
+        }
+        setTestAllProgress((prev) => prev ? { done: prev.done + 1, total: prev.total } : prev);
+      })
+    );
+
+    setTestAllRunning(false);
+  }
+
   const load = useCallback(async (c: string) => {
     setLoading(true);
     setError(null);
@@ -413,7 +793,12 @@ export default function GuidelineSubgraphDrawer({ code, onClose }: Props) {
   }, []);
 
   useEffect(() => {
-    if (code) load(code);
+    if (code) {
+      load(code);
+      setTestAllResults({});
+      setTestAllProgress(null);
+      setTestAllRunning(false);
+    }
   }, [code, load]);
 
   const open = Boolean(code);
@@ -479,10 +864,79 @@ export default function GuidelineSubgraphDrawer({ code, onClose }: Props) {
               </Stack>
             )}
           </Box>
+
+          {/* Test All button */}
+          {data && data.totals.recommendations > 0 && (
+            <Tooltip
+              title={
+                testAllRunning
+                  ? `Testing… ${testAllProgress?.done ?? 0} / ${testAllProgress?.total ?? 0}`
+                  : testAllProgress
+                  ? `Tested ${testAllProgress.done} recommendations — click to re-run`
+                  : "Run AI extraction on all normative recommendations (dry run)"
+              }
+              arrow
+            >
+              <span>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  color="primary"
+                  startIcon={
+                    testAllRunning ? (
+                      <CircularProgress size={12} color="inherit" />
+                    ) : (
+                      <PlayArrowIcon sx={{ fontSize: 15 }} />
+                    )
+                  }
+                  onClick={handleTestAll}
+                  disabled={testAllRunning || loading}
+                  sx={{ fontSize: "0.72rem", py: 0.4, px: 1, whiteSpace: "nowrap", flexShrink: 0 }}
+                >
+                  {testAllRunning
+                    ? `${testAllProgress?.done ?? 0} / ${testAllProgress?.total ?? 0}`
+                    : "Test All"}
+                </Button>
+              </span>
+            </Tooltip>
+          )}
+
           <IconButton onClick={onClose} size="small" aria-label="Close subgraph view">
             <CloseIcon fontSize="small" />
           </IconButton>
         </Stack>
+
+        {/* Test All progress bar */}
+        {testAllRunning && testAllProgress && (
+          <Box sx={{ mt: 1 }}>
+            <LinearProgress
+              variant="determinate"
+              value={(testAllProgress.done / testAllProgress.total) * 100}
+              sx={{ borderRadius: 1, height: 4 }}
+            />
+          </Box>
+        )}
+
+        {/* Test All completion summary */}
+        {!testAllRunning && testAllProgress && testAllProgress.done === testAllProgress.total && (
+          <Box sx={{ mt: 0.8 }}>
+            {(() => {
+              const errors = Object.values(testAllResults).filter((r) => r.error).length;
+              const succeeded = testAllProgress.done - errors;
+              return (
+                <Alert
+                  severity={errors === 0 ? "success" : errors === testAllProgress.total ? "error" : "warning"}
+                  sx={{ py: 0.2, fontSize: "0.75rem" }}
+                  icon={errors === 0 ? <CheckCircleIcon fontSize="small" /> : <ErrorOutlineIcon fontSize="small" />}
+                >
+                  {errors === 0
+                    ? `All ${succeeded} recommendations extracted successfully.`
+                    : `${succeeded} succeeded, ${errors} failed — check individual rows for details.`}
+                </Alert>
+              );
+            })()}
+          </Box>
+        )}
       </Box>
 
       {/* Body */}
@@ -516,7 +970,12 @@ export default function GuidelineSubgraphDrawer({ code, onClose }: Props) {
 
             {/* Chapters with recommendations */}
             {chaptersWithRecs.map((ch) => (
-              <ChapterAccordion key={ch.chapter_id} chapter={ch} />
+              <ChapterAccordion
+                key={ch.chapter_id}
+                chapter={ch}
+                testAllResults={testAllResults}
+                testAllRunning={testAllRunning}
+              />
             ))}
 
             {/* Empty chapters (no recommendations — appendices etc.) */}

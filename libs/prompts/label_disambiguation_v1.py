@@ -7,7 +7,6 @@ to this file — manage them via the Admin UI at /admin/prompts
 
 Run ``python -m scripts.seed_prompt_configs`` to push changes to Neo4j.
 """
-from libs.prompts.registry import register
 
 LABEL_DISAMBIGUATION_V1 = """\
 You are resolving a clinical NER label disagreement.
@@ -65,4 +64,3 @@ Rules:
 - no markdown
 """
 
-register("label_disambiguation", version=1, text=LABEL_DISAMBIGUATION_V1)

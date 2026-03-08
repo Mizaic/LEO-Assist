@@ -7,7 +7,6 @@ to this file — manage them via the Admin UI at /admin/prompts
 
 Run ``python -m scripts.seed_prompt_configs`` to push changes to Neo4j.
 """
-from libs.prompts.registry import register
 
 ENCOUNTER_CLASSIFY_SYSTEM_V1 = """\
 You are a UK primary care encounter classifier. Given the text of a GP encounter,
@@ -69,4 +68,3 @@ If YES → clinical.
   discharge_summary, clinic_letter, admin\
 """
 
-register("encounter_classify", version=1, text=ENCOUNTER_CLASSIFY_SYSTEM_V1)

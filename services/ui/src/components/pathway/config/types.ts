@@ -62,7 +62,8 @@ export interface PlanData {
   name: string;
   status: string;
   description: string;
-  trigger?: { event?: string; type?: string };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  trigger?: { event?: string; type?: string; [key: string]: any };
   actions: Array<{
     id: string;
     subgraphId: string;
@@ -90,6 +91,8 @@ export interface ModelPreset {
   is_default: boolean;
   is_system: boolean;
   prompt_config_id: string;
+  /** False for GPT-5 and NER-only presets; defaults true for older presets. */
+  supports_temperature?: boolean;
 }
 
 export interface PortDefinition {

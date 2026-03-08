@@ -7,7 +7,6 @@ to this file — manage them via the Admin UI at /admin/prompts
 
 Run ``python -m scripts.seed_prompt_configs`` to push changes to Neo4j.
 """
-from libs.prompts.registry import register
 
 DISAMBIGUATION_SYSTEM_V1 = """\
 You are disambiguating SNOMED concepts for a clinical term in context.
@@ -23,4 +22,3 @@ choose the more general concept.
 Do not guess SNOMED concept IDs. Only select from the provided candidate list.\
 """
 
-register("disambiguation", version=1, text=DISAMBIGUATION_SYSTEM_V1)

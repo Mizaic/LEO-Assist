@@ -5,8 +5,8 @@ Pipeline
 For each normative Recommendation linked to the Guideline:
 
 1. **guidance_rule_extraction** LangGraph subgraph (libs/pipeline_graph):
-   - Loads the ``guidance_rule_extraction`` PromptConfig from Neo4j (editable
-     at runtime via /admin/prompts)
+   - Loads the PromptConfig from Neo4j (per-guideline lookup, editable via
+     /admin/prompts)
    - Calls the dual-model consensus pipeline (Haiku + GPT-5-mini, Sonnet
      arbitration)
    - Calls ``GET /terminology/search`` (Terminology API) with semantic_tag
@@ -15,27 +15,19 @@ For each normative Recommendation linked to the Guideline:
 
 2. **_write_rule** (this module) persists to Neo4j:
    - ``AppropriatenessRule`` (status = pending_review)
-   - ``CriteriaGroup`` PRESENT (ALL) and ABSENT (ANY) with HAS_CRITERIA edges
-     to SNOMED concept nodes — these are what the bitmap compiler reads
+   - One ``CriteriaGroup`` node per ``criteria_groups`` entry with
+     ``type = ANY | ALL | NOT`` and HAS_CRITERIA edges to SNOMED concept nodes
    - ``ActionGroup`` with HAS_ACTION edge to the recommended SNOMED procedure
    - ``GuidanceReviewTask`` (HITL gate)
    - ``SUPERSEDES`` link to any prior rule for the same verbatim text
 
-SNOMED coding
--------------
-The Terminology API (``GET /terminology/search``) is used with semantic_tag
-filters:
-- Criteria (present/absent): finding, disorder, observable entity, situation
-- Action: procedure
+CriteriaGroup semantics
+-----------------------
+- ``type="ALL"``  — ALL criteria must be present in the patient record
+- ``type="ANY"``  — AT LEAST ONE criterion must be present
+- ``type="NOT"``  — NO criterion may be present (exclusion / contraindication)
 
-This replaces the previous approach of querying the knowledge graph's full-text
-index directly (``concept_text_index``), which was unfiltered and could return
-concepts of the wrong clinical type.
-
-Concept nodes are MERGED into Neo4j during the write step using the
-``snomed_concept_id`` string returned by the Terminology API.  The bitmap
-compiler reads ``concept.conceptId`` — the same string — so the link between
-the rule criteria and the bitmap integer IDs is consistent.
+The bitmap compiler reads these type values to determine evaluation semantics.
 
 All LLM call sites comply with llm-security.mdc:
   - INJECTION_GUARD prepended (in the subgraph)
@@ -46,11 +38,23 @@ All LLM call sites comply with llm-security.mdc:
 
 from __future__ import annotations
 
+import datetime
 import logging
 import uuid
 from typing import Any
 
 logger = logging.getLogger(__name__)
+
+# ── AuditEvent write ───────────────────────────────────────────────────────────
+# Written for every recommendation processed (pass or fail) so that guidance
+# rule generation costs appear in /admin/billing under "Platform spend".
+# patient_id is NULL — these are knowledge-graph authoring calls, not patient
+# pipeline runs.  The platform-spend query filters on ae.patient_id IS NULL.
+_UPSERT_GUIDANCE_AUDIT_EVENT = """
+MERGE (ae:AuditEvent {id: $id})
+SET ae += $props,
+    ae.created_at = datetime()
+"""
 
 # ── Cypher queries ─────────────────────────────────────────────────────────────
 
@@ -87,6 +91,9 @@ RETURN rule.id AS id
 
 # Merge the SNOMED concept node (creates it if not yet in the graph) then link
 # to the criteria group.  Using MERGE on conceptId ensures idempotency.
+# distanceChild=1 means the bitmap compiler will also match any SNOMED child
+# concepts (one hop via IS_A) — e.g. a rule for "haematuria" will fire even
+# when the patient record contains a more specific haematuria subtype.
 _UPSERT_CONCEPT_AND_CRITERIA = """
 MATCH (grp:CriteriaGroup {id: $group_id})
 MERGE (concept:SnomedConcept {conceptId: $concept_id})
@@ -100,8 +107,8 @@ ON MATCH SET
 MERGE (grp)-[e:HAS_CRITERIA]->(concept)
 ON CREATE SET
     e.predicate      = $predicate,
-    e.distanceChild  = 0,
-    e.distanceParent = 0,
+    e.distanceChild  = $distance_child,
+    e.distanceParent = $distance_parent,
     e.rawTerm        = $raw_term
 """
 
@@ -116,6 +123,8 @@ RETURN grp.id AS id
 """
 
 # Action: SNOMED procedure concept linked through an ActionGroup
+# ha.priority maps to "2ww" | "urgent" | "routine" — matches HCCP-Agents convention.
+# ha.dueDays gives the maximum calendar days to complete the action (14 for 2WW, etc.)
 _UPSERT_ACTION_GROUP = """
 MATCH (rule:AppropriatenessRule {id: $rule_id})
 MERGE (ag:ActionGroup {id: $group_id})
@@ -138,7 +147,33 @@ ON MATCH SET
     proc.term        = $preferred_term
 MERGE (ag)-[ha:HAS_ACTION]->(proc)
 ON CREATE SET
-    ha.rawTerm = $raw_term
+    ha.rawTerm  = $raw_term,
+    ha.priority = $priority,
+    ha.dueDays  = $due_days
+ON MATCH SET
+    ha.priority = $priority,
+    ha.dueDays  = $due_days
+"""
+
+_UPSERT_APPLIES_TO = """
+MATCH (rule:AppropriatenessRule {id: $rule_id})
+MERGE (concept:SnomedConcept {conceptId: $concept_id})
+ON CREATE SET
+    concept.term        = $preferred_term,
+    concept.semanticTag = $semantic_tag,
+    concept.source      = 'guidance_rule_extraction',
+    concept.createdAt   = datetime()
+ON MATCH SET
+    concept.term        = $preferred_term
+MERGE (rule)-[at:APPLIES_TO {conceptId: $concept_id, rawTerm: $raw_term}]->(concept)
+ON CREATE SET
+    at.operator  = $operator,
+    at.value     = $value,
+    at.unit      = $unit
+ON MATCH SET
+    at.operator  = $operator,
+    at.value     = $value,
+    at.unit      = $unit
 """
 
 _CREATE_REVIEW_TASK = """
@@ -164,6 +199,38 @@ RETURN new_rule.id AS id
 """
 
 
+# ── Urgency → clinical priority mapping ────────────────────────────────────────
+
+_URGENCY_TO_PRIORITY: dict[str, dict] = {
+    "urgent_2w":       {"priority": "2ww",    "due_days": 14},
+    "very_urgent_48h": {"priority": "urgent",  "due_days": 2},
+    "immediate":       {"priority": "urgent",  "due_days": 1},
+    "urgent_1w":       {"priority": "urgent",  "due_days": 7},
+    "routine":         {"priority": "routine", "due_days": None},
+}
+
+# Default SNOMED closure distances used when writing HAS_CRITERIA edges.
+#
+# distanceChild controls how many IS_A hops DOWN the SNOMED hierarchy the
+# bitmap compiler will expand a criterion concept.  GP coding software tends
+# to land on parent/intermediate concepts (e.g. "Haemoptysis (finding)") while
+# SNOMED has 3–5 levels of descendant specificity beneath them.  Setting this
+# to 3 means a rule coded to "Haemoptysis" will also fire for any SNOMED
+# descendant within 3 IS_A hops — catching the specific subtypes a coder
+# might select without missing the rule entirely.
+#
+# distanceParent controls upward (ancestor) expansion.  Kept at 0 — expanding
+# upward makes rules too broad (e.g. a rule for "haematuria" would also fire
+# for any other child of "Abnormal urinary finding").
+_DEFAULT_DISTANCE_CHILD = 3
+_DEFAULT_DISTANCE_PARENT = 0
+
+
+def _urgency_to_priority(urgency: str | None) -> dict:
+    """Map a Recommendation.urgency value to bitmap action priority metadata."""
+    return _URGENCY_TO_PRIORITY.get(urgency or "routine", {"priority": "routine", "due_days": None})
+
+
 # ── Generator class ────────────────────────────────────────────────────────────
 
 class GuidanceRuleGenerator:
@@ -185,9 +252,11 @@ class GuidanceRuleGenerator:
             from libs.pipeline_graph.registry import get_registry
             self._subgraph = get_registry().build("guidance_rule_extraction")
         except Exception as exc:
-            logger.warning(
-                "Could not load guidance_rule_extraction subgraph from registry "
-                "— will fall back to inline extraction: %s", exc
+            logger.error(
+                "CRITICAL: guidance_rule_extraction subgraph could not be loaded — "
+                "rule generation is DISABLED until this is fixed. "
+                "No rules will be written for any recommendation. Error: %s",
+                exc, exc_info=True,
             )
             self._subgraph = None
 
@@ -226,82 +295,62 @@ class GuidanceRuleGenerator:
         if not verbatim.strip():
             return None
 
-        if self._subgraph is not None:
-            result = self._subgraph.invoke({
-                "recommendation": rec,
-                "guideline_id": guideline_id,
-            })
-            coded = result.get("coded_criteria")
-            if result.get("errors"):
-                for err in result["errors"]:
-                    logger.warning("Rule extraction error for %s: %s", rec.get("id"), err)
-        else:
-            # Inline fallback: legacy direct consensus call (no Terminology API)
-            coded = self._inline_extract(rec)
+        if self._subgraph is None:
+            logger.error(
+                "Cannot extract rule for recommendation %s — "
+                "guidance_rule_extraction subgraph is unavailable. "
+                "Fix the load error above and restart the service.",
+                rec.get("id"),
+            )
+            return None
+
+        result = self._subgraph.invoke({
+            "recommendation": rec,
+            "guideline_id": guideline_id,
+        })
+        coded = result.get("coded_criteria")
+
+        _CRITICAL_KEYWORDS = (
+            "prompt_missing", "extraction_blocked", "snomed_coding_error", "llm_error",
+        )
+        errors_out = result.get("errors") or []
+        for err in errors_out:
+            if any(kw in err for kw in _CRITICAL_KEYWORDS):
+                logger.error(
+                    "Rule extraction pipeline FAILURE for %s: %s",
+                    rec.get("id"), err,
+                )
+            elif "terminology_api_unavailable" in err:
+                logger.error(
+                    "Rule extraction TERMINOLOGY FAILURE for %s: %s",
+                    rec.get("id"), err,
+                )
+            else:
+                logger.warning(
+                    "Rule extraction warning for %s: %s", rec.get("id"), err,
+                )
 
         if coded is None:
-            logger.info("No criteria extracted for recommendation %s", rec["id"])
+            logger.error(
+                "Rule extraction returned no coded_criteria for recommendation %s — "
+                "rule NOT written to Neo4j. Errors: %s",
+                rec["id"], errors_out,
+            )
+            return None
+
+        # Abort the Neo4j write if any term failed due to Terminology API being
+        # unavailable — a partially coded rule would have missing criteria groups
+        # and would either never fire or fire incorrectly for patients.
+        if any("terminology_api_unavailable" in e for e in errors_out):
+            logger.error(
+                "Rule for recommendation %s NOT written to Neo4j — "
+                "one or more terms could not be SNOMED-coded because the Terminology "
+                "API was unavailable. Re-generate when the API is healthy.",
+                rec["id"],
+            )
             return None
 
         return self._write_rule(guideline_id, rec, coded)
-
-    # ── Inline fallback (used only when the subgraph fails to load) ────────────
-
-    def _inline_extract(self, rec: dict[str, Any]) -> dict | None:
-        """Minimal inline extraction without the full subgraph."""
-        from libs.llm_client.consensus import run_consensus
-        from libs.llm_client.prompt_safety import (
-            INJECTION_GUARD,
-            cap_llm_response,
-            sanitise_for_prompt,
-        )
-        import json as _json
-
-        system = (
-            INJECTION_GUARD
-            + "You are a clinical decision-support analyst. "
-            "Extract patient criteria from this NICE recommendation as JSON: "
-            '{"present": [...], "absent": [...], "action": "..." or null}. '
-            "Use plain clinical terms, maximum 5 per list."
-        )
-        verbatim = rec.get("verbatim") or rec.get("title") or ""
-        user_msg = (
-            f"Section: {rec.get('section_title', '')}\n"
-            f"Recommendation {rec.get('title', '')}: "
-            f"{sanitise_for_prompt(verbatim, max_chars=2000)}\n"
-            f"Urgency: {rec.get('urgency', 'unspecified')}\n"
-            f"Strength: {rec.get('strength', 'unspecified')}\n"
-            "Extract JSON criteria."
-        )
-
-        def _parse(raw: str) -> dict | None:
-            capped = cap_llm_response(raw, max_chars=2000) or ""
-            s, e = capped.find("{"), capped.rfind("}") + 1
-            if s == -1 or e == 0:
-                return None
-            try:
-                d = _json.loads(capped[s:e])
-                return {
-                    "present": [str(t) for t in (d.get("present") or [])[:5]],
-                    "absent":  [str(t) for t in (d.get("absent")  or [])[:5]],
-                    "action":  str(d["action"]) if d.get("action") else None,
-                }
-            except Exception:
-                return None
-
-        result = run_consensus(
-            system_prompt=system, user_msg=user_msg,
-            parse_fn=_parse, fail_verdict=None, max_tokens=800,
-        )
-        if result.verdict is None:
-            return None
-        # Inline fallback does NOT call Terminology API — wrap terms without codes
-        raw = result.verdict
-        return {
-            "present": [{"term": t, "snomed_concept_id": None, "preferred_term": t, "semantic_tag": ""} for t in raw["present"]],
-            "absent":  [{"term": t, "snomed_concept_id": None, "preferred_term": t, "semantic_tag": ""} for t in raw["absent"]],
-            "action":  {"term": raw["action"], "snomed_concept_id": None, "preferred_term": raw["action"], "semantic_tag": "procedure"} if raw.get("action") else None,
-        }
 
     # ── Neo4j write ────────────────────────────────────────────────────────────
 
@@ -313,17 +362,19 @@ class GuidanceRuleGenerator:
     ) -> str:
         """Write AppropriatenessRule, CriteriaGroups, ActionGroup, ReviewTask.
 
-        Only criteria with a resolved ``snomed_concept_id`` are written to the
-        bitmap-eligible HAS_CRITERIA edges.  Unresolved terms are skipped with a
-        debug log — they remain visible in the LLM extraction output stored on
-        the rule node but do not participate in bitmap matching.
+        One CriteriaGroup node is written per entry in ``coded["criteria_groups"]``,
+        with ``type`` set to the group mode (ANY / ALL / NOT).  Only criteria with
+        a resolved ``snomed_concept_id`` are written to bitmap-eligible HAS_CRITERIA
+        edges; unresolved terms are skipped with a debug log.
         """
         rule_id = f"rule:{rec['id']}:{str(uuid.uuid4())[:8]}"
         task_id = str(uuid.uuid4())
         verbatim = rec.get("verbatim") or rec.get("title") or ""
 
+        urgency = rec.get("urgency") or "routine"
+        priority_meta = _urgency_to_priority(urgency)
+
         with self._driver.session() as session:
-            # Create the AppropriatenessRule node
             session.run(
                 _UPSERT_RULE,
                 recommendation_id=rec["id"],
@@ -332,34 +383,37 @@ class GuidanceRuleGenerator:
                 strength=rec.get("strength", "unspecified"),
             )
 
-            # PRESENT criteria (ALL must match)
-            self._write_criteria_group(
-                session, rule_id,
-                coded.get("present", []),
-                group_type="ALL", predicate="PRESENT",
-            )
-            # ABSENT criteria (ANY present disqualifies)
-            self._write_criteria_group(
-                session, rule_id,
-                coded.get("absent", []),
-                group_type="ANY", predicate="ABSENT",
-            )
-            # Recommended action (SNOMED procedure)
+            for idx, group in enumerate(coded.get("criteria_groups") or []):
+                mode = str(group.get("mode", "ALL")).upper()
+                # Predicate is kept for backward compat with compiler old-data path
+                predicate = "ABSENT" if mode == "NOT" else "PRESENT"
+                self._write_criteria_group(
+                    session, rule_id,
+                    group.get("coded_terms") or [],
+                    group_type=mode,
+                    predicate=predicate,
+                    group_suffix=str(idx),
+                )
+
             action = coded.get("action")
             if action and action.get("snomed_concept_id"):
-                self._write_action_group(session, rule_id, action)
+                self._write_action_group(session, rule_id, action, priority_meta)
             elif action:
-                logger.debug(
-                    "Action %r for rule %s has no SNOMED code — skipping action group",
+                logger.error(
+                    "Action %r for rule %s has no SNOMED code — action group NOT written. "
+                    "HCCP-Agents will receive a rule match with no recommended procedure. "
+                    "This likely means the Terminology API was unavailable during extraction. "
+                    "Re-generate this rule when the Terminology API is healthy.",
                     action.get("term"), rule_id,
                 )
 
-            # HITL gate
+            for constraint in coded.get("applies_to") or []:
+                self._write_applies_to(session, rule_id, constraint)
+
             session.run(
                 _CREATE_REVIEW_TASK,
                 task_id=task_id, rule_id=rule_id, guideline_id=guideline_id,
             )
-            # Link to superseded predecessor for diff view
             session.run(
                 _LINK_SUPERSEDES,
                 rule_id=rule_id, guideline_id=guideline_id, verbatim=verbatim,
@@ -374,18 +428,35 @@ class GuidanceRuleGenerator:
         criteria: list[dict[str, Any]],
         group_type: str,
         predicate: str,
+        group_suffix: str = "",
+        distance_child: int = _DEFAULT_DISTANCE_CHILD,
+        distance_parent: int = _DEFAULT_DISTANCE_PARENT,
     ) -> None:
-        """Write CriteriaGroup and link resolved SNOMED concepts."""
-        # Only include criteria that the Terminology API resolved to a SNOMED code
+        """Write CriteriaGroup and link resolved SNOMED concepts.
+
+        Args:
+            group_type: CriteriaGroup.type — "ALL", "ANY", or "NOT".
+            predicate:  HAS_CRITERIA edge predicate — "PRESENT" or "ABSENT".
+            group_suffix: Appended to the group_id to make each group unique
+                when a rule has multiple groups of the same type.
+            distance_child: SNOMED IS_A hops downward for bitmap closure.
+                A value of 3 means the bitmap compiler will match any descendant
+                within 3 IS_A hops (e.g. "haematuria" → subtypes).
+            distance_parent: SNOMED IS_A hops upward (default 0 — exact match
+                toward parents would be too broad for clinical rules).
+        """
         resolved = [c for c in criteria if c.get("snomed_concept_id")]
         if not resolved:
-            logger.debug(
-                "No resolved SNOMED criteria for %s group of rule %s — group not written",
-                predicate, rule_id,
+            logger.error(
+                "No SNOMED-coded criteria for %s group (suffix=%s) of rule %s — "
+                "group NOT written to Neo4j. This likely means the Terminology API was "
+                "unavailable during extraction or no SNOMED match was found. "
+                "Re-generate this rule when the Terminology API is healthy.",
+                predicate, group_suffix, rule_id,
             )
             return
 
-        group_id = f"{rule_id}:{predicate}"
+        group_id = f"{rule_id}:{predicate}:{group_suffix}" if group_suffix else f"{rule_id}:{predicate}"
         session.run(
             _UPSERT_CRITERIA_GROUP,
             rule_id=rule_id, group_id=group_id, group_type=group_type,
@@ -399,15 +470,64 @@ class GuidanceRuleGenerator:
                 semantic_tag=criterion.get("semantic_tag", ""),
                 predicate=predicate,
                 raw_term=criterion["term"],
+                distance_child=distance_child,
+                distance_parent=distance_parent,
             )
+
+    def _write_applies_to(
+        self,
+        session,
+        rule_id: str,
+        constraint: dict[str, Any],
+    ) -> None:
+        """Write an APPLIES_TO edge from the rule to a demographic SNOMED concept.
+
+        Used for continuous-value criteria such as age that cannot be represented
+        as discrete SNOMED bitmap bits.  The ``operator``, ``value``, and ``unit``
+        properties on the edge are used by the bitmap evaluator at runtime to
+        compare against the patient's actual demographic values.
+
+        Args:
+            constraint: ``AppliesToConstraint`` dict from the extraction subgraph.
+        """
+        concept_id = constraint.get("concept_id")
+        if not concept_id:
+            logger.debug("APPLIES_TO constraint has no concept_id — skipping: %s", constraint)
+            return
+        session.run(
+            _UPSERT_APPLIES_TO,
+            rule_id=rule_id,
+            concept_id=concept_id,
+            preferred_term=constraint.get("preferred_term", ""),
+            semantic_tag=constraint.get("semantic_tag", ""),
+            raw_term=constraint.get("raw_term", ""),
+            operator=constraint.get("operator", ">="),
+            value=constraint.get("value"),
+            unit=constraint.get("unit"),
+        )
+        logger.debug(
+            "Wrote APPLIES_TO: rule=%s concept=%s %s %s %s",
+            rule_id, concept_id,
+            constraint.get("operator"), constraint.get("value"), constraint.get("unit"),
+        )
 
     def _write_action_group(
         self,
         session,
         rule_id: str,
         action: dict[str, Any],
+        priority_meta: dict[str, Any] | None = None,
     ) -> None:
-        """Write ActionGroup linked to the recommended SNOMED procedure concept."""
+        """Write ActionGroup linked to the recommended SNOMED procedure concept.
+
+        Args:
+            priority_meta: Dict with ``priority`` (``"2ww"`` | ``"urgent"`` |
+                ``"routine"``) and ``due_days`` (int or None) derived from the
+                Recommendation's urgency field.  Stored on the HAS_ACTION edge so
+                the bitmap evaluator can surface it without re-querying Neo4j.
+        """
+        if priority_meta is None:
+            priority_meta = {"priority": "routine", "due_days": None}
         group_id = f"{rule_id}:ACTION"
         session.run(
             _UPSERT_ACTION_GROUP,
@@ -419,4 +539,6 @@ class GuidanceRuleGenerator:
             concept_id=action["snomed_concept_id"],
             preferred_term=action["preferred_term"],
             raw_term=action["term"],
+            priority=priority_meta["priority"],
+            due_days=priority_meta["due_days"],
         )
