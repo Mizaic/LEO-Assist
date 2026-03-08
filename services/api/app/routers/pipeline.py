@@ -21,6 +21,7 @@ from app.models.contracts import LLMUsageResponse, PipelineRunRequest, PipelineR
 from app.models.neo4j_schema import DELETE_ENCOUNTER_DOCUMENTS, RESET_ENCOUNTER_REVIEW_QUEUE
 from app.services.pipeline_service import PipelineService
 from libs.auth.org_scope import CallerScope, get_caller_scope, require_patient_in_scope
+from libs.pipeline_graph.registry import get_registry
 
 CODING_QUEUE = os.getenv("CODING_QUEUE_NAME", "coding-jobs")
 ANALYSIS_QUEUE = os.getenv("ANALYSIS_QUEUE_NAME", "analysis-jobs")
@@ -29,6 +30,25 @@ REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 _PROGRESS_IDLE_TIMEOUT_S = 300  # close relay after 5 min of silence
 
 router = APIRouter(prefix="/pipeline", tags=["pipeline"])
+
+SUBGRAPH_PORTS: dict[str, dict[str, object]] = {
+    "extraction": {"reads": ["encounter_text"], "writes": ["entities", "sentences", "errors"]},
+    "post_processing": {"reads": ["entities", "encounter_text"], "writes": ["entities", "errors"]},
+    "terminology": {"reads": ["entities"], "writes": ["entities", "errors"]},
+    "tier_classify": {"reads": ["entities"], "writes": ["entities", "tier_decisions"]},
+    "verification": {"reads": ["entities", "encounter_text"], "writes": ["is_verified", "verification_result", "errors"]},
+    "persist": {"reads": ["entities", "encounter_id", "patient_id", "output_target"], "writes": ["documents_written", "training_labels_written"]},
+    "sbar": {"reads": ["entities", "encounter_text", "patient_id"], "writes": ["sbar_report"]},
+    "compliance": {"reads": ["entities"], "writes": ["compliance_result"]},
+    "anchor_detect": {"reads": ["entities"], "writes": ["anchors"]},
+    "episode_build": {"reads": ["entities", "patient_id"], "writes": ["episodes"]},
+    "safety_net": {"reads": ["entities", "patient_id"], "writes": ["safety_net_alerts"]},
+    "quality_check": {"reads": ["entities"], "writes": ["quality_issues"]},
+    "next_best_action": {"reads": ["entities", "patient_id"], "writes": ["recommendations"]},
+    "surface_form_validation": {"reads": ["entities"], "writes": ["entities", "errors"]},
+    "rest_connector": {"reads": ["*"], "writes": ["connector_response", "errors"]},
+    "queue_publish": {"reads": ["*"], "writes": ["queued", "errors"]},
+}
 
 
 class RunGoldTrainingRequest(BaseModel):
@@ -48,6 +68,27 @@ class RunCohortRequest(BaseModel):
     patient_ids: list[str]
     action: Literal["code_new", "recode_all", "full_pipeline", "run_analysis"]
     preview: bool = False
+
+
+@router.get("/subgraphs")
+def list_pipeline_subgraphs(scope: CallerScope = Depends(get_caller_scope)) -> dict[str, object]:
+    _ = scope  # reserved for future role-specific filtering
+    registry_items = get_registry().list_subgraphs()
+    items: list[dict[str, object]] = []
+    for item in registry_items:
+        subgraph_id = str(item.get("id", ""))
+        port_meta = SUBGRAPH_PORTS.get(subgraph_id, {"reads": [], "writes": []})
+        items.append(
+            {
+                "id": subgraph_id,
+                "label": subgraph_id.replace("_", " ").title(),
+                "description": item.get("description", ""),
+                "reads": port_meta.get("reads", []),
+                "writes": port_meta.get("writes", []),
+                "requiredFields": {},
+            }
+        )
+    return {"subgraphs": items}
 
 
 async def _publish_coding_jobs(

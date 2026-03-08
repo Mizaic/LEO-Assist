@@ -103,6 +103,12 @@ class PatchAuthConfigBody(BaseModel):
     require_mfa: Optional[bool] = None
 
 
+class IntegrationBody(BaseModel):
+    name: str
+    baseUrl: str
+    authType: str = "bearer"
+
+
 # ------------------------------------------------------------------
 # Organisation endpoints
 # ------------------------------------------------------------------
@@ -935,5 +941,56 @@ async def list_roles(
             }
             for r in rows
         ]
+    finally:
+        client.close()
+
+
+@router.get("/integrations")
+async def list_integrations(
+    _scope: CallerScope = Depends(require_admin),
+) -> dict[str, Any]:
+    client = _client()
+    try:
+        rows = client.run(
+            "MATCH (i:IntegrationDefinition) "
+            "RETURN i.id AS id, i.name AS name, i.baseUrl AS baseUrl, i.authType AS authType "
+            "ORDER BY i.name"
+        )
+        return {
+            "integrations": [
+                {
+                    "id": r.get("id"),
+                    "name": r.get("name"),
+                    "baseUrl": r.get("baseUrl"),
+                    "authType": r.get("authType", "bearer"),
+                }
+                for r in rows
+            ]
+        }
+    finally:
+        client.close()
+
+
+@router.post("/integrations")
+async def upsert_integration(
+    body: IntegrationBody,
+    _scope: CallerScope = Depends(require_admin),
+) -> dict[str, Any]:
+    integration_id = str(uuid.uuid4())
+    client = _client()
+    try:
+        client.run(
+            "CREATE (i:IntegrationDefinition {id: $id, name: $name, baseUrl: $baseUrl, authType: $authType})",
+            id=integration_id,
+            name=body.name,
+            baseUrl=body.baseUrl,
+            authType=body.authType,
+        )
+        return {
+            "id": integration_id,
+            "name": body.name,
+            "baseUrl": body.baseUrl,
+            "authType": body.authType,
+        }
     finally:
         client.close()

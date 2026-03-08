@@ -501,3 +501,28 @@ EXTRACTION_EXAMPLES: list[dict] = [
         "output": '{"terms": [{"sentence_id": "s0", "text": "COPD", "lookup_term": "chronic obstructive pulmonary disease", "semantic_tag": "disorder", "assertion": "present", "value": null, "unit": null, "reference_range": null}, {"sentence_id": "s0", "text": "salbutamol", "lookup_term": "salbutamol", "semantic_tag": "substance", "assertion": "present", "value": null, "unit": null, "reference_range": null}]}',
     },
 ]
+
+
+def _apply_core_by_first_category(examples: list[dict], core_categories: set[str]) -> None:
+    seen: set[str] = set()
+    for example in examples:
+        category = str(example.get("category", ""))
+        is_core = category in core_categories and category not in seen
+        if is_core:
+            seen.add(category)
+        example["core"] = is_core
+
+
+_apply_core_by_first_category(
+    EXTRACTION_EXAMPLES,
+    {
+        "assertion:absent",
+        "negation:compound",
+        "assertion:family",
+        "assertion:historical",
+        "observable",
+        "multi-entity",
+        "assertion:hypothetical",
+        "abbreviation",
+    },
+)

@@ -47,10 +47,12 @@ import {
   type Node,
   type Edge,
   type Connection,
-  type NodeTypes,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { api } from "@/lib/api";
+import { nodeTypes as pathwayNodeTypes } from "@/components/pathway/nodes/nodeTypes";
+import { PortEdge } from "@/components/pathway/edges/PortEdge";
+import { SidePanel } from "@/components/pathway/panel/SidePanel";
 
 const SUBGRAPH_OPTIONS = [
   { id: "extraction", label: "Entity Extraction", color: "#4CAF50", description: "Extract clinical entities (findings, conditions, procedures) from encounter text using NER or LLM." },
@@ -221,6 +223,7 @@ interface ActionConfig {
   promptConfigName: string;
   // Subgraph-specific params (stored as generic map)
   params: Record<string, unknown>;
+  nodeType?: "action" | "condition" | "rest_connector" | "queue_publish" | "trigger" | "parallel" | "merge" | "transform";
 }
 
 const DEFAULT_CONFIG: ActionConfig = {
@@ -238,6 +241,7 @@ const DEFAULT_CONFIG: ActionConfig = {
   promptConfigId: "",
   promptConfigName: "",
   params: {},
+  nodeType: "action",
 };
 
 interface ActionNodeData {
@@ -266,7 +270,8 @@ function ActionNode({ data }: { data: ActionNodeData }) {
   );
 }
 
-const nodeTypes: NodeTypes = { action: ActionNode };
+const nodeTypes = { action: ActionNode };
+const edgeTypes = { portEdge: PortEdge };
 
 interface PlanData {
   id: string;
@@ -277,10 +282,11 @@ interface PlanData {
     id: string;
     subgraphId: string;
     label: string;
+    nodeType?: string;
     position?: { x: number; y: number };
     config?: Partial<ActionConfig>;
   }>;
-  edges: Array<{ source: string; target: string }>;
+  edges: Array<{ source: string; target: string; sourceHandle?: string; targetHandle?: string }>;
 }
 
 // ── Model preset picker ───────────────────────────────────────────────────────
@@ -1274,7 +1280,7 @@ function ActionConfigurator({
                       inputProps={{ style: { fontFamily: "monospace" } }} />
                   </Stack>
 
-                  {config.params.input_node_label && (
+                  {Boolean(config.params.input_node_label) && (
                     <Paper sx={{ p: 1, bgcolor: "grey.50", borderRadius: 1 }}>
                       <Typography variant="caption" sx={{ fontFamily: "monospace", color: "text.secondary" }}>
                         MATCH (n:{config.params.input_node_label as string}
@@ -1368,7 +1374,7 @@ function ActionConfigurator({
                 <ReviewRow label="Display name" value={config.label} />
                 <Divider />
                 <ReviewRow label="Input source" value={config.inputSource.replace(/_/g, " ")} />
-                {(config.inputSource === "patient_graph" || config.inputSource === "knowledge_graph") && config.params.input_node_label && (
+                {(config.inputSource === "patient_graph" || config.inputSource === "knowledge_graph") && Boolean(config.params.input_node_label) && (
                   <>
                     <ReviewRow label="Node label" value={config.params.input_node_label as string} />
                     <ReviewRow label="Text property" value={(config.params.input_text_property as string) || "text"} />
@@ -1674,7 +1680,7 @@ function useValidationWarnings(
       // Only check alignment when reading from previous pipeline step
       if (inputSource !== "previous_step") continue;
 
-      const subgraphId = (node.data as ActionNodeData)?.subgraphId || "";
+      const subgraphId = (node.data as unknown as ActionNodeData)?.subgraphId || "";
       const io = SUBGRAPH_IO[subgraphId];
       if (!io) continue;
 
@@ -1682,7 +1688,7 @@ function useValidationWarnings(
       const predecessorWrites = new Set<string>([...GLOBAL_KEYS]);
       for (const predId of predecessorIds) {
         const predNode = nodes.find((n) => n.id === predId);
-        const predSubgraphId = (predNode?.data as ActionNodeData | undefined)?.subgraphId;
+        const predSubgraphId = (predNode?.data as unknown as ActionNodeData | undefined)?.subgraphId;
         if (predSubgraphId) SUBGRAPH_IO[predSubgraphId]?.writes.forEach((w) => predecessorWrites.add(w));
       }
 
@@ -1690,7 +1696,7 @@ function useValidationWarnings(
       for (const key of missingKeys) {
         warnings.push({
           severity: predecessorIds.length === 0 ? "warning" : "error",
-          message: `"${(node.data as ActionNodeData).label}" needs key "${key}" but ${predecessorIds.length === 0 ? "has no connected predecessor" : "the previous step does not produce it"}.`,
+          message: `"${(node.data as unknown as ActionNodeData).label}" needs key "${key}" but ${predecessorIds.length === 0 ? "has no connected predecessor" : "the previous step does not produce it"}.`,
         });
       }
 
@@ -1707,7 +1713,7 @@ function useValidationWarnings(
             const produced = producedFields[stateKey];
             const missingFields = reqFields.filter((f) => !produced?.has(f));
             if (missingFields.length > 0) {
-              const label = (node.data as ActionNodeData).label;
+              const label = (node.data as unknown as ActionNodeData).label;
               warnings.push({
                 severity: "error",
                 message: `"${label}" needs ${stateKey}[].${missingFields.join(", " + stateKey + "[].") } but the previous step's field mappings do not include ${missingFields.length === 1 ? "it" : "them"}. Update the previous step's Schema Alignment.`,
@@ -1718,11 +1724,11 @@ function useValidationWarnings(
       }
     }
 
-    const hasVerify = nodes.some(n => (n.data as ActionNodeData)?.subgraphId === "verification");
-    const hasPersist = nodes.some(n => (n.data as ActionNodeData)?.subgraphId === "persist");
+    const hasVerify = nodes.some(n => (n.data as unknown as ActionNodeData)?.subgraphId === "verification");
+    const hasPersist = nodes.some(n => (n.data as unknown as ActionNodeData)?.subgraphId === "persist");
     const persistGold = nodes.some(n => {
       const cfg = nodeConfigs[n.id];
-      return (n.data as ActionNodeData)?.subgraphId === "persist" && cfg?.outputTarget === "gold_training";
+      return (n.data as unknown as ActionNodeData)?.subgraphId === "persist" && cfg?.outputTarget === "gold_training";
     });
     if (hasPersist && persistGold && !hasVerify) {
       warnings.push({
@@ -1731,8 +1737,8 @@ function useValidationWarnings(
       });
     }
     if (hasVerify && hasPersist) {
-      const verifyIdx = ordered.findIndex(n => (n.data as ActionNodeData)?.subgraphId === "verification");
-      const persistIdx = ordered.findIndex(n => (n.data as ActionNodeData)?.subgraphId === "persist");
+      const verifyIdx = ordered.findIndex(n => (n.data as unknown as ActionNodeData)?.subgraphId === "verification");
+      const persistIdx = ordered.findIndex(n => (n.data as unknown as ActionNodeData)?.subgraphId === "persist");
       if (verifyIdx > persistIdx) {
         warnings.push({
           severity: "error",
@@ -1750,7 +1756,7 @@ function useValidationWarnings(
     for (const o of orphaned) {
       warnings.push({
         severity: "warning",
-        message: `"${(o.data as ActionNodeData).label}" has no incoming edge — it won't receive data from previous steps.`,
+        message: `"${(o.data as unknown as ActionNodeData).label}" has no incoming edge — it won't receive data from previous steps.`,
       });
     }
 
@@ -1847,12 +1853,13 @@ export default function PathwayBuilderPage() {
             configs[a.id] = cfg;
             return {
               id: a.id,
-              type: "action",
+              type: a.nodeType || cfg.nodeType || "action",
               position: a.position || { x: 250, y: 100 + i * 150 },
               data: {
                 label: a.label || a.subgraphId,
                 subgraphId: a.subgraphId,
                 color: SUBGRAPH_OPTIONS.find((s) => s.id === a.subgraphId)?.color || "#999",
+                nodeType: a.nodeType || cfg.nodeType || "action",
                 config: a.config,
                 onConfigure: () => openConfigurator(a.id),
               },
@@ -1860,21 +1867,106 @@ export default function PathwayBuilderPage() {
           });
           setNodeConfigs(configs);
           setNodes(loadedNodes);
-          setEdges((data.edges || []).map((e, i) => ({ id: `e${i}`, source: e.source, target: e.target })));
+          setEdges((data.edges || []).map((e, i) => ({
+            id: `e${i}`,
+            source: e.source,
+            target: e.target,
+            sourceHandle: e.sourceHandle,
+            targetHandle: e.targetHandle,
+            type: "portEdge",
+            data: { label: e.sourceHandle || e.targetHandle || "" },
+          })));
         })
         .catch(() => {});
     }
   }, [planId, isNew, setNodes, setEdges, openConfigurator]);
 
   const onConnect = useCallback((connection: Connection) => {
-    setEdges((eds) => addEdge(connection, eds));
+    const edgeId = `${connection.source}:${connection.sourceHandle ?? "_"}->${connection.target}:${connection.targetHandle ?? "_"}`;
+    setEdges((eds) => addEdge({ ...connection, id: edgeId, type: "portEdge", data: { label: connection.sourceHandle || connection.targetHandle || "" } }, eds));
   }, [setEdges]);
 
   const addAction = useCallback((subgraphId: string) => {
+    if (subgraphId === "condition") {
+      const id = `condition_${Date.now()}`;
+      const cfg: ActionConfig = {
+        ...DEFAULT_CONFIG,
+        subgraphId: "condition",
+        label: "Condition",
+        description: "Route based on rule conditions",
+        nodeType: "condition",
+        params: {
+          rules: [
+            { id: `rule_${Date.now()}`, field: "is_verified", operator: "==", value: "true", outputPort: "verified" },
+          ],
+          defaultPort: "failed",
+        },
+      };
+      setNodeConfigs((prev) => ({ ...prev, [id]: cfg }));
+      setNodes((nds) => [...nds, {
+        id,
+        type: "condition",
+        position: { x: 250, y: (nodes.length + 1) * 150 },
+        data: { label: cfg.label, subgraphId: cfg.subgraphId, color: "#E91E63", onConfigure: () => openConfigurator(id), rules: cfg.params.rules, defaultPort: cfg.params.defaultPort },
+      } as Node]);
+      return;
+    }
+    if (subgraphId === "rest_connector" || subgraphId === "queue_publish") {
+      const id = `${subgraphId}_${Date.now()}`;
+      const cfg: ActionConfig = {
+        ...DEFAULT_CONFIG,
+        subgraphId,
+        label: subgraphId === "rest_connector" ? "REST API Call" : "Queue Publish",
+        description: subgraphId === "rest_connector" ? "Call an internal or external API" : "Publish message to queue",
+        nodeType: subgraphId as ActionConfig["nodeType"],
+        params: subgraphId === "queue_publish"
+          ? { queue_name: "pipeline-jobs", schedule_after_seconds: 0, message_body: {} }
+          : { method: "GET", url: "", headers: {}, response_mapping: [] },
+      };
+      setNodeConfigs((prev) => ({ ...prev, [id]: cfg }));
+      setNodes((nds) => [...nds, {
+        id,
+        type: subgraphId,
+        position: { x: 250, y: (nodes.length + 1) * 150 },
+        data: {
+          label: cfg.label,
+          subgraphId,
+          color: subgraphId === "rest_connector" ? "#3F51B5" : "#795548",
+          connectorType: subgraphId,
+          onConfigure: () => openConfigurator(id),
+        },
+      } as Node]);
+      return;
+    }
+    if (subgraphId === "trigger") {
+      const id = `trigger_${Date.now()}`;
+      const cfg: ActionConfig = { ...DEFAULT_CONFIG, subgraphId: "trigger", label: "Trigger", description: "Pipeline entry point", nodeType: "trigger", params: {} };
+      setNodeConfigs((prev) => ({ ...prev, [id]: cfg }));
+      setNodes((nds) => [...nds, {
+        id,
+        type: "trigger",
+        position: { x: 80, y: 80 },
+        data: { label: "Trigger", subgraphId: "trigger", color: "#FFC107", triggerEvent, outputPorts: ["patient_id", "encounter_id", "encounter_text"], onConfigure: () => openConfigurator(id) },
+      } as Node]);
+      return;
+    }
+    if (subgraphId === "parallel" || subgraphId === "merge" || subgraphId === "transform") {
+      const id = `${subgraphId}_${Date.now()}`;
+      const cfg: ActionConfig = { ...DEFAULT_CONFIG, subgraphId, label: subgraphId.replace("_", " "), description: "Flow control node", nodeType: subgraphId as ActionConfig["nodeType"], params: {} };
+      setNodeConfigs((prev) => ({ ...prev, [id]: cfg }));
+      setNodes((nds) => [...nds, {
+        id,
+        type: subgraphId,
+        position: { x: 250, y: (nodes.length + 1) * 150 },
+        data: { label: cfg.label, subgraphId, color: "#999", onConfigure: () => openConfigurator(id) },
+      } as Node]);
+      return;
+    }
+
     const option = SUBGRAPH_OPTIONS.find((s) => s.id === subgraphId);
     if (!option) return;
-    const id = `action_${Date.now()}`;
-    const cfg: ActionConfig = { ...DEFAULT_CONFIG, subgraphId, label: option.label, description: option.description };
+    const id = `${subgraphId}_${Date.now()}`;
+    const cfg: ActionConfig = { ...DEFAULT_CONFIG, subgraphId, label: option.label, description: option.description, nodeType: "action" };
     setNodeConfigs((prev) => ({ ...prev, [id]: cfg }));
     const newNode: Node = {
       id,
@@ -1884,11 +1976,12 @@ export default function PathwayBuilderPage() {
         label: option.label,
         subgraphId: option.id,
         color: option.color,
+        nodeType: "action",
         onConfigure: () => openConfigurator(id),
       },
     };
     setNodes((nds) => [...nds, newNode]);
-  }, [nodes.length, setNodes, openConfigurator]);
+  }, [nodes.length, setNodes, openConfigurator, triggerEvent]);
 
   const handleConfigSave = useCallback((nodeId: string, config: ActionConfig) => {
     setNodeConfigs((prev) => ({ ...prev, [nodeId]: config }));
@@ -1898,11 +1991,16 @@ export default function PathwayBuilderPage() {
         n.id === nodeId
           ? {
               ...n,
+              type: config.nodeType || n.type || "action",
               data: {
                 ...n.data,
                 label: config.label,
                 subgraphId: config.subgraphId,
                 color: option?.color || "#999",
+                nodeType: config.nodeType || "action",
+                rules: config.params.rules,
+                defaultPort: config.params.defaultPort,
+                connectorType: config.nodeType,
               },
             }
           : n
@@ -1936,7 +2034,7 @@ export default function PathwayBuilderPage() {
     const allWrites = new Set<string>();
     for (const predId of predecessorIds) {
       const predNode = nodes.find((n) => n.id === predId);
-      const predSubgraphId = (predNode?.data as ActionNodeData | undefined)?.subgraphId;
+      const predSubgraphId = (predNode?.data as unknown as ActionNodeData | undefined)?.subgraphId;
       if (predSubgraphId) {
         SUBGRAPH_IO[predSubgraphId]?.writes.forEach((w) => allWrites.add(w));
       }
@@ -1969,12 +2067,18 @@ export default function PathwayBuilderPage() {
       trigger: triggerEvent ? { event: triggerEvent, type: "data-changed" } : undefined,
       actions: nodes.map((n) => ({
         id: n.id,
-        subgraphId: (n.data as ActionNodeData).subgraphId,
-        label: (n.data as ActionNodeData).label,
+        subgraphId: (n.data as unknown as ActionNodeData).subgraphId,
+        label: (n.data as unknown as ActionNodeData).label,
+        nodeType: (nodeConfigs[n.id]?.nodeType || n.type || "action"),
         position: n.position,
         config: nodeConfigs[n.id] || {},
       })),
-      edges: edges.map((e) => ({ source: e.source, target: e.target })),
+      edges: edges.map((e) => ({
+        source: e.source,
+        target: e.target,
+        sourceHandle: e.sourceHandle,
+        targetHandle: e.targetHandle,
+      })),
     };
     try {
       if (isNew) {
@@ -2014,9 +2118,19 @@ export default function PathwayBuilderPage() {
           <InputLabel>Add Action</InputLabel>
           <Select label="Add Action" value="" onChange={(e) => addAction(e.target.value)}>
             <MenuItem value="">Add action...</MenuItem>
+            <MenuItem disabled sx={{ fontWeight: 700, opacity: 1 }}>Pipeline Steps</MenuItem>
             {SUBGRAPH_OPTIONS.map((s) => (
               <MenuItem key={s.id} value={s.id}>{s.label}</MenuItem>
             ))}
+            <MenuItem disabled sx={{ fontWeight: 700, opacity: 1 }}>Flow Control</MenuItem>
+            <MenuItem value="condition">Condition</MenuItem>
+            <MenuItem value="parallel">Parallel</MenuItem>
+            <MenuItem value="merge">Merge</MenuItem>
+            <MenuItem value="transform">Transform</MenuItem>
+            <MenuItem value="trigger">Trigger</MenuItem>
+            <MenuItem disabled sx={{ fontWeight: 700, opacity: 1 }}>Connectors</MenuItem>
+            <MenuItem value="rest_connector">REST API Call</MenuItem>
+            <MenuItem value="queue_publish">Queue Publish</MenuItem>
           </Select>
         </FormControl>
         <Button variant="contained" startIcon={<SaveIcon />} onClick={handleSave}>Save pathway</Button>
@@ -2032,36 +2146,38 @@ export default function PathwayBuilderPage() {
 
       <ValidationPanel warnings={validationWarnings} />
 
-      <Box sx={{ flex: 1 }}>
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          nodeTypes={nodeTypes}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
-          fitView
-        >
-          <Background />
-          <Controls />
-          <MiniMap />
-        </ReactFlow>
-      </Box>
-      <Drawer anchor="right" open={drawerOpen} onClose={() => setDrawerOpen(false)}>
-        {selectedNode && (
-          <ActionConfigurator
+      <Box sx={{ flex: 1, display: "flex", minHeight: 0 }}>
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            nodeTypes={pathwayNodeTypes}
+            edgeTypes={edgeTypes}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            fitView
+          >
+            <Background />
+            <Controls />
+            <MiniMap />
+          </ReactFlow>
+        </Box>
+        {drawerOpen && selectedNode && (
+          <SidePanel
             key={`${selectedNode}-${drawerKey}`}
             nodeId={selectedNode}
-            initialConfig={selectedConfig}
-            onSave={handleConfigSave}
-            onDelete={handleDeleteNode}
-            onClose={() => setDrawerOpen(false)}
-            onPathwaySave={handleSave}
+            config={selectedConfig}
             prevStepWrites={prevStepWrites}
-            prevStepFieldMappings={prevStepFieldMappings}
+            onConfigChange={handleConfigSave}
+            onDelete={(nodeId) => {
+              handleDeleteNode(nodeId);
+              setDrawerOpen(false);
+            }}
+            onClose={() => setDrawerOpen(false)}
           />
         )}
-      </Drawer>
+      </Box>
     </Box>
   );
 }

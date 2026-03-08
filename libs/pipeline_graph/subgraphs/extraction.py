@@ -84,6 +84,10 @@ def extract_entities(state: ExtractionState) -> dict[str, Any]:
 
         # Pass output schema + examples so the extractor can assemble the full prompt
         output_schema_json: str | None = cfg.get("outputSchema") or None
+        try:
+            max_few_shot = int(cfg.get("maxFewShot") or 20)
+        except (TypeError, ValueError):
+            max_few_shot = 20
         few_shot_raw = cfg.get("fewShotExamples")
         few_shot_examples: list[dict] | None = None
         if few_shot_raw:
@@ -101,6 +105,7 @@ def extract_entities(state: ExtractionState) -> dict[str, Any]:
             system_prompt=system_prompt,
             output_schema_json=output_schema_json,
             few_shot_examples=few_shot_examples,
+            max_few_shot=max_few_shot,
         )
         chunks = [
             SentenceChunk(

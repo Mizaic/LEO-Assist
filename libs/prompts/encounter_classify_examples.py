@@ -143,3 +143,26 @@ ENCOUNTER_CLASSIFY_EXAMPLES: list[dict] = [
         "output": '{"content_type": "clinical", "domains": ["renal", "metabolic"], "encounter_purpose": ["investigation_result"], "key_clinical_signals": ["eGFR 76", "HbA1c 49 mmol/mol", "renal profile normal"], "expected_semantic_tags": ["observable entity", "finding"], "clinical_significance": "medium"}',
     },
 ]
+
+
+def _apply_core_by_first_category(examples: list[dict], core_categories: set[str]) -> None:
+    seen: set[str] = set()
+    for example in examples:
+        category = str(example.get("category", ""))
+        is_core = category in core_categories and category not in seen
+        if is_core:
+            seen.add(category)
+        example["core"] = is_core
+
+
+_apply_core_by_first_category(
+    ENCOUNTER_CLASSIFY_EXAMPLES,
+    {
+        "classify:admin_only",
+        "classify:document_transfer",
+        "classify:clinical-acute",
+        "classify:clinical-chronic",
+        "classify:clinical-oncology",
+        "classify:clinical-multi",
+    },
+)

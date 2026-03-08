@@ -37,6 +37,7 @@ class FewShotExample(BaseModel):
     category: str = ""          # e.g. "assertion:absent", "observable", "staging"
     model_scope: str = "any"    # "any" | "extraction" | "extraction:llm" | "verification"
     description: str = ""       # short human label shown in the example library
+    core: bool = False
 
 
 class PromptCreateRequest(BaseModel):
@@ -46,6 +47,7 @@ class PromptCreateRequest(BaseModel):
     outputSchema: str = "{}"
     verification: bool = False
     fewShotExamples: list[FewShotExample] = []
+    maxFewShot: int = 20
 
 
 class PromptUpdateRequest(BaseModel):
@@ -55,6 +57,7 @@ class PromptUpdateRequest(BaseModel):
     outputSchema: str = "{}"
     verification: bool = False
     fewShotExamples: list[FewShotExample] = []
+    maxFewShot: int = 20
 
 
 class ImproveRequest(BaseModel):
@@ -115,6 +118,7 @@ def get_prompt(prompt_id: str, scope: CallerScope = Depends(get_caller_scope)):
             "outputSchema": row.get("outputSchema") or "{}",
             "verification": bool(row.get("verification")),
             "fewShotExamples": few_shot,
+            "maxFewShot": int(row.get("maxFewShot") or 20),
         }
     finally:
         client.close()
@@ -137,6 +141,7 @@ def create_prompt(body: PromptCreateRequest, scope: CallerScope = Depends(get_ca
                 output_schema=body.outputSchema,
                 verification=body.verification,
                 few_shot_examples=few_shot_json,
+                max_few_shot=body.maxFewShot,
                 source="user",
             )
         return {"id": prompt_id}
@@ -163,6 +168,7 @@ def update_prompt(
                 output_schema=body.outputSchema,
                 verification=body.verification,
                 few_shot_examples=few_shot_json,
+                max_few_shot=body.maxFewShot,
             ).single()
         if not row:
             raise HTTPException(404, f"PromptConfig {prompt_id} not found")

@@ -286,6 +286,35 @@ class WorkflowEngine:
             action.action_id, action.subgraph_id, state.get("patient_id"),
         )
         t0 = time.monotonic()
+        if action.subgraph_id == "queue_publish" and self._bus:
+            try:
+                from libs.message_bus.base import Message
+
+                queue_name = str(state.get("queue_name") or "pipeline-jobs")
+                message_body = state.get("message_body") or {}
+                delay = int(state.get("schedule_after_seconds") or 0)
+                await self._bus.send(
+                    queue_name,
+                    Message(body=message_body if isinstance(message_body, dict) else {"payload": message_body}),
+                    schedule_after_seconds=delay if delay > 0 else None,
+                )
+                duration = int((time.monotonic() - t0) * 1000)
+                return StepResult(
+                    action_id=action.action_id,
+                    subgraph_id=action.subgraph_id,
+                    status="completed",
+                    duration_ms=duration,
+                    output={"queued": True},
+                )
+            except Exception as exc:
+                duration = int((time.monotonic() - t0) * 1000)
+                return StepResult(
+                    action_id=action.action_id,
+                    subgraph_id=action.subgraph_id,
+                    status="error",
+                    duration_ms=duration,
+                    error=str(exc),
+                )
         try:
             subgraph = self._registry.build(action.subgraph_id)
             result = subgraph.invoke(state)
@@ -332,6 +361,15 @@ class WorkflowEngine:
         """Build the input state for a single step by merging pipeline state with action config."""
         state = dict(pipeline_state)
         state.update(action.config)
+        params = action.config.get("params") if isinstance(action.config, dict) else None
+        if isinstance(params, dict):
+            state.update(params)
+
+        # UI config keys are camelCase, subgraphs use snake_case.
+        if "promptConfigId" in state and "prompt_config_id" not in state:
+            state["prompt_config_id"] = state.get("promptConfigId")
+        if "outputTarget" in state and "output_target" not in state:
+            state["output_target"] = state.get("outputTarget")
 
         prompt_config_id = state.get("prompt_config_id")
         if prompt_config_id and "prompt_config" not in state:

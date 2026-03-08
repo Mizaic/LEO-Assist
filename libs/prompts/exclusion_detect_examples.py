@@ -169,3 +169,26 @@ EXCLUSION_DETECT_EXAMPLES: list[dict] = [
         "output": '{"outcome": "still_investigating", "confidence": 0.55, "evidence_text": "MSU clear. eGFR 61.", "reasoning": "MSU clear suggests one negative test but does not confirm exclusion of urological malignancy; insufficient evidence to classify as excluded."}',
     },
 ]
+
+
+def _apply_core_by_first_category(examples: list[dict], core_categories: set[str]) -> None:
+    seen: set[str] = set()
+    for example in examples:
+        category = str(example.get("category", ""))
+        is_core = category in core_categories and category not in seen
+        if is_core:
+            seen.add(category)
+        example["core"] = is_core
+
+
+_apply_core_by_first_category(
+    EXCLUSION_DETECT_EXAMPLES,
+    {
+        "exclusion:cancer-excluded",
+        "exclusion:cancer-confirmed",
+        "exclusion:still-investigating",
+        "exclusion:pending-letter",
+        "exclusion:not-relevant",
+        "exclusion:conservative",
+    },
+)

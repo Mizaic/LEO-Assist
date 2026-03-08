@@ -134,3 +134,28 @@ ANCHOR_DOMAIN_REVIEW_EXAMPLES: list[dict] = [
         "output": '[{"line_number": 1, "original_concept_id": "229059009", "domain": "AMBIGUOUS", "concept_correct": true, "suggested_concept_id": null, "suggested_concept_name": null, "assertion": "present", "rationale": "Clinic letter from oncology suggests cancer relevance but content is unknown; cannot determine outcome from evidence text alone.", "target_rule": "TargetRule(\'Clinic letter (record artifact)\', \'AMBIGUOUS\', pattern=[{\'LOWER\': \'letter\'}, {\'LOWER\': \'received\'}, {\'LOWER\': \'from\'}, {\'LOWER\': \'oncology\'}])"}]',
     },
 ]
+
+
+def _apply_core_by_first_category(examples: list[dict], core_categories: set[str]) -> None:
+    seen: set[str] = set()
+    for example in examples:
+        category = str(example.get("category", ""))
+        is_core = category in core_categories and category not in seen
+        if is_core:
+            seen.add(category)
+        example["core"] = is_core
+
+
+_apply_core_by_first_category(
+    ANCHOR_DOMAIN_REVIEW_EXAMPLES,
+    {
+        "anchor:2ww-referral",
+        "anchor:2ww-clinic-seen",
+        "anchor:cancer-diagnosis",
+        "anchor:cancer-excluded",
+        "anchor:cancer-treatment",
+        "anchor:metastatic",
+        "anchor:non-cancer",
+        "anchor:ambiguous",
+    },
+)

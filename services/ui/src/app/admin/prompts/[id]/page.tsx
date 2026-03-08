@@ -47,6 +47,7 @@ interface FewShotExample {
   category: string;
   model_scope: string;
   description: string;
+  core: boolean;
 }
 
 interface PromptConfigData {
@@ -58,6 +59,7 @@ interface PromptConfigData {
   outputSchema: string;
   verification: boolean;
   fewShotExamples: FewShotExample[];
+  maxFewShot?: number;
 }
 
 // ── Category taxonomy for example library ────────────────────────────────────
@@ -249,6 +251,15 @@ function ExampleCard({
               <Chip size="small" label={categoryLabel(ex.category)} color={categoryColor(ex.category)}
                 sx={{ height: 18, fontSize: "0.65rem" }} />
             )}
+            {ex.core && (
+              <Chip
+                size="small"
+                label="Core"
+                color="success"
+                variant="outlined"
+                sx={{ height: 18, fontSize: "0.65rem" }}
+              />
+            )}
             {ex.description && (
               <Typography variant="caption" color="text.secondary" sx={{ fontStyle: "italic" }}>
                 {ex.description}
@@ -297,6 +308,19 @@ function ExampleCard({
                 </Select>
               </FormControl>
             </Stack>
+
+            <FormControlLabel
+              control={
+                <Switch
+                  size="small"
+                  checked={Boolean(ex.core)}
+                  onChange={(e) => onChange(ex.id, "core", e.target.checked)}
+                  color="success"
+                />
+              }
+              label={<Typography variant="caption">Core (always included)</Typography>}
+              sx={{ m: 0 }}
+            />
 
             <TextField fullWidth size="small" label="Clinical text the AI sees"
               placeholder='[s0] No fever.'
@@ -362,6 +386,7 @@ export default function PromptTunerPage() {
   const [outputSchema,    setOutputSchema]    = useState("{}");
   const [verification,    setVerification]    = useState(false);
   const [fewShotExamples, setFewShotExamples] = useState<FewShotExample[]>([]);
+  const [maxFewShot,      setMaxFewShot]      = useState(20);
   const [aiSuggestion,    setAiSuggestion]    = useState<string | null>(null);
   const [improving,       setImproving]       = useState(false);
   const [saving,          setSaving]          = useState(false);
@@ -387,8 +412,10 @@ export default function PromptTunerPage() {
               category:    ex.category    ?? "",
               model_scope: ex.model_scope ?? "any",
               description: ex.description ?? "",
+              core: Boolean(ex.core),
             }))
           );
+          setMaxFewShot(data.maxFewShot ?? 20);
           setVersion(data.version);
           setLoaded(true);
         })
@@ -428,6 +455,7 @@ export default function PromptTunerPage() {
       outputSchema,
       verification,
       fewShotExamples,
+      maxFewShot,
     };
     try {
       if (isNew) {
@@ -439,7 +467,7 @@ export default function PromptTunerPage() {
     } catch {} finally {
       setSaving(false);
     }
-  }, [name, description, systemPrompt, outputSchema, verification, fewShotExamples, isNew, promptId, router]);
+  }, [name, description, systemPrompt, outputSchema, verification, fewShotExamples, maxFewShot, isNew, promptId, router]);
 
   const addExample = useCallback(() => {
     setFewShotExamples((prev) => [
@@ -451,6 +479,7 @@ export default function PromptTunerPage() {
         category: "",
         model_scope: "any",
         description: "",
+        core: false,
       },
     ]);
   }, []);
@@ -478,6 +507,7 @@ export default function PromptTunerPage() {
     acc[k] = (acc[k] ?? 0) + 1;
     return acc;
   }, {});
+  const coreCount = fewShotExamples.filter((ex) => ex.core).length;
 
   return (
     <Box sx={{ p: 3, maxWidth: 920, mx: "auto" }}>
@@ -540,7 +570,7 @@ export default function PromptTunerPage() {
           label={
             <Stack direction="row" alignItems="center" spacing={0.75}>
               <span>Teaching examples</span>
-              <Chip size="small" label={fewShotExamples.length}
+              <Chip size="small" label={`${fewShotExamples.length} (${coreCount} core)`}
                 sx={{ height: 18, fontSize: "0.68rem",
                   bgcolor: fewShotExamples.length > 0 ? "primary.100" : "grey.200",
                   color: fewShotExamples.length > 0 ? "primary.main" : "text.disabled" }} />
@@ -613,6 +643,35 @@ export default function PromptTunerPage() {
       {/* ── Tab 2: Teaching examples ────────────────────────────────────── */}
       {tab === 2 && (
         <Box sx={{ pt: 2 }}>
+          <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 2, mb: 1.5 }}>
+            <Stack direction={{ xs: "column", md: "row" }} spacing={1.5} alignItems={{ xs: "flex-start", md: "center" }}>
+              <Stack direction="row" spacing={0.75} alignItems="center">
+                <TextField
+                  size="small"
+                  type="number"
+                  label="Max examples used at runtime"
+                  value={maxFewShot}
+                  onChange={(e) => {
+                    const parsed = Number(e.target.value);
+                    if (Number.isNaN(parsed)) return;
+                    setMaxFewShot(Math.min(100, Math.max(1, parsed)));
+                  }}
+                  inputProps={{ min: 1, max: 100 }}
+                  sx={{ width: 220 }}
+                />
+                <Tooltip title="Caps total examples used at runtime, including core examples.">
+                  <InfoOutlinedIcon sx={{ fontSize: 16, color: "text.disabled" }} />
+                </Tooltip>
+              </Stack>
+              <Chip
+                size="small"
+                label="RAG selection: On when embedder available"
+                variant="outlined"
+                color="info"
+              />
+            </Stack>
+          </Paper>
+
           {/* Toolbar */}
           <Stack direction={{ xs: "column", sm: "row" }} spacing={1} alignItems="center" sx={{ mb: 2 }}>
             <Stack direction="row" spacing={0.5} alignItems="center">
