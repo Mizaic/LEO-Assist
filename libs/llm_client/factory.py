@@ -190,7 +190,8 @@ class LLMClient:
 
         converse_kwargs: dict[str, Any] = dict(
             model_id=self.model_id,
-            system=[{"text": system}],
+            # Mark the static system prompt prefix cacheable for Bedrock prompt caching.
+            system=[{"text": system}, {"cachePoint": {"type": "default"}}],
             messages=bedrock_messages,
             inferenceConfig={"maxTokens": effective_max_tokens, "temperature": effective_temp},
         )

@@ -275,3 +275,28 @@ LABEL_VERIFICATION_EXAMPLES: list[dict] = [
         "output": '{"entities": [{"entity_index": 0, "suggested_label": "finding", "confidence": 0.95, "rule_triggered": "uncertain_impression", "rationale": "Suggestive of is an uncertain impression, not a confirmed diagnosis; finding is correct.", "is_new": false, "new_text": ""}, {"entity_index": 1, "suggested_label": "disorder", "confidence": 0.97, "rule_triggered": "confirmed_diagnosis", "rationale": "Biopsy confirmed malignant melanoma is a definitive diagnosis; disorder is correct.", "is_new": false, "new_text": ""}]}',
     },
 ]
+
+
+def _apply_core_by_first_category(examples: list[dict], core_categories: set[str]) -> None:
+    seen: set[str] = set()
+    for example in examples:
+        category = str(example.get("category", ""))
+        is_core = category in core_categories and category not in seen
+        if is_core:
+            seen.add(category)
+        example["core"] = is_core
+
+
+_apply_core_by_first_category(
+    LABEL_VERIFICATION_EXAMPLES,
+    {
+        "label-verify:finding",
+        "label-verify:disorder",
+        "label-verify:observable",
+        "label-verify:qualifier",
+        "label-verify:procedure",
+        "label-verify:substance",
+        "label-verify:boundary:find-dis",
+        "label-verify:boundary:obs-qual",
+    },
+)

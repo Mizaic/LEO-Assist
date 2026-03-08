@@ -163,3 +163,26 @@ EPISODE_BUILDER_EXAMPLES: list[dict] = [
         "output": '{"should_merge": false, "primary_episode_id": "ep-C1", "reasoning": "Skin melanoma and lung SCC are anatomically unrelated cancers with independent diagnostic workups 13 months apart. These are separate malignancies with no shared investigation pathway.", "merged_cancer_type": null}',
     },
 ]
+
+
+def _apply_core_by_first_category(examples: list[dict], core_categories: set[str]) -> None:
+    seen: set[str] = set()
+    for example in examples:
+        category = str(example.get("category", ""))
+        is_core = category in core_categories and category not in seen
+        if is_core:
+            seen.add(category)
+        example["core"] = is_core
+
+
+_apply_core_by_first_category(
+    EPISODE_BUILDER_EXAMPLES,
+    {
+        "episode:confirmed",
+        "episode:confirmed-inferred",
+        "episode:excluded",
+        "episode:inconclusive",
+        "consolidation:merge",
+        "consolidation:no-merge",
+    },
+)

@@ -272,3 +272,28 @@ LABEL_DISAMBIGUATION_EXAMPLES: list[dict] = [
         "output": '{"resolved_label": "tumor_staging", "confidence": 0.93, "reason": "FIGO IB1 is a formal cancer staging classification; tumor_staging is correct. Informal staging qualifiers use qualifier_value but formal FIGO/Dukes/Clark are tumor_staging."}',
     },
 ]
+
+
+def _apply_core_by_first_category(examples: list[dict], core_categories: set[str]) -> None:
+    seen: set[str] = set()
+    for example in examples:
+        category = str(example.get("category", ""))
+        is_core = category in core_categories and category not in seen
+        if is_core:
+            seen.add(category)
+        example["core"] = is_core
+
+
+_apply_core_by_first_category(
+    LABEL_DISAMBIGUATION_EXAMPLES,
+    {
+        "label-disambig:find-dis",
+        "label-disambig:obs-qual",
+        "label-disambig:sub-proc",
+        "label-disambig:dosage-qual",
+        "label-disambig:sit-dis",
+        "label-disambig:regime-sub",
+        "label-disambig:artifact-proc",
+        "label-disambig:negation",
+    },
+)

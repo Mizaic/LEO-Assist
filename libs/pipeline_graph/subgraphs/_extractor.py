@@ -21,6 +21,7 @@ from typing import Any
 
 from libs.ner.extractor_contract import ExtractionItem, ExtractorProvider
 from libs.nlp.sentence_splitter import SentenceChunk
+from libs.prompts.few_shot_selector import FewShotSelector
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +48,31 @@ def _build_few_shot_block(examples: list[dict], provider: str = "aws") -> str:
 
     lines = ["## Examples", ""]
     for ex in applicable:
+        desc = ex.get("description", "")
+        cat = ex.get("category", "")
+        header = f"# {cat}" + (f" — {desc}" if desc else "")
+        lines.append(header)
+        lines.append(f"Input:  {ex.get('input', '')}")
+        lines.append(f"Output: {ex.get('output', '')}")
+        lines.append("")
+    return "\n".join(lines)
+
+
+def _filter_examples_for_provider(examples: list[dict], provider: str) -> list[dict]:
+    return [ex for ex in examples if ex.get("model_scope", "any") in ("any", provider)]
+
+
+def _split_core_dynamic(examples: list[dict]) -> tuple[list[dict], list[dict]]:
+    core_examples = [ex for ex in examples if bool(ex.get("core", False))]
+    dynamic_examples = [ex for ex in examples if not bool(ex.get("core", False))]
+    return core_examples, dynamic_examples
+
+
+def _build_relevant_examples_block(examples: list[dict]) -> str:
+    if not examples:
+        return ""
+    lines = ["## Relevant examples", ""]
+    for ex in examples:
         desc = ex.get("description", "")
         cat = ex.get("category", "")
         header = f"# {cat}" + (f" — {desc}" if desc else "")
@@ -109,16 +135,29 @@ class LLMExtractorAdapter:
         tier: str = "small",
         output_schema_json: str | None = None,
         few_shot_examples: list[dict] | None = None,
+        max_few_shot: int = 20,
         provider: str | None = None,
     ) -> None:
         self._tier = tier
         self._provider = provider or _active_provider()
-        # Assemble the full prompt from its three managed parts, filtering
-        # examples to those that match this provider ("any" is always included).
+        try:
+            parsed_max = int(max_few_shot or 20)
+        except (TypeError, ValueError):
+            parsed_max = 20
+        self._max_few_shot = max(1, parsed_max)
+        applicable_examples = _filter_examples_for_provider(few_shot_examples or [], self._provider)
+        core_examples, dynamic_pool = _split_core_dynamic(applicable_examples)
+        max_core = min(len(core_examples), self._max_few_shot)
+        self._core_examples = core_examples[:max_core]
+        self._dynamic_budget = max(0, self._max_few_shot - len(self._core_examples))
+        self._few_shot_selector = FewShotSelector(dynamic_pool=dynamic_pool)
+        self._few_shot_selector.warm()
+
+        # Assemble static system prompt from instructions/schema/core examples.
         self._system_prompt = assemble_system_prompt(
             instructions=system_prompt,
             output_schema_json=output_schema_json,
-            few_shot_examples=few_shot_examples,
+            few_shot_examples=self._core_examples,
             provider=self._provider,
         )
 
@@ -153,13 +192,24 @@ class LLMExtractorAdapter:
         sentence_block = "\n".join(
             f"[{s.sentence_id}] {s.text}" for s in sentences
         )
+        dynamic_examples: list[dict] = []
+        if self._dynamic_budget > 0:
+            query_text = f"{encounter_text}\n\n{sentence_block}".strip()
+            dynamic_examples = self._few_shot_selector.select(query_text=query_text, k=self._dynamic_budget)
+        relevant_examples_block = _build_relevant_examples_block(dynamic_examples)
+
+        user_parts: list[str] = []
+        if relevant_examples_block:
+            user_parts.append(relevant_examples_block)
         user_msg = (
             f"Encounter text:\n{encounter_text}\n\n"
             f"Sentences to process:\n{sentence_block}"
         )
+        user_parts.append(user_msg)
+        final_user_msg = "\n\n".join(user_parts)
         resp = llm.converse(
             system=self._system_prompt,
-            messages=[{"role": "user", "content": user_msg}],
+            messages=[{"role": "user", "content": final_user_msg}],
             max_tokens=4096,
             temperature=0.0,
         )
@@ -204,6 +254,7 @@ def build_extractor(
     tier: str = "small",
     output_schema_json: str | None = None,
     few_shot_examples: list[dict] | None = None,
+    max_few_shot: int = 20,
     provider: str | None = None,
 ) -> LLMExtractorAdapter:
     """Build an LLM extractor, assembling the full system prompt from its parts.
@@ -224,5 +275,6 @@ def build_extractor(
         tier=tier,
         output_schema_json=output_schema_json,
         few_shot_examples=few_shot_examples,
+        max_few_shot=max_few_shot,
         provider=provider,
     )

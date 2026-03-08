@@ -33,6 +33,7 @@ RETURN p.id AS id,
        p.output_schema AS outputSchema,
        p.verification AS verification,
        p.few_shot_examples AS fewShotExamples,
+       p.max_few_shot AS maxFewShot,
        p.updated_at AS updatedAt,
        p.created_at AS createdAt
 """
@@ -46,6 +47,7 @@ RETURN p.id AS id,
        p.output_schema AS outputSchema,
        p.verification AS verification,
        p.few_shot_examples AS fewShotExamples,
+       p.max_few_shot AS maxFewShot,
        p.updated_at AS updatedAt
 """
 
@@ -59,6 +61,7 @@ CREATE (p:PromptConfig {
   output_schema: $output_schema,
   verification: $verification,
   few_shot_examples: $few_shot_examples,
+  max_few_shot: $max_few_shot,
   created_at: datetime(),
   updated_at: datetime(),
   source: $source
@@ -74,6 +77,7 @@ SET p.name = $name,
     p.output_schema = $output_schema,
     p.verification = $verification,
     p.few_shot_examples = $few_shot_examples,
+    p.max_few_shot = $max_few_shot,
     p.updated_at = datetime()
 RETURN p.id AS id
 """
@@ -94,6 +98,7 @@ ON CREATE SET
   p.output_schema = $output_schema,
   p.verification = $verification,
   p.few_shot_examples = $few_shot_examples,
+  p.max_few_shot = $max_few_shot,
   p.source = 'seed',
   p.created_at = datetime(),
   p.updated_at = datetime()
@@ -102,6 +107,7 @@ ON MATCH SET
   p.system_prompt = CASE WHEN p.source = 'seed' THEN $system_prompt ELSE p.system_prompt END,
   p.output_schema = CASE WHEN p.source = 'seed' THEN $output_schema ELSE p.output_schema END,
   p.few_shot_examples = CASE WHEN p.source = 'seed' THEN $few_shot_examples ELSE p.few_shot_examples END,
+  p.max_few_shot = CASE WHEN p.source = 'seed' THEN $max_few_shot ELSE p.max_few_shot END,
   p.updated_at = datetime()
 RETURN p.id AS id, p.source AS source
 """

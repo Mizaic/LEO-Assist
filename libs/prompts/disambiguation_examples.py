@@ -180,3 +180,26 @@ DISAMBIGUATION_EXAMPLES: list[dict] = [
         "output": '{"conceptId": "1011481000000105", "confidence": 0.95, "reason": "Estimated glomerular filtration rate matches the lookup term for eGFR exactly."}',
     },
 ]
+
+
+def _apply_core_by_first_category(examples: list[dict], core_categories: set[str]) -> None:
+    seen: set[str] = set()
+    for example in examples:
+        category = str(example.get("category", ""))
+        is_core = category in core_categories and category not in seen
+        if is_core:
+            seen.add(category)
+        example["core"] = is_core
+
+
+_apply_core_by_first_category(
+    DISAMBIGUATION_EXAMPLES,
+    {
+        "disambiguation:exact-match",
+        "disambiguation:abbreviation",
+        "disambiguation:specificity",
+        "disambiguation:no-match",
+        "disambiguation:context-driven",
+        "disambiguation:negated",
+    },
+)

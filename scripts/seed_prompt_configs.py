@@ -49,6 +49,7 @@ def _add(
     variable_path: str,
     output_schema: str = "{}",
     few_shot_examples: list[dict] | None = None,
+    max_few_shot: int = 20,
     description: str = "",
 ) -> None:
     """Resolve a prompt text from libs.prompts at import time."""
@@ -63,6 +64,7 @@ def _add(
         "output_schema": output_schema,
         "verification": False,
         "few_shot_examples": few_shot_examples or [],
+        "max_few_shot": max_few_shot,
     })
 
 
@@ -83,9 +85,11 @@ _add(
             "category": ex.get("category", ""),
             "model_scope": ex.get("model_scope", "any"),
             "description": ex.get("description", ""),
+            "core": bool(ex.get("core", False)),
         }
         for i, ex in enumerate(EXTRACTION_EXAMPLES)
     ],
+    max_few_shot=20,
     description=(
         "Extracts SNOMED CT-codable clinical entities from de-identified GP "
         "consultation text. Produces surface forms, semantic tags, assertions, "
@@ -110,9 +114,11 @@ _add(
             "category": ex.get("category", ""),
             "model_scope": ex.get("model_scope", "any"),
             "description": ex.get("description", ""),
+            "core": bool(ex.get("core", False)),
         }
         for i, ex in enumerate(DISAMBIGUATION_EXAMPLES)
     ],
+    max_few_shot=20,
     description="Disambiguates extracted entities against candidate SNOMED concepts.",
 )
 
@@ -132,6 +138,7 @@ _builder_examples = [
         "category": ex.get("category", ""),
         "model_scope": ex.get("model_scope", "any"),
         "description": ex.get("description", ""),
+        "core": bool(ex.get("core", False)),
     }
     for i, ex in enumerate(EPISODE_BUILDER_EXAMPLES)
     if ex.get("category", "").startswith("episode:")
@@ -145,6 +152,7 @@ _consolidation_examples = [
         "category": ex.get("category", ""),
         "model_scope": ex.get("model_scope", "any"),
         "description": ex.get("description", ""),
+        "core": bool(ex.get("core", False)),
     }
     for i, ex in enumerate(EPISODE_BUILDER_EXAMPLES)
     if ex.get("category", "").startswith("consolidation:")
@@ -155,6 +163,7 @@ _add(
     "libs.prompts.episode_builder_v1.EPISODE_BUILDER_SYSTEM_V1",
     output_schema=json.dumps(EPISODE_BUILDER_OUTPUT_SCHEMA),
     few_shot_examples=_builder_examples,
+    max_few_shot=20,
     description="System role for the episode builder — groups coded entities into clinical episodes.",
 )
 _add(
@@ -162,6 +171,7 @@ _add(
     "libs.prompts.episode_builder_v1.EPISODE_BUILDER_TASK_V1",
     output_schema=json.dumps(EPISODE_BUILDER_OUTPUT_SCHEMA),
     few_shot_examples=_builder_examples,
+    max_few_shot=20,
     description="Task instructions for the episode builder — structures entities per clinical encounter.",
 )
 _add(
@@ -169,6 +179,7 @@ _add(
     "libs.prompts.episode_builder_v1.EPISODE_CONSOLIDATION_SYSTEM_V1",
     output_schema=json.dumps(EPISODE_CONSOLIDATION_OUTPUT_SCHEMA),
     few_shot_examples=_consolidation_examples,
+    max_few_shot=20,
     description="System role for cross-encounter episode consolidation.",
 )
 _add(
@@ -176,6 +187,7 @@ _add(
     "libs.prompts.episode_builder_v1.EPISODE_CONSOLIDATION_TASK_V1",
     output_schema=json.dumps(EPISODE_CONSOLIDATION_OUTPUT_SCHEMA),
     few_shot_examples=_consolidation_examples,
+    max_few_shot=20,
     description="Task instructions for consolidating episodes across multiple encounters.",
 )
 
@@ -196,9 +208,11 @@ _add(
             "category": ex.get("category", ""),
             "model_scope": ex.get("model_scope", "any"),
             "description": ex.get("description", ""),
+            "core": bool(ex.get("core", False)),
         }
         for i, ex in enumerate(ENCOUNTER_CLASSIFY_EXAMPLES)
     ],
+    max_few_shot=20,
     description="Classifies encounters by type and clinical tier before extraction.",
 )
 
@@ -219,9 +233,11 @@ _add(
             "category": ex.get("category", ""),
             "model_scope": ex.get("model_scope", "any"),
             "description": ex.get("description", ""),
+            "core": bool(ex.get("core", False)),
         }
         for i, ex in enumerate(ANCHOR_DOMAIN_REVIEW_EXAMPLES)
     ],
+    max_few_shot=20,
     description="Reviews anchor training records: assigns clinical domains, validates SNOMED concepts, generates medspaCy TargetRules.",
 )
 
@@ -242,9 +258,11 @@ _add(
             "category": ex.get("category", ""),
             "model_scope": ex.get("model_scope", "any"),
             "description": ex.get("description", ""),
+            "core": bool(ex.get("core", False)),
         }
         for i, ex in enumerate(EXCLUSION_DETECT_EXAMPLES)
     ],
+    max_few_shot=20,
     description="Classifies post-referral encounters as cancer_excluded / confirmed / still_investigating / pending_letter / not_relevant.",
 )
 
@@ -265,9 +283,11 @@ _add(
             "category": ex.get("category", ""),
             "model_scope": ex.get("model_scope", "any"),
             "description": ex.get("description", ""),
+            "core": bool(ex.get("core", False)),
         }
         for i, ex in enumerate(LABEL_VERIFICATION_EXAMPLES)
     ],
+    max_few_shot=20,
     description="Verifies extracted label quality against the source text before gold-label persistence.",
 )
 
@@ -288,9 +308,11 @@ _add(
             "category": ex.get("category", ""),
             "model_scope": ex.get("model_scope", "any"),
             "description": ex.get("description", ""),
+            "core": bool(ex.get("core", False)),
         }
         for i, ex in enumerate(LABEL_DISAMBIGUATION_EXAMPLES)
     ],
+    max_few_shot=20,
     description="Disambiguates uncertain NER labels using context from the full encounter — resolves model disagreements.",
 )
 
@@ -323,6 +345,7 @@ def main() -> None:
                 output_schema=prompt["output_schema"],
                 verification=prompt["verification"],
                 few_shot_examples=json.dumps(prompt.get("few_shot_examples", [])),
+                max_few_shot=int(prompt.get("max_few_shot", 20)),
             ).single()
             source = result["source"] if result else "unknown"
             action = "created" if source == "seed" else "skipped (user-edited)"
