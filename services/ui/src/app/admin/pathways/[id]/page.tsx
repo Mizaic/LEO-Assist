@@ -68,6 +68,9 @@ const SUBGRAPH_OPTIONS = [
   { id: "next_best_action", label: "Next Best Action", color: "#673AB7", description: "Generate recommended next actions based on clinical context and guidelines." },
 ];
 
+// Sentinel value used to mark pass-through rows in field mappings (not sourced from LLM output).
+const PIPELINE_GENERATED_SENTINEL = "__pipeline_passthrough__";
+
 // requiredFields: per state-key, the sub-fields this step MUST find on each item.
 // These drive field-level validation when a predecessor provides field_mappings.
 const SUBGRAPH_IO: Record<string, {
@@ -460,95 +463,114 @@ function DataFlowPanel({
 
   return (
     <Stack spacing={1.5}>
+
+      {/* What this step reads */}
       <Paper variant="outlined" sx={{ p: 1.5, bgcolor: "grey.50" }}>
-        <Stack spacing={1}>
+        <Stack spacing={1.5}>
           <Box>
-            <Typography variant="caption" fontWeight={700} color="text.secondary">READS FROM PIPELINE STATE</Typography>
-            <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap sx={{ mt: 0.5 }}>
+            <Typography variant="caption" fontWeight={700} color="text.secondary" display="block" sx={{ mb: 0.5 }}>
+              NEEDS FROM PREVIOUS STEP
+            </Typography>
+            <Stack spacing={0.5}>
               {io.reads.map((k) => {
                 const ok      = provided && provided.has(k);
                 const unknown = provided === null;
+                // Expand with field-level detail if the predecessor has mappings for this key
+                const fieldsForKey = producedFields?.[k] ? Array.from(producedFields[k]) : null;
+                const requiredForKey = requiredFields?.[k] ?? null;
                 return (
-                  <Chip
-                    key={k}
-                    size="small"
-                    label={k}
-                    variant={unknown ? "outlined" : ok ? "filled" : "outlined"}
-                    color={unknown ? "default" : ok ? "success" : "error"}
-                    sx={{ fontFamily: "monospace", fontSize: "0.68rem" }}
-                  />
+                  <Box key={k}>
+                    <Stack direction="row" alignItems="center" spacing={0.5} sx={{ mb: fieldsForKey ? 0.4 : 0 }}>
+                      <Chip
+                        size="small"
+                        label={k}
+                        variant={unknown ? "outlined" : ok ? "filled" : "outlined"}
+                        color={unknown ? "default" : ok ? "success" : "error"}
+                        sx={{ fontFamily: "monospace", fontSize: "0.68rem" }}
+                      />
+                      {!unknown && !ok && (
+                        <Typography variant="caption" color="error.main" sx={{ fontSize: "0.65rem" }}>
+                          — not provided by previous step
+                        </Typography>
+                      )}
+                    </Stack>
+                    {/* Field-level drill-down */}
+                    {fieldsForKey && (
+                      <Stack direction="row" spacing={0.4} flexWrap="wrap" useFlexGap sx={{ pl: 1.5, mt: 0.3 }}>
+                        {fieldsForKey.map((f) => {
+                          const needed = requiredForKey?.includes(f);
+                          return (
+                            <Chip key={f} size="small"
+                              label={`.${f}${needed ? " *" : ""}`}
+                              color={needed ? "success" : "default"}
+                              variant={needed ? "filled" : "outlined"}
+                              sx={{ fontFamily: "monospace", fontSize: "0.62rem", height: 16 }}
+                            />
+                          );
+                        })}
+                        {/* Show required fields that are missing from the mapping */}
+                        {requiredForKey?.filter((f) => !producedFields?.[k]?.has(f)).map((f) => (
+                          <Chip key={`missing-${f}`} size="small"
+                            label={`.${f} ✗`}
+                            color="error"
+                            variant="outlined"
+                            sx={{ fontFamily: "monospace", fontSize: "0.62rem", height: 16 }}
+                          />
+                        ))}
+                      </Stack>
+                    )}
+                  </Box>
                 );
               })}
             </Stack>
           </Box>
+
           <Box>
-            <Typography variant="caption" fontWeight={700} color="text.secondary">WRITES TO PIPELINE STATE</Typography>
-            <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap sx={{ mt: 0.5 }}>
+            <Typography variant="caption" fontWeight={700} color="text.secondary" display="block" sx={{ mb: 0.5 }}>
+              ADDS TO PIPELINE STATE
+            </Typography>
+            <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
               {io.writes.map((k) => <Chip key={k} size="small" label={k} color="primary" variant="outlined" sx={{ fontFamily: "monospace", fontSize: "0.68rem" }} />)}
             </Stack>
           </Box>
         </Stack>
       </Paper>
 
-      {/* Key-level compatibility banner */}
+      {/* Overall compatibility banner */}
       {provided && (
         missingKeys.length > 0 ? (
           <Alert severity="warning" sx={{ fontSize: "0.78rem" }} icon={false}>
-            <Typography variant="caption" fontWeight={700} display="block" sx={{ mb: 0.5 }}>
-              ⚠ {missingKeys.length} key{missingKeys.length > 1 ? "s" : ""} not provided by the previous step
-            </Typography>
-            <Typography variant="caption" color="text.secondary" display="block">
-              Missing: {missingKeys.map((k) => <Box key={k} component="span" sx={{ fontFamily: "monospace", bgcolor: "warning.100", px: 0.5, borderRadius: 0.5, mr: 0.5 }}>{k}</Box>)}
-            </Typography>
+            <strong>Missing data from the previous step.</strong> {missingKeys.join(", ")} {missingKeys.length === 1 ? "is" : "are"} needed but not produced.
             {extraKeys.length > 0 && (
               <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
-                Available but not used: {extraKeys.map((k) => <Box key={k} component="span" sx={{ fontFamily: "monospace", px: 0.5, mr: 0.5 }}>{k}</Box>)}
+                The previous step also produces {extraKeys.join(", ")} which this step does not use.
               </Typography>
             )}
           </Alert>
+        ) : fieldMismatches ? (
+          <Alert severity="warning" sx={{ fontSize: "0.78rem" }} icon={false}>
+            <strong>Some required fields are missing.</strong> Go back to the previous step and check its field mappings include all the fields marked ✗ above.
+          </Alert>
+        ) : allFieldsOk ? (
+          <Alert severity="success" sx={{ fontSize: "0.78rem" }} icon={false}>
+            All required data and fields are provided by the previous step.
+          </Alert>
         ) : (
           <Alert severity="success" sx={{ fontSize: "0.78rem" }} icon={false}>
-            <Typography variant="caption" fontWeight={700}>
-              ✓ All {satisfiedKeys.length} required key{satisfiedKeys.length > 1 ? "s" : ""} are provided by the previous step
-            </Typography>
+            All {satisfiedKeys.length} required data block{satisfiedKeys.length > 1 ? "s are" : " is"} provided by the previous step.
             {extraKeys.length > 0 && (
               <Typography variant="caption" color="text.secondary" display="block">
-                Also available (unused): {extraKeys.map((k) => <Box key={k} component="span" sx={{ fontFamily: "monospace", px: 0.5, mr: 0.5 }}>{k}</Box>)}
+                Also available (not used by this step): {extraKeys.join(", ")}.
               </Typography>
             )}
           </Alert>
         )
       )}
 
-      {/* Field-level breakdown — shown when predecessor has field_mappings configured */}
-      {producedFields && requiredFields && Object.keys(fieldReport).length > 0 && (
-        <Paper variant="outlined" sx={{ p: 1.5, borderColor: fieldMismatches ? "warning.light" : "success.light", bgcolor: fieldMismatches ? "warning.50" : "success.50" }}>
-          <Typography variant="caption" fontWeight={700} color="text.secondary" display="block" sx={{ mb: 1 }}>
-            FIELD-LEVEL COMPATIBILITY
-          </Typography>
-          {Object.entries(fieldReport).map(([stateKey, { ok, missing }]) => (
-            <Box key={stateKey} sx={{ mb: 1 }}>
-              <Typography variant="caption" fontWeight={600} sx={{ fontFamily: "monospace" }}>
-                {stateKey}[]
-              </Typography>
-              <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap sx={{ mt: 0.4 }}>
-                {ok.map((f) => (
-                  <Chip key={f} size="small" label={`.${f}`} color="success" variant="filled"
-                    sx={{ fontFamily: "monospace", fontSize: "0.65rem", height: 18 }} />
-                ))}
-                {missing.map((f) => (
-                  <Chip key={f} size="small" label={`.${f} ✗`} color="error" variant="outlined"
-                    sx={{ fontFamily: "monospace", fontSize: "0.65rem", height: 18 }} />
-                ))}
-              </Stack>
-            </Box>
-          ))}
-          <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: "block" }}>
-            {allFieldsOk
-              ? "✓ All required fields are mapped by the previous step."
-              : "✗ Some fields this step needs are not mapped by the previous step. Update the previous step's field mappings."}
-          </Typography>
-        </Paper>
+      {provided === null && (
+        <Alert severity="info" sx={{ fontSize: "0.78rem" }} icon={false}>
+          Set "Where does data come from?" to "Output of the previous step" to see compatibility checks.
+        </Alert>
       )}
     </Stack>
   );
@@ -754,10 +776,12 @@ function SchemaAlignmentPanel({
   promptConfigId,
   fieldMappings,
   onFieldMappingsChange,
+  prevStepFieldMappings,
 }: {
   promptConfigId: string;
   fieldMappings: FieldMappingRow[];
   onFieldMappingsChange: (rows: FieldMappingRow[]) => void;
+  prevStepFieldMappings: FieldMappingRow[] | null;
 }) {
   const [schemaFields, setSchemaFields] = useState<{
     topKey: string;
@@ -779,7 +803,6 @@ function SchemaAlignmentPanel({
         if (!raw) { setSchemaFields(null); return; }
         const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
         const topProps: Record<string, unknown> = parsed?.properties ?? {};
-        // Find first array key — that's the entity collection
         for (const [topKey, propDef] of Object.entries(topProps)) {
           const prop = propDef as Record<string, unknown>;
           if (prop?.type !== "array") continue;
@@ -792,7 +815,6 @@ function SchemaAlignmentPanel({
             return { name, type: t, description: String(d.description ?? ""), required: required.includes(name) };
           });
           setSchemaFields({ topKey, fields });
-          // Auto-populate rows on first load if not already set
           if (!initialised) {
             onFieldMappingsChange(buildDefaultRows(topKey, fields));
           }
@@ -812,7 +834,7 @@ function SchemaAlignmentPanel({
     onFieldMappingsChange(fieldMappings.filter((r) => r.id !== id));
 
   const addCustomRow = () => {
-    const newRow: FieldMappingRow = {
+    onFieldMappingsChange([...fieldMappings, {
       id: `custom_${Date.now()}`,
       llmField: "",
       type: "string",
@@ -820,16 +842,58 @@ function SchemaAlignmentPanel({
       required: false,
       statePath: "",
       custom: true,
-    };
-    onFieldMappingsChange([...fieldMappings, newRow]);
+    }]);
   };
 
-  if (loading) return <Alert severity="info" sx={{ fontSize: "0.78rem" }} icon={false}>Loading schema…</Alert>;
+  // Build grouped view of incoming fields from the previous step.
+  // MUST be before any early returns to satisfy Rules of Hooks.
+  const incomingGroups = useMemo<Record<string, string[]>>(() => {
+    if (!prevStepFieldMappings) return {};
+    const groups: Record<string, string[]> = {};
+    for (const row of prevStepFieldMappings) {
+      if (!row.statePath.trim()) continue;
+      const match = row.statePath.match(/^(\w+)\[\]\.(.+)$/);
+      if (match) {
+        const [, key, field] = match;
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(field);
+      } else {
+        if (!groups["__flat__"]) groups["__flat__"] = [];
+        groups["__flat__"].push(row.statePath);
+      }
+    }
+    return groups;
+  }, [prevStepFieldMappings]);
+
+  // Pass-through rows: fields the user wants to carry forward from the previous step unchanged.
+  const passthroughPaths = new Set(
+    fieldMappings
+      .filter((r) => r.llmField === PIPELINE_GENERATED_SENTINEL)
+      .map((r) => r.statePath)
+  );
+
+  const togglePassthrough = (statePath: string) => {
+    if (passthroughPaths.has(statePath)) {
+      onFieldMappingsChange(fieldMappings.filter((r) => !(r.llmField === PIPELINE_GENERATED_SENTINEL && r.statePath === statePath)));
+    } else {
+      onFieldMappingsChange([...fieldMappings, {
+        id: `passthrough_${Date.now()}`,
+        llmField: PIPELINE_GENERATED_SENTINEL,
+        type: "passthrough",
+        description: "Carried forward unchanged from the previous step",
+        required: false,
+        statePath,
+        custom: false,
+      }]);
+    }
+  };
+
+  if (loading) return <Alert severity="info" sx={{ fontSize: "0.78rem" }} icon={false}>Loading prompt output fields…</Alert>;
 
   if (!schemaFields && fieldMappings.length === 0) {
     return (
       <Alert severity="warning" sx={{ fontSize: "0.78rem" }} icon={false}>
-        This prompt has no array output schema. Add one in the{" "}
+        This prompt does not have an output schema yet. Add one in the{" "}
         <Typography component="a" href="/admin/prompts" variant="caption" color="primary" sx={{ textDecoration: "underline" }}>
           Prompt Tuner
         </Typography>.
@@ -837,56 +901,99 @@ function SchemaAlignmentPanel({
     );
   }
 
-  const unmapped = fieldMappings.filter((r) => !r.statePath.trim()).length;
+  const aiRows          = fieldMappings.filter((r) => r.llmField !== PIPELINE_GENERATED_SENTINEL);
+  const unmapped        = aiRows.filter((r) => !r.statePath.trim()).length;
+  const missingRequired = aiRows.some((r) => r.required && !r.statePath.trim());
+  const hasIncoming     = Object.keys(incomingGroups).length > 0;
 
   return (
-    <Stack spacing={1.5}>
+    <Stack spacing={2}>
 
-      <Stack direction="row" alignItems="center" justifyContent="space-between">
-        <Stack direction="row" alignItems="center" spacing={1}>
-          <Typography variant="subtitle2">LLM field → pipeline state</Typography>
-          {unmapped === 0
-            ? <Chip size="small" label="All mapped ✓" color="success" sx={{ fontSize: "0.65rem", height: 18 }} />
-            : <Chip size="small" label={`${unmapped} unmapped`} color="warning" sx={{ fontSize: "0.65rem", height: 18 }} />}
-        </Stack>
-        {schemaFields && (
-          <Typography variant="caption" color="text.secondary" sx={{ fontFamily: "monospace", fontSize: "0.68rem" }}>
-            from <strong>{schemaFields.topKey}[]</strong>
+      {/* ── Part 1: What arrives from the previous step ── */}
+      {hasIncoming && (
+        <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 2, bgcolor: "grey.50" }}>
+          <Typography variant="subtitle2" gutterBottom>What arrives from the previous step</Typography>
+          <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1.5 }}>
+            These fields are already in the pipeline. Tick any you want this step to keep and pass on.
+            Leave them unticked if this step does not need them further down.
           </Typography>
-        )}
-      </Stack>
+          {Object.entries(incomingGroups).map(([stateKey, fields]) => (
+            <Box key={stateKey} sx={{ mb: 1 }}>
+              {stateKey !== "__flat__" && (
+                <Typography variant="caption" fontWeight={600} sx={{ fontFamily: "monospace", display: "block", mb: 0.5, color: "text.secondary" }}>
+                  {stateKey}[]
+                </Typography>
+              )}
+              <Stack spacing={0.5}>
+                {fields.map((field) => {
+                  const path = stateKey === "__flat__" ? field : `${stateKey}[].${field}`;
+                  const checked = passthroughPaths.has(path);
+                  return (
+                    <Stack key={path} direction="row" alignItems="center" spacing={1}>
+                      <Box
+                        component="input"
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => togglePassthrough(path)}
+                        style={{ cursor: "pointer", width: 15, height: 15, flexShrink: 0 }}
+                      />
+                      <Typography variant="caption" sx={{ fontFamily: "monospace", fontSize: "0.72rem", flex: 1 }}>
+                        .{field}
+                      </Typography>
+                      {checked && (
+                        <Chip size="small" label="kept" color="success" variant="outlined"
+                          sx={{ height: 16, fontSize: "0.6rem" }} />
+                      )}
+                    </Stack>
+                  );
+                })}
+              </Stack>
+            </Box>
+          ))}
+        </Paper>
+      )}
 
-      <Typography variant="caption" color="text.secondary">
-        Each row maps one field from the LLM output to a pipeline state path downstream steps can read.
-        Edit the <em>Pipeline state path</em> column to rename or re-route. Add rows for enrichment fields
-        the LLM produces beyond the schema.
-      </Typography>
-
-      {/* Column headers */}
+      {/* ── Part 2: What the AI adds ── */}
       <Box>
+        <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
+          <Typography variant="subtitle2">What the AI adds</Typography>
+          {unmapped === 0
+            ? <Chip size="small" label="All named ✓" color="success" sx={{ fontSize: "0.65rem", height: 18 }} />
+            : <Chip size="small" label={`${unmapped} still need a name`} color="warning" sx={{ fontSize: "0.65rem", height: 18 }} />}
+        </Stack>
+
+        <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1.5 }}>
+          The AI returns these fields. Give each one a name that the next step will use to find it.
+          You can rename a field here — it will not change the prompt itself.
+          {schemaFields && (
+            <> The AI groups them inside <Box component="span" sx={{ fontFamily: "monospace", fontWeight: 600 }}>{schemaFields.topKey}[]</Box>.</>
+          )}
+        </Typography>
+
+        {/* Column headers */}
         <Stack direction="row" spacing={1} sx={{ px: 0.5, mb: 0.5 }}>
-          <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ flex: "0 0 160px", fontSize: "0.65rem" }}>LLM OUTPUT FIELD</Typography>
+          <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ flex: "0 0 160px", fontSize: "0.65rem" }}>AI FIELD NAME</Typography>
           <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ flex: "0 0 80px", fontSize: "0.65rem" }}>TYPE</Typography>
-          <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ flex: 1, fontSize: "0.65rem" }}>PIPELINE STATE PATH</Typography>
+          <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ flex: 1, fontSize: "0.65rem" }}>CALL IT IN THE PIPELINE</Typography>
           <Box sx={{ width: 28 }} />
         </Stack>
 
         <Stack spacing={0.5}>
-          {fieldMappings.map((row) => (
+          {aiRows.map((row) => (
             <Stack key={row.id} direction="row" spacing={1} alignItems="center">
-              {/* LLM field — locked for schema rows, editable for custom */}
+              {/* AI field name — locked for schema rows, editable for custom */}
               <Box sx={{ flex: "0 0 160px" }}>
                 {row.custom ? (
                   <TextField
                     size="small"
                     value={row.llmField}
                     onChange={(e) => updateRow(row.id, { llmField: e.target.value })}
-                    placeholder="terms[].fieldName"
+                    placeholder="e.g. terms[].fieldName"
                     inputProps={{ style: { fontFamily: "monospace", fontSize: "0.72rem", padding: "3px 6px" } }}
                     sx={{ width: "100%" }}
                   />
                 ) : (
-                  <Tooltip title={row.description} placement="top-start">
+                  <Tooltip title={row.description || ""} placement="top-start">
                     <Box sx={{
                       fontFamily: "monospace",
                       fontSize: "0.72rem",
@@ -908,18 +1015,18 @@ function SchemaAlignmentPanel({
                 {row.type || "—"}
               </Box>
 
-              {/* Target pipeline state path — always editable */}
+              {/* Target pipeline state path */}
               <TextField
                 size="small"
                 value={row.statePath}
                 onChange={(e) => updateRow(row.id, { statePath: e.target.value })}
                 placeholder="e.g. entities[].text"
-                error={!row.statePath.trim()}
+                error={row.required && !row.statePath.trim()}
+                helperText={row.required && !row.statePath.trim() ? "Required — give this field a name" : undefined}
                 inputProps={{ style: { fontFamily: "monospace", fontSize: "0.72rem", padding: "3px 6px" } }}
                 sx={{ flex: 1 }}
               />
 
-              {/* Remove */}
               <IconButton
                 size="small"
                 onClick={() => removeRow(row.id)}
@@ -931,26 +1038,25 @@ function SchemaAlignmentPanel({
           ))}
         </Stack>
 
-        {fieldMappings.some((r) => r.required && !r.statePath.trim()) && (
+        {missingRequired && (
           <Alert severity="error" sx={{ mt: 1, fontSize: "0.75rem" }} icon={false}>
-            Required fields (* marked) must have a pipeline state path.
+            Fields marked * are required — give them a name before saving.
           </Alert>
         )}
+
+        <Button
+          size="small"
+          variant="outlined"
+          onClick={addCustomRow}
+          sx={{ mt: 1.5, alignSelf: "flex-start", fontSize: "0.75rem", textTransform: "none" }}
+        >
+          + Add an extra field
+        </Button>
+
+        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1, fontSize: "0.67rem" }}>
+          * must be named &nbsp;·&nbsp; Hover a locked field name to see what it means
+        </Typography>
       </Box>
-
-      {/* Add row */}
-      <Button
-        size="small"
-        variant="outlined"
-        onClick={addCustomRow}
-        sx={{ alignSelf: "flex-start", fontSize: "0.75rem", textTransform: "none" }}
-      >
-        + Add enrichment field
-      </Button>
-
-      <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.67rem" }}>
-        * required by schema &nbsp;·&nbsp; Hover any locked field name to see its description
-      </Typography>
     </Stack>
   );
 }
@@ -1225,6 +1331,7 @@ function ActionConfigurator({
                   promptConfigId={config.promptConfigId}
                   fieldMappings={(config.params.field_mappings as FieldMappingRow[]) ?? []}
                   onFieldMappingsChange={(rows) => updateParam("field_mappings", rows)}
+                  prevStepFieldMappings={prevStepFieldMappings}
                 />
               </>
             )}
