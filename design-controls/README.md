@@ -120,6 +120,54 @@ data is transmitted to the LLM.
 
 ---
 
+## Pathway Canvas Redesign — Design Control Summary
+
+Port-based, no-code pathway canvas replacing the wizard-in-drawer model. Clinical
+informaticists wire AI pipeline steps via named port handles without writing code.
+Node configuration opens in a Dialog wizard with proper pickers (no raw ID fields).
+
+### Design Inputs
+
+| ID | Title | Safety Class | Verification |
+|----|-------|-------------|-------------|
+| DI-LEO-AI-060 | FHIR PlanDefinition/ActivityDefinition-driven Pathway Orchestration | B | VT-LEO-AI-063 |
+| DI-LEO-AI-061 | No-code Pathway Builder with Visual PlanDefinition Editor | B | VT-LEO-AI-063 |
+| DI-LEO-AI-063 | Pathway Canvas Redesign with Port-Based Node Editing and Connector Framework | B | VT-LEO-AI-063 |
+
+### Design Outputs
+
+| ID | Title | Source |
+|----|-------|--------|
+| DO-LEO-AI-060 | Unified Pipeline Worker Service | libs/workflow/engine.py, services/fhir_api/app/routers/plan_definition.py, libs/pipeline_graph/ |
+| DO-LEO-AI-061 | FHIR Workflow Engine | services/ui/src/app/admin/pathways/[id]/page.tsx, services/ui/src/components/pathway/ |
+| DO-LEO-AI-063 | Pathway Canvas Redesign Implementation | All of the above plus integrations admin page |
+
+### Verification Tests
+
+| ID | Title | Cases | Status |
+|----|-------|-------|--------|
+| VT-LEO-AI-063 | Pathway Canvas — Ports, Config Persistence, Condition Routing, Connectors | 16 | Pending |
+
+### Key Technical Changes
+
+| Component | Change |
+|-----------|--------|
+| `libs/workflow/engine.py` | Graph-edge traversal replaces sequence ordering; condition port routing; config injection from dynamicValues; queue_publish async dispatch |
+| `services/fhir_api/app/routers/plan_definition.py` | `_ui_actions_to_fhir` creates ActivityDefinitions with dynamicValues; persists nodeType, sourceHandle, targetHandle |
+| `libs/pipeline_graph/subgraphs/rest_connector.py` | REST connector subgraph with response field mapping |
+| `libs/pipeline_graph/subgraphs/queue_publish.py` | Queue publish connector subgraph |
+| `services/api/app/routers/pipeline.py` | `GET /pipeline/subgraphs` endpoint for dynamic subgraph discovery |
+| `services/ui/src/app/admin/pathways/[id]/page.tsx` | Dialog-based wizard; port-to-port edges; grouped node palette |
+| `services/ui/src/components/pathway/` | Modular node/edge/hook/wiring components; Zustand store |
+
+### Risk
+
+| ID | Title | Initial RPN | Residual RPN | Acceptability |
+|----|-------|------------|-------------|---------------|
+| R-LEO-AI-015 | Incorrect pipeline configuration causes wrong clinical output | existing | Reduced by port validation | Acceptable |
+
+---
+
 ## Related Documentation
 
 | Location | Contents |

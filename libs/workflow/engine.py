@@ -63,6 +63,11 @@ class StepResult:
     is_verified: bool | None = None
     error: str | None = None
     output: dict[str, Any] = field(default_factory=dict)
+    # LLM token counts harvested from subgraph output state
+    llm_input_tokens: int = 0
+    llm_output_tokens: int = 0
+    llm_cached_tokens: int = 0
+    llm_cost_usd: float = 0.0
 
 
 class WorkflowEngine:
@@ -190,6 +195,11 @@ class WorkflowEngine:
 
         await self._write_audit_event(event, step_results, final_status, pipeline_state)
 
+        total_input   = sum(s.llm_input_tokens  for s in step_results)
+        total_output  = sum(s.llm_output_tokens for s in step_results)
+        total_cached  = sum(s.llm_cached_tokens for s in step_results)
+        total_cost    = sum(s.llm_cost_usd      for s in step_results)
+
         return {
             "status": final_status,
             "run_id": event.run_id,
@@ -202,10 +212,20 @@ class WorkflowEngine:
                     "entity_count": sr.entity_count,
                     "is_verified": sr.is_verified,
                     "error": sr.error,
+                    "llm_input_tokens":  sr.llm_input_tokens,
+                    "llm_output_tokens": sr.llm_output_tokens,
+                    "llm_cached_tokens": sr.llm_cached_tokens,
+                    "llm_cost_usd":      round(sr.llm_cost_usd, 6),
                 }
                 for sr in step_results
             ],
             "entity_count": len(pipeline_state.get("entities") or []),
+            "llm_usage": {
+                "input_tokens":  total_input,
+                "output_tokens": total_output,
+                "cached_tokens": total_cached,
+                "cost_usd":      round(total_cost, 6),
+            },
         }
 
     @staticmethod
@@ -325,6 +345,8 @@ class WorkflowEngine:
                 or result.get("resolved_entities")
                 or []
             )
+            # Harvest token data written into subgraph state by LLM steps
+            llm_tokens = result.get("llm_tokens") or {}
             return StepResult(
                 action_id=action.action_id,
                 subgraph_id=action.subgraph_id,
@@ -333,6 +355,10 @@ class WorkflowEngine:
                 entity_count=len(entities),
                 is_verified=result.get("is_verified"),
                 output=result,
+                llm_input_tokens=int(llm_tokens.get("input_tokens", 0)),
+                llm_output_tokens=int(llm_tokens.get("output_tokens", 0)),
+                llm_cached_tokens=int(llm_tokens.get("cached_tokens", 0)),
+                llm_cost_usd=float(llm_tokens.get("cost_usd", 0.0)),
             )
         except KeyError:
             duration = int((time.monotonic() - t0) * 1000)
@@ -601,6 +627,10 @@ class WorkflowEngine:
             total_ms = sum(s.duration_ms for s in steps)
             entity_count = len(pipeline_state.get("entities") or [])
             errors = pipeline_state.get("errors") or []
+            total_input  = sum(s.llm_input_tokens  for s in steps)
+            total_output = sum(s.llm_output_tokens for s in steps)
+            total_cached = sum(s.llm_cached_tokens for s in steps)
+            total_cost   = round(sum(s.llm_cost_usd for s in steps), 6)
             audit = {
                 "id": f"audit-{event.run_id}",
                 "type": "PipelineRun",
@@ -613,6 +643,10 @@ class WorkflowEngine:
                 "total_duration_ms": total_ms,
                 "entity_count": entity_count,
                 "error_count": len(errors),
+                "llm_input_tokens":  total_input,
+                "llm_output_tokens": total_output,
+                "llm_cached_tokens": total_cached,
+                "llm_cost_usd":      total_cost,
                 "steps": json.dumps([
                     {
                         "action_id": s.action_id,
@@ -622,6 +656,10 @@ class WorkflowEngine:
                         "entity_count": s.entity_count,
                         "is_verified": s.is_verified,
                         "error": s.error,
+                        "llm_input_tokens":  s.llm_input_tokens,
+                        "llm_output_tokens": s.llm_output_tokens,
+                        "llm_cached_tokens": s.llm_cached_tokens,
+                        "llm_cost_usd":      round(s.llm_cost_usd, 6),
                     }
                     for s in steps
                 ]),

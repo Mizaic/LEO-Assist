@@ -13,7 +13,6 @@ from libs.keyvault.loader import load_keyvault_secrets
 
 _ROOT = Path(__file__).resolve().parents[3]
 load_dotenv(_ROOT / "secrets" / ".env.config", override=True)
-load_dotenv(_ROOT / "secrets" / ".env", override=False)
 load_keyvault_secrets()
 
 import logging
@@ -31,6 +30,7 @@ from services.terminology_api.app.routers import (
     resolve_router,
     concepts_router,
     surface_forms_router,
+    guidelines_router,
 )
 
 configure_logging(service_name="terminology-api")
@@ -74,6 +74,7 @@ app.include_router(valueset_router, prefix="/terminology", tags=["valueset"])
 app.include_router(conceptmap_router, prefix="/terminology", tags=["conceptmap"])
 app.include_router(concepts_router, prefix="/terminology", tags=["concepts"])
 app.include_router(surface_forms_router, prefix="/terminology", tags=["surface-forms"])
+app.include_router(guidelines_router, prefix="/terminology", tags=["guidelines"])
 
 
 @app.get("/health")

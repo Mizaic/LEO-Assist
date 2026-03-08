@@ -265,10 +265,12 @@ def _seed_prompt_configs(client: PatientGraphClient) -> None:
                 id=str(uuid.uuid4()),
                 name=name,
                 version=version,
+                description="",
                 system_prompt=text,
                 output_schema="{}",
                 verification=False,
                 few_shot_examples="[]",
+                max_few_shot=10,
             )
         logger.info("[Tenant] PromptConfig nodes seeded (%d prompts)", len(list_prompts()))
     except Exception as exc:

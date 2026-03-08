@@ -52,6 +52,10 @@ from app.routers.terminology import router as terminology_router
 from app.routers.terminology_admin import router as terminology_admin_router
 from app.routers.events import router as events_router
 from app.routers.prompts import router as prompts_router
+from app.routers.model_configs import router as model_configs_router
+from app.routers.nice_guidance import router as nice_guidance_router
+from app.routers.guidance_rules import router as guidance_rules_router
+from app.routers.pricing import router as pricing_router
 
 
 @asynccontextmanager
@@ -77,10 +81,25 @@ async def lifespan(app: object):
                 "[Tenant] Seed failed (non-fatal): %s", exc
             )
 
+    def _model_config_seed():
+        try:
+            from app.db.neo4j_client import CodingGraphClient
+            from app.services.model_config_seed import seed_model_configs
+            client = CodingGraphClient()
+            seed_model_configs(client)
+            client.close()
+        except Exception as exc:
+            import logging
+            logging.getLogger(__name__).warning(
+                "[ModelConfig] Seed failed (non-fatal): %s", exc
+            )
+
     t1 = threading.Thread(target=_preload, daemon=True)
     t1.start()
     t2 = threading.Thread(target=_tenant_seed, daemon=True)
     t2.start()
+    t3 = threading.Thread(target=_model_config_seed, daemon=True)
+    t3.start()
     # Don't block startup; embedder loads in background; pipeline will wait if needed
     yield
 
@@ -184,6 +203,10 @@ app.include_router(presets_router)
 app.include_router(training_router)
 app.include_router(events_router)
 app.include_router(prompts_router)
+app.include_router(model_configs_router)
+app.include_router(nice_guidance_router)
+app.include_router(guidance_rules_router)
+app.include_router(pricing_router)
 
 
 @app.get("/health")

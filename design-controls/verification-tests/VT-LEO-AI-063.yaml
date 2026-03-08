@@ -1,0 +1,15 @@
+# -- VT-LEO-AI-063 -- NICE API Client and Guideline Ingest
+
+- id: "VT-LEO-AI-063"
+  version: "1.0"
+  status: "draft"
+  traceability:
+    design_inputs: ["DI-LEO-AI-063"]
+    risks: ["R-LEO-AI-042", "R-LEO-AI-043"]
+  metadata:
+    title: "NICE API client fetches, caches, and idempotently stores guideline content"
+    test_level: "unit"
+    automation_framework: "pytest"
+    test_file_paths:
+      - "services/api/tests/test_nice_api_client.py"
+      - "services/api/tests/test_nice_graph_upserter.py"

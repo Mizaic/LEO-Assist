@@ -1,0 +1,62 @@
+---
+description: Checklist for adding new FastAPI routers to services/api. Covers auth dependency pattern and UI proxy registration.
+globs: services/api/app/routers/**/*.py, services/ui/src/proxy.ts
+alwaysApply: false
+---
+
+# Adding a New FastAPI Router
+
+## 1. Auth dependency -- always use `app.deps`
+
+**Never** import `get_caller_scope` from `libs.auth.org_scope` in a router.
+That function reads from an `X-Leo-Session` header (legacy). Routers must use
+the session-cookie-based dependencies from `app.deps`.
+
+```python
+# BAD -- reads X-Leo-Session header, broken in browser sessions
+from libs.auth.org_scope import CallerScope, get_caller_scope
+
+def _require_admin(scope: CallerScope = Depends(get_caller_scope)) -> CallerScope:
+    if not scope.is_admin:
+        raise HTTPException(status_code=403)
+    return scope
+
+# GOOD -- reads session cookie, matches every other admin router
+from app.deps import require_admin
+
+@router.get("/nice/jobs")
+def list_jobs(scope: CallerScope = Depends(require_admin)) -> list[dict]:
+    ...
+```
+
+Available deps:
+- `require_admin` -- platform admin only (most admin pages)
+- `require_admin_or_org_admin` -- platform admin or org_admin role
+- `get_caller_scope_from_request` -- any authenticated user, scoped by org
+
+## 2. Register routes in `services/ui/src/proxy.ts`
+
+Every new `/api/{prefix}/` path must be added to **both** `PREFIX_RULES`
+and `config.matcher` in `proxy.ts`. Without this, all fetch calls from the
+UI get a 404 at the Next.js layer and never reach the FastAPI backend.
+
+```typescript
+// PREFIX_RULES -- add before the closing ];
+{ prefix: "/api/nice/", rewrite: (r) => `${coreApi()}/nice/${r}` },
+{ prefix: "/api/guidance/", rewrite: (r) => `${coreApi()}/guidance/${r}` },
+
+// config.matcher -- add the corresponding path patterns
+"/api/nice/:path*",
+"/api/guidance/:path*",
+```
+
+Routes targeting the **terminology API** use `termApiRewrite` and the
+`termApi()` base URL -- see the existing `/api/terminology/` rule as the
+template.
+
+## 3. Wire the router into `main.py`
+
+```python
+from app.routers.my_new_router import router as my_router
+app.include_router(my_router)
+```

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
@@ -8,12 +8,13 @@ import Button from "@mui/material/Button";
 import Card from "@mui/material/Card";
 import CardActionArea from "@mui/material/CardActionArea";
 import CardContent from "@mui/material/CardContent";
-import Grid from "@mui/material/Grid";
 import Chip from "@mui/material/Chip";
 import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 import Avatar from "@mui/material/Avatar";
 import Tooltip from "@mui/material/Tooltip";
+import InputAdornment from "@mui/material/InputAdornment";
+import TextField from "@mui/material/TextField";
 import AddIcon from "@mui/icons-material/Add";
 import TuneIcon from "@mui/icons-material/Tune";
 import SearchIcon from "@mui/icons-material/Search";
@@ -51,7 +52,6 @@ function formatDate(iso: string) {
   }
 }
 
-// Maps prompt name patterns to a color + icon
 type PromptCategory = {
   color: string;
   bg: string;
@@ -85,6 +85,8 @@ function PromptCard({ p, onClick }: { p: PromptConfig; onClick: () => void }) {
       variant="outlined"
       sx={{
         height: "100%",
+        display: "flex",
+        flexDirection: "column",
         borderRadius: 2.5,
         borderColor: "divider",
         transition: "box-shadow 0.18s, border-color 0.18s, transform 0.12s",
@@ -97,9 +99,9 @@ function PromptCard({ p, onClick }: { p: PromptConfig; onClick: () => void }) {
     >
       <CardActionArea
         onClick={onClick}
-        sx={{ height: "100%", alignItems: "flex-start", display: "flex", flexDirection: "column" }}
+        sx={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "stretch" }}
       >
-        <CardContent sx={{ width: "100%", p: 2.5 }}>
+        <CardContent sx={{ flex: 1, display: "flex", flexDirection: "column", p: 2.5 }}>
           {/* Category avatar + version */}
           <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 1.5 }}>
             <Avatar
@@ -139,13 +141,13 @@ function PromptCard({ p, onClick }: { p: PromptConfig; onClick: () => void }) {
             {cat.label}
           </Typography>
 
-          {/* Description */}
+          {/* Description — grows to fill space so footer stays pinned to bottom */}
           <Typography
             variant="body2"
             color="text.secondary"
             sx={{
+              flex: 1,
               mb: 1.5,
-              minHeight: 40,
               display: "-webkit-box",
               WebkitLineClamp: 3,
               WebkitBoxOrient: "vertical",
@@ -159,7 +161,7 @@ function PromptCard({ p, onClick }: { p: PromptConfig; onClick: () => void }) {
             )}
           </Typography>
 
-          {/* Footer chips */}
+          {/* Footer chips — always at bottom */}
           <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap alignItems="center">
             {p.verification && (
               <Tooltip title="A second AI check runs after the first to confirm accuracy">
@@ -195,7 +197,7 @@ function PromptCard({ p, onClick }: { p: PromptConfig; onClick: () => void }) {
 
 function SkeletonCard() {
   return (
-    <Card variant="outlined" sx={{ borderRadius: 2.5, p: 2.5 }}>
+    <Card variant="outlined" sx={{ borderRadius: 2.5, p: 2.5, height: "100%" }}>
       <Stack direction="row" justifyContent="space-between" sx={{ mb: 1.5 }}>
         <Skeleton variant="circular" width={36} height={36} />
         <Skeleton width={28} height={20} variant="rounded" />
@@ -213,10 +215,14 @@ function SkeletonCard() {
   );
 }
 
+const CATEGORY_ALL = "All";
+
 export default function PromptsPage() {
   const router = useRouter();
   const [prompts, setPrompts] = useState<PromptConfig[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [activeCategory, setActiveCategory] = useState<string>(CATEGORY_ALL);
 
   useEffect(() => {
     api.get<{ prompts: PromptConfig[] }>("/api/prompts")
@@ -225,17 +231,35 @@ export default function PromptsPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const grouped = prompts.reduce<Record<string, PromptConfig[]>>((acc, p) => {
-    const cat = categorise(p.name).label;
-    (acc[cat] ??= []).push(p);
-    return acc;
-  }, {});
-  const sortedGroups = Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b));
+  const allCategories = useMemo(() => {
+    const cats = Array.from(new Set(prompts.map((p) => categorise(p.name).label))).sort();
+    return [CATEGORY_ALL, ...cats];
+  }, [prompts]);
+
+  const filtered = useMemo(() => {
+    return prompts.filter((p) => {
+      const matchCat = activeCategory === CATEGORY_ALL || categorise(p.name).label === activeCategory;
+      const q = search.trim().toLowerCase();
+      const matchSearch = !q || humanName(p.name).toLowerCase().includes(q) || p.description?.toLowerCase().includes(q);
+      return matchCat && matchSearch;
+    });
+  }, [prompts, activeCategory, search]);
+
+  const grouped = useMemo(() => {
+    const map = filtered.reduce<Record<string, PromptConfig[]>>((acc, p) => {
+      const cat = categorise(p.name).label;
+      (acc[cat] ??= []).push(p);
+      return acc;
+    }, {});
+    return Object.entries(map).sort(([a], [b]) => a.localeCompare(b));
+  }, [filtered]);
+
+  const isFiltering = search.trim() !== "" || activeCategory !== CATEGORY_ALL;
 
   return (
-    <Box sx={{ p: 3, maxWidth: 1100, mx: "auto" }}>
+    <Box sx={{ p: 3, maxWidth: 1200, mx: "auto" }}>
       {/* Header */}
-      <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 4 }}>
+      <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 3 }}>
         <Box>
           <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 0.75 }}>
             <TuneIcon sx={{ color: "primary.main", fontSize: 28 }} />
@@ -259,15 +283,81 @@ export default function PromptsPage() {
         </Button>
       </Stack>
 
+      {/* Search + filters bar */}
+      {!loading && prompts.length > 0 && (
+        <Box sx={{ mb: 3 }}>
+          <TextField
+            placeholder="Search by name or description…"
+            size="small"
+            fullWidth
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon fontSize="small" sx={{ color: "text.disabled" }} />
+                </InputAdornment>
+              ),
+            }}
+            sx={{
+              mb: 1.5,
+              "& .MuiOutlinedInput-root": { borderRadius: 2.5, bgcolor: "background.paper" },
+            }}
+          />
+          <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
+            {allCategories.map((cat) => {
+              const catMeta = cat !== CATEGORY_ALL ? categorise(cat === "Episode builder" ? "builder" : cat.toLowerCase()) : null;
+              const isActive = activeCategory === cat;
+              return (
+                <Chip
+                  key={cat}
+                  label={cat}
+                  size="small"
+                  icon={catMeta ? (
+                    <Box sx={{ display: "flex", alignItems: "center", "& svg": { fontSize: "14px !important" } }}>
+                      {catMeta.icon}
+                    </Box>
+                  ) : undefined}
+                  onClick={() => setActiveCategory(cat)}
+                  sx={{
+                    height: 28,
+                    fontSize: "0.78rem",
+                    fontWeight: isActive ? 700 : 400,
+                    bgcolor: isActive ? (catMeta?.bg ?? "primary.main") : "transparent",
+                    color: isActive ? (catMeta?.color ?? "primary.contrastText") : "text.secondary",
+                    border: "1.5px solid",
+                    borderColor: isActive ? (catMeta?.color ?? "primary.main") : "divider",
+                    "&:hover": {
+                      bgcolor: catMeta?.bg ?? "action.hover",
+                      borderColor: catMeta?.color ?? "primary.main",
+                    },
+                    transition: "all 0.15s",
+                  }}
+                />
+              );
+            })}
+            {prompts.length > 0 && (
+              <Typography variant="caption" color="text.disabled" sx={{ ml: "auto !important", alignSelf: "center" }}>
+                {filtered.length} of {prompts.length} instruction{prompts.length !== 1 ? "s" : ""}
+              </Typography>
+            )}
+          </Stack>
+        </Box>
+      )}
+
       {/* Cards */}
       {loading ? (
-        <Grid container spacing={2}>
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+            gap: 2,
+          }}
+        >
           {Array.from({ length: 9 }).map((_, i) => (
-            <Grid item xs={12} sm={6} md={4} key={i}>
-              <SkeletonCard />
-            </Grid>
+            <SkeletonCard key={i} />
           ))}
-        </Grid>
+        </Box>
       ) : prompts.length === 0 ? (
         <Box sx={{
           textAlign: "center", py: 10, px: 3,
@@ -282,13 +372,40 @@ export default function PromptsPage() {
             Add instructions
           </Button>
         </Box>
+      ) : filtered.length === 0 ? (
+        <Box sx={{
+          textAlign: "center", py: 8, px: 3,
+          border: "2px dashed", borderColor: "divider", borderRadius: 3,
+        }}>
+          <SearchIcon sx={{ fontSize: 48, color: "text.disabled", mb: 1.5 }} />
+          <Typography variant="h6" gutterBottom fontWeight={700}>No matches</Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Try a different search term or select a different category.
+          </Typography>
+          <Button variant="outlined" size="small" onClick={() => { setSearch(""); setActiveCategory(CATEGORY_ALL); }}>
+            Clear filters
+          </Button>
+        </Box>
+      ) : isFiltering ? (
+        /* Flat grid when searching / filtering */
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+            gap: 2,
+          }}
+        >
+          {filtered.map((p) => (
+            <PromptCard key={p.id} p={p} onClick={() => router.push(`/admin/prompts/${p.id}`)} />
+          ))}
+        </Box>
       ) : (
+        /* Grouped view when browsing */
         <Stack spacing={4}>
-          {sortedGroups.map(([groupLabel, items]) => {
+          {grouped.map(([groupLabel, items]) => {
             const cat = categorise(items[0].name);
             return (
               <Box key={groupLabel}>
-                {/* Group header */}
                 <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
                   <Box sx={{
                     display: "flex", alignItems: "center", justifyContent: "center",
@@ -305,13 +422,17 @@ export default function PromptsPage() {
                   </Typography>
                 </Stack>
 
-                <Grid container spacing={2}>
+                <Box
+                  sx={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+                    gap: 2,
+                  }}
+                >
                   {items.map((p) => (
-                    <Grid item xs={12} sm={6} md={4} key={p.id}>
-                      <PromptCard p={p} onClick={() => router.push(`/admin/prompts/${p.id}`)} />
-                    </Grid>
+                    <PromptCard key={p.id} p={p} onClick={() => router.push(`/admin/prompts/${p.id}`)} />
                   ))}
-                </Grid>
+                </Box>
               </Box>
             );
           })}

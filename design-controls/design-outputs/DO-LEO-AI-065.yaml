@@ -1,0 +1,100 @@
+# -- DO-LEO-AI-065 -- Bitmap Store, Compiler, and Evaluator
+
+- id: "DO-LEO-AI-065"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-065"]
+    user_needs: ["UN-LEO-AI-028"]
+    risks_addressed: ["R-LEO-AI-043"]
+    verification_tests: ["VT-LEO-AI-065"]
+    validation_tests: []
+
+  specification:
+    title: "Bitmap Store, Guideline Compiler, and Evaluator in Terminology API"
+    description: |
+      Four-file implementation in terminology_api: BitmapStore wraps pyroaring
+      BitMap with Redis persistence and deterministic BLAKE2b key scheme;
+      GuidelineCompiler reads active AppropriatenessRules from Neo4j and compiles
+      them into versioned Roaring bitmaps; GuidelineEvaluator performs microsecond
+      reqAll/forbid intersection checks against patient SNOMED codes; FastAPI router
+      exposes evaluation, compile, versions, activate, and status endpoints.
+    purpose: "Provide fast, deterministic, auditable guideline matching for the inference pipeline"
+    technical_approach: "pyroaring + Redis + Neo4j + asyncio.to_thread for CPU-bound compile"
+    acceptance_criteria:
+      - criterion: "Deterministic bitmap IDs"
+        type: "functional"
+        measurement: "Test"
+        target: "Same int_id set always produces the same BLAKE2b hash key"
+      - criterion: "Only active rules compiled"
+        type: "safety"
+        measurement: "Test"
+        target: "GuidelineCompiler Cypher filters status: active; pending_review rules never appear in bitmap"
+      - criterion: "Evaluation correctness"
+        type: "functional"
+        measurement: "Test"
+        target: "reqAll satisfied + no forbid intersection -> match; forbid intersection -> no match"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/terminology_api/app/services/bitmap_store.py"
+        description: "BitmapStore: Redis-backed pyroaring BitMap store"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/terminology_api/app/services/guideline_compiler.py"
+        description: "GuidelineCompiler: compiles active rules from Neo4j into Redis bitmaps"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/terminology_api/app/services/guideline_evaluator.py"
+        description: "GuidelineEvaluator: evaluates patient codes against active bitmap ruleset"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/terminology_api/app/routers/guidelines.py"
+        description: "FastAPI router: evaluate, compile, versions, activate, status"
+        storage_location: "git"
+      - artifact_type: "test"
+        location: "services/terminology_api/tests/test_bitmap_store.py"
+        storage_location: "git"
+      - artifact_type: "test"
+        location: "services/terminology_api/tests/test_guideline_compiler.py"
+        storage_location: "git"
+      - artifact_type: "test"
+        location: "services/terminology_api/tests/test_guideline_evaluator.py"
+        storage_location: "git"
+
+    technical_details:
+      language: ["Python"]
+      framework: ["FastAPI", "pyroaring", "redis", "neo4j"]
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Only status: active rules read from Neo4j by compiler"
+      - "Versioned bitmaps -- explicit admin activation required"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false
+
+  production_information:
+    deployment_instructions: "Add pyroaring to Docker image. pyroaring uses C extension -- verify ARM64 build compatibility for Azure Container Apps."
+
+  approval:
+    created_by: "Engineering Team"
+    created_date: "2026-03-08"
+
+  version_history:
+    - version: "1.0.0"
+      date: "2026-03-08"
+      changes: "Initial implementation"
+      reason: "New capability -- bitmap-based guideline evaluation"
+      author: "Engineering Team"
+      approval_status: "draft"
+
+  metadata:
+    tags: ["bitmap", "pyroaring", "redis", "neo4j", "evaluation", "terminology-api"]
+    priority: "high"
+    complexity: "complex"

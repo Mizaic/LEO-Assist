@@ -1,0 +1,45 @@
+# -- R-LEO-AI-043 -- Stale Bitmap After Guideline Updates in Neo4j
+
+- id: "R-LEO-AI-043"
+  title: "Bitmap may become stale after approved rules are added or changed in Neo4j"
+  hazard:
+    description: >
+      After an administrator approves new or edited AppropriatenessRules, the Redis
+      bitmap is not automatically recompiled. If a new guideline is loaded and its
+      rules are approved but the bitmap is not recompiled and activated, the inference
+      pipeline continues to use the old ruleset and new rules have no clinical effect.
+    category: "clinical-safety"
+  harm:
+    description: >
+      Patients are not matched against newly approved guideline rules. This is a
+      missed-guidance failure mode (false negatives in rule matching) that could
+      delay appropriate referrals.
+    severity: "moderate"
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        The Bitmap Lifecycle section of the admin UI prominently displays a
+        plain-English status message: "You have N approved rules that are not yet live"
+        whenever the active bitmap version predates the most recent rule approval.
+        The compile button is highlighted in this state.
+    - control_type: "design_feature"
+      description: >
+        Bitmap versions are immutable and numbered. The active version pointer
+        (ruleset:current in Redis) is updated only by an explicit admin action
+        ("Make this live") with a confirmation dialog. Older versions are retained
+        in Redis and can be re-activated if a newly compiled version is found to be
+        incorrect.
+    - control_type: "design_feature"
+      description: >
+        The GET /terminology/guidelines/bitmap/status endpoint exposes the active
+        version compile timestamp and rule count. Monitoring can alert when the
+        gap between the most recent rule approval and the active bitmap compile
+        date exceeds a configurable threshold.
+    - control_type: "procedural_control"
+      description: >
+        The guideline management runbook requires administrators to trigger a
+        bitmap recompile and activation as the final step of any guideline
+        loading workflow. The HITL approval UI includes a prompt to proceed
+        to the Compile step after approving rules.
+  residual_risk_estimate:
+    risk_level: "low"

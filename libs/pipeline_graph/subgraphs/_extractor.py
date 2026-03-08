@@ -181,11 +181,25 @@ class LLMExtractorAdapter:
         except Exception:
             return False
 
-    def extract_batch(
+    def extract_batch_with_usage(
         self,
         encounter_text: str,
         sentences: list[SentenceChunk],
-    ) -> list[ExtractionItem]:
+    ) -> tuple[list[ExtractionItem], dict]:
+        """Run extraction and return (items, llm_token_dict).
+
+        ``llm_token_dict`` has keys: input_tokens, output_tokens, cached_tokens, cost_usd.
+        It is written into subgraph state so WorkflowEngine can aggregate it.
+        """
+        items, usage = self._run_llm(encounter_text, sentences)
+        return items, usage
+
+    def _run_llm(
+        self,
+        encounter_text: str,
+        sentences: list[SentenceChunk],
+    ) -> tuple[list[ExtractionItem], dict]:
+        """Core LLM call. Returns (items, usage_dict)."""
         from libs.llm_client.factory import create_llm
 
         llm = create_llm(tier=self._tier)
@@ -213,6 +227,38 @@ class LLMExtractorAdapter:
             max_tokens=4096,
             temperature=0.0,
         )
+
+        # Build usage dict — cost_usd resolved from Neo4j ModelConfig if available
+        cost_usd = 0.0
+        try:
+            from libs.llm_client.factory import _active_provider
+            provider_key = f"{_active_provider()}:{self._tier}"
+            from libs.cypher.model_config_queries import GET_MODEL_CONFIG
+            from libs.neo4j_client.client import KnowledgeGraphClient
+            kg = KnowledgeGraphClient()
+            try:
+                with kg.session() as s:
+                    mc = s.run(GET_MODEL_CONFIG, key=provider_key).single()
+                if mc:
+                    billable = max(0, resp.input_tokens - resp.cached_input_tokens)
+                    cost_usd = round(
+                        billable * float(mc["costPer1mInput"] or 0) / 1_000_000
+                        + resp.cached_input_tokens * float(mc["costPer1mCachedInput"] or 0) / 1_000_000
+                        + resp.output_tokens * float(mc["costPer1mOutput"] or 0) / 1_000_000,
+                        6,
+                    )
+            finally:
+                kg.close()
+        except Exception:
+            pass
+
+        usage = {
+            "input_tokens":  resp.input_tokens,
+            "output_tokens": resp.output_tokens,
+            "cached_tokens": resp.cached_input_tokens,
+            "cost_usd":      cost_usd,
+        }
+
         raw = resp.text.strip()
         if raw.startswith("```"):
             raw = raw.split("```")[1]
@@ -222,7 +268,7 @@ class LLMExtractorAdapter:
             data = json.loads(raw)
         except json.JSONDecodeError:
             logger.warning("LLM returned invalid JSON: %s", raw[:200])
-            return []
+            return [], usage
 
         terms = data.get("terms", [])
         items: list[ExtractionItem] = []
@@ -246,6 +292,14 @@ class LLMExtractorAdapter:
                     model_version=self.model_version,
                 )
             )
+        return items, usage
+
+    def extract_batch(
+        self,
+        encounter_text: str,
+        sentences: list[SentenceChunk],
+    ) -> list[ExtractionItem]:
+        items, _ = self._run_llm(encounter_text, sentences)
         return items
 
 

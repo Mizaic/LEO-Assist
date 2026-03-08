@@ -84,6 +84,13 @@ const PREFIX_RULES: PrefixRule[] = [
     prefix: "/api/training-worker/",
     rewrite: (r) => `${trainWorker()}/train/${r}`,
   },
+  { prefix: "/api/analytics/", rewrite: (r) => `${coreApi()}/analytics/${r}` },
+  { prefix: "/api/pricing/", rewrite: (r) => `${coreApi()}/pricing/${r}` },
+  { prefix: "/api/pricing", rewrite: () => `${coreApi()}/pricing` },
+  { prefix: "/api/model-configs/", rewrite: (r) => `${coreApi()}/model-configs/${r}` },
+  { prefix: "/api/model-configs", rewrite: () => `${coreApi()}/model-configs` },
+  { prefix: "/api/nice/", rewrite: (r) => `${coreApi()}/nice/${r}` },
+  { prefix: "/api/guidance/", rewrite: (r) => `${coreApi()}/guidance/${r}` },
 ];
 
 function proxyRewrite(request: NextRequest, dest: string): NextResponse {
@@ -148,5 +155,12 @@ export const config = {
     "/api/prompts/:path*",
     "/api/training/:path*",
     "/api/training-worker/:path*",
+    "/api/analytics/:path*",
+    "/api/pricing",
+    "/api/pricing/:path*",
+    "/api/model-configs",
+    "/api/model-configs/:path*",
+    "/api/nice/:path*",
+    "/api/guidance/:path*",
   ],
 };

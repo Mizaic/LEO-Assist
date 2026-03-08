@@ -1,0 +1,356 @@
+"""Tests for NiceApiClient -- VT-LEO-AI-063."""
+
+from __future__ import annotations
+
+import json
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+
+from app.services.nice_api_client import NICE_CODE_RE, NiceApiClient
+
+
+@pytest.fixture()
+def client():
+    return NiceApiClient(redis_url="redis://localhost:6379")
+
+
+@pytest.mark.asyncio
+async def test_get_guidance_returns_parsed_json(client):
+    """NiceApiClient.get_guidance returns structured JSON for a valid code."""
+    payload = {"GuidanceNumber": "NG151", "Title": "Bowel cancer", "Type": "clinical-guideline"}
+    mock_resp = MagicMock()
+    mock_resp.raise_for_status = MagicMock()
+    mock_resp.json.return_value = payload
+
+    with patch("httpx.AsyncClient") as mock_cls:
+        mock_http = AsyncMock()
+        mock_http.__aenter__ = AsyncMock(return_value=mock_http)
+        mock_http.__aexit__ = AsyncMock(return_value=False)
+        mock_http.get = AsyncMock(return_value=mock_resp)
+        mock_cls.return_value = mock_http
+
+        result = await client.get_guidance("ng151")
+
+    assert result["GuidanceNumber"] == "NG151"
+    assert result["Title"] == "Bowel cancer"
+
+
+@pytest.mark.asyncio
+async def test_get_guidance_retries_on_transient_error(client):
+    """NiceApiClient retries 3 times on transient errors before raising."""
+    import httpx
+
+    with patch("httpx.AsyncClient") as mock_cls:
+        mock_http = AsyncMock()
+        mock_http.__aenter__ = AsyncMock(return_value=mock_http)
+        mock_http.__aexit__ = AsyncMock(return_value=False)
+        mock_http.get = AsyncMock(side_effect=httpx.TransportError("timeout"))
+        mock_cls.return_value = mock_http
+
+        with patch("asyncio.sleep", new_callable=AsyncMock):
+            with pytest.raises(RuntimeError, match="3 attempts"):
+                await client.get_guidance("NG999")
+
+    assert mock_http.get.call_count == 3
+
+
+@pytest.mark.asyncio
+async def test_fetch_catalogue_returns_cached_value(client):
+    """fetch_catalogue returns value from Redis cache."""
+    cached = [{"code": "NG151", "title": "Bowel cancer", "type": "clinical-guideline"}]
+
+    with patch("redis.asyncio.from_url") as mock_redis_cls:
+        mock_r = AsyncMock()
+        mock_r.get = AsyncMock(return_value=json.dumps(cached))
+        mock_r.aclose = AsyncMock()
+        mock_redis_cls.return_value = mock_r
+
+        result = await client.fetch_catalogue()
+
+    assert len(result) == 1
+    assert result[0]["code"] == "NG151"
+
+
+@pytest.mark.asyncio
+async def test_fetch_catalogue_returns_empty_on_cache_miss(client):
+    """fetch_catalogue returns empty list when Redis cache is empty."""
+    with patch("redis.asyncio.from_url") as mock_redis_cls:
+        mock_r = AsyncMock()
+        mock_r.get = AsyncMock(return_value=None)
+        mock_r.aclose = AsyncMock()
+        mock_redis_cls.return_value = mock_r
+
+        result = await client.fetch_catalogue()
+
+    assert result == []
+
+
+@pytest.mark.asyncio
+async def test_add_to_catalogue_appends_new_entry(client):
+    """add_to_catalogue adds a new entry to the Redis list."""
+    with patch("redis.asyncio.from_url") as mock_redis_cls:
+        mock_r = AsyncMock()
+        mock_r.get = AsyncMock(return_value=None)
+        mock_r.setex = AsyncMock()
+        mock_r.aclose = AsyncMock()
+        mock_redis_cls.return_value = mock_r
+
+        await client.add_to_catalogue("NG151", "Bowel cancer", "clinical-guideline")
+
+    written = mock_r.setex.call_args[0][2]
+    entries = json.loads(written)
+    assert any(e["code"] == "NG151" for e in entries)
+
+
+@pytest.mark.asyncio
+async def test_get_chapters_filters_chapter_resources(client):
+    """get_chapters returns chapter resources and normalises Uri -> Href.
+
+    The NICE Syndication API uses 'Uri' (not 'Href') and rel value
+    '/linkrels/guidance/chapter'. get_chapters must normalise to 'Href'.
+    """
+    doc = {
+        "GuidanceNumber": "NG151",
+        "Resources": [
+            {"Rel": "/linkrels/guidance/chapter", "Uri": "https://api.nice.org.uk/ch1", "Title": "Recommendations"},
+            {"Rel": "self", "Uri": "https://api.nice.org.uk/self", "Title": "Self"},
+        ],
+    }
+    with patch.object(client, "get_guidance", new_callable=AsyncMock, return_value=doc):
+        chapters = await client.get_chapters("NG151")
+
+    assert len(chapters) == 1
+    assert chapters[0]["Href"] == "https://api.nice.org.uk/ch1"
+    assert chapters[0]["Title"] == "Recommendations"
+
+
+@pytest.mark.asyncio
+async def test_get_recommendations_walks_chapter_hrefs(client):
+    """get_recommendations fetches each chapter URL and collects Items."""
+    chapters = [
+        {"Href": "https://api.nice.org.uk/ch1", "Title": "Recommendations"},
+    ]
+    chapter_payload = {
+        "Items": [
+            {"Title": "Offer colonoscopy", "Text": "Offer colonoscopy to adults..."},
+        ]
+    }
+    mock_resp = MagicMock()
+    mock_resp.raise_for_status = MagicMock()
+    mock_resp.json.return_value = chapter_payload
+
+    with patch.object(client, "get_chapters", new_callable=AsyncMock, return_value=chapters):
+        with patch("httpx.AsyncClient") as mock_cls:
+            mock_http = AsyncMock()
+            mock_http.__aenter__ = AsyncMock(return_value=mock_http)
+            mock_http.__aexit__ = AsyncMock(return_value=False)
+            mock_http.get = AsyncMock(return_value=mock_resp)
+            mock_cls.return_value = mock_http
+
+            recs = await client.get_recommendations("NG12")
+
+    assert len(recs) == 1
+    assert recs[0]["Title"] == "Offer colonoscopy"
+
+
+@pytest.mark.asyncio
+async def test_get_recommendations_skips_failed_chapters(client):
+    """get_recommendations skips chapters that raise RuntimeError and returns partial results.
+
+    _MAX_RETRIES=3, so a failing chapter triggers 3 GET attempts before being
+    skipped. The mock must supply enough side-effects for all retry attempts.
+    """
+    import httpx
+
+    chapters = [
+        {"Href": "https://api.nice.org.uk/ch1", "Title": "Recommendations"},
+        {"Href": "https://api.nice.org.uk/ch2", "Title": "Appendix"},
+    ]
+    good_payload = {"Items": [{"Title": "Rec 1", "Text": "Do this"}]}
+    good_resp = MagicMock()
+    good_resp.raise_for_status = MagicMock()
+    good_resp.json.return_value = good_payload
+
+    # Chapter 1 fails all 3 retry attempts; chapter 2 succeeds on first try
+    side_effects = [httpx.TransportError("fail")] * 3 + [good_resp]
+
+    with patch.object(client, "get_chapters", new_callable=AsyncMock, return_value=chapters):
+        with patch("httpx.AsyncClient") as mock_cls:
+            mock_http = AsyncMock()
+            mock_http.__aenter__ = AsyncMock(return_value=mock_http)
+            mock_http.__aexit__ = AsyncMock(return_value=False)
+            mock_http.get = AsyncMock(side_effect=side_effects)
+            mock_cls.return_value = mock_http
+            with patch("asyncio.sleep", new_callable=AsyncMock):
+                recs = await client.get_recommendations("NG12")
+
+    assert len(recs) == 1
+    assert recs[0]["Title"] == "Rec 1"
+
+
+@pytest.mark.asyncio
+async def test_search_index_returns_parsed_results(client):
+    """search_index returns code/title/type dicts from NICE index response.
+
+    The NICE Syndication API returns results under 'IndexItems' (confirmed
+    against live API). The type field is in 'GuidanceType' at document level.
+    """
+    payload = {
+        "IndexItems": [
+            {"GuidanceNumber": "NG12", "Title": "Suspected cancer: recognition and referral", "GuidanceType": "clinical-guideline"},
+            {"GuidanceNumber": "NG151", "Title": "Bowel cancer", "GuidanceType": "clinical-guideline"},
+        ]
+    }
+    mock_resp = MagicMock()
+    mock_resp.raise_for_status = MagicMock()
+    mock_resp.json.return_value = payload
+
+    with patch("httpx.AsyncClient") as mock_cls:
+        mock_http = AsyncMock()
+        mock_http.__aenter__ = AsyncMock(return_value=mock_http)
+        mock_http.__aexit__ = AsyncMock(return_value=False)
+        mock_http.get = AsyncMock(return_value=mock_resp)
+        mock_cls.return_value = mock_http
+
+        results = await client.search_index("cancer")
+
+    assert len(results) == 2
+    assert results[0]["code"] == "NG12"
+    assert results[0]["title"] == "Suspected cancer: recognition and referral"
+
+
+@pytest.mark.asyncio
+async def test_search_index_returns_empty_on_api_failure(client):
+    """search_index returns empty list when the NICE API is unavailable."""
+    import httpx
+
+    with patch("httpx.AsyncClient") as mock_cls:
+        mock_http = AsyncMock()
+        mock_http.__aenter__ = AsyncMock(return_value=mock_http)
+        mock_http.__aexit__ = AsyncMock(return_value=False)
+        mock_http.get = AsyncMock(side_effect=httpx.TransportError("unreachable"))
+        mock_cls.return_value = mock_http
+
+        with patch("asyncio.sleep", new_callable=AsyncMock):
+            results = await client.search_index("cancer")
+
+    assert results == []
+
+
+@pytest.mark.asyncio
+async def test_sync_catalogue_from_index_single_page(client):
+    """sync_catalogue_from_index stores all IndexItems when there is one page."""
+    payload = {
+        "IndexItems": [
+            {"GuidanceNumber": "NG12", "Title": "Suspected cancer", "GuidanceType": "clinical-guideline"},
+            {"GuidanceNumber": "NG151", "Title": "Bowel cancer", "GuidanceType": "clinical-guideline"},
+        ]
+        # No NextPageUri → single page
+    }
+    mock_resp = MagicMock()
+    mock_resp.raise_for_status = MagicMock()
+    mock_resp.json.return_value = payload
+
+    with patch("httpx.AsyncClient") as mock_cls:
+        mock_http = AsyncMock()
+        mock_http.__aenter__ = AsyncMock(return_value=mock_http)
+        mock_http.__aexit__ = AsyncMock(return_value=False)
+        mock_http.get = AsyncMock(return_value=mock_resp)
+        mock_cls.return_value = mock_http
+
+        with patch("redis.asyncio.from_url") as mock_redis_cls:
+            mock_r = AsyncMock()
+            mock_r.setex = AsyncMock()
+            mock_r.aclose = AsyncMock()
+            mock_redis_cls.return_value = mock_r
+
+            count = await client.sync_catalogue_from_index()
+
+    assert count == 2
+    written = mock_r.setex.call_args[0][2]
+    entries = json.loads(written)
+    assert {e["code"] for e in entries} == {"NG12", "NG151"}
+
+
+@pytest.mark.asyncio
+async def test_sync_catalogue_from_index_follows_pagination(client):
+    """sync_catalogue_from_index follows NextPageUri to collect all guidelines."""
+    page1 = {
+        "IndexItems": [{"GuidanceNumber": "NG1", "Title": "Guideline 1", "GuidanceType": ""}],
+        "NextPageUri": "https://api.nice.org.uk/services/guidance/index?page=2",
+    }
+    page2 = {
+        "IndexItems": [{"GuidanceNumber": "NG2", "Title": "Guideline 2", "GuidanceType": ""}],
+        # No NextPageUri on last page
+    }
+    resp1 = MagicMock()
+    resp1.raise_for_status = MagicMock()
+    resp1.json.return_value = page1
+    resp2 = MagicMock()
+    resp2.raise_for_status = MagicMock()
+    resp2.json.return_value = page2
+
+    with patch("httpx.AsyncClient") as mock_cls:
+        mock_http = AsyncMock()
+        mock_http.__aenter__ = AsyncMock(return_value=mock_http)
+        mock_http.__aexit__ = AsyncMock(return_value=False)
+        mock_http.get = AsyncMock(side_effect=[resp1, resp2])
+        mock_cls.return_value = mock_http
+
+        with patch("redis.asyncio.from_url") as mock_redis_cls:
+            mock_r = AsyncMock()
+            mock_r.setex = AsyncMock()
+            mock_r.aclose = AsyncMock()
+            mock_redis_cls.return_value = mock_r
+
+            count = await client.sync_catalogue_from_index()
+
+    assert count == 2
+    assert mock_http.get.call_count == 2
+
+
+@pytest.mark.asyncio
+async def test_sync_catalogue_from_index_tolerates_redis_failure(client):
+    """sync_catalogue_from_index returns count even when Redis write fails."""
+    payload = {
+        "IndexItems": [{"GuidanceNumber": "NG12", "Title": "Suspected cancer", "GuidanceType": ""}],
+    }
+    mock_resp = MagicMock()
+    mock_resp.raise_for_status = MagicMock()
+    mock_resp.json.return_value = payload
+
+    with patch("httpx.AsyncClient") as mock_cls:
+        mock_http = AsyncMock()
+        mock_http.__aenter__ = AsyncMock(return_value=mock_http)
+        mock_http.__aexit__ = AsyncMock(return_value=False)
+        mock_http.get = AsyncMock(return_value=mock_resp)
+        mock_cls.return_value = mock_http
+
+        with patch("redis.asyncio.from_url") as mock_redis_cls:
+            mock_r = AsyncMock()
+            mock_r.setex = AsyncMock(side_effect=Exception("Redis down"))
+            mock_r.aclose = AsyncMock()
+            mock_redis_cls.return_value = mock_r
+
+            count = await client.sync_catalogue_from_index()
+
+    assert count == 1  # count returned despite Redis failure
+
+
+@pytest.mark.parametrize("code,valid", [
+    ("NG151", True),
+    ("CG89", True),
+    ("TA123", True),
+    ("QS12", True),
+    ("PH46", True),
+    ("NG12", True),
+    ("CANCER", False),
+    ("", False),
+    ("12345", False),
+    ("NICE151", False),
+    ("ng151", True),  # case-insensitive
+])
+def test_nice_code_re_validation(code, valid):
+    """NICE_CODE_RE correctly identifies valid and invalid guidance codes."""
+    assert bool(NICE_CODE_RE.match(code)) == valid

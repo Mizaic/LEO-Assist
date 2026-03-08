@@ -24,6 +24,7 @@ import KPICards from "@/components/dashboard/KPICards";
 import EpisodesByTypeChart from "@/components/dashboard/EpisodesByTypeChart";
 import DiagnosedByTypeChart from "@/components/dashboard/DiagnosedByTypeChart";
 import SafetyNetAlertsSummary from "@/components/dashboard/SafetyNetAlertsSummary";
+import LLMSpendPanel from "@/components/dashboard/LLMSpendPanel";
 
 const TERMINAL_STATUSES = new Set(["closed", "completed", "merged", "excluded"]);
 
@@ -324,6 +325,9 @@ export default function DashboardPage() {
               )}
             </CardContent>
           </Card>
+        </Grid>
+        <Grid size={{ xs: 12 }}>
+          <LLMSpendPanel />
         </Grid>
       </Grid>
     </Box>

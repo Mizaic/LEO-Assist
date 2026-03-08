@@ -193,6 +193,41 @@ This document traces software requirements (DC-SRS-001) to design elements, impl
 | FR-AUD-007 | Audit trail JSONL records all tool calls with name, input, and result | DI-LEO-AI-054, DO-LEO-AI-036 | scripts/opus_training_auditor.py (_write_trail_entry) | test_opus_training_auditor.py | VT-LEO-AI-047 |
 | FR-AUD-008 | sanitise_for_prompt() applied to all terminology API responses before LLM re-submission | DI-LEO-AI-054, DO-LEO-AI-036 | scripts/opus_training_auditor.py (_agentic_audit_record) | test_opus_training_auditor.py | VT-LEO-AI-047 |
 
+### 2.19 NICE Guideline Ingest (DI-LEO-AI-063)
+
+| Req ID | Requirement | Design Doc | Implementation | Unit Test | System Test |
+|--------|-------------|-----------|----------------|-----------|-------------|
+| FR-NI-001 | Async NICE Syndication API client with retry and Redis-cached catalogue | DI-LEO-AI-063, DO-LEO-AI-063 | services/api/app/services/nice_api_client.py | services/api/tests/test_nice_api_client.py | VT-LEO-AI-063 |
+| FR-NI-002 | Idempotent Neo4j MERGE of Guideline, Recommendation, Section nodes from NICE JSON | DI-LEO-AI-063, DO-LEO-AI-063 | services/api/app/services/nice_graph_upserter.py | services/api/tests/test_nice_graph_upserter.py | VT-LEO-AI-063 |
+| FR-NI-003 | FastAPI router: catalogue search, fire-and-track ingest, SSE progress, job status | DI-LEO-AI-063, DO-LEO-AI-063 | services/api/app/routers/nice_guidance.py | services/api/tests/test_nice_api_client.py | VT-LEO-AI-063 |
+
+### 2.20 LLM Rule Authoring and HITL (DI-LEO-AI-064)
+
+| Req ID | Requirement | Design Doc | Implementation | Unit Test | System Test |
+|--------|-------------|-----------|----------------|-----------|-------------|
+| FR-RA-001 | GuidanceRuleGenerator uses run_consensus with INJECTION_GUARD and sanitise_for_prompt | DI-LEO-AI-064, DO-LEO-AI-064 | services/api/app/services/guidance_rule_generator.py | services/api/tests/test_guidance_rule_generator.py | VT-LEO-AI-064 |
+| FR-RA-002 | Conservative fail_verdict=None -- no rule written on LLM failure or parse error | DI-LEO-AI-064, DO-LEO-AI-064 | services/api/app/services/guidance_rule_generator.py | services/api/tests/test_guidance_rule_generator.py | VT-LEO-AI-064 |
+| FR-RA-003 | Generated rules stored with status: pending_review; only active rules visible to bitmap compiler | DI-LEO-AI-064, DO-LEO-AI-064 | services/api/app/services/guidance_rule_generator.py | services/api/tests/test_guidance_rule_generator.py | VT-LEO-AI-064 |
+| FR-RA-004 | HITL review queue: list, detail, decide (approve/edit/reject) with immutable audit event | DI-LEO-AI-064, DO-LEO-AI-064 | services/api/app/routers/guidance_rules.py | services/api/tests/test_guidance_rule_generator.py | VT-LEO-AI-064 |
+
+### 2.21 Bitmap Store, Compiler, and Evaluator (DI-LEO-AI-065)
+
+| Req ID | Requirement | Design Doc | Implementation | Unit Test | System Test |
+|--------|-------------|-----------|----------------|-----------|-------------|
+| FR-BM-001 | BitmapStore: pyroaring BitMap with Redis persistence and deterministic BLAKE2b key scheme | DI-LEO-AI-065, DO-LEO-AI-065 | services/terminology_api/app/services/bitmap_store.py | services/terminology_api/tests/test_bitmap_store.py | VT-LEO-AI-065 |
+| FR-BM-002 | GuidelineCompiler reads only active AppropriatenessRules from Neo4j and compiles bitmaps | DI-LEO-AI-065, DO-LEO-AI-065 | services/terminology_api/app/services/guideline_compiler.py | services/terminology_api/tests/test_guideline_compiler.py | VT-LEO-AI-065 |
+| FR-BM-003 | GuidelineEvaluator applies reqAll and forbid bitwise intersection against patient codes | DI-LEO-AI-065, DO-LEO-AI-065 | services/terminology_api/app/services/guideline_evaluator.py | services/terminology_api/tests/test_guideline_evaluator.py | VT-LEO-AI-065 |
+| FR-BM-004 | Versioned bitmaps with explicit admin activate; compile runs in asyncio.to_thread | DI-LEO-AI-065, DO-LEO-AI-065 | services/terminology_api/app/routers/guidelines.py | services/terminology_api/tests/test_guideline_compiler.py | VT-LEO-AI-065 |
+
+### 2.22 Admin Guidance UI (DI-LEO-AI-066)
+
+| Req ID | Requirement | Design Doc | Implementation | Unit Test | System Test |
+|--------|-------------|-----------|----------------|-----------|-------------|
+| FR-GU-001 | Guidance admin page with Autocomplete catalogue search, SSE ingest progress, job list | DI-LEO-AI-066, DO-LEO-AI-066 | services/ui/src/app/admin/guidance/NiceLoaderSection.tsx | services/ui/src/app/admin/guidance/__tests__/GuidancePage.test.tsx | VT-LEO-AI-066 |
+| FR-GU-002 | Plain-English HITL rule review with approve/edit/reject and ConfirmDialog for bulk approve | DI-LEO-AI-066, DO-LEO-AI-066 | services/ui/src/app/admin/guidance/RuleReviewSection.tsx | services/ui/src/app/admin/guidance/__tests__/GuidancePage.test.tsx | VT-LEO-AI-066 |
+| FR-GU-003 | Bitmap lifecycle with version accordion, Stepper, and ConfirmDialog for activate | DI-LEO-AI-066, DO-LEO-AI-066 | services/ui/src/app/admin/guidance/BitmapLifecycleSection.tsx | services/ui/src/app/admin/guidance/__tests__/GuidancePage.test.tsx | VT-LEO-AI-066 |
+| FR-GU-004 | All fetch errors surface via Alert; no silent swallowing; reading age 11 copy | DI-LEO-AI-066, DO-LEO-AI-066 | services/ui/src/app/admin/guidance/ | services/ui/src/app/admin/guidance/__tests__/GuidancePage.test.tsx | VT-LEO-AI-066 |
+
 ---
 
 ## 3. Coverage Summary
@@ -217,9 +252,13 @@ This document traces software requirements (DC-SRS-001) to design elements, impl
 | Fix Analyzer | 1 | 1 | 1 | 0 | 1 |
 | Message Bus | 2 | 2 | 2 | 1 | 1 |
 | Agentic Training Auditor | 8 | 8 | 8 | 8 | 8 |
-| **Total** | **84** | **84** | **84** | **41** | **56** |
+| NICE Guideline Ingest | 3 | 3 | 3 | 3 | 3 |
+| LLM Rule Authoring + HITL | 4 | 4 | 4 | 4 | 4 |
+| Bitmap Store/Compiler/Evaluator | 4 | 4 | 4 | 4 | 4 |
+| Admin Guidance UI | 4 | 4 | 4 | 4 | 4 |
+| **Total** | **99** | **99** | **99** | **56** | **71** |
 
-All 76 requirements have design references, implementations, and at least one verification method (unit test, system test, or both).
+All requirements have design references, implementations, and at least one verification method (unit test, system test, or both).
 
 ---
 
