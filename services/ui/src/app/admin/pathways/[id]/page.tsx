@@ -3290,6 +3290,64 @@ export default function PathwayBuilderPage() {
     return null;
   }, [selectedNode, edges, nodeConfigs]);
 
+  const runTest = useCallback(async (encounterText: string, patientId: string) => {
+    setTestRunError(null);
+    setIsTestRunning(true);
+    setTestTrace(null);
+    setTestRunOpen(false);
+
+    const actionNodes = nodes.filter((n) => n.type !== "source");
+    const testEdges = edges.filter(
+      (e) => !nodes.find((n) => n.id === e.source && n.type === "source"),
+    );
+
+    const body = {
+      plan_id: planId,
+      actions: actionNodes.map((n) => ({
+        id: n.id,
+        subgraph_id: (n.data as unknown as ActionNodeData).subgraphId ?? n.type ?? "action",
+        label: (n.data as unknown as ActionNodeData).label ?? n.id,
+        node_type: (n.data as unknown as ActionNodeData).nodeType ?? n.type ?? "action",
+        config: nodeConfigs[n.id] ?? {},
+      })),
+      edges: testEdges.map((e) => ({
+        source: e.source,
+        target: e.target,
+        source_handle: e.sourceHandle ?? null,
+        target_handle: e.targetHandle ?? null,
+      })),
+      input: {
+        encounter_text: encounterText,
+        patient_id: patientId || "test-patient",
+        encounter_id: "test-encounter",
+      },
+    };
+
+    try {
+      const res = await fetch("/api/pipeline/test-run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: res.statusText }));
+        setTestRunError(err.detail ?? "Test run failed");
+        return;
+      }
+      const data = await res.json();
+      // Index by step_id for fast lookup
+      const traceMap: Record<string, StepTraceResult> = {};
+      for (const step of data.steps ?? []) {
+        traceMap[step.step_id] = step;
+      }
+      setTestTrace(traceMap);
+    } catch (e: unknown) {
+      setTestRunError(e instanceof Error ? e.message : "Network error");
+    } finally {
+      setIsTestRunning(false);
+    }
+  }, [nodes, edges, nodeConfigs, planId]);
+
   const handleSave = useCallback(async (statusOverride?: string) => {
     setSaveError(null);
     setIsSaving(true);
@@ -3566,20 +3624,31 @@ export default function PathwayBuilderPage() {
       <ValidationPanel warnings={validationWarnings} />
 
       <Box sx={{ flex: 1, minHeight: 0 }}>
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          nodeTypes={pathwayNodeTypes}
-          edgeTypes={edgeTypes}
-          onNodesChange={onNodesChange}
-          onEdgesChange={handleEdgesChange}
-          onConnect={onConnect}
-          fitView
-        >
-          <Background />
-          <Controls />
-          <MiniMap />
-        </ReactFlow>
+        <PipelineTestContext.Provider value={{
+          testTrace,
+          isTestRunning,
+          onPeekEdge: (srcId, tgtId) => {
+            setPeekSourceId(srcId);
+            setPeekTargetId(tgtId);
+            setPeekRawJson(false);
+            setPeekOpen(true);
+          },
+        }}>
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            nodeTypes={pathwayNodeTypes}
+            edgeTypes={edgeTypes}
+            onNodesChange={onNodesChange}
+            onEdgesChange={handleEdgesChange}
+            onConnect={onConnect}
+            fitView
+          >
+            <Background />
+            <Controls />
+            <MiniMap />
+          </ReactFlow>
+        </PipelineTestContext.Provider>
       </Box>
 
       {/* Node configuration dialog — wizard stays open while canvas is visible behind */}
