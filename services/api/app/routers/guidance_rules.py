@@ -41,21 +41,76 @@ WHERE ($status IS NULL OR rule.status = $status)
        })
 WITH rule
 OPTIONAL MATCH (rule)<-[:HAS_RULE]-(rec:Recommendation)<-[:HAS_RECOMMENDATION]-(g:Guideline)
+OPTIONAL MATCH (rec)<-[:HAS_RECOMMENDATION]-(ch:Chapter)
 OPTIONAL MATCH (rule)-[:HAS_CRITERIA_GROUP]->(grp)-[hc:HAS_CRITERIA]->(concept)
+OPTIONAL MATCH (rule)-[:SUPERSEDES]->(pred:AppropriatenessRule)
 RETURN rule.id AS rule_id,
        rule.name AS name,
        rule.strength AS strength,
        rule.status AS status,
        rule.createdAt AS created_at,
        g.id AS guideline_id,
+       g.ingestVersion AS guideline_version,
+       ch.title AS chapter_title,
        rec.verbatim AS recommendation_text,
        collect({
            predicate: hc.predicate,
            concept_id: concept.conceptId,
            preferred_term: coalesce(concept.term, concept.conceptId)
-       }) AS criteria
+       }) AS criteria,
+       pred.id IS NOT NULL AS has_predecessor,
+       pred.id AS predecessor_id
 ORDER BY rule.createdAt DESC
 LIMIT $limit
+"""
+
+_FETCH_RULE_DIFF = """
+MATCH (rule:AppropriatenessRule {id: $rule_id})
+OPTIONAL MATCH (rule)-[:SUPERSEDES]->(pred:AppropriatenessRule)
+OPTIONAL MATCH (pred)-[:HAS_CRITERIA_GROUP]->(pred_grp)-[pred_hc:HAS_CRITERIA]->(pred_concept)
+OPTIONAL MATCH (pred)-[:HAS_AUDIT_EVENT]->(audit:GuidanceAuditEvent)
+RETURN
+    pred.id AS predecessor_id,
+    pred.name AS predecessor_name,
+    pred.status AS predecessor_status,
+    pred.previousRecommendationText AS predecessor_recommendation_text,
+    pred.previousRecommendationNumber AS predecessor_recommendation_number,
+    pred.supersededAt AS superseded_at,
+    collect(DISTINCT {
+        predicate: pred_hc.predicate,
+        concept_id: pred_concept.conceptId,
+        preferred_term: coalesce(pred_concept.term, pred_concept.conceptId)
+    }) AS predecessor_criteria,
+    collect(DISTINCT {
+        action: audit.action,
+        reviewer: audit.reviewer,
+        timestamp: toString(audit.timestamp),
+        reason: audit.reason
+    }) AS predecessor_decisions
+"""
+
+_FETCH_RULE_BY_ID = """
+MATCH (rule:AppropriatenessRule {id: $rule_id})
+OPTIONAL MATCH (rule)<-[:HAS_RULE]-(rec:Recommendation)<-[:HAS_RECOMMENDATION]-(g:Guideline)
+OPTIONAL MATCH (rec)<-[:HAS_RECOMMENDATION]-(ch:Chapter)
+OPTIONAL MATCH (rule)-[:HAS_CRITERIA_GROUP]->(grp)-[hc:HAS_CRITERIA]->(concept)
+OPTIONAL MATCH (rule)-[:SUPERSEDES]->(pred:AppropriatenessRule)
+RETURN rule.id AS rule_id,
+       rule.name AS name,
+       rule.strength AS strength,
+       rule.status AS status,
+       rule.createdAt AS created_at,
+       g.id AS guideline_id,
+       g.ingestVersion AS guideline_version,
+       ch.title AS chapter_title,
+       rec.verbatim AS recommendation_text,
+       collect({
+           predicate: hc.predicate,
+           concept_id: concept.conceptId,
+           preferred_term: coalesce(concept.term, concept.conceptId)
+       }) AS criteria,
+       pred.id IS NOT NULL AS has_predecessor,
+       pred.id AS predecessor_id
 """
 
 _FETCH_RULE_DETAIL = """
@@ -230,6 +285,86 @@ def get_rule_detail(
         client.close()
 
 
+@router.get("/rules/review/{rule_id}/diff")
+def get_rule_diff(
+    rule_id: str,
+    scope: CallerScope = Depends(require_admin),
+) -> dict:
+    """Return the version diff for a rule that supersedes a previous one.
+
+    When a guideline is re-ingested and rules re-generated, each new
+    ``AppropriatenessRule`` is linked to its predecessor via ``[:SUPERSEDES]``.
+    This endpoint exposes:
+
+    - The predecessor rule's criteria (what the AI decided last time).
+    - The previous human decisions (GuidanceAuditEvent nodes) — who approved
+      or rejected the old rule and why.
+    - A computed diff showing which criteria were **added**, **removed**, or
+      **unchanged** relative to the predecessor.
+
+    If the rule has no predecessor, returns ``{"has_predecessor": false}``.
+
+    This is the primary endpoint for the HITL review diff view, giving
+    reviewers full context to make informed decisions about new rule versions.
+    """
+    client = _kg_client()
+    try:
+        current_records = client.run(_FETCH_RULE_BY_ID, rule_id=rule_id)
+        if not current_records:
+            raise HTTPException(status_code=404, detail="Rule not found")
+        rule = _format_rule(current_records[0])
+
+        if not rule.get("has_predecessor"):
+            return {"has_predecessor": False}
+
+        # Fetch predecessor info and previous decisions
+        diff_records = client.run(_FETCH_RULE_DIFF, rule_id=rule_id)
+        if not diff_records:
+            return {"has_predecessor": False}
+
+        row = diff_records[0]
+        pred_id = row.get("predecessor_id")
+        if not pred_id:
+            return {"has_predecessor": False}
+
+        pred_criteria_raw = [
+            c for c in (row.get("predecessor_criteria") or []) if c.get("concept_id")
+        ]
+        pred_present = [c for c in pred_criteria_raw if c.get("predicate") == "PRESENT"]
+        pred_absent = [c for c in pred_criteria_raw if c.get("predicate") == "ABSENT"]
+
+        pred_decisions = [
+            d for d in (row.get("predecessor_decisions") or []) if d.get("action")
+        ]
+
+        new_criteria = rule["present_criteria"] + rule["absent_criteria"]
+        diff = _compute_diff(new_criteria, pred_criteria_raw)
+
+        return {
+            "has_predecessor": True,
+            "predecessor": {
+                "rule_id": pred_id,
+                "name": row.get("predecessor_name"),
+                "status": row.get("predecessor_status"),
+                "recommendation_text": row.get("predecessor_recommendation_text"),
+                "recommendation_number": row.get("predecessor_recommendation_number"),
+                "superseded_at": str(row.get("superseded_at", "")),
+                "plain_english": _plain_english_criteria(pred_present, pred_absent),
+                "present_criteria": pred_present,
+                "absent_criteria": pred_absent,
+                "decisions": pred_decisions,
+            },
+            "diff": diff,
+            "diff_summary": {
+                "added_count": len(diff["added"]),
+                "removed_count": len(diff["removed"]),
+                "unchanged_count": len(diff["unchanged"]),
+            },
+        }
+    finally:
+        client.close()
+
+
 @router.post("/rules/review/{rule_id}/decision")
 def decide_rule(
     rule_id: str,
@@ -381,9 +516,37 @@ def approve_all_rules(
         client.close()
 
 
+def _compute_diff(
+    new_criteria: list[dict], pred_criteria: list[dict]
+) -> dict:
+    """Compute what changed between new rule criteria and its predecessor's.
+
+    Matches on (predicate, concept_id) pairs. Terms whose concept_id is None
+    are excluded (NULL rows from Cypher OPTIONAL MATCH with no concepts).
+
+    Returns:
+        Dict with ``added``, ``removed``, and ``unchanged`` lists, each
+        containing criterion dicts.
+    """
+    def _key(c: dict) -> tuple:
+        return (c.get("predicate", ""), c.get("concept_id", ""))
+
+    valid_new = [c for c in new_criteria if c.get("concept_id")]
+    valid_pred = [c for c in pred_criteria if c.get("concept_id")]
+
+    new_keys = {_key(c) for c in valid_new}
+    pred_keys = {_key(c) for c in valid_pred}
+
+    return {
+        "added":     [c for c in valid_new  if _key(c) not in pred_keys],
+        "removed":   [c for c in valid_pred if _key(c) not in new_keys],
+        "unchanged": [c for c in valid_new  if _key(c) in pred_keys],
+    }
+
+
 def _format_rule(r: dict) -> dict:
     """Format a Neo4j rule record into a plain-English API response."""
-    criteria = r.get("criteria") or []
+    criteria = [c for c in (r.get("criteria") or []) if c.get("concept_id")]
     present = [c for c in criteria if c.get("predicate") == "PRESENT"]
     absent = [c for c in criteria if c.get("predicate") == "ABSENT"]
     return {
@@ -392,11 +555,15 @@ def _format_rule(r: dict) -> dict:
         "status": r.get("status"),
         "strength": r.get("strength"),
         "guideline_id": r.get("guideline_id"),
+        "guideline_version": r.get("guideline_version"),
+        "chapter_title": r.get("chapter_title"),
         "recommendation_text": r.get("recommendation_text"),
         "plain_english": _plain_english_criteria(present, absent),
         "present_criteria": present,
         "absent_criteria": absent,
         "created_at": str(r.get("created_at", "")),
+        "has_predecessor": bool(r.get("has_predecessor")),
+        "predecessor_id": r.get("predecessor_id"),
     }
 
 

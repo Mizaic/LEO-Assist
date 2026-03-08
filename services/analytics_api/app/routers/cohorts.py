@@ -280,15 +280,26 @@ def delete_cohort(
 def seed_nhs_cohorts(client: Optional[PatientGraphClient] = None) -> int:
     """Idempotently persist NHS screening programme presets into the graph.
 
-    Called from the analytics API lifespan at startup. Uses MERGE on `cohort_id`
-    so re-deployments only update description/meta, never duplicate rows.
-    Returns the number of presets upserted.
+    Called from the analytics API lifespan at startup. Only seeds when no NHS
+    preset cohorts exist; skips if any are already present to avoid overwriting.
+    Returns the number of presets upserted (0 when skipped).
     """
     own_client = client is None
     if own_client:
         client = PatientGraphClient()
     seeded = 0
     try:
+        rows = client.run(
+            "MATCH (c:Cohort) WHERE c.source = 'nhs_preset' RETURN count(c) AS cnt"
+        )
+        existing = rows[0]["cnt"] if rows else 0
+        if existing > 0:
+            logger.debug(
+                "[Cohorts] %d NHS preset(s) already present; skipping seed",
+                existing,
+            )
+            return 0
+
         for preset in NHS_SCREENING_COHORT_PRESETS:
             cohort_id = f"COH_NHS_{preset['id']}"
             filters = CohortFilter(**preset["filters"])

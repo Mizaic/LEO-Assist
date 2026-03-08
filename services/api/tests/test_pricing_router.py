@@ -18,8 +18,7 @@ from libs.auth.org_scope import CallerScope
 # ---------------------------------------------------------------------------
 
 def _make_scope(is_admin: bool = True) -> CallerScope:
-    perms = ["admin"] if is_admin else ["view_patients"]
-    return CallerScope(email="test@example.com", org_id="org-1", permissions=perms)
+    return CallerScope(email="test@example.com", is_admin=is_admin, org_ids=[])
 
 
 def _patch_scope(is_admin: bool = True):

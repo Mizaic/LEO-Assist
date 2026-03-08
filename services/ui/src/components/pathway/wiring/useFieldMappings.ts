@@ -18,7 +18,7 @@ export function buildDefaultRows(
     type: f.type,
     description: f.description,
     required: f.required,
-    statePath: `${topKey}[].${f.name}`,
+    statePath: "",
     custom: false,
   }));
 }

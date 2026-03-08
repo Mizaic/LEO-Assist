@@ -60,19 +60,19 @@ import { nodeTypes as pathwayNodeTypes } from "@/components/pathway/nodes/nodeTy
 import { PortEdge } from "@/components/pathway/edges/PortEdge";
 
 const SUBGRAPH_OPTIONS = [
-  { id: "extraction", label: "Entity Extraction", color: "#4CAF50", description: "Extract clinical entities (findings, conditions, procedures) from encounter text using NER or LLM." },
-  { id: "post_processing", label: "Post-Processing", color: "#2196F3", description: "Clean and normalise extracted entities — merge duplicates, fix abbreviations, apply context rules." },
-  { id: "terminology", label: "Terminology Resolution", color: "#FF9800", description: "Resolve surface forms to SNOMED CT codes via the Terminology API." },
-  { id: "tier_classify", label: "Tier Classification", color: "#9C27B0", description: "Classify each entity into confidence tiers (gold / silver / bronze) for review prioritisation." },
-  { id: "verification", label: "Verification", color: "#F44336", description: "Use a larger LLM to verify pipeline output quality before persisting results." },
-  { id: "persist", label: "Persist Results", color: "#607D8B", description: "Write final entities to the Patient Graph or Gold Training Dataset." },
-  { id: "sbar", label: "SBAR Generation", color: "#00BCD4", description: "Generate a Situation-Background-Assessment-Recommendation summary for the encounter." },
-  { id: "compliance", label: "Compliance Check", color: "#795548", description: "Check extracted data against guideline graphs and compliance rules." },
-  { id: "anchor_detect", label: "Anchor Detection", color: "#E91E63", description: "Detect clinical anchors (significant findings) that trigger episodes of care." },
-  { id: "episode_build", label: "Episode Builder", color: "#3F51B5", description: "Group anchored encounters into episodes of care with timeline tracking." },
-  { id: "safety_net", label: "Safety Netting", color: "#FF5722", description: "Monitor for overdue investigations, referral responses, and follow-up actions." },
-  { id: "quality_check", label: "Quality Check", color: "#009688", description: "Run data quality checks (completeness, consistency, NHS target compliance)." },
-  { id: "next_best_action", label: "Next Best Action", color: "#673AB7", description: "Generate recommended next actions based on clinical context and guidelines." },
+  { id: "extraction", label: "Find Clinical Facts", color: "#4CAF50", description: "Read patient notes and pull out clinical facts — symptoms, conditions, procedures, test results." },
+  { id: "post_processing", label: "Clean Up Results", color: "#2196F3", description: "Tidy the found facts — remove duplicates, expand abbreviations, and apply context rules." },
+  { id: "terminology", label: "Code to SNOMED CT", color: "#FF9800", description: "Match each clinical fact to an official SNOMED CT medical code." },
+  { id: "tier_classify", label: "Grade Confidence", color: "#9C27B0", description: "Rate each clinical fact as gold, silver, or bronze based on how confident the AI is." },
+  { id: "verification", label: "Double-Check with AI", color: "#F44336", description: "Run a second, more capable AI over the results to spot errors before saving." },
+  { id: "persist", label: "Save Results", color: "#607D8B", description: "Write the final clinical facts to the patient record or gold training dataset." },
+  { id: "sbar", label: "Write SBAR Summary", color: "#00BCD4", description: "Generate a Situation-Background-Assessment-Recommendation clinical summary." },
+  { id: "compliance", label: "Check Compliance", color: "#795548", description: "Compare the results against clinical guidelines and flag any gaps." },
+  { id: "anchor_detect", label: "Detect Key Findings", color: "#E91E63", description: "Identify the significant clinical findings that start a new episode of care." },
+  { id: "episode_build", label: "Build Episode", color: "#3F51B5", description: "Group related encounters together into a timeline episode of care." },
+  { id: "safety_net", label: "Safety Netting", color: "#FF5722", description: "Flag overdue tests, missing referral replies, or follow-up actions that are past due." },
+  { id: "quality_check", label: "Quality Check", color: "#009688", description: "Check for missing data, inconsistencies, and NHS target compliance." },
+  { id: "next_best_action", label: "Next Best Action", color: "#673AB7", description: "Suggest the most appropriate next clinical action based on the patient context." },
 ];
 
 // Sentinel value used to mark pass-through rows in field mappings (not sourced from LLM output).
@@ -206,8 +206,8 @@ const SUBGRAPH_CATEGORY: Record<string, SubgraphCategory> = {
 };
 
 // Wizard steps — step 3 (Prompt) is hidden for non-LLM subgraphs
-const WIZARD_STEPS_LLM     = ["Subgraph", "Data flow", "Settings", "Prompt & model", "Review"];
-const WIZARD_STEPS_NO_LLM  = ["Subgraph", "Data flow", "Settings", "Review"];
+const WIZARD_STEPS_LLM     = ["Step type", "Data connections", "Settings", "AI & outputs", "Review"];
+const WIZARD_STEPS_NO_LLM  = ["Step type", "Data connections", "Settings", "Review"];
 
 interface ActionConfig {
   subgraphId: string;
@@ -483,7 +483,7 @@ function DataFlowPanel({
         <Stack spacing={1.5}>
           <Box>
             <Typography variant="caption" fontWeight={700} color="text.secondary" display="block" sx={{ mb: 0.5 }}>
-              NEEDS FROM PREVIOUS STEP
+              WHAT THIS STEP NEEDS
             </Typography>
             <Stack spacing={0.5}>
               {io.reads.map((k) => {
@@ -504,7 +504,7 @@ function DataFlowPanel({
                       />
                       {!unknown && !ok && (
                         <Typography variant="caption" color="error.main" sx={{ fontSize: "0.65rem" }}>
-                          — not provided by previous step
+                          — not yet provided by the previous step
                         </Typography>
                       )}
                     </Stack>
@@ -541,7 +541,7 @@ function DataFlowPanel({
 
           <Box>
             <Typography variant="caption" fontWeight={700} color="text.secondary" display="block" sx={{ mb: 0.5 }}>
-              ADDS TO PIPELINE STATE
+              SENDS ONWARDS TO NEXT STEPS
             </Typography>
             <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
               {io.writes.map((k) => <Chip key={k} size="small" label={k} color="primary" variant="outlined" sx={{ fontFamily: "monospace", fontSize: "0.68rem" }} />)}
@@ -583,7 +583,7 @@ function DataFlowPanel({
 
       {provided === null && (
         <Alert severity="info" sx={{ fontSize: "0.78rem" }} icon={false}>
-          Set "Where does data come from?" to "Output of the previous step" to see compatibility checks.
+          Set "Where does data come from?" to "Output of the previous step" to check whether the previous step passes the right data.
         </Alert>
       )}
     </Stack>
@@ -776,25 +776,98 @@ function buildDefaultRows(
   topKey: string,
   fields: Array<{ name: string; type: string; description: string; required: boolean }>,
 ): FieldMappingRow[] {
-  // Default target container = first word of topKey pluralised if needed
-  // e.g. "terms" → "entities" is conventional but unknowable; default to same name
   return fields.map((f) => ({
     id: `${topKey}.${f.name}`,
     llmField: `${topKey}[].${f.name}`,
     type: f.type,
     description: f.description,
     required: f.required,
-    statePath: `${topKey}[].${f.name}`,
+    statePath: "",
     custom: false,
   }));
 }
 
+// Common AI sub-field names mapped to canonical pipeline sub-field names.
+// Used by auto-map to pre-fill the most likely statePath for each AI field.
+const AUTO_MAP_SUBFIELD: Record<string, string> = {
+  text: "text",
+  surface_form: "text",
+  raw_text: "text",
+  lookup_term: "lookup_term",
+  preferred_term: "lookup_term",
+  canonical: "lookup_term",
+  semantic_tag: "semantic_tag",
+  type: "semantic_tag",
+  category: "semantic_tag",
+  assertion: "assertion",
+  negation: "assertion",
+  negated: "assertion",
+  value: "value",
+  numeric_value: "value",
+  unit: "unit",
+  units: "unit",
+  reference_range: "reference_range",
+  normal_range: "reference_range",
+  sentence_id: "id",
+  sent_id: "id",
+  sentence: "text",
+  id: "id",
+};
+
+// For a given AI field name, guess the best (writeKey, subField) pair.
+function autoMapField(
+  llmField: string,
+  writeKeys: string[],
+): string {
+  // Strip the top-level array prefix, e.g. "terms[].sentence_id" → "sentence_id"
+  const bare = llmField.replace(/^[^[]+\[\]\./, "");
+  const canonicalSub = AUTO_MAP_SUBFIELD[bare] ?? bare;
+
+  // sentence_id / id → try sentences[] first, fall back to entities[]
+  if (["id", "sentence_id", "sent_id"].includes(bare)) {
+    if (writeKeys.includes("sentences")) return `sentences[].${canonicalSub}`;
+    if (writeKeys.includes("entities")) return `entities[].${canonicalSub}`;
+  }
+
+  // Prefer entities[] for clinical-fact fields; if not available pick first array key
+  const preferredKey = writeKeys.find((k) => ARRAY_OUTPUT_KEYS.has(k) && k === "entities")
+    ?? writeKeys.find((k) => ARRAY_OUTPUT_KEYS.has(k));
+
+  if (preferredKey) return `${preferredKey}[].${canonicalSub}`;
+  // Flat key fallback
+  if (writeKeys.length > 0) return `${writeKeys[0]}.${canonicalSub}`;
+  return "";
+}
+
+// Keys whose statePath uses the "key[].subField" object-array format.
+const ARRAY_OUTPUT_KEYS = new Set([
+  "entities", "sentences", "errors", "tier_decisions", "anchors",
+  "episodes", "safety_net_alerts", "quality_issues", "recommendations",
+  "documents_written", "training_labels_written",
+]);
+
+/** Parse a statePath (e.g. "entities[].text") into { topKey, subField }. */
+function parseStatePath(statePath: string): { topKey: string; subField: string } {
+  const m = statePath.match(/^(\w+)\[\]\.(.*)$/);
+  if (m) return { topKey: m[1], subField: m[2] };
+  return { topKey: statePath, subField: "" };
+}
+
+/** Build a statePath from topKey + subField for the given key type. */
+function buildStatePath(topKey: string, subField: string): string {
+  if (!topKey) return "";
+  if (ARRAY_OUTPUT_KEYS.has(topKey) && subField.trim()) return `${topKey}[].${subField.trim()}`;
+  return topKey;
+}
+
 function SchemaAlignmentPanel({
+  subgraphId,
   promptConfigId,
   fieldMappings,
   onFieldMappingsChange,
   prevStepFieldMappings,
 }: {
+  subgraphId: string;
   promptConfigId: string;
   fieldMappings: FieldMappingRow[];
   onFieldMappingsChange: (rows: FieldMappingRow[]) => void;
@@ -806,6 +879,9 @@ function SchemaAlignmentPanel({
   } | null>(null);
   const [loading, setLoading] = useState(false);
   const initialised = fieldMappings.length > 0;
+
+  // The mandatory pipeline state keys this step is expected to write.
+  const writeKeys: string[] = SUBGRAPH_IO[subgraphId]?.writes ?? [];
 
   useEffect(() => {
     if (!promptConfigId) return;
@@ -923,16 +999,24 @@ function SchemaAlignmentPanel({
   const missingRequired = aiRows.some((r) => r.required && !r.statePath.trim());
   const hasIncoming     = Object.keys(incomingGroups).length > 0;
 
+  // Coverage count: how many AI rows map to each write key.
+  const coverageByKey: Record<string, number> = {};
+  for (const key of writeKeys) coverageByKey[key] = 0;
+  for (const row of aiRows) {
+    const { topKey } = parseStatePath(row.statePath);
+    if (topKey && coverageByKey[topKey] !== undefined) coverageByKey[topKey]++;
+  }
+
   return (
     <Stack spacing={2}>
 
       {/* ── Part 1: What arrives from the previous step ── */}
       {hasIncoming && (
         <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 2, bgcolor: "grey.50" }}>
-          <Typography variant="subtitle2" gutterBottom>What arrives from the previous step</Typography>
+          <Typography variant="subtitle2" gutterBottom>Data already available from earlier steps</Typography>
           <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1.5 }}>
-            These fields are already in the pipeline. Tick any you want this step to keep and pass on.
-            Leave them unticked if this step does not need them further down.
+            These items were produced by an earlier step. Tick any you also want this step to pass on to the next one.
+            Leave them unticked if this step doesn&apos;t need to forward them.
           </Typography>
           {Object.entries(incomingGroups).map(([stateKey, fields]) => (
             <Box key={stateKey} sx={{ mb: 1 }}>
@@ -970,89 +1054,224 @@ function SchemaAlignmentPanel({
         </Paper>
       )}
 
+      {/* ── Mandatory outputs coverage summary ── */}
+      {writeKeys.length > 0 && (
+        <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 2 }}>
+          <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ display: "block", mb: 1, fontSize: "0.65rem", letterSpacing: "0.05em" }}>
+            WHAT YOU CAN CONNECT TO DOWNSTREAM STEPS
+          </Typography>
+          <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1, fontSize: "0.7rem" }}>
+            Each labelled group below becomes a connection point on the canvas. You can wire each one independently to a different next step — data does not have to flow in a straight line.
+          </Typography>
+          <Stack direction="row" flexWrap="wrap" gap={0.75}>
+            {writeKeys.map((key) => {
+              const count = coverageByKey[key] ?? 0;
+              const isArr = ARRAY_OUTPUT_KEYS.has(key);
+              return (
+                <Chip
+                  key={key}
+                  size="small"
+                  label={`${key}${isArr ? "[]" : ""} — ${count > 0 ? `${count} field${count > 1 ? "s" : ""}` : "none yet"}`}
+                  color={count > 0 ? "success" : "default"}
+                  variant={count > 0 ? "filled" : "outlined"}
+                  sx={{ fontFamily: "monospace", fontSize: "0.68rem", height: 22 }}
+                />
+              );
+            })}
+          </Stack>
+        </Paper>
+      )}
+
       {/* ── Part 2: What the AI adds ── */}
       <Box>
         <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
-          <Typography variant="subtitle2">What the AI adds</Typography>
+          <Typography variant="subtitle2">Name what the AI finds</Typography>
           {unmapped === 0
             ? <Chip size="small" label="All named ✓" color="success" sx={{ fontSize: "0.65rem", height: 18 }} />
             : <Chip size="small" label={`${unmapped} still need a name`} color="warning" sx={{ fontSize: "0.65rem", height: 18 }} />}
+          <Box sx={{ flex: 1 }} />
+          {unmapped > 0 && writeKeys.length > 0 && (
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={() => {
+                const updated = fieldMappings.map((r) => {
+                  if (r.llmField === PIPELINE_GENERATED_SENTINEL) return r;
+                  if (r.statePath.trim()) return r; // don't overwrite existing choices
+                  return { ...r, statePath: autoMapField(r.llmField, writeKeys) };
+                });
+                onFieldMappingsChange(updated);
+              }}
+              sx={{ fontSize: "0.72rem", textTransform: "none", flexShrink: 0 }}
+            >
+              Auto-fill suggestions
+            </Button>
+          )}
         </Stack>
 
         <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1.5 }}>
-          The AI returns these fields. Give each one a name that the next step will use to find it.
-          You can rename a field here — it will not change the prompt itself.
+          The AI returns these fields. For each one, choose which group it belongs to (using the dropdown) and give it a name. Those groups appear as connection points on the canvas.
           {schemaFields && (
-            <> The AI groups them inside <Box component="span" sx={{ fontFamily: "monospace", fontWeight: 600 }}>{schemaFields.topKey}[]</Box>.</>
+            <> The AI calls them <Box component="span" sx={{ fontFamily: "monospace", fontWeight: 600 }}>{schemaFields.topKey}[]</Box> internally — you can rename them here.</>
           )}
         </Typography>
 
         {/* Column headers */}
         <Stack direction="row" spacing={1} sx={{ px: 0.5, mb: 0.5 }}>
-          <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ flex: "0 0 160px", fontSize: "0.65rem" }}>AI FIELD NAME</Typography>
-          <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ flex: "0 0 80px", fontSize: "0.65rem" }}>TYPE</Typography>
-          <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ flex: 1, fontSize: "0.65rem" }}>CALL IT IN THE PIPELINE</Typography>
+          <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ flex: "0 0 150px", fontSize: "0.65rem" }}>AI RETURNS THIS</Typography>
+          <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ flex: "0 0 70px", fontSize: "0.65rem" }}>TYPE</Typography>
+          <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ flex: 1, fontSize: "0.65rem" }}>SAVE THIS OUTPUT AS</Typography>
           <Box sx={{ width: 28 }} />
         </Stack>
 
-        <Stack spacing={0.5}>
-          {aiRows.map((row) => (
-            <Stack key={row.id} direction="row" spacing={1} alignItems="center">
-              {/* AI field name — locked for schema rows, editable for custom */}
-              <Box sx={{ flex: "0 0 160px" }}>
-                {row.custom ? (
-                  <TextField
+        <Stack spacing={0.75}>
+          {aiRows.map((row) => {
+            const { topKey: rowTopKey, subField: rowSubField } = parseStatePath(row.statePath);
+            const isKnownKey = rowTopKey ? writeKeys.includes(rowTopKey) : true;
+            const isCustomMode = rowTopKey === "__custom__" || (rowTopKey && !writeKeys.includes(rowTopKey) && writeKeys.length > 0);
+            const needsSubField = ARRAY_OUTPUT_KEYS.has(rowTopKey);
+            const showUnrecognisedWarning = row.statePath.trim() && !isKnownKey && writeKeys.length > 0;
+
+            return (
+              <Stack key={row.id} spacing={0.25}>
+                <Stack direction="row" spacing={1} alignItems="flex-start">
+                  {/* AI field name — locked for schema rows, editable for custom */}
+                  <Box sx={{ flex: "0 0 150px", pt: 0.5 }}>
+                    {row.custom ? (
+                      <TextField
+                        size="small"
+                        value={row.llmField}
+                        onChange={(e) => updateRow(row.id, { llmField: e.target.value })}
+                        placeholder="e.g. terms[].fieldName"
+                        inputProps={{ style: { fontFamily: "monospace", fontSize: "0.72rem", padding: "3px 6px" } }}
+                        sx={{ width: "100%" }}
+                      />
+                    ) : (
+                      <Tooltip title={row.description || ""} placement="top-start">
+                        <Box sx={{
+                          fontFamily: "monospace",
+                          fontSize: "0.72rem",
+                          color: row.required ? "text.primary" : "text.secondary",
+                          fontWeight: row.required ? 600 : 400,
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          cursor: "help",
+                        }}>
+                          {row.llmField}{row.required ? " *" : ""}
+                        </Box>
+                      </Tooltip>
+                    )}
+                  </Box>
+
+                  {/* Type */}
+                  <Box sx={{ flex: "0 0 70px", fontFamily: "monospace", fontSize: "0.65rem", color: "info.main", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", pt: 0.75 }}>
+                    {row.type || "—"}
+                  </Box>
+
+                  {/* Target pipeline state path — split key dropdown + sub-field input */}
+                  <Box sx={{ flex: 1 }}>
+                    {writeKeys.length > 0 && !row.custom ? (
+                      <Stack direction="row" spacing={0.5} alignItems="center">
+                        {/* Output key selector */}
+                        <FormControl size="small" sx={{ minWidth: 120 }} error={row.required && !rowTopKey}>
+                          <Select
+                            value={writeKeys.includes(rowTopKey) ? rowTopKey : (rowTopKey ? "__custom__" : "")}
+                            onChange={(e) => {
+                              const val = e.target.value as string;
+                              if (val === "__custom__") {
+                                updateRow(row.id, { statePath: "" });
+                              } else {
+                                updateRow(row.id, { statePath: buildStatePath(val, rowSubField) });
+                              }
+                            }}
+                            displayEmpty
+                            renderValue={(val) => (
+                              <Box sx={{ fontFamily: "monospace", fontSize: "0.72rem" }}>
+                                {val === "" ? <Box component="span" sx={{ color: "text.disabled" }}>— output —</Box> : val === "__custom__" ? "custom…" : val}
+                              </Box>
+                            )}
+                            sx={{ fontSize: "0.72rem", "& .MuiSelect-select": { py: "3px", px: "8px" } }}
+                          >
+                            <MenuItem value="" disabled sx={{ fontSize: "0.75rem" }}>
+                              <em>Select output key</em>
+                            </MenuItem>
+                            {writeKeys.map((k) => (
+                              <MenuItem key={k} value={k} sx={{ fontFamily: "monospace", fontSize: "0.75rem" }}>
+                                {k}{ARRAY_OUTPUT_KEYS.has(k) ? "[]" : ""}
+                              </MenuItem>
+                            ))}
+                            <MenuItem value="__custom__" sx={{ fontSize: "0.75rem", color: "text.secondary" }}>
+                              custom…
+                            </MenuItem>
+                          </Select>
+                        </FormControl>
+
+                        {/* Sub-field name — shown for object[] keys */}
+                        {needsSubField && !isCustomMode && (
+                          <>
+                            <Typography variant="caption" sx={{ fontFamily: "monospace", color: "text.disabled", flexShrink: 0 }}>[].</Typography>
+                            <TextField
+                              size="small"
+                              value={rowSubField}
+                              onChange={(e) => updateRow(row.id, { statePath: buildStatePath(rowTopKey, e.target.value) })}
+                              placeholder="field name"
+                              error={row.required && !rowSubField.trim()}
+                              inputProps={{ style: { fontFamily: "monospace", fontSize: "0.72rem", padding: "3px 6px" } }}
+                              sx={{ flex: 1, minWidth: 80 }}
+                            />
+                          </>
+                        )}
+
+                        {/* Custom free-text fallback */}
+                        {(isCustomMode || (rowTopKey && !writeKeys.includes(rowTopKey))) && (
+                          <TextField
+                            size="small"
+                            value={row.statePath}
+                            onChange={(e) => updateRow(row.id, { statePath: e.target.value })}
+                            placeholder="e.g. entities[].text"
+                            error={row.required && !row.statePath.trim()}
+                            inputProps={{ style: { fontFamily: "monospace", fontSize: "0.72rem", padding: "3px 6px" } }}
+                            sx={{ flex: 1, minWidth: 100 }}
+                          />
+                        )}
+                      </Stack>
+                    ) : (
+                      // Custom row or no writeKeys — single free-text field
+                      <TextField
+                        size="small"
+                        value={row.statePath}
+                        onChange={(e) => updateRow(row.id, { statePath: e.target.value })}
+                        placeholder="e.g. entities[].text"
+                        error={row.required && !row.statePath.trim()}
+                        helperText={row.required && !row.statePath.trim() ? "Required — give this field a name" : undefined}
+                        inputProps={{ style: { fontFamily: "monospace", fontSize: "0.72rem", padding: "3px 6px" } }}
+                        sx={{ width: "100%" }}
+                      />
+                    )}
+                  </Box>
+
+                  <IconButton
                     size="small"
-                    value={row.llmField}
-                    onChange={(e) => updateRow(row.id, { llmField: e.target.value })}
-                    placeholder="e.g. terms[].fieldName"
-                    inputProps={{ style: { fontFamily: "monospace", fontSize: "0.72rem", padding: "3px 6px" } }}
-                    sx={{ width: "100%" }}
-                  />
-                ) : (
-                  <Tooltip title={row.description || ""} placement="top-start">
-                    <Box sx={{
-                      fontFamily: "monospace",
-                      fontSize: "0.72rem",
-                      color: row.required ? "text.primary" : "text.secondary",
-                      fontWeight: row.required ? 600 : 400,
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      cursor: "help",
-                    }}>
-                      {row.llmField}{row.required ? " *" : ""}
-                    </Box>
-                  </Tooltip>
+                    onClick={() => removeRow(row.id)}
+                    sx={{ width: 28, height: 28, color: "text.disabled", "&:hover": { color: "error.main" }, flexShrink: 0, mt: 0.25 }}
+                  >
+                    <Box component="span" sx={{ fontSize: "0.8rem", lineHeight: 1 }}>✕</Box>
+                  </IconButton>
+                </Stack>
+
+                {/* Unrecognised output key warning */}
+                {showUnrecognisedWarning && (
+                  <Stack direction="row" alignItems="center" spacing={0.5} sx={{ pl: "228px" }}>
+                    <WarningAmberIcon sx={{ fontSize: 13, color: "warning.main" }} />
+                    <Typography variant="caption" color="warning.main" sx={{ fontSize: "0.67rem" }}>
+                      &ldquo;{rowTopKey}&rdquo; is not one of the named outputs for this step — later steps won&apos;t be able to pick it up
+                    </Typography>
+                  </Stack>
                 )}
-              </Box>
-
-              {/* Type */}
-              <Box sx={{ flex: "0 0 80px", fontFamily: "monospace", fontSize: "0.65rem", color: "info.main", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                {row.type || "—"}
-              </Box>
-
-              {/* Target pipeline state path */}
-              <TextField
-                size="small"
-                value={row.statePath}
-                onChange={(e) => updateRow(row.id, { statePath: e.target.value })}
-                placeholder="e.g. entities[].text"
-                error={row.required && !row.statePath.trim()}
-                helperText={row.required && !row.statePath.trim() ? "Required — give this field a name" : undefined}
-                inputProps={{ style: { fontFamily: "monospace", fontSize: "0.72rem", padding: "3px 6px" } }}
-                sx={{ flex: 1 }}
-              />
-
-              <IconButton
-                size="small"
-                onClick={() => removeRow(row.id)}
-                sx={{ width: 28, height: 28, color: "text.disabled", "&:hover": { color: "error.main" } }}
-              >
-                <Box component="span" sx={{ fontSize: "0.8rem", lineHeight: 1 }}>✕</Box>
-              </IconButton>
-            </Stack>
-          ))}
+              </Stack>
+            );
+          })}
         </Stack>
 
         {missingRequired && (
@@ -1071,7 +1290,7 @@ function SchemaAlignmentPanel({
         </Button>
 
         <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1, fontSize: "0.67rem" }}>
-          * must be named &nbsp;·&nbsp; Hover a locked field name to see what it means
+          * required — must be saved before continuing &nbsp;·&nbsp; Hover a field name to see its description
         </Typography>
       </Box>
     </Stack>
@@ -1231,9 +1450,9 @@ function ActionConfigurator({
         {step === 0 && (
           <Stack spacing={2.5}>
             <Box>
-              <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>Which step should this action run?</Typography>
+              <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>What does this step do?</Typography>
               <Typography variant="caption" color="text.secondary">
-                Choose the type of processing this step performs in the pipeline.
+                Choose the kind of task this step carries out in the pathway.
               </Typography>
             </Box>
             <FormControl fullWidth size="small">
@@ -1270,7 +1489,7 @@ function ActionConfigurator({
         {/* ── Step 1: Data flow ── */}
         {step === 1 && (
           <Stack spacing={2.5}>
-            <Typography variant="subtitle2">Data this step reads and writes</Typography>
+            <Typography variant="subtitle2">What data does this step need and what does it produce?</Typography>
             <DataFlowPanel
               subgraphId={config.subgraphId}
               prevStepWrites={config.inputSource === "previous_step" ? prevStepWrites : null}
@@ -1292,9 +1511,9 @@ function ActionConfigurator({
                   }
                 }}>
                 <MenuItem value="previous_step">Output of the previous step</MenuItem>
-                <MenuItem value="encounter_text">Raw encounter text (pipeline start)</MenuItem>
-                <MenuItem value="patient_graph">Patient Graph Neo4j — pick a node type</MenuItem>
-                <MenuItem value="knowledge_graph">Knowledge Graph Neo4j — pick a node type</MenuItem>
+                <MenuItem value="encounter_text">Clinical notes (start of pathway)</MenuItem>
+                <MenuItem value="patient_graph">Patient record database — pick a record type</MenuItem>
+                <MenuItem value="knowledge_graph">Clinical knowledge database — pick a record type</MenuItem>
               </Select>
             </FormControl>
 
@@ -1431,7 +1650,7 @@ function ActionConfigurator({
         {/* ── Step 3 (LLM only): Prompt & model ── */}
         {isLLM && step === promptStep && (
           <Stack spacing={2.5}>
-            <Typography variant="subtitle2">AI instructions (prompt)</Typography>
+            <Typography variant="subtitle2">Which AI instructions should this step use?</Typography>
             <PromptPicker
               value={config.promptConfigId}
               onChange={(id, name) => { updateField("promptConfigId", id); updateField("promptConfigName", name); }}
@@ -1445,6 +1664,7 @@ function ActionConfigurator({
                   </Typography>{" "}to edit the instructions, output schema, or teaching examples.
                 </Typography>
                 <SchemaAlignmentPanel
+                  subgraphId={config.subgraphId}
                   promptConfigId={config.promptConfigId}
                   fieldMappings={(config.params.field_mappings as FieldMappingRow[]) ?? []}
                   onFieldMappingsChange={(rows) => updateParam("field_mappings", rows)}
@@ -2388,10 +2608,10 @@ export default function PathwayBuilderPage() {
           </Alert>
         )}
         <FormControl size="small" sx={{ minWidth: 190 }}>
-          <InputLabel>Add Action</InputLabel>
-          <Select label="Add Action" value="" onChange={(e) => addAction(e.target.value)}>
-            <MenuItem value="">Add action...</MenuItem>
-            <MenuItem disabled sx={{ fontWeight: 700, opacity: 1 }}>Pipeline Steps</MenuItem>
+          <InputLabel>Add a step</InputLabel>
+          <Select label="Add a step" value="" onChange={(e) => addAction(e.target.value)}>
+            <MenuItem value="">Add a step…</MenuItem>
+            <MenuItem disabled sx={{ fontWeight: 700, opacity: 1 }}>Clinical Steps</MenuItem>
             {SUBGRAPH_OPTIONS.map((s) => (
               <MenuItem key={s.id} value={s.id}>{s.label}</MenuItem>
             ))}
