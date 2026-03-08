@@ -14,7 +14,9 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import MemoryIcon from "@mui/icons-material/Memory";
+import Link from "next/link";
 import { api } from "@/lib/api";
+import { useAuth } from "@/lib/authContext";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -74,6 +76,9 @@ function CostSummaryRow({ label, value, highlight = false }: { label: string; va
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function LLMSpendPanel() {
+  const { user } = useAuth();
+  const isAdmin = (user?.permissions ?? []).includes("admin");
+
   const [period, setPeriod] = useState<"today" | "7d" | "30d">("7d");
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<RunSpendResponse | null>(null);
@@ -92,10 +97,7 @@ export default function LLMSpendPanel() {
       } else {
         from.setDate(now.getDate() - 30);
       }
-      const params = new URLSearchParams({
-        limit: "200",
-        from: from.toISOString(),
-      });
+      const params = new URLSearchParams({ limit: "200", from: from.toISOString() });
       const resp = await api.get<RunSpendResponse>(`/api/analytics/llm-spend/runs?${params}`);
       setData(resp);
     } catch {
@@ -119,13 +121,23 @@ export default function LLMSpendPanel() {
             <Typography variant="h6" component="h2" sx={{ fontSize: "1rem", fontWeight: 700 }}>
               AI model spend
             </Typography>
+            <Typography variant="caption" color="text.disabled">(this organisation)</Typography>
           </Stack>
-          <Select size="small" value={period} onChange={(e) => setPeriod(e.target.value as typeof period)}
-            sx={{ fontSize: "0.8rem", height: 30 }}>
-            <MenuItem value="today">Today</MenuItem>
-            <MenuItem value="7d">Last 7 days</MenuItem>
-            <MenuItem value="30d">Last 30 days</MenuItem>
-          </Select>
+          <Stack direction="row" spacing={1} alignItems="center">
+            {isAdmin && (
+              <Link href="/admin/billing" style={{ textDecoration: "none" }}>
+                <Typography variant="caption" color="primary.main" sx={{ fontWeight: 600, cursor: "pointer", "&:hover": { textDecoration: "underline" } }}>
+                  View all tenants →
+                </Typography>
+              </Link>
+            )}
+            <Select size="small" value={period} onChange={(e) => setPeriod(e.target.value as typeof period)}
+              sx={{ fontSize: "0.8rem", height: 30 }}>
+              <MenuItem value="today">Today</MenuItem>
+              <MenuItem value="7d">Last 7 days</MenuItem>
+              <MenuItem value="30d">Last 30 days</MenuItem>
+            </Select>
+          </Stack>
         </Stack>
 
         {loading && <Skeleton variant="rectangular" height={140} />}

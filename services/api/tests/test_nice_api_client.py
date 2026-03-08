@@ -338,6 +338,250 @@ async def test_sync_catalogue_from_index_tolerates_redis_failure(client):
     assert count == 1  # count returned despite Redis failure
 
 
+def _make_resp(data: dict) -> MagicMock:
+    m = MagicMock()
+    m.raise_for_status = MagicMock()
+    m.json.return_value = data
+    return m
+
+
+# Shared fixtures for taxonomy tests
+_API_ROOT_WITH_TAXONOMY_LINK = {
+    "Resources": [
+        {"Rel": "/linkrels/guidance/newtaxonomy", "Uri": "https://api.nice.org.uk/services/guidance/newtaxonomy", "Title": "Taxonomy"},
+        {"Rel": "/linkrels/guidance/index", "Uri": "https://api.nice.org.uk/services/guidance/index.json", "Title": "Index"},
+    ]
+}
+
+# Real structure confirmed by live API probe 2026-03-08:
+# - field is "name" (not "title"/"Title")
+# - nested categories use "categories" recursively
+# - guidelines are in "paths" with relative Uri like /services/guidance/documents/NG12
+# - NO follow-up HTTP calls -- fully self-contained
+_TAXONOMY_DOC = {
+    "categories": [
+        {
+            "name": "Conditions and diseases",
+            "categories": [
+                {
+                    "name": "Cancer",
+                    "categories": [
+                        {
+                            "name": "Colorectal cancer",
+                            "categories": [],
+                            "paths": [
+                                {"Rel": "/linkrels/guidance", "Uri": "/services/guidance/documents/NG12", "Title": "Suspected cancer (NG12)"},
+                                {"Rel": "/linkrels/guidance", "Uri": "/services/guidance/documents/NG151", "Title": "Bowel cancer (NG151)"},
+                            ],
+                        }
+                    ],
+                    "paths": [],
+                }
+            ],
+            "paths": [],
+        }
+    ]
+}
+
+
+@pytest.mark.asyncio
+async def test_fetch_taxonomy_returns_flat_entries(client):
+    """fetch_taxonomy discovers taxonomy URL from root, walks inline tree, returns flat list.
+
+    The real API returns a self-contained nested tree -- no follow-up HTTP calls
+    for subcategories are made.  Guideline codes come from paths[].Uri.
+    """
+    with patch("httpx.AsyncClient") as mock_cls:
+        mock_http = AsyncMock()
+        mock_http.__aenter__ = AsyncMock(return_value=mock_http)
+        mock_http.__aexit__ = AsyncMock(return_value=False)
+        mock_http.get = AsyncMock(side_effect=[
+            _make_resp(_API_ROOT_WITH_TAXONOMY_LINK),  # step 1: root → discover taxonomy link
+            _make_resp(_TAXONOMY_DOC),                 # step 2: self-contained taxonomy tree
+        ])
+        mock_cls.return_value = mock_http
+
+        result = await client.fetch_taxonomy()
+
+    assert len(result) == 1
+    entry = result[0]
+    assert entry["category_title"] == "Conditions and diseases"
+    assert entry["subcategory_title"] == "Cancer"
+    # Codes extracted from paths[].Uri via /documents/ splitting
+    assert "NG12" in entry["guideline_codes"]
+    assert "NG151" in entry["guideline_codes"]
+    # No sub-subcategory HTTP calls should have been made
+    assert mock_http.get.call_count == 2, (
+        "Only 2 HTTP calls expected (root + taxonomy doc). "
+        "The taxonomy is self-contained -- no subcategory fetches needed."
+    )
+
+
+@pytest.mark.asyncio
+async def test_fetch_taxonomy_returns_empty_when_no_taxonomy_link(client):
+    """fetch_taxonomy returns [] and logs a warning when root has no taxonomy link."""
+    root_without_taxonomy = {
+        "Resources": [
+            {"Rel": "/linkrels/guidance/index", "Uri": "https://api.nice.org.uk/services/guidance/index.json"},
+        ]
+    }
+
+    with patch("httpx.AsyncClient") as mock_cls:
+        mock_http = AsyncMock()
+        mock_http.__aenter__ = AsyncMock(return_value=mock_http)
+        mock_http.__aexit__ = AsyncMock(return_value=False)
+        mock_http.get = AsyncMock(return_value=_make_resp(root_without_taxonomy))
+        mock_cls.return_value = mock_http
+
+        import logging
+        with patch.object(logging.getLogger("app.services.nice_api_client"), "warning") as mock_warn:
+            result = await client.fetch_taxonomy()
+
+    assert result == []
+    # Warning must say what rels were available so the operator knows what to look for
+    assert mock_warn.called
+    warning_msg = str(mock_warn.call_args)
+    assert "taxonomy" in warning_msg.lower()
+
+
+@pytest.mark.asyncio
+async def test_fetch_taxonomy_warns_when_category_has_no_subcategories(client):
+    """fetch_taxonomy logs a WARNING when a top-level category has no sub-categories.
+
+    The taxonomy tree is inline so there are no per-subcategory HTTP calls.
+    A category with an empty ``categories`` list should be warned and skipped.
+    """
+    taxonomy_empty_cat = {
+        "categories": [
+            {
+                "name": "Conditions and diseases",
+                "categories": [],   # no subcategories -- should warn
+                "paths": [],
+            },
+            {
+                "name": "Lifestyle and wellbeing",
+                "categories": [
+                    {
+                        "name": "Alcohol",
+                        "categories": [],
+                        "paths": [
+                            {"Uri": "/services/guidance/documents/NG115", "Rel": "/linkrels/guidance", "Title": "Alcohol-use disorders (NG115)"},
+                        ],
+                    }
+                ],
+                "paths": [],
+            },
+        ]
+    }
+
+    with patch("httpx.AsyncClient") as mock_cls:
+        mock_http = AsyncMock()
+        mock_http.__aenter__ = AsyncMock(return_value=mock_http)
+        mock_http.__aexit__ = AsyncMock(return_value=False)
+        mock_http.get = AsyncMock(side_effect=[
+            _make_resp(_API_ROOT_WITH_TAXONOMY_LINK),
+            _make_resp(taxonomy_empty_cat),
+        ])
+        mock_cls.return_value = mock_http
+
+        import logging
+        with patch.object(logging.getLogger("app.services.nice_api_client"), "warning") as mock_warn:
+            result = await client.fetch_taxonomy()
+
+    # Only the Lifestyle category has subcategories and should produce an entry
+    assert len(result) == 1
+    assert result[0]["subcategory_title"] == "Alcohol"
+    assert "NG115" in result[0]["guideline_codes"]
+
+    all_warnings = " ".join(str(c) for c in mock_warn.call_args_list)
+    assert "Conditions and diseases" in all_warnings, (
+        "Should warn about empty category. Warnings: " + all_warnings
+    )
+
+
+@pytest.mark.asyncio
+async def test_fetch_taxonomy_returns_empty_on_root_failure(client):
+    """fetch_taxonomy returns [] and logs a warning when the API root is unreachable."""
+    import httpx
+
+    with patch("httpx.AsyncClient") as mock_cls:
+        mock_http = AsyncMock()
+        mock_http.__aenter__ = AsyncMock(return_value=mock_http)
+        mock_http.__aexit__ = AsyncMock(return_value=False)
+        mock_http.get = AsyncMock(side_effect=httpx.TransportError("no route to host"))
+        mock_cls.return_value = mock_http
+
+        import logging
+        with patch("asyncio.sleep", new_callable=AsyncMock), \
+             patch.object(logging.getLogger("app.services.nice_api_client"), "warning") as mock_warn:
+            result = await client.fetch_taxonomy()
+
+    assert result == []
+    assert mock_warn.called, "Root fetch failure must produce a WARNING log"
+
+
+@pytest.mark.asyncio
+async def test_fetch_taxonomy_collects_codes_from_nested_subcategories(client):
+    """Codes from deeply-nested sub-subcategories are collected into the level-2 entry.
+
+    The real API has 3 levels: category → subcategory → sub-subcategory → paths.
+    All codes from the subtree must be collected, not just the top-level paths.
+    """
+    taxonomy_deep = {
+        "categories": [
+            {
+                "name": "Conditions and diseases",
+                "categories": [
+                    {
+                        "name": "Cancer",
+                        "categories": [
+                            {
+                                "name": "Colorectal cancer",
+                                "categories": [],
+                                "paths": [
+                                    {"Uri": "/services/guidance/documents/NG12", "Rel": "/linkrels/guidance", "Title": ""},
+                                    {"Uri": "/services/guidance/documents/NG151", "Rel": "/linkrels/guidance", "Title": ""},
+                                ],
+                            },
+                            {
+                                "name": "Lung cancer",
+                                "categories": [],
+                                "paths": [
+                                    {"Uri": "/services/guidance/documents/NG122", "Rel": "/linkrels/guidance", "Title": ""},
+                                ],
+                            },
+                        ],
+                        "paths": [],
+                    }
+                ],
+                "paths": [],
+            }
+        ]
+    }
+
+    with patch("httpx.AsyncClient") as mock_cls:
+        mock_http = AsyncMock()
+        mock_http.__aenter__ = AsyncMock(return_value=mock_http)
+        mock_http.__aexit__ = AsyncMock(return_value=False)
+        mock_http.get = AsyncMock(side_effect=[
+            _make_resp(_API_ROOT_WITH_TAXONOMY_LINK),
+            _make_resp(taxonomy_deep),
+        ])
+        mock_cls.return_value = mock_http
+
+        result = await client.fetch_taxonomy()
+
+    assert len(result) == 1
+    entry = result[0]
+    assert entry["subcategory_title"] == "Cancer"
+    # All codes from nested sub-subcategories must be in the result
+    assert "NG12" in entry["guideline_codes"]
+    assert "NG151" in entry["guideline_codes"]
+    assert "NG122" in entry["guideline_codes"]
+    # Only 2 HTTP calls: root + taxonomy doc
+    assert mock_http.get.call_count == 2
+
+
 @pytest.mark.parametrize("code,valid", [
     ("NG151", True),
     ("CG89", True),

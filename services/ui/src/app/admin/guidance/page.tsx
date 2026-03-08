@@ -3,8 +3,9 @@
 /**
  * Guidance admin page.
  *
- * Three sections guide administrators through the full workflow:
+ * Four sections guide administrators through the full workflow:
  *   1. Find and load a NICE guideline (NiceLoaderSection)
+ *   1b. Loaded guidelines — what is in the knowledge graph + Generate Rules (LoadedGuidelinesPanel)
  *   2. Check and approve AI-generated rules (RuleReviewSection)
  *   3. Compile and go live (BitmapLifecycleSection)
  *
@@ -20,6 +21,7 @@ import CardContent from "@mui/material/CardContent";
 import Typography from "@mui/material/Typography";
 import Divider from "@mui/material/Divider";
 import NiceLoaderSection from "./NiceLoaderSection";
+import LoadedGuidelinesPanel from "./LoadedGuidelinesPanel";
 import RuleReviewSection from "./RuleReviewSection";
 import BitmapLifecycleSection from "./BitmapLifecycleSection";
 
@@ -56,6 +58,9 @@ function SectionBox({
 }
 
 export default function GuidancePage() {
+  // Incremented to trigger a refresh of the loaded-guidelines panel
+  const [loadedRefreshKey, setLoadedRefreshKey] = useState(0);
+  // Incremented to trigger a refresh of the rule-review section
   const [ruleRefreshKey, setRuleRefreshKey] = useState(0);
 
   return (
@@ -74,7 +79,18 @@ export default function GuidancePage() {
         description="Search by condition name or type a NICE code directly. Loading brings the guideline into the system."
       >
         <NiceLoaderSection
-          onGuidelineLoaded={() => setRuleRefreshKey((n) => n + 1)}
+          onGuidelineLoaded={() => setLoadedRefreshKey((n) => n + 1)}
+        />
+      </SectionBox>
+
+      <SectionBox
+        id="loaded-guidelines"
+        title="What is in the knowledge graph"
+        description="These are the guidelines already loaded. Check chapters and recommendations are correct, then click 'Generate rules' to ask the AI to write decision criteria for each recommendation."
+      >
+        <LoadedGuidelinesPanel
+          refreshKey={loadedRefreshKey}
+          onRulesGenerated={() => setRuleRefreshKey((n) => n + 1)}
         />
       </SectionBox>
 

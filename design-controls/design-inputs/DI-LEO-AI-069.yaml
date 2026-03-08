@@ -1,0 +1,76 @@
+# -- DI-LEO-AI-069 -- ModelConfig Create and Delete via Admin API
+# IEC 62304 / ISO 13485 Design Input
+# Schema: design-controls/templates/design_inputs_schema.yaml
+
+- id: "DI-LEO-AI-069"
+  type: "Functional"
+  derived_from: ["UN-LEO-AI-029"]
+  requirement: >
+    The system SHALL extend the ModelConfig management API with:
+    (a) POST /model-configs — creates a new ModelConfig node in the Knowledge Graph
+        with fields: key (unique, e.g. "aws:small"), provider, tier, display_name,
+        model_id, cost_per_1m_input, cost_per_1m_cached, cost_per_1m_output,
+        is_active, source='user', created_at, updated_at. Returns HTTP 409 if a node
+        with the same key already exists.
+    (b) DELETE /model-configs/{key} — removes a ModelConfig node from the Knowledge
+        Graph. Returns HTTP 404 if the key is not found.
+    (c) The Cost Rates UI section SHALL expose an "Add model" button that opens a
+        dialog for creating a new ModelConfig (key, provider, tier, display name,
+        model ID, cost rates). The UI SHALL display a delete button (ErrorOutlineIcon)
+        on each existing model card. Rows are grouped by provider (aws, azure, other).
+    (d) The existing bootstrap-only seed (skips if any nodes exist) SHALL remain
+        unchanged; the POST endpoint is the runtime mechanism for adding new entries
+        to an already-running instance.
+
+  rationale: >
+    The existing ModelConfig management only supports reading and updating existing
+    nodes. When a new model is deployed (e.g. a new Claude version or a custom
+    endpoint), there is no way to add it to the cost tracking system without
+    deleting all existing nodes and letting the seed re-run. The stale azure:max
+    node (created by an earlier seed version that is now removed from the seed
+    definition) cannot be removed without direct Neo4j access. These gaps require
+    an admin to drop to the database layer to perform routine operational tasks.
+
+  machine_spec:
+    agent_prompt: |
+      Add POST /model-configs and DELETE /model-configs/{key} to the router.
+    acceptance_criteria:
+      - type: "test"
+        spec: "POST /model-configs with valid body creates a node and returns 201"
+      - type: "test"
+        spec: "POST /model-configs with a duplicate key returns 409"
+      - type: "test"
+        spec: "DELETE /model-configs/{key} removes an existing node and returns 200"
+      - type: "test"
+        spec: "DELETE /model-configs/{key} for a non-existent key returns 404"
+      - type: "review"
+        spec: "Add model dialog in UI pre-validates required fields before submission"
+      - type: "review"
+        spec: "Delete button with confirmation removes the card from the UI on success"
+
+    constraints:
+      - type: "data-integrity"
+        spec: "key field must be unique; backend returns 409 before attempting CREATE"
+      - type: "audit"
+        spec: "All newly created ModelConfig nodes have source='user' to distinguish from seed entries"
+
+    technical_details:
+      language: "Python / TypeScript"
+      framework: "FastAPI / Next.js / MUI"
+      file_structure:
+        - "libs/cypher/model_config_queries.py"
+        - "services/api/app/routers/model_configs.py"
+        - "services/ui/src/app/admin/models/page.tsx"
+        - "services/api/tests/test_model_configs_router.py"
+      estimated_loc: 120
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      All pytest tests in test_model_configs_router.py pass for create and delete paths.
+    test_protocol: "VT-LEO-AI-069"
+
+  safety_class: "A"
+  risks: []
+  tags: ["model-config", "admin", "cost-rates", "crud"]

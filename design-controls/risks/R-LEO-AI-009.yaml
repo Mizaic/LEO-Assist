@@ -25,18 +25,18 @@
   mitigation_measures:
     - control_type: "protective_measure"
       description: "De-identification pipeline step strips identifiers before text is displayed or logged"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-023"]
+      verified_by: ["VT-LEO-AI-014"]
       effectiveness: "highly_effective"
     - control_type: "inherent_safety"
       description: "Source encounter text never written to Coding graph"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-023"]
+      verified_by: ["VT-LEO-AI-014"]
       effectiveness: "highly_effective"
     - control_type: "protective_measure"
       description: "De-identification validation test suite with known PHI patterns"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-023"]
+      verified_by: ["VT-LEO-AI-014"]
       effectiveness: "effective"
 
   residual_risk_estimate:

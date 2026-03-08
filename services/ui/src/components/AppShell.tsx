@@ -42,6 +42,7 @@ import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import EditNoteOutlinedIcon from "@mui/icons-material/EditNoteOutlined";
 import ModelTrainingOutlinedIcon from "@mui/icons-material/ModelTrainingOutlined";
+import PaidOutlinedIcon from "@mui/icons-material/PaidOutlined";
 import SupportAgentOutlinedIcon from "@mui/icons-material/SupportAgentOutlined";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
@@ -90,6 +91,7 @@ const ADMIN_NAV_ITEMS: NavItem[] = [
   { label: "Prompts", path: "/admin/prompts", icon: <EditNoteOutlinedIcon /> },
   { label: "Domains", path: "/admin/domains", icon: <TuneOutlinedIcon /> },
   { label: "Models", path: "/admin/models", icon: <ModelTrainingOutlinedIcon /> },
+  { label: "Billing", path: "/admin/billing", icon: <PaidOutlinedIcon />, adminOnly: true },
   { label: "Guidance", path: "/admin/guidance", icon: <MenuBookOutlinedIcon /> },
   { label: "Terminology", path: "/admin/terminology", icon: <LibraryBooksOutlinedIcon /> },
   { label: "Surface Forms", path: "/admin/surface-forms", icon: <DescriptionOutlinedIcon /> },

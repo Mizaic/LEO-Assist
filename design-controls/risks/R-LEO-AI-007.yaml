@@ -25,18 +25,18 @@
   mitigation_measures:
     - control_type: "protective_measure"
       description: "Gold-standard regression testing across all clinical domains detects systematic accuracy changes"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-012"]
+      verified_by: ["VT-LEO-AI-008"]
       effectiveness: "highly_effective"
     - control_type: "protective_measure"
       description: "Cross-domain quality sampling compares coding patterns across domains"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-012"]
+      verified_by: ["VT-LEO-AI-008"]
       effectiveness: "effective"
     - control_type: "protective_measure"
       description: "Comparison against external audit data sources for cross-validation"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-012"]
+      verified_by: ["VT-LEO-AI-008"]
       effectiveness: "effective"
 
   residual_risk_estimate:

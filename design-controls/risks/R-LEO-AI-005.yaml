@@ -20,18 +20,18 @@
     probability: 2
     detectability: 3
     rpn: 12
-    risk_level: "low"
+    risk_level: "medium"
 
   mitigation_measures:
     - control_type: "inherent_safety"
       description: "SurfaceForm provides a 1.2x suggestion boost only, not an authoritative override -- future reviewers can override"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-004", "DI-LEO-AI-035"]
+      verified_by: ["VT-LEO-AI-003", "VT-LEO-AI-016"]
       effectiveness: "effective"
     - control_type: "procedural_control"
       description: "Periodic SurfaceForm audit to identify and correct erroneous mappings"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-004", "DI-LEO-AI-035"]
+      verified_by: ["VT-LEO-AI-003", "VT-LEO-AI-016"]
       effectiveness: "effective"
 
   residual_risk_estimate:

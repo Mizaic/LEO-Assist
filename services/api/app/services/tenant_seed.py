@@ -220,6 +220,11 @@ def _seed_mizaic_org_and_group(client: PatientGraphClient) -> None:
 
 def _seed_platform_admins(client: PatientGraphClient) -> None:
     """MERGE seed admin Practitioners, assign platform_admin role, add to Mizaic group."""
+    rows = client.run("MATCH (pr:Practitioner) RETURN count(pr) AS cnt")
+    existing = rows[0]["cnt"] if rows else 0
+    if existing > 0:
+        logger.debug("[Tenant] %d Practitioner(s) already present; skipping platform admin seed", existing)
+        return
     admins = _parse_seed_admins()
     for email, name in admins:
         client.run(
@@ -253,6 +258,11 @@ def _seed_platform_admins(client: PatientGraphClient) -> None:
 def _seed_prompt_configs(client: PatientGraphClient) -> None:
     """Seed all hardcoded Python prompts into Neo4j as PromptConfig nodes."""
     try:
+        rows = client.run("MATCH (p:PromptConfig) RETURN count(p) AS cnt")
+        existing = rows[0]["cnt"] if rows else 0
+        if existing > 0:
+            logger.debug("[Tenant] %d PromptConfig(s) already present; skipping prompt seed", existing)
+            return
         from libs.cypher.prompt_config_queries import UPSERT_SEED_PROMPT
         from libs.prompts.registry import list_prompts, _REGISTRY
 

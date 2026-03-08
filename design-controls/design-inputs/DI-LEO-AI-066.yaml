@@ -45,6 +45,29 @@
         - Job list table with status Chips (GET /nice/jobs)
         - All errors: Alert severity="error"
         - Plain copy: "Type a condition name to search" not "Enter NICE code"
+        - "Browse by area" Button (AccountTreeOutlinedIcon) -> opens TaxonomyBrowserDrawer
+        - When user selects a guideline from the drawer, code is pre-filled in search box
+
+      - services/ui/src/app/admin/guidance/TaxonomyBrowserDrawer.tsx
+        - MUI Drawer (anchor=right, width 500px) for browsing NICE guidelines by clinical area
+        - Self-contained: no catalogue prop needed -- titles come from GET /nice/taxonomy
+        - Auto-sync flow on open:
+            1. GET /nice/taxonomy
+            2a. available=true -> render MUI Accordion hierarchy immediately
+            2b. available=false -> auto-trigger POST /nice/catalogue/sync + poll for completion
+                -> LinearProgress with plain-English step messages
+                -> On completion: re-fetch taxonomy and render hierarchy
+        - Polling resilience:
+            - Checks r.ok before parsing -- 404 means server restarted and job was lost
+            - On 404: immediately re-checks GET /nice/taxonomy (data may be in Neo4j already)
+            - Hard ceiling MAX_POLLS=60 (3 min) prevents infinite loops
+            - On expiry: surfaces plain-English error Alert with "Try again" Button
+        - Hierarchy display: MUI Accordion (category) -> SubcategoryPanel (collapsible)
+            Each SubcategoryPanel shows: guideline count Chip, loaded count Chip (green)
+            Expanded: List of {code Chip, title, Load/Reload Button}
+            Loaded guidelines show "Reload" in success colour; unloaded show "Load"
+        - onSelectGuideline(code) callback closes drawer and pre-fills parent search box
+        - No silent error swallowing -- all failures set phase="error" and show Alert
 
       - services/ui/src/app/admin/guidance/RuleReviewSection.tsx
         - SectionCard: "Check and approve AI-generated rules"
@@ -52,6 +75,11 @@
         - Each rule: Card with quoted recommendation text, plain-English criteria
           ("Triggers when patient HAS [term]", "Must NOT have [term]"),
           urgency/strength Chip, three Buttons: "Looks right", "Edit", "Reject"
+        - After a rule is approved (status becomes active): show "Add to domain" Button
+          (only if promote-to-domain has not yet been called for this rule)
+          Clicking opens ConfirmDialog ("Add these medical codes to the [guideline] domain?")
+          On confirm: POST /guidance/rules/review/{rule_id}/promote-to-domain
+          On success: inline Alert ("Added to [domain_name]. View in Domains.") with link
         - "Approve all" Button at top -> ConfirmDialog -> POST /guidance/rules/review/approve-all
         - Edit opens inline TextField for criteria term, save calls decision endpoint
         - refreshKey pattern: bump integer to trigger re-fetch after any decision
@@ -72,6 +100,27 @@
         { label: "Guidance", path: "/admin/guidance", icon: <MenuBookOutlinedIcon /> }
         Import: import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
 
+      Update services/ui/src/app/settings/domains/page.tsx (shared by /admin/domains):
+        - Add source filter Tabs: All | NICE | Platform | Tenant
+        - Domain cards show source Badge:
+            NICE: blue Chip + MenuBookOutlinedIcon ("From NICE guidelines")
+            Platform: grey Chip ("Built in")
+            Tenant: no badge
+        - "Create domain" Button hidden on NICE tab; only shown on All and Tenant tabs
+        - NICE domain cards: no Delete button; show "Manage codes" instead of "Edit"
+        - Add plain-English note on NICE tab:
+            "These areas came from official NICE guidelines.
+             You can add more codes to them, but you cannot delete them."
+        - Pass ?source= query param to GET /analytics/domains to filter in backend
+
+      Update services/analytics_api/app/routers/domains.py:
+        - All AuditDomain CREATE/MERGE/RETURN Cypher to include `source` property
+        - Default source = "tenant" for user-created domains
+        - Platform bootstrap domains created with source = "platform"
+        - NICE domains created by taxonomy sync with source = "nice"
+        - GET /domains?source=nice|platform|tenant filter parameter
+        - DELETE /domains/{id}: return 403 if source == "nice" or source == "platform"
+
     acceptance_criteria:
       - type: "test"
         spec: "Page renders three section cards without errors"
@@ -85,6 +134,26 @@
         spec: "Make this live button opens ConfirmDialog before activate endpoint is called"
       - type: "test"
         spec: "Rule card displays plain-English criterion text, not raw SNOMED concept IDs as primary label"
+      - type: "test"
+        spec: "Add to domain button appears on approved rules and opens ConfirmDialog"
+      - type: "test"
+        spec: "Domains page shows source filter tabs; NICE tab hides Create domain button"
+      - type: "test"
+        spec: "NICE domain cards show blue NICE Chip and no Delete button"
+      - type: "test"
+        spec: "Domains page passes ?source= query param to backend when filter tab is selected"
+      - type: "test"
+        spec: "Browse by area button opens TaxonomyBrowserDrawer"
+      - type: "test"
+        spec: "TaxonomyBrowserDrawer shows LinearProgress and sync step message when GET /nice/taxonomy returns available=false"
+      - type: "test"
+        spec: "TaxonomyBrowserDrawer re-checks GET /nice/taxonomy directly on 404 job status (server restart resilience)"
+      - type: "test"
+        spec: "TaxonomyBrowserDrawer surfaces Alert with Try again button on error; does not loop silently"
+      - type: "test"
+        spec: "Selecting a guideline in the drawer pre-fills the search box and closes the drawer"
+      - type: "test"
+        spec: "Loaded guidelines show green 'Reload' button; unloaded show 'Load'"
       - type: "review"
         spec: "All button labels and section headings use plain language (reading age 11 check)"
 
@@ -108,11 +177,14 @@
       file_structure:
         - "services/ui/src/app/admin/guidance/page.tsx"
         - "services/ui/src/app/admin/guidance/NiceLoaderSection.tsx"
+        - "services/ui/src/app/admin/guidance/TaxonomyBrowserDrawer.tsx"
         - "services/ui/src/app/admin/guidance/RuleReviewSection.tsx"
         - "services/ui/src/app/admin/guidance/BitmapLifecycleSection.tsx"
         - "services/ui/src/app/admin/guidance/__tests__/GuidancePage.test.tsx"
         - "services/ui/src/components/AppShell.tsx"
-      estimated_loc: 620
+        - "services/ui/src/app/settings/domains/page.tsx"
+        - "services/analytics_api/app/routers/domains.py"
+      estimated_loc: 1050
 
   verification:
     method: "Test"
@@ -121,5 +193,5 @@
     test_protocol: "VT-LEO-AI-066"
 
   safety_class: "B"
-  risks: []
-  tags: ["admin-ui", "nice", "hitl", "bitmap", "plain-language", "health-literacy", "ux"]
+  risks: ["R-LEO-AI-044", "R-LEO-AI-046"]
+  tags: ["admin-ui", "nice", "hitl", "bitmap", "plain-language", "health-literacy", "ux", "domains", "taxonomy", "taxonomy-browser"]

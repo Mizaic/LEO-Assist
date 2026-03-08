@@ -8,6 +8,9 @@ Usage:
 
 Flags:
     --list-orgs   Just print all Organization nodes and exit.
+
+Only seeds when no Practitioner nodes exist; skips if any are already present
+to avoid overwriting user-modified practitioners.
 """
 
 from __future__ import annotations
@@ -92,6 +95,12 @@ def main():
                 print(f"  {o['name']}")
                 print(f"    ID: {o['id']}  ODS: {ods}  Short: {short}")
             print(f"\nTotal: {len(orgs)} organizations")
+            return
+
+        practitioners = client.run("MATCH (pr:Practitioner) RETURN count(pr) AS cnt")
+        existing = practitioners[0]["cnt"] if practitioners else 0
+        if existing > 0:
+            print(f"Skipped — {existing} Practitioner(s) already present.")
             return
 
         print("=" * 70)

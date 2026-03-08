@@ -13,7 +13,7 @@
 
   harm:
     description: "A false diagnosis is attributed to the patient. In HITL mode this wastes reviewer time and erodes trust. In autonomous mode the false diagnosis enters the clinical record and could influence care decisions, audit outcomes, and quality measures"
-    severity: "serious"
+    severity: "critical"
 
   initial_risk_estimate:
     severity: 4

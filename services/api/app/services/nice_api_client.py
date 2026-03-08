@@ -1,10 +1,11 @@
 """NICE Syndication API client -- structured JSON fetch only, no LLM.
 
 URL structure (from NICE Syndication API guide ECD10):
-  Root guidance:   https://api.nice.org.uk/services/guidance
+  Root guidance:   https://api.nice.org.uk/services/guidance.json
   Guidance index:  https://api.nice.org.uk/services/guidance/index.json[?q=keyword]
   Individual doc:  https://api.nice.org.uk/services/guidance/documents/{CODE}.json
-  Chapter content: follow Href links from the document Resources array
+  Chapter content: follow Uri links from the document Resources array
+  Taxonomy:        discovered at runtime from root Resources (rel contains "taxonomy")
 """
 
 from __future__ import annotations
@@ -23,12 +24,66 @@ logger = logging.getLogger(__name__)
 
 _NICE_BASE = "https://api.nice.org.uk/services/guidance/documents"
 _NICE_INDEX = "https://api.nice.org.uk/services/guidance/index.json"
+_NICE_ROOT = "https://api.nice.org.uk/services/guidance"
 # Pattern that matches valid NICE guidance codes e.g. NG151, CG89, TA123, QS12
 NICE_CODE_RE = re.compile(r"^(NG|CG|TA|QS|PH|SC|MG|DG|HST|IPG|MTG|CSG|MPG|SSG|COVID)\d+$", re.IGNORECASE)
 _CATALOGUE_KEY = "nice:catalogue"
 _CATALOGUE_TTL = 86400  # 24 hours
 _TIMEOUT = 30.0
 _MAX_RETRIES = 3
+
+
+def _collect_codes(node: dict[str, Any]) -> list[str]:
+    """Recursively collect NICE guideline codes from a taxonomy tree node.
+
+    Each node may have:
+    - ``paths``: list of guidance links with ``Uri`` like
+      ``/services/guidance/documents/NG12``
+    - ``categories``: nested child nodes (recursed into)
+
+    Returns a deduplicated list preserving first-seen order.
+    """
+    seen: set[str] = set()
+    codes: list[str] = []
+
+    def _walk(n: dict[str, Any]) -> None:
+        for path in n.get("paths", []):
+            uri = path.get("Uri", "")
+            if "/documents/" in uri:
+                raw = uri.rsplit("/documents/", 1)[-1].strip().upper()
+                if raw and NICE_CODE_RE.match(raw) and raw not in seen:
+                    seen.add(raw)
+                    codes.append(raw)
+        for child in n.get("categories", []):
+            _walk(child)
+
+    _walk(node)
+    return codes
+
+
+def _slug(text: str) -> str:
+    """Convert a free-text label to a stable lowercase slug for use as a Neo4j ID."""
+    return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
+
+
+def _find_link(doc: dict[str, Any], rel_fragment: str) -> str | None:
+    """Return the first resource URI whose Rel contains *rel_fragment* (case-insensitive).
+
+    The NICE API uses HATEOAS-style Resources arrays to advertise entry points.
+    This helper lets callers discover URLs without hardcoding paths.
+
+    Args:
+        doc: Parsed NICE API JSON document that may contain a ``Resources`` list.
+        rel_fragment: Substring to match against the ``Rel`` field (e.g. ``"taxonomy"``).
+
+    Returns:
+        The ``Uri`` (or ``Href``) of the matching resource, or ``None`` if not found.
+    """
+    for resource in doc.get("Resources", []):
+        rel = resource.get("Rel", "").lower()
+        if rel_fragment.lower() in rel:
+            return resource.get("Uri") or resource.get("Href") or None
+    return None
 
 
 def _api_key() -> str:
@@ -90,52 +145,62 @@ class NiceApiClient:
         (not ``Href``) for the link URL and ``/linkrels/guidance/chapter`` as
         the ``Rel`` value.
 
+        All resources whose ``Rel`` field contains ``"chapter"`` (case-insensitive)
+        are returned. This captures the full guideline structure -- recommendations,
+        context, glossary, evidence reviews, etc. -- as first-class Chapter nodes.
+
         Args:
             code: NICE guidance code e.g. ``NG12``.
 
         Returns:
-            List of chapter dicts normalised to always include ``Href`` and
-            ``Title`` keys so callers do not need to know the raw field names.
+            List of chapter dicts normalised to always include ``Href``, ``Uri``,
+            and ``Title`` keys so callers do not need to know the raw field names.
         """
         doc = await self.get_guidance(code)
         resources = doc.get("Resources", [])
         chapters = []
         for r in resources:
-            rel = r.get("Rel", "")
-            title = r.get("Title", "")
-            if rel.endswith("/chapter") or "recommend" in title.lower():
-                # Normalise: NICE API uses 'Uri'; keep 'Href' as alias
+            rel = r.get("Rel", "").lower()
+            if "chapter" in rel:
                 uri = r.get("Uri", r.get("Href", ""))
+                title = r.get("Title", "")
                 chapters.append({**r, "Href": uri, "Uri": uri, "Title": title})
         return chapters
 
-    async def get_sections(self, chapter_uri: str) -> list[dict[str, Any]]:
-        """Fetch section resources from a chapter URI.
+    async def get_chapter_content(self, chapter_uri: str) -> dict[str, Any]:
+        """Fetch the raw JSON for a single chapter resource.
+
+        Chapter JSON contains ``Items`` (nested recommendation groups and
+        individual recommendations with ``Title`` and ``Text`` fields).
+        Use :func:`nice_guidance._collect_leaf_items` to extract leaf
+        recommendation items from the returned dict.
 
         Args:
-            chapter_uri: Fully-qualified NICE API URI for a chapter.
+            chapter_uri: Fully-qualified or relative NICE API URI for a chapter.
 
         Returns:
-            List of section dicts.
+            Parsed JSON dict for the chapter resource.
+
+        Raises:
+            RuntimeError: If the fetch fails after all retries.
         """
         url = chapter_uri if chapter_uri.endswith(".json") else f"{chapter_uri}.json"
         async with httpx.AsyncClient() as client:
-            chapter = await _get(client, url)
-        return chapter.get("Resources", [])
+            return await _get(client, url)
 
     async def get_recommendations(self, code: str) -> list[dict[str, Any]]:
-        """Fetch recommendation items by walking chapter links in the guidance doc.
+        """Flat list of all recommendation items across all chapters.
 
-        The NICE Syndication API does not have a single /recommendations endpoint.
-        Recommendations live inside chapter resources. This method fetches each
-        chapter whose title suggests it contains recommendations and collects all
-        Items found.
+        .. deprecated::
+            The ingest pipeline now uses :meth:`get_chapters` + :meth:`get_chapter_content`
+            to preserve the chapter hierarchy in Neo4j. This method returns a
+            flat list for backwards compatibility (e.g. integration tests).
 
         Args:
             code: NICE guidance code e.g. ``NG12``.
 
         Returns:
-            List of recommendation dicts with at least ``Title`` and/or ``Text``.
+            Flat list of recommendation dicts with at least ``Title`` and/or ``Text``.
         """
         chapters = await self.get_chapters(code)
         recommendations: list[dict[str, Any]] = []
@@ -147,7 +212,6 @@ class NiceApiClient:
                 url = href if href.endswith(".json") else f"{href}.json"
                 try:
                     chapter_data = await _get(client, url)
-                    # Recommendations appear as Items in the chapter JSON
                     items = chapter_data.get("Items", chapter_data.get("Resources", []))
                     for item in items:
                         if item.get("Title") or item.get("Text"):
@@ -272,6 +336,129 @@ class NiceApiClient:
         finally:
             await redis.aclose()
         return []
+
+    async def fetch_taxonomy(self) -> list[dict[str, Any]]:
+        """Walk the NICE taxonomy hierarchy and return a flat list of entries.
+
+        The real NICE ``newtaxonomy.json`` endpoint returns a **self-contained**
+        nested tree — no follow-up HTTP calls are needed for categories or
+        subcategories.  The structure (confirmed by live API probe 2026-03-08):
+
+          1. GET ``/services/guidance.json``      → find rel=newtaxonomy link
+          2. GET taxonomy doc (newtaxonomy.json)  → inline nested tree:
+
+             .. code-block:: text
+
+                categories[].name                      # "Conditions and diseases"
+                categories[].categories[].name         # "Blood and immune system conditions"
+                categories[].categories[].categories[].name   # "Allergies and anaphylaxis"
+                categories[].categories[].categories[].paths[].Uri  # "/services/guidance/documents/NG12"
+
+        Guideline codes are extracted from the relative ``Uri`` in each ``paths``
+        entry by splitting on ``/documents/``.  Codes are collected recursively
+        from the entire subcategory subtree so that deeply-nested entries are
+        not missed.
+
+        Returns:
+            Flat list of dicts keyed by category (level 1) and subcategory
+            (level 2), with ``guideline_codes`` = all codes from the full
+            subtree of that subcategory::
+
+                {
+                    "category_id": str,
+                    "category_title": str,
+                    "subcategory_id": str,
+                    "subcategory_title": str,
+                    "subcategory_uri": "",   # always empty -- data is inline
+                    "guideline_codes": list[str],
+                }
+
+        All failures are logged at WARNING level with diagnostic detail.
+        No silent fallbacks.
+        """
+        result: list[dict[str, Any]] = []
+        async with httpx.AsyncClient() as client:
+
+            # ── Step 1: discover taxonomy URL from the API root ────────────
+            root_url = f"{_NICE_ROOT}.json"
+            try:
+                root_doc = await _get(client, root_url)
+            except RuntimeError as exc:
+                logger.warning(
+                    "Could not fetch NICE API root at %s -- taxonomy unavailable: %s",
+                    root_url,
+                    exc,
+                )
+                return result
+
+            taxonomy_uri = _find_link(root_doc, "taxonomy")
+            if not taxonomy_uri:
+                available = [r.get("Rel", "") for r in root_doc.get("Resources", [])]
+                logger.warning(
+                    "NICE API root returned no taxonomy link. "
+                    "Available Rel values: %s",
+                    available,
+                )
+                return result
+
+            # ── Step 2: fetch the taxonomy document (self-contained tree) ──
+            tax_url = taxonomy_uri if taxonomy_uri.endswith(".json") else f"{taxonomy_uri}.json"
+            try:
+                tax_doc = await _get(client, tax_url)
+            except RuntimeError as exc:
+                logger.warning(
+                    "Could not fetch NICE taxonomy document at %s: %s", tax_url, exc
+                )
+                return result
+
+            top_categories = tax_doc.get("categories", [])
+            if not top_categories:
+                logger.warning(
+                    "NICE taxonomy document at %s returned no categories. "
+                    "Top-level keys present: %s",
+                    tax_url,
+                    list(tax_doc.keys()),
+                )
+                return result
+
+            # ── Step 3: walk the inline tree (level 1 → level 2) ──────────
+            # Level 1 = major area  (e.g. "Conditions and diseases")
+            # Level 2 = subcategory (e.g. "Blood and immune system conditions")
+            # Deeper levels are collected recursively into guideline_codes.
+            for cat in top_categories:
+                cat_title = cat.get("name", "")
+                cat_id = _slug(cat_title)
+                if not cat_title:
+                    continue
+
+                level2 = cat.get("categories", [])
+                if not level2:
+                    logger.warning(
+                        "NICE taxonomy category '%s' has no sub-categories -- skipped.",
+                        cat_title,
+                    )
+                    continue
+
+                for sub in level2:
+                    sub_title = sub.get("name", "")
+                    sub_id = _slug(sub_title)
+                    if not sub_title:
+                        continue
+
+                    codes = _collect_codes(sub)
+                    result.append(
+                        {
+                            "category_id": cat_id,
+                            "category_title": cat_title,
+                            "subcategory_id": f"{cat_id}:{sub_id}",
+                            "subcategory_title": sub_title,
+                            "subcategory_uri": "",
+                            "guideline_codes": codes,
+                        }
+                    )
+
+        logger.info("NICE taxonomy walk complete: %d subcategories", len(result))
+        return result
 
     async def add_to_catalogue(self, code: str, title: str, guidance_type: str) -> None:
         """Add a successfully ingested guideline to the Redis catalogue.

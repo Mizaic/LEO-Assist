@@ -1,4 +1,4 @@
-# -- R-LEO-AI-038 through R-LEO-AI-045 -- ODS Nightly Sync Job Risks
+# -- R-LEO-AI-038, R-LEO-AI-046 through R-LEO-AI-052 -- ODS Nightly Sync Job Risks
 # ISO 14971 / IEC 62304 Risk Register
 # Schema: design-controls/templates/risks_schema.yaml
 
@@ -84,7 +84,7 @@
       - "availability"
 
 
-- id: "R-LEO-AI-039"
+- id: "R-LEO-AI-046"
   title: "ODS API rate limiting (429) — partial sync leaves some organisations unchecked"
 
   hazard:
@@ -160,7 +160,7 @@
       - "data-integrity"
 
 
-- id: "R-LEO-AI-040"
+- id: "R-LEO-AI-047"
   title: "ODS marks GP as Inactive during re-registration / merger — LEO incorrectly flags an active practice"
 
   hazard:
@@ -238,7 +238,7 @@
       - "org-lifecycle"
 
 
-- id: "R-LEO-AI-041"
+- id: "R-LEO-AI-048"
   title: "Sync job crashes mid-run — some orgs updated, some not, leaving inconsistent state"
 
   hazard:
@@ -314,7 +314,7 @@
       - "data-integrity"
 
 
-- id: "R-LEO-AI-042"
+- id: "R-LEO-AI-049"
   title: "Malformed ODS API response causes unhandled exception — org flagged incorrectly"
 
   hazard:
@@ -380,7 +380,7 @@
       - "error-handling"
 
 
-- id: "R-LEO-AI-043"
+- id: "R-LEO-AI-050"
   title: "ODS sync writes incorrect data to Neo4j — corrupts organisation node properties"
 
   hazard:
@@ -456,7 +456,7 @@
       - "neo4j"
 
 
-- id: "R-LEO-AI-044"
+- id: "R-LEO-AI-051"
   title: "ODS returns different org type from LEO record — auto-correction breaks org hierarchy"
 
   hazard:
@@ -525,7 +525,7 @@
       - "org-hierarchy"
 
 
-- id: "R-LEO-AI-045"
+- id: "R-LEO-AI-052"
   title: "ODS nightly sync Neo4j write load degrades graph performance during peak hours"
 
   hazard:

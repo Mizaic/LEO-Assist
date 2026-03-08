@@ -1,10 +1,13 @@
 """Seed NCDA 2018 benchmarks into the Knowledge Graph.
 
 Reads external_content/ncda_2018_benchmarks.json and loads it as BenchmarkSet
-+ BenchmarkValue nodes. Idempotent: uses MERGE so repeated runs are safe.
++ BenchmarkValue nodes.
 
 Usage:
     python scripts/seed_ncda_benchmarks.py
+
+Only seeds when no BenchmarkSet for this audit exists; skips if already present
+to avoid overwriting user-modified benchmarks.
 """
 
 from __future__ import annotations
@@ -39,14 +42,17 @@ def main() -> int:
     audit_id = values[0].get("audit_id", "ncda-2018")
     audit_meta = data.get("audit", {})
 
-    if not benchmark_service.get_benchmark_set(audit_id):
-        benchmark_service.create_benchmark_set({
-            "id": audit_id,
-            "name": audit_meta.get("name", "NCDA 2018"),
-            "source": "uploaded",
-            "audit_year": audit_meta.get("year"),
-            "metadata": audit_meta,
-        })
+    if benchmark_service.get_benchmark_set(audit_id):
+        logger.info("Skipped — BenchmarkSet %s already present.", audit_id)
+        return 0
+
+    benchmark_service.create_benchmark_set({
+        "id": audit_id,
+        "name": audit_meta.get("name", "NCDA 2018"),
+        "source": "uploaded",
+        "audit_year": audit_meta.get("year"),
+        "metadata": audit_meta,
+    })
 
     deleted = benchmark_service.delete_benchmark_values_by_metric_ids(
         audit_id, ["demographics.sex.male", "demographics.sex.female"]

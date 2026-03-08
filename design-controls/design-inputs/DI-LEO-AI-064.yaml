@@ -56,8 +56,14 @@
           body: {action: approve|edit|reject, reviewer: str, reason: str}
           On approve/edit: set rule status: active, log immutable audit event
           On reject: set rule status: rejected, log audit event
+        - POST /guidance/rules/review/{rule_id}/promote-to-domain
+          Only valid when rule status is active. Finds AuditDomain (source=nice) linked
+          via rule's guideline -> TaxonomySubcategory -> AuditDomain. MERGEs each
+          SNOMED concept from rule's CriteriaGroup into a ValueSet under that domain.
+          Writes AuditEvent (type=domain_promotion) recording rule_id, domain_id, reviewer.
+          Returns {domain_id, domain_name, concepts_added}.
         - POST /guidance/rules/review/approve-all?guideline_id= -- bulk approve
-        - All endpoints: require ai.admin role
+        - All endpoints: require_admin (from app.deps)
       Register router in services/api/app/main.py.
 
     acceptance_criteria:
@@ -77,6 +83,12 @@
         spec: "Approving a rule creates an immutable audit event node in Neo4j"
       - type: "test"
         spec: "Only active rules are returned by GET /terminology/guidelines/bitmap/status rule count"
+      - type: "test"
+        spec: "POST promote-to-domain returns 409 when rule status is not active"
+      - type: "test"
+        spec: "POST promote-to-domain MERGEs SNOMED concepts into ValueSet and writes AuditEvent node"
+      - type: "test"
+        spec: "POST promote-to-domain returns 404 when no NICE AuditDomain is linked to the guideline"
 
     constraints:
       - type: "safety"
@@ -112,5 +124,5 @@
     test_protocol: "VT-LEO-AI-064"
 
   safety_class: "B"
-  risks: ["R-LEO-AI-042", "R-LEO-AI-043"]
-  tags: ["llm", "rule-authoring", "hitl", "consensus", "bedrock", "snomed", "guidelines"]
+  risks: ["R-LEO-AI-042", "R-LEO-AI-043", "R-LEO-AI-044"]
+  tags: ["llm", "rule-authoring", "hitl", "consensus", "bedrock", "snomed", "guidelines", "domains", "promote"]

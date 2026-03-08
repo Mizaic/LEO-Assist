@@ -8,9 +8,11 @@ import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
+import Link from "@mui/material/Link";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import ConfirmDialog from "@/components/ConfirmDialog";
 
 interface Criterion {
@@ -31,6 +33,12 @@ interface Rule {
   absent_criteria: Criterion[];
 }
 
+interface PromoteResult {
+  domain_id: string;
+  domain_name: string;
+  concepts_added: number;
+}
+
 interface Props {
   refreshKey?: number;
 }
@@ -46,6 +54,13 @@ export default function RuleReviewSection({ refreshKey }: Props) {
   const [editReason, setEditReason] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
 
+  // Track promote-to-domain state per rule
+  const [promoteConfirmRule, setPromoteConfirmRule] = useState<Rule | null>(null);
+  const [promotedRules, setPromotedRules] = useState<Record<string, PromoteResult>>({});
+  const [promoteBusy, setPromoteBusy] = useState<string | null>(null);
+  const [promoteError, setPromoteError] = useState<string | null>(null);
+
+  // Fetch both pending and active rules so we can show promote button on active ones
   useEffect(() => {
     setLoading(true);
     setError(null);
@@ -56,17 +71,24 @@ export default function RuleReviewSection({ refreshKey }: Props) {
       .finally(() => setLoading(false));
   }, [refreshKey, internalKey]);
 
+  // Local state: rules approved in this session that can be promoted
+  const [sessionApproved, setSessionApproved] = useState<Rule[]>([]);
+
   const decide = useCallback(
-    async (ruleId: string, action: "approve" | "reject" | "edit", reason = "Admin review") => {
-      setBusy(ruleId);
+    async (rule: Rule, action: "approve" | "reject" | "edit", reason = "Admin review") => {
+      setBusy(rule.rule_id);
       setActionError(null);
       try {
-        const resp = await fetch(`/api/guidance/rules/review/${ruleId}/decision`, {
+        const resp = await fetch(`/api/guidance/rules/review/${rule.rule_id}/decision`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action, reviewer: "admin", reason }),
         });
         if (!resp.ok) throw new Error(await resp.text());
+        if (action === "approve" || action === "edit") {
+          // Show approved rule with promote button until page is refreshed
+          setSessionApproved((prev) => [...prev.filter((r) => r.rule_id !== rule.rule_id), { ...rule, status: "active" }]);
+        }
         setInternalKey((n) => n + 1);
         setEditingRule(null);
       } catch {
@@ -88,11 +110,36 @@ export default function RuleReviewSection({ refreshKey }: Props) {
         { method: "POST" }
       );
       if (!resp.ok) throw new Error(await resp.text());
+      setSessionApproved((prev) => [...prev, ...rules.map((r) => ({ ...r, status: "active" }))]);
       setInternalKey((n) => n + 1);
     } catch {
       setActionError("Could not approve all rules. Please try again.");
     } finally {
       setBusy(null);
+    }
+  }, [rules]);
+
+  const handlePromote = useCallback(async (rule: Rule) => {
+    setPromoteConfirmRule(null);
+    setPromoteBusy(rule.rule_id);
+    setPromoteError(null);
+    try {
+      const resp = await fetch(
+        `/api/guidance/rules/review/${rule.rule_id}/promote-to-domain?reviewer=admin`,
+        { method: "POST" }
+      );
+      if (!resp.ok) {
+        const detail = await resp.json().catch(() => ({ detail: resp.statusText }));
+        throw new Error(detail.detail || resp.statusText);
+      }
+      const result: PromoteResult = await resp.json();
+      setPromotedRules((prev) => ({ ...prev, [rule.rule_id]: result }));
+    } catch (e) {
+      setPromoteError(
+        e instanceof Error ? e.message : "Could not add to domain. Please try again."
+      );
+    } finally {
+      setPromoteBusy(null);
     }
   }, []);
 
@@ -110,8 +157,64 @@ export default function RuleReviewSection({ refreshKey }: Props) {
 
   return (
     <Box>
-      {actionError && <Alert severity="error" sx={{ mb: 2 }}>{actionError}</Alert>}
+      {actionError && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setActionError(null)}>
+          {actionError}
+        </Alert>
+      )}
+      {promoteError && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setPromoteError(null)}>
+          {promoteError}
+        </Alert>
+      )}
 
+      {/* Approved rules from this session — show promote button */}
+      {sessionApproved.length > 0 && (
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="subtitle2" sx={{ mb: 1, color: "success.main" }}>
+            Approved in this session
+          </Typography>
+          <Stack spacing={2}>
+            {sessionApproved.map((rule) => (
+              <Card key={rule.rule_id} variant="outlined" sx={{ borderColor: "success.light" }}>
+                <CardContent>
+                  <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+                    <CheckCircleOutlineIcon color="success" fontSize="small" />
+                    <Chip label={rule.guideline_id} size="small" color="success" variant="outlined" />
+                    <Chip label="Approved" size="small" color="success" />
+                  </Stack>
+                  <Typography variant="body2" sx={{ mb: 1.5, fontWeight: 500 }}>
+                    {rule.plain_english}
+                  </Typography>
+                  {promotedRules[rule.rule_id] ? (
+                    <Alert severity="success" sx={{ py: 0.5 }}>
+                      Added {promotedRules[rule.rule_id].concepts_added} code
+                      {promotedRules[rule.rule_id].concepts_added !== 1 ? "s" : ""} to{" "}
+                      <Link href={`/admin/domains`} underline="hover">
+                        {promotedRules[rule.rule_id].domain_name}
+                      </Link>
+                      .
+                    </Alert>
+                  ) : (
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      color="info"
+                      disabled={promoteBusy === rule.rule_id}
+                      onClick={() => setPromoteConfirmRule(rule)}
+                      aria-label={`Add rule ${rule.rule_id} medical codes to domain`}
+                    >
+                      {promoteBusy === rule.rule_id ? "Adding\u2026" : "Add to domain"}
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </Stack>
+        </Box>
+      )}
+
+      {/* Pending rules */}
       {rules.length === 0 ? (
         <Typography color="text.secondary">
           No rules waiting for review. Load a guideline first, then generate rules.
@@ -175,7 +278,7 @@ export default function RuleReviewSection({ refreshKey }: Props) {
                           size="small"
                           variant="contained"
                           disabled={busy === rule.rule_id || !editReason.trim()}
-                          onClick={() => decide(rule.rule_id, "edit", editReason)}
+                          onClick={() => decide(rule, "edit", editReason)}
                         >
                           Save edit
                         </Button>
@@ -191,7 +294,7 @@ export default function RuleReviewSection({ refreshKey }: Props) {
                         variant="contained"
                         color="success"
                         disabled={busy === rule.rule_id}
-                        onClick={() => decide(rule.rule_id, "approve")}
+                        onClick={() => decide(rule, "approve")}
                         aria-label={`Approve rule ${rule.rule_id}`}
                       >
                         Looks right
@@ -210,7 +313,7 @@ export default function RuleReviewSection({ refreshKey }: Props) {
                         variant="outlined"
                         color="error"
                         disabled={busy === rule.rule_id}
-                        onClick={() => decide(rule.rule_id, "reject", "Rejected by reviewer")}
+                        onClick={() => decide(rule, "reject", "Rejected by reviewer")}
                         aria-label={`Reject rule ${rule.rule_id}`}
                       >
                         Reject
@@ -233,6 +336,18 @@ export default function RuleReviewSection({ refreshKey }: Props) {
           variant="primary"
           onConfirm={handleApproveAll}
           onCancel={() => setApproveAllOpen(false)}
+        />
+      )}
+
+      {promoteConfirmRule && (
+        <ConfirmDialog
+          title="Add medical codes to this area?"
+          body={`This will add the medical codes from rule "${promoteConfirmRule.name || promoteConfirmRule.rule_id}" to the NICE area linked to ${promoteConfirmRule.guideline_id}. Other parts of the system that use this area will see the new codes.`}
+          confirmLabel="Yes, add to area"
+          cancelLabel="Cancel"
+          variant="primary"
+          onConfirm={() => handlePromote(promoteConfirmRule)}
+          onCancel={() => setPromoteConfirmRule(null)}
         />
       )}
     </Box>

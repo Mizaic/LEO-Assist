@@ -97,7 +97,7 @@
     created_date: "2026-03-02"
     status: "draft"
 
-  design_inputs: []
+  design_inputs: ["DI-LEO-AI-070"]
   validation_tests: []
 
   tags: ["ncda-proforma", "reporting", "no-code-builder", "data-export", "ncda"]

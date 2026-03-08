@@ -25,18 +25,18 @@
   mitigation_measures:
     - control_type: "protective_measure"
       description: "SOUP versions pinned in requirements.txt"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-003"]
+      verified_by: ["VT-LEO-AI-002"]
       effectiveness: "effective"
     - control_type: "protective_measure"
       description: "Regression testing against gold-standard dataset on every SOUP update"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-003"]
+      verified_by: ["VT-LEO-AI-002"]
       effectiveness: "highly_effective"
     - control_type: "procedural_control"
       description: "SOUP update requires QA approval per DC-SOUP-001"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-003"]
+      verified_by: ["VT-LEO-AI-002"]
       effectiveness: "effective"
 
   residual_risk_estimate:

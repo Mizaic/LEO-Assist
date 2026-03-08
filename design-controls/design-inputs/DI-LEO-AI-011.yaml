@@ -70,5 +70,5 @@
     test_protocol: "VT-LEO-AI-011"
 
   safety_class: "B"
-  risks: []
+  risks: ["R-LEO-AI-021"]
   tags: ["episode-consolidation", "deduplication", "analysis"]

@@ -25,18 +25,18 @@
   mitigation_measures:
     - control_type: "protective_measure"
       description: "Multiple candidates shown in review UI for reviewer selection"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-004"]
+      verified_by: ["VT-LEO-AI-003"]
       effectiveness: "highly_effective"
     - control_type: "protective_measure"
       description: "Hybrid search with semantic tag re-ranking improves disambiguation accuracy"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-004"]
+      verified_by: ["VT-LEO-AI-003"]
       effectiveness: "effective"
     - control_type: "protective_measure"
       description: "SurfaceForm boost from prior approvals improves known-term resolution"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-004"]
+      verified_by: ["VT-LEO-AI-003"]
       effectiveness: "effective"
 
   residual_risk_estimate:

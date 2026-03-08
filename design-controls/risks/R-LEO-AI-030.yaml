@@ -39,7 +39,7 @@
           is disclosed, enabling further attacks.
       (c) A malformed or oversized LLM response causes a processing error
           that silently suppresses a valid coding decision.
-    severity: "serious"
+    severity: "critical"
 
   initial_risk_estimate:
     severity: 4
