@@ -3009,3 +3009,62 @@ def resolve_surface_form_task(
         return {"task_id": row["task_id"], "status": row["status"]}
     finally:
         client.close()
+
+
+# ── Source node sample preview ──────────────────────────────────────────────
+
+@router.get("/schema/sample-node")
+def get_sample_node(
+    node_label: str = Query(..., description="Node label to sample (e.g. EncounterCandidate)"),
+    graph: str = Query("patient", description="Which graph to query: 'patient' or 'knowledge'"),
+    text_property: str = Query("text", description="Property to highlight as the main text field"),
+):
+    """Return one sample node so users can verify field names in the source configurator.
+
+    Sanitises the result: sensitive fields are redacted, long text is truncated to
+    300 characters, and Neo4j datetime objects are converted to ISO strings.
+    The selected text_property is surfaced first in the response.
+    """
+    _REDACT = {"nhs_number", "date_of_birth", "dob", "birthdate", "birthDate", "postcode"}
+    _MAX_TEXT = 300
+
+    try:
+        client: Any = KnowledgeGraphClient() if graph == "knowledge" else PatientGraphClient()
+        try:
+            with client.session() as session:
+                rows = list(session.run(
+                    f"MATCH (n:{node_label}) RETURN properties(n) AS props LIMIT 1"
+                ))
+        finally:
+            client.close()
+
+        if not rows:
+            from fastapi.responses import JSONResponse as _JSONResponse
+            return _JSONResponse(
+                status_code=404,
+                content={"detail": f"No {node_label} nodes found in the {graph} graph."},
+            )
+
+        raw: dict = dict(rows[0]["props"])
+
+        def _sanitise(k: str, v: Any) -> Any:
+            if k.lower() in _REDACT:
+                return "***redacted***"
+            if isinstance(v, str) and len(v) > _MAX_TEXT:
+                return v[:_MAX_TEXT] + "…"
+            if hasattr(v, "iso_format"):
+                return v.iso_format()
+            return v
+
+        preview = {k: _sanitise(k, v) for k, v in raw.items()}
+        ordered: dict = {}
+        if text_property in preview:
+            ordered[text_property] = preview.pop(text_property)
+        ordered.update(preview)
+
+        return {"nodeLabel": node_label, "graph": graph, "textProperty": text_property, "properties": ordered}
+
+    except Exception as exc:
+        from fastapi.responses import JSONResponse as _JSONResponse
+        logger.warning("sample-node error for %s/%s: %s", graph, node_label, exc)
+        return _JSONResponse(status_code=500, content={"detail": str(exc)})

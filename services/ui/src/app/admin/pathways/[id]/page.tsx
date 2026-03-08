@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
@@ -11,12 +11,10 @@ import Select from "@mui/material/Select";
 import MenuItem from "@mui/material/MenuItem";
 import FormControl from "@mui/material/FormControl";
 import FormControlLabel from "@mui/material/FormControlLabel";
+import Checkbox from "@mui/material/Checkbox";
 import InputLabel from "@mui/material/InputLabel";
 import Chip from "@mui/material/Chip";
 import Switch from "@mui/material/Switch";
-import Stepper from "@mui/material/Stepper";
-import Step from "@mui/material/Step";
-import StepLabel from "@mui/material/StepLabel";
 import Divider from "@mui/material/Divider";
 import Alert from "@mui/material/Alert";
 import CircularProgress from "@mui/material/CircularProgress";
@@ -36,6 +34,10 @@ import CloseIcon from "@mui/icons-material/Close";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import HistoryIcon from "@mui/icons-material/History";
 import ReplayIcon from "@mui/icons-material/Replay";
+import AccountTreeIcon from "@mui/icons-material/AccountTree";
+import SearchIcon from "@mui/icons-material/Search";
+import Tab from "@mui/material/Tab";
+import Tabs from "@mui/material/Tabs";
 import Drawer from "@mui/material/Drawer";
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
@@ -48,268 +50,61 @@ import {
   addEdge,
   useNodesState,
   useEdgesState,
-  Handle,
-  Position,
   type Node,
   type Edge,
   type Connection,
+  type EdgeChange,
 } from "@xyflow/react";
+import dagre from "@dagrejs/dagre";
 import "@xyflow/react/dist/style.css";
 import { api } from "@/lib/api";
 import { nodeTypes as pathwayNodeTypes } from "@/components/pathway/nodes/nodeTypes";
 import { PortEdge } from "@/components/pathway/edges/PortEdge";
+import {
+  SUBGRAPH_OPTIONS,
+  SUBGRAPH_IO,
+  SUBGRAPH_CATEGORY,
+  WIZARD_STEPS_LLM,
+  WIZARD_STEPS_NO_LLM,
+  type SubgraphCategory,
+} from "@/components/pathway/config/subgraphs";
+import { TRIGGER_OPTIONS } from "@/components/pathway/config/triggers";
+import { SOURCE_DEFINITIONS, type SourceType } from "@/components/pathway/nodes/SourceNode";
+import {
+  PipelineTestContext,
+  type StepTraceResult,
+} from "@/components/pathway/context/PipelineTestContext";
+import {
+  PIPELINE_GENERATED_SENTINEL,
+  DEFAULT_CONFIG,
+  type ActionConfig,
+  type ActionNodeData,
+  type FieldMappingRow,
+  type PlanData,
+  type ModelPreset,
+} from "@/components/pathway/config/types";
 
-const SUBGRAPH_OPTIONS = [
-  { id: "extraction", label: "Find Clinical Facts", color: "#4CAF50", description: "Read patient notes and pull out clinical facts — symptoms, conditions, procedures, test results." },
-  { id: "post_processing", label: "Clean Up Results", color: "#2196F3", description: "Tidy the found facts — remove duplicates, expand abbreviations, and apply context rules." },
-  { id: "terminology", label: "Code to SNOMED CT", color: "#FF9800", description: "Match each clinical fact to an official SNOMED CT medical code." },
-  { id: "tier_classify", label: "Grade Confidence", color: "#9C27B0", description: "Rate each clinical fact as gold, silver, or bronze based on how confident the AI is." },
-  { id: "verification", label: "Double-Check with AI", color: "#F44336", description: "Run a second, more capable AI over the results to spot errors before saving." },
-  { id: "persist", label: "Save Results", color: "#607D8B", description: "Write the final clinical facts to the patient record or gold training dataset." },
-  { id: "sbar", label: "Write SBAR Summary", color: "#00BCD4", description: "Generate a Situation-Background-Assessment-Recommendation clinical summary." },
-  { id: "compliance", label: "Check Compliance", color: "#795548", description: "Compare the results against clinical guidelines and flag any gaps." },
-  { id: "anchor_detect", label: "Detect Key Findings", color: "#E91E63", description: "Identify the significant clinical findings that start a new episode of care." },
-  { id: "episode_build", label: "Build Episode", color: "#3F51B5", description: "Group related encounters together into a timeline episode of care." },
-  { id: "safety_net", label: "Safety Netting", color: "#FF5722", description: "Flag overdue tests, missing referral replies, or follow-up actions that are past due." },
-  { id: "quality_check", label: "Quality Check", color: "#009688", description: "Check for missing data, inconsistencies, and NHS target compliance." },
-  { id: "next_best_action", label: "Next Best Action", color: "#673AB7", description: "Suggest the most appropriate next clinical action based on the patient context." },
-];
-
-// Sentinel value used to mark pass-through rows in field mappings (not sourced from LLM output).
-const PIPELINE_GENERATED_SENTINEL = "__pipeline_passthrough__";
-
-// requiredFields: per state-key, the sub-fields this step MUST find on each item.
-// These drive field-level validation when a predecessor provides field_mappings.
-const SUBGRAPH_IO: Record<string, {
-  reads: string[];
-  writes: string[];
-  requiredFields?: Record<string, string[]>;
-}> = {
-  extraction: {
-    reads:  ["encounter_text"],
-    writes: ["entities", "sentences", "errors"],
-    // extraction produces all entity fields — nothing required from upstream entities
-  },
-  post_processing: {
-    reads:  ["entities", "encounter_text"],
-    writes: ["entities", "errors"],
-    requiredFields: {
-      entities: ["text", "semantic_tag", "assertion"],
-    },
-  },
-  verification: {
-    reads:  ["entities", "encounter_text"],
-    writes: ["is_verified", "verification_result", "errors"],
-    requiredFields: {
-      entities: ["text", "lookup_term", "semantic_tag", "assertion"],
-    },
-  },
-  terminology: {
-    reads:  ["entities"],
-    writes: ["entities", "errors"],
-    requiredFields: {
-      entities: ["text", "lookup_term", "semantic_tag"],
-    },
-  },
-  tier_classify: {
-    reads:  ["entities"],
-    writes: ["entities", "tier_decisions"],
-    requiredFields: {
-      entities: ["text", "semantic_tag", "assertion"],
-    },
-  },
-  persist: {
-    reads:  ["entities", "encounter_id", "patient_id", "output_target"],
-    writes: ["documents_written", "training_labels_written"],
-    requiredFields: {
-      entities: ["text", "lookup_term", "semantic_tag", "assertion"],
-    },
-  },
-  sbar: {
-    reads:  ["entities", "encounter_text", "patient_id"],
-    writes: ["sbar_report"],
-    requiredFields: {
-      entities: ["text", "semantic_tag", "assertion"],
-    },
-  },
-  compliance: {
-    reads:  ["entities"],
-    writes: ["compliance_result"],
-    requiredFields: {
-      entities: ["text", "semantic_tag", "assertion"],
-    },
-  },
-  anchor_detect: {
-    reads:  ["entities"],
-    writes: ["anchors"],
-    requiredFields: {
-      entities: ["text", "semantic_tag", "assertion"],
-    },
-  },
-  episode_build: {
-    reads:  ["entities", "patient_id"],
-    writes: ["episodes"],
-    requiredFields: {
-      entities: ["text", "semantic_tag", "assertion"],
-    },
-  },
-  safety_net: {
-    reads:  ["entities", "patient_id"],
-    writes: ["safety_net_alerts"],
-    requiredFields: {
-      entities: ["text", "semantic_tag", "assertion"],
-    },
-  },
-  quality_check: {
-    reads:  ["entities"],
-    writes: ["quality_issues"],
-    requiredFields: {
-      entities: ["text", "lookup_term", "semantic_tag", "assertion"],
-    },
-  },
-  next_best_action: {
-    reads:  ["entities", "patient_id"],
-    writes: ["recommendations"],
-    requiredFields: {
-      entities: ["text", "semantic_tag", "assertion"],
-    },
-  },
-};
-
-const TRIGGER_OPTIONS = [
-  { id: "encounter-created", label: "New Encounter Created", description: "Fires when a new GP encounter document is ingested." },
-  { id: "referral-received", label: "Referral Received", description: "Fires when a referral letter is uploaded or received via integration." },
-  { id: "training-run-requested", label: "Training Run Requested", description: "Manual trigger — used to generate gold-standard NER training data." },
-  { id: "results-received", label: "Investigation Results Received", description: "Fires when lab results or diagnostic reports arrive." },
-  { id: "safety-net-check", label: "Safety Net Timer", description: "Scheduled check for overdue investigations and follow-ups." },
-  { id: "manual", label: "Manual / API Call", description: "Pipeline is invoked manually via the API or admin UI." },
-];
-
-// ── Subgraph categories ───────────────────────────────────────────────────────
-// Controls which config panels and wizard steps are shown.
-type SubgraphCategory = "llm" | "persist" | "post_process" | "terminology" | "tier_classify" | "generic";
-
-const SUBGRAPH_CATEGORY: Record<string, SubgraphCategory> = {
-  extraction:       "llm",
-  verification:     "llm",
-  sbar:             "llm",
-  anchor_detect:    "llm",
-  episode_build:    "llm",
-  next_best_action: "llm",
-  quality_check:    "llm",
-  compliance:       "llm",
-  persist:          "persist",
-  post_processing:  "post_process",
-  terminology:      "terminology",
-  tier_classify:    "tier_classify",
-  safety_net:       "generic",
-};
-
-// Wizard steps — step 3 (Prompt) is hidden for non-LLM subgraphs
-const WIZARD_STEPS_LLM     = ["Step type", "Data connections", "Settings", "AI & outputs", "Review"];
-const WIZARD_STEPS_NO_LLM  = ["Step type", "Data connections", "Settings", "Review"];
-
-interface ActionConfig {
-  subgraphId: string;
-  label: string;
-  description: string;
-  // Data flow
-  inputSource: string;
-  outputTarget: string;
-  // Runtime
-  enableVerification: boolean;
-  maxRetries: number;
-  timeout: number;
-  // LLM
-  modelPresetId: string;
-  modelPresetName: string;
-  temperature: number;
-  promptConfigId: string;
-  promptConfigName: string;
-  // Subgraph-specific params (stored as generic map)
-  params: Record<string, unknown>;
-  nodeType?: "action" | "condition" | "rest_connector" | "queue_publish" | "trigger" | "parallel" | "merge" | "transform";
-}
-
-const DEFAULT_CONFIG: ActionConfig = {
-  subgraphId: "",
-  label: "",
-  description: "",
-  inputSource: "previous_step",
-  outputTarget: "patient_graph",
-  enableVerification: false,
-  maxRetries: 2,
-  timeout: 120,
-  modelPresetId: "",
-  modelPresetName: "",
-  temperature: 0.0,
-  promptConfigId: "",
-  promptConfigName: "",
-  params: {},
-  nodeType: "action",
-};
-
-interface ActionNodeData {
-  label: string;
-  subgraphId: string;
-  color: string;
-  config?: Partial<ActionConfig>;
-  fieldMappings?: FieldMappingRow[];
-  onConfigure: () => void;
-}
-
-function ActionNode({ data }: { data: ActionNodeData }) {
-  return (
-    <Box
-      sx={{
-        px: 2, py: 1.5, borderRadius: 2,
-        border: "2px solid", borderColor: data.color,
-        bgcolor: "background.paper", minWidth: 180, cursor: "pointer",
-      }}
-      onClick={data.onConfigure}
-    >
-      <Handle type="target" position={Position.Top} />
-      <Typography variant="body2" fontWeight={600}>{data.label}</Typography>
-      <Chip label={data.subgraphId} size="small" sx={{ mt: 0.5, bgcolor: data.color, color: "#fff" }} />
-      <Handle type="source" position={Position.Bottom} />
-    </Box>
-  );
-}
-
-const nodeTypes = { action: ActionNode };
 const edgeTypes = { portEdge: PortEdge };
 
-interface PlanData {
-  id: string;
-  name: string;
-  status: string;
-  description: string;
-  actions: Array<{
-    id: string;
-    subgraphId: string;
-    label: string;
-    nodeType?: string;
-    position?: { x: number; y: number };
-    config?: Partial<ActionConfig>;
-  }>;
-  edges: Array<{ source: string; target: string; sourceHandle?: string; targetHandle?: string }>;
+// ── Dagre auto-layout ─────────────────────────────────────────────────────────
+
+const NODE_WIDTH  = 220;
+const NODE_HEIGHT = 80;
+
+function applyDagreLayout(nodes: Node[], edges: Edge[]): Node[] {
+  const g = new dagre.graphlib.Graph();
+  g.setGraph({ rankdir: "TB", nodesep: 60, ranksep: 80 });
+  g.setDefaultEdgeLabel(() => ({}));
+  nodes.forEach((n) => g.setNode(n.id, { width: NODE_WIDTH, height: NODE_HEIGHT }));
+  edges.forEach((e) => { if (e.source && e.target) g.setEdge(e.source, e.target); });
+  dagre.layout(g);
+  return nodes.map((n) => {
+    const pos = g.node(n.id);
+    return { ...n, position: { x: pos.x - NODE_WIDTH / 2, y: pos.y - NODE_HEIGHT / 2 } };
+  });
 }
 
 // ── Model preset picker ───────────────────────────────────────────────────────
-interface ModelPreset {
-  preset_id: string;
-  name: string;
-  description: string;
-  color: string;
-  extractor: string;           // "llm" | "ner" | "ner+llm"
-  primary_model: string;       // "aws:small" | "azure:big" | "ner" etc.
-  consensus_mode: boolean;
-  is_default: boolean;
-  is_system: boolean;
-  prompt_config_id: string;
-  /** Set in /admin/models — false for GPT-5 and NER presets. Defaults true for old presets. */
-  supports_temperature: boolean;
-}
 
 function ModelPresetPicker({
   value, onChange,
@@ -422,6 +217,36 @@ function PromptPicker({
 
 // ── Data-flow summary ─────────────────────────────────────────────────────────
 
+/** Plain-English descriptions for pipeline state keys — shown in the data-flow panel. */
+const STATE_KEY_LABELS: Record<string, string> = {
+  encounter_text:            "Patient notes text",
+  patient_id:                "Patient identifier",
+  encounter_id:              "Encounter / document ID",
+  entities:                  "Clinical findings (list)",
+  sentences:                 "Sentences from the notes (list)",
+  errors:                    "Processing errors (list)",
+  is_verified:               "Verification passed? (yes/no)",
+  verification_result:       "Verification detail",
+  tier_decisions:            "Confidence grades (list)",
+  documents_written:         "Records saved (list)",
+  training_labels_written:   "Training labels saved (list)",
+  sbar_report:               "SBAR clinical summary",
+  compliance_result:         "Compliance check result",
+  anchors:                   "Key clinical anchors (list)",
+  episodes:                  "Episodes of care (list)",
+  safety_net_alerts:         "Safety-netting alerts (list)",
+  quality_issues:            "Quality issues found (list)",
+  recommendations:           "Next best action recommendations (list)",
+  connector_response:        "API response",
+  queued:                    "Queue publish status",
+  run_id:                    "Pipeline run ID",
+  organization_id:           "Organisation / practice ID",
+};
+
+function stateKeyLabel(key: string): string {
+  return STATE_KEY_LABELS[key] ?? key;
+}
+
 /** Build the set of pipeline state paths produced by a predecessor's field mappings.
  *  e.g. { "entities": Set(["text","lookup_term","semantic_tag"]) }
  */
@@ -476,41 +301,42 @@ function DataFlowPanel({
   const allFieldsOk     = producedFields && requiredFields && !fieldMismatches;
 
   return (
-    <Stack spacing={1.5}>
+    <Stack spacing={2}>
 
       {/* What this step reads */}
-      <Paper variant="outlined" sx={{ p: 1.5, bgcolor: "grey.50" }}>
-        <Stack spacing={1.5}>
+      <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
+        <Stack spacing={2}>
           <Box>
-            <Typography variant="caption" fontWeight={700} color="text.secondary" display="block" sx={{ mb: 0.5 }}>
-              WHAT THIS STEP NEEDS
+            <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>What this step needs</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1.25 }}>
+              This step expects the following data to arrive from earlier in the pipeline.
             </Typography>
-            <Stack spacing={0.5}>
+            <Stack spacing={0.75}>
               {io.reads.map((k) => {
                 const ok      = provided && provided.has(k);
                 const unknown = provided === null;
-                // Expand with field-level detail if the predecessor has mappings for this key
                 const fieldsForKey = producedFields?.[k] ? Array.from(producedFields[k]) : null;
                 const requiredForKey = requiredFields?.[k] ?? null;
                 return (
                   <Box key={k}>
-                    <Stack direction="row" alignItems="center" spacing={0.5} sx={{ mb: fieldsForKey ? 0.4 : 0 }}>
-                      <Chip
-                        size="small"
-                        label={k}
-                        variant={unknown ? "outlined" : ok ? "filled" : "outlined"}
-                        color={unknown ? "default" : ok ? "success" : "error"}
-                        sx={{ fontFamily: "monospace", fontSize: "0.68rem" }}
-                      />
+                    <Stack direction="row" alignItems="center" spacing={0.75} sx={{ mb: fieldsForKey ? 0.5 : 0 }}>
+                      <Tooltip title={<Box sx={{ fontFamily: "monospace" }}>{k}</Box>} placement="top">
+                        <Chip
+                          size="small"
+                          label={stateKeyLabel(k)}
+                          variant={unknown ? "outlined" : ok ? "filled" : "outlined"}
+                          color={unknown ? "default" : ok ? "success" : "error"}
+                          sx={{ fontSize: "0.8rem", height: 26 }}
+                        />
+                      </Tooltip>
                       {!unknown && !ok && (
-                        <Typography variant="caption" color="error.main" sx={{ fontSize: "0.65rem" }}>
+                        <Typography variant="body2" color="error.main" sx={{ fontSize: "0.78rem" }}>
                           — not yet provided by the previous step
                         </Typography>
                       )}
                     </Stack>
-                    {/* Field-level drill-down */}
                     {fieldsForKey && (
-                      <Stack direction="row" spacing={0.4} flexWrap="wrap" useFlexGap sx={{ pl: 1.5, mt: 0.3 }}>
+                      <Stack direction="row" spacing={0.4} flexWrap="wrap" useFlexGap sx={{ pl: 2, mt: 0.4 }}>
                         {fieldsForKey.map((f) => {
                           const needed = requiredForKey?.includes(f);
                           return (
@@ -518,17 +344,16 @@ function DataFlowPanel({
                               label={`.${f}${needed ? " *" : ""}`}
                               color={needed ? "success" : "default"}
                               variant={needed ? "filled" : "outlined"}
-                              sx={{ fontFamily: "monospace", fontSize: "0.62rem", height: 16 }}
+                              sx={{ fontFamily: "monospace", fontSize: "0.72rem", height: 20 }}
                             />
                           );
                         })}
-                        {/* Show required fields that are missing from the mapping */}
                         {requiredForKey?.filter((f) => !producedFields?.[k]?.has(f)).map((f) => (
                           <Chip key={`missing-${f}`} size="small"
                             label={`.${f} ✗`}
                             color="error"
                             variant="outlined"
-                            sx={{ fontFamily: "monospace", fontSize: "0.62rem", height: 16 }}
+                            sx={{ fontFamily: "monospace", fontSize: "0.72rem", height: 20 }}
                           />
                         ))}
                       </Stack>
@@ -539,12 +364,19 @@ function DataFlowPanel({
             </Stack>
           </Box>
 
+          <Divider />
+
           <Box>
-            <Typography variant="caption" fontWeight={700} color="text.secondary" display="block" sx={{ mb: 0.5 }}>
-              SENDS ONWARDS TO NEXT STEPS
+            <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>What gets sent to the next step</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1.25 }}>
+              After this step runs, these items are ready for the next step to use.
             </Typography>
-            <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
-              {io.writes.map((k) => <Chip key={k} size="small" label={k} color="primary" variant="outlined" sx={{ fontFamily: "monospace", fontSize: "0.68rem" }} />)}
+            <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
+              {io.writes.map((k) => (
+                <Tooltip key={k} title={<Box sx={{ fontFamily: "monospace" }}>{k}</Box>} placement="top">
+                  <Chip size="small" label={stateKeyLabel(k)} color="primary" variant="outlined" sx={{ fontSize: "0.8rem", height: 26 }} />
+                </Tooltip>
+              ))}
             </Stack>
           </Box>
         </Stack>
@@ -583,7 +415,7 @@ function DataFlowPanel({
 
       {provided === null && (
         <Alert severity="info" sx={{ fontSize: "0.78rem" }} icon={false}>
-          Set "Where does data come from?" to "Output of the previous step" to check whether the previous step passes the right data.
+          Wire a data source node or a previous step to this one on the canvas, then come back here to see whether the right data is available.
         </Alert>
       )}
     </Stack>
@@ -853,11 +685,53 @@ function parseStatePath(statePath: string): { topKey: string; subField: string }
   return { topKey: statePath, subField: "" };
 }
 
-/** Build a statePath from topKey + subField for the given key type. */
+/** Build a statePath from topKey + subField for the given key type.
+ *  Any key that ends up in object-array form (has a subField) uses the key[].field format.
+ */
 function buildStatePath(topKey: string, subField: string): string {
   if (!topKey) return "";
-  if (ARRAY_OUTPUT_KEYS.has(topKey) && subField.trim()) return `${topKey}[].${subField.trim()}`;
+  if (subField.trim()) return `${topKey}[].${subField.trim()}`;
   return topKey;
+}
+
+
+/** Small inline control to let the user add a new named output group. */
+function AddGroupButton({ onAdd }: { onAdd: (name: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [value, setValue] = useState("");
+  if (!open) {
+    return (
+      <Button size="small" variant="text" sx={{ fontSize: "0.68rem", textTransform: "none", color: "text.secondary", mt: 0.25 }}
+        onClick={() => setOpen(true)}>
+        + Add output group
+      </Button>
+    );
+  }
+  return (
+    <Stack direction="row" spacing={0.75} alignItems="center" sx={{ mt: 0.5 }}>
+      <TextField
+        autoFocus
+        size="small"
+        value={value}
+        onChange={(e) => setValue(e.target.value.replace(/[^a-z0-9_]/gi, "_").toLowerCase())}
+        placeholder="group name (e.g. findings)"
+        inputProps={{ style: { fontFamily: "monospace", fontSize: "0.75rem", padding: "3px 8px" } }}
+        sx={{ flex: 1 }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && value.trim()) { onAdd(value.trim()); setValue(""); setOpen(false); }
+          if (e.key === "Escape") { setValue(""); setOpen(false); }
+        }}
+      />
+      <Button size="small" variant="contained" disabled={!value.trim()}
+        sx={{ fontSize: "0.72rem", textTransform: "none", py: "2px" }}
+        onClick={() => { if (value.trim()) { onAdd(value.trim()); setValue(""); setOpen(false); } }}>
+        Add
+      </Button>
+      <IconButton size="small" onClick={() => { setValue(""); setOpen(false); }}>
+        <CloseIcon sx={{ fontSize: "0.9rem" }} />
+      </IconButton>
+    </Stack>
+  );
 }
 
 function SchemaAlignmentPanel({
@@ -878,10 +752,28 @@ function SchemaAlignmentPanel({
     fields: Array<{ name: string; type: string; description: string; required: boolean }>;
   } | null>(null);
   const [loading, setLoading] = useState(false);
+  // Extra user-defined output group names (added via the "+ New group" option).
+  const [extraWriteKeys, setExtraWriteKeys] = useState<string[]>([]);
+  // Auto-fill preview: set to the proposed mappings before the user confirms
+  const [autoFillPreview, setAutoFillPreview] = useState<FieldMappingRow[] | null>(null);
+  // Undo stack: stores the previous mapping state before auto-fill was applied
+  const [undoStack, setUndoStack] = useState<FieldMappingRow[] | null>(null);
   const initialised = fieldMappings.length > 0;
 
-  // The mandatory pipeline state keys this step is expected to write.
-  const writeKeys: string[] = SUBGRAPH_IO[subgraphId]?.writes ?? [];
+  // Merge static SUBGRAPH_IO writes + the AI schema's own topKey + any user-added custom groups.
+  // This means if the prompt returns "terms[]", that key appears in the dropdown automatically.
+  const staticWriteKeys: string[] = SUBGRAPH_IO[subgraphId]?.writes ?? [];
+  const writeKeys: string[] = useMemo(() => {
+    const keys = [...staticWriteKeys];
+    if (schemaFields?.topKey && !keys.includes(schemaFields.topKey)) {
+      keys.unshift(schemaFields.topKey);
+    }
+    for (const k of extraWriteKeys) {
+      if (!keys.includes(k)) keys.push(k);
+    }
+    return keys;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [subgraphId, schemaFields?.topKey, extraWriteKeys]);
 
   useEffect(() => {
     if (!promptConfigId) return;
@@ -1012,38 +904,37 @@ function SchemaAlignmentPanel({
 
       {/* ── Part 1: What arrives from the previous step ── */}
       {hasIncoming && (
-        <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 2, bgcolor: "grey.50" }}>
-          <Typography variant="subtitle2" gutterBottom>Data already available from earlier steps</Typography>
-          <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1.5 }}>
-            These items were produced by an earlier step. Tick any you also want this step to pass on to the next one.
-            Leave them unticked if this step doesn&apos;t need to forward them.
+        <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
+          <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>Data available from earlier steps</Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+            These items were produced by an earlier step. Tick any you also want this step to pass forward to the next one.
           </Typography>
           {Object.entries(incomingGroups).map(([stateKey, fields]) => (
-            <Box key={stateKey} sx={{ mb: 1 }}>
+            <Box key={stateKey} sx={{ mb: 1.5 }}>
               {stateKey !== "__flat__" && (
-                <Typography variant="caption" fontWeight={600} sx={{ fontFamily: "monospace", display: "block", mb: 0.5, color: "text.secondary" }}>
+                <Typography variant="body2" fontWeight={600} sx={{ fontFamily: "monospace", display: "block", mb: 0.75, color: "text.secondary" }}>
                   {stateKey}[]
                 </Typography>
               )}
-              <Stack spacing={0.5}>
+              <Stack spacing={0.75}>
                 {fields.map((field) => {
                   const path = stateKey === "__flat__" ? field : `${stateKey}[].${field}`;
                   const checked = passthroughPaths.has(path);
                   return (
-                    <Stack key={path} direction="row" alignItems="center" spacing={1}>
+                    <Stack key={path} direction="row" alignItems="center" spacing={1.5}>
                       <Box
                         component="input"
                         type="checkbox"
                         checked={checked}
                         onChange={() => togglePassthrough(path)}
-                        style={{ cursor: "pointer", width: 15, height: 15, flexShrink: 0 }}
+                        style={{ cursor: "pointer", width: 17, height: 17, flexShrink: 0 }}
                       />
-                      <Typography variant="caption" sx={{ fontFamily: "monospace", fontSize: "0.72rem", flex: 1 }}>
+                      <Typography variant="body2" sx={{ fontFamily: "monospace", fontSize: "0.82rem", flex: 1 }}>
                         .{field}
                       </Typography>
                       {checked && (
                         <Chip size="small" label="kept" color="success" variant="outlined"
-                          sx={{ height: 16, fontSize: "0.6rem" }} />
+                          sx={{ height: 22, fontSize: "0.78rem" }} />
                       )}
                     </Stack>
                   );
@@ -1054,82 +945,116 @@ function SchemaAlignmentPanel({
         </Paper>
       )}
 
-      {/* ── Mandatory outputs coverage summary ── */}
-      {writeKeys.length > 0 && (
-        <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 2 }}>
-          <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ display: "block", mb: 1, fontSize: "0.65rem", letterSpacing: "0.05em" }}>
-            WHAT YOU CAN CONNECT TO DOWNSTREAM STEPS
+      {/* ── Output groups — connection points this step will expose on the canvas ── */}
+      <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
+        <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.75 }}>
+          <Typography variant="subtitle2" fontWeight={700} sx={{ flex: 1 }}>
+            Connection points on the canvas
           </Typography>
-          <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1, fontSize: "0.7rem" }}>
-            Each labelled group below becomes a connection point on the canvas. You can wire each one independently to a different next step — data does not have to flow in a straight line.
-          </Typography>
-          <Stack direction="row" flexWrap="wrap" gap={0.75}>
-            {writeKeys.map((key) => {
-              const count = coverageByKey[key] ?? 0;
-              const isArr = ARRAY_OUTPUT_KEYS.has(key);
-              return (
-                <Chip
-                  key={key}
-                  size="small"
-                  label={`${key}${isArr ? "[]" : ""} — ${count > 0 ? `${count} field${count > 1 ? "s" : ""}` : "none yet"}`}
-                  color={count > 0 ? "success" : "default"}
-                  variant={count > 0 ? "filled" : "outlined"}
-                  sx={{ fontFamily: "monospace", fontSize: "0.68rem", height: 22 }}
-                />
-              );
-            })}
-          </Stack>
-        </Paper>
-      )}
+          <Tooltip title="Each group becomes a labelled dot on this step's canvas block. Wire each dot independently to a different next step.">
+            <InfoOutlinedIcon sx={{ fontSize: "1rem", color: "text.disabled" }} />
+          </Tooltip>
+        </Stack>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+          Each group below becomes a dot on this step&apos;s canvas block — you can wire each one to a different next step.
+          {schemaFields && (
+            <> The AI uses the name <Box component="span" sx={{ fontFamily: "monospace", fontWeight: 600 }}>{schemaFields.topKey}[]</Box> — it has been added as a group for you.</>
+          )}
+        </Typography>
+        <Stack direction="row" flexWrap="wrap" gap={0.75} sx={{ mb: 1 }}>
+          {writeKeys.map((key) => {
+            const count = coverageByKey[key] ?? 0;
+            return (
+              <Chip
+                key={key}
+                size="small"
+                label={`${key}[] — ${count > 0 ? `${count} field${count > 1 ? "s" : ""}` : "none yet"}`}
+                color={count > 0 ? "success" : "default"}
+                variant={count > 0 ? "filled" : "outlined"}
+                sx={{ fontFamily: "monospace", fontSize: "0.8rem", height: 28 }}
+              />
+            );
+          })}
+        </Stack>
+        {/* Allow user to add a new named output group */}
+        <AddGroupButton onAdd={(name) => setExtraWriteKeys((prev) => prev.includes(name) ? prev : [...prev, name])} />
+      </Paper>
 
       {/* ── Part 2: What the AI adds ── */}
       <Box>
-        <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
-          <Typography variant="subtitle2">Name what the AI finds</Typography>
+        <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.75 }}>
+          <Typography variant="subtitle2" fontWeight={700}>Name what the AI finds</Typography>
           {unmapped === 0
-            ? <Chip size="small" label="All named ✓" color="success" sx={{ fontSize: "0.65rem", height: 18 }} />
-            : <Chip size="small" label={`${unmapped} still need a name`} color="warning" sx={{ fontSize: "0.65rem", height: 18 }} />}
+            ? <Chip size="small" label="All named ✓" color="success" sx={{ fontSize: "0.8rem", height: 26 }} />
+            : <Chip size="small" label={`${unmapped} still need a name`} color="warning" sx={{ fontSize: "0.8rem", height: 26 }} />}
           <Box sx={{ flex: 1 }} />
-          {unmapped > 0 && writeKeys.length > 0 && (
+          {undoStack && (
+            <Button size="small" variant="outlined" color="warning"
+              onClick={() => { onFieldMappingsChange(undoStack); setUndoStack(null); setAutoFillPreview(null); }}
+              sx={{ fontSize: "0.8rem", textTransform: "none", flexShrink: 0 }}>
+              Undo auto-fill
+            </Button>
+          )}
+          {!autoFillPreview && unmapped > 0 && writeKeys.length > 0 && (
             <Button
               size="small"
               variant="outlined"
               onClick={() => {
-                const updated = fieldMappings.map((r) => {
+                const proposed = fieldMappings.map((r) => {
                   if (r.llmField === PIPELINE_GENERATED_SENTINEL) return r;
-                  if (r.statePath.trim()) return r; // don't overwrite existing choices
+                  if (r.statePath.trim()) return r;
                   return { ...r, statePath: autoMapField(r.llmField, writeKeys) };
                 });
-                onFieldMappingsChange(updated);
+                setAutoFillPreview(proposed);
               }}
-              sx={{ fontSize: "0.72rem", textTransform: "none", flexShrink: 0 }}
+              sx={{ fontSize: "0.8rem", textTransform: "none", flexShrink: 0 }}
             >
-              Auto-fill suggestions
+              Preview auto-fill
             </Button>
+          )}
+          {autoFillPreview && (
+            <Stack direction="row" spacing={0.5}>
+              <Button size="small" variant="contained" color="primary"
+                onClick={() => { setUndoStack(fieldMappings); onFieldMappingsChange(autoFillPreview); setAutoFillPreview(null); }}
+                sx={{ fontSize: "0.72rem", textTransform: "none" }}>
+                Apply
+              </Button>
+              <Button size="small" variant="outlined"
+                onClick={() => setAutoFillPreview(null)}
+                sx={{ fontSize: "0.72rem", textTransform: "none" }}>
+                Cancel
+              </Button>
+            </Stack>
           )}
         </Stack>
 
-        <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1.5 }}>
-          The AI returns these fields. For each one, choose which group it belongs to (using the dropdown) and give it a name. Those groups appear as connection points on the canvas.
+        {autoFillPreview && (
+          <Alert severity="info" sx={{ fontSize: "0.8rem", mb: 1 }} icon={false}>
+            <strong>Preview:</strong> Names shown below are what auto-fill would apply to unmapped fields. Click <strong>Apply</strong> to use them, or <strong>Cancel</strong> to discard.
+          </Alert>
+        )}
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+          The AI returns these fields. For each one, choose which group it belongs to and give it a name. Those groups appear as connection points on the canvas.
           {schemaFields && (
-            <> The AI calls them <Box component="span" sx={{ fontFamily: "monospace", fontWeight: 600 }}>{schemaFields.topKey}[]</Box> internally — you can rename them here.</>
+            <> The AI calls them <Box component="span" sx={{ fontFamily: "monospace", fontWeight: 600 }}>{schemaFields.topKey}[]</Box> — you can rename them here.</>
           )}
         </Typography>
 
         {/* Column headers */}
-        <Stack direction="row" spacing={1} sx={{ px: 0.5, mb: 0.5 }}>
-          <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ flex: "0 0 150px", fontSize: "0.65rem" }}>AI RETURNS THIS</Typography>
-          <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ flex: "0 0 70px", fontSize: "0.65rem" }}>TYPE</Typography>
-          <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ flex: 1, fontSize: "0.65rem" }}>SAVE THIS OUTPUT AS</Typography>
+        <Stack direction="row" spacing={1} sx={{ px: 0.5, mb: 0.75 }}>
+          <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ flex: "0 0 150px", fontSize: "0.75rem" }}>The AI finds</Typography>
+          <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ flex: "0 0 70px", fontSize: "0.75rem" }}>Type</Typography>
+          <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ flex: 1, fontSize: "0.75rem" }}>Save as</Typography>
           <Box sx={{ width: 28 }} />
         </Stack>
 
         <Stack spacing={0.75}>
-          {aiRows.map((row) => {
+          {(autoFillPreview ?? fieldMappings).filter((r) => r.llmField !== PIPELINE_GENERATED_SENTINEL).map((row) => {
             const { topKey: rowTopKey, subField: rowSubField } = parseStatePath(row.statePath);
             const isKnownKey = rowTopKey ? writeKeys.includes(rowTopKey) : true;
             const isCustomMode = rowTopKey === "__custom__" || (rowTopKey && !writeKeys.includes(rowTopKey) && writeKeys.length > 0);
-            const needsSubField = ARRAY_OUTPUT_KEYS.has(rowTopKey);
+            // All output groups use the key[].field format for AI steps
+            const needsSubField = Boolean(rowTopKey) && rowTopKey !== "__custom__" && isKnownKey;
             const showUnrecognisedWarning = row.statePath.trim() && !isKnownKey && writeKeys.length > 0;
 
             return (
@@ -1143,14 +1068,14 @@ function SchemaAlignmentPanel({
                         value={row.llmField}
                         onChange={(e) => updateRow(row.id, { llmField: e.target.value })}
                         placeholder="e.g. terms[].fieldName"
-                        inputProps={{ style: { fontFamily: "monospace", fontSize: "0.72rem", padding: "3px 6px" } }}
+                        inputProps={{ style: { fontFamily: "monospace", fontSize: "0.8rem", padding: "4px 8px" } }}
                         sx={{ width: "100%" }}
                       />
                     ) : (
                       <Tooltip title={row.description || ""} placement="top-start">
                         <Box sx={{
                           fontFamily: "monospace",
-                          fontSize: "0.72rem",
+                          fontSize: "0.8rem",
                           color: row.required ? "text.primary" : "text.secondary",
                           fontWeight: row.required ? 600 : 400,
                           whiteSpace: "nowrap",
@@ -1165,7 +1090,7 @@ function SchemaAlignmentPanel({
                   </Box>
 
                   {/* Type */}
-                  <Box sx={{ flex: "0 0 70px", fontFamily: "monospace", fontSize: "0.65rem", color: "info.main", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", pt: 0.75 }}>
+                  <Box sx={{ flex: "0 0 70px", fontFamily: "monospace", fontSize: "0.78rem", color: "info.main", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", pt: 0.5 }}>
                     {row.type || "—"}
                   </Box>
 
@@ -1187,22 +1112,25 @@ function SchemaAlignmentPanel({
                             }}
                             displayEmpty
                             renderValue={(val) => (
-                              <Box sx={{ fontFamily: "monospace", fontSize: "0.72rem" }}>
-                                {val === "" ? <Box component="span" sx={{ color: "text.disabled" }}>— output —</Box> : val === "__custom__" ? "custom…" : val}
+                              <Box sx={{ fontFamily: "monospace", fontSize: "0.8rem" }}>
+                                {val === "" ? <Box component="span" sx={{ color: "text.disabled" }}>— choose group —</Box> : val === "__custom__" ? "custom…" : val}
                               </Box>
                             )}
-                            sx={{ fontSize: "0.72rem", "& .MuiSelect-select": { py: "3px", px: "8px" } }}
+                            sx={{ fontSize: "0.8rem", "& .MuiSelect-select": { py: "4px", px: "8px" } }}
                           >
-                            <MenuItem value="" disabled sx={{ fontSize: "0.75rem" }}>
-                              <em>Select output key</em>
+                            <MenuItem value="" disabled sx={{ fontSize: "0.8rem" }}>
+                              <em>Choose a group</em>
                             </MenuItem>
                             {writeKeys.map((k) => (
-                              <MenuItem key={k} value={k} sx={{ fontFamily: "monospace", fontSize: "0.75rem" }}>
-                                {k}{ARRAY_OUTPUT_KEYS.has(k) ? "[]" : ""}
+                              <MenuItem key={k} value={k} sx={{ fontFamily: "monospace", fontSize: "0.8rem" }}>
+                                {k}[]
+                                {schemaFields?.topKey === k && (
+                                  <Chip size="small" label="from AI" sx={{ ml: 1, height: 18, fontSize: "0.72rem" }} />
+                                )}
                               </MenuItem>
                             ))}
-                            <MenuItem value="__custom__" sx={{ fontSize: "0.75rem", color: "text.secondary" }}>
-                              custom…
+                            <MenuItem value="__custom__" sx={{ fontSize: "0.8rem", color: "text.secondary" }}>
+                              Create a new group…
                             </MenuItem>
                           </Select>
                         </FormControl>
@@ -1210,14 +1138,14 @@ function SchemaAlignmentPanel({
                         {/* Sub-field name — shown for object[] keys */}
                         {needsSubField && !isCustomMode && (
                           <>
-                            <Typography variant="caption" sx={{ fontFamily: "monospace", color: "text.disabled", flexShrink: 0 }}>[].</Typography>
+                            <Typography variant="body2" sx={{ fontFamily: "monospace", color: "text.disabled", flexShrink: 0 }}>[].</Typography>
                             <TextField
                               size="small"
                               value={rowSubField}
                               onChange={(e) => updateRow(row.id, { statePath: buildStatePath(rowTopKey, e.target.value) })}
                               placeholder="field name"
                               error={row.required && !rowSubField.trim()}
-                              inputProps={{ style: { fontFamily: "monospace", fontSize: "0.72rem", padding: "3px 6px" } }}
+                              inputProps={{ style: { fontFamily: "monospace", fontSize: "0.8rem", padding: "4px 8px" } }}
                               sx={{ flex: 1, minWidth: 80 }}
                             />
                           </>
@@ -1231,7 +1159,7 @@ function SchemaAlignmentPanel({
                             onChange={(e) => updateRow(row.id, { statePath: e.target.value })}
                             placeholder="e.g. entities[].text"
                             error={row.required && !row.statePath.trim()}
-                            inputProps={{ style: { fontFamily: "monospace", fontSize: "0.72rem", padding: "3px 6px" } }}
+                            inputProps={{ style: { fontFamily: "monospace", fontSize: "0.8rem", padding: "4px 8px" } }}
                             sx={{ flex: 1, minWidth: 100 }}
                           />
                         )}
@@ -1245,7 +1173,7 @@ function SchemaAlignmentPanel({
                         placeholder="e.g. entities[].text"
                         error={row.required && !row.statePath.trim()}
                         helperText={row.required && !row.statePath.trim() ? "Required — give this field a name" : undefined}
-                        inputProps={{ style: { fontFamily: "monospace", fontSize: "0.72rem", padding: "3px 6px" } }}
+                        inputProps={{ style: { fontFamily: "monospace", fontSize: "0.8rem", padding: "4px 8px" } }}
                         sx={{ width: "100%" }}
                       />
                     )}
@@ -1263,9 +1191,9 @@ function SchemaAlignmentPanel({
                 {/* Unrecognised output key warning */}
                 {showUnrecognisedWarning && (
                   <Stack direction="row" alignItems="center" spacing={0.5} sx={{ pl: "228px" }}>
-                    <WarningAmberIcon sx={{ fontSize: 13, color: "warning.main" }} />
-                    <Typography variant="caption" color="warning.main" sx={{ fontSize: "0.67rem" }}>
-                      &ldquo;{rowTopKey}&rdquo; is not one of the named outputs for this step — later steps won&apos;t be able to pick it up
+                    <WarningAmberIcon sx={{ fontSize: 16, color: "warning.main" }} />
+                    <Typography variant="body2" color="warning.main" sx={{ fontSize: "0.78rem" }}>
+                      &ldquo;{rowTopKey}&rdquo; is not one of the named outputs — later steps won&apos;t be able to pick it up
                     </Typography>
                   </Stack>
                 )}
@@ -1284,13 +1212,13 @@ function SchemaAlignmentPanel({
           size="small"
           variant="outlined"
           onClick={addCustomRow}
-          sx={{ mt: 1.5, alignSelf: "flex-start", fontSize: "0.75rem", textTransform: "none" }}
+          sx={{ mt: 1.5, alignSelf: "flex-start", fontSize: "0.8rem", textTransform: "none" }}
         >
           + Add an extra field
         </Button>
 
-        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1, fontSize: "0.67rem" }}>
-          * required — must be saved before continuing &nbsp;·&nbsp; Hover a field name to see its description
+        <Typography variant="body2" color="text.secondary" sx={{ display: "block", mt: 1, fontSize: "0.78rem" }}>
+          * Required — must be saved before you can continue. Hover a field name to see its description.
         </Typography>
       </Box>
     </Stack>
@@ -1298,8 +1226,665 @@ function SchemaAlignmentPanel({
 }
 
 // ── Action configurator ───────────────────────────────────────────────────────
+// ── Parallel / Merge branch configuration ────────────────────────────────────
+
+function BranchConfigPanel({
+  nodeType,
+  branches,
+  onBranchesChange,
+}: {
+  nodeType: "parallel" | "merge";
+  branches: string[];
+  onBranchesChange: (branches: string[]) => void;
+}) {
+  const label = nodeType === "parallel" ? "output branch" : "input branch";
+  const addBranch = () => onBranchesChange([...branches, `branch_${String.fromCharCode(97 + branches.length)}`]);
+  const removeBranch = (i: number) => { if (branches.length > 2) onBranchesChange(branches.filter((_, idx) => idx !== i)); };
+  const renameBranch = (i: number, val: string) => onBranchesChange(branches.map((b, idx) => (idx === i ? val.replace(/[^a-z0-9_]/gi, "_").toLowerCase() : b)));
+
+  return (
+    <Stack spacing={2}>
+      <Box>
+        <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>
+          {nodeType === "parallel" ? "Output branches" : "Input branches"}
+        </Typography>
+        <Typography variant="caption" color="text.secondary">
+          Each branch becomes a separate {label} on this node. Name them to match the canvas wires.
+        </Typography>
+      </Box>
+      <Stack spacing={1}>
+        {branches.map((b, i) => (
+          <Stack key={i} direction="row" spacing={1} alignItems="center">
+            <TextField
+              size="small"
+              value={b}
+              onChange={(e) => renameBranch(i, e.target.value)}
+              inputProps={{ style: { fontFamily: "monospace", fontSize: "0.8rem" } }}
+              sx={{ flex: 1 }}
+            />
+            <IconButton size="small" onClick={() => removeBranch(i)} disabled={branches.length <= 2}
+              sx={{ color: "text.disabled", "&:hover": { color: "error.main" } }}>
+              <CloseIcon sx={{ fontSize: "0.9rem" }} />
+            </IconButton>
+          </Stack>
+        ))}
+      </Stack>
+      <Button size="small" variant="outlined" onClick={addBranch}
+        sx={{ alignSelf: "flex-start", textTransform: "none", fontSize: "0.78rem" }}>
+        + Add {label}
+      </Button>
+      {branches.length < 2 && (
+        <Alert severity="warning" sx={{ fontSize: "0.78rem" }}>Minimum 2 branches required.</Alert>
+      )}
+    </Stack>
+  );
+}
+
+// ── Transform node operations ─────────────────────────────────────────────────
+
+type TransformOp = "rename" | "filter" | "compute";
+
+interface TransformOperation {
+  id: string;
+  op: TransformOp;
+  sourceField: string;
+  targetField: string;
+  expression: string;
+}
+
+function TransformConfigPanel({
+  operations,
+  onOperationsChange,
+}: {
+  operations: TransformOperation[];
+  onOperationsChange: (ops: TransformOperation[]) => void;
+}) {
+  const addOp = (op: TransformOp) => onOperationsChange([
+    ...operations,
+    { id: `op_${Date.now()}`, op, sourceField: "", targetField: "", expression: "" },
+  ]);
+  const removeOp = (id: string) => onOperationsChange(operations.filter((o) => o.id !== id));
+  const updateOp = (id: string, patch: Partial<TransformOperation>) =>
+    onOperationsChange(operations.map((o) => (o.id === id ? { ...o, ...patch } : o)));
+
+  return (
+    <Stack spacing={2}>
+      <Box>
+        <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>Transform operations</Typography>
+        <Typography variant="caption" color="text.secondary">
+          Add operations to reshape the data as it passes through this step.
+        </Typography>
+      </Box>
+      {operations.length === 0 && (
+        <Alert severity="info" sx={{ fontSize: "0.78rem" }} icon={false}>
+          No operations yet. Add one below to start reshaping data.
+        </Alert>
+      )}
+      <Stack spacing={1.5}>
+        {operations.map((o) => (
+          <Paper key={o.id} variant="outlined" sx={{ p: 1.5, borderRadius: 2 }}>
+            <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
+              <Select
+                size="small"
+                value={o.op}
+                onChange={(e) => updateOp(o.id, { op: e.target.value as TransformOp })}
+                sx={{ fontSize: "0.78rem", minWidth: 110 }}
+              >
+                <MenuItem value="rename">Rename field</MenuItem>
+                <MenuItem value="filter">Filter rows</MenuItem>
+                <MenuItem value="compute">Compute value</MenuItem>
+              </Select>
+              <Box sx={{ flex: 1 }} />
+              <IconButton size="small" onClick={() => removeOp(o.id)}
+                sx={{ color: "text.disabled", "&:hover": { color: "error.main" } }}>
+                <CloseIcon sx={{ fontSize: "0.9rem" }} />
+              </IconButton>
+            </Stack>
+            {o.op === "rename" && (
+              <Stack direction="row" spacing={1} alignItems="center">
+                <TextField size="small" label="From field" value={o.sourceField}
+                  onChange={(e) => updateOp(o.id, { sourceField: e.target.value })}
+                  inputProps={{ style: { fontFamily: "monospace", fontSize: "0.75rem" } }} sx={{ flex: 1 }} />
+                <Typography variant="caption" color="text.disabled">→</Typography>
+                <TextField size="small" label="To field" value={o.targetField}
+                  onChange={(e) => updateOp(o.id, { targetField: e.target.value })}
+                  inputProps={{ style: { fontFamily: "monospace", fontSize: "0.75rem" } }} sx={{ flex: 1 }} />
+              </Stack>
+            )}
+            {o.op === "filter" && (
+              <TextField size="small" fullWidth label="Keep rows where…"
+                value={o.expression}
+                placeholder='e.g. assertion != "negated"'
+                onChange={(e) => updateOp(o.id, { expression: e.target.value })}
+                inputProps={{ style: { fontFamily: "monospace", fontSize: "0.75rem" } }} />
+            )}
+            {o.op === "compute" && (
+              <Stack spacing={1}>
+                <TextField size="small" fullWidth label="New field name" value={o.targetField}
+                  onChange={(e) => updateOp(o.id, { targetField: e.target.value })}
+                  inputProps={{ style: { fontFamily: "monospace", fontSize: "0.75rem" } }} />
+                <TextField size="small" fullWidth label="Expression" value={o.expression}
+                  placeholder='e.g. f"{text} ({semantic_tag})"'
+                  onChange={(e) => updateOp(o.id, { expression: e.target.value })}
+                  inputProps={{ style: { fontFamily: "monospace", fontSize: "0.75rem" } }} />
+              </Stack>
+            )}
+          </Paper>
+        ))}
+      </Stack>
+      <Stack direction="row" spacing={1}>
+        {(["rename", "filter", "compute"] as TransformOp[]).map((op) => (
+          <Button key={op} size="small" variant="outlined" onClick={() => addOp(op)}
+            sx={{ fontSize: "0.72rem", textTransform: "none" }}>
+            + {op === "rename" ? "Rename" : op === "filter" ? "Filter" : "Compute"}
+          </Button>
+        ))}
+      </Stack>
+    </Stack>
+  );
+}
+
+// ── Visual step-type palette — two-level: category cards → task cards ─────────
+
+const CATEGORY_META: Record<string, { description: string; color: string }> = {
+  "Clinical AI":  { description: "Use AI to read patient notes and extract clinical facts.",           color: "#4CAF50" },
+  "Quality":      { description: "Verify and double-check results before they are saved.",              color: "#F44336" },
+  "Data":         { description: "Save the final results to the right place.",                          color: "#607D8B" },
+  "Reports":      { description: "Generate clinical summaries, timelines, and episode records.",        color: "#00BCD4" },
+  "Safety":       { description: "Flag overdue actions and suggest the next best clinical step.",       color: "#FF5722" },
+};
+
+function StepTypePalette({
+  selected,
+  onSelect,
+}: {
+  selected: string;
+  onSelect: (id: string) => void;
+}) {
+  const [search, setSearch] = useState("");
+
+  // Group all steps by category (used for both levels)
+  const allByCategory = useMemo(() => {
+    const groups: Record<string, typeof SUBGRAPH_OPTIONS> = {};
+    for (const s of SUBGRAPH_OPTIONS) {
+      const cat = (s as typeof s & { category?: string }).category ?? "Other";
+      if (!groups[cat]) groups[cat] = [];
+      groups[cat].push(s);
+    }
+    return groups;
+  }, []);
+
+  // When a step is already selected, start drilled into its category
+  const [browsedCategory, setBrowsedCategory] = useState<string | null>(() => {
+    if (!selected) return null;
+    const found = SUBGRAPH_OPTIONS.find((s) => s.id === selected);
+    return (found as typeof found & { category?: string })?.category ?? null;
+  });
+
+  // ── Search mode — flat filtered list across all categories ──
+  if (search.trim()) {
+    const q = search.toLowerCase();
+    const filtered = SUBGRAPH_OPTIONS.filter(
+      (s) => s.label.toLowerCase().includes(q) || s.description.toLowerCase().includes(q)
+    );
+    return (
+      <Stack spacing={1.5}>
+        <TextField size="small" fullWidth placeholder="Search step types…" value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          inputProps={{ style: { fontSize: "0.9rem" } }} />
+        {filtered.length === 0 ? (
+          <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center", py: 3 }}>
+            No step types match &ldquo;{search}&rdquo;
+          </Typography>
+        ) : (
+          <Stack spacing={0.75}>
+            {filtered.map((s) => <StepCard key={s.id} step={s} selected={selected} onSelect={onSelect} />)}
+          </Stack>
+        )}
+      </Stack>
+    );
+  }
+
+  // ── Drilled into a category — show task cards + back button ──
+  if (browsedCategory) {
+    const steps = allByCategory[browsedCategory] ?? [];
+    const meta = CATEGORY_META[browsedCategory];
+    return (
+      <Stack spacing={1.5}>
+        <TextField size="small" fullWidth placeholder="Search step types…" value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          inputProps={{ style: { fontSize: "0.9rem" } }} />
+        <Stack direction="row" alignItems="center" spacing={1}>
+          <Button
+            size="small"
+            startIcon={<ArrowBackIcon />}
+            onClick={() => setBrowsedCategory(null)}
+            sx={{ textTransform: "none", fontSize: "0.85rem", color: "text.secondary", pl: 0, minWidth: 0 }}
+          >
+            All categories
+          </Button>
+          <Typography variant="body2" color="text.disabled">›</Typography>
+          <Box sx={{ width: 10, height: 10, borderRadius: "50%", bgcolor: meta?.color ?? "grey.400", flexShrink: 0 }} />
+          <Typography variant="body2" fontWeight={700}>{browsedCategory}</Typography>
+        </Stack>
+        <Stack spacing={0.75}>
+          {steps.map((s) => <StepCard key={s.id} step={s} selected={selected} onSelect={onSelect} />)}
+        </Stack>
+      </Stack>
+    );
+  }
+
+  // ── Top level — category cards grid ──
+  return (
+    <Stack spacing={1.5}>
+      <TextField size="small" fullWidth placeholder="Search all step types…" value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        inputProps={{ style: { fontSize: "0.9rem" } }} />
+      <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1.5 }}>
+        {Object.entries(allByCategory).map(([cat, steps]) => {
+          const meta = CATEGORY_META[cat];
+          const catColor = meta?.color ?? steps[0]?.color ?? "#607D8B";
+          const hasSelected = steps.some((s) => s.id === selected);
+          return (
+            <Paper
+              key={cat}
+              variant="outlined"
+              onClick={() => setBrowsedCategory(cat)}
+              sx={{
+                p: 2,
+                cursor: "pointer",
+                borderRadius: 2,
+                borderLeft: `5px solid ${catColor}`,
+                borderColor: hasSelected ? catColor : "divider",
+                borderWidth: hasSelected ? 2 : 1,
+                bgcolor: hasSelected ? `${catColor}0e` : "background.paper",
+                transition: "all 0.15s ease",
+                "&:hover": { bgcolor: `${catColor}08`, borderColor: catColor },
+              }}
+            >
+              <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>{cat}</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5, fontSize: "0.82rem", lineHeight: 1.45 }}>
+                {meta?.description ?? ""}
+              </Typography>
+              {/* Dot row showing each step in the category */}
+              <Stack direction="row" spacing={0.75} alignItems="center" flexWrap="wrap" useFlexGap>
+                {steps.map((s) => (
+                  <Tooltip key={s.id} title={s.label} placement="top">
+                    <Box sx={{
+                      width: selected === s.id ? 12 : 9,
+                      height: selected === s.id ? 12 : 9,
+                      borderRadius: "50%",
+                      bgcolor: s.color,
+                      outline: selected === s.id ? `2px solid ${s.color}` : "none",
+                      outlineOffset: 2,
+                      transition: "all 0.15s ease",
+                      flexShrink: 0,
+                    }} />
+                  </Tooltip>
+                ))}
+              </Stack>
+              <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
+                {steps.length} step type{steps.length !== 1 ? "s" : ""}
+                {hasSelected && (
+                  <Box component="span" sx={{ ml: 1, color: catColor, fontWeight: 700 }}>· selected</Box>
+                )}
+              </Typography>
+            </Paper>
+          );
+        })}
+      </Box>
+    </Stack>
+  );
+}
+
+function StepCard({
+  step,
+  selected,
+  onSelect,
+}: {
+  step: typeof SUBGRAPH_OPTIONS[number];
+  selected: string;
+  onSelect: (id: string) => void;
+}) {
+  const isSelected = selected === step.id;
+  return (
+    <Paper
+      variant="outlined"
+      onClick={() => onSelect(step.id)}
+      sx={{
+        p: 1.75,
+        cursor: "pointer",
+        borderRadius: 2,
+        borderLeft: `5px solid ${step.color}`,
+        borderColor: isSelected ? step.color : "divider",
+        borderWidth: isSelected ? 2 : 1,
+        bgcolor: isSelected ? `${step.color}12` : "background.paper",
+        transition: "all 0.15s ease",
+        "&:hover": { bgcolor: `${step.color}08`, borderColor: step.color },
+      }}
+    >
+      <Stack direction="row" alignItems="flex-start" spacing={1.25}>
+        <Box sx={{ width: 10, height: 10, borderRadius: "50%", bgcolor: step.color, mt: "5px", flexShrink: 0 }} />
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <Typography variant="body1" fontWeight={isSelected ? 700 : 500}>{step.label}</Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.45, display: "block", mt: 0.25 }}>
+            {step.description}
+          </Typography>
+        </Box>
+        {isSelected && (
+          <Chip size="small" label="Selected ✓" color="primary" sx={{ height: 22, fontSize: "0.75rem", flexShrink: 0, mt: 0.25 }} />
+        )}
+      </Stack>
+    </Paper>
+  );
+}
+
+// ── Source node configurator ─────────────────────────────────────────────────
+
+type SamplePreview = {
+  nodeLabel: string;
+  textProperty: string;
+  properties: Record<string, unknown>;
+};
+
+function SourceConfiguratorContent({
+  nodeId,
+  nodeData,
+  onUpdate,
+  onClose,
+  onRemove,
+}: {
+  nodeId: string;
+  nodeData: Record<string, unknown>;
+  onUpdate: (patch: Record<string, unknown>) => void;
+  onClose: () => void;
+  onRemove: () => void;
+}) {
+  const currentType: SourceType = (nodeData.sourceType as SourceType) ?? "encounter_text";
+  const meta = SOURCE_DEFINITIONS[currentType];
+  const nodeLabel = (nodeData.input_node_label as string) || "";
+  const textProperty = (nodeData.input_text_property as string) || "text";
+  const graph = currentType === "knowledge_graph" ? "knowledge" : "patient";
+
+  const [preview, setPreview] = useState<SamplePreview | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+
+  // Auto-fetch a sample record whenever node label or text property changes
+  useEffect(() => {
+    if (!nodeLabel || !["patient_graph", "knowledge_graph"].includes(currentType)) {
+      setPreview(null);
+      setPreviewError(null);
+      return;
+    }
+    let cancelled = false;
+    setPreviewLoading(true);
+    setPreviewError(null);
+    const params = new URLSearchParams({ node_label: nodeLabel, graph, text_property: textProperty });
+    fetch(`/api/training/schema/sample-node?${params}`)
+      .then(async (res) => {
+        if (cancelled) return;
+        if (res.status === 404) {
+          setPreviewError("empty");
+          setPreview(null);
+        } else if (!res.ok) {
+          const err = await res.json().catch(() => ({ detail: res.statusText }));
+          setPreviewError(err.detail ?? "Could not load sample");
+          setPreview(null);
+        } else {
+          const data: SamplePreview = await res.json();
+          setPreview(data);
+          // Auto-populate outputs from actual record fields (all selected by default).
+          // This ensures the output handles match what the database actually returns.
+          const actualKeys = Object.keys(data.properties);
+          onUpdate({ outputs: actualKeys });
+        }
+      })
+      .catch((e) => { if (!cancelled) setPreviewError(e.message ?? "Network error"); })
+      .finally(() => { if (!cancelled) setPreviewLoading(false); });
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nodeLabel, textProperty, graph, currentType]);
+
+  // Auto-select the first record type when switching to a database source
+  useEffect(() => {
+    if (currentType === "patient_graph" && !nodeLabel) {
+      onUpdate({ input_node_label: "EncounterCandidate", input_text_property: "text" });
+    } else if (currentType === "knowledge_graph" && !nodeLabel) {
+      onUpdate({ input_node_label: "TrainingCandidate", input_text_property: "text" });
+    }
+  // Only trigger when source type changes — not on every render
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentType]);
+
+  const PATIENT_RECORD_TYPES = [
+    { v: "EncounterCandidate", d: "Encounter text awaiting coding" },
+    { v: "Encounter",          d: "Clinical encounter / consultation" },
+    { v: "Patient",            d: "Patient root record" },
+    { v: "ReviewTask",         d: "Human review task" },
+    { v: "EpisodeOfCare",      d: "Grouped episode of care" },
+    { v: "SafetyNetAlert",     d: "Overdue investigation alert" },
+  ];
+  const KNOWLEDGE_RECORD_TYPES = [
+    { v: "TrainingCandidate", d: "De-identified text for gold labelling" },
+    { v: "GoldLabel",         d: "Verified NER training label" },
+    { v: "Concept",           d: "SNOMED CT concept" },
+    { v: "CodingDecision",    d: "Recorded coding decision" },
+    { v: "PromptConfig",      d: "AI prompt configuration" },
+  ];
+  const TEXT_FIELDS = [
+    { v: "text",              d: "Main text / body" },
+    { v: "raw_text",          d: "Unprocessed original text" },
+    { v: "deidentified_text", d: "De-identified text" },
+    { v: "content",           d: "Document content" },
+  ];
+
+  const isGraphSource = currentType === "patient_graph" || currentType === "knowledge_graph";
+
+  return (
+    <>
+      <Box sx={{ px: 3, pt: 2.5, pb: 1, overflowY: "auto", maxHeight: "80vh" }}>
+        <Typography variant="h6" fontWeight={700} gutterBottom>Data source</Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          This node represents a data source on the canvas. Wire its outputs to any steps that need them.
+        </Typography>
+
+        {/* Source type picker */}
+        <Stack spacing={1.5}>
+          {(Object.entries(SOURCE_DEFINITIONS) as [SourceType, typeof SOURCE_DEFINITIONS[SourceType]][]).map(([type, m]) => (
+            <Paper
+              key={type}
+              variant="outlined"
+              onClick={() => onUpdate({ sourceType: type, label: m.label, outputs: m.outputs })}
+              sx={{
+                p: 1.5, cursor: "pointer", borderRadius: 2,
+                borderColor: currentType === type ? m.color : "divider",
+                borderWidth: currentType === type ? 2 : 1,
+                bgcolor: currentType === type ? `${m.color}10` : "transparent",
+              }}
+            >
+              <Typography variant="body2" fontWeight={currentType === type ? 700 : 500}>{m.label}</Typography>
+              <Typography variant="caption" color="text.secondary">{m.description}</Typography>
+              <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.25, fontFamily: "monospace" }}>
+                outputs: {m.outputs.join(", ")}
+              </Typography>
+            </Paper>
+          ))}
+        </Stack>
+
+        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 2 }}>
+          <strong>Tip:</strong> Add one source node per data source, then wire it to multiple steps that all need the same data.
+        </Typography>
+
+        {/* Graph picker + live record preview */}
+        {isGraphSource && (
+          <Paper variant="outlined" sx={{ p: 2, mt: 2, borderRadius: 2 }}>
+            <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>
+              {currentType === "patient_graph" ? "Which patient records?" : "Which knowledge records?"}
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+              Choose the type of record to read, and which field holds the text.
+            </Typography>
+            <Stack spacing={1.5}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Record type</InputLabel>
+                <Select
+                  value={nodeLabel}
+                  label="Record type"
+                  onChange={(e) => onUpdate({ input_node_label: e.target.value })}
+                >
+                  {(currentType === "patient_graph" ? PATIENT_RECORD_TYPES : KNOWLEDGE_RECORD_TYPES).map(({ v, d }) => (
+                    <MenuItem key={v} value={v}>
+                      <Typography variant="body2">{d}</Typography>
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              <FormControl fullWidth size="small">
+                <InputLabel>Text field</InputLabel>
+                <Select
+                  value={textProperty}
+                  label="Text field"
+                  onChange={(e) => onUpdate({ input_text_property: e.target.value })}
+                >
+                  {TEXT_FIELDS.map(({ v, d }) => (
+                    <MenuItem key={v} value={v}>
+                      <Typography variant="body2">{d}</Typography>
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              <Stack direction="row" spacing={1}>
+                <TextField
+                  size="small" label="Filter field (optional)" sx={{ flex: 1 }}
+                  placeholder="e.g. status"
+                  value={(nodeData.input_filter_property as string) || ""}
+                  onChange={(e) => onUpdate({ input_filter_property: e.target.value })}
+                />
+                <TextField
+                  size="small" label="= Value" sx={{ flex: 1 }}
+                  placeholder="e.g. pending"
+                  value={(nodeData.input_filter_value as string) || ""}
+                  onChange={(e) => onUpdate({ input_filter_value: e.target.value })}
+                />
+              </Stack>
+            </Stack>
+
+            {/* ── Record preview ───────────────────────────────────────────── */}
+            <Box sx={{ mt: 2 }}>
+              <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 0.75 }}>
+                <Typography variant="subtitle2" fontWeight={700}>
+                  Sample record preview
+                </Typography>
+                {previewLoading && <CircularProgress size={14} />}
+              </Box>
+
+              {previewError && (
+                <Alert severity={previewError === "empty" ? "info" : "warning"} sx={{ fontSize: "0.78rem", borderRadius: 1.5 }}>
+                  {previewError === "empty"
+                    ? `No sample ${nodeLabel} records available to preview right now — your field choices will still work correctly.`
+                    : previewError}
+                </Alert>
+              )}
+
+              {!previewLoading && !previewError && preview && (
+                <>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.75 }}>
+                    Tick the fields you want to expose as output handles on the canvas.
+                  </Typography>
+                  <Box sx={{ borderRadius: 1.5, border: "1px solid", borderColor: "divider", overflow: "hidden" }}>
+                    {Object.entries(preview.properties).map(([key, value], idx) => {
+                      const isTextProp = key === preview.textProperty;
+                      const strVal = value === null || value === undefined ? "—" : String(value);
+                      const currentOutputs: string[] = (nodeData.outputs as string[]) ?? [];
+                      const isChecked = currentOutputs.includes(key);
+                      return (
+                        <Box
+                          key={key}
+                          sx={{
+                            display: "flex",
+                            alignItems: "flex-start",
+                            gap: 1,
+                            px: 1,
+                            py: 0.5,
+                            bgcolor: isTextProp ? `${meta.color}10` : idx % 2 === 0 ? "grey.50" : "background.paper",
+                            borderBottom: "1px solid",
+                            borderColor: "divider",
+                            "&:last-child": { borderBottom: 0 },
+                          }}
+                        >
+                          <Checkbox
+                            size="small"
+                            checked={isChecked}
+                            onChange={(e) => {
+                              const updated = e.target.checked
+                                ? [...currentOutputs, key]
+                                : currentOutputs.filter((k) => k !== key);
+                              onUpdate({ outputs: updated });
+                            }}
+                            sx={{ p: 0.25, mt: 0.25, flexShrink: 0 }}
+                          />
+                          <Box sx={{ flex: "0 0 130px", display: "flex", alignItems: "center", gap: 0.5, pt: 0.25 }}>
+                            <Typography
+                              variant="caption"
+                              sx={{ fontFamily: "monospace", fontSize: "0.7rem", color: isTextProp ? meta.color : "text.secondary", fontWeight: isTextProp ? 700 : 400 }}
+                            >
+                              {key}
+                            </Typography>
+                            {isTextProp && (
+                              <Chip label="text" size="small" sx={{ height: 14, fontSize: "0.58rem", bgcolor: meta.color, color: "#fff" }} />
+                            )}
+                          </Box>
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              flex: 1,
+                              fontSize: "0.72rem",
+                              color: "text.primary",
+                              wordBreak: "break-word",
+                              lineHeight: 1.5,
+                              fontStyle: strVal === "—" ? "italic" : "normal",
+                            }}
+                          >
+                            {strVal}
+                          </Typography>
+                        </Box>
+                      );
+                    })}
+                  </Box>
+                </>
+              )}
+
+              {!previewLoading && !previewError && !preview && nodeLabel && (
+                <Typography variant="caption" color="text.disabled" sx={{ display: "block", mt: 0.5 }}>
+                  Loading preview…
+                </Typography>
+              )}
+            </Box>
+          </Paper>
+        )}
+      </Box>
+
+      <Box sx={{ px: 3, pb: 2.5, pt: 1.5, display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: 1, borderColor: "divider" }}>
+        <Button size="small" color="error" onClick={onRemove} sx={{ textTransform: "none" }}>
+          Remove source node
+        </Button>
+        <Button variant="contained" onClick={onClose} sx={{ textTransform: "none" }}>
+          Done
+        </Button>
+      </Box>
+    </>
+  );
+  // suppress unused nodeId warning — kept for future use
+  void nodeId;
+}
+
+// ── Step configurator ─────────────────────────────────────────────────────────
+
 function ActionConfigurator({
-  nodeId, initialConfig, onSave, onDelete, onClose, onPathwaySave, prevStepWrites, prevStepFieldMappings,
+  nodeId, initialConfig, onSave, onDelete, onClose, onPathwaySave, prevStepWrites, prevStepFieldMappings, prevStepSources,
 }: {
   nodeId: string;
   initialConfig: ActionConfig;
@@ -1309,6 +1894,7 @@ function ActionConfigurator({
   onPathwaySave: () => Promise<void>;
   prevStepWrites: string[] | null;
   prevStepFieldMappings: FieldMappingRow[] | null;
+  prevStepSources: Array<{ label: string; keys: string[] }>;
 }) {
   const [step, setStep] = useState(0);
   const [config, setConfig] = useState<ActionConfig>({ ...DEFAULT_CONFIG, ...initialConfig, params: initialConfig.params ?? {} });
@@ -1316,6 +1902,12 @@ function ActionConfigurator({
   const isNerOnlyPreset = !presetSupportsTemp;
   // "idle" | "saving" | "saved" | "error"
   const [autoSave, setAutoSave] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  // Pending subgraph change — shown in confirmation dialog before wiping config
+  const [pendingSubgraphId, setPendingSubgraphId] = useState<string | null>(null);
+  // Track which steps the user has visited (enables non-linear navigation)
+  const [visitedSteps, setVisitedSteps] = useState<Set<number>>(new Set([0]));
+  // Show a banner when temperature support changes due to preset selection
+  const [tempSupportChanged, setTempSupportChanged] = useState<boolean | null>(null);
 
   // Fire a non-blocking draft save to the server (called on each Next click).
   const backgroundSave = useCallback((latestConfig: ActionConfig) => {
@@ -1344,7 +1936,7 @@ function ActionConfigurator({
   const updateParam = (key: string, value: unknown) =>
     setConfig((prev) => ({ ...prev, params: { ...prev.params, [key]: value } }));
 
-  const handleSubgraphChange = (id: string) => {
+  const applySubgraphChange = (id: string) => {
     const opt = SUBGRAPH_OPTIONS.find((s) => s.id === id);
     setConfig((prev) => ({
       ...DEFAULT_CONFIG,
@@ -1353,6 +1945,28 @@ function ActionConfigurator({
       description: prev.description || opt?.description || "",
       params: {},
     }));
+  };
+
+  const handleSubgraphChange = (id: string) => {
+    if (id === config.subgraphId) return;
+    // If there's meaningful config already, ask before wiping it
+    const hasMeaningfulConfig = Boolean(
+      config.promptConfigId || config.modelPresetId ||
+      Object.keys(config.params).length > 0 ||
+      config.inputSource !== "previous_step"
+    );
+    if (hasMeaningfulConfig && config.subgraphId) {
+      setPendingSubgraphId(id);
+    } else {
+      applySubgraphChange(id);
+    }
+  };
+
+  const confirmSubgraphChange = () => {
+    if (pendingSubgraphId) {
+      applySubgraphChange(pendingSubgraphId);
+      setPendingSubgraphId(null);
+    }
   };
 
   // step indices shift when non-LLM (no Prompt step)
@@ -1367,7 +1981,7 @@ function ActionConfigurator({
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <Box sx={{
-        px: 3, pt: 2.5, pb: 2, flexShrink: 0,
+        px: 4, pt: 2.5, pb: 2, flexShrink: 0,
         borderBottom: 1, borderColor: "divider",
         bgcolor: subgraph ? `${subgraph.color}0d` : "grey.50",
         borderLeft: "4px solid",
@@ -1405,264 +2019,327 @@ function ActionConfigurator({
         )}
       </Box>
 
-      {/* ── Step progress indicator ─────────────────────────────────────────── */}
-      <Box sx={{ px: 3, pt: 2.25, pb: 1.5, flexShrink: 0, bgcolor: "background.paper" }}>
+      {/* ── Step progress indicator (circles are clickable for visited steps) ── */}
+      <Box sx={{ px: 4, pt: 2.25, pb: 1.5, flexShrink: 0, bgcolor: "background.paper" }}>
         <Box sx={{ display: "flex", alignItems: "flex-start" }}>
-          {wizardSteps.map((label, idx) => (
-            <Fragment key={label}>
-              <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0 }}>
-                <Box sx={{
-                  width: 28, height: 28, borderRadius: "50%",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  bgcolor: idx < step ? "primary.main" : idx === step ? "primary.main" : "grey.100",
-                  color: idx <= step ? "#fff" : "text.disabled",
-                  fontSize: "0.7rem", fontWeight: 700,
-                  border: "2px solid",
-                  borderColor: idx <= step ? "primary.main" : "grey.200",
-                  boxShadow: idx === step ? "0 0 0 4px rgba(25,118,210,0.12)" : "none",
-                  transition: "all 0.25s ease",
-                }}>
-                  {idx < step ? "✓" : idx + 1}
+          {wizardSteps.map((label, idx) => {
+            const isVisited = visitedSteps.has(idx);
+            const isActive = idx === step;
+            const isClickable = isVisited && !isActive;
+            return (
+              <Fragment key={label}>
+                <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0 }}>
+                  <Box
+                    onClick={() => isClickable && setStep(idx)}
+                    sx={{
+                      width: 28, height: 28, borderRadius: "50%",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      bgcolor: idx < step ? "primary.main" : isActive ? "primary.main" : "grey.100",
+                      color: idx <= step ? "#fff" : "text.disabled",
+                      fontSize: "0.7rem", fontWeight: 700,
+                      border: "2px solid",
+                      borderColor: idx <= step ? "primary.main" : "grey.200",
+                      boxShadow: isActive ? "0 0 0 4px rgba(25,118,210,0.12)" : "none",
+                      transition: "all 0.25s ease",
+                      cursor: isClickable ? "pointer" : "default",
+                      "&:hover": isClickable ? { opacity: 0.8, boxShadow: "0 0 0 3px rgba(25,118,210,0.2)" } : {},
+                    }}
+                  >
+                    {idx < step ? "✓" : idx + 1}
+                  </Box>
+                  <Typography sx={{
+                    mt: 0.75, fontSize: "0.59rem", textAlign: "center", lineHeight: 1.3,
+                    color: isActive ? "primary.main" : idx < step ? "text.secondary" : "text.disabled",
+                    fontWeight: isActive ? 700 : 400,
+                    cursor: isClickable ? "pointer" : "default",
+                  }}
+                    onClick={() => isClickable && setStep(idx)}
+                  >
+                    {label}
+                  </Typography>
                 </Box>
-                <Typography sx={{
-                  mt: 0.75, fontSize: "0.59rem", textAlign: "center", lineHeight: 1.3,
-                  color: idx === step ? "primary.main" : idx < step ? "text.secondary" : "text.disabled",
-                  fontWeight: idx === step ? 700 : 400,
-                }}>
-                  {label}
-                </Typography>
-              </Box>
-              {idx < wizardSteps.length - 1 && (
-                <Box sx={{
-                  flex: 1, height: 2, mt: "13px", mx: 0.75,
-                  bgcolor: idx < step ? "primary.main" : "grey.200",
-                  borderRadius: 1, transition: "background-color 0.25s ease",
-                }} />
-              )}
-            </Fragment>
-          ))}
+                {idx < wizardSteps.length - 1 && (
+                  <Box sx={{
+                    flex: 1, height: 2, mt: "13px", mx: 0.75,
+                    bgcolor: idx < step ? "primary.main" : "grey.200",
+                    borderRadius: 1, transition: "background-color 0.25s ease",
+                  }} />
+                )}
+              </Fragment>
+            );
+          })}
         </Box>
       </Box>
 
-      <Box sx={{ flex: 1, overflowY: "auto", px: 3, py: 2 }}>
+      <Box sx={{ flex: 1, overflowY: "auto", px: 4, py: 3 }}>
 
-        {/* ── Step 0: Subgraph ── */}
+        {/* ── Step 0: Step type picker (visual card palette) ── */}
         {step === 0 && (
-          <Stack spacing={2.5}>
-            <Box>
-              <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>What does this step do?</Typography>
-              <Typography variant="caption" color="text.secondary">
-                Choose the kind of task this step carries out in the pathway.
-              </Typography>
+          <Stack direction="row" spacing={3} sx={{ height: "100%", alignItems: "flex-start" }}>
+
+            {/* Left column — name and description */}
+            <Box sx={{ flex: "0 0 340px", display: "flex", flexDirection: "column", gap: 2 }}>
+              <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 2 }}>
+                <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>Name this step</Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>
+                  Give this step a short name so you can spot it on the canvas, and say in plain English what it does.
+                </Typography>
+                <Stack spacing={2.5}>
+                  <TextField
+                    label="Step name"
+                    size="small"
+                    fullWidth
+                    value={config.label}
+                    onChange={(e) => updateField("label", e.target.value)}
+                    helperText="Shown on the canvas block."
+                  />
+                  <TextField
+                    label="What does this step do?"
+                    size="small"
+                    fullWidth
+                    multiline
+                    minRows={4}
+                    value={config.description}
+                    onChange={(e) => updateField("description", e.target.value)}
+                    helperText="Plain English — shown in the pathway summary."
+                  />
+                </Stack>
+              </Paper>
             </Box>
-            <FormControl fullWidth size="small">
-              <InputLabel>Step type</InputLabel>
-              <Select value={config.subgraphId} label="Step type"
-                onChange={(e) => handleSubgraphChange(e.target.value)}>
-                {SUBGRAPH_OPTIONS.map((s) => (
-                  <MenuItem key={s.id} value={s.id}>
-                    <Stack>
-                      <Typography variant="body2" fontWeight={500}>{s.label}</Typography>
-                      <Typography variant="caption" color="text.secondary">{s.description}</Typography>
-                    </Stack>
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <Divider />
-            <Box>
-              <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>Step details</Typography>
-              <Typography variant="caption" color="text.secondary">
-                Name and describe this step for the pipeline canvas.
-              </Typography>
+
+            {/* Right column — step type palette */}
+            <Box sx={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 1.5 }}>
+              <Box>
+                <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>Choose the step type</Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Pick the kind of task this step carries out. Tap a card to select it.
+                </Typography>
+              </Box>
+              <StepTypePalette selected={config.subgraphId} onSelect={handleSubgraphChange} />
             </Box>
-            <TextField label="Display name" size="small" fullWidth value={config.label}
-              onChange={(e) => updateField("label", e.target.value)}
-              helperText="A friendly name shown on the canvas." />
-            <TextField label="What does this step do?" size="small" fullWidth multiline minRows={3}
-              value={config.description}
-              onChange={(e) => updateField("description", e.target.value)}
-              helperText="Plain English — shown in the pathway summary." />
+
           </Stack>
         )}
 
         {/* ── Step 1: Data flow ── */}
         {step === 1 && (
-          <Stack spacing={2.5}>
-            <Typography variant="subtitle2">What data does this step need and what does it produce?</Typography>
-            <DataFlowPanel
-              subgraphId={config.subgraphId}
-              prevStepWrites={config.inputSource === "previous_step" ? prevStepWrites : null}
-              prevStepFieldMappings={config.inputSource === "previous_step" ? prevStepFieldMappings : null}
-            />
-            <Divider />
+          <Stack direction="row" spacing={3} sx={{ alignItems: "flex-start" }}>
 
-            <FormControl fullWidth size="small">
-              <InputLabel>Where does data come from?</InputLabel>
-              <Select value={config.inputSource} label="Where does data come from?"
-                onChange={(e) => {
-                  updateField("inputSource", e.target.value);
-                  // clear Neo4j node config when switching away
-                  if (!["patient_graph", "knowledge_graph"].includes(e.target.value)) {
-                    updateParam("input_node_label", "");
-                    updateParam("input_text_property", "text");
-                    updateParam("input_filter_property", "");
-                    updateParam("input_filter_value", "");
-                  }
-                }}>
-                <MenuItem value="previous_step">Output of the previous step</MenuItem>
-                <MenuItem value="encounter_text">Clinical notes (start of pathway)</MenuItem>
-                <MenuItem value="patient_graph">Patient record database — pick a record type</MenuItem>
-                <MenuItem value="knowledge_graph">Clinical knowledge database — pick a record type</MenuItem>
-              </Select>
-            </FormControl>
+            {/* Left column — configurable controls */}
+            <Box sx={{ flex: "0 0 340px", display: "flex", flexDirection: "column", gap: 2 }}>
 
-            {/* Neo4j node + property picker — shown when reading from either graph */}
-            {(config.inputSource === "patient_graph" || config.inputSource === "knowledge_graph") && (
-              <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
-                <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ display: "block", mb: 1.5 }}>
-                  {config.inputSource === "patient_graph" ? "PATIENT GRAPH" : "KNOWLEDGE GRAPH"} — NODE QUERY
+              {/* Canvas connections card — shows which source / upstream nodes are wired in */}
+              <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 2 }}>
+                <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>How data arrives</Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  Data flows into this step from nodes wired to it on the canvas. Use the <strong>Add a data source</strong> button on the toolbar to add a source node, then drag a wire from it to this step.
                 </Typography>
-                <Stack spacing={1.5}>
-                  <FormControl fullWidth size="small">
-                    <InputLabel>Node label</InputLabel>
-                    <Select
-                      value={(config.params.input_node_label as string) || ""}
-                      label="Node label"
-                      onChange={(e) => updateParam("input_node_label", e.target.value)}
-                    >
-                      {config.inputSource === "patient_graph" ? (
-                        // Patient Graph — contains PII-linked clinical records
-                        [
-                          { v: "EncounterCandidate", d: "Raw encounter text candidate for coding (linked to patient)" },
-                          { v: "Encounter",          d: "A clinical encounter / consultation record" },
-                          { v: "Patient",            d: "Patient root node" },
-                          { v: "ReviewTask",         d: "A HITL coding review task awaiting clinician" },
-                          { v: "EpisodeOfCare",      d: "A grouped episode of care across encounters" },
-                          { v: "SafetyNetAlert",     d: "An overdue investigation or follow-up alert" },
-                        ].map(({ v, d }) => (
-                          <MenuItem key={v} value={v}>
-                            <Stack>
-                              <Typography variant="body2" sx={{ fontFamily: "monospace" }}>{v}</Typography>
-                              <Typography variant="caption" color="text.secondary">{d}</Typography>
-                            </Stack>
-                          </MenuItem>
-                        ))
-                      ) : (
-                        // Knowledge Graph — de-identified / anonymous clinical knowledge
-                        [
-                          { v: "TrainingCandidate",  d: "De-identified text awaiting gold labelling — GDPR-isolated, no patient IDs" },
-                          { v: "GoldLabel",          d: "Verified NER training label linked to a TrainingCandidate" },
-                          { v: "SurfaceFormTask",    d: "A surface form validation task for HITL review" },
-                          { v: "SurfaceForm",        d: "A clinical surface form / alias for a SNOMED concept" },
-                          { v: "Concept",            d: "A SNOMED CT concept node" },
-                          { v: "CodingDecision",     d: "A recorded coding decision for a surface form" },
-                          { v: "PromptConfig",       d: "An AI prompt configuration" },
-                          { v: "PipelineConfig",     d: "A pipeline configuration node" },
-                        ].map(({ v, d }) => (
-                          <MenuItem key={v} value={v}>
-                            <Stack>
-                              <Typography variant="body2" sx={{ fontFamily: "monospace" }}>{v}</Typography>
-                              <Typography variant="caption" color="text.secondary">{d}</Typography>
-                            </Stack>
-                          </MenuItem>
-                        ))
-                      )}
-                    </Select>
-                  </FormControl>
-
-                  <FormControl fullWidth size="small">
-                    <InputLabel>Property to use as encounter text</InputLabel>
-                    <Select
-                      value={(config.params.input_text_property as string) || "text"}
-                      label="Property to use as encounter text"
-                      onChange={(e) => updateParam("input_text_property", e.target.value)}
-                    >
-                      {[
-                        { v: "text",              d: "The main text/body of the node" },
-                        { v: "raw_text",          d: "Unprocessed original text" },
-                        { v: "deidentified_text", d: "De-identified version of the text" },
-                        { v: "content",           d: "Document content field" },
-                      ].map(({ v, d }) => (
-                        <MenuItem key={v} value={v}>
-                          <Typography variant="body2" sx={{ fontFamily: "monospace" }}>{v}</Typography>
-                          <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>{d}</Typography>
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-
-                  <Divider />
-                  <Typography variant="caption" color="text.secondary" fontWeight={600}>
-                    FILTER (optional — only process nodes matching this condition)
-                  </Typography>
-                  <Stack direction="row" spacing={1}>
-                    <TextField size="small" label="Property" sx={{ flex: 1 }}
-                      placeholder="e.g. status"
-                      value={(config.params.input_filter_property as string) || ""}
-                      onChange={(e) => updateParam("input_filter_property", e.target.value)}
-                      inputProps={{ style: { fontFamily: "monospace" } }} />
-                    <TextField size="small" label="= Value" sx={{ flex: 1 }}
-                      placeholder='e.g. "pending"'
-                      value={(config.params.input_filter_value as string) || ""}
-                      onChange={(e) => updateParam("input_filter_value", e.target.value)}
-                      inputProps={{ style: { fontFamily: "monospace" } }} />
+                {prevStepSources.length > 0 ? (
+                  <Stack spacing={1.5}>
+                    {prevStepSources.map((src) => (
+                      <Box key={src.label}>
+                        <Stack direction="row" alignItems="center" spacing={0.75} sx={{ mb: 0.75 }}>
+                          <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: "success.main", flexShrink: 0 }} />
+                          <Typography variant="caption" fontWeight={700} color="success.dark">
+                            {src.label}
+                          </Typography>
+                        </Stack>
+                        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, pl: 2 }}>
+                          {src.keys.map((k) => (
+                            <Chip key={k} label={k} size="small" variant="outlined"
+                              sx={{ fontFamily: "monospace", fontSize: "0.72rem", height: 22, color: "success.main", borderColor: "success.light" }} />
+                          ))}
+                        </Box>
+                      </Box>
+                    ))}
                   </Stack>
-
-                  {Boolean(config.params.input_node_label) && (
-                    <Paper sx={{ p: 1, bgcolor: "grey.50", borderRadius: 1 }}>
-                      <Typography variant="caption" sx={{ fontFamily: "monospace", color: "text.secondary" }}>
-                        MATCH (n:{config.params.input_node_label as string}
-                        {config.params.input_filter_property
-                          ? ` {${config.params.input_filter_property as string}: "${config.params.input_filter_value as string || "..."}"}`
-                          : ""})
-                        {"\n"}RETURN n.{(config.params.input_text_property as string) || "text"} AS encounter_text
-                      </Typography>
-                    </Paper>
-                  )}
-                </Stack>
+                ) : (
+                  <Alert severity="info" icon={false} sx={{ fontSize: "0.8rem", borderRadius: 1.5 }}>
+                    No nodes connected yet. Close this window, wire a data source or previous step to this node on the canvas, then come back here.
+                  </Alert>
+                )}
               </Paper>
-            )}
 
-            <FormControl fullWidth size="small">
-              <InputLabel>Runtime retries on failure</InputLabel>
-              <Select value={String(config.maxRetries)} label="Runtime retries on failure"
-                onChange={(e) => updateField("maxRetries", Number(e.target.value))}>
-                {[0, 1, 2, 3, 5].map((n) => (
-                  <MenuItem key={n} value={String(n)}>{n === 0 ? "None — fail immediately" : `${n} retr${n === 1 ? "y" : "ies"}`}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+              {/* Failure handling card */}
+              <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 2 }}>
+                <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>If something goes wrong</Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  How many times should this step try again before giving up?
+                </Typography>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Retries on failure</InputLabel>
+                  <Select value={String(config.maxRetries)} label="Retries on failure"
+                    onChange={(e) => updateField("maxRetries", Number(e.target.value))}>
+                    {[0, 1, 2, 3, 5].map((n) => (
+                      <MenuItem key={n} value={String(n)}>
+                        {n === 0 ? "Don't retry — fail straight away" : `Try again ${n} time${n > 1 ? "s" : ""}`}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Paper>
+
+            </Box>
+
+            {/* Right column — data flow panel (informational) */}
+            <Box sx={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 2 }}>
+              <Box>
+                <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>Data flow</Typography>
+                <Typography variant="body2" color="text.secondary">
+                  What this step needs from the pipeline, and what it sends on when it finishes.
+                </Typography>
+              </Box>
+              <DataFlowPanel
+                subgraphId={config.subgraphId}
+                prevStepWrites={prevStepWrites}
+                prevStepFieldMappings={prevStepFieldMappings}
+              />
+            </Box>
+
           </Stack>
         )}
 
         {/* ── Step 2: Per-subgraph settings ── */}
-        {step === 2 && (
-          <SubgraphSettingsPanel
-            category={category}
-            config={config}
-            updateField={updateField}
-            updateParam={updateParam}
-            onPresetSelected={(preset) => setPresetSupportsTemp(preset?.supports_temperature ?? true)}
+        {step === 2 && (config.nodeType === "parallel" || config.nodeType === "merge") && (
+          <BranchConfigPanel
+            nodeType={config.nodeType}
+            branches={(config.params.branches as string[]) ?? ["branch_a", "branch_b"]}
+            onBranchesChange={(branches) => updateParam("branches", branches)}
           />
+        )}
+        {step === 2 && config.nodeType === "transform" && (
+          <TransformConfigPanel
+            operations={(config.params.operations as TransformOperation[]) ?? []}
+            onOperationsChange={(ops) => updateParam("operations", ops)}
+          />
+        )}
+        {step === 2 && config.nodeType !== "parallel" && config.nodeType !== "merge" && config.nodeType !== "transform" && (
+          <Stack spacing={2.5}>
+            <SubgraphSettingsPanel
+              category={category}
+              config={config}
+              updateField={updateField}
+              updateParam={updateParam}
+              onPresetSelected={(preset) => {
+                const supportsTemp = preset?.supports_temperature ?? true;
+                if (preset && supportsTemp !== presetSupportsTemp) {
+                  setTempSupportChanged(supportsTemp);
+                  setTimeout(() => setTempSupportChanged(null), 5000);
+                }
+                setPresetSupportsTemp(supportsTemp);
+              }}
+            />
+            <Divider />
+            <Box>
+              <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>Advanced options</Typography>
+              <Typography variant="caption" color="text.secondary">
+                These settings apply to all step types.
+              </Typography>
+            </Box>
+            <FormControl fullWidth size="small">
+              <InputLabel>Step timeout</InputLabel>
+              <Select
+                value={String(config.timeout ?? 120)}
+                label="Step timeout"
+                onChange={(e) => updateField("timeout", Number(e.target.value))}
+              >
+                {[30, 60, 120, 300, 600].map((n) => (
+                  <MenuItem key={n} value={String(n)}>{n < 60 ? `${n} seconds` : `${n / 60} minute${n / 60 > 1 ? "s" : ""}`}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            {category === "llm" && (
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={config.enableVerification}
+                    onChange={(e) => updateField("enableVerification", e.target.checked)}
+                    size="small"
+                  />
+                }
+                label={
+                  <Box>
+                    <Typography variant="body2">Enable verification gate</Typography>
+                    <Typography variant="caption" color="text.secondary" display="block">
+                      Halt the pipeline if AI confidence is too low — sends for human review instead of proceeding.
+                    </Typography>
+                  </Box>
+                }
+              />
+            )}
+          </Stack>
         )}
 
         {/* ── Step 3 (LLM only): Prompt & model ── */}
         {isLLM && step === promptStep && (
-          <Stack spacing={2.5}>
-            <Typography variant="subtitle2">Which AI instructions should this step use?</Typography>
-            <PromptPicker
-              value={config.promptConfigId}
-              onChange={(id, name) => { updateField("promptConfigId", id); updateField("promptConfigName", name); }}
-            />
-            {config.promptConfigId && (
-              <>
-                <Typography variant="caption" color="text.secondary">
-                  <Typography component="a" href="/admin/prompts" variant="caption" color="primary"
-                    sx={{ textDecoration: "underline" }}>
-                    Open in Prompt Tuner
-                  </Typography>{" "}to edit the instructions, output schema, or teaching examples.
+          <Stack direction="row" spacing={3} sx={{ alignItems: "flex-start" }}>
+
+            {/* Left column — AI instructions + temperature */}
+            <Box sx={{ flex: "0 0 340px", display: "flex", flexDirection: "column", gap: 2.5 }}>
+              {tempSupportChanged !== null && (
+                <Alert severity="info" sx={{ fontSize: "0.8rem" }} icon={false}>
+                  {tempSupportChanged
+                    ? "Temperature slider is now visible — this model supports it."
+                    : "Temperature slider hidden — this model does not support it."}
+                </Alert>
+              )}
+              <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 2 }}>
+                <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>AI instructions</Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  Choose which set of AI instructions this step follows.
                 </Typography>
+                <PromptPicker
+                  value={config.promptConfigId}
+                  onChange={(id, name) => { updateField("promptConfigId", id); updateField("promptConfigName", name); }}
+                />
+                {config.promptConfigId && (
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1.5 }}>
+                    <Typography component="a" href="/admin/prompts" variant="body2" color="primary"
+                      sx={{ textDecoration: "underline" }}>
+                      Open in Prompt Tuner
+                    </Typography>{" "}to edit the instructions, output schema, or teaching examples.
+                  </Typography>
+                )}
+              </Paper>
+
+              {/* Temperature */}
+              {!isNerOnlyPreset ? (
+                <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 2 }}>
+                  <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>Temperature</Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    Keep at <strong>0.0</strong> for clinical work — the AI always gives the same answer.
+                    Higher values make it more creative but less predictable.
+                  </Typography>
+                  <Typography variant="body2" gutterBottom>
+                    Current: <strong>{config.temperature.toFixed(1)}</strong>
+                    {config.temperature === 0 && " — deterministic (recommended)"}
+                    {config.temperature > 0.5 && " — creative (not recommended for clinical tasks)"}
+                  </Typography>
+                  <Box component="input" type="range" min={0} max={1} step={0.1}
+                    value={config.temperature}
+                    onChange={(e) => updateField("temperature", Number(e.currentTarget.value))}
+                    style={{ width: "100%" }} />
+                  <Stack direction="row" justifyContent="space-between" sx={{ mt: 0.5 }}>
+                    <Typography variant="caption" color="text.secondary">0.0 — always the same</Typography>
+                    <Typography variant="caption" color="text.secondary">1.0 — varied / creative</Typography>
+                  </Stack>
+                </Paper>
+              ) : (
+                <Alert severity="info" sx={{ fontSize: "0.8rem" }} icon={false}>
+                  Temperature is not used by this model preset. To change it, go to <strong>AI Models → Edit preset</strong>.
+                </Alert>
+              )}
+            </Box>
+
+            {/* Right column — output groups + field mapping */}
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Box sx={{ mb: 1.5 }}>
+                <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>Name the AI outputs</Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Tell the pipeline what to call each thing the AI finds, and which canvas connection point it belongs to.
+                </Typography>
+              </Box>
+              {config.promptConfigId ? (
                 <SchemaAlignmentPanel
                   subgraphId={config.subgraphId}
                   promptConfigId={config.promptConfigId}
@@ -1670,123 +2347,106 @@ function ActionConfigurator({
                   onFieldMappingsChange={(rows) => updateParam("field_mappings", rows)}
                   prevStepFieldMappings={prevStepFieldMappings}
                 />
-              </>
-            )}
-            {/* Temperature — shown when no preset chosen (assume LLM) or preset is not NER-only.
-                Bedrock Claude and Azure OpenAI (GPT-4o, GPT-5 family) both honour temperature.
-                NER-only presets (extractor = "ner") do not use temperature. */}
-            {!isNerOnlyPreset ? (
-              <>
-                <Divider />
-                <Typography variant="subtitle2">Temperature</Typography>
-                <Alert severity="info" sx={{ fontSize: "0.78rem" }} icon={false}>
-                  Supported by Bedrock Claude (3.x / 3.5) and Azure OpenAI GPT-4o.
-                  Not supported by GPT-5 or NER-only presets — those are configured in <strong>AI Models</strong>.
-                  Keep at <strong>0.0</strong> for clinical extraction — deterministic output is safer.
-                </Alert>
-                <Box>
-                  <Typography variant="body2" gutterBottom>
-                    Temperature: <strong>{config.temperature.toFixed(1)}</strong>
-                    {config.temperature === 0 && " (deterministic — recommended)"}
-                    {config.temperature > 0.5 && " (creative — not recommended for clinical tasks)"}
+              ) : (
+                <Paper variant="outlined" sx={{ p: 3, borderRadius: 2, textAlign: "center" }}>
+                  <Typography variant="body2" color="text.secondary">
+                    Select AI instructions on the left to configure outputs.
                   </Typography>
-                  <Box component="input" type="range" min={0} max={1} step={0.1}
-                    value={config.temperature}
-                    onChange={(e) => updateField("temperature", Number(e.currentTarget.value))}
-                    style={{ width: "100%" }} />
-                  <Stack direction="row" justifyContent="space-between">
-                    <Typography variant="caption" color="text.secondary">0.0 — always same answer</Typography>
-                    <Typography variant="caption" color="text.secondary">1.0 — creative / varied</Typography>
-                  </Stack>
-                </Box>
-              </>
-            ) : (
-              <Alert severity="info" sx={{ fontSize: "0.78rem" }} icon={false}>
-                Temperature is not supported by the selected model preset. This is configured per-preset
-                in <strong>AI Models → Edit preset</strong>. GPT-5 family models and NER-only presets
-                do not honour temperature.
-              </Alert>
-            )}
+                </Paper>
+              )}
+            </Box>
+
           </Stack>
         )}
 
         {/* ── Review step ── */}
         {step === reviewStep && (
-          <Stack spacing={2}>
-            <Typography variant="subtitle2">Review your configuration</Typography>
-            <Paper variant="outlined" sx={{ p: 2 }}>
-              <Stack spacing={1}>
-                <ReviewRow label="Step type" value={subgraph?.label || config.subgraphId} />
-                <ReviewRow label="Display name" value={config.label} />
-                <Divider />
-                <ReviewRow label="Input source" value={config.inputSource.replace(/_/g, " ")} />
-                {(config.inputSource === "patient_graph" || config.inputSource === "knowledge_graph") && Boolean(config.params.input_node_label) && (
-                  <>
-                    <ReviewRow label="Node label" value={config.params.input_node_label as string} />
-                    <ReviewRow label="Text property" value={(config.params.input_text_property as string) || "text"} />
-                    {config.params.input_filter_property && (
-                      <ReviewRow label="Filter" value={`${config.params.input_filter_property} = "${config.params.input_filter_value}"`} />
-                    )}
-                  </>
-                )}
-                <ReviewRow label="Max retries" value={config.maxRetries === 0 ? "None" : `${config.maxRetries}`} />
-                {category === "persist" && <ReviewRow label="Save to" value={config.outputTarget.replace(/_/g, " ")} />}
-                {category === "terminology" && (
-                  <>
-                    <ReviewRow label="Min confidence" value={String((config.params.confidence_threshold as number) ?? 0.7)} />
-                    <ReviewRow label="Max candidates" value={String((config.params.max_candidates as number) ?? 5)} />
-                  </>
-                )}
-                {isLLM && (
-                  <>
-                    <Divider />
-                    <ReviewRow label="Model preset" value={config.modelPresetName || config.modelPresetId || "Not set"} />
-                    <ReviewRow label="Temperature" value={config.temperature.toFixed(1)} />
-                    <ReviewRow label="Prompt" value={config.promptConfigName || config.promptConfigId || "None"} />
-                    {Array.isArray(config.params.field_mappings) && (config.params.field_mappings as FieldMappingRow[]).length > 0 && (
-                      <ReviewRow
-                        label="Field mappings"
-                        value={`${(config.params.field_mappings as FieldMappingRow[]).filter((r) => r.statePath).length} of ${(config.params.field_mappings as FieldMappingRow[]).length} mapped`}
-                      />
-                    )}
-                  </>
-                )}
-              </Stack>
-            </Paper>
-            {isLLM && !config.promptConfigId && (
-              <Alert severity="warning" sx={{ fontSize: "0.78rem" }}>
-                No prompt selected. This LLM step will use the system default instructions.
-              </Alert>
-            )}
-            {(() => {
-              if (config.inputSource !== "previous_step" || !prevStepWrites) return null;
-              const io = SUBGRAPH_IO[config.subgraphId];
-              if (!io) return null;
-              const provided = new Set(prevStepWrites);
-              const missing = io.reads.filter((k) => !provided.has(k));
-              if (missing.length === 0) return null;
-              return (
-                <Alert severity="error" sx={{ fontSize: "0.78rem" }}>
-                  <Typography variant="caption" fontWeight={700} display="block">
-                    Pipeline key mismatch — step will likely fail
-                  </Typography>
-                  <Typography variant="caption">
-                    This step needs{" "}
-                    {missing.map((k) => (
-                      <Box key={k} component="span" sx={{ fontFamily: "monospace", bgcolor: "error.50", px: 0.5, borderRadius: 0.5, mr: 0.5 }}>{k}</Box>
-                    ))}
-                    but the previous step does not produce {missing.length > 1 ? "them" : "it"}.
-                    Go back to Data flow to change the input source.
-                  </Typography>
+          <Stack direction="row" spacing={3} sx={{ alignItems: "flex-start" }}>
+
+            {/* Left — configuration summary */}
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1.5 }}>Configuration summary</Typography>
+              <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 2 }}>
+                <Stack spacing={1.25}>
+                  <ReviewRow label="Step type" value={subgraph?.label || config.subgraphId} />
+                  <ReviewRow label="Display name" value={config.label} />
+                  <Divider />
+                  <ReviewRow
+                    label="Data connections"
+                    value={prevStepWrites && prevStepWrites.length > 0
+                      ? prevStepWrites.join(", ")
+                      : "No nodes connected yet"}
+                  />
+                  <ReviewRow label="Max retries" value={config.maxRetries === 0 ? "None" : `${config.maxRetries}`} />
+                  {category === "persist" && <ReviewRow label="Save to" value={config.outputTarget.replace(/_/g, " ")} />}
+                  {category === "terminology" && (
+                    <>
+                      <ReviewRow label="Min confidence" value={String((config.params.confidence_threshold as number) ?? 0.7)} />
+                      <ReviewRow label="Max candidates" value={String((config.params.max_candidates as number) ?? 5)} />
+                    </>
+                  )}
+                  {isLLM && (
+                    <>
+                      <Divider />
+                      <ReviewRow label="Model preset" value={config.modelPresetName || config.modelPresetId || "Not set"} />
+                      <ReviewRow label="Temperature" value={config.temperature.toFixed(1)} />
+                      <ReviewRow label="Prompt" value={config.promptConfigName || config.promptConfigId || "None"} />
+                      {Array.isArray(config.params.field_mappings) && (config.params.field_mappings as FieldMappingRow[]).length > 0 && (
+                        <ReviewRow
+                          label="Field mappings"
+                          value={`${(config.params.field_mappings as FieldMappingRow[]).filter((r) => r.statePath).length} of ${(config.params.field_mappings as FieldMappingRow[]).length} mapped`}
+                        />
+                      )}
+                    </>
+                  )}
+                </Stack>
+              </Paper>
+            </Box>
+
+            {/* Right — issues and guidance */}
+            <Box sx={{ flex: "0 0 320px", display: "flex", flexDirection: "column", gap: 2 }}>
+              <Typography variant="subtitle2" fontWeight={700}>Checks</Typography>
+              {isLLM && !config.promptConfigId && (
+                <Alert severity="warning" sx={{ fontSize: "0.82rem" }}>
+                  No prompt selected. This step will use the system default instructions.
+                  Go back to <strong>AI &amp; outputs</strong> to choose one.
                 </Alert>
-              );
-            })()}
+              )}
+              {(() => {
+                const io = SUBGRAPH_IO[config.subgraphId];
+                if (!io || !prevStepWrites) return null;
+                const provided = new Set(prevStepWrites);
+                const missing = io.reads.filter((k) => !provided.has(k));
+                if (missing.length === 0) return null;
+                return (
+                  <Alert severity="error" sx={{ fontSize: "0.82rem" }}>
+                    <Typography variant="body2" fontWeight={700} display="block" gutterBottom>
+                      Data mismatch — step may fail
+                    </Typography>
+                    <Typography variant="body2">
+                      This step needs{" "}
+                      {missing.map((k) => (
+                        <Box key={k} component="span" sx={{ fontFamily: "monospace", bgcolor: "error.50", px: 0.5, borderRadius: 0.5, mr: 0.5 }}>{k}</Box>
+                      ))}
+                      but the connected nodes do not produce {missing.length > 1 ? "them" : "it"}.
+                      Close this window and wire the correct data source or step to this one on the canvas.
+                    </Typography>
+                  </Alert>
+                );
+              })()}
+              {!isLLM || config.promptConfigId ? (
+                <Alert severity="success" sx={{ fontSize: "0.82rem" }}>
+                  Looking good — tap <strong>Save step</strong> to apply this configuration.
+                </Alert>
+              ) : null}
+            </Box>
+
           </Stack>
         )}
       </Box>
 
       {/* ── Footer ─────────────────────────────────────────────────────────── */}
-      <Box sx={{ px: 3, py: 2, borderTop: 1, borderColor: "divider", bgcolor: "grey.50", flexShrink: 0 }}>
+      <Box sx={{ px: 4, py: 2, borderTop: 1, borderColor: "divider", bgcolor: "grey.50", flexShrink: 0 }}>
         <Stack direction="row" justifyContent="space-between" alignItems="center">
           <Tooltip title="Remove this step from the pathway">
             <IconButton
@@ -1815,8 +2475,12 @@ function ActionConfigurator({
                 size="small"
                 disabled={step === 0 && (!config.subgraphId || !config.label)}
                 onClick={() => {
-                  backgroundSave(config);  // persists draft to server in background
-                  setStep((s) => s + 1);
+                  backgroundSave(config);
+                  setStep((s) => {
+                    const next = s + 1;
+                    setVisitedSteps((v) => new Set([...v, next]));
+                    return next;
+                  });
                 }}
                 sx={{ textTransform: "none", minWidth: 80, borderRadius: 2, px: 3 }}
               >
@@ -1832,6 +2496,23 @@ function ActionConfigurator({
           </Stack>
         </Stack>
       </Box>
+
+      {/* ── Step type change confirmation dialog ── */}
+      <Dialog open={Boolean(pendingSubgraphId)} onClose={() => setPendingSubgraphId(null)} maxWidth="xs" fullWidth
+        PaperProps={{ sx: { borderRadius: 3 } }}>
+        <Box sx={{ px: 3, pt: 2.5, pb: 1 }}>
+          <Typography variant="h6" fontWeight={700} gutterBottom>Change step type?</Typography>
+          <Typography variant="body2" color="text.secondary">
+            Changing the step type will reset all current settings — your prompt, model, and field mappings will be cleared. This cannot be undone.
+          </Typography>
+        </Box>
+        <Box sx={{ px: 3, pb: 2.5, pt: 1.5, display: "flex", justifyContent: "flex-end", gap: 1 }}>
+          <Button onClick={() => setPendingSubgraphId(null)} sx={{ textTransform: "none" }}>Keep current</Button>
+          <Button variant="contained" color="warning" onClick={confirmSubgraphChange} sx={{ textTransform: "none" }}>
+            Yes, change type
+          </Button>
+        </Box>
+      </Dialog>
     </Box>
   );
 }
@@ -2043,12 +2724,40 @@ function useValidationWarnings(
     // Global keys always available at pipeline start
     const GLOBAL_KEYS = new Set(["encounter_text", "patient_id", "encounter_id", "run_id"]);
 
-    // Edge-aware key alignment: for each node, check that every key it reads
-    // is either a global key or produced by one of its direct predecessors.
+    // Build a full transitive-ancestor write set for each node via BFS.
+    // Includes outputs from source nodes (fan-in data sources) and action nodes.
+    function getAllAncestorWrites(startId: string): Set<string> {
+      const result = new Set<string>([...GLOBAL_KEYS]);
+      const visited = new Set<string>();
+      const queue = [startId];
+      while (queue.length) {
+        const id = queue.shift()!;
+        if (visited.has(id)) continue;
+        visited.add(id);
+        for (const edge of edges) {
+          if (edge.target === id) {
+            const predNode = nodes.find((n) => n.id === edge.source);
+            // Source nodes inject their declared outputs into the available key set
+            if (predNode?.type === "source") {
+              const srcOutputs = (predNode.data as { outputs?: string[] }).outputs ?? [];
+              srcOutputs.forEach((k) => result.add(k));
+            }
+            const predSubId = (predNode?.data as unknown as ActionNodeData | undefined)?.subgraphId;
+            if (predSubId) SUBGRAPH_IO[predSubId]?.writes.forEach((w) => result.add(w));
+            queue.push(edge.source);
+          }
+        }
+      }
+      return result;
+    }
+
+    // Edge-aware key alignment: for each action node, check that every key it reads
+    // is either a global key or produced by any upstream ancestor (full DAG traversal).
+    // Source nodes themselves are always valid — they don't consume keys.
     for (const node of nodes) {
+      if (node.type === "source") continue; // source nodes provide, never consume
       const cfg = nodeConfigs[node.id];
       const inputSource = cfg?.inputSource ?? "previous_step";
-      // Only check alignment when reading from previous pipeline step
       if (inputSource !== "previous_step") continue;
 
       const subgraphId = (node.data as unknown as ActionNodeData)?.subgraphId || "";
@@ -2056,18 +2765,14 @@ function useValidationWarnings(
       if (!io) continue;
 
       const predecessorIds = edges.filter((e) => e.target === node.id).map((e) => e.source);
-      const predecessorWrites = new Set<string>([...GLOBAL_KEYS]);
-      for (const predId of predecessorIds) {
-        const predNode = nodes.find((n) => n.id === predId);
-        const predSubgraphId = (predNode?.data as unknown as ActionNodeData | undefined)?.subgraphId;
-        if (predSubgraphId) SUBGRAPH_IO[predSubgraphId]?.writes.forEach((w) => predecessorWrites.add(w));
-      }
+      // Full DAG ancestor writes (not just direct parent)
+      const predecessorWrites = getAllAncestorWrites(node.id);
 
       const missingKeys = io.reads.filter((k) => !predecessorWrites.has(k));
       for (const key of missingKeys) {
         warnings.push({
           severity: predecessorIds.length === 0 ? "warning" : "error",
-          message: `"${(node.data as unknown as ActionNodeData).label}" needs key "${key}" but ${predecessorIds.length === 0 ? "has no connected predecessor" : "the previous step does not produce it"}.`,
+          message: `"${(node.data as unknown as ActionNodeData).label}" needs "${stateKeyLabel(key)}" (${key}) but ${predecessorIds.length === 0 ? "has no connected predecessor" : "no upstream step produces it"}.`,
         });
       }
 
@@ -2231,6 +2936,23 @@ export default function PathwayBuilderPage() {
   const [versions, setVersions] = useState<VersionEntry[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [restoringVid, setRestoringVid] = useState<number | null>(null);
+  // Edge deletion confirmation: holds edges pending removal until confirmed
+  const [pendingDeleteEdges, setPendingDeleteEdges] = useState<Edge[] | null>(null);
+
+  // ── Test-run state ────────────────────────────────────────────────────────
+  const [testRunOpen, setTestRunOpen] = useState(false);
+  const [isTestRunning, setIsTestRunning] = useState(false);
+  const [testRunError, setTestRunError] = useState<string | null>(null);
+  const [testTrace, setTestTrace] = useState<Record<string, StepTraceResult> | null>(null);
+  // PeekPanel: which edge's data to show
+  const [peekOpen, setPeekOpen] = useState(false);
+  const [peekSourceId, setPeekSourceId] = useState<string | null>(null);
+  const [peekTargetId, setPeekTargetId] = useState<string | null>(null);
+  const [peekRawJson, setPeekRawJson] = useState(false);
+  const testInputRef = useRef<{ encounterText: string; patientId: string }>({
+    encounterText: "",
+    patientId: "",
+  });
 
   const validationWarnings = useValidationWarnings(nodes, edges, nodeConfigs, triggerEvent);
 
@@ -2250,27 +2972,37 @@ export default function PathwayBuilderPage() {
           const trig = (data as any).trigger;
           if (trig?.event) setTriggerEvent(trig.event);
           const configs: Record<string, ActionConfig> = {};
-          const loadedNodes: Node[] = (data.actions || []).map((a, i) => {
-            const cfg: ActionConfig = { ...DEFAULT_CONFIG, subgraphId: a.subgraphId, label: a.label || a.subgraphId, ...a.config, params: (a.config as ActionConfig)?.params ?? {} };
-            configs[a.id] = cfg;
-            return {
-              id: a.id,
-              type: a.nodeType || cfg.nodeType || "action",
-              position: a.position || { x: 250, y: 100 + i * 150 },
-              data: {
-                label: a.label || a.subgraphId,
-                subgraphId: a.subgraphId,
-                color: SUBGRAPH_OPTIONS.find((s) => s.id === a.subgraphId)?.color || "#999",
-                nodeType: a.nodeType || cfg.nodeType || "action",
-                config: a.config,
-                // Restore saved field mappings so output port handles appear immediately on load.
-                fieldMappings: (cfg.params.field_mappings as FieldMappingRow[]) ?? [],
-                onConfigure: () => openConfigurator(a.id),
-              },
-            };
-          });
+          const loadedActionNodes: Node[] = (data.actions || [])
+            .filter((a) => a.nodeType !== "source") // legacy guard: skip old source nodes saved as actions
+            .map((a, i) => {
+              const cfg: ActionConfig = { ...DEFAULT_CONFIG, subgraphId: a.subgraphId, label: a.label || a.subgraphId, ...a.config, params: (a.config as ActionConfig)?.params ?? {} };
+              configs[a.id] = cfg;
+              return {
+                id: a.id,
+                type: a.nodeType || cfg.nodeType || "action",
+                position: a.position || { x: 250, y: 100 + i * 150 },
+                data: {
+                  label: a.label || a.subgraphId,
+                  subgraphId: a.subgraphId,
+                  color: SUBGRAPH_OPTIONS.find((s) => s.id === a.subgraphId)?.color || "#999",
+                  nodeType: a.nodeType || cfg.nodeType || "action",
+                  config: a.config,
+                  // Restore saved field mappings so output port handles appear immediately on load.
+                  fieldMappings: (cfg.params.field_mappings as FieldMappingRow[]) ?? [],
+                  onConfigure: () => openConfigurator(a.id),
+                },
+              };
+            });
+          // Restore canvas-only source nodes (saved in sourceNodes key)
+          const savedSourceNodes = ((data as unknown as Record<string, unknown>).sourceNodes as Array<{ id: string; position: { x: number; y: number }; data: Record<string, unknown> }>) || [];
+          const loadedSourceNodes: Node[] = savedSourceNodes.map((sn) => ({
+            id: sn.id,
+            type: "source",
+            position: sn.position,
+            data: { ...sn.data, onConfigure: () => setSourceConfigOpen(sn.id) },
+          }));
           setNodeConfigs(configs);
-          setNodes(loadedNodes);
+          setNodes([...loadedActionNodes, ...loadedSourceNodes]);
           setEdges((data.edges || []).map((e, i) => ({
             id: `e${i}`,
             source: e.source,
@@ -2289,6 +3021,31 @@ export default function PathwayBuilderPage() {
     const edgeId = `${connection.source}:${connection.sourceHandle ?? "_"}->${connection.target}:${connection.targetHandle ?? "_"}`;
     setEdges((eds) => addEdge({ ...connection, id: edgeId, type: "portEdge", data: { label: connection.sourceHandle || connection.targetHandle || "" } }, eds));
   }, [setEdges]);
+
+  // Intercept edge removal events to show a confirmation before deleting wires.
+  const handleEdgesChange = useCallback((changes: EdgeChange[]) => {
+    const removals = changes.filter((c) => c.type === "remove");
+    const others   = changes.filter((c) => c.type !== "remove");
+    if (others.length) onEdgesChange(others);
+    if (removals.length) {
+      const edgesToRemove = removals
+        .map((c) => edges.find((e) => e.id === (c as { type: "remove"; id: string }).id))
+        .filter(Boolean) as Edge[];
+      setPendingDeleteEdges(edgesToRemove);
+    }
+  }, [edges, onEdgesChange]);
+
+  const confirmEdgeDeletion = useCallback(() => {
+    if (pendingDeleteEdges) {
+      const ids = new Set(pendingDeleteEdges.map((e) => e.id));
+      setEdges((eds) => eds.filter((e) => !ids.has(e.id)));
+      setPendingDeleteEdges(null);
+    }
+  }, [pendingDeleteEdges, setEdges]);
+
+  const autoLayout = useCallback(() => {
+    setNodes((nds) => applyDagreLayout(nds, edges));
+  }, [edges, setNodes]);
 
   const addAction = useCallback((subgraphId: string) => {
     if (subgraphId === "condition") {
@@ -2356,13 +3113,31 @@ export default function PathwayBuilderPage() {
     }
     if (subgraphId === "parallel" || subgraphId === "merge" || subgraphId === "transform") {
       const id = `${subgraphId}_${Date.now()}`;
-      const cfg: ActionConfig = { ...DEFAULT_CONFIG, subgraphId, label: subgraphId.replace("_", " "), description: "Flow control node", nodeType: subgraphId as ActionConfig["nodeType"], params: {} };
+      const defaultBranches = ["branch_a", "branch_b"];
+      const labelMap: Record<string, string> = { parallel: "Parallel", merge: "Merge", transform: "Transform" };
+      const colorMap: Record<string, string> = { parallel: "#00ACC1", merge: "#8E24AA", transform: "#43A047" };
+      const cfg: ActionConfig = {
+        ...DEFAULT_CONFIG,
+        subgraphId,
+        label: labelMap[subgraphId] ?? subgraphId,
+        description: "Flow control node",
+        nodeType: subgraphId as ActionConfig["nodeType"],
+        params: subgraphId !== "transform" ? { branches: defaultBranches } : { operations: [] },
+      };
       setNodeConfigs((prev) => ({ ...prev, [id]: cfg }));
       setNodes((nds) => [...nds, {
         id,
         type: subgraphId,
         position: { x: 250, y: (nodes.length + 1) * 150 },
-        data: { label: cfg.label, subgraphId, color: "#999", onConfigure: () => openConfigurator(id) },
+        data: {
+          label: cfg.label,
+          subgraphId,
+          color: colorMap[subgraphId] ?? "#999",
+          branches: subgraphId !== "transform" ? defaultBranches : undefined,
+          inputs: subgraphId === "merge" ? defaultBranches : undefined,
+          operations: subgraphId === "transform" ? [] : undefined,
+          onConfigure: () => openConfigurator(id),
+        },
       } as Node]);
       return;
     }
@@ -2387,6 +3162,25 @@ export default function PathwayBuilderPage() {
     setNodes((nds) => [...nds, newNode]);
   }, [nodes.length, setNodes, openConfigurator, triggerEvent]);
 
+  // ── Source node ─────────────────────────────────────────────────────────────
+  const [sourceConfigOpen, setSourceConfigOpen] = useState<string | null>(null); // nodeId being configured
+
+  const addSourceNode = useCallback((sourceType: SourceType) => {
+    const meta = SOURCE_DEFINITIONS[sourceType];
+    const id = `source_${Date.now()}`;
+    setNodes((nds) => [...nds, {
+      id,
+      type: "source",
+      position: { x: 60, y: (nds.length + 1) * 160 },
+      data: {
+        label: meta.label,
+        sourceType,
+        outputs: meta.outputs,
+        onConfigure: () => setSourceConfigOpen(id),
+      },
+    } as Node]);
+  }, [setNodes]);
+
   const handleConfigSave = useCallback((nodeId: string, config: ActionConfig) => {
     setNodeConfigs((prev) => ({ ...prev, [nodeId]: config }));
     const option = SUBGRAPH_OPTIONS.find((s) => s.id === config.subgraphId);
@@ -2407,6 +3201,11 @@ export default function PathwayBuilderPage() {
                 connectorType: config.nodeType,
                 // Propagate field mappings so the canvas node renders live output port handles.
                 fieldMappings: (config.params.field_mappings as FieldMappingRow[]) ?? [],
+                // Propagate branch/input arrays so Parallel/Merge nodes render the right handles.
+                branches: (config.params.branches as string[]) ?? undefined,
+                inputs: (config.params.branches as string[]) ?? undefined,
+                // Propagate transform operations so TransformNode shows the correct count.
+                operations: (config.params.operations as unknown[]) ?? undefined,
               },
             }
           : n
@@ -2429,8 +3228,8 @@ export default function PathwayBuilderPage() {
     return nodeConfigs[selectedNode] || DEFAULT_CONFIG;
   }, [selectedNode, nodeConfigs]);
 
-  // Compute what all predecessor steps write into the pipeline state.
-  // Used to validate key alignment when inputSource === "previous_step".
+  // Compute what all predecessor steps/source nodes write into the pipeline state.
+  // Source nodes contribute their declared outputs; action nodes contribute SUBGRAPH_IO writes.
   const prevStepWrites = useMemo<string[] | null>(() => {
     if (!selectedNode) return null;
     const predecessorIds = edges
@@ -2440,12 +3239,39 @@ export default function PathwayBuilderPage() {
     const allWrites = new Set<string>();
     for (const predId of predecessorIds) {
       const predNode = nodes.find((n) => n.id === predId);
-      const predSubgraphId = (predNode?.data as unknown as ActionNodeData | undefined)?.subgraphId;
-      if (predSubgraphId) {
-        SUBGRAPH_IO[predSubgraphId]?.writes.forEach((w) => allWrites.add(w));
+      if (predNode?.type === "source") {
+        const srcOutputs = (predNode.data as { outputs?: string[] }).outputs ?? [];
+        srcOutputs.forEach((k) => allWrites.add(k));
+      } else {
+        const predSubgraphId = (predNode?.data as unknown as ActionNodeData | undefined)?.subgraphId;
+        if (predSubgraphId) {
+          SUBGRAPH_IO[predSubgraphId]?.writes.forEach((w) => allWrites.add(w));
+        }
       }
     }
     return allWrites.size > 0 ? Array.from(allWrites) : null;
+  }, [selectedNode, edges, nodes]);
+
+  // Named upstream nodes: [{label, keys[]}] — used to show "Knowledge Base → encounter_text" in Data connections step
+  const prevStepSources = useMemo<Array<{ label: string; keys: string[] }>>(() => {
+    if (!selectedNode) return [];
+    const predecessorIds = edges
+      .filter((e) => e.target === selectedNode)
+      .map((e) => e.source);
+    return predecessorIds.flatMap((predId) => {
+      const predNode = nodes.find((n) => n.id === predId);
+      if (!predNode) return [];
+      if (predNode.type === "source") {
+        const label = (predNode.data as { label?: string }).label ?? "Data source";
+        const keys = (predNode.data as { outputs?: string[] }).outputs ?? [];
+        return [{ label, keys }];
+      } else {
+        const data = predNode.data as unknown as ActionNodeData | undefined;
+        const label = data?.label ?? "Previous step";
+        const keys = data?.subgraphId ? (SUBGRAPH_IO[data.subgraphId]?.writes ?? []) : [];
+        return keys.length > 0 ? [{ label, keys }] : [];
+      }
+    });
   }, [selectedNode, edges, nodes]);
 
   // Collect field-level mappings from DIRECT predecessors (first predecessor wins per key).
@@ -2475,7 +3301,14 @@ export default function PathwayBuilderPage() {
       // Include version notes when publishing so the backend can snapshot them.
       ...(effectiveStatus === "active" && versionNotes ? { versionNotes } : {}),
       trigger: triggerEvent ? { event: triggerEvent, type: "data-changed" } : undefined,
-      actions: nodes.map((n) => ({
+      // Source nodes are canvas-only — the engine injects their data via event.context,
+      // not as executable subgraph steps. Saved separately under sourceNodes.
+      sourceNodes: nodes.filter((n) => n.type === "source").map((n) => ({
+        id: n.id,
+        position: n.position,
+        data: { ...(n.data as Record<string, unknown>), onConfigure: undefined },
+      })),
+      actions: nodes.filter((n) => n.type !== "source").map((n) => ({
         id: n.id,
         subgraphId: (n.data as unknown as ActionNodeData).subgraphId,
         label: (n.data as unknown as ActionNodeData).label,
@@ -2483,12 +3316,15 @@ export default function PathwayBuilderPage() {
         position: n.position,
         config: nodeConfigs[n.id] || {},
       })),
-      edges: edges.map((e) => ({
-        source: e.source,
-        target: e.target,
-        sourceHandle: e.sourceHandle,
-        targetHandle: e.targetHandle,
-      })),
+      // Exclude edges from source nodes — those are canvas-only routing hints.
+      edges: edges
+        .filter((e) => !nodes.find((n) => n.id === e.source && n.type === "source"))
+        .map((e) => ({
+          source: e.source,
+          target: e.target,
+          sourceHandle: e.sourceHandle,
+          targetHandle: e.targetHandle,
+        })),
     };
     try {
       if (isNew) {
@@ -2551,17 +3387,51 @@ export default function PathwayBuilderPage() {
     setRestoringVid(vid);
     try {
       await api.post(`/fhir/PlanDefinition/${planId}/_restore/${vid}`, {});
-      setPlanStatus("active");
+      // Re-fetch the plan from the server instead of doing a hard reload
+      const data = await api.get<PlanData>(`/fhir/PlanDefinition/${planId}`);
+      setPlanName(data.name || "");
+      setPlanDescription(data.description || "");
+      setPlanStatus(data.status || "active");
+      const trig = (data as any).trigger;
+      if (trig?.event) setTriggerEvent(trig.event);
+      const configs: Record<string, ActionConfig> = {};
+      const restoredNodes: Node[] = (data.actions || []).map((a, i) => {
+        const cfg: ActionConfig = { ...DEFAULT_CONFIG, subgraphId: a.subgraphId, label: a.label || a.subgraphId, ...a.config, params: (a.config as ActionConfig)?.params ?? {} };
+        configs[a.id] = cfg;
+        return {
+          id: a.id,
+          type: a.nodeType || cfg.nodeType || "action",
+          position: a.position || { x: 250, y: 100 + i * 150 },
+          data: {
+            label: a.label || a.subgraphId,
+            subgraphId: a.subgraphId,
+            color: SUBGRAPH_OPTIONS.find((s) => s.id === a.subgraphId)?.color || "#999",
+            nodeType: a.nodeType || cfg.nodeType || "action",
+            config: a.config,
+            fieldMappings: (cfg.params.field_mappings as FieldMappingRow[]) ?? [],
+            onConfigure: () => openConfigurator(a.id),
+          },
+        };
+      });
+      setNodeConfigs(configs);
+      setNodes(restoredNodes);
+      setEdges((data.edges || []).map((e, i) => ({
+        id: `e${i}`,
+        source: e.source,
+        target: e.target,
+        sourceHandle: e.sourceHandle,
+        targetHandle: e.targetHandle,
+        type: "portEdge",
+        data: { label: e.sourceHandle || e.targetHandle || "" },
+      })));
       setLastSaved(new Date());
       setHistoryOpen(false);
-      // Reload the full pathway state from the server
-      window.location.reload();
     } catch {
       setSaveError(`Failed to restore version v${vid}. Please try again.`);
     } finally {
       setRestoringVid(null);
     }
-  }, [planId]);
+  }, [planId, openConfigurator, setNodes, setEdges]);
 
   return (
     <Box sx={{ height: "100vh", display: "flex", flexDirection: "column" }}>
@@ -2607,6 +3477,22 @@ export default function PathwayBuilderPage() {
             {saveError}
           </Alert>
         )}
+        {/* Add data source — creates a fan-out source node on the canvas */}
+        <FormControl size="small" sx={{ minWidth: 175 }}>
+          <InputLabel>Add a data source</InputLabel>
+          <Select label="Add a data source" value="" onChange={(e) => { if (e.target.value) addSourceNode(e.target.value as SourceType); }}>
+            <MenuItem value="">Add a data source…</MenuItem>
+            {(Object.entries(SOURCE_DEFINITIONS) as [SourceType, typeof SOURCE_DEFINITIONS[SourceType]][]).map(([type, meta]) => (
+              <MenuItem key={type} value={type}>
+                <Box>
+                  <Typography variant="body2">{meta.label}</Typography>
+                  <Typography variant="caption" color="text.secondary">{meta.description}</Typography>
+                </Box>
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+
         <FormControl size="small" sx={{ minWidth: 190 }}>
           <InputLabel>Add a step</InputLabel>
           <Select label="Add a step" value="" onChange={(e) => addAction(e.target.value)}>
@@ -2626,6 +3512,12 @@ export default function PathwayBuilderPage() {
             <MenuItem value="queue_publish">Queue Publish</MenuItem>
           </Select>
         </FormControl>
+        {/* Auto-layout */}
+        <Tooltip title="Auto-layout — rearrange steps into a tidy flow (top to bottom)">
+          <IconButton size="small" onClick={autoLayout} sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1.5 }}>
+            <AccountTreeIcon sx={{ fontSize: "1.1rem" }} />
+          </IconButton>
+        </Tooltip>
         {/* Version history */}
         {!isNew && (
           <Tooltip title="Version history — view and restore previous published versions">
@@ -2680,7 +3572,7 @@ export default function PathwayBuilderPage() {
           nodeTypes={pathwayNodeTypes}
           edgeTypes={edgeTypes}
           onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
+          onEdgesChange={handleEdgesChange}
           onConnect={onConnect}
           fitView
         >
@@ -2694,9 +3586,8 @@ export default function PathwayBuilderPage() {
       <Dialog
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
-        maxWidth="sm"
-        fullWidth
-        PaperProps={{ sx: { height: "90vh", display: "flex", flexDirection: "column", borderRadius: 3, overflow: "hidden" } }}
+        maxWidth={false}
+        PaperProps={{ sx: { width: "min(1100px, 96vw)", height: "94vh", display: "flex", flexDirection: "column", borderRadius: 3, overflow: "hidden" } }}
       >
         {selectedNode && (
           <ActionConfigurator
@@ -2709,6 +3600,7 @@ export default function PathwayBuilderPage() {
             onPathwaySave={handleSave}
             prevStepWrites={prevStepWrites}
             prevStepFieldMappings={prevStepFieldMappings}
+            prevStepSources={prevStepSources}
           />
         )}
       </Dialog>
@@ -2809,6 +3701,54 @@ export default function PathwayBuilderPage() {
           </Typography>
         </Box>
       </Drawer>
+
+      {/* ── Source node configurator dialog ──────────────────────────────── */}
+      <Dialog
+        open={Boolean(sourceConfigOpen)}
+        onClose={() => setSourceConfigOpen(null)}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 3 } }}
+      >
+        {sourceConfigOpen && (() => {
+          const sourceNode = nodes.find((n) => n.id === sourceConfigOpen);
+          if (!sourceNode) return null;
+          return (
+            <SourceConfiguratorContent
+              nodeId={sourceConfigOpen}
+              nodeData={sourceNode.data as Record<string, unknown>}
+              onUpdate={(patch) =>
+                setNodes((nds) => nds.map((n) =>
+                  n.id === sourceConfigOpen ? { ...n, data: { ...n.data, ...patch } } : n
+                ))
+              }
+              onClose={() => setSourceConfigOpen(null)}
+              onRemove={() => {
+                setNodes((nds) => nds.filter((n) => n.id !== sourceConfigOpen));
+                setEdges((eds) => eds.filter((e) => e.source !== sourceConfigOpen));
+                setSourceConfigOpen(null);
+              }}
+            />
+          );
+        })()}
+      </Dialog>
+
+      {/* ── Edge deletion confirmation dialog ────────────────────────────── */}
+      <Dialog open={Boolean(pendingDeleteEdges)} onClose={() => setPendingDeleteEdges(null)} maxWidth="xs" fullWidth
+        PaperProps={{ sx: { borderRadius: 3 } }}>
+        <Box sx={{ px: 3, pt: 2.5, pb: 1 }}>
+          <Typography variant="h6" fontWeight={700} gutterBottom>Remove connection?</Typography>
+          <Typography variant="body2" color="text.secondary">
+            Disconnecting this wire means the next step will no longer receive data from this one. You can reconnect it on the canvas at any time.
+          </Typography>
+        </Box>
+        <Box sx={{ px: 3, pb: 2.5, pt: 1.5, display: "flex", justifyContent: "flex-end", gap: 1 }}>
+          <Button onClick={() => setPendingDeleteEdges(null)} sx={{ textTransform: "none" }}>Keep connected</Button>
+          <Button variant="contained" color="error" onClick={confirmEdgeDeletion} sx={{ textTransform: "none" }}>
+            Remove connection
+          </Button>
+        </Box>
+      </Dialog>
 
       {/* ── Publish confirmation dialog ───────────────────────────────────── */}
       {(() => {

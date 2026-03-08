@@ -1,7 +1,12 @@
 """Output schema for the guidance_rule_extraction prompt.
 
 Seeded into Neo4j as the ``outputSchema`` field of the
-'guidance_rule_extraction' PromptConfig node.
+'guidance_rule_extraction' and 'guidance_rule_extraction_default' PromptConfig
+nodes.
+
+The schema supports the ``criteria_groups`` format.  The old ``present`` /
+``absent`` format is accepted by ``_parse_llm_output`` for backward compat
+and is auto-converted to criteria_groups.
 
 Consumed by:
 - ``guidance_rule_generator.py`` — validates LLM output before writing rules
@@ -11,33 +16,49 @@ Consumed by:
 GUIDANCE_RULE_EXTRACTION_OUTPUT_SCHEMA: dict = {
     "description": "Return ONLY valid JSON — no explanation, no markdown, no preamble.",
     "type": "object",
-    "required": ["present", "absent", "action"],
+    "required": ["criteria_groups", "action"],
     "properties": {
-        "present": {
+        "criteria_groups": {
             "type": "array",
             "description": (
-                "Clinical findings, disorders, observable entities, or demographics that "
-                "must be present in the patient record for this recommendation to apply. "
-                "Plain clinical language; no SNOMED IDs. Maximum 5 items."
+                "List of criteria groups. Each group has 'mode' (ANY | ALL | NOT) and "
+                "'terms' (list of plain clinical language strings). "
+                "ALL groups AND together — every group must pass for the rule to fire. "
+                "Use mode='ANY' for symptom lists where at least one must be present. "
+                "Use mode='ALL' for demographics and mandatory prerequisites. "
+                "Use mode='NOT' for exclusions and contraindications. "
+                "Age MUST be expressed as 'age N and over' or 'age N and under'. "
+                "Sex MUST be expressed as 'female sex' or 'male sex'. "
+                "Maximum 5 terms per group."
             ),
-            "maxItems": 5,
-            "items": {"type": "string"},
-        },
-        "absent": {
-            "type": "array",
-            "description": (
-                "Clinical findings or conditions whose presence means this recommendation "
-                "does NOT apply (contraindications, exclusions). "
-                "Plain clinical language; no SNOMED IDs. Maximum 5 items."
-            ),
-            "maxItems": 5,
-            "items": {"type": "string"},
+            "items": {
+                "type": "object",
+                "required": ["mode", "terms"],
+                "properties": {
+                    "mode": {
+                        "type": "string",
+                        "enum": ["ANY", "ALL", "NOT"],
+                        "description": (
+                            "ANY = at least one term must be in the patient record. "
+                            "ALL = every term must be in the patient record. "
+                            "NOT = none of the terms may be in the patient record."
+                        ),
+                    },
+                    "terms": {
+                        "type": "array",
+                        "maxItems": 5,
+                        "items": {"type": "string"},
+                        "description": "Plain clinical terms — no SNOMED IDs.",
+                    },
+                },
+            },
         },
         "action": {
             "type": ["string", "null"],
             "description": (
                 "The clinical procedure recommended — expressed as a short, searchable "
-                "term for SNOMED CT lookup. Examples: 'suspected cancer pathway referral', "
+                "term for SNOMED CT lookup. Examples: "
+                "'fast track referral for suspected lung cancer', "
                 "'urgent chest X-ray', 'serum CA125 measurement', "
                 "'quantitative faecal immunochemical test'. "
                 "Null if the recommendation is an organisational standard with no "
@@ -52,14 +73,14 @@ GUIDANCE_RULE_EXTRACTION_OUTPUT_SCHEMA: dict = {
 GUIDANCE_RULE_EXTRACTION_EXAMPLES: list[dict] = [
     {
         "id": "gre-ex-001",
-        "description": "2WW lung cancer recommendation (chest X-ray findings)",
+        "description": "Lung: chest X-ray findings (single ALL group, no symptom list)",
         "input": (
             "Section: Lung cancer\n"
             "Recommendation 1.1.1: Refer people using a suspected cancer pathway referral "
             "for lung cancer if they have chest X-ray findings that suggest lung cancer.\n"
-            "Urgency: 2WW  Strength: refer"
+            "Urgency: urgent_2w  Strength: refer"
         ),
-        "output": '{"present": ["chest X-ray findings suggestive of lung cancer"], "absent": [], "action": "suspected cancer pathway referral"}',
+        "output": '{"criteria_groups": [{"mode": "ALL", "terms": ["chest X-ray findings suggestive of lung cancer"]}], "action": "fast track referral for suspected lung cancer"}',
         "category": "guidance_rule_extraction",
         "model_scope": "any",
         "core": True,
@@ -67,7 +88,7 @@ GUIDANCE_RULE_EXTRACTION_EXAMPLES: list[dict] = [
     },
     {
         "id": "gre-ex-002",
-        "description": "2WW lung cancer recommendation (age + symptom combination)",
+        "description": "Lung: age ALL + symptoms ANY (each listed separately, no qualifiers)",
         "input": (
             "Section: Lung cancer\n"
             "Recommendation 1.1.2: Offer an urgent chest X-ray (to be done within 2 weeks) "
@@ -75,11 +96,13 @@ GUIDANCE_RULE_EXTRACTION_EXAMPLES: list[dict] = [
             "and have two or more of the following unexplained symptoms, or have ever smoked "
             "and have one or more of the following unexplained symptoms: cough, fatigue, "
             "shortness of breath, chest pain, weight loss, appetite loss.\n"
-            "Urgency: 2WW  Strength: offer"
+            "Urgency: urgent_2w  Strength: offer"
         ),
         "output": (
-            '{"present": ["age 40 and over", "unexplained cough or fatigue or shortness of breath '
-            'or chest pain or weight loss or appetite loss"], "absent": [], "action": "urgent chest X-ray"}'
+            '{"criteria_groups": ['
+            '{"mode": "ALL", "terms": ["age 40 and over"]}, '
+            '{"mode": "ANY", "terms": ["cough", "dyspnoea", "weight loss", "chest pain", "haemoptysis"]}'
+            '], "action": "urgent chest X-ray"}'
         ),
         "category": "guidance_rule_extraction",
         "model_scope": "any",
@@ -88,7 +111,7 @@ GUIDANCE_RULE_EXTRACTION_EXAMPLES: list[dict] = [
     },
     {
         "id": "gre-ex-003",
-        "description": "Ovarian cancer CA125 test (symptom + age + sex)",
+        "description": "Ovarian: sex + age ALL, symptoms ANY, investigation action",
         "input": (
             "Section: Ovarian cancer\n"
             "Recommendation 1.5.6: Measure serum CA125 in primary care in women aged 18 and "
@@ -96,12 +119,13 @@ GUIDANCE_RULE_EXTRACTION_EXAMPLES: list[dict] = [
             "frequent (particularly more than 12 times per month): abdominal distension, "
             "feeling full or loss of appetite, pelvic or abdominal pain, increased urinary "
             "urgency or frequency.\n"
-            "Urgency: Routine  Strength: offer"
+            "Urgency: routine  Strength: offer"
         ),
         "output": (
-            '{"present": ["female sex", "age 18 and over", '
-            '"persistent abdominal distension or pelvic pain or urinary urgency or loss of appetite"], '
-            '"absent": [], "action": "serum CA125 measurement"}'
+            '{"criteria_groups": ['
+            '{"mode": "ALL", "terms": ["female sex", "age 18 and over"]}, '
+            '{"mode": "ANY", "terms": ["abdominal distension", "pelvic pain", "urinary frequency", "loss of appetite"]}'
+            '], "action": "serum CA125 measurement"}'
         ),
         "category": "guidance_rule_extraction",
         "model_scope": "any",
@@ -110,14 +134,36 @@ GUIDANCE_RULE_EXTRACTION_EXAMPLES: list[dict] = [
     },
     {
         "id": "gre-ex-004",
-        "description": "General standard with no patient criteria",
+        "description": "Bladder: age ALL + symptom ANY + exclusion NOT",
+        "input": (
+            "Section: Urological cancers\n"
+            "Recommendation 1.6.1: Refer people using a suspected cancer pathway referral "
+            "for bladder cancer if they are aged 45 years or over and have unexplained "
+            "visible haematuria without urinary tract infection.\n"
+            "Urgency: urgent_2w  Strength: refer"
+        ),
+        "output": (
+            '{"criteria_groups": ['
+            '{"mode": "ALL", "terms": ["age 45 and over"]}, '
+            '{"mode": "ANY", "terms": ["haematuria"]}, '
+            '{"mode": "NOT", "terms": ["urinary tract infection"]}'
+            '], "action": "fast track referral for suspected urological cancer"}'
+        ),
+        "category": "guidance_rule_extraction",
+        "model_scope": "any",
+        "core": True,
+        "deidentified": True,
+    },
+    {
+        "id": "gre-ex-005",
+        "description": "General service standard — no patient criteria",
         "input": (
             "Section: Service organisation\n"
             "Recommendation 2.1: Cancer services should be organised to ensure that "
             "patients have access to a clinical nurse specialist.\n"
-            "Urgency: Routine  Strength: ensure"
+            "Urgency: routine  Strength: ensure"
         ),
-        "output": '{"present": [], "absent": [], "action": null}',
+        "output": '{"criteria_groups": [], "action": null}',
         "category": "guidance_rule_extraction",
         "model_scope": "any",
         "core": True,

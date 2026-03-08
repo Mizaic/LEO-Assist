@@ -616,6 +616,149 @@ class WorkflowEngine:
             sequence=int(action_node.get("sequence", 0)),
         )
 
+    async def trace_run(
+        self,
+        actions: list[ActionDefinition],
+        initial_state: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Dry-run the pipeline capturing per-step state snapshots.
+
+        Does NOT write audit events or persist any data.
+        Subgraphs that honour the ``dry_run`` flag will skip their write phases.
+        Returns a list of StepTrace dicts keyed by step_id.
+        """
+        import copy
+
+        pipeline_state: dict[str, Any] = dict(initial_state)
+        pipeline_state.setdefault("dry_run", True)
+        pipeline_state.setdefault("errors", [])
+
+        step_traces: list[dict[str, Any]] = []
+        action_by_id = {a.action_id: a for a in actions}
+        outgoing = self._build_outgoing_edges(actions)
+        has_graph_edges = any(outgoing.values())
+
+        trigger_ids = [a.action_id for a in actions if a.node_type == "trigger"]
+        if not trigger_ids:
+            trigger_ids = [actions[0].action_id] if actions else []
+
+        queue: list[str] = list(trigger_ids)
+        executed: set[str] = set()
+        fallback_enqueued = False
+        final_status = "completed"
+
+        while queue:
+            action_id = queue.pop(0)
+            action = action_by_id.get(action_id)
+            if not action or action_id in executed:
+                continue
+            executed.add(action_id)
+
+            input_snap = self._sanitize_state(copy.deepcopy(pipeline_state))
+
+            if action.node_type == "trigger":
+                trace: dict[str, Any] = {
+                    "step_id": action.action_id,
+                    "subgraph_id": action.subgraph_id or "trigger",
+                    "label": action.config.get("label", action.action_id),
+                    "node_type": "trigger",
+                    "input_state": input_snap,
+                    "output_state": input_snap,
+                    "duration_ms": 0,
+                    "error": None,
+                    "status": "completed",
+                }
+
+            elif action.node_type == "condition":
+                selected_port = self._evaluate_condition_port(action, pipeline_state)
+                pipeline_state["condition_port"] = selected_port
+                out_snap = self._sanitize_state(copy.deepcopy(pipeline_state))
+                trace = {
+                    "step_id": action.action_id,
+                    "subgraph_id": action.subgraph_id or "condition",
+                    "label": action.config.get("label", action.action_id),
+                    "node_type": "condition",
+                    "input_state": input_snap,
+                    "output_state": out_snap,
+                    "duration_ms": 0,
+                    "error": None,
+                    "status": "completed",
+                }
+
+            else:
+                step_state = self._build_step_state(action, pipeline_state)
+                step_result = await self._execute_step(action, step_state)
+                if step_result.status != "error":
+                    self._merge_step_output(pipeline_state, step_result.output)
+                else:
+                    final_status = "error"
+                out_snap = self._sanitize_state(copy.deepcopy(pipeline_state))
+                trace = {
+                    "step_id": action.action_id,
+                    "subgraph_id": action.subgraph_id,
+                    "label": action.config.get("label", action.action_id),
+                    "node_type": "action",
+                    "input_state": input_snap,
+                    "output_state": out_snap,
+                    "duration_ms": step_result.duration_ms,
+                    "error": step_result.error,
+                    "status": step_result.status,
+                }
+
+            step_traces.append(trace)
+
+            if trace["status"] == "error":
+                break
+
+            next_edges = outgoing.get(action_id, [])
+            selected_port_val = pipeline_state.get("condition_port") if action.node_type == "condition" else None
+            if action.node_type == "condition" and selected_port_val:
+                default_ports = {"default", "else", "failed"}
+                selected = [e for e in next_edges if e.get("sourceHandle") == selected_port_val]
+                if not selected:
+                    selected = [e for e in next_edges if (e.get("sourceHandle") or "").lower() in default_ports]
+                next_edges = selected
+
+            if next_edges:
+                next_targets = sorted(
+                    (e.get("target") for e in next_edges if e.get("target")),
+                    key=lambda tid: action_by_id.get(tid).sequence if action_by_id.get(tid) else 0,
+                )
+                queue.extend(next_targets)
+
+            if not queue and not fallback_enqueued and (
+                not has_graph_edges or len(executed) < len(actions)
+            ):
+                remainder = sorted(
+                    (a.action_id for a in actions if a.action_id not in executed),
+                    key=lambda aid: action_by_id[aid].sequence,
+                )
+                queue.extend(remainder)
+                fallback_enqueued = True
+
+        return {
+            "status": final_status,
+            "steps": step_traces,
+            "final_state": self._sanitize_state(dict(pipeline_state)),
+        }
+
+    @staticmethod
+    def _sanitize_state(state: dict[str, Any]) -> dict[str, Any]:
+        """Trim large values so trace payloads stay API-friendly."""
+        MAX_STR = 2000
+        SKIP = {"prompt_config"}
+        result: dict[str, Any] = {}
+        for k, v in state.items():
+            if k in SKIP:
+                continue
+            if isinstance(v, str) and len(v) > MAX_STR:
+                result[k] = v[:MAX_STR] + " …[truncated]"
+            elif isinstance(v, list) and len(v) > 100:
+                result[k] = v[:100]
+            else:
+                result[k] = v
+        return result
+
     async def _write_audit_event(
         self, event: WorkflowEvent, steps: list[StepResult],
         status: str, pipeline_state: dict[str, Any],

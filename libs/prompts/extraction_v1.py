@@ -7,7 +7,6 @@ or inline examples to this file — manage them via the Admin UI at
 
 Run ``python -m scripts.seed_prompt_configs`` to push changes to Neo4j.
 """
-from libs.prompts.registry import register
 
 EXTRACTION_SYSTEM_V1 = """\
 You are a UK primary care clinical entity extractor. You identify SNOMED CT-codable \
@@ -279,4 +278,3 @@ Before finalising EACH entity, re-read the source sentence and ask yourself:
 If any answer is wrong, fix the entity or omit it.\
 """
 
-register("extraction", version=1, text=EXTRACTION_SYSTEM_V1)

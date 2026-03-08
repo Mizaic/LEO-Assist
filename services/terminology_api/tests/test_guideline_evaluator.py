@@ -46,130 +46,122 @@ class TestNoActiveRuleset:
         assert "No active ruleset" in result.get("message", "")
 
 
+def _make_rule(rule_id="r1", guideline_id="NG151", criteria_groups=None, applies_to=None):
+    """Build a compiled rule dict in the new criteria_groups format."""
+    return {
+        "rule_id": rule_id,
+        "name": "Test rule",
+        "strength": "refer",
+        "guideline_id": guideline_id,
+        "guideline_title": "Bowel cancer",
+        "chapter_title": None,
+        "recommendation_verbatim": "Refer for rectal bleeding",
+        "criteria_groups": criteria_groups or [],
+        "applies_to": applies_to or [],
+        "action": None,
+    }
+
+
 class TestRequiredCriteriaMatching:
-    """Rule matches when all required concepts are in the patient's code set."""
+    """Rule matches when ALL-mode group criteria are in the patient's code set."""
 
-    def test_rule_matches_when_required_concept_present(self, evaluator_factory):
-        """A rule with one PRESENT criterion matches when patient has that code."""
-        req_bm = BitMap([1])
-        req_id = "req_abc"
-
-        ruleset = {
-            "version": "v1",
-            "rules": [{
-                "rule_id": "r1",
-                "name": "Test rule",
-                "strength": "refer",
-                "guideline_id": "NG151",
-                "guideline_title": "Bowel cancer",
-                "recommendation_verbatim": "Refer for rectal bleeding",
-                "req_all_bitmap_id": req_id,
-                "forbid_bitmap_id": None,
-            }]
-        }
-
+    def test_rule_matches_when_all_group_concept_present(self, evaluator_factory):
+        """A rule with mode=ALL matches when patient has all required concepts."""
+        bm = BitMap([1])
+        ruleset = {"version": "v1", "rules": [
+            _make_rule(criteria_groups=[{"mode": "ALL", "bitmap_id": "bm1"}])
+        ]}
         ev = evaluator_factory(
             current_ruleset=ruleset,
             int_id_map={"443416000": 1},
-            bitmaps={req_id: req_bm},
+            bitmaps={"bm1": bm},
         )
         result = ev.evaluate_patient(["443416000"])
-
         assert len(result["matched_rules"]) == 1
         assert result["matched_rules"][0]["rule_id"] == "r1"
 
-    def test_rule_does_not_match_when_required_concept_missing(self, evaluator_factory):
-        """A rule does not match when the patient is missing a required concept."""
-        req_bm = BitMap([1])
-        req_id = "req_abc"
-
-        ruleset = {
-            "version": "v1",
-            "rules": [{
-                "rule_id": "r1",
-                "name": "Test rule",
-                "strength": "refer",
-                "guideline_id": "NG151",
-                "guideline_title": "Bowel cancer",
-                "recommendation_verbatim": "Refer for rectal bleeding",
-                "req_all_bitmap_id": req_id,
-                "forbid_bitmap_id": None,
-            }]
-        }
-
+    def test_rule_does_not_match_when_all_group_concept_missing(self, evaluator_factory):
+        """A rule does not match when patient is missing a required concept."""
+        bm = BitMap([1])
+        ruleset = {"version": "v1", "rules": [
+            _make_rule(criteria_groups=[{"mode": "ALL", "bitmap_id": "bm1"}])
+        ]}
         ev = evaluator_factory(
             current_ruleset=ruleset,
             int_id_map={"999999": 2},
-            bitmaps={req_id: req_bm},
+            bitmaps={"bm1": bm},
         )
         result = ev.evaluate_patient(["999999"])
-
         assert result["matched_rules"] == []
 
 
-class TestForbiddenCriteriaExclusion:
-    """Rule does not match when patient has a forbidden concept."""
+class TestAnyModeMatching:
+    """Rule matches when ANY-mode group has at least one concept in patient set."""
 
-    def test_rule_excluded_when_forbidden_concept_present(self, evaluator_factory):
-        """Rule is excluded when any forbidden concept appears in patient codes."""
-        req_bm = BitMap([1])
-        forbid_bm = BitMap([2])
-        req_id = "req_abc"
-        forbid_id = "forbid_abc"
-
-        ruleset = {
-            "version": "v1",
-            "rules": [{
-                "rule_id": "r1",
-                "name": "Test rule",
-                "strength": "refer",
-                "guideline_id": "NG151",
-                "guideline_title": "Bowel cancer",
-                "recommendation_verbatim": "Refer if no known bowel disease",
-                "req_all_bitmap_id": req_id,
-                "forbid_bitmap_id": forbid_id,
-            }]
-        }
-
+    def test_rule_matches_when_any_concept_present(self, evaluator_factory):
+        """mode=ANY fires when patient has at least one of the symptom concepts."""
+        bm = BitMap([1, 2, 3])  # three possible symptoms
+        ruleset = {"version": "v1", "rules": [
+            _make_rule(criteria_groups=[{"mode": "ANY", "bitmap_id": "bm1"}])
+        ]}
         ev = evaluator_factory(
             current_ruleset=ruleset,
-            int_id_map={"443416000": 1, "bowel_disease": 2},
-            bitmaps={req_id: req_bm, forbid_id: forbid_bm},
+            int_id_map={"cough": 1},
+            bitmaps={"bm1": bm},
         )
-        result = ev.evaluate_patient(["443416000", "bowel_disease"])
+        result = ev.evaluate_patient(["cough"])  # patient has only one of the symptoms
+        assert len(result["matched_rules"]) == 1
 
+    def test_rule_does_not_match_when_no_any_concept_present(self, evaluator_factory):
+        """mode=ANY does not fire when patient has none of the symptom concepts."""
+        bm = BitMap([1, 2, 3])
+        ruleset = {"version": "v1", "rules": [
+            _make_rule(criteria_groups=[{"mode": "ANY", "bitmap_id": "bm1"}])
+        ]}
+        ev = evaluator_factory(
+            current_ruleset=ruleset,
+            int_id_map={"other_code": 99},
+            bitmaps={"bm1": bm},
+        )
+        result = ev.evaluate_patient(["other_code"])
+        assert result["matched_rules"] == []
+
+
+class TestNotModeExclusion:
+    """Rule does not match when NOT-mode group concept is in patient set."""
+
+    def test_rule_excluded_when_not_concept_present(self, evaluator_factory):
+        """mode=NOT (formerly forbid) excludes rule when patient has the concept."""
+        req_bm = BitMap([1])
+        not_bm  = BitMap([2])
+        ruleset = {"version": "v1", "rules": [_make_rule(criteria_groups=[
+            {"mode": "ALL", "bitmap_id": "bm_all"},
+            {"mode": "NOT", "bitmap_id": "bm_not"},
+        ])]}
+        ev = evaluator_factory(
+            current_ruleset=ruleset,
+            int_id_map={"req_code": 1, "excl_code": 2},
+            bitmaps={"bm_all": req_bm, "bm_not": not_bm},
+        )
+        result = ev.evaluate_patient(["req_code", "excl_code"])
         assert result["matched_rules"] == [], (
-            "Rule should be excluded when patient has a forbidden concept"
+            "Rule should be excluded when patient has a NOT-mode concept"
         )
 
-    def test_rule_matches_when_patient_lacks_forbidden_concept(self, evaluator_factory):
-        """Rule matches when patient has required codes but NOT forbidden codes."""
+    def test_rule_matches_when_patient_lacks_not_concept(self, evaluator_factory):
+        """Rule matches when patient has required codes but not the excluded concept."""
         req_bm = BitMap([1])
-        forbid_bm = BitMap([2])
-        req_id = "req_abc"
-        forbid_id = "forbid_abc"
-
-        ruleset = {
-            "version": "v1",
-            "rules": [{
-                "rule_id": "r1",
-                "name": "Test rule",
-                "strength": "refer",
-                "guideline_id": "NG151",
-                "guideline_title": "Bowel cancer",
-                "recommendation_verbatim": "Refer if no known bowel disease",
-                "req_all_bitmap_id": req_id,
-                "forbid_bitmap_id": forbid_id,
-            }]
-        }
-
+        not_bm  = BitMap([2])
+        ruleset = {"version": "v1", "rules": [_make_rule(criteria_groups=[
+            {"mode": "ALL", "bitmap_id": "bm_all"},
+            {"mode": "NOT", "bitmap_id": "bm_not"},
+        ])]}
         ev = evaluator_factory(
             current_ruleset=ruleset,
-            int_id_map={"443416000": 1},
-            bitmaps={req_id: req_bm, forbid_id: forbid_bm},
+            int_id_map={"req_code": 1},
+            bitmaps={"bm_all": req_bm, "bm_not": not_bm},
         )
-        result = ev.evaluate_patient(["443416000"])
-
+        result = ev.evaluate_patient(["req_code"])
         assert len(result["matched_rules"]) == 1
 
 
@@ -178,30 +170,16 @@ class TestUnknownCodes:
 
     def test_unknown_patient_codes_are_skipped(self, evaluator_factory):
         """Concept IDs not in the int_id store are excluded from the patient bitmap."""
-        req_bm = BitMap([1])
-        req_id = "req_abc"
-
-        ruleset = {
-            "version": "v1",
-            "rules": [{
-                "rule_id": "r1",
-                "name": "Test rule",
-                "strength": "refer",
-                "guideline_id": "NG151",
-                "guideline_title": "Bowel cancer",
-                "recommendation_verbatim": "Test",
-                "req_all_bitmap_id": req_id,
-                "forbid_bitmap_id": None,
-            }]
-        }
-
+        bm = BitMap([1])
+        ruleset = {"version": "v1", "rules": [
+            _make_rule(criteria_groups=[{"mode": "ALL", "bitmap_id": "bm1"}])
+        ]}
         ev = evaluator_factory(
             current_ruleset=ruleset,
             int_id_map={},
-            bitmaps={req_id: req_bm},
+            bitmaps={"bm1": bm},
         )
         result = ev.evaluate_patient(["UNKNOWN_CODE"])
-
         assert result["matched_rules"] == []
 
 
@@ -210,28 +188,15 @@ class TestPathwayFilter:
 
     def test_pathway_filter_excludes_other_guidelines(self, evaluator_factory):
         """Rules for other guidelines are excluded when pathway_filter is set."""
-        req_bm = BitMap([1])
-        req_id = "req_abc"
-
-        ruleset = {
-            "version": "v1",
-            "rules": [{
-                "rule_id": "r1",
-                "name": "Test rule",
-                "strength": "refer",
-                "guideline_id": "CG89",
-                "guideline_title": "Other guideline",
-                "recommendation_verbatim": "Test",
-                "req_all_bitmap_id": req_id,
-                "forbid_bitmap_id": None,
-            }]
-        }
-
+        bm = BitMap([1])
+        ruleset = {"version": "v1", "rules": [
+            _make_rule(rule_id="r1", guideline_id="CG89",
+                       criteria_groups=[{"mode": "ALL", "bitmap_id": "bm1"}])
+        ]}
         ev = evaluator_factory(
             current_ruleset=ruleset,
             int_id_map={"443416000": 1},
-            bitmaps={req_id: req_bm},
+            bitmaps={"bm1": bm},
         )
         result = ev.evaluate_patient(["443416000"], pathway_filter="NG151")
-
         assert result["matched_rules"] == []

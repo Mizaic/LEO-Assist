@@ -177,14 +177,16 @@ ON CREATE SET
     p.rawJson   = $raw_json,
     p.status    = $status,
     p.name      = $name,
+    p.source    = 'seed',
     p.isGlobal  = true,
-    p.createdAt = datetime()
-ON MATCH SET
-    p.rawJson   = $raw_json,
-    p.status    = $status,
-    p.name      = $name,
+    p.createdAt = datetime(),
     p.updatedAt = datetime()
-RETURN p.id AS id
+ON MATCH SET
+    p.rawJson   = CASE WHEN coalesce(p.source, 'seed') = 'seed' THEN $raw_json  ELSE p.rawJson  END,
+    p.status    = CASE WHEN coalesce(p.source, 'seed') = 'seed' THEN $status    ELSE p.status   END,
+    p.name      = CASE WHEN coalesce(p.source, 'seed') = 'seed' THEN $name      ELSE p.name     END,
+    p.updatedAt = datetime()
+RETURN p.id AS id, coalesce(p.source, 'seed') AS source
 """
 
 
@@ -206,7 +208,12 @@ def main() -> None:
                 name=_PATHWAY_PAYLOAD["name"],
             )
             record = result.single()
-            logger.info("Seeded pathway: %s", record["id"] if record else _PATHWAY_ID)
+            if record:
+                source = record.get("source", "seed")
+                action = "created" if source == "seed" else "skipped (user-edited — not overwritten)"
+                logger.info("  %s — %s", _PATHWAY_ID, action)
+            else:
+                logger.info("  %s — no record returned", _PATHWAY_ID)
     finally:
         driver.close()
 

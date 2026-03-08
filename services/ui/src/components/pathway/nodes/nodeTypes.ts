@@ -6,6 +6,7 @@ import { TriggerNode } from "./TriggerNode";
 import { ParallelNode } from "./ParallelNode";
 import { MergeNode } from "./MergeNode";
 import { TransformNode } from "./TransformNode";
+import { SourceNode } from "./SourceNode";
 
 export const nodeTypes: NodeTypes = {
   action: ActionNode,
@@ -16,5 +17,6 @@ export const nodeTypes: NodeTypes = {
   parallel: ParallelNode,
   merge: MergeNode,
   transform: TransformNode,
+  source: SourceNode,
 };
 

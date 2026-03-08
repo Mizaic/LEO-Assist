@@ -9,7 +9,6 @@ Run ``python -m scripts.seed_prompt_configs`` to push changes to Neo4j.
 """
 from __future__ import annotations
 
-from libs.prompts.registry import register
 
 ANCHOR_DOMAIN_REVIEW_V1 = """You are a clinical NLP expert reviewing JSONL extraction results from NHS primary care records. Each line is a detected clinical concept from the cancer pathway anchor detection system.
 
@@ -76,4 +75,3 @@ Rules:
 - "No fam hx of cancer" = CANCER_DIAGNOSIS_EXCLUDED with assertion=family_history.
 - Process ALL lines in the batch. Return exactly one JSON object per input line."""
 
-register("anchor_domain_review", version=1, text=ANCHOR_DOMAIN_REVIEW_V1)

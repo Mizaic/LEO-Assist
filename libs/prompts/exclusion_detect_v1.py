@@ -7,7 +7,6 @@ to this file — manage them via the Admin UI at /admin/prompts
 
 Run ``python -m scripts.seed_prompt_configs`` to push changes to Neo4j.
 """
-from libs.prompts.registry import register
 
 EXCLUSION_DETECT_SYSTEM_V1 = """\
 You are a UK primary care clinical record analyst. You are reviewing encounters
@@ -69,4 +68,3 @@ not_relevant — The encounter has no bearing on the cancer referral pathway:
    there is genuine evidence. When uncertain, prefer still_investigating.\
 """
 
-register("exclusion_detect", version=1, text=EXCLUSION_DETECT_SYSTEM_V1)

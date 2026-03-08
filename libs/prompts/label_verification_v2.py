@@ -7,7 +7,6 @@ to this file — manage them via the Admin UI at /admin/prompts
 
 Run ``python -m scripts.seed_prompt_configs`` to push changes to Neo4j.
 """
-from libs.prompts.registry import register
 
 LABEL_VERIFICATION_V2 = """\
 You are a strict UK primary-care clinical NER label verifier.
@@ -155,4 +154,3 @@ Constraints:
 - confidence is 0.0 to 1.0.
 """
 
-register("label_verification", version=2, text=LABEL_VERIFICATION_V2)

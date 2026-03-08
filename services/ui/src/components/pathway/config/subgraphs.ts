@@ -1,19 +1,19 @@
 import type { FieldMappingRow, PortDefinition } from "./types";
 
 export const SUBGRAPH_OPTIONS = [
-  { id: "extraction", label: "Entity Extraction", color: "#4CAF50", description: "Extract clinical entities (findings, conditions, procedures) from encounter text using NER or LLM." },
-  { id: "post_processing", label: "Post-Processing", color: "#2196F3", description: "Clean and normalise extracted entities — merge duplicates, fix abbreviations, apply context rules." },
-  { id: "terminology", label: "Terminology Resolution", color: "#FF9800", description: "Resolve surface forms to SNOMED CT codes via the Terminology API." },
-  { id: "tier_classify", label: "Tier Classification", color: "#9C27B0", description: "Classify each entity into confidence tiers (gold / silver / bronze) for review prioritisation." },
-  { id: "verification", label: "Verification", color: "#F44336", description: "Use a larger LLM to verify pipeline output quality before persisting results." },
-  { id: "persist", label: "Persist Results", color: "#607D8B", description: "Write final entities to the Patient Graph or Gold Training Dataset." },
-  { id: "sbar", label: "SBAR Generation", color: "#00BCD4", description: "Generate a Situation-Background-Assessment-Recommendation summary for the encounter." },
-  { id: "compliance", label: "Compliance Check", color: "#795548", description: "Check extracted data against guideline graphs and compliance rules." },
-  { id: "anchor_detect", label: "Anchor Detection", color: "#E91E63", description: "Detect clinical anchors (significant findings) that trigger episodes of care." },
-  { id: "episode_build", label: "Episode Builder", color: "#3F51B5", description: "Group anchored encounters into episodes of care with timeline tracking." },
-  { id: "safety_net", label: "Safety Netting", color: "#FF5722", description: "Monitor for overdue investigations, referral responses, and follow-up actions." },
-  { id: "quality_check", label: "Quality Check", color: "#009688", description: "Run data quality checks (completeness, consistency, NHS target compliance)." },
-  { id: "next_best_action", label: "Next Best Action", color: "#673AB7", description: "Generate recommended next actions based on clinical context and guidelines." },
+  { id: "extraction",        label: "Find Clinical Facts",    color: "#4CAF50", category: "Clinical AI",     description: "Read patient notes and pull out clinical facts — symptoms, conditions, procedures, test results." },
+  { id: "post_processing",   label: "Clean Up Results",       color: "#2196F3", category: "Clinical AI",     description: "Tidy the found facts — remove duplicates, expand abbreviations, and apply context rules." },
+  { id: "terminology",       label: "Code to SNOMED CT",      color: "#FF9800", category: "Clinical AI",     description: "Match each clinical fact to an official SNOMED CT medical code." },
+  { id: "tier_classify",     label: "Grade Confidence",       color: "#9C27B0", category: "Clinical AI",     description: "Rate each clinical fact as gold, silver, or bronze based on how confident the AI is." },
+  { id: "verification",      label: "Double-Check with AI",   color: "#F44336", category: "Quality",         description: "Run a second, more capable AI over the results to spot errors before saving." },
+  { id: "compliance",        label: "Check Compliance",       color: "#795548", category: "Quality",         description: "Compare the results against clinical guidelines and flag any gaps." },
+  { id: "quality_check",     label: "Quality Check",          color: "#009688", category: "Quality",         description: "Check for missing data, inconsistencies, and NHS target compliance." },
+  { id: "persist",           label: "Save Results",           color: "#607D8B", category: "Data",            description: "Write the final clinical facts to the patient record or gold training dataset." },
+  { id: "sbar",              label: "Write SBAR Summary",     color: "#00BCD4", category: "Reports",         description: "Generate a Situation-Background-Assessment-Recommendation clinical summary." },
+  { id: "anchor_detect",     label: "Detect Key Findings",    color: "#E91E63", category: "Reports",         description: "Identify the significant clinical findings that start a new episode of care." },
+  { id: "episode_build",     label: "Build Episode",          color: "#3F51B5", category: "Reports",         description: "Group related encounters together into a timeline episode of care." },
+  { id: "safety_net",        label: "Safety Netting",         color: "#FF5722", category: "Safety",          description: "Flag overdue tests, missing referral replies, or follow-up actions that are past due." },
+  { id: "next_best_action",  label: "Next Best Action",       color: "#673AB7", category: "Safety",          description: "Suggest the most appropriate next clinical action based on the patient context." },
 ];
 
 export const SUBGRAPH_IO: Record<string, {
@@ -106,8 +106,8 @@ export const SUBGRAPH_CATEGORY: Record<string, SubgraphCategory> = {
   queue_publish: "generic",
 };
 
-export const WIZARD_STEPS_LLM = ["Subgraph", "Data flow", "Settings", "Prompt & model", "Review"];
-export const WIZARD_STEPS_NO_LLM = ["Subgraph", "Data flow", "Settings", "Review"];
+export const WIZARD_STEPS_LLM    = ["Step type", "Data connections", "Settings", "AI & outputs", "Review"];
+export const WIZARD_STEPS_NO_LLM = ["Step type", "Data connections", "Settings", "Review"];
 
 export function inferDataType(key: string): PortDefinition["dataType"] {
   const arrayKeys = new Set([
