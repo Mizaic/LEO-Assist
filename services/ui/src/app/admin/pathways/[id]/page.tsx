@@ -2911,6 +2911,248 @@ function formatVersionDate(iso: string): string {
   }
 }
 
+// ── TestRunDialog ──────────────────────────────────────────────────────────
+function TestRunDialog({
+  open, onClose, onRun, isRunning,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onRun: (encounterText: string, patientId: string) => void;
+  isRunning: boolean;
+}) {
+  const [tab, setTab] = useState(0);
+  const [encounterText, setEncounterText] = useState("");
+  const [patientId, setPatientId] = useState("");
+  const [sampleLoading, setSampleLoading] = useState(false);
+  const [sampleError, setSampleError] = useState<string | null>(null);
+
+  const loadSample = useCallback(async () => {
+    setSampleLoading(true);
+    setSampleError(null);
+    try {
+      const params = new URLSearchParams({ node_label: "EncounterCandidate", graph: "patient", text_property: "text" });
+      const res = await fetch(`/api/training/schema/sample-node?${params}`);
+      if (!res.ok) throw new Error(res.statusText);
+      const data = await res.json();
+      setEncounterText(String(data.properties?.text ?? data.properties?.raw_text ?? ""));
+      setPatientId(String(data.properties?.patient_id ?? ""));
+    } catch (e: unknown) {
+      setSampleError(e instanceof Error ? e.message : "Could not load sample");
+    } finally {
+      setSampleLoading(false);
+    }
+  }, []);
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
+      <Box sx={{ px: 3, pt: 2.5, pb: 0 }}>
+        <Typography variant="h6" fontWeight={700} gutterBottom>Test run</Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          Dry-run your pipeline with real or pasted input. Nothing will be written to any database.
+        </Typography>
+        <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2 }}>
+          <Tab label="Paste text" sx={{ textTransform: "none" }} />
+          <Tab label="Use a real record" sx={{ textTransform: "none" }} />
+        </Tabs>
+        {tab === 0 && (
+          <Stack spacing={2}>
+            <TextField
+              label="Encounter text"
+              multiline
+              minRows={5}
+              fullWidth
+              size="small"
+              placeholder="Paste clinical notes here…"
+              value={encounterText}
+              onChange={(e) => setEncounterText(e.target.value)}
+            />
+            <TextField
+              label="Patient ID (optional)"
+              size="small"
+              fullWidth
+              placeholder="e.g. patient-123"
+              value={patientId}
+              onChange={(e) => setPatientId(e.target.value)}
+            />
+          </Stack>
+        )}
+        {tab === 1 && (
+          <Stack spacing={2}>
+            <Typography variant="body2" color="text.secondary">
+              Load a real EncounterCandidate record from the patient graph as the test input.
+            </Typography>
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={loadSample}
+              disabled={sampleLoading}
+              startIcon={sampleLoading ? <CircularProgress size={13} color="inherit" /> : <SearchIcon />}
+              sx={{ textTransform: "none", alignSelf: "flex-start" }}
+            >
+              {sampleLoading ? "Loading…" : "Load sample record"}
+            </Button>
+            {sampleError && <Alert severity="warning" sx={{ fontSize: "0.78rem" }}>{sampleError}</Alert>}
+            {encounterText && (
+              <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 1.5, maxHeight: 180, overflow: "auto" }}>
+                <Typography variant="caption" sx={{ fontFamily: "monospace", fontSize: "0.72rem", color: "text.secondary", whiteSpace: "pre-wrap" }}>
+                  {encounterText.slice(0, 600)}{encounterText.length > 600 ? "…" : ""}
+                </Typography>
+              </Paper>
+            )}
+          </Stack>
+        )}
+      </Box>
+      <Box sx={{ px: 3, py: 2.5, display: "flex", justifyContent: "flex-end", gap: 1 }}>
+        <Button onClick={onClose} sx={{ textTransform: "none" }}>Cancel</Button>
+        <Button
+          variant="contained"
+          color="success"
+          disabled={isRunning || !encounterText.trim()}
+          startIcon={isRunning ? <CircularProgress size={13} color="inherit" /> : <PlayArrowIcon />}
+          onClick={() => onRun(encounterText, patientId)}
+          sx={{ textTransform: "none" }}
+        >
+          Run test
+        </Button>
+      </Box>
+    </Dialog>
+  );
+}
+
+// ── PeekPanel ───────────────────────────────────────────────────────────────
+function PeekPanel({
+  open, onClose, sourceId, targetId, testTrace, nodes, rawJson, onToggleRaw,
+}: {
+  open: boolean;
+  onClose: () => void;
+  sourceId: string | null;
+  targetId: string | null;
+  testTrace: Record<string, StepTraceResult> | null;
+  nodes: Node[];
+  rawJson: boolean;
+  onToggleRaw: () => void;
+}) {
+  const stepResult = sourceId ? testTrace?.[sourceId] ?? null : null;
+  const sourceNode = nodes.find((n) => n.id === sourceId);
+  const targetNode = nodes.find((n) => n.id === targetId);
+  const sourceLabel = (sourceNode?.data as Record<string, unknown>)?.label as string ?? sourceId ?? "Source";
+  const targetLabel = (targetNode?.data as Record<string, unknown>)?.label as string ?? targetId ?? "Target";
+
+  const stateData = stepResult?.output_state ?? {};
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+
+  const PRIORITY_KEYS = ["encounter_text", "entities", "sentences", "errors", "is_verified"];
+  const sortedKeys = Object.keys(stateData).sort((a, b) => {
+    const ai = PRIORITY_KEYS.indexOf(a);
+    const bi = PRIORITY_KEYS.indexOf(b);
+    if (ai !== -1 && bi !== -1) return ai - bi;
+    if (ai !== -1) return -1;
+    if (bi !== -1) return 1;
+    return a.localeCompare(b);
+  });
+
+  return (
+    <Drawer
+      anchor="right"
+      open={open}
+      onClose={onClose}
+      PaperProps={{ sx: { width: 440, display: "flex", flexDirection: "column" } }}
+    >
+      <Box sx={{ px: 2.5, py: 2, borderBottom: 1, borderColor: "divider", flexShrink: 0 }}>
+        <Stack direction="row" alignItems="center" spacing={1}>
+          <SearchIcon sx={{ color: "primary.main", fontSize: "1.1rem" }} />
+          <Box sx={{ flex: 1 }}>
+            <Typography variant="subtitle2" fontWeight={700}>Peek</Typography>
+            <Typography variant="caption" color="text.secondary">
+              {sourceLabel} → {targetLabel}
+            </Typography>
+          </Box>
+          <Switch checked={rawJson} onChange={onToggleRaw} size="small" />
+          <Typography variant="caption" color="text.secondary">Raw JSON</Typography>
+          <IconButton size="small" onClick={onClose}><CloseIcon fontSize="small" /></IconButton>
+        </Stack>
+        {stepResult && (
+          <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+            <Chip
+              size="small"
+              label={stepResult.status === "completed" ? "Passed" : "Failed"}
+              color={stepResult.status === "completed" ? "success" : "error"}
+              sx={{ fontSize: "0.7rem", height: 20 }}
+            />
+            <Chip
+              size="small"
+              label={stepResult.duration_ms < 1000 ? `${stepResult.duration_ms}ms` : `${(stepResult.duration_ms / 1000).toFixed(2)}s`}
+              variant="outlined"
+              sx={{ fontSize: "0.7rem", height: 20 }}
+            />
+          </Stack>
+        )}
+        {stepResult?.error && (
+          <Alert severity="error" sx={{ mt: 1, fontSize: "0.75rem" }}>{stepResult.error}</Alert>
+        )}
+      </Box>
+
+      <Box sx={{ flex: 1, overflowY: "auto", p: 2 }}>
+        {!stepResult ? (
+          <Typography variant="body2" color="text.secondary">No trace data for this connection.</Typography>
+        ) : rawJson ? (
+          <Box component="pre" sx={{ fontFamily: "monospace", fontSize: "0.72rem", color: "text.primary", whiteSpace: "pre-wrap", wordBreak: "break-word", m: 0 }}>
+            {JSON.stringify(stateData, null, 2)}
+          </Box>
+        ) : (
+          <Stack spacing={0.5}>
+            {sortedKeys.map((key) => {
+              const val = stateData[key];
+              const strVal = val === null || val === undefined
+                ? "—"
+                : typeof val === "string"
+                  ? val
+                  : JSON.stringify(val, null, 2);
+              const isLong = strVal.length > 120;
+              const isExpanded = expanded.has(key);
+              const displayVal = isLong && !isExpanded ? strVal.slice(0, 120) + "…" : strVal;
+              const isPriority = PRIORITY_KEYS.includes(key);
+
+              return (
+                <Paper
+                  key={key}
+                  variant="outlined"
+                  sx={{ p: 1.25, borderRadius: 1.5, bgcolor: isPriority ? "primary.50" : "transparent" }}
+                >
+                  <Typography variant="caption" sx={{ fontFamily: "monospace", fontWeight: 700, color: "primary.main", fontSize: "0.7rem" }}>
+                    {key}
+                  </Typography>
+                  <Typography
+                    component="pre"
+                    variant="caption"
+                    sx={{ display: "block", mt: 0.25, fontFamily: "monospace", fontSize: "0.7rem", color: "text.primary", whiteSpace: "pre-wrap", wordBreak: "break-word", m: 0 }}
+                  >
+                    {displayVal}
+                  </Typography>
+                  {isLong && (
+                    <Button
+                      size="small"
+                      variant="text"
+                      sx={{ mt: 0.25, p: 0, fontSize: "0.65rem", textTransform: "none", minWidth: 0 }}
+                      onClick={() => setExpanded((s) => {
+                        const ns = new Set(s);
+                        isExpanded ? ns.delete(key) : ns.add(key);
+                        return ns;
+                      })}
+                    >
+                      {isExpanded ? "Show less" : "Show more"}
+                    </Button>
+                  )}
+                </Paper>
+              );
+            })}
+          </Stack>
+        )}
+      </Box>
+    </Drawer>
+  );
+}
+
 export default function PathwayBuilderPage() {
   const params = useParams();
   const router = useRouter();
@@ -3576,6 +3818,30 @@ export default function PathwayBuilderPage() {
             <AccountTreeIcon sx={{ fontSize: "1.1rem" }} />
           </IconButton>
         </Tooltip>
+        {/* Test run */}
+        {testTrace && (
+          <Tooltip title="Clear test results">
+            <IconButton size="small" onClick={() => { setTestTrace(null); setTestRunError(null); }}
+              sx={{ border: "1px solid", borderColor: "success.light", borderRadius: 1.5, color: "success.main" }}>
+              <CloseIcon sx={{ fontSize: "1rem" }} />
+            </IconButton>
+          </Tooltip>
+        )}
+        <Tooltip title="Dry-run the pipeline with sample data — no data is written">
+          <span>
+            <Button
+              size="small"
+              variant="outlined"
+              color="success"
+              startIcon={isTestRunning ? <CircularProgress size={13} color="inherit" /> : <PlayArrowIcon />}
+              disabled={isTestRunning || nodes.filter((n) => n.type !== "source").length === 0}
+              onClick={() => setTestRunOpen(true)}
+              sx={{ textTransform: "none", minWidth: 90 }}
+            >
+              {isTestRunning ? "Running…" : "Test run"}
+            </Button>
+          </span>
+        </Tooltip>
         {/* Version history */}
         {!isNew && (
           <Tooltip title="Version history — view and restore previous published versions">
@@ -3898,6 +4164,35 @@ export default function PathwayBuilderPage() {
           </Dialog>
         );
       })()}
+
+      {/* ── Test-run dialog ──────────────────────────────────────────────── */}
+      <TestRunDialog
+        open={testRunOpen}
+        onClose={() => setTestRunOpen(false)}
+        onRun={runTest}
+        isRunning={isTestRunning}
+      />
+
+      {/* Test-run error banner */}
+      {testRunError && (
+        <Box sx={{ position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", zIndex: 2000 }}>
+          <Alert severity="error" onClose={() => setTestRunError(null)} sx={{ minWidth: 340 }}>
+            {testRunError}
+          </Alert>
+        </Box>
+      )}
+
+      {/* ── Peek panel ───────────────────────────────────────────────────── */}
+      <PeekPanel
+        open={peekOpen}
+        onClose={() => setPeekOpen(false)}
+        sourceId={peekSourceId}
+        targetId={peekTargetId}
+        testTrace={testTrace}
+        nodes={nodes}
+        rawJson={peekRawJson}
+        onToggleRaw={() => setPeekRawJson((v) => !v)}
+      />
     </Box>
   );
 }
