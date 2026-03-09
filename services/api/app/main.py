@@ -58,9 +58,42 @@ from app.routers.guidance_rules import router as guidance_rules_router
 from app.routers.pricing import router as pricing_router
 
 
+def _validate_startup_deps():
+    """Fail fast if critical dependencies are missing or unreachable."""
+    import os
+
+    # python-jose: required for auth (JWT verification)
+    try:
+        from jose import jwt  # noqa: F401
+    except ImportError as e:
+        raise RuntimeError(
+            "python-jose[cryptography] is required for auth. Install it: pip install python-jose[cryptography]"
+        ) from e
+
+    # Redis: required when REDIS_URL is set (session store)
+    if os.getenv("DISABLE_REDIS") not in ("true", "1"):
+        url = os.getenv("REDIS_URL")
+        if url:
+            try:
+                import redis
+                client = redis.from_url(url, decode_responses=True, socket_connect_timeout=5)
+                client.ping()
+                client.close()
+            except ImportError as e:
+                raise RuntimeError(
+                    "redis is required for session store. Install it: pip install redis"
+                ) from e
+            except Exception as e:
+                raise RuntimeError(
+                    f"Redis unreachable at REDIS_URL. Session store required for auth. Error: {e}"
+                ) from e
+
+
 @asynccontextmanager
 async def lifespan(app: object):
     import threading
+
+    _validate_startup_deps()
 
     from app.db.neo4j_client import PatientGraphClient
     from app.services.pipeline_service import PipelineService
@@ -94,6 +127,19 @@ async def lifespan(app: object):
                 "[ModelConfig] Seed failed (non-fatal): %s", exc
             )
 
+    def _service_config_seed():
+        try:
+            from app.db.neo4j_client import CodingGraphClient
+            from app.services.service_config_seed import seed_service_configs
+            client = CodingGraphClient()
+            seed_service_configs(client)
+            client.close()
+        except Exception as exc:
+            import logging
+            logging.getLogger(__name__).warning(
+                "[ServiceConfig] Seed failed (non-fatal): %s", exc
+            )
+
     def _prompt_seed():
         try:
             from scripts.seed_prompt_configs import seed_if_missing
@@ -110,8 +156,10 @@ async def lifespan(app: object):
     t2.start()
     t3 = threading.Thread(target=_model_config_seed, daemon=True)
     t3.start()
-    t4 = threading.Thread(target=_prompt_seed, daemon=True)
+    t4 = threading.Thread(target=_service_config_seed, daemon=True)
     t4.start()
+    t5 = threading.Thread(target=_prompt_seed, daemon=True)
+    t5.start()
     # Don't block startup; embedder loads in background; pipeline will wait if needed
     yield
 

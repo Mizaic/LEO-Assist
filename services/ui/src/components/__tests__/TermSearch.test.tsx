@@ -99,7 +99,7 @@ describe("TermSearch", () => {
     await user.type(screen.getByPlaceholderText(/Search SNOMED terms/), "dia");
     await waitFor(
       () => {
-        expect(mockSearchTerms).toHaveBeenCalledWith("dia");
+        expect(mockSearchTerms).toHaveBeenCalledWith("dia", 15, undefined);
       },
       { timeout: 500 }
     );

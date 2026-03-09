@@ -22,8 +22,9 @@ const PORT_COLORS: Record<PortDefinition["dataType"], string> = {
 function ActionNodeComponent({ id, data, selected }: NodeProps) {
   const actionData = data as unknown as ActionNodeData;
   const [outputHovered, setOutputHovered] = useState(false);
-  const { testTrace, isTestRunning } = usePipelineTest();
+  const { testTrace, isTestRunning, runningStepId } = usePipelineTest();
   const stepResult = testTrace?.[id] ?? null;
+  const isThisRunning = isTestRunning && runningStepId === id;
 
   const subgraphLabel = useMemo(
     () => SUBGRAPH_OPTIONS.find((s) => s.id === actionData.subgraphId)?.label ?? actionData.subgraphId,
@@ -46,11 +47,24 @@ function ActionNodeComponent({ id, data, selected }: NodeProps) {
         py: 1.5,
         borderRadius: 2,
         border: "2px solid",
-        borderColor: selected ? "primary.main" : actionData.color,
-        bgcolor: "background.paper",
+        borderColor: isThisRunning
+          ? "primary.main"
+          : selected
+            ? "primary.main"
+            : actionData.color,
+        bgcolor: isThisRunning ? "primary.50" : "background.paper",
         minWidth: 220,
         cursor: "pointer",
         position: "relative",
+        // Pulse outline when this step is actively running
+        ...(isThisRunning && {
+          animation: "nodePulse 1s ease-in-out infinite",
+          "@keyframes nodePulse": {
+            "0%":   { boxShadow: "0 0 0 0 rgba(25,118,210,0.4)" },
+            "70%":  { boxShadow: "0 0 0 8px rgba(25,118,210,0)" },
+            "100%": { boxShadow: "0 0 0 0 rgba(25,118,210,0)" },
+          },
+        }),
       }}
       onClick={actionData.onConfigure}
     >
@@ -89,12 +103,27 @@ function ActionNodeComponent({ id, data, selected }: NodeProps) {
 
       <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
         <Typography variant="body2" fontWeight={600} sx={{ flex: 1 }}>{actionData.label}</Typography>
-        {/* Test-run status badge */}
-        {isTestRunning && !stepResult && (
-          <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: "grey.400", flexShrink: 0, opacity: 0.6 }} />
+
+        {/* Running: spinner */}
+        {isThisRunning && (
+          <Tooltip title="Running…">
+            <Box sx={{ display: "flex", alignItems: "center" }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" style={{ animation: "spin 1s linear infinite" }}>
+                <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+                <circle cx="12" cy="12" r="9" fill="none" stroke="#1976d2" strokeWidth="3" strokeDasharray="28 56" strokeLinecap="round" />
+              </svg>
+            </Box>
+          </Tooltip>
         )}
+
+        {/* Queued / not yet reached */}
+        {isTestRunning && !stepResult && !isThisRunning && (
+          <Box sx={{ width: 7, height: 7, borderRadius: "50%", bgcolor: "grey.300", flexShrink: 0 }} />
+        )}
+
+        {/* Passed */}
         {stepResult?.status === "completed" && (
-          <Tooltip title={`Passed in ${(stepResult.duration_ms / 1000).toFixed(2)}s`}>
+          <Tooltip title={`Passed — ${stepResult.duration_ms < 1000 ? `${stepResult.duration_ms}ms` : `${(stepResult.duration_ms / 1000).toFixed(2)}s`}`}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 0.4 }}>
               <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: "success.main", flexShrink: 0 }} />
               <Typography variant="caption" sx={{ fontSize: "0.6rem", color: "success.dark", fontWeight: 700 }}>
@@ -103,6 +132,8 @@ function ActionNodeComponent({ id, data, selected }: NodeProps) {
             </Box>
           </Tooltip>
         )}
+
+        {/* Failed */}
         {stepResult?.status === "error" && (
           <Tooltip title={stepResult.error ?? "Step failed"}>
             <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: "error.main", flexShrink: 0 }} />

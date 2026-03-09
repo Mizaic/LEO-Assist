@@ -88,7 +88,7 @@ class GuidelineEvaluator:
         for rule in rules:
             if pathway_filter and rule.get("guideline_id") != pathway_filter:
                 continue
-            if self._rule_matches(rule, patient_bitmap, patient_age):
+            if self._rule_matches(rule, patient_bitmap, patient_age, patient_sex):
                 matches.append(_format_match(rule))
 
         return {
@@ -121,6 +121,7 @@ class GuidelineEvaluator:
         rule: dict,
         patient_bm: BitMap,
         patient_age: float | None = None,
+        patient_sex: str | None = None,
     ) -> bool:
         """Return True if a compiled rule matches the patient bitmap.
 
@@ -141,6 +142,12 @@ class GuidelineEvaluator:
         Returns:
             True if the patient satisfies all criteria.
         """
+        if int(rule.get("schema_version") or 1) == 2:
+            logic_tree = rule.get("logic_tree")
+            if not logic_tree:
+                return False
+            return self._logic_tree_matches(logic_tree, patient_bm, patient_age, patient_sex)
+
         applies_to = rule.get("applies_to") or []
         if applies_to and not _check_applies_to(applies_to, patient_age):
             return False
@@ -185,6 +192,49 @@ class GuidelineEvaluator:
                     return False
 
         return any_group_evaluated or bool(applies_to)
+
+    def _logic_tree_matches(
+        self,
+        node: dict[str, Any] | None,
+        patient_bm: BitMap,
+        patient_age: float | None,
+        patient_sex: str | None,
+    ) -> bool:
+        if not node:
+            return False
+        kind = str(node.get("kind") or "").upper()
+        if kind == "CONCEPT":
+            bitmap_id = node.get("bitmap_id")
+            bm = self._store.get_bitmap(bitmap_id) if bitmap_id else None
+            if bm is None:
+                logger.error(
+                    "Schema v2 bitmap %r for rule node %r is missing from Redis — failing CLOSED.",
+                    bitmap_id,
+                    node.get("node_id"),
+                )
+                return False
+            return len(bm & patient_bm) > 0
+        if kind == "DEMOGRAPHIC":
+            return _check_demographic_node(node, patient_age, patient_sex)
+        children = list(node.get("children") or [])
+        if kind == "AND":
+            return all(self._logic_tree_matches(child, patient_bm, patient_age, patient_sex) for child in children)
+        if kind == "OR":
+            return any(self._logic_tree_matches(child, patient_bm, patient_age, patient_sex) for child in children)
+        if kind == "NOT":
+            if len(children) != 1:
+                logger.error("Schema v2 NOT node %r must contain exactly one child.", node.get("node_id"))
+                return False
+            return not self._logic_tree_matches(children[0], patient_bm, patient_age, patient_sex)
+        if kind == "AT_LEAST":
+            threshold = int(node.get("min") or 1)
+            count = sum(
+                1 for child in children
+                if self._logic_tree_matches(child, patient_bm, patient_age, patient_sex)
+            )
+            return count >= threshold
+        logger.error("Unknown schema v2 logic node kind %r — failing CLOSED.", kind)
+        return False
 
 
 # Maps caller-supplied sex string to the SNOMED concept ID injected into
@@ -265,6 +315,40 @@ def _check_applies_to(
             return False
 
     return True
+
+
+def _check_demographic_node(
+    node: dict[str, Any],
+    patient_age: float | None,
+    patient_sex: str | None,
+) -> bool:
+    field = str(node.get("field") or "").lower()
+    operator = str(node.get("operator") or "=")
+    value = node.get("value")
+    if field == "age":
+        if patient_age is None:
+            logger.warning(
+                "Age logic node (%s %s %s) cannot be evaluated — patient_age not supplied; failing CLOSED.",
+                operator,
+                value,
+                node.get("unit"),
+            )
+            return False
+        op_fn = _OPERATORS.get(operator)
+        if op_fn is None or value is None:
+            logger.error("Invalid age logic node operator/value (%r, %r) — failing CLOSED.", operator, value)
+            return False
+        return op_fn(patient_age, float(value))
+    if field == "sex":
+        if not patient_sex:
+            logger.warning("Sex logic node cannot be evaluated — patient_sex not supplied; failing CLOSED.")
+            return False
+        if operator != "=":
+            logger.error("Unsupported sex logic node operator %r — failing CLOSED.", operator)
+            return False
+        return patient_sex.lower().strip() == str(value or "").lower().strip()
+    logger.error("Unknown demographic field %r — failing CLOSED.", field)
+    return False
 
 
 def _format_match(rule: dict) -> dict:

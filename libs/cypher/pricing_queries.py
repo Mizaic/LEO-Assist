@@ -141,7 +141,10 @@ ORDER BY rawCostUsd DESC
 # Platform spend: AuditEvents NOT linked to any patient (training, verification, etc.)
 PLATFORM_SPEND_SUMMARY = """
 MATCH (ae:AuditEvent)
-WHERE ae.type IN ['PipelineRun', 'TrainingRun', 'VerificationRun', 'GoldDatasetRun']
+WHERE ae.type IN [
+    'PipelineRun', 'TrainingRun', 'VerificationRun', 'GoldDatasetRun',
+    'GuidanceRuleExtraction'
+  ]
   AND ae.llm_input_tokens IS NOT NULL
   AND (ae.patient_id IS NULL OR ae.patient_id = '')
   AND ($from_date IS NULL OR ae.created_at >= datetime($from_date))

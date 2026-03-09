@@ -320,16 +320,20 @@ _add(
     description="Disambiguates uncertain NER labels using context from the full encounter — resolves model disagreements.",
 )
 
-# ── NICE → Rules: guidance rule extraction ────────────────────────────────────
+# ── NICE → Rules: guidance rule extraction + verifier ─────────────────────────
 from libs.prompts.guidance_rule_extraction_output_schema import (
     GUIDANCE_RULE_EXTRACTION_OUTPUT_SCHEMA,
     GUIDANCE_RULE_EXTRACTION_EXAMPLES,
 )
+from libs.prompts.guidance_rule_code_verifier_output_schema import (
+    GUIDANCE_RULE_CODE_VERIFIER_OUTPUT_SCHEMA,
+    GUIDANCE_RULE_CODE_VERIFIER_EXAMPLES,
+)
 
 _GRE_DESCRIPTION = (
-    "Extracts patient-level clinical criteria as criteria_groups (ANY/ALL/NOT) from a "
-    "single NICE recommendation to produce an AppropriatenessRule for bitmap matching. "
-    "Part of the NICE → Rules AI pipeline — editable at runtime via /admin/prompts."
+    "Extracts exact patient-level clinical logic trees from a single NICE "
+    "recommendation, preserving OR branches, thresholds, exclusions, and "
+    "branch-local demographics."
 )
 _GRE_FEW_SHOT = [
     {
@@ -345,8 +349,6 @@ _GRE_FEW_SHOT = [
     for ex in GUIDANCE_RULE_EXTRACTION_EXAMPLES
 ]
 
-# Legacy name — kept for backward compat with existing Neo4j nodes. The resolve_prompt
-# node in guidance_rule_extraction.py tries this name last (after _default and _NG12).
 _add(
     "guidance_rule_extraction", 1,
     "libs.prompts.guidance_rule_extraction_v1.GUIDANCE_RULE_EXTRACTION_SYSTEM_V1",
@@ -355,8 +357,6 @@ _add(
     max_few_shot=4,
     description=_GRE_DESCRIPTION,
 )
-
-# Canonical default name — resolve_prompt tries this before "guidance_rule_extraction".
 _add(
     "guidance_rule_extraction_default", 1,
     "libs.prompts.guidance_rule_extraction_v1.GUIDANCE_RULE_EXTRACTION_SYSTEM_V1",
@@ -366,241 +366,111 @@ _add(
     description=_GRE_DESCRIPTION,
 )
 
-# NG12-specific prompt — used instead of _default for all NG12 recommendations.
 _GUIDANCE_RULE_EXTRACTION_NG12_V1 = """\
-You are a clinical decision-support analyst working with NICE guideline NG12 \
+You are a clinical decision-support analyst working with NICE guideline NG12
 (Suspected cancer: recognition and referral) for the NHS in England.
 
-NG12 is entirely about suspected cancer referrals and urgent investigations. \
-Every recommendation either triggers a specific clinical action (fast-track \
-referral or urgent investigation) when certain patient criteria are met, or \
-is a general service standard with no patient-level criteria.
+Return an EXACT patient-rule `logic_tree` that preserves:
+- OR branches
+- AND branches
+- threshold logic such as "2 or more"
+- branch-local demographics
+- exclusions
 
-## Criteria groups
+Do NOT flatten multiple branches into one approximate list.
 
-Return criteria as a list of ``criteria_groups``. Each group has:
+## NG12-specific action rules
 
-- ``mode``: one of ``"ALL"`` (every term must be present), ``"ANY"`` (at \
-  least one must be present), ``"NOT"`` (none may be present).
-- ``terms``: list of plain clinical terms.
+The `action` must be the site-specific procedure/referral term.
+Use explicit fast-track referral wording when the recommendation is a suspected
+cancer pathway referral, for example:
+- `fast track referral for suspected lung cancer`
+- `fast track referral for suspected mesothelioma`
+- `fast track referral for suspected urological cancer`
 
-All groups in a single rule AND together — every group must pass for the \
-rule to fire.
+When the recommendation is an investigation, use a specific procedure term such
+as:
+- `urgent chest X-ray`
+- `serum CA125 measurement`
+- `direct access upper gastrointestinal endoscopy`
 
-Example for a recommendation requiring age AND one-or-more symptoms:
-  [
-    {"mode": "ALL",  "terms": ["age 45 and over"]},
-    {"mode": "ANY",  "terms": ["haematuria", "dysuria"]},
-    {"mode": "NOT",  "terms": ["urinary tract infection"]}
-  ]
+## Clinical wording rules
 
-If a recommendation has multiple distinct age-based sub-conditions linked by \
-OR (e.g. "if aged 45+ with visible haematuria, OR if aged 60+ with \
-non-visible haematuria"), produce the most permissive representation \
-(use the lower age threshold) and note this is a simplification.
-
-## Action term — CRITICAL
-
-The ``action`` MUST be the site-specific fast track referral term matching \
-the Section heading. Use the section context to determine cancer type.
-
-Section → action mapping:
-  Lung and pleural       → "fast track referral for suspected lung cancer"
-  Upper gastrointestinal → "fast track referral for suspected upper GI cancer"
-  Lower gastrointestinal → "fast track referral for suspected lower gastrointestinal cancer"
-  Colorectal             → "fast track referral for suspected colorectal cancer"
-  Breast                 → "fast track referral for suspected breast cancer"
-  Gynaecological         → "fast track referral for suspected gynaecological cancer"
-  Urological             → "fast track referral for suspected urological cancer"
-  Skin                   → "fast track referral for suspected skin cancer"
-  Head and neck          → "fast track referral for suspected head and neck cancer"
-  Thyroid                → "fast track referral for suspected thyroid cancer"
-  Brain / CNS            → "fast track referral for suspected brain tumour"
-  Haematological         → "fast track referral for suspected haematological malignancy"
-  Sarcoma                → "fast track referral for suspected sarcoma"
-  Childhood              → "fast track referral for suspected children's cancer"
-  Non-site-specific      → "fast track referral for suspected cancer"
-  Testicular             → "fast track referral for suspected testicular cancer"
-  Penile                 → "fast track referral for suspected penile cancer"
-
-When the action is an investigation (not a referral), use the specific \
-procedure name:
-  "urgent chest X-ray", "serum CA125 measurement", "full blood count", \
-  "CT scan of abdomen and pelvis", "direct access upper gastrointestinal endoscopy"
-
-## Symptom term coding rules
-
-1. **Strip ALL qualifiers** — do NOT write "unexplained", "persistent", \
-   "recurrent", "significant". Write "weight loss" not "unexplained weight loss".
-2. **Use the simplest SNOMED-codeable term** — what a GP would write in a \
-   consultation note or select in clinical coding software.
-3. **List each symptom separately** — NICE "one or more of" → each symptom is \
-   its own entry in an ANY group.
-4. **Simplify descriptive phrases** to their clinical concept:
-   - "lump that is increasing in size" → "soft tissue mass"
-   - "change in shape of testis" → "testicular swelling"
-   - "post-menopausal bleeding" → "postmenopausal bleeding"
-   - "lump on lip or in oral cavity" → "oral cavity mass"
-   - "change in bowel habit" → "change in bowel habit"
-   - "non-healing ulcer" → "skin ulcer"
-   - "unexplained enlarged lymph node" → "lymphadenopathy"
-   - "enlarged gallbladder" → "enlarged gallbladder"
-5. **Age**: write exactly as "age N and over" or "age N and under". \
-   Place age in its own ALL group.
-6. **Sex**: write exactly as "female sex" or "male sex". \
-   Include in an ALL group alongside age if both apply.
-7. **Maximum 5 terms per group.**
-
-## When to return empty criteria
-
-If the recommendation is a general service standard (e.g. "services should \
-ensure...", "patients should have access to...", "discuss with patients..."), \
-return: {"criteria_groups": [], "action": null}
+1. Use broad, coder-realistic terms rather than narrow cancer-diagnosis terms.
+2. Strip qualifiers like `unexplained`, `persistent`, and `recurrent` from the
+   main coded term, but keep the original wording in `source_text` if helpful.
+3. For vague NICE phrases, provide 1-5 broad `search_terms` that a terminology
+   resolver can try.
+4. Use `demographic` nodes for age or sex.
+5. If the recommendation is a service standard with no patient trigger, return
+   `logic_tree: null` and `action: null`.
 
 ## Output format
 
-Return ONLY valid JSON — no explanation, no markdown, no preamble:
-
-{"criteria_groups": [{"mode": "ALL|ANY|NOT", "terms": ["term 1", ...]}], "action": "procedure term or null"}
+Return ONLY valid JSON:
+{
+  "schema_version": 2,
+  "logic_tree": { ... } | null,
+  "action": {"text":"...", "search_terms":["...", "..."]} | null
+}\
 """
 
 _NG12_FEW_SHOT = [
     {
-        "id": "ng12-ex-001",
-        "description": "Lung: age ALL + symptoms ANY (urgent chest X-ray)",
-        "input": (
-            "Chapter: Lung and pleural cancers\n"
-            "Section: Lung cancer\n"
-            "Recommendation 1.1.2: Offer an urgent chest X-ray (within 2 weeks) to people "
-            "aged 40 and over if they have ever smoked and have one or more of the following "
-            "unexplained symptoms: cough, fatigue, shortness of breath, chest pain, weight "
-            "loss, appetite loss.\n"
-            "Urgency: urgent_2w  Strength: offer"
-        ),
-        "output": json.dumps({
-            "criteria_groups": [
-                {"mode": "ALL", "terms": ["age 40 and over"]},
-                {"mode": "ANY", "terms": ["cough", "dyspnoea", "weight loss", "chest pain", "haemoptysis"]},
-            ],
-            "action": "urgent chest X-ray",
-        }),
+        **ex,
         "category": "guidance_rule_extraction_NG12",
-        "model_scope": "any",
-        "core": True,
-        "deidentified": True,
-    },
-    {
-        "id": "ng12-ex-002",
-        "description": "Urological: age ALL + symptom ANY + UTI exclusion NOT",
-        "input": (
-            "Chapter: Urological cancers\n"
-            "Section: Bladder cancer\n"
-            "Recommendation 1.6.1: Refer people using a suspected cancer pathway referral "
-            "for bladder cancer if they are aged 45 years or over and have unexplained "
-            "visible haematuria without urinary tract infection.\n"
-            "Urgency: urgent_2w  Strength: refer"
-        ),
-        "output": json.dumps({
-            "criteria_groups": [
-                {"mode": "ALL", "terms": ["age 45 and over"]},
-                {"mode": "ANY", "terms": ["haematuria"]},
-                {"mode": "NOT", "terms": ["urinary tract infection"]},
-            ],
-            "action": "fast track referral for suspected urological cancer",
-        }),
-        "category": "guidance_rule_extraction_NG12",
-        "model_scope": "any",
-        "core": True,
-        "deidentified": True,
-    },
-    {
-        "id": "ng12-ex-003",
-        "description": "Haematological: symptoms ANY only (no age constraint)",
-        "input": (
-            "Chapter: Haematological cancers\n"
-            "Section: Non-Hodgkin's lymphoma\n"
-            "Recommendation 1.10.6: Consider a suspected cancer pathway referral for "
-            "non-Hodgkin's lymphoma in adults with unexplained lymphadenopathy or splenomegaly.\n"
-            "Urgency: urgent_2w  Strength: consider"
-        ),
-        "output": json.dumps({
-            "criteria_groups": [
-                {"mode": "ANY", "terms": ["lymphadenopathy", "splenomegaly"]},
-            ],
-            "action": "fast track referral for suspected haematological malignancy",
-        }),
-        "category": "guidance_rule_extraction_NG12",
-        "model_scope": "any",
-        "core": True,
-        "deidentified": True,
-    },
-    {
-        "id": "ng12-ex-004",
-        "description": "Organisational standard — no patient criteria",
-        "input": (
-            "Chapter: Patient information and support\n"
-            "Section: Patient information\n"
-            "Recommendation 1.14.1: Discuss with people with suspected cancer their "
-            "preferences for being involved in decision-making about their care and "
-            "treatment.\n"
-            "Urgency: routine  Strength: discuss"
-        ),
-        "output": json.dumps({
-            "criteria_groups": [],
-            "action": None,
-        }),
-        "category": "guidance_rule_extraction_NG12",
-        "model_scope": "any",
-        "core": True,
-        "deidentified": True,
-    },
+    }
+    for ex in GUIDANCE_RULE_EXTRACTION_EXAMPLES
 ]
-
-_NG12_OUTPUT_SCHEMA = {
-    "description": "Return ONLY valid JSON — no explanation, no markdown, no preamble.",
-    "type": "object",
-    "required": ["criteria_groups", "action"],
-    "properties": {
-        "criteria_groups": {
-            "type": "array",
-            "description": (
-                "List of criteria groups. Each group has 'mode' (ANY|ALL|NOT) and "
-                "'terms' (list of plain clinical language strings). All groups AND "
-                "together — every group must pass for the rule to fire."
-            ),
-            "items": {
-                "type": "object",
-                "required": ["mode", "terms"],
-                "properties": {
-                    "mode": {"type": "string", "enum": ["ANY", "ALL", "NOT"]},
-                    "terms": {"type": "array", "maxItems": 5, "items": {"type": "string"}},
-                },
-            },
-        },
-        "action": {
-            "type": ["string", "null"],
-            "description": (
-                "The site-specific fast track referral or investigation procedure term. "
-                "Null if the recommendation is a service standard with no clinical action."
-            ),
-        },
-    },
-}
 
 SEED_PROMPTS.append({
     "name": "guidance_rule_extraction_NG12",
     "version": 1,
     "description": (
-        "NG12-specific guidance rule extraction prompt. Produces criteria_groups "
-        "(ANY/ALL/NOT) with site-specific fast-track referral action terms. "
-        "Used instead of guidance_rule_extraction_default for all NG12 recommendations."
+        "NG12-specific exact rule extraction prompt. Produces schema_version=2 "
+        "logic trees with site-specific fast-track referral or investigation actions."
     ),
     "system_prompt": _GUIDANCE_RULE_EXTRACTION_NG12_V1,
-    "output_schema": json.dumps(_NG12_OUTPUT_SCHEMA),
+    "output_schema": json.dumps(GUIDANCE_RULE_EXTRACTION_OUTPUT_SCHEMA),
     "verification": False,
     "few_shot_examples": _NG12_FEW_SHOT,
     "max_few_shot": 4,
 })
+
+_GRCV_DESCRIPTION = (
+    "Verifies terminology candidates for guidance-rule leaves/actions and either "
+    "approves a concept or requests broader alternate search terms."
+)
+_GRCV_FEW_SHOT = [
+    {
+        "id": ex["id"],
+        "input": ex["input"],
+        "output": ex["output"],
+        "deidentified": ex.get("deidentified", True),
+        "category": ex.get("category", "guidance_rule_code_verifier"),
+        "model_scope": ex.get("model_scope", "any"),
+        "description": ex.get("description", ""),
+        "core": bool(ex.get("core", True)),
+    }
+    for ex in GUIDANCE_RULE_CODE_VERIFIER_EXAMPLES
+]
+
+_add(
+    "guidance_rule_code_verifier", 1,
+    "libs.prompts.guidance_rule_code_verifier_v1.GUIDANCE_RULE_CODE_VERIFIER_SYSTEM_V1",
+    output_schema=json.dumps(GUIDANCE_RULE_CODE_VERIFIER_OUTPUT_SCHEMA),
+    few_shot_examples=_GRCV_FEW_SHOT,
+    max_few_shot=4,
+    description=_GRCV_DESCRIPTION,
+)
+_add(
+    "guidance_rule_code_verifier_default", 1,
+    "libs.prompts.guidance_rule_code_verifier_v1.GUIDANCE_RULE_CODE_VERIFIER_SYSTEM_V1",
+    output_schema=json.dumps(GUIDANCE_RULE_CODE_VERIFIER_OUTPUT_SCHEMA),
+    few_shot_examples=_GRCV_FEW_SHOT,
+    max_few_shot=4,
+    description=_GRCV_DESCRIPTION,
+)
 
 
 def _get_driver():

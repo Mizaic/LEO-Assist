@@ -46,7 +46,10 @@ describe("fetchDomains", () => {
     expect(result).toEqual(data);
     expect(mockFetch).toHaveBeenCalledWith(
       expect.stringContaining("/analytics/domains"),
-      undefined,
+      expect.objectContaining({
+        credentials: "include",
+        headers: expect.objectContaining({ "X-Requested-With": "XMLHttpRequest" }),
+      }),
     );
   });
 });

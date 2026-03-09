@@ -36,8 +36,7 @@ import HistoryIcon from "@mui/icons-material/History";
 import ReplayIcon from "@mui/icons-material/Replay";
 import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import SearchIcon from "@mui/icons-material/Search";
-import Tab from "@mui/material/Tab";
-import Tabs from "@mui/material/Tabs";
+import StorageIcon from "@mui/icons-material/Storage";
 import Drawer from "@mui/material/Drawer";
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
@@ -70,6 +69,7 @@ import {
 } from "@/components/pathway/config/subgraphs";
 import { TRIGGER_OPTIONS } from "@/components/pathway/config/triggers";
 import { SOURCE_DEFINITIONS, type SourceType } from "@/components/pathway/nodes/SourceNode";
+import { OUTPUT_DEFINITIONS, type OutputType } from "@/components/pathway/nodes/OutputNode";
 import {
   PipelineTestContext,
   type StepTraceResult,
@@ -1610,6 +1610,34 @@ function SourceConfiguratorContent({
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
 
+  // ── PubSub-specific state ─────────────────────────────────────────────────
+  const [pubsubSampleText, setPubsubSampleText] = useState(
+    (nodeData.pubsub_sample_json as string) || "",
+  );
+  const [pubsubParseError, setPubsubParseError] = useState<string | null>(null);
+  const [pubsubParsedFields, setPubsubParsedFields] = useState<string[]>([]);
+
+  // Parse pubsub sample JSON whenever the text changes
+  useEffect(() => {
+    if (currentType !== "pubsub_subscribe" || !pubsubSampleText.trim()) {
+      setPubsubParsedFields([]);
+      setPubsubParseError(null);
+      return;
+    }
+    try {
+      const parsed = JSON.parse(pubsubSampleText);
+      const keys = typeof parsed === "object" && parsed !== null ? Object.keys(parsed) : [];
+      setPubsubParsedFields(keys);
+      setPubsubParseError(null);
+      // Auto-populate outputs from the parsed fields
+      onUpdate({ outputs: keys, pubsub_sample_json: pubsubSampleText });
+    } catch {
+      setPubsubParseError("Not valid JSON — check the sample above");
+      setPubsubParsedFields([]);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pubsubSampleText, currentType]);
+
   // Auto-fetch a sample record whenever node label or text property changes
   useEffect(() => {
     if (!nodeLabel || !["patient_graph", "knowledge_graph"].includes(currentType)) {
@@ -1679,14 +1707,15 @@ function SourceConfiguratorContent({
     { v: "content",           d: "Document content" },
   ];
 
-  const isGraphSource = currentType === "patient_graph" || currentType === "knowledge_graph";
+  const isGraphSource   = currentType === "patient_graph" || currentType === "knowledge_graph";
+  const isPubSubSource  = currentType === "pubsub_subscribe";
 
   return (
     <>
       <Box sx={{ px: 3, pt: 2.5, pb: 1, overflowY: "auto", maxHeight: "80vh" }}>
         <Typography variant="h6" fontWeight={700} gutterBottom>Data source</Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          This node represents a data source on the canvas. Wire its outputs to any steps that need them.
+          This node represents where data enters this pathway. Wire its outputs to any steps that need them.
         </Typography>
 
         {/* Source type picker */}
@@ -1715,6 +1744,91 @@ function SourceConfiguratorContent({
         <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 2 }}>
           <strong>Tip:</strong> Add one source node per data source, then wire it to multiple steps that all need the same data.
         </Typography>
+
+        {/* ── PubSub subscribe configuration ──────────────────────────────── */}
+        {isPubSubSource && (
+          <Paper variant="outlined" sx={{ p: 2, mt: 2, borderRadius: 2 }}>
+            <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>
+              Which queue or topic?
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+              This pathway will start whenever a message arrives on the configured topic. Each field in the message becomes an output handle you can wire to your steps.
+            </Typography>
+            <Stack spacing={1.5}>
+              <TextField
+                size="small" fullWidth label="Topic name"
+                placeholder="e.g. hl7v2.labs.results  or  nhs.clinical.events"
+                value={(nodeData.pubsub_topic as string) || ""}
+                onChange={(e) => onUpdate({ pubsub_topic: e.target.value })}
+              />
+              <TextField
+                size="small" fullWidth label="Subscription ID (optional)"
+                placeholder="e.g. sub-leo-processing"
+                value={(nodeData.pubsub_subscription as string) || ""}
+                onChange={(e) => onUpdate({ pubsub_subscription: e.target.value })}
+              />
+
+              <Box>
+                <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.5 }}>
+                  Paste a sample message (JSON) to discover the fields it carries:
+                </Typography>
+                <TextField
+                  size="small" fullWidth multiline minRows={4}
+                  label="Sample message (JSON)"
+                  placeholder={'{\n  "patient_id": "abc-123",\n  "encounter_id": "enc-456",\n  "payload": "...\"\n}'}
+                  value={pubsubSampleText}
+                  onChange={(e) => setPubsubSampleText(e.target.value)}
+                  inputProps={{ style: { fontFamily: "monospace", fontSize: "0.78rem" } }}
+                />
+                {pubsubParseError && (
+                  <Alert severity="warning" sx={{ mt: 0.75, fontSize: "0.75rem", py: 0.5 }}>
+                    {pubsubParseError}
+                  </Alert>
+                )}
+              </Box>
+
+              {pubsubParsedFields.length > 0 && (
+                <Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.5 }}>
+                    Tick the fields to expose as output handles on the canvas:
+                  </Typography>
+                  <Box sx={{ borderRadius: 1.5, border: "1px solid", borderColor: "divider", overflow: "hidden" }}>
+                    {pubsubParsedFields.map((key, idx) => {
+                      const currentOutputs: string[] = (nodeData.outputs as string[]) ?? [];
+                      const isChecked = currentOutputs.includes(key);
+                      return (
+                        <Box
+                          key={key}
+                          sx={{
+                            display: "flex", alignItems: "center", gap: 1,
+                            px: 1, py: 0.5,
+                            bgcolor: idx % 2 === 0 ? "grey.50" : "background.paper",
+                            borderBottom: "1px solid", borderColor: "divider",
+                            "&:last-child": { borderBottom: 0 },
+                          }}
+                        >
+                          <Checkbox
+                            size="small" checked={isChecked}
+                            onChange={(e) => {
+                              const updated = e.target.checked
+                                ? [...currentOutputs, key]
+                                : currentOutputs.filter((k) => k !== key);
+                              onUpdate({ outputs: updated });
+                            }}
+                            sx={{ p: 0.25, flexShrink: 0 }}
+                          />
+                          <Typography variant="caption" sx={{ fontFamily: "monospace", fontSize: "0.7rem", color: "text.secondary" }}>
+                            {key}
+                          </Typography>
+                        </Box>
+                      );
+                    })}
+                  </Box>
+                </Box>
+              )}
+            </Stack>
+          </Paper>
+        )}
 
         {/* Graph picker + live record preview */}
         {isGraphSource && (
@@ -2900,6 +3014,10 @@ function formatSaveTime(date: Date): string {
   return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
+function isSeededPlanRecord(plan: Pick<PlanData, "meta" | "source">): boolean {
+  return Boolean(plan.meta?.seeded || plan.source === "seed");
+}
+
 function formatVersionDate(iso: string): string {
   if (!iso) return "—";
   try {
@@ -2912,115 +3030,242 @@ function formatVersionDate(iso: string): string {
 }
 
 // ── TestRunDialog ──────────────────────────────────────────────────────────
+type GraphSampleState = {
+  loading: boolean;
+  error: string | null;
+  data: Record<string, unknown> | null;
+};
+
 function TestRunDialog({
-  open, onClose, onRun, isRunning,
+  open, onClose, onRun, isRunning, sourceNodes,
 }: {
   open: boolean;
   onClose: () => void;
-  onRun: (encounterText: string, patientId: string) => void;
+  onRun: (initialState: Record<string, unknown>) => void;
   isRunning: boolean;
+  sourceNodes: Node[];
 }) {
-  const [tab, setTab] = useState(0);
-  const [encounterText, setEncounterText] = useState("");
-  const [patientId, setPatientId] = useState("");
-  const [sampleLoading, setSampleLoading] = useState(false);
-  const [sampleError, setSampleError] = useState<string | null>(null);
+  const [manualText, setManualText] = useState("");
+  const [sampleMap, setSampleMap] = useState<Record<string, GraphSampleState>>({});
+  // PubSub: one JSON text area per subscribe source node
+  const [pubsubPayloads, setPubsubPayloads] = useState<Record<string, string>>({});
 
-  const loadSample = useCallback(async () => {
-    setSampleLoading(true);
-    setSampleError(null);
-    try {
-      const params = new URLSearchParams({ node_label: "EncounterCandidate", graph: "patient", text_property: "text" });
-      const res = await fetch(`/api/training/schema/sample-node?${params}`);
-      if (!res.ok) throw new Error(res.statusText);
-      const data = await res.json();
-      setEncounterText(String(data.properties?.text ?? data.properties?.raw_text ?? ""));
-      setPatientId(String(data.properties?.patient_id ?? ""));
-    } catch (e: unknown) {
-      setSampleError(e instanceof Error ? e.message : "Could not load sample");
-    } finally {
-      setSampleLoading(false);
+  // Categorise sources by how the test run gets their data:
+  //   graph   → auto-fetched from DB (no user input needed)
+  //   pubsub  → user pastes a JSON message payload
+  //   live    → user pastes plain encounter text (encounter_text type, or fallback)
+  const graphSources  = sourceNodes.filter((n) => {
+    const t = (n.data as { sourceType?: string }).sourceType;
+    return t === "knowledge_graph" || t === "patient_graph";
+  });
+  const pubsubSources = sourceNodes.filter((n) =>
+    (n.data as { sourceType?: string }).sourceType === "pubsub_subscribe",
+  );
+  const hasLiveInput  = sourceNodes.length === 0 || sourceNodes.some(
+    (n) => ((n.data as { sourceType?: string }).sourceType ?? "encounter_text") === "encounter_text",
+  );
+
+  // Auto-fetch sample records for each graph source when the dialog opens
+  useEffect(() => {
+    if (!open) return;
+    for (const node of graphSources) {
+      const d = node.data as { sourceType?: string; input_node_label?: string; input_text_property?: string };
+      const nodeLabel = d.input_node_label ?? "";
+      const textProp  = d.input_text_property ?? "text";
+      const graph     = d.sourceType === "knowledge_graph" ? "knowledge" : "patient";
+      if (!nodeLabel) {
+        setSampleMap((prev) => ({ ...prev, [node.id]: { loading: false, error: "Source not configured — double-click it to set a record type.", data: null } }));
+        continue;
+      }
+      setSampleMap((prev) => ({ ...prev, [node.id]: { loading: true, error: null, data: null } }));
+      const params = new URLSearchParams({ node_label: nodeLabel, graph, text_property: textProp });
+      fetch(`/api/training/schema/sample-node?${params}`)
+        .then(async (res) => {
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({ detail: res.statusText }));
+            setSampleMap((prev) => ({ ...prev, [node.id]: { loading: false, error: err.detail ?? "Could not load record", data: null } }));
+          } else {
+            const payload = await res.json();
+            setSampleMap((prev) => ({ ...prev, [node.id]: { loading: false, error: null, data: payload.properties ?? {} } }));
+          }
+        })
+        .catch((e) => setSampleMap((prev) => ({ ...prev, [node.id]: { loading: false, error: e.message, data: null } })));
     }
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  // Run is ready when:
+  //   • every graph source has loaded (or errored)
+  //   • every pubsub source has a non-empty JSON payload
+  //   • live text is supplied when required
+  const allGraphReady = graphSources.every((n) => { const s = sampleMap[n.id]; return s && !s.loading; });
+  const allPubsubReady = pubsubSources.every((n) => (pubsubPayloads[n.id] ?? "").trim().length > 0);
+  const canRun = allGraphReady && allPubsubReady
+    && (!hasLiveInput || manualText.trim().length > 0 || graphSources.length > 0 || pubsubSources.length > 0);
+
+  const handleRun = () => {
+    const initialState: Record<string, unknown> = {
+      patient_id: "test-patient",
+      encounter_id: "test-encounter",
+    };
+    // Inject each graph source's record properties directly into pipeline state
+    for (const node of graphSources) {
+      const d = node.data as { input_text_property?: string };
+      const textProp = d.input_text_property ?? "text";
+      const sample = sampleMap[node.id];
+      if (sample?.data) {
+        Object.assign(initialState, sample.data);
+        // Alias the text field as encounter_text so existing subgraphs find it
+        if (sample.data[textProp] !== undefined) {
+          initialState["encounter_text"] = sample.data[textProp];
+        }
+      }
+    }
+    // Inject each pubsub source's pasted JSON payload
+    for (const node of pubsubSources) {
+      const raw = (pubsubPayloads[node.id] ?? "").trim();
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw);
+          if (typeof parsed === "object" && parsed !== null) Object.assign(initialState, parsed);
+          else initialState["message"] = parsed;
+        } catch {
+          initialState["message"] = raw; // treat as plain string if not valid JSON
+        }
+      }
+    }
+    // Manual/live text (encounter_text source or fallback when no graph/pubsub sources)
+    if (hasLiveInput && manualText.trim()) {
+      initialState["encounter_text"] = manualText.trim();
+    }
+    onRun(initialState);
+  };
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
       <Box sx={{ px: 3, pt: 2.5, pb: 0 }}>
         <Typography variant="h6" fontWeight={700} gutterBottom>Test run</Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Dry-run your pipeline with real or pasted input. Nothing will be written to any database.
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>
+          Dry-run your pipeline. Nothing will be written to any database.
         </Typography>
-        <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2 }}>
-          <Tab label="Paste text" sx={{ textTransform: "none" }} />
-          <Tab label="Use a real record" sx={{ textTransform: "none" }} />
-        </Tabs>
-        {tab === 0 && (
-          <Stack spacing={2}>
-            <TextField
-              label="Encounter text"
-              multiline
-              minRows={5}
-              fullWidth
-              size="small"
-              placeholder="Paste clinical notes here…"
-              value={encounterText}
-              onChange={(e) => setEncounterText(e.target.value)}
-            />
-            <TextField
-              label="Patient ID (optional)"
-              size="small"
-              fullWidth
-              placeholder="e.g. patient-123"
-              value={patientId}
-              onChange={(e) => setPatientId(e.target.value)}
-            />
-          </Stack>
-        )}
-        {tab === 1 && (
-          <Stack spacing={2}>
-            <Typography variant="body2" color="text.secondary">
-              Load a real EncounterCandidate record from the patient graph as the test input.
-            </Typography>
-            <Button
-              variant="outlined"
-              size="small"
-              onClick={loadSample}
-              disabled={sampleLoading}
-              startIcon={sampleLoading ? <CircularProgress size={13} color="inherit" /> : <SearchIcon />}
-              sx={{ textTransform: "none", alignSelf: "flex-start" }}
-            >
-              {sampleLoading ? "Loading…" : "Load sample record"}
-            </Button>
-            {sampleError && <Alert severity="warning" sx={{ fontSize: "0.78rem" }}>{sampleError}</Alert>}
-            {encounterText && (
-              <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 1.5, maxHeight: 180, overflow: "auto" }}>
-                <Typography variant="caption" sx={{ fontFamily: "monospace", fontSize: "0.72rem", color: "text.secondary", whiteSpace: "pre-wrap" }}>
-                  {encounterText.slice(0, 600)}{encounterText.length > 600 ? "…" : ""}
-                </Typography>
+
+        <Stack spacing={2}>
+          {/* ── Graph-backed source previews ────────────────────────────────── */}
+          {graphSources.map((node) => {
+            const d = node.data as { label?: string; sourceType?: string; input_node_label?: string };
+            const sample = sampleMap[node.id];
+            const sourceLabel = d.label ?? (d.sourceType === "knowledge_graph" ? "Knowledge Base" : "Patient Records");
+            const nodeLabel = d.input_node_label ?? "record";
+            return (
+              <Paper key={node.id} variant="outlined" sx={{ p: 2, borderRadius: 2, borderColor: "success.light" }}>
+                <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
+                  <StorageIcon sx={{ fontSize: "1rem", color: "success.main" }} />
+                  <Typography variant="subtitle2" fontWeight={600}>{sourceLabel}</Typography>
+                  <Chip label="Database" size="small" color="success" variant="outlined" sx={{ fontSize: "0.65rem", height: 18, ml: "auto !important" }} />
+                </Stack>
+                {(!sample || sample.loading) ? (
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <CircularProgress size={13} color="success" />
+                    <Typography variant="caption" color="text.secondary">Loading a sample {nodeLabel} record…</Typography>
+                  </Stack>
+                ) : sample.error ? (
+                  <Alert severity="warning" sx={{ fontSize: "0.75rem", py: 0.5 }}>{sample.error}</Alert>
+                ) : (
+                  <Stack spacing={0.75}>
+                    <Typography variant="caption" sx={{ color: "success.dark", fontWeight: 600 }}>
+                      1 record ready — this data will be injected into the pipeline
+                    </Typography>
+                    <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 1, maxHeight: 160, overflow: "auto", bgcolor: "grey.50" }}>
+                      {Object.entries(sample.data ?? {}).slice(0, 7).map(([k, v]) => (
+                        <Box key={k} sx={{ display: "flex", gap: 1, mb: 0.3 }}>
+                          <Typography variant="caption" sx={{ fontFamily: "monospace", color: "text.secondary", minWidth: 110, flexShrink: 0 }}>
+                            {k}:
+                          </Typography>
+                          <Typography variant="caption" sx={{ fontFamily: "monospace", color: "text.primary", wordBreak: "break-all" }}>
+                            {String(v).slice(0, 140)}{String(v).length > 140 ? "…" : ""}
+                          </Typography>
+                        </Box>
+                      ))}
+                      {Object.keys(sample.data ?? {}).length > 7 && (
+                        <Typography variant="caption" color="text.secondary">
+                          …and {Object.keys(sample.data ?? {}).length - 7} more fields
+                        </Typography>
+                      )}
+                    </Paper>
+                  </Stack>
+                )}
               </Paper>
-            )}
-          </Stack>
-        )}
+            );
+          })}
+
+          {/* ── PubSub subscribe: paste a message payload ───────────────────── */}
+          {pubsubSources.map((node) => {
+            const d = node.data as { label?: string; pubsub_topic?: string };
+            const topic = d.pubsub_topic ? ` · ${d.pubsub_topic}` : "";
+            return (
+              <Paper key={node.id} variant="outlined" sx={{ p: 2, borderRadius: 2, borderColor: "#E65100" }}>
+                <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
+                  <StorageIcon sx={{ fontSize: "1rem", color: "#E65100" }} />
+                  <Typography variant="subtitle2" fontWeight={600}>{d.label ?? "Message Queue"}{topic}</Typography>
+                  <Chip label="Pub/Sub" size="small" sx={{ fontSize: "0.65rem", height: 18, ml: "auto !important", bgcolor: "#E65100", color: "#fff" }} />
+                </Stack>
+                <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.75 }}>
+                  Paste a sample message JSON to test how this pathway handles it:
+                </Typography>
+                <TextField
+                  size="small" fullWidth multiline minRows={3}
+                  placeholder={'{\n  "patient_id": "abc-123",\n  "payload": "..."\n}'}
+                  value={pubsubPayloads[node.id] ?? ""}
+                  onChange={(e) => setPubsubPayloads((prev) => ({ ...prev, [node.id]: e.target.value }))}
+                  inputProps={{ style: { fontFamily: "monospace", fontSize: "0.78rem" } }}
+                />
+              </Paper>
+            );
+          })}
+
+          {/* ── Live / event-feed text input ─────────────────────────────────── */}
+          {hasLiveInput && (
+            <Stack spacing={1}>
+              {graphSources.length > 0 && (
+                <Typography variant="body2" color="text.secondary">
+                  This pipeline also reads from a live notes feed — paste some text to test it:
+                </Typography>
+              )}
+              <TextField
+                label="Clinical notes text"
+                multiline
+                minRows={4}
+                fullWidth
+                size="small"
+                placeholder="Paste encounter text here…"
+                value={manualText}
+                onChange={(e) => setManualText(e.target.value)}
+              />
+            </Stack>
+          )}
+        </Stack>
       </Box>
+
       <Box sx={{ px: 3, py: 2.5, display: "flex", justifyContent: "flex-end", gap: 1 }}>
         <Button onClick={onClose} sx={{ textTransform: "none" }}>Cancel</Button>
         <Button
           variant="contained"
           color="success"
-          disabled={isRunning || !encounterText.trim()}
+          disabled={isRunning || !canRun}
           startIcon={isRunning ? <CircularProgress size={13} color="inherit" /> : <PlayArrowIcon />}
-          onClick={() => onRun(encounterText, patientId)}
+          onClick={handleRun}
           sx={{ textTransform: "none" }}
         >
-          Run test
+          {isRunning ? "Running…" : "Run test"}
         </Button>
       </Box>
     </Dialog>
   );
 }
 
-// ── PeekPanel ───────────────────────────────────────────────────────────────
-function PeekPanel({
+// ── PeekPanel (kept for reference — replaced by inline ProbeMonitor on edges) ─
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function _PeekPanel_unused({
   open, onClose, sourceId, targetId, testTrace, nodes, rawJson, onToggleRaw,
 }: {
   open: boolean;
@@ -3178,6 +3423,10 @@ export default function PathwayBuilderPage() {
   const [versions, setVersions] = useState<VersionEntry[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [restoringVid, setRestoringVid] = useState<number | null>(null);
+  const [isSeededPathway, setIsSeededPathway] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [isDeletingPathway, setIsDeletingPathway] = useState(false);
   // Edge deletion confirmation: holds edges pending removal until confirmed
   const [pendingDeleteEdges, setPendingDeleteEdges] = useState<Edge[] | null>(null);
 
@@ -3186,14 +3435,21 @@ export default function PathwayBuilderPage() {
   const [isTestRunning, setIsTestRunning] = useState(false);
   const [testRunError, setTestRunError] = useState<string | null>(null);
   const [testTrace, setTestTrace] = useState<Record<string, StepTraceResult> | null>(null);
-  // PeekPanel: which edge's data to show
-  const [peekOpen, setPeekOpen] = useState(false);
-  const [peekSourceId, setPeekSourceId] = useState<string | null>(null);
-  const [peekTargetId, setPeekTargetId] = useState<string | null>(null);
-  const [peekRawJson, setPeekRawJson] = useState(false);
-  const testInputRef = useRef<{ encounterText: string; patientId: string }>({
-    encounterText: "",
-    patientId: "",
+  /** ID of the step currently executing (null when between steps) */
+  const [runningStepId, setRunningStepId] = useState<string | null>(null);
+  const deleteConfirmTarget = planName.trim() || planId;
+  /** Set of edge keys ("sourceId|targetId") the user has clamped a probe onto */
+  const [probedEdges, setProbedEdges] = useState<Set<string>>(new Set());
+  const toggleProbe = useCallback((srcId: string, tgtId: string) => {
+    const key = `${srcId}|${tgtId}`;
+    setProbedEdges((prev) => {
+      const next = new Set(prev);
+      next.has(key) ? next.delete(key) : next.add(key);
+      return next;
+    });
+  }, []);
+  const testInputRef = useRef<{ initialState: Record<string, unknown> }>({
+    initialState: {},
   });
 
   const validationWarnings = useValidationWarnings(nodes, edges, nodeConfigs, triggerEvent);
@@ -3208,6 +3464,7 @@ export default function PathwayBuilderPage() {
     if (!isNew) {
       api.get<PlanData>(`/fhir/PlanDefinition/${planId}`)
         .then((data) => {
+          setIsSeededPathway(isSeededPlanRecord(data));
           setPlanName(data.name || "");
           setPlanDescription(data.description || "");
           setPlanStatus(data.status || "draft");
@@ -3235,7 +3492,7 @@ export default function PathwayBuilderPage() {
                 },
               };
             });
-          // Restore canvas-only source nodes (saved in sourceNodes key)
+          // Restore canvas-only source nodes
           const savedSourceNodes = ((data as unknown as Record<string, unknown>).sourceNodes as Array<{ id: string; position: { x: number; y: number }; data: Record<string, unknown> }>) || [];
           const loadedSourceNodes: Node[] = savedSourceNodes.map((sn) => ({
             id: sn.id,
@@ -3243,14 +3500,26 @@ export default function PathwayBuilderPage() {
             position: sn.position,
             data: { ...sn.data, onConfigure: () => setSourceConfigOpen(sn.id) },
           }));
+          // Restore canvas-only output (sink) nodes
+          const savedOutputNodes = ((data as unknown as Record<string, unknown>).outputNodes as Array<{ id: string; position: { x: number; y: number }; data: Record<string, unknown> }>) || [];
+          const loadedOutputNodes: Node[] = savedOutputNodes.map((on) => ({
+            id: on.id,
+            type: "output",
+            position: on.position,
+            data: { ...on.data, onConfigure: () => setOutputConfigOpen(on.id) },
+          }));
           setNodeConfigs(configs);
-          setNodes([...loadedActionNodes, ...loadedSourceNodes]);
-          setEdges((data.edges || []).map((e, i) => ({
-            id: `e${i}`,
+          setNodes([...loadedActionNodes, ...loadedSourceNodes, ...loadedOutputNodes]);
+          const allEdges = [
+            ...(data.edges || []),
+            ...(data.sourceEdges || []),   // canvas-only source → action wires
+          ];
+          setEdges(allEdges.map((e, i) => ({
+            id: `e${i}-${e.source}-${e.target}`,
             source: e.source,
             target: e.target,
-            sourceHandle: e.sourceHandle,
-            targetHandle: e.targetHandle,
+            sourceHandle: e.sourceHandle ?? null,
+            targetHandle: e.targetHandle ?? null,
             type: "portEdge",
             data: { label: e.sourceHandle || e.targetHandle || "" },
           })));
@@ -3423,6 +3692,25 @@ export default function PathwayBuilderPage() {
     } as Node]);
   }, [setNodes]);
 
+  // ── Output node (sink) ───────────────────────────────────────────────────────
+  const [outputConfigOpen, setOutputConfigOpen] = useState<string | null>(null);
+
+  const addOutputNode = useCallback((outputType: OutputType) => {
+    const meta = OUTPUT_DEFINITIONS[outputType];
+    const id = `output_${Date.now()}`;
+    setNodes((nds) => [...nds, {
+      id,
+      type: "output",
+      position: { x: 900, y: (nds.length + 1) * 160 },
+      data: {
+        label: meta.label,
+        outputType,
+        inputs: meta.inputs,
+        onConfigure: () => setOutputConfigOpen(id),
+      },
+    } as Node]);
+  }, [setNodes]);
+
   const handleConfigSave = useCallback((nodeId: string, config: ActionConfig) => {
     setNodeConfigs((prev) => ({ ...prev, [nodeId]: config }));
     const option = SUBGRAPH_OPTIONS.find((s) => s.id === config.subgraphId);
@@ -3532,15 +3820,26 @@ export default function PathwayBuilderPage() {
     return null;
   }, [selectedNode, edges, nodeConfigs]);
 
-  const runTest = useCallback(async (encounterText: string, patientId: string) => {
+  // Core streaming runner — accepts an optional pre-filtered node/edge subset
+  // so both "full run" and "run to here" share the same SSE logic.
+  const runTestStream = useCallback(async (
+    initialState: Record<string, unknown>,
+    overrideNodes?: typeof nodes,
+    overrideEdges?: typeof edges,
+  ) => {
     setTestRunError(null);
     setIsTestRunning(true);
     setTestTrace(null);
+    setRunningStepId(null);
     setTestRunOpen(false);
+    // Remember last input so "run to here" can reuse it without re-opening the dialog
+    testInputRef.current = { initialState };
 
-    const actionNodes = nodes.filter((n) => n.type !== "source");
-    const testEdges = edges.filter(
-      (e) => !nodes.find((n) => n.id === e.source && n.type === "source"),
+    const canvasOnlyTypes = new Set(["source", "output"]);
+    const actionNodes = overrideNodes ?? nodes.filter((n) => !canvasOnlyTypes.has(n.type ?? ""));
+    const testEdges = overrideEdges ?? edges.filter(
+      (e) => !nodes.find((n) => n.id === e.source && canvasOnlyTypes.has(n.type ?? ""))
+           && !nodes.find((n) => n.id === e.target && canvasOnlyTypes.has(n.type ?? "")),
     );
 
     const body = {
@@ -3559,36 +3858,182 @@ export default function PathwayBuilderPage() {
         target_handle: e.targetHandle ?? null,
       })),
       input: {
-        encounter_text: encounterText,
-        patient_id: patientId || "test-patient",
+        // Ensure baseline keys are always present so subgraphs that expect them don't fail
+        patient_id: "test-patient",
         encounter_id: "test-encounter",
+        ...initialState,
       },
     };
 
     try {
-      const res = await fetch("/api/pipeline/test-run", {
+      const res = await fetch("/api/pipeline/test-run/stream", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ detail: res.statusText }));
-        setTestRunError(err.detail ?? "Test run failed");
+      if (!res.ok || !res.body) {
+        const errText = await res.text().catch(() => res.statusText);
+        let detail = errText;
+        try { detail = JSON.parse(errText)?.detail ?? errText; } catch { /* raw text is fine */ }
+        setTestRunError(detail ?? "Test run failed");
         return;
       }
-      const data = await res.json();
-      // Index by step_id for fast lookup
+
+      // ── Consume the SSE stream incrementally ─────────────────────────────
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
       const traceMap: Record<string, StepTraceResult> = {};
-      for (const step of data.steps ?? []) {
-        traceMap[step.step_id] = step;
+      let sseBuffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        sseBuffer += decoder.decode(value, { stream: true });
+
+        // SSE events are separated by double newlines
+        const parts = sseBuffer.split("\n\n");
+        sseBuffer = parts.pop() ?? "";   // keep incomplete trailing fragment
+
+        for (const part of parts) {
+          let eventType = "message";
+          let dataLine = "";
+          for (const line of part.split("\n")) {
+            if (line.startsWith("event: ")) eventType = line.slice(7).trim();
+            if (line.startsWith("data: "))  dataLine  = line.slice(6).trim();
+          }
+          if (!dataLine) continue;
+
+          let event: Record<string, unknown>;
+          try { event = JSON.parse(dataLine); } catch { continue; }
+
+          if (eventType === "step_start") {
+            setRunningStepId(event.step_id as string);
+          } else if (eventType === "step_done") {
+            const step = event.step_trace as StepTraceResult;
+            traceMap[step.step_id] = step;
+            setTestTrace({ ...traceMap });
+            setRunningStepId(null);
+          } else if (eventType === "pipeline_done") {
+            setRunningStepId(null);
+          } else if (eventType === "error") {
+            setTestRunError((event.message as string) ?? "Pipeline error");
+          }
+        }
       }
-      setTestTrace(traceMap);
+      // Ensure final state is committed after reader closes
+      setTestTrace({ ...traceMap });
     } catch (e: unknown) {
       setTestRunError(e instanceof Error ? e.message : "Network error");
     } finally {
       setIsTestRunning(false);
+      setRunningStepId(null);
     }
-  }, [nodes, edges, nodeConfigs, planId]);
+  }, [nodes, edges, nodeConfigs, planId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Public entry point for full pipeline runs
+  const runTest = useCallback((initialState: Record<string, unknown>) => {
+    runTestStream(initialState);
+  }, [runTestStream]);
+
+  // Must be declared before any callback that reads or sets it.
+  const [runToStepPending, setRunToStepPending] = useState<string | null>(null);
+
+  const handleTestRunDialogRun = useCallback((initialState: Record<string, unknown>) => {
+    if (runToStepPending) {
+      // User opened dialog via "run to here" — build the partial graph then stream
+      const upToNodeId = runToStepPending;
+      setRunToStepPending(null);
+      const canvasOnly = new Set(["source", "output"]);
+      const actionNodes = nodes.filter((n) => !canvasOnly.has(n.type ?? ""));
+      const actionEdges = edges.filter(
+        (e) => !nodes.find((n) => n.id === e.source && canvasOnly.has(n.type ?? ""))
+             && !nodes.find((n) => n.id === e.target && canvasOnly.has(n.type ?? "")),
+      );
+      const ancestors = new Set<string>([upToNodeId]);
+      let changed = true;
+      while (changed) {
+        changed = false;
+        for (const e of actionEdges) {
+          if (ancestors.has(e.target) && !ancestors.has(e.source)) {
+            ancestors.add(e.source);
+            changed = true;
+          }
+        }
+      }
+      runTestStream(
+        initialState,
+        actionNodes.filter((n) => ancestors.has(n.id)),
+        actionEdges.filter((e) => ancestors.has(e.source) && ancestors.has(e.target)),
+      );
+    } else {
+      runTestStream(initialState);
+    }
+  }, [runTestStream, runToStepPending, nodes, edges]);
+
+  // ── Run to a specific step (probe "test to this point") ───────────────────
+  const runToStep = useCallback((upToNodeId: string) => {
+    const canvasOnly = new Set(["source", "output"]);
+
+    // If the caller passed a canvas-only node (e.g. a source node), resolve to its first
+    // downstream action so the user actually sees something run.
+    let resolvedId = upToNodeId;
+    const selfNode = nodes.find((n) => n.id === upToNodeId);
+    if (selfNode && canvasOnly.has(selfNode.type ?? "")) {
+      const firstDownstreamEdge = edges.find(
+        (e) => e.source === upToNodeId
+             && !canvasOnly.has(nodes.find((n) => n.id === e.target)?.type ?? ""),
+      );
+      if (!firstDownstreamEdge) return; // no action connected, nothing to run
+      resolvedId = firstDownstreamEdge.target;
+    }
+
+    // Compute the ancestor set of resolvedId in the action-only graph (BFS backwards)
+    const actionNodes = nodes.filter((n) => !canvasOnly.has(n.type ?? ""));
+    const actionEdges = edges.filter(
+      (e) => !nodes.find((n) => n.id === e.source && canvasOnly.has(n.type ?? ""))
+           && !nodes.find((n) => n.id === e.target && canvasOnly.has(n.type ?? "")),
+    );
+
+    const ancestors = new Set<string>([resolvedId]);
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (const e of actionEdges) {
+        if (ancestors.has(e.target) && !ancestors.has(e.source)) {
+          ancestors.add(e.source);
+          changed = true;
+        }
+      }
+    }
+
+    const partialNodes = actionNodes.filter((n) => ancestors.has(n.id));
+    const partialEdges = actionEdges.filter(
+      (e) => ancestors.has(e.source) && ancestors.has(e.target),
+    );
+
+    // Launch using the last test input; if none yet, open the dialog first
+    const { initialState } = testInputRef.current;
+    if (Object.keys(initialState).length === 0) {
+      // Queue the partial run after the dialog completes by storing intent
+      setRunToStepPending(resolvedId);
+      setTestRunOpen(true);
+      return;
+    }
+    runTestStream(initialState, partialNodes, partialEdges);
+  }, [nodes, edges, nodeConfigs]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Helper: what fields does a node expect to receive from pipeline_state?
+  const getNodeExpectedInputs = useCallback((nodeId: string): string[] => {
+    const cfg = nodeConfigs[nodeId];
+    if (!cfg) return [];
+    const fieldMappings = (cfg.params?.field_mappings as FieldMappingRow[] | undefined) ?? [];
+    const fromMapping = fieldMappings
+      .map((fm) => fm.statePath?.trim() ?? "")
+      .filter(Boolean)
+      .map((path) => path.match(/^(\w+)/)?.[1] ?? path);
+    const fromPorts = SUBGRAPH_IO[cfg.subgraphId]?.reads ?? [];
+    return [...new Set([...fromMapping, ...fromPorts])];
+  }, [nodeConfigs]);
 
   const handleSave = useCallback(async (statusOverride?: string) => {
     setSaveError(null);
@@ -3601,14 +4046,19 @@ export default function PathwayBuilderPage() {
       // Include version notes when publishing so the backend can snapshot them.
       ...(effectiveStatus === "active" && versionNotes ? { versionNotes } : {}),
       trigger: triggerEvent ? { event: triggerEvent, type: "data-changed" } : undefined,
-      // Source nodes are canvas-only — the engine injects their data via event.context,
-      // not as executable subgraph steps. Saved separately under sourceNodes.
+      // Source + output nodes are canvas-only — saved separately so they survive
+      // save/reload without confusing the backend execution engine.
       sourceNodes: nodes.filter((n) => n.type === "source").map((n) => ({
         id: n.id,
         position: n.position,
         data: { ...(n.data as Record<string, unknown>), onConfigure: undefined },
       })),
-      actions: nodes.filter((n) => n.type !== "source").map((n) => ({
+      outputNodes: nodes.filter((n) => n.type === "output").map((n) => ({
+        id: n.id,
+        position: n.position,
+        data: { ...(n.data as Record<string, unknown>), onConfigure: undefined },
+      })),
+      actions: nodes.filter((n) => n.type !== "source" && n.type !== "output").map((n) => ({
         id: n.id,
         subgraphId: (n.data as unknown as ActionNodeData).subgraphId,
         label: (n.data as unknown as ActionNodeData).label,
@@ -3616,9 +4066,27 @@ export default function PathwayBuilderPage() {
         position: n.position,
         config: nodeConfigs[n.id] || {},
       })),
-      // Exclude edges from source nodes — those are canvas-only routing hints.
+      // Action-to-action edges — the backend uses these for execution ordering.
       edges: edges
-        .filter((e) => !nodes.find((n) => n.id === e.source && n.type === "source"))
+        .filter((e) => {
+          const srcNode = nodes.find((n) => n.id === e.source);
+          const tgtNode = nodes.find((n) => n.id === e.target);
+          return srcNode?.type !== "source" && srcNode?.type !== "output"
+              && tgtNode?.type !== "source" && tgtNode?.type !== "output";
+        })
+        .map((e) => ({
+          source: e.source,
+          target: e.target,
+          sourceHandle: e.sourceHandle,
+          targetHandle: e.targetHandle,
+        })),
+      // Canvas-only edges (source → action, action → output) — persisted for UI restore.
+      sourceEdges: edges
+        .filter((e) => {
+          const srcNode = nodes.find((n) => n.id === e.source);
+          const tgtNode = nodes.find((n) => n.id === e.target);
+          return srcNode?.type === "source" || tgtNode?.type === "output";
+        })
         .map((e) => ({
           source: e.source,
           target: e.target,
@@ -3656,6 +4124,19 @@ export default function PathwayBuilderPage() {
     await handleSave("active");
     setPublishDialogOpen(false);
   }, [handleSave]);
+
+  const handleDeletePathway = useCallback(async () => {
+    setIsDeletingPathway(true);
+    setSaveError(null);
+    try {
+      await api.delete(`/fhir/PlanDefinition/${planId}`);
+      router.push("/admin/pathways");
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : "Failed to delete pathway");
+    } finally {
+      setIsDeletingPathway(false);
+    }
+  }, [planId, router]);
 
   const loadHistory = useCallback(() => {
     if (isNew) return;
@@ -3713,14 +4194,31 @@ export default function PathwayBuilderPage() {
           },
         };
       });
+      // Restore source nodes
+      const versionSourceNodes = ((data as unknown as Record<string, unknown>).sourceNodes as Array<{ id: string; position: { x: number; y: number }; data: Record<string, unknown> }>) || [];
+      const versionOutputNodes = ((data as unknown as Record<string, unknown>).outputNodes as Array<{ id: string; position: { x: number; y: number }; data: Record<string, unknown> }>) || [];
       setNodeConfigs(configs);
-      setNodes(restoredNodes);
-      setEdges((data.edges || []).map((e, i) => ({
-        id: `e${i}`,
+      setNodes([
+        ...restoredNodes,
+        ...versionSourceNodes.map((sn) => ({
+          id: sn.id, type: "source" as const, position: sn.position,
+          data: { ...sn.data, onConfigure: () => setSourceConfigOpen(sn.id) },
+        })),
+        ...versionOutputNodes.map((on) => ({
+          id: on.id, type: "output" as const, position: on.position,
+          data: { ...on.data, onConfigure: () => setOutputConfigOpen(on.id) },
+        })),
+      ]);
+      const allRestoredEdges = [
+        ...(data.edges || []),
+        ...(data.sourceEdges || []),
+      ];
+      setEdges(allRestoredEdges.map((e, i) => ({
+        id: `e${i}-${e.source}-${e.target}`,
         source: e.source,
         target: e.target,
-        sourceHandle: e.sourceHandle,
-        targetHandle: e.targetHandle,
+        sourceHandle: e.sourceHandle ?? null,
+        targetHandle: e.targetHandle ?? null,
         type: "portEdge",
         data: { label: e.sourceHandle || e.targetHandle || "" },
       })));
@@ -3793,6 +4291,22 @@ export default function PathwayBuilderPage() {
           </Select>
         </FormControl>
 
+        {/* Add output destination — creates a sink node on the canvas */}
+        <FormControl size="small" sx={{ minWidth: 175 }}>
+          <InputLabel>Add an output</InputLabel>
+          <Select label="Add an output" value="" onChange={(e) => { if (e.target.value) addOutputNode(e.target.value as OutputType); }}>
+            <MenuItem value="">Add an output…</MenuItem>
+            {(Object.entries(OUTPUT_DEFINITIONS) as [OutputType, typeof OUTPUT_DEFINITIONS[OutputType]][]).map(([type, meta]) => (
+              <MenuItem key={type} value={type}>
+                <Box>
+                  <Typography variant="body2">{meta.label}</Typography>
+                  <Typography variant="caption" color="text.secondary">{meta.description}</Typography>
+                </Box>
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+
         <FormControl size="small" sx={{ minWidth: 190 }}>
           <InputLabel>Add a step</InputLabel>
           <Select label="Add a step" value="" onChange={(e) => addAction(e.target.value)}>
@@ -3821,7 +4335,7 @@ export default function PathwayBuilderPage() {
         {/* Test run */}
         {testTrace && (
           <Tooltip title="Clear test results">
-            <IconButton size="small" onClick={() => { setTestTrace(null); setTestRunError(null); }}
+              <IconButton size="small" onClick={() => { setTestTrace(null); setTestRunError(null); setProbedEdges(new Set()); }}
               sx={{ border: "1px solid", borderColor: "success.light", borderRadius: 1.5, color: "success.main" }}>
               <CloseIcon sx={{ fontSize: "1rem" }} />
             </IconButton>
@@ -3848,6 +4362,23 @@ export default function PathwayBuilderPage() {
             <IconButton size="small" onClick={openHistory} sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1.5 }}>
               <HistoryIcon sx={{ fontSize: "1.1rem" }} />
             </IconButton>
+          </Tooltip>
+        )}
+        {!isNew && (
+          <Tooltip title={isSeededPathway ? "Seeded pathways cannot be deleted from the UI" : "Delete this pathway permanently"}>
+            <span>
+              <Button
+                variant="outlined"
+                size="small"
+                color="error"
+                startIcon={<DeleteOutlineIcon />}
+                disabled={isSaving || isDeletingPathway || isSeededPathway}
+                onClick={() => { setDeleteConfirmText(""); setDeleteDialogOpen(true); }}
+                sx={{ textTransform: "none", minWidth: 110 }}
+              >
+                Delete
+              </Button>
+            </span>
           </Tooltip>
         )}
         {/* Save draft — always safe, never changes live status */}
@@ -3892,13 +4423,12 @@ export default function PathwayBuilderPage() {
       <Box sx={{ flex: 1, minHeight: 0 }}>
         <PipelineTestContext.Provider value={{
           testTrace,
+          runningStepId,
           isTestRunning,
-          onPeekEdge: (srcId, tgtId) => {
-            setPeekSourceId(srcId);
-            setPeekTargetId(tgtId);
-            setPeekRawJson(false);
-            setPeekOpen(true);
-          },
+          probedEdges,
+          toggleProbe,
+          runToStep,
+          getNodeExpectedInputs,
         }}>
           <ReactFlow
             nodes={nodes}
@@ -4068,6 +4598,123 @@ export default function PathwayBuilderPage() {
         })()}
       </Dialog>
 
+      {/* ── Output node configurator dialog ──────────────────────────────── */}
+      <Dialog
+        open={Boolean(outputConfigOpen)}
+        onClose={() => setOutputConfigOpen(null)}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 3 } }}
+      >
+        {outputConfigOpen && (() => {
+          const outputNode = nodes.find((n) => n.id === outputConfigOpen);
+          if (!outputNode) return null;
+          const d = outputNode.data as {
+            outputType?: OutputType;
+            label?: string;
+            pubsub_topic?: string;
+            pubsub_routing_key?: string;
+            webhook_url?: string;
+            inputs?: string[];
+          };
+          const outputType: OutputType = d.outputType ?? "pubsub_publish";
+          const meta = OUTPUT_DEFINITIONS[outputType];
+          return (
+            <>
+              <Box sx={{ px: 3, pt: 2.5, pb: 1, overflowY: "auto", maxHeight: "80vh" }}>
+                <Typography variant="h6" fontWeight={700} gutterBottom>Output destination</Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  This node represents where data leaves this pathway. Wire outputs from upstream steps to its input handle.
+                </Typography>
+
+                {/* Output type picker */}
+                <Stack spacing={1.5} sx={{ mb: 2 }}>
+                  {(Object.entries(OUTPUT_DEFINITIONS) as [OutputType, typeof OUTPUT_DEFINITIONS[OutputType]][]).map(([type, m]) => (
+                    <Paper
+                      key={type}
+                      variant="outlined"
+                      onClick={() =>
+                        setNodes((nds) => nds.map((n) =>
+                          n.id === outputConfigOpen
+                            ? { ...n, data: { ...n.data, outputType: type, label: m.label, inputs: m.inputs } }
+                            : n
+                        ))
+                      }
+                      sx={{
+                        p: 1.5, cursor: "pointer", borderRadius: 2,
+                        borderColor: outputType === type ? m.color : "divider",
+                        borderWidth: outputType === type ? 2 : 1,
+                        bgcolor: outputType === type ? `${m.color}10` : "transparent",
+                      }}
+                    >
+                      <Typography variant="body2" fontWeight={outputType === type ? 700 : 500}>{m.label}</Typography>
+                      <Typography variant="caption" color="text.secondary">{m.description}</Typography>
+                    </Paper>
+                  ))}
+                </Stack>
+
+                <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
+                  {outputType === "pubsub_publish" && (
+                    <Stack spacing={1.5}>
+                      <Typography variant="subtitle2" fontWeight={700}>Topic / queue settings</Typography>
+                      <TextField
+                        size="small" fullWidth label="Topic name"
+                        placeholder="e.g. hl7v2.coded.results  or  nhs.clinical.processed"
+                        value={d.pubsub_topic || ""}
+                        onChange={(e) =>
+                          setNodes((nds) => nds.map((n) =>
+                            n.id === outputConfigOpen ? { ...n, data: { ...n.data, pubsub_topic: e.target.value } } : n
+                          ))
+                        }
+                      />
+                      <TextField
+                        size="small" fullWidth label="Routing key (optional)"
+                        placeholder="e.g. coded.encounter"
+                        value={d.pubsub_routing_key || ""}
+                        onChange={(e) =>
+                          setNodes((nds) => nds.map((n) =>
+                            n.id === outputConfigOpen ? { ...n, data: { ...n.data, pubsub_routing_key: e.target.value } } : n
+                          ))
+                        }
+                      />
+                    </Stack>
+                  )}
+                  {outputType === "webhook" && (
+                    <Stack spacing={1.5}>
+                      <Typography variant="subtitle2" fontWeight={700}>Endpoint settings</Typography>
+                      <TextField
+                        size="small" fullWidth label="Webhook URL"
+                        placeholder="https://your-service.example.com/webhook"
+                        value={d.webhook_url || ""}
+                        onChange={(e) =>
+                          setNodes((nds) => nds.map((n) =>
+                            n.id === outputConfigOpen ? { ...n, data: { ...n.data, webhook_url: e.target.value } } : n
+                          ))
+                        }
+                      />
+                    </Stack>
+                  )}
+                </Paper>
+              </Box>
+              <Box sx={{ px: 3, pb: 2.5, pt: 1.5, display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: 1, borderColor: "divider" }}>
+                <Button size="small" color="error" sx={{ textTransform: "none" }}
+                  onClick={() => {
+                    setNodes((nds) => nds.filter((n) => n.id !== outputConfigOpen));
+                    setEdges((eds) => eds.filter((e) => e.target !== outputConfigOpen));
+                    setOutputConfigOpen(null);
+                  }}
+                >
+                  Remove output node
+                </Button>
+                <Button variant="contained" onClick={() => setOutputConfigOpen(null)} sx={{ textTransform: "none" }}>
+                  Done
+                </Button>
+              </Box>
+            </>
+          );
+        })()}
+      </Dialog>
+
       {/* ── Edge deletion confirmation dialog ────────────────────────────── */}
       <Dialog open={Boolean(pendingDeleteEdges)} onClose={() => setPendingDeleteEdges(null)} maxWidth="xs" fullWidth
         PaperProps={{ sx: { borderRadius: 3 } }}>
@@ -4165,12 +4812,72 @@ export default function PathwayBuilderPage() {
         );
       })()}
 
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => !isDeletingPathway && setDeleteDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 3 } }}
+      >
+        <Box sx={{ px: 3, pt: 2.5, pb: 1, borderBottom: 1, borderColor: "divider" }}>
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <DeleteOutlineIcon color="error" />
+            <Typography variant="h6" fontWeight={700}>Delete pathway permanently?</Typography>
+          </Stack>
+          <Typography variant="caption" color="text.secondary">
+            {deleteConfirmTarget} will be removed from the admin UI and deleted from Neo4j.
+          </Typography>
+        </Box>
+
+        <Box sx={{ px: 3, py: 2 }}>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            This deletes the pathway definition, its linked actions, and its saved version history from Neo4j.
+            This cannot be undone.
+          </Typography>
+          {planStatus === "active" && (
+            <Alert severity="warning" sx={{ mb: 2 }}>
+              This pathway is currently live. Deleting it may stop future runtime processing that depends on it.
+            </Alert>
+          )}
+          <Alert severity="error" icon={false} sx={{ mb: 2, fontSize: "0.78rem" }}>
+            Type the pathway name exactly to unlock permanent deletion.
+          </Alert>
+          <TextField
+            label="Confirm pathway name"
+            fullWidth
+            size="small"
+            autoFocus
+            value={deleteConfirmText}
+            onChange={(e) => setDeleteConfirmText(e.target.value)}
+            disabled={isDeletingPathway}
+            helperText={`Type "${deleteConfirmTarget}" to confirm.`}
+          />
+        </Box>
+
+        <Box sx={{ px: 3, pb: 2.5, display: "flex", justifyContent: "flex-end", gap: 1 }}>
+          <Button onClick={() => setDeleteDialogOpen(false)} disabled={isDeletingPathway} sx={{ textTransform: "none" }}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            disabled={isDeletingPathway || deleteConfirmText.trim() !== deleteConfirmTarget}
+            startIcon={isDeletingPathway ? <CircularProgress size={13} color="inherit" /> : <DeleteOutlineIcon />}
+            onClick={handleDeletePathway}
+            sx={{ textTransform: "none" }}
+          >
+            {isDeletingPathway ? "Deleting…" : "Delete pathway permanently"}
+          </Button>
+        </Box>
+      </Dialog>
+
       {/* ── Test-run dialog ──────────────────────────────────────────────── */}
       <TestRunDialog
         open={testRunOpen}
         onClose={() => setTestRunOpen(false)}
-        onRun={runTest}
+        onRun={handleTestRunDialogRun}
         isRunning={isTestRunning}
+        sourceNodes={nodes.filter((n) => n.type === "source")}
       />
 
       {/* Test-run error banner */}
@@ -4182,17 +4889,7 @@ export default function PathwayBuilderPage() {
         </Box>
       )}
 
-      {/* ── Peek panel ───────────────────────────────────────────────────── */}
-      <PeekPanel
-        open={peekOpen}
-        onClose={() => setPeekOpen(false)}
-        sourceId={peekSourceId}
-        targetId={peekTargetId}
-        testTrace={testTrace}
-        nodes={nodes}
-        rawJson={peekRawJson}
-        onToggleRaw={() => setPeekRawJson((v) => !v)}
-      />
+      {/* Probe monitors are rendered inline on edges via PortEdge/EdgeLabelRenderer */}
     </Box>
   );
 }

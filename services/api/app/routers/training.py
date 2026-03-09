@@ -2688,6 +2688,13 @@ def create_context_rule(
     finally:
         client.close()
 
+    # Rebuild the ConText NLP pipeline so the new rule takes effect immediately.
+    try:
+        from libs.ner.context_engine import reload_nlp
+        reload_nlp()
+    except Exception:
+        logger.warning("ConText pipeline reload failed after rule creation (non-fatal)", exc_info=True)
+
 
 @router.patch("/context-rules/{rule_id}/deactivate")
 def deactivate_context_rule(
@@ -2705,6 +2712,13 @@ def deactivate_context_rule(
         return {"rule_id": rule_id, "active": False}
     finally:
         client.close()
+
+    # Rebuild the ConText NLP pipeline so the removed rule is no longer applied.
+    try:
+        from libs.ner.context_engine import reload_nlp
+        reload_nlp()
+    except Exception:
+        logger.warning("ConText pipeline reload failed after rule deactivation (non-fatal)", exc_info=True)
 
 
 # -- Surface form approval --------------------------------------------------

@@ -89,38 +89,59 @@ interface Props {
 // ── Extraction test types ─────────────────────────────────────────────────────
 
 interface CriterionResult {
+  node_id?: string;
+  term: string;
+  source_text?: string | null;
+  snomed_concept_id: string | null;
+  preferred_term: string;
+  semantic_tag: string;
+  verification_status?: string;
+  verification_reason?: string;
+}
+
+interface ActionResult {
   term: string;
   snomed_concept_id: string | null;
   preferred_term: string;
   semantic_tag: string;
 }
 
-/** Demographic constraint stored via APPLIES_TO edge (e.g. age >= 40 years). */
-interface AppliesToConstraint {
-  raw_term: string;
-  concept_id: string;
-  preferred_term: string;
-  semantic_tag: string;
-  operator: string;   // ">=", "<=", ">", "<", "="
-  value: number | null;
-  unit: string | null;
+interface RawTerm {
+  text: string;
+  source_text?: string | null;
+  search_terms?: string[];
 }
 
-interface CriteriaGroupRaw {
-  mode: "ANY" | "ALL" | "NOT";
-  terms: string[];
+interface LogicTreeRawNode {
+  kind: string;
+  node_id?: string;
+  children?: LogicTreeRawNode[];
+  min?: number;
+  term?: RawTerm;
+  field?: string;
+  operator?: string;
+  value?: number | string | null;
+  unit?: string | null;
+  raw_term?: string;
 }
 
-interface CriteriaGroupCoded {
-  mode: "ANY" | "ALL" | "NOT";
-  coded_terms: CriterionResult[];
+interface LogicTreeCodedNode {
+  kind: string;
+  node_id?: string;
+  children?: LogicTreeCodedNode[];
+  min?: number;
+  criterion?: CriterionResult;
+  field?: string;
+  operator?: string;
+  value?: number | string | null;
+  unit?: string | null;
+  raw_term?: string;
 }
 
 interface CodedCriteria {
-  criteria_groups: CriteriaGroupCoded[];
-  action: CriterionResult | null;
-  /** Demographic constraints evaluated via APPLIES_TO (e.g. age, sex). */
-  applies_to?: AppliesToConstraint[];
+  schema_version: number;
+  logic_tree: LogicTreeCodedNode | null;
+  action: ActionResult | null;
 }
 
 interface ExtractionTestResult {
@@ -131,7 +152,7 @@ interface ExtractionTestResult {
     chapter_title: string;
     section_title: string;
   };
-  raw_criteria: { criteria_groups: CriteriaGroupRaw[]; action: string | null } | null;
+  raw_criteria: { schema_version: number; logic_tree: LogicTreeRawNode | null; action: { text: string; search_terms?: string[] } | null } | null;
   coded_criteria: CodedCriteria | null;
   errors: string[];
   /** False when Terminology API failures mean this result would NOT be written
@@ -205,24 +226,6 @@ function RuleChip({ rule }: { rule: RuleEntry }) {
 
 // ── Extraction test result panel ──────────────────────────────────────────────
 
-function AppliesToChip({ constraint }: { constraint: AppliesToConstraint }) {
-  const label = `${constraint.operator} ${constraint.value ?? "?"} ${constraint.unit ?? ""}`.trim();
-  return (
-    <Tooltip
-      title={`SNOMED: ${constraint.concept_id} · ${constraint.preferred_term} · raw: "${constraint.raw_term}"`}
-      arrow
-    >
-      <Chip
-        label={label}
-        size="small"
-        color="secondary"
-        variant="filled"
-        sx={{ height: 20, fontSize: "0.68rem", mr: 0.4, mb: 0.4 }}
-      />
-    </Tooltip>
-  );
-}
-
 function SnomedChip({ item }: { item: CriterionResult }) {
   const resolved = !!item.snomed_concept_id;
   return (
@@ -242,6 +245,80 @@ function SnomedChip({ item }: { item: CriterionResult }) {
         sx={{ height: 20, fontSize: "0.68rem", mr: 0.4, mb: 0.4 }}
       />
     </Tooltip>
+  );
+}
+
+function LogicNodePanel({
+  rawNode,
+  codedNode,
+  depth = 0,
+}: {
+  rawNode?: LogicTreeRawNode | null;
+  codedNode?: LogicTreeCodedNode | null;
+  depth?: number;
+}) {
+  const node = codedNode ?? rawNode;
+  if (!node) return null;
+  const kind = String(node.kind || "").toUpperCase();
+
+  if (kind === "CONCEPT") {
+    if (codedNode?.criterion) {
+      return <SnomedChip item={codedNode.criterion} />;
+    }
+    const label = rawNode?.term?.text || "unknown concept";
+    return (
+      <Chip
+        label={label}
+        size="small"
+        variant="outlined"
+        color="primary"
+        sx={{ mr: 0.4, mb: 0.4, fontSize: "0.68rem", height: 20 }}
+      />
+    );
+  }
+
+  if (kind === "DEMOGRAPHIC") {
+    const label = `${node.field ?? "demographic"} ${node.operator ?? "="} ${node.value ?? "?"}${node.unit ? ` ${node.unit}` : ""}`;
+    return (
+      <Chip
+        label={label}
+        size="small"
+        variant="filled"
+        color="secondary"
+        sx={{ mr: 0.4, mb: 0.4, fontSize: "0.68rem", height: 20 }}
+      />
+    );
+  }
+
+  const title =
+    kind === "AND"
+      ? "ALL of these"
+      : kind === "OR"
+      ? "ANY of these"
+      : kind === "NOT"
+      ? "NOT"
+      : `AT LEAST ${node.min ?? 1}`;
+
+  const rawChildren = rawNode?.children ?? [];
+  const codedChildren = codedNode?.children ?? [];
+  const childCount = Math.max(rawChildren.length, codedChildren.length);
+
+  return (
+    <Box sx={{ ml: depth ? 1.5 : 0, mt: 0.5, pl: 1, borderLeft: "2px solid", borderColor: "divider" }}>
+      <Typography variant="caption" sx={{ fontWeight: 700, color: "text.secondary", display: "block", mb: 0.4 }}>
+        {title}
+      </Typography>
+      <Box>
+        {Array.from({ length: childCount }).map((_, idx) => (
+          <LogicNodePanel
+            key={`${node.node_id ?? kind}-${idx}`}
+            rawNode={rawChildren[idx]}
+            codedNode={codedChildren[idx]}
+            depth={depth + 1}
+          />
+        ))}
+      </Box>
+    </Box>
   );
 }
 
@@ -295,69 +372,26 @@ function ExtractionResultPanel({ result }: { result: ExtractionTestResult }) {
 
       {raw && (
         <>
-          {/* Criteria groups */}
-          {raw.criteria_groups.map((rawGroup, gi) => {
-            const codedGroup = coded?.criteria_groups?.[gi];
-            const modeColors: Record<string, "success" | "warning" | "error"> = {
-              ALL: "success",
-              ANY: "warning",
-              NOT: "error",
-            };
-            const modeLabels: Record<string, string> = {
-              ALL: "ALL must be present",
-              ANY: "ANY one must be present",
-              NOT: "NONE may be present",
-            };
-            const color = modeColors[rawGroup.mode] ?? "success";
-            const label = modeLabels[rawGroup.mode] ?? rawGroup.mode;
-            return (
-              <Box key={gi} sx={{ mb: 1 }}>
-                <Typography variant="caption" color={`${color}.dark`} sx={{ fontWeight: 600, display: "block", mb: 0.3 }}>
-                  {label}
-                </Typography>
-                <Box>
-                  {codedGroup
-                    ? codedGroup.coded_terms.map((c, i) => <SnomedChip key={i} item={c} />)
-                    : rawGroup.terms.map((t, i) => (
-                        <Chip
-                          key={i}
-                          label={t}
-                          size="small"
-                          variant="outlined"
-                          color={color}
-                          sx={{ mr: 0.4, mb: 0.4, fontSize: "0.68rem", height: 20 }}
-                        />
-                      ))}
-                </Box>
-              </Box>
-            );
-          })}
+          {raw.logic_tree && (
+            <Box sx={{ mb: raw.action ? 1 : 0 }}>
+              <Typography variant="caption" color="primary.dark" sx={{ fontWeight: 600, display: "block", mb: 0.3 }}>
+                Exact rule logic
+              </Typography>
+              <LogicNodePanel rawNode={raw.logic_tree} codedNode={coded?.logic_tree ?? undefined} />
+            </Box>
+          )}
 
           {/* Recommended action */}
           {raw.action && (
-            <Box sx={{ mb: coded?.applies_to?.length ? 1 : 0 }}>
+            <Box>
               <Typography variant="caption" color="info.dark" sx={{ fontWeight: 600, display: "block", mb: 0.3 }}>
                 Recommended action
               </Typography>
               {coded?.action ? (
-                <SnomedChip item={coded.action} />
+                <SnomedChip item={{ term: coded.action.term, snomed_concept_id: coded.action.snomed_concept_id, preferred_term: coded.action.preferred_term, semantic_tag: coded.action.semantic_tag }} />
               ) : (
-                <Chip label={raw.action} size="small" variant="outlined" color="info" sx={{ fontSize: "0.68rem", height: 20 }} />
+                <Chip label={raw.action.text} size="small" variant="outlined" color="info" sx={{ fontSize: "0.68rem", height: 20 }} />
               )}
-            </Box>
-          )}
-
-          {/* Demographic / APPLIES_TO constraints */}
-          {coded?.applies_to && coded.applies_to.length > 0 && (
-            <Box>
-              <Typography variant="caption" color="secondary.dark" sx={{ fontWeight: 600, display: "block", mb: 0.3 }}>
-                Applies to (demographic)
-              </Typography>
-              <Box>
-                {coded.applies_to.map((c, i) => (
-                  <AppliesToChip key={i} constraint={c} />
-                ))}
-              </Box>
             </Box>
           )}
         </>

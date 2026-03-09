@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+from datetime import datetime, timedelta, timezone
 from typing import Any, Callable, Optional
 
 from libs.message_bus.base import Message, MessageBusAdapter
@@ -33,7 +34,13 @@ class AzureServiceBusAdapter(MessageBusAdapter):
         self._senders: dict[str, Any] = {}
         self._receivers: list[Any] = []
 
-    async def send(self, queue_or_topic: str, message: Message) -> None:
+    async def send(
+        self,
+        queue_or_topic: str,
+        message: Message,
+        *,
+        schedule_after_seconds: int | None = None,
+    ) -> None:
         from azure.servicebus import ServiceBusMessage
 
         if queue_or_topic not in self._senders:
@@ -46,6 +53,11 @@ class AzureServiceBusAdapter(MessageBusAdapter):
             message_id=message.message_id,
             correlation_id=message.correlation_id,
             subject=message.subject,
+            scheduled_enqueue_time_utc=(
+                datetime.now(timezone.utc) + timedelta(seconds=schedule_after_seconds)
+                if schedule_after_seconds and schedule_after_seconds > 0
+                else None
+            ),
         )
         await sender.send_messages(sb_msg)
 

@@ -6,6 +6,7 @@ export const SUBGRAPH_OPTIONS = [
   { id: "terminology",       label: "Code to SNOMED CT",      color: "#FF9800", category: "Clinical AI",     description: "Match each clinical fact to an official SNOMED CT medical code." },
   { id: "tier_classify",     label: "Grade Confidence",       color: "#9C27B0", category: "Clinical AI",     description: "Rate each clinical fact as gold, silver, or bronze based on how confident the AI is." },
   { id: "verification",      label: "Double-Check with AI",   color: "#F44336", category: "Quality",         description: "Run a second, more capable AI over the results to spot errors before saving." },
+  { id: "surface_form_validation", label: "Validate Surface Forms", color: "#8BC34A", category: "Quality",  description: "Check resolved codes against the extracted wording and flag mapping mismatches." },
   { id: "compliance",        label: "Check Compliance",       color: "#795548", category: "Quality",         description: "Compare the results against clinical guidelines and flag any gaps." },
   { id: "quality_check",     label: "Quality Check",          color: "#009688", category: "Quality",         description: "Check for missing data, inconsistencies, and NHS target compliance." },
   { id: "persist",           label: "Save Results",           color: "#607D8B", category: "Data",            description: "Write the final clinical facts to the patient record or gold training dataset." },
@@ -14,6 +15,9 @@ export const SUBGRAPH_OPTIONS = [
   { id: "episode_build",     label: "Build Episode",          color: "#3F51B5", category: "Reports",         description: "Group related encounters together into a timeline episode of care." },
   { id: "safety_net",        label: "Safety Netting",         color: "#FF5722", category: "Safety",          description: "Flag overdue tests, missing referral replies, or follow-up actions that are past due." },
   { id: "next_best_action",  label: "Next Best Action",       color: "#673AB7", category: "Safety",          description: "Suggest the most appropriate next clinical action based on the patient context." },
+  { id: "rest_connector",    label: "Call REST API",          color: "#607D8B", category: "Integration",     description: "Send runtime state to an external REST API and map the response back into the pipeline." },
+  { id: "queue_publish",     label: "Publish Queue Message",  color: "#455A64", category: "Integration",     description: "Publish a message to the configured queue or topic for asynchronous downstream work." },
+  { id: "guidance_rule_extraction", label: "Extract Guidance Rule", color: "#6A1B9A", category: "Clinical AI", description: "Turn a guideline recommendation into structured criteria groups and a coded action." },
 ];
 
 export const SUBGRAPH_IO: Record<string, {
@@ -31,6 +35,11 @@ export const SUBGRAPH_IO: Record<string, {
     reads: ["entities", "encounter_text"],
     writes: ["is_verified", "verification_result", "errors"],
     requiredFields: { entities: ["text", "lookup_term", "semantic_tag", "assertion"] },
+  },
+  surface_form_validation: {
+    reads: ["entities"],
+    writes: ["entities", "errors"],
+    requiredFields: { entities: ["text", "lookup_term", "semantic_tag"] },
   },
   terminology: {
     reads: ["entities"],
@@ -84,6 +93,10 @@ export const SUBGRAPH_IO: Record<string, {
   },
   rest_connector: { reads: ["*"], writes: ["connector_response", "errors"] },
   queue_publish: { reads: ["*"], writes: ["queued", "errors"] },
+  guidance_rule_extraction: {
+    reads: ["recommendation", "guideline_id"],
+    writes: ["coded_criteria", "errors"],
+  },
 };
 
 export type SubgraphCategory = "llm" | "persist" | "post_process" | "terminology" | "tier_classify" | "generic";
@@ -97,10 +110,12 @@ export const SUBGRAPH_CATEGORY: Record<string, SubgraphCategory> = {
   next_best_action: "llm",
   quality_check: "llm",
   compliance: "llm",
+  guidance_rule_extraction: "llm",
   persist: "persist",
   post_processing: "post_process",
   terminology: "terminology",
   tier_classify: "tier_classify",
+  surface_form_validation: "generic",
   safety_net: "generic",
   rest_connector: "generic",
   queue_publish: "generic",
@@ -125,7 +140,7 @@ export function inferDataType(key: string): PortDefinition["dataType"] {
   ]);
   if (arrayKeys.has(key)) return "object[]";
   if (key === "is_verified") return "boolean";
-  if (["verification_result", "sbar_report", "compliance_result", "connector_response"].includes(key)) return "object";
+  if (["verification_result", "sbar_report", "compliance_result", "connector_response", "coded_criteria", "anchor_result"].includes(key)) return "object";
   return "string";
 }
 

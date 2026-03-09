@@ -39,6 +39,7 @@ All LLM call sites comply with llm-security.mdc:
 from __future__ import annotations
 
 import datetime
+import json
 import logging
 import uuid
 from typing import Any
@@ -82,8 +83,18 @@ ON CREATE SET
     rule.generatedBy       = 'llm_consensus',
     rule.promptConfigName  = 'guidance_rule_extraction',
     rule.promptConfigVer   = 1,
+    rule.schemaVersion     = $schema_version,
+    rule.logicJson         = $logic_json,
+    rule.rawLogicJson      = $raw_logic_json,
+    rule.verifierJson      = $verifier_json,
+    rule.actionJson        = $action_json,
     rule.createdAt         = datetime()
 ON MATCH SET
+    rule.schemaVersion     = $schema_version,
+    rule.logicJson         = $logic_json,
+    rule.rawLogicJson      = $raw_logic_json,
+    rule.verifierJson      = $verifier_json,
+    rule.actionJson        = $action_json,
     rule.updatedAt         = datetime()
 MERGE (rec)-[:HAS_RULE]->(rule)
 RETURN rule.id AS id
@@ -304,11 +315,17 @@ class GuidanceRuleGenerator:
             )
             return None
 
+        import time as _time
+        t0 = _time.monotonic()
+
         result = self._subgraph.invoke({
             "recommendation": rec,
             "guideline_id": guideline_id,
         })
+        duration_ms = int((_time.monotonic() - t0) * 1000)
+        raw = result.get("raw_criteria")
         coded = result.get("coded_criteria")
+        llm_tokens: dict[str, int] = result.get("llm_tokens") or {}
 
         _CRITICAL_KEYWORDS = (
             "prompt_missing", "extraction_blocked", "snomed_coding_error", "llm_error",
@@ -336,6 +353,11 @@ class GuidanceRuleGenerator:
                 "rule NOT written to Neo4j. Errors: %s",
                 rec["id"], errors_out,
             )
+            self._write_guidance_audit_event(
+                rec=rec, guideline_id=guideline_id,
+                status="failed", llm_tokens=llm_tokens,
+                duration_ms=duration_ms, errors=errors_out,
+            )
             return None
 
         # Abort the Neo4j write if any term failed due to Terminology API being
@@ -348,9 +370,21 @@ class GuidanceRuleGenerator:
                 "API was unavailable. Re-generate when the API is healthy.",
                 rec["id"],
             )
+            self._write_guidance_audit_event(
+                rec=rec, guideline_id=guideline_id,
+                status="terminology_failed", llm_tokens=llm_tokens,
+                duration_ms=duration_ms, errors=errors_out,
+            )
             return None
 
-        return self._write_rule(guideline_id, rec, coded)
+        rule_id = self._write_rule(guideline_id, rec, raw, coded)
+        self._write_guidance_audit_event(
+            rec=rec, guideline_id=guideline_id,
+            status="success", llm_tokens=llm_tokens,
+            duration_ms=duration_ms, errors=errors_out,
+            rule_id=rule_id,
+        )
+        return rule_id
 
     # ── Neo4j write ────────────────────────────────────────────────────────────
 
@@ -358,6 +392,7 @@ class GuidanceRuleGenerator:
         self,
         guideline_id: str,
         rec: dict[str, Any],
+        raw: dict[str, Any] | None,
         coded: dict[str, Any],
     ) -> str:
         """Write AppropriatenessRule, CriteriaGroups, ActionGroup, ReviewTask.
@@ -381,19 +416,24 @@ class GuidanceRuleGenerator:
                 rule_id=rule_id,
                 name=f"Rule: {(rec.get('title') or '')[:80]}",
                 strength=rec.get("strength", "unspecified"),
+                schema_version=int(coded.get("schema_version") or 1),
+                logic_json=json.dumps(coded.get("logic_tree")) if coded.get("logic_tree") is not None else None,
+                raw_logic_json=json.dumps((raw or {}).get("logic_tree")) if (raw or {}).get("logic_tree") is not None else None,
+                verifier_json=json.dumps(coded.get("verifier")) if coded.get("verifier") is not None else None,
+                action_json=json.dumps(coded.get("action")) if coded.get("action") is not None else None,
             )
 
-            for idx, group in enumerate(coded.get("criteria_groups") or []):
-                mode = str(group.get("mode", "ALL")).upper()
-                # Predicate is kept for backward compat with compiler old-data path
-                predicate = "ABSENT" if mode == "NOT" else "PRESENT"
-                self._write_criteria_group(
-                    session, rule_id,
-                    group.get("coded_terms") or [],
-                    group_type=mode,
-                    predicate=predicate,
-                    group_suffix=str(idx),
-                )
+            if int(coded.get("schema_version") or 1) != 2:
+                for idx, group in enumerate(coded.get("criteria_groups") or []):
+                    mode = str(group.get("mode", "ALL")).upper()
+                    predicate = "ABSENT" if mode == "NOT" else "PRESENT"
+                    self._write_criteria_group(
+                        session, rule_id,
+                        group.get("coded_terms") or [],
+                        group_type=mode,
+                        predicate=predicate,
+                        group_suffix=str(idx),
+                    )
 
             action = coded.get("action")
             if action and action.get("snomed_concept_id"):
@@ -407,8 +447,9 @@ class GuidanceRuleGenerator:
                     action.get("term"), rule_id,
                 )
 
-            for constraint in coded.get("applies_to") or []:
-                self._write_applies_to(session, rule_id, constraint)
+            if int(coded.get("schema_version") or 1) != 2:
+                for constraint in coded.get("applies_to") or []:
+                    self._write_applies_to(session, rule_id, constraint)
 
             session.run(
                 _CREATE_REVIEW_TASK,
@@ -542,3 +583,73 @@ class GuidanceRuleGenerator:
             priority=priority_meta["priority"],
             due_days=priority_meta["due_days"],
         )
+
+    # ── Billing audit ───────────────────────────────────────────────────────────
+
+    def _write_guidance_audit_event(
+        self,
+        *,
+        rec: dict[str, Any],
+        guideline_id: str,
+        status: str,
+        llm_tokens: dict[str, int],
+        duration_ms: int,
+        errors: list[str],
+        rule_id: str | None = None,
+    ) -> None:
+        """Write an AuditEvent node to Neo4j for /admin/billing platform-spend.
+
+        ``patient_id`` is intentionally absent (NULL) so that the platform-spend
+        query (which filters on ``ae.patient_id IS NULL``) picks these up while
+        they are excluded from per-patient billing aggregations.
+
+        Token counts cover ALL LLM calls in the consensus run for this
+        recommendation (small model A + small model B + optional Sonnet
+        arbitrator).  Cost is computed from the environment's pricing env-vars
+        so the billing page can display the real USD figure.
+        """
+        try:
+            from app.services.llm_usage import LLMUsage, LLMCostConfig
+            usage = LLMUsage(
+                input_tokens=int(llm_tokens.get("input_tokens", 0)),
+                output_tokens=int(llm_tokens.get("output_tokens", 0)),
+                cached_input_tokens=int(llm_tokens.get("cached_input_tokens", 0)),
+                llm_calls=int(llm_tokens.get("llm_calls", 0)),
+            )
+            try:
+                cost_cfg = LLMCostConfig.from_env()
+                cost_usd = usage.cost_usd(cost_cfg)
+            except Exception:
+                cost_usd = 0.0
+
+            audit_id = f"audit-guidance-{rec.get('id', uuid.uuid4())}"
+            props = {
+                "type":               "GuidanceRuleExtraction",
+                "subtype":            "guidance_rule_extraction",
+                "guideline_id":       guideline_id,
+                "recommendation_id":  rec.get("id", ""),
+                "rule_id":            rule_id or "",
+                "status":             status,
+                "total_duration_ms":  duration_ms,
+                "llm_input_tokens":   usage.input_tokens,
+                "llm_output_tokens":  usage.output_tokens,
+                "llm_cached_tokens":  usage.cached_input_tokens,
+                "llm_calls":          usage.llm_calls,
+                "llm_cost_usd":       round(cost_usd, 6),
+                "error_count":        len(errors),
+                "errors":             str(errors[:10]),
+                # patient_id intentionally omitted — platform spend, not patient spend
+            }
+            with self._driver.session() as session:
+                session.run(_UPSERT_GUIDANCE_AUDIT_EVENT, id=audit_id, props=props)
+            logger.debug(
+                "AuditEvent written for %s: status=%s tokens=%d+%d cost=$%.4f",
+                rec.get("id"), status,
+                usage.input_tokens, usage.output_tokens, cost_usd,
+            )
+        except Exception as exc:
+            # Billing is non-critical — log and continue; never block rule generation.
+            logger.warning(
+                "Failed to write guidance AuditEvent for %s: %s",
+                rec.get("id"), exc,
+            )

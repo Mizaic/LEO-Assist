@@ -89,6 +89,8 @@ const PREFIX_RULES: PrefixRule[] = [
   { prefix: "/api/pricing", rewrite: () => `${coreApi()}/pricing` },
   { prefix: "/api/model-configs/", rewrite: (r) => `${coreApi()}/model-configs/${r}` },
   { prefix: "/api/model-configs", rewrite: () => `${coreApi()}/model-configs` },
+  { prefix: "/api/service-configs/", rewrite: (r) => `${coreApi()}/service-configs/${r}` },
+  { prefix: "/api/service-configs", rewrite: () => `${coreApi()}/service-configs` },
   { prefix: "/api/nice/", rewrite: (r) => `${coreApi()}/nice/${r}` },
   { prefix: "/api/guidance/", rewrite: (r) => `${coreApi()}/guidance/${r}` },
 ];
@@ -160,6 +162,8 @@ export const config = {
     "/api/pricing/:path*",
     "/api/model-configs",
     "/api/model-configs/:path*",
+    "/api/service-configs",
+    "/api/service-configs/:path*",
     "/api/nice/:path*",
     "/api/guidance/:path*",
   ],

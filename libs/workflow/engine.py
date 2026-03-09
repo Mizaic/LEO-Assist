@@ -480,7 +480,17 @@ class WorkflowEngine:
             "context": {"timer_action_id": action_id},
         }
         logger.info("Scheduling timer for action %s in %ds", action_id, delay_seconds)
-        await self._bus.send("pipeline-jobs", message, schedule_after_seconds=delay_seconds)
+        from libs.message_bus.base import Message
+
+        await self._bus.send(
+            "pipeline-jobs",
+            Message(
+                body=message,
+                correlation_id=patient_id,
+                subject="timer",
+            ),
+            schedule_after_seconds=delay_seconds,
+        )
 
     def _load_prompt_config(self, config_id: str) -> dict[str, Any]:
         """Load a PromptConfig from Neo4j by ID, returning a dict for subgraph state.
@@ -570,11 +580,12 @@ class WorkflowEngine:
         return actions
 
     async def _resolve_action(self, plan_id: str | None, action_id: str) -> ActionDefinition | None:
-        """Resolve a single action by ID within a plan."""
+        """Resolve a single action by canvas_id within a plan."""
         if not self._driver or not plan_id:
             return None
         query = """
-        MATCH (pd:PlanDefinition {id: $plan_id})-[:HAS_ACTION]->(a:Action {id: $action_id})
+        MATCH (pd:PlanDefinition {id: $plan_id})-[:HAS_ACTION]->(a:Action)
+        WHERE a.canvas_id = $action_id
         OPTIONAL MATCH (a)-[:USES_DEFINITION]->(ad:ActivityDefinition)
         RETURN a, ad
         """
@@ -603,8 +614,12 @@ class WorkflowEngine:
                 related_edges = json.loads(related_edges_raw)
             except (json.JSONDecodeError, TypeError):
                 related_edges = []
+        # canvas_id is the original user-defined node ID used for routing.
+        # Nodes saved before the scoped-id migration only have id; fall back
+        # so those plans keep working until they are re-saved.
+        action_id = action_node.get("canvas_id") or action_node["id"]
         return ActionDefinition(
-            action_id=action_node["id"],
+            action_id=action_id,
             subgraph_id=ad_node["subgraphId"] if ad_node else action_node.get("subgraphId", ""),
             trigger_type=action_node.get("trigger_type", ""),
             trigger_name=action_node.get("trigger_name", ""),
@@ -621,11 +636,38 @@ class WorkflowEngine:
         actions: list[ActionDefinition],
         initial_state: dict[str, Any],
     ) -> dict[str, Any]:
-        """Dry-run the pipeline capturing per-step state snapshots.
+        """Dry-run the pipeline collecting all step snapshots at once.
 
-        Does NOT write audit events or persist any data.
-        Subgraphs that honour the ``dry_run`` flag will skip their write phases.
-        Returns a list of StepTrace dicts keyed by step_id.
+        Delegates to ``trace_run_stream`` and collects every event.
+        Use ``trace_run_stream`` directly for real-time SSE streaming.
+        """
+        step_traces: list[dict[str, Any]] = []
+        final_status = "completed"
+        final_state: dict[str, Any] = {}
+        async for event in self.trace_run_stream(actions, initial_state):
+            if event["type"] == "step_done":
+                step_traces.append(event["step_trace"])
+            elif event["type"] == "pipeline_done":
+                final_status = event["status"]
+                final_state = event["final_state"]
+        return {"status": final_status, "steps": step_traces, "final_state": final_state}
+
+    async def trace_run_stream(
+        self,
+        actions: list[ActionDefinition],
+        initial_state: dict[str, Any],
+    ):
+        """Async generator — yields SSE-ready event dicts as each step executes.
+
+        Event types:
+          ``step_start``    — emitted just before a step runs (gives the canvas
+                             time to highlight the node as "running").
+          ``step_done``     — emitted when a step finishes; includes the full
+                             StepTrace snapshot (input/output state, timing, error).
+          ``pipeline_done`` — emitted once when the whole pipeline finishes.
+
+        Does NOT write audit events.  Subgraphs honouring ``dry_run=True`` skip
+        their Neo4j write phases.
         """
         import copy
 
@@ -633,7 +675,6 @@ class WorkflowEngine:
         pipeline_state.setdefault("dry_run", True)
         pipeline_state.setdefault("errors", [])
 
-        step_traces: list[dict[str, Any]] = []
         action_by_id = {a.action_id: a for a in actions}
         outgoing = self._build_outgoing_edges(actions)
         has_graph_edges = any(outgoing.values())
@@ -653,6 +694,15 @@ class WorkflowEngine:
             if not action or action_id in executed:
                 continue
             executed.add(action_id)
+
+            # Signal the canvas to light up this node as "running"
+            yield {
+                "type": "step_start",
+                "step_id": action.action_id,
+                "label": action.config.get("label", action.action_id),
+                "subgraph_id": action.subgraph_id or action.node_type,
+                "node_type": action.node_type,
+            }
 
             input_snap = self._sanitize_state(copy.deepcopy(pipeline_state))
 
@@ -705,18 +755,23 @@ class WorkflowEngine:
                     "status": step_result.status,
                 }
 
-            step_traces.append(trace)
+            yield {"type": "step_done", "step_trace": trace}
 
             if trace["status"] == "error":
                 break
 
             next_edges = outgoing.get(action_id, [])
-            selected_port_val = pipeline_state.get("condition_port") if action.node_type == "condition" else None
+            selected_port_val = (
+                pipeline_state.get("condition_port") if action.node_type == "condition" else None
+            )
             if action.node_type == "condition" and selected_port_val:
                 default_ports = {"default", "else", "failed"}
                 selected = [e for e in next_edges if e.get("sourceHandle") == selected_port_val]
                 if not selected:
-                    selected = [e for e in next_edges if (e.get("sourceHandle") or "").lower() in default_ports]
+                    selected = [
+                        e for e in next_edges
+                        if (e.get("sourceHandle") or "").lower() in default_ports
+                    ]
                 next_edges = selected
 
             if next_edges:
@@ -736,9 +791,9 @@ class WorkflowEngine:
                 queue.extend(remainder)
                 fallback_enqueued = True
 
-        return {
+        yield {
+            "type": "pipeline_done",
             "status": final_status,
-            "steps": step_traces,
             "final_state": self._sanitize_state(dict(pipeline_state)),
         }
 

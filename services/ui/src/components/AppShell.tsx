@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import CircularProgress from "@mui/material/CircularProgress";
@@ -57,7 +57,6 @@ import DialogTitle from "@mui/material/DialogTitle";
 import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
 import { useOrg } from "@/context/OrgContext";
-import { api } from "@/lib/api";
 
 const DRAWER_WIDTH = 240;
 const RAIL_WIDTH = 56;
@@ -86,7 +85,7 @@ const CARE_NAV_ITEMS: NavItem[] = [
 ];
 
 const ADMIN_NAV_ITEMS: NavItem[] = [
-  { label: "Operations", path: "/admin/operations", icon: <SettingsOutlinedIcon />, badgeKey: "reviewQueue" },
+  { label: "Operations", path: "/admin/operations", icon: <SettingsOutlinedIcon /> },
   { label: "Pathways", path: "/admin/pathways", icon: <AccountTreeOutlinedIcon /> },
   { label: "Prompts", path: "/admin/prompts", icon: <EditNoteOutlinedIcon /> },
   { label: "Domains", path: "/admin/domains", icon: <TuneOutlinedIcon /> },
@@ -112,7 +111,7 @@ const LEGACY_NAV_ITEMS: NavItem[] = [
   { label: "Measures", path: "/measures", icon: <BarChartOutlinedIcon /> },
   { label: "Benchmarks", path: "/benchmarks", icon: <AssessmentOutlinedIcon /> },
   { label: "Cohorts", path: "/cohorts", icon: <GroupWorkOutlinedIcon /> },
-  { label: "Operations", path: "/operations", icon: <SettingsOutlinedIcon />, badgeKey: "reviewQueue" },
+  { label: "Operations", path: "/operations", icon: <SettingsOutlinedIcon /> },
   { label: "Wellbeing Hub", path: "/games", icon: <SpaOutlinedIcon /> },
   { label: "Gold Dataset", path: "/gold-dataset", icon: <LibraryBooksOutlinedIcon /> },
   { label: "Portal", path: "/portal", icon: <AdminPanelSettingsOutlinedIcon />, adminOnly: false },
@@ -140,31 +139,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     return "legacy";
   });
 
-  const [reviewBadge, setReviewBadge] = useState<number>(0);
-
   const idleMinutes = status === "authenticated" ? (session?.idleTimeoutMinutes ?? 0) : 0;
   const { isWarning, keepAlive } = useIdleLogout(idleMinutes, signOut);
 
-  const refreshReviewBadge = useCallback(async () => {
-    try {
-      const data = await api.get<{ pending_review: number }>(
-        "/pipeline/classification-disagreements?limit=1"
-      );
-      setReviewBadge(data.pending_review ?? 0);
-    } catch {
-      // badge is non-critical, silently ignore
-    }
-  }, []);
-
-  useEffect(() => {
-    if (status === "authenticated") {
-      refreshReviewBadge();
-      const id = setInterval(refreshReviewBadge, 60_000);
-      return () => clearInterval(id);
-    }
-  }, [status, refreshReviewBadge]);
-
-  const badgeCounts: Record<string, number> = { reviewQueue: reviewBadge };
+  const badgeCounts: Record<string, number> = {};
 
   const navItemsForMode = uiMode === "care"
     ? CARE_NAV_ITEMS

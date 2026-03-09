@@ -1,0 +1,1 @@
+"""Legacy provider compatibility package."""

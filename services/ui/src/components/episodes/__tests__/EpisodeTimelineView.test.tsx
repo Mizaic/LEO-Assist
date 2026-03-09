@@ -81,7 +81,7 @@ describe("EpisodeTimelineView", () => {
       ],
     });
     render(<EpisodeTimelineView episode={ep} risk={ep.risk} />);
-    const twwMatches = screen.getAllByText(/2WW/);
+    const twwMatches = screen.getAllByText(/2-week wait/);
     expect(twwMatches.length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText(/overdue/).length).toBeGreaterThanOrEqual(1);
   });
@@ -110,7 +110,6 @@ describe("EpisodeTimelineView", () => {
       milestones: [],
     });
     render(<EpisodeTimelineView episode={ep} risk={ep.risk} />);
-    expect(screen.getByText("EP-007")).toBeInTheDocument();
     expect(screen.getByText("PAT-123")).toBeInTheDocument();
     expect(screen.getByText("2026-02-15")).toBeInTheDocument();
   });

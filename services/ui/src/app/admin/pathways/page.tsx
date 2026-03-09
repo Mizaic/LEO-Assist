@@ -27,6 +27,7 @@ import ReplayIcon from "@mui/icons-material/Replay";
 import PlayCircleOutlineIcon from "@mui/icons-material/PlayCircleOutline";
 import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import { api } from "@/lib/api";
 
 // ── Pathway templates ──────────────────────────────────────────────────────────
@@ -260,6 +261,11 @@ interface PlanDefinition {
   description?: string;
   version?: string;
   date?: string;
+  source?: string;
+  meta?: {
+    seeded?: boolean;
+    seededBy?: string;
+  };
   trigger?: { event?: string };
   actions?: Array<{ id: string }>;
   actionCount?: number;
@@ -281,6 +287,10 @@ function statusLabel(status: string) {
   return status;
 }
 
+function isSeededPathway(plan: Pick<PlanDefinition, "meta" | "source">): boolean {
+  return Boolean(plan.meta?.seeded || plan.source === "seed");
+}
+
 interface CardProps {
   plan: PlanDefinition;
   onEdit: () => void;
@@ -288,12 +298,14 @@ interface CardProps {
   onDuplicate: () => void;
   onRetire: () => void;
   onReactivate: () => void;
+  onDelete: () => void;
   busy: boolean;
 }
 
-function PathwayCard({ plan, onEdit, onPublish, onDuplicate, onRetire, onReactivate, busy }: CardProps) {
+function PathwayCard({ plan, onEdit, onPublish, onDuplicate, onRetire, onReactivate, onDelete, busy }: CardProps) {
   const actionCount = plan.actionCount ?? plan.actions?.length ?? 0;
   const triggerLabel = plan.trigger?.event?.replace(/-/g, " ") ?? null;
+  const isSeeded = isSeededPathway(plan);
 
   return (
     <Box
@@ -328,6 +340,14 @@ function PathwayCard({ plan, onEdit, onPublish, onDuplicate, onRetire, onReactiv
                 color={statusColor(plan.status)}
                 sx={{ height: 18, fontSize: "0.62rem", fontWeight: 700 }}
               />
+              {isSeeded && (
+                <Chip
+                  label="Seeded"
+                  size="small"
+                  variant="outlined"
+                  sx={{ height: 18, fontSize: "0.62rem", fontWeight: 700 }}
+                />
+              )}
               {plan.version && (
                 <Typography variant="caption" color="text.disabled" sx={{ fontSize: "0.62rem" }}>
                   v{plan.version}
@@ -451,6 +471,18 @@ function PathwayCard({ plan, onEdit, onPublish, onDuplicate, onRetire, onReactiv
               </IconButton>
             </Tooltip>
           )}
+          <Tooltip title={isSeeded ? "Seeded pathways cannot be deleted from the UI" : "Delete this pathway permanently"}>
+            <span>
+              <IconButton
+                size="small"
+                onClick={onDelete}
+                disabled={busy || isSeeded}
+                sx={{ color: "text.disabled", "&:hover": { color: "error.main" } }}
+              >
+                <DeleteOutlineIcon sx={{ fontSize: "1rem" }} />
+              </IconButton>
+            </span>
+          </Tooltip>
         </Stack>
       </Box>
     </Box>
@@ -474,6 +506,9 @@ export default function PathwaysPage() {
   const [publishTarget, setPublishTarget] = useState<PlanDefinition | null>(null);
   const [versionNotes, setVersionNotes] = useState("");
   const [publishing, setPublishing] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<PlanDefinition | null>(null);
+  const [deleteConfirmName, setDeleteConfirmName] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -545,9 +580,30 @@ export default function PathwaysPage() {
     }
   };
 
+  const requestDelete = (plan: PlanDefinition) => {
+    setDeleteTarget(plan);
+    setDeleteConfirmName("");
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await api.delete(`/fhir/PlanDefinition/${deleteTarget.id}`);
+      setPlans((prev) => prev.filter((p) => p.id !== deleteTarget.id));
+      setDeleteTarget(null);
+      setDeleteConfirmName("");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to delete pathway.");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const active  = plans.filter((p) => p.status === "active");
   const drafts  = plans.filter((p) => p.status === "draft");
   const retired = plans.filter((p) => p.status === "retired");
+  const deleteTargetLabel = deleteTarget ? (deleteTarget.name || deleteTarget.id) : "";
 
   const cardProps = (plan: PlanDefinition): CardProps => ({
     plan,
@@ -557,6 +613,7 @@ export default function PathwaysPage() {
     onDuplicate: () => handleDuplicate(plan),
     onRetire: () => patchStatus(plan, "retired"),
     onReactivate: () => { setPublishTarget(plan); setVersionNotes(""); },
+    onDelete: () => requestDelete(plan),
   });
 
   return (
@@ -696,6 +753,60 @@ export default function PathwaysPage() {
             sx={{ textTransform: "none" }}
           >
             {publishing ? "Publishing…" : "Publish to live"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={!!deleteTarget}
+        onClose={() => !deleting && setDeleteTarget(null)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 3 } }}
+      >
+        <DialogTitle sx={{ pb: 0.5 }}>
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <DeleteOutlineIcon color="error" sx={{ fontSize: "1.3rem" }} />
+            <Typography variant="h6" fontWeight={700}>Delete pathway permanently?</Typography>
+          </Stack>
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            <strong>{deleteTargetLabel}</strong> will be removed from the admin UI and its stored
+            definition, actions, and version history will be deleted from Neo4j. This cannot be undone.
+          </Typography>
+          {deleteTarget?.status === "active" && (
+            <Alert severity="warning" sx={{ mb: 2 }}>
+              This pathway is currently live. Deleting it may stop future runtime processing that depends on it.
+            </Alert>
+          )}
+          <Alert severity="error" icon={false} sx={{ mb: 2, fontSize: "0.8rem" }}>
+            Type the pathway name exactly to unlock permanent deletion.
+          </Alert>
+          <TextField
+            label="Confirm pathway name"
+            placeholder={deleteTargetLabel}
+            value={deleteConfirmName}
+            onChange={(e) => setDeleteConfirmName(e.target.value)}
+            fullWidth
+            autoFocus
+            disabled={deleting}
+            helperText={deleteTarget ? `Type "${deleteTargetLabel}" to confirm.` : ""}
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setDeleteTarget(null)} disabled={deleting} sx={{ textTransform: "none" }}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            disabled={deleting || deleteConfirmName.trim() !== deleteTargetLabel}
+            onClick={confirmDelete}
+            startIcon={deleting ? <CircularProgress size={13} color="inherit" /> : <DeleteOutlineIcon />}
+            sx={{ textTransform: "none" }}
+          >
+            {deleting ? "Deleting…" : "Delete pathway permanently"}
           </Button>
         </DialogActions>
       </Dialog>

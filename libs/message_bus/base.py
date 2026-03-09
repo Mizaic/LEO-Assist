@@ -20,7 +20,13 @@ class Message:
 
 class MessageBusAdapter(ABC):
     @abstractmethod
-    async def send(self, queue_or_topic: str, message: Message) -> None: ...
+    async def send(
+        self,
+        queue_or_topic: str,
+        message: Message,
+        *,
+        schedule_after_seconds: int | None = None,
+    ) -> None: ...
 
     @abstractmethod
     async def subscribe(

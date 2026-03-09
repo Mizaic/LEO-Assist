@@ -19,9 +19,24 @@ class InMemoryQueueAdapter(MessageBusAdapter):
         self._queues: dict[str, asyncio.Queue[Message]] = defaultdict(asyncio.Queue)
         self._tasks: list[asyncio.Task] = []
 
-    async def send(self, queue_or_topic: str, message: Message) -> None:
-        await self._queues[queue_or_topic].put(message)
-        logger.debug("Enqueued message %s on %s", message.message_id, queue_or_topic)
+    async def send(
+        self,
+        queue_or_topic: str,
+        message: Message,
+        *,
+        schedule_after_seconds: int | None = None,
+    ) -> None:
+        async def _enqueue() -> None:
+            if schedule_after_seconds and schedule_after_seconds > 0:
+                await asyncio.sleep(schedule_after_seconds)
+            await self._queues[queue_or_topic].put(message)
+            logger.debug("Enqueued message %s on %s", message.message_id, queue_or_topic)
+
+        if schedule_after_seconds and schedule_after_seconds > 0:
+            task = asyncio.create_task(_enqueue())
+            self._tasks.append(task)
+            return
+        await _enqueue()
 
     async def subscribe(
         self,

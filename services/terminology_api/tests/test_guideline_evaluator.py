@@ -56,6 +56,7 @@ def _make_rule(rule_id="r1", guideline_id="NG151", criteria_groups=None, applies
         "guideline_title": "Bowel cancer",
         "chapter_title": None,
         "recommendation_verbatim": "Refer for rectal bleeding",
+        "schema_version": 1,
         "criteria_groups": criteria_groups or [],
         "applies_to": applies_to or [],
         "action": None,
@@ -199,4 +200,72 @@ class TestPathwayFilter:
             bitmaps={"bm1": bm},
         )
         result = ev.evaluate_patient(["443416000"], pathway_filter="NG151")
+        assert result["matched_rules"] == []
+
+
+class TestSchemaV2LogicTree:
+    def test_schema_v2_and_or_age_logic_matches(self, evaluator_factory):
+        bm_bleed = BitMap([1])
+        bm_pain = BitMap([2])
+        ruleset = {
+            "version": "v2",
+            "rules": [{
+                "rule_id": "r2",
+                "name": "Exact rule",
+                "strength": "refer",
+                "schema_version": 2,
+                "guideline_id": "NG12",
+                "guideline_title": "Cancer",
+                "chapter_title": None,
+                "recommendation_verbatim": "test",
+                "logic_tree": {
+                    "kind": "AND",
+                    "children": [
+                        {"kind": "DEMOGRAPHIC", "field": "age", "operator": ">=", "value": 40, "unit": "years"},
+                        {"kind": "OR", "children": [
+                            {"kind": "concept", "bitmap_id": "bm_bleed"},
+                            {"kind": "concept", "bitmap_id": "bm_pain"},
+                        ]},
+                    ],
+                },
+                "action": None,
+            }],
+        }
+        ev = evaluator_factory(
+            current_ruleset=ruleset,
+            int_id_map={"bleed": 1},
+            bitmaps={"bm_bleed": bm_bleed, "bm_pain": bm_pain},
+        )
+        result = ev.evaluate_patient(["bleed"], patient_age=45)
+        assert len(result["matched_rules"]) == 1
+
+    def test_schema_v2_fails_closed_without_age(self, evaluator_factory):
+        bm_bleed = BitMap([1])
+        ruleset = {
+            "version": "v2",
+            "rules": [{
+                "rule_id": "r2",
+                "name": "Exact rule",
+                "strength": "refer",
+                "schema_version": 2,
+                "guideline_id": "NG12",
+                "guideline_title": "Cancer",
+                "chapter_title": None,
+                "recommendation_verbatim": "test",
+                "logic_tree": {
+                    "kind": "AND",
+                    "children": [
+                        {"kind": "DEMOGRAPHIC", "field": "age", "operator": ">=", "value": 40, "unit": "years"},
+                        {"kind": "concept", "bitmap_id": "bm_bleed"},
+                    ],
+                },
+                "action": None,
+            }],
+        }
+        ev = evaluator_factory(
+            current_ruleset=ruleset,
+            int_id_map={"bleed": 1},
+            bitmaps={"bm_bleed": bm_bleed},
+        )
+        result = ev.evaluate_patient(["bleed"])
         assert result["matched_rules"] == []

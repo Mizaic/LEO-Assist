@@ -5,23 +5,30 @@ DI-LEO-AI-069 — ModelConfig Create and Delete via Admin API
 """
 from __future__ import annotations
 
+from contextlib import contextmanager
 from unittest.mock import MagicMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
-from libs.auth.org_scope import CallerScope
+from libs.auth.org_scope import CallerScope, get_caller_scope
 
 
-def _patch_scope():
+@contextmanager
+def admin_scope_override():
     scope = CallerScope(email="admin@example.com", is_admin=True, org_ids=[])
-    return patch("app.deps.get_caller_scope_from_request", return_value=scope)
+    app.dependency_overrides[get_caller_scope] = lambda: scope
+    try:
+        yield
+    finally:
+        app.dependency_overrides.pop(get_caller_scope, None)
 
 
 @pytest.fixture
 def client():
     with TestClient(app, raise_server_exceptions=False) as c:
+        c.headers.update({"X-Requested-With": "XMLHttpRequest"})
         yield c
 
 
@@ -31,7 +38,7 @@ def client():
 
 def test_post_model_config_creates_and_returns_201(client):
     with (
-        _patch_scope(),
+        admin_scope_override(),
         patch("app.routers.model_configs.CodingGraphClient") as MockKG,
     ):
         kg = MockKG.return_value
@@ -65,7 +72,7 @@ def test_post_model_config_creates_and_returns_201(client):
 
 def test_post_model_config_duplicate_key_returns_409(client):
     with (
-        _patch_scope(),
+        admin_scope_override(),
         patch("app.routers.model_configs.CodingGraphClient") as MockKG,
     ):
         kg = MockKG.return_value
@@ -91,7 +98,7 @@ def test_post_model_config_duplicate_key_returns_409(client):
 # ---------------------------------------------------------------------------
 
 def test_post_model_config_missing_key_returns_422(client):
-    with _patch_scope():
+    with admin_scope_override():
         r = client.post("/model-configs", json={
             "provider": "aws",
             "tier": "small",
@@ -106,7 +113,7 @@ def test_post_model_config_missing_key_returns_422(client):
 
 def test_delete_model_config_returns_200(client):
     with (
-        _patch_scope(),
+        admin_scope_override(),
         patch("app.routers.model_configs.CodingGraphClient") as MockKG,
     ):
         kg = MockKG.return_value
@@ -127,7 +134,7 @@ def test_delete_model_config_returns_200(client):
 
 def test_delete_model_config_not_found_returns_404(client):
     with (
-        _patch_scope(),
+        admin_scope_override(),
         patch("app.routers.model_configs.CodingGraphClient") as MockKG,
     ):
         kg = MockKG.return_value
@@ -155,7 +162,7 @@ def test_get_model_configs_returns_list(client):
          "costPer1mOutput": 11.0, "isActive": True, "source": "user", "updatedAt": ""},
     ]
     with (
-        _patch_scope(),
+        admin_scope_override(),
         patch("app.routers.model_configs.CodingGraphClient") as MockKG,
     ):
         kg = MockKG.return_value
@@ -168,3 +175,60 @@ def test_get_model_configs_returns_list(client):
 
     assert r.status_code == 200
     assert len(r.json()["modelConfigs"]) == 2
+
+
+def test_get_service_config_returns_config(client):
+    row = {
+        "key": "terminology:resolve_runtime",
+        "category": "terminology",
+        "displayName": "Terminology resolve runtime",
+        "description": "Runtime controls",
+        "configJson": '{"timeout_seconds": 45, "max_concurrent_requests": 2}',
+        "source": "seed",
+        "updatedAt": "",
+    }
+    with (
+        admin_scope_override(),
+        patch("app.routers.model_configs.CodingGraphClient") as MockKG,
+    ):
+        kg = MockKG.return_value
+        inner = MagicMock()
+        inner.run.return_value = MagicMock(single=MagicMock(return_value=row))
+        kg.session.return_value.__enter__ = lambda s: inner
+        kg.session.return_value.__exit__ = MagicMock(return_value=False)
+
+        r = client.get("/service-configs/terminology:resolve_runtime")
+
+    assert r.status_code == 200
+    body = r.json()
+    assert body["key"] == "terminology:resolve_runtime"
+    assert body["config"]["timeout_seconds"] == 45
+
+
+def test_put_service_config_upserts(client):
+    with (
+        admin_scope_override(),
+        patch("app.routers.model_configs.CodingGraphClient") as MockKG,
+    ):
+        kg = MockKG.return_value
+        inner = MagicMock()
+        inner.run.return_value = MagicMock(single=MagicMock(return_value={"key": "terminology:resolve_runtime"}))
+        kg.session.return_value.__enter__ = lambda s: inner
+        kg.session.return_value.__exit__ = MagicMock(return_value=False)
+
+        r = client.put("/service-configs/terminology:resolve_runtime", json={
+            "category": "terminology",
+            "displayName": "Terminology resolve runtime",
+            "description": "Runtime controls",
+            "config": {
+                "timeout_seconds": 45,
+                "max_retries": 3,
+                "cooldown_seconds": 60,
+                "final_attempts": 1,
+                "max_concurrent_requests": 2,
+                "max_terms_per_request": 8,
+            },
+        })
+
+    assert r.status_code == 200
+    assert r.json()["status"] == "updated"

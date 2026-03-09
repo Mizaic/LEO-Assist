@@ -51,8 +51,22 @@ class PipelineService:
 
     @classmethod
     def preload_embedder(cls) -> None:
-        """No-op — embedder preloading handled by pipeline worker."""
-        pass
+        """Kick off a background thread to pre-load the few-shot sentence-transformer model.
+
+        The model is stored in a process-level singleton so it is loaded at most once.
+        Subsequent requests reuse the already-loaded model with no delay.
+        Called at API startup so the first real pipeline (or dry-run) request doesn't
+        pay the cold-start cost (1–2 minutes on CPU for Bio_ClinicalBERT).
+        """
+        try:
+            from libs.prompts.few_shot_selector import warm_shared_embedder
+            warm_shared_embedder()
+        except Exception:
+            import logging
+            logging.getLogger(__name__).warning(
+                "Embedder pre-warm failed (non-fatal) — model will load on first pipeline run",
+                exc_info=True,
+            )
 
     def run(self, **kwargs: Any) -> tuple[str, PipelineStats]:
         raise NotImplementedError(_REMOVED_MSG)

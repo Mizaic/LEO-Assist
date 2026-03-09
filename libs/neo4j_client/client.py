@@ -24,7 +24,7 @@ import time
 from contextlib import contextmanager
 from typing import Any
 
-from neo4j import GraphDatabase
+from neo4j import AsyncGraphDatabase, GraphDatabase
 from neo4j.exceptions import (
     ConfigurationError,
     ServiceUnavailable,
@@ -157,3 +157,18 @@ class KnowledgeGraphClient(_BaseClient):
             os.getenv("KNOWLEDGE_GRAPH_NEO4J_USERNAME", ""),
             os.getenv("KNOWLEDGE_GRAPH_NEO4J_PASSWORD", ""),
         )
+
+
+def get_async_driver():
+    """Return an async Neo4j driver for the Knowledge Graph.
+
+    Workflow plans, actions, and activity definitions are stored in the
+    knowledge graph, so the pipeline worker needs an async KG driver rather
+    than the patient-graph client wrappers above.
+    """
+    uri = os.getenv("KNOWLEDGE_GRAPH_NEO4J_URI", "")
+    username = os.getenv("KNOWLEDGE_GRAPH_NEO4J_USERNAME", "")
+    password = os.getenv("KNOWLEDGE_GRAPH_NEO4J_PASSWORD", "")
+    if not all([uri, username, password]):
+        raise RuntimeError("Neo4j credentials missing for async knowledge graph driver")
+    return AsyncGraphDatabase.driver(uri, auth=(username, password))

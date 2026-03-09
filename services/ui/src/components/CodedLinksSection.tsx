@@ -334,7 +334,7 @@ export default function CodedLinksSection({
                     />
                   </ListItem>
                   </Tooltip>
-                  {idx < links.length - 1 && <Divider component="li" />}
+                  {i < links.length - 1 && <Divider component="li" />}
                 </Box>
               );
               })}

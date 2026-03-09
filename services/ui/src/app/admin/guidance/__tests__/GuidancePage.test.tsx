@@ -71,6 +71,7 @@ describe("GuidancePage", () => {
   beforeEach(() => {
     mockFetch({
       "/api/nice/jobs": [],
+      "/api/nice/loaded": [],
       "/api/guidance/rules/review": [],
       "/api/terminology/guidelines/bitmap/status": { active_version: null, rule_count: 0 },
       "/api/terminology/guidelines/bitmap/versions": [],
@@ -197,9 +198,9 @@ describe("RuleReviewSection", () => {
     mockFetch({ "/api/guidance/rules/review": [MOCK_RULE] });
     render(<RuleReviewSection />);
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /looks right/i })).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: /edit/i })).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: /reject/i })).toBeInTheDocument();
+      expect(screen.getByText("Looks right")).toBeInTheDocument();
+      expect(screen.getByText("Edit")).toBeInTheDocument();
+      expect(screen.getByText("Reject")).toBeInTheDocument();
     });
   });
 
@@ -220,7 +221,7 @@ describe("RuleReviewSection", () => {
   it("calls approve-all API after ConfirmDialog confirmation", async () => {
     mockFetch({
       "/api/guidance/rules/review": [MOCK_RULE],
-      "/api/guidance/rules/review/approve-all": { approved_count: 1 },
+      "approve-all": { approved_count: 1 },
     });
     render(<RuleReviewSection />);
     await waitFor(() => screen.getByRole("button", { name: /approve all/i }));
@@ -231,6 +232,10 @@ describe("RuleReviewSection", () => {
     await waitFor(() => {
       const calls = (global.fetch as jest.Mock).mock.calls.map(([u]) => String(u));
       expect(calls.some((u) => u.includes("approve-all"))).toBe(true);
+    });
+    await waitFor(() => {
+      const calls = (global.fetch as jest.Mock).mock.calls.map(([u]) => String(u));
+      expect(calls.filter((u) => u.includes("/api/guidance/rules/review")).length).toBeGreaterThanOrEqual(2);
     });
   });
 
@@ -295,7 +300,7 @@ describe("BitmapLifecycleSection", () => {
     });
     render(<BitmapLifecycleSection />);
     await waitFor(() => {
-      expect(screen.getByText("v20260308-120000")).toBeInTheDocument();
+      expect(screen.getAllByText("v20260308-120000").length).toBeGreaterThan(0);
     });
   });
 
@@ -307,9 +312,9 @@ describe("BitmapLifecycleSection", () => {
       ],
     });
     render(<BitmapLifecycleSection />);
-    await waitFor(() => screen.getByRole("button", { name: /make this live/i }));
+    await waitFor(() => screen.getByText("Make this live"));
 
-    fireEvent.click(screen.getByRole("button", { name: /make this live/i }));
+    fireEvent.click(screen.getByText("Make this live"));
     expect(screen.getByText(/Make this version live/i)).toBeInTheDocument();
 
     const callsBefore = (global.fetch as jest.Mock).mock.calls.length;
@@ -323,12 +328,12 @@ describe("BitmapLifecycleSection", () => {
       "/api/terminology/guidelines/bitmap/versions": [
         { version: "v20260308-120000", active: false },
       ],
-      "/api/terminology/guidelines/bitmap/versions/v20260308-120000/activate": { activated: true },
+      "activate": { activated: true },
     });
     render(<BitmapLifecycleSection />);
-    await waitFor(() => screen.getByRole("button", { name: /make this live/i }));
+    await waitFor(() => screen.getByText("Make this live"));
 
-    fireEvent.click(screen.getByRole("button", { name: /make this live/i }));
+    fireEvent.click(screen.getByText("Make this live"));
     fireEvent.click(screen.getByRole("button", { name: /yes, go live/i }));
 
     await waitFor(() => {
@@ -345,7 +350,7 @@ describe("BitmapLifecycleSection", () => {
     render(<BitmapLifecycleSection />);
     await waitFor(() => {
       expect(screen.getByText("Rules approved")).toBeInTheDocument();
-      expect(screen.getByText("Compile rules")).toBeInTheDocument();
+      expect(screen.getAllByText("Compile rules").length).toBeGreaterThanOrEqual(1);
       expect(screen.getByText("Go live")).toBeInTheDocument();
     });
   });

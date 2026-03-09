@@ -62,6 +62,15 @@ export interface PlanData {
   name: string;
   status: string;
   description: string;
+  source?: string;
+  meta?: {
+    seeded?: boolean;
+    seededBy?: string;
+    versionId?: string;
+    lastUpdated?: string;
+    versionNotes?: string;
+    [key: string]: unknown;
+  };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   trigger?: { event?: string; type?: string; [key: string]: any };
   actions: Array<{

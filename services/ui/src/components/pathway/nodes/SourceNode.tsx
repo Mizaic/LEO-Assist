@@ -8,9 +8,10 @@ import Tooltip from "@mui/material/Tooltip";
 import ArticleIcon from "@mui/icons-material/Article";
 import PersonIcon from "@mui/icons-material/Person";
 import StorageIcon from "@mui/icons-material/Storage";
+import HubIcon from "@mui/icons-material/Hub";
 import { Handle, Position, type NodeProps } from "@xyflow/react";
 
-export type SourceType = "encounter_text" | "patient_graph" | "knowledge_graph";
+export type SourceType = "encounter_text" | "patient_graph" | "knowledge_graph" | "pubsub_subscribe";
 
 export const SOURCE_DEFINITIONS: Record<
   SourceType,
@@ -34,12 +35,19 @@ export const SOURCE_DEFINITIONS: Record<
     color: "#00695C",
     outputs: ["encounter_text"],
   },
+  pubsub_subscribe: {
+    label: "Message Queue (Subscribe)",
+    description: "Trigger this pathway when a message arrives on a topic or queue",
+    color: "#E65100",
+    outputs: ["message", "payload"],
+  },
 };
 
 const SOURCE_ICONS: Record<SourceType, React.ReactNode> = {
-  encounter_text: <ArticleIcon sx={{ fontSize: "1rem" }} />,
-  patient_graph:  <PersonIcon  sx={{ fontSize: "1rem" }} />,
-  knowledge_graph: <StorageIcon sx={{ fontSize: "1rem" }} />,
+  encounter_text:   <ArticleIcon  sx={{ fontSize: "1rem" }} />,
+  patient_graph:    <PersonIcon   sx={{ fontSize: "1rem" }} />,
+  knowledge_graph:  <StorageIcon  sx={{ fontSize: "1rem" }} />,
+  pubsub_subscribe: <HubIcon      sx={{ fontSize: "1rem" }} />,
 };
 
 function SourceNodeComponent({ data, selected }: NodeProps) {

@@ -14,6 +14,34 @@ from libs.neo4j_client.client import KnowledgeGraphClient
 router = APIRouter()
 
 
+def _normalize_plan_resource(resource: Dict[str, Any], source: str) -> Dict[str, Any]:
+    normalized = dict(resource)
+    meta = normalized.get("meta")
+    if not isinstance(meta, dict):
+        meta = {}
+    else:
+        meta = dict(meta)
+    if source == "seed":
+        meta["seeded"] = True
+    normalized["meta"] = meta
+    normalized["source"] = source
+    return normalized
+
+
+def _load_plan_record(client: KnowledgeGraphClient, plan_id: str) -> Optional[Dict[str, Any]]:
+    rows = client.run(
+        "MATCH (pd:PlanDefinition {id: $pid}) "
+        "RETURN pd.rawJson AS rawJson, coalesce(pd.source, 'user') AS source LIMIT 1",
+        pid=plan_id,
+    )
+    if not rows or not rows[0].get("rawJson"):
+        return None
+    return _normalize_plan_resource(
+        json.loads(rows[0]["rawJson"]),
+        rows[0].get("source") or "user",
+    )
+
+
 # ── Search ─────────────────────────────────────────────────────────────────────
 
 @router.get("/PlanDefinition")
@@ -28,12 +56,16 @@ def search_plan_definitions(
         rows = client.run(
             "MATCH (pd:PlanDefinition) "
             "WHERE ($status IS NULL OR pd.status = $status) "
-            "RETURN pd.rawJson AS rawJson "
+            "RETURN pd.rawJson AS rawJson, coalesce(pd.source, 'user') AS source "
             "ORDER BY pd.name "
             "SKIP $offset LIMIT $limit",
             status=status, offset=_offset, limit=_count,
         )
-        items = [json.loads(r["rawJson"]) for r in rows if r.get("rawJson")]
+        items = [
+            _normalize_plan_resource(json.loads(r["rawJson"]), r.get("source") or "user")
+            for r in rows
+            if r.get("rawJson")
+        ]
         if name:
             items = [p for p in items if name.lower() in (p.get("name") or "").lower()]
         total_rows = client.run(
@@ -59,13 +91,10 @@ def search_plan_definitions(
 def get_plan_definition(plan_id: str):
     client = KnowledgeGraphClient()
     try:
-        rows = client.run(
-            "MATCH (pd:PlanDefinition {id: $pid}) RETURN pd.rawJson AS rawJson LIMIT 1",
-            pid=plan_id,
-        )
-        if not rows or not rows[0].get("rawJson"):
+        resource = _load_plan_record(client, plan_id)
+        if not resource:
             raise HTTPException(404, f"PlanDefinition/{plan_id} not found")
-        return json.loads(rows[0]["rawJson"])
+        return resource
     finally:
         client.close()
 
@@ -163,13 +192,21 @@ def upsert_plan_definition(plan_id: str, resource: Dict[str, Any]):
 
 
 def _save_plan_definition(plan_id: str, resource: Dict[str, Any]) -> Dict[str, Any]:
+    resource = dict(resource)
+    resource.pop("source", None)
     resource["id"] = plan_id
     resource.setdefault("resourceType", "PlanDefinition")
+    meta = resource.get("meta")
+    if not isinstance(meta, dict):
+        meta = {}
+    else:
+        meta = dict(meta)
+    resource["meta"] = meta
 
     # Pull version notes out before they pollute rawJson.
     version_notes: str = resource.pop("versionNotes", "") or ""
-    if not version_notes and isinstance(resource.get("meta"), dict):
-        version_notes = resource["meta"].pop("versionNotes", "") or ""
+    if not version_notes:
+        version_notes = meta.pop("versionNotes", "") or ""
 
     ui_actions = resource.get("actions")
     fhir_actions: List[Dict[str, Any]] = resource.get("action", [])
@@ -183,16 +220,32 @@ def _save_plan_definition(plan_id: str, resource: Dict[str, Any]) -> Dict[str, A
 
     client = KnowledgeGraphClient()
     try:
+        source_rows = client.run(
+            "MATCH (pd:PlanDefinition {id: $pid}) "
+            "RETURN coalesce(pd.source, 'user') AS source LIMIT 1",
+            pid=plan_id,
+        )
+        existing_source = source_rows[0].get("source") if source_rows else None
+        source = "seed" if existing_source == "seed" else "user"
+        if source == "seed":
+            meta["seeded"] = True
+        else:
+            meta.pop("seeded", None)
+            meta.pop("seededBy", None)
+            if not meta:
+                resource.pop("meta", None)
+
         # 1. Upsert the live node (MERGE ensures the node exists before we link versions).
-        #    source='user' marks this as user-authored so the seed script won't overwrite it.
+        #    Preserve source='seed' for built-in pathways so UI delete protections remain intact.
         client.run(
             "MERGE (pd:PlanDefinition {id: $pid}) "
             "SET pd.rawJson = $raw, pd.status = $status, "
-            "    pd.name = $name, pd.isGlobal = true, pd.source = 'user'",
+            "    pd.name = $name, pd.isGlobal = true, pd.source = $source",
             pid=plan_id,
             raw=json.dumps(resource),
             status=resource.get("status"),
             name=resource.get("name"),
+            source=source,
         )
 
         # 2. When publishing to active, snapshot the current state as an immutable version.
@@ -228,7 +281,7 @@ def _save_plan_definition(plan_id: str, resource: Dict[str, Any]) -> Dict[str, A
         for action in fhir_actions:
             _upsert_action(client, plan_id, action)
 
-        return resource
+        return _normalize_plan_resource(resource, source)
     finally:
         client.close()
 
@@ -239,6 +292,11 @@ def _save_plan_definition(plan_id: str, resource: Dict[str, Any]) -> Dict[str, A
 def delete_plan_definition(plan_id: str):
     client = KnowledgeGraphClient()
     try:
+        resource = _load_plan_record(client, plan_id)
+        if not resource:
+            raise HTTPException(404, f"PlanDefinition/{plan_id} not found")
+        if resource.get("source") == "seed" or bool((resource.get("meta") or {}).get("seeded")):
+            raise HTTPException(403, "Seeded pathways cannot be deleted from the UI.")
         client.run(
             "MATCH (pd:PlanDefinition {id: $pid}) "
             "OPTIONAL MATCH (pd)-[:HAS_ACTION]->(a:Action) "
@@ -359,18 +417,28 @@ def _ui_actions_to_fhir(
 
 
 def _upsert_action(client: KnowledgeGraphClient, plan_id: str, action: Dict[str, Any]) -> None:
-    action_id = action.get("id", "")
+    # canvas_id is the user-defined node ID (e.g. "step_extract").  It is only
+    # unique *within* a plan; across plans it can collide.  We therefore store
+    # Action nodes in Neo4j with a plan-scoped composite id
+    # ("{plan_id}__{canvas_id}") so the global uniqueness constraint is never
+    # violated, while keeping canvas_id as a queryable property so the
+    # WorkflowEngine can look actions up by their original ID.
+    canvas_id = action.get("id", "")
+    scoped_id = f"{plan_id}__{canvas_id}"
+
     trigger = (action.get("trigger") or [{}])[0]
     trigger_type = trigger.get("type", "")
-    trigger_name = (trigger.get("name") or trigger.get("event", [None])
-                    if isinstance(trigger.get("name"), str)
-                    else trigger.get("name", ""))
+    trigger_name = trigger.get("name", "")
     if isinstance(trigger_name, list):
         trigger_name = trigger_name[0] if trigger_name else ""
+    elif not isinstance(trigger_name, str):
+        trigger_name = str(trigger_name) if trigger_name else ""
 
     definition_ref = action.get("definitionCanonical") or action.get("definitionUri", "")
     related_defs = action.get("relatedAction") or []
     related_ids = [r.get("actionId", "") for r in related_defs]
+    # Store the original canvas-level actionId values in relatedActionEdges so
+    # the engine can resolve them against canvas_id at runtime.
     related_edges = [
         {
             "actionId": rel.get("actionId", ""),
@@ -381,18 +449,33 @@ def _upsert_action(client: KnowledgeGraphClient, plan_id: str, action: Dict[str,
         for rel in related_defs
     ]
 
+    condition_expr = None
+    if action.get("condition"):
+        cond_list = action["condition"]
+        if isinstance(cond_list, list) and cond_list:
+            condition_expr = (
+                cond_list[0].get("expression", {}).get("expression")
+                if isinstance(cond_list[0], dict)
+                else None
+            )
+
+    # MERGE on the scoped id — safe to re-run on every save without
+    # violating the uniqueness constraint, and isolated from other plans.
     client.run(
         "MATCH (pd:PlanDefinition {id: $pid}) "
-        "CREATE (pd)-[:HAS_ACTION]->(a:Action {"
-        "  id: $aid, trigger_type: $tt, trigger_name: $tn, "
-        "  condition: $cond, sequence: $seq, subgraphId: $sgid, "
-        "  nodeType: $ntype, relatedActions: $related, relatedActionEdges: $related_edges"
-        "}) ",
+        "MERGE (a:Action {id: $scoped_id}) "
+        "SET a.canvas_id = $canvas_id, "
+        "    a.trigger_type = $tt, a.trigger_name = $tn, "
+        "    a.condition = $cond, a.sequence = $seq, a.subgraphId = $sgid, "
+        "    a.nodeType = $ntype, a.relatedActions = $related, "
+        "    a.relatedActionEdges = $related_edges "
+        "MERGE (pd)-[:HAS_ACTION]->(a)",
         pid=plan_id,
-        aid=action_id,
+        scoped_id=scoped_id,
+        canvas_id=canvas_id,
         tt=trigger_type,
         tn=trigger_name,
-        cond=action.get("condition", [{}])[0].get("expression", {}).get("expression") if action.get("condition") else None,
+        cond=condition_expr,
         seq=action.get("_sequence", 0),
         sgid=action.get("_subgraphId", ""),
         ntype=action.get("_nodeType", "action"),
@@ -420,9 +503,10 @@ def _upsert_action(client: KnowledgeGraphClient, plan_id: str, action: Dict[str,
                 }
             ),
         )
+        # Link via scoped id so the correct Action node is matched.
         client.run(
-            "MATCH (a:Action {id: $aid}) "
+            "MATCH (a:Action {id: $scoped_id}) "
             "MATCH (ad:ActivityDefinition {id: $adid}) "
             "MERGE (a)-[:USES_DEFINITION]->(ad)",
-            aid=action_id, adid=activity_id,
+            scoped_id=scoped_id, adid=activity_id,
         )

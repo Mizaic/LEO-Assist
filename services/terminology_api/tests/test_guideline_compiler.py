@@ -28,11 +28,17 @@ def _make_row(
     action_name=None,
     action_priority=None,
     action_due_days=None,
+    schema_version=1,
+    logic_json=None,
+    action_json=None,
 ):
     return {
         "rule_id": rule_id,
         "name": name,
         "strength": strength,
+        "schema_version": schema_version,
+        "logic_json": logic_json,
+        "action_json": action_json,
         "guideline_id": guideline_id,
         "guideline_title": guideline_title,
         "chapter_title": chapter_title,
@@ -175,6 +181,21 @@ def test_build_ruleset_supports_native_any_mode(compiler, store, mock_session):
     rule = ruleset["rules"][0]
     modes = [g["mode"] for g in rule["criteria_groups"]]
     assert "ANY" in modes
+
+
+def test_build_ruleset_compiles_schema_v2_logic_tree(compiler, store, mock_session):
+    rows = [_make_row(
+        group_id=None,
+        concept_id=None,
+        schema_version=2,
+        logic_json='{"kind":"AND","children":[{"kind":"concept","criterion":{"node_id":"n1","term":"rectal bleeding","snomed_concept_id":"443416000","preferred_term":"Rectal bleeding","semantic_tag":"finding"}}]}',
+    )]
+    ruleset = compiler._build_ruleset(rows, mock_session)
+    assert len(ruleset["rules"]) == 1
+    rule = ruleset["rules"][0]
+    assert rule["schema_version"] == 2
+    assert rule["logic_tree"]["kind"] == "AND"
+    assert rule["logic_tree"]["children"][0]["kind"] == "concept"
 
 
 # ── SNOMED closure expansion ─────────────────────────────────────────────────

@@ -486,7 +486,8 @@ MERGE (pd:PlanDefinition {id: $id})
 SET pd.rawJson = $raw,
     pd.name = $name,
     pd.status = $status,
-    pd.isGlobal = true
+    pd.isGlobal = true,
+    pd.source = 'seed'
 """
 
 CLEAR_ACTIONS = """
@@ -546,6 +547,10 @@ def seed_with_client(client) -> None:
 
         for pd in PLAN_DEFINITIONS:
             ui_pd = _to_ui_format(pd)
+            ui_pd["meta"] = {
+                "seeded": True,
+                "seededBy": "scripts/seed_plan_definitions.py",
+            }
             client.run(UPSERT_PLAN, id=pd["id"], raw=json.dumps(ui_pd), name=pd["name"], status=pd["status"])
             client.run(CLEAR_ACTIONS, id=pd["id"])
             for action in pd.get("action", []):

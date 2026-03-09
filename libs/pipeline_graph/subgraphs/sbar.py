@@ -23,6 +23,9 @@ class SBARState(TypedDict, total=False):
     prompt_configs: list[dict[str, Any]]
     sbar_sections: dict[str, str]
     extracted: list[dict[str, Any]]
+    entities: list[dict[str, Any]]
+    safety_net_alerts: list[dict[str, Any]]
+    recommendations: list[dict[str, Any]]
     errors: list[str]
 
 
@@ -54,9 +57,41 @@ def generate_sbar(state: SBARState) -> dict[str, Any]:
         patient_id,
         len(prompts),
     )
+    entities = list(state.get("entities") or state.get("extracted") or [])
+    recommendations = list(state.get("recommendations") or [])
+    alerts = list(state.get("safety_net_alerts") or [])
+
+    situation = ", ".join(
+        str(entity.get("text") or entity.get("concept_name") or "").strip()
+        for entity in entities[:3]
+        if str(entity.get("text") or entity.get("concept_name") or "").strip()
+    ) or "No key findings supplied."
+    background = (
+        f"Patient {patient_id} with {len(entities)} extracted clinical finding(s)."
+    )
+    assessment = (
+        f"{len(alerts)} safety-net alert(s); {len(recommendations)} recommendation(s) generated."
+    )
+    recommendation = (
+        str(recommendations[0].get("action"))
+        if recommendations
+        else "Review patient context and continue routine monitoring."
+    )
     return {
-        "sbar_sections": {},
-        "extracted": [],
+        "sbar_report": {
+            "situation": situation,
+            "background": background,
+            "assessment": assessment,
+            "recommendation": recommendation,
+            "prompt_count": len(prompts),
+        },
+        "sbar_sections": {
+            "situation": situation,
+            "background": background,
+            "assessment": assessment,
+            "recommendation": recommendation,
+        },
+        "extracted": entities,
         "errors": list(state.get("errors") or []),
     }
 

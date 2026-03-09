@@ -105,6 +105,16 @@ interface PipelineConfig {
   source?: string;
 }
 
+interface ServiceConfig {
+  key: string;
+  category: string;
+  displayName: string;
+  description: string;
+  config: Record<string, number>;
+  source: string;
+  updatedAt: string;
+}
+
 interface InferenceVersion {
   version: string;
   model_name: string;
@@ -1127,6 +1137,137 @@ function RoutingCard({ config, onSave }: { config: PipelineConfig; onSave: (c: P
   );
 }
 
+function TerminologyRuntimeCard({
+  config,
+  onSave,
+}: {
+  config: ServiceConfig | null;
+  onSave: (next: ServiceConfig) => Promise<void>;
+}) {
+  const [draft, setDraft] = useState<ServiceConfig | null>(config);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    setDraft(config);
+  }, [config]);
+
+  if (!draft) {
+    return <Alert severity="warning">Terminology runtime settings are not available yet.</Alert>;
+  }
+
+  const setNumber = (key: string, value: string) => {
+    const next = Number(value);
+    setDraft((prev) => prev ? {
+      ...prev,
+      config: { ...prev.config, [key]: Number.isFinite(next) ? next : 0 },
+    } : prev);
+  };
+
+  const dirty = JSON.stringify(draft) !== JSON.stringify(config);
+
+  const save = async () => {
+    setSaving(true);
+    setMsg(null);
+    try {
+      await onSave(draft);
+      setMsg("Saved. All API replicas will pick this up automatically.");
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : "Could not save runtime settings.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Paper variant="outlined" sx={{ p: 2.5 }}>
+      <Typography variant="body2" fontWeight={600} sx={{ mb: 0.75 }}>
+        Terminology resolve runtime
+      </Typography>
+      <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2 }}>
+        Shared controls for timeout, retries, cooldown, per-replica concurrency, and request batch size.
+        Use this to tune live behaviour without redeploying when you scale replicas.
+      </Typography>
+      <Stack spacing={2}>
+        <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+          <TextField
+            label="Timeout (seconds)"
+            type="number"
+            size="small"
+            value={draft.config.timeout_seconds ?? 15}
+            onChange={(e) => setNumber("timeout_seconds", e.target.value)}
+            inputProps={{ min: 1, step: 1 }}
+            sx={{ flex: 1 }}
+          />
+          <TextField
+            label="Retries"
+            type="number"
+            size="small"
+            value={draft.config.max_retries ?? 3}
+            onChange={(e) => setNumber("max_retries", e.target.value)}
+            inputProps={{ min: 0, step: 1 }}
+            sx={{ flex: 1 }}
+          />
+          <TextField
+            label="Cooldown (seconds)"
+            type="number"
+            size="small"
+            value={draft.config.cooldown_seconds ?? 60}
+            onChange={(e) => setNumber("cooldown_seconds", e.target.value)}
+            inputProps={{ min: 0, step: 1 }}
+            sx={{ flex: 1 }}
+          />
+        </Stack>
+        <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+          <TextField
+            label="Final attempts"
+            type="number"
+            size="small"
+            value={draft.config.final_attempts ?? 1}
+            onChange={(e) => setNumber("final_attempts", e.target.value)}
+            inputProps={{ min: 0, step: 1 }}
+            sx={{ flex: 1 }}
+          />
+          <TextField
+            label="Max concurrent requests per replica"
+            type="number"
+            size="small"
+            value={draft.config.max_concurrent_requests ?? 2}
+            onChange={(e) => setNumber("max_concurrent_requests", e.target.value)}
+            inputProps={{ min: 1, step: 1 }}
+            sx={{ flex: 1 }}
+          />
+          <TextField
+            label="Max terms per request"
+            type="number"
+            size="small"
+            value={draft.config.max_terms_per_request ?? 8}
+            onChange={(e) => setNumber("max_terms_per_request", e.target.value)}
+            inputProps={{ min: 1, step: 1 }}
+            sx={{ flex: 1 }}
+          />
+        </Stack>
+      </Stack>
+      <Stack direction="row" alignItems="center" spacing={2} sx={{ mt: 2.5 }}>
+        <Button
+          variant="contained"
+          size="small"
+          startIcon={saving ? <CircularProgress size={14} /> : <SaveIcon />}
+          disabled={!dirty || saving}
+          onClick={save}
+        >
+          Save changes
+        </Button>
+        {dirty && <Typography variant="caption" color="warning.main" fontWeight={600}>Unsaved changes</Typography>}
+        <Typography variant="caption" color="text.secondary">
+          Last updated: {fmtDate(draft.updatedAt)}
+        </Typography>
+      </Stack>
+      {msg && <Alert severity={msg.startsWith("Saved") ? "success" : "error"} sx={{ mt: 1.5 }} onClose={() => setMsg(null)}>{msg}</Alert>}
+    </Paper>
+  );
+}
+
 // =============================================================================
 // MetricsRow — shows precision / recall / F1 for one phase
 // =============================================================================
@@ -1549,6 +1690,7 @@ export default function ModelsPage() {
   const [presets, setPresets]               = useState<ModelPreset[]>([]);
   const [devices, setDevices]               = useState<Device[]>([]);
   const [pipelineConfig, setPipelineConfig] = useState<PipelineConfig | null>(null);
+  const [terminologyRuntimeConfig, setTerminologyRuntimeConfig] = useState<ServiceConfig | null>(null);
   const [registryStatus, setRegistryStatus] = useState<RegistryStatus | null>(null);
   const [versions, setVersions]             = useState<ModelVersionDetail[]>([]);
   const [loading, setLoading]               = useState(true);
@@ -1560,10 +1702,11 @@ export default function ModelsPage() {
   const load = useCallback(async () => {
     setLoading(true); setError(null);
     try {
-      const [presetsResp, devResp, cfgResp, inferenceResp, versionsResp] = await Promise.all([
+      const [presetsResp, devResp, cfgResp, svcResp, inferenceResp, versionsResp] = await Promise.all([
         apiFetch<{ presets: ModelPreset[] }>("/api/presets").catch(() => ({ presets: [] })),
         apiFetch<{ devices: Device[] }>("/api/devices"),
         apiFetch<PipelineConfig>("/api/devices/pipeline-config"),
+        apiFetch<ServiceConfig>("/api/service-configs/terminology:resolve_runtime").catch(() => null),
         // inference/health is the source of truth: loaded version + available in blob
         apiFetch<InferenceHealth>("/api/model-registry/inference/health").catch(() => null),
         // registry versions carry governance metadata (test scores, notes, traceability)
@@ -1572,6 +1715,7 @@ export default function ModelsPage() {
       setPresets(presetsResp.presets);
       setDevices(devResp.devices);
       setPipelineConfig(cfgResp);
+      setTerminologyRuntimeConfig(svcResp);
       // Build a RegistryStatus shape from inference health
       setRegistryStatus(inferenceResp ? {
         active_model: null,
@@ -1594,6 +1738,19 @@ export default function ModelsPage() {
   const handleSaveConfig = async (cfg: PipelineConfig) => {
     await apiFetch("/api/devices/pipeline-config", { method: "PUT", body: JSON.stringify(cfg) });
     setPipelineConfig(cfg);
+  };
+
+  const handleSaveTerminologyRuntimeConfig = async (cfg: ServiceConfig) => {
+    await apiFetch(`/api/service-configs/${encodeURIComponent(cfg.key)}`, {
+      method: "PUT",
+      body: JSON.stringify({
+        category: cfg.category,
+        displayName: cfg.displayName,
+        description: cfg.description,
+        config: cfg.config,
+      }),
+    });
+    setTerminologyRuntimeConfig({ ...cfg, source: "user", updatedAt: new Date().toISOString() });
   };
 
   const handleSetDefault = async (preset_id: string) => {
@@ -1714,6 +1871,18 @@ export default function ModelsPage() {
             defaultOpen={false}
           >
             {pipelineConfig && <RoutingCard config={pipelineConfig} onSave={handleSaveConfig} />}
+          </SectionCard>
+
+          <SectionCard
+            icon={<WarningAmberIcon color="primary" />}
+            title="Terminology runtime"
+            description="Live controls for batched SNOMED resolve behaviour across API replicas."
+            defaultOpen={false}
+          >
+            <TerminologyRuntimeCard
+              config={terminologyRuntimeConfig}
+              onSave={handleSaveTerminologyRuntimeConfig}
+            />
           </SectionCard>
 
           {/* ================================================================ */}

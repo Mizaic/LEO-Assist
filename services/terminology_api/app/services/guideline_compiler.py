@@ -29,6 +29,8 @@ rule generator, so no Neo4j re-query is needed at evaluation time.
 from __future__ import annotations
 
 import asyncio
+import copy
+import json
 import logging
 import os
 from datetime import datetime, timezone
@@ -43,14 +45,17 @@ logger = logging.getLogger(__name__)
 _FETCH_ACTIVE_RULES = """
 MATCH (g:Guideline)-[:HAS_RECOMMENDATION]->(rec:Recommendation)
     -[:HAS_RULE]->(rule:AppropriatenessRule {status: 'active'})
-    -[:HAS_CRITERIA_GROUP]->(grp:CriteriaGroup)
 OPTIONAL MATCH (rec)<-[:HAS_RECOMMENDATION]-(ch:Chapter)
+OPTIONAL MATCH (rule)-[:HAS_CRITERIA_GROUP]->(grp:CriteriaGroup)
 OPTIONAL MATCH (grp)-[hc:HAS_CRITERIA]->(concept)
 OPTIONAL MATCH (rule)-[:HAS_ACTION_GROUP]->(ag:ActionGroup)-[ha:HAS_ACTION]->(proc:Procedure)
 RETURN
     rule.id              AS rule_id,
     rule.name            AS name,
     rule.strength        AS strength,
+    coalesce(rule.schemaVersion, 1) AS schema_version,
+    rule.logicJson       AS logic_json,
+    rule.actionJson      AS action_json,
     g.id                 AS guideline_id,
     g.title              AS guideline_title,
     ch.title             AS chapter_title,
@@ -274,10 +279,14 @@ class GuidelineCompiler:
             concept_id = row.get("concept_id")
 
             if rule_id not in by_rule:
+                action_json = row.get("action_json")
                 by_rule[rule_id] = {
                     "rule_id":                 rule_id,
                     "name":                    row["name"],
                     "strength":                row["strength"],
+                    "schema_version":          int(row.get("schema_version") or 1),
+                    "logic_json":              row.get("logic_json"),
+                    "action_json":             json.loads(action_json) if isinstance(action_json, str) and action_json else None,
                     "guideline_id":            row["guideline_id"],
                     "guideline_title":         row["guideline_title"],
                     "chapter_title":           row.get("chapter_title"),
@@ -343,6 +352,12 @@ class GuidelineCompiler:
 
         compiled_rules = []
         for rule_data in by_rule.values():
+            if int(rule_data.get("schema_version") or 1) == 2 and rule_data.get("logic_json"):
+                compiled = self._compile_schema_v2_rule(rule_data, session)
+                if compiled is not None:
+                    compiled_rules.append(compiled)
+                continue
+
             groups = []
             for gid in rule_data["group_ids_ordered"]:
                 g = by_group[gid]
@@ -368,6 +383,106 @@ class GuidelineCompiler:
 
         return {"rules": compiled_rules}
 
+    def _compile_logic_tree_node(self, node: dict[str, Any] | None, session) -> dict[str, Any] | None:
+        if not node:
+            return None
+        kind = str(node.get("kind") or "").lower()
+        if kind == "concept":
+            criterion = dict(node.get("criterion") or {})
+            concept_id = criterion.get("snomed_concept_id")
+            if not concept_id:
+                logger.error(
+                    "Schema v2 concept leaf %r has no SNOMED code — rule will be excluded from compilation.",
+                    criterion.get("node_id"),
+                )
+                return None
+            closure = self._closure_ids(
+                session,
+                str(concept_id),
+                int(criterion.get("distance_child") or 3),
+                int(criterion.get("distance_parent") or 0),
+            )
+            int_ids = [self._store.get_or_assign_int_id(cid) for cid in closure]
+            return {
+                "kind": "concept",
+                "node_id": criterion.get("node_id"),
+                "bitmap_id": self._store.put_bitmap(sorted(set(int_ids))),
+                "criterion": {
+                    "term": criterion.get("term"),
+                    "snomed_concept_id": concept_id,
+                    "preferred_term": criterion.get("preferred_term"),
+                    "semantic_tag": criterion.get("semantic_tag"),
+                },
+            }
+        if kind == "demographic":
+            return {
+                "kind": "demographic",
+                "node_id": node.get("node_id"),
+                "field": node.get("field"),
+                "operator": node.get("operator"),
+                "value": node.get("value"),
+                "unit": node.get("unit"),
+                "raw_term": node.get("raw_term"),
+            }
+
+        children = []
+        for child in node.get("children") or []:
+            compiled_child = self._compile_logic_tree_node(child, session)
+            if compiled_child is None:
+                return None
+            children.append(compiled_child)
+        return {
+            "kind": str(node.get("kind") or "").upper(),
+            "node_id": node.get("node_id"),
+            "min": node.get("min"),
+            "children": children,
+        }
+
+    def _compile_schema_v2_rule(self, rule_data: dict[str, Any], session) -> dict[str, Any] | None:
+        try:
+            logic_tree = json.loads(rule_data["logic_json"]) if isinstance(rule_data.get("logic_json"), str) else rule_data.get("logic_json")
+        except Exception as exc:
+            logger.error("Invalid schema v2 logicJson for rule %s: %s", rule_data["rule_id"], exc)
+            return None
+        compiled_tree = self._compile_logic_tree_node(logic_tree, session)
+        if compiled_tree is None:
+            logger.error(
+                "Schema v2 rule %s could not be compiled because one or more leaf concepts were unresolved.",
+                rule_data["rule_id"],
+            )
+            return None
+
+        action = None
+        if rule_data.get("action_concept_id"):
+            action = {
+                "concept_id": rule_data["action_concept_id"],
+                "name": rule_data.get("action_name"),
+                "priority": rule_data.get("action_priority") or "routine",
+                "due_days": rule_data.get("action_due_days"),
+            }
+        elif rule_data.get("action_json"):
+            action_json = dict(rule_data["action_json"])
+            if action_json.get("snomed_concept_id"):
+                action = {
+                    "concept_id": action_json["snomed_concept_id"],
+                    "name": action_json.get("preferred_term") or action_json.get("term"),
+                    "priority": rule_data.get("action_priority") or "routine",
+                    "due_days": rule_data.get("action_due_days"),
+                }
+
+        return {
+            "rule_id": rule_data["rule_id"],
+            "name": rule_data["name"],
+            "strength": rule_data["strength"],
+            "schema_version": 2,
+            "guideline_id": rule_data["guideline_id"],
+            "guideline_title": rule_data["guideline_title"],
+            "chapter_title": rule_data.get("chapter_title"),
+            "recommendation_verbatim": rule_data["recommendation_verbatim"],
+            "logic_tree": compiled_tree,
+            "action": action,
+        }
+
     def _compile_one_rule(self, rule_data: dict, groups: list[dict]) -> dict:
         """Build the compiled rule dict for a single rule.
 
@@ -392,6 +507,7 @@ class GuidelineCompiler:
             "rule_id":                 rule_data["rule_id"],
             "name":                    rule_data["name"],
             "strength":                rule_data["strength"],
+            "schema_version":          1,
             "guideline_id":            rule_data["guideline_id"],
             "guideline_title":         rule_data["guideline_title"],
             "chapter_title":           rule_data.get("chapter_title"),

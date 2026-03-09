@@ -14,6 +14,7 @@ All endpoints require the ai.admin role.
 
 from __future__ import annotations
 
+import json
 import logging
 import threading
 import uuid
@@ -51,6 +52,9 @@ RETURN rule.id AS rule_id,
        rule.name AS name,
        rule.strength AS strength,
        rule.status AS status,
+       coalesce(rule.schemaVersion, 1) AS schema_version,
+       rule.logicJson AS logic_json,
+       rule.actionJson AS action_json,
        rule.createdAt AS created_at,
        g.id AS guideline_id,
        g.ingestVersion AS guideline_version,
@@ -76,6 +80,8 @@ RETURN
     pred.id AS predecessor_id,
     pred.name AS predecessor_name,
     pred.status AS predecessor_status,
+    coalesce(pred.schemaVersion, 1) AS predecessor_schema_version,
+    pred.logicJson AS predecessor_logic_json,
     pred.previousRecommendationText AS predecessor_recommendation_text,
     pred.previousRecommendationNumber AS predecessor_recommendation_number,
     pred.supersededAt AS superseded_at,
@@ -102,6 +108,9 @@ RETURN rule.id AS rule_id,
        rule.name AS name,
        rule.strength AS strength,
        rule.status AS status,
+       coalesce(rule.schemaVersion, 1) AS schema_version,
+       rule.logicJson AS logic_json,
+       rule.actionJson AS action_json,
        rule.createdAt AS created_at,
        g.id AS guideline_id,
        g.ingestVersion AS guideline_version,
@@ -124,6 +133,9 @@ RETURN rule.id AS rule_id,
        rule.name AS name,
        rule.strength AS strength,
        rule.status AS status,
+       coalesce(rule.schemaVersion, 1) AS schema_version,
+       rule.logicJson AS logic_json,
+       rule.actionJson AS action_json,
        rule.createdAt AS created_at,
        g.id AS guideline_id,
        g.title AS guideline_title,
@@ -167,6 +179,8 @@ OPTIONAL MATCH (rule)<-[:HAS_RULE]-()<-[:HAS_RECOMMENDATION]-(g:Guideline)
 OPTIONAL MATCH (g)<-[:CLASSIFIES_GUIDELINE]-(sub:TaxonomySubcategory)-[:HAS_DOMAIN]->(domain:AuditDomain {source: 'nice'})
 OPTIONAL MATCH (rule)-[:HAS_CRITERIA_GROUP]->(grp)-[:HAS_CRITERIA]->(concept)
 RETURN rule.status AS status,
+       coalesce(rule.schemaVersion, 1) AS schema_version,
+       rule.logicJson AS logic_json,
        g.id AS guideline_id,
        domain.id AS domain_id,
        domain.name AS domain_name,
@@ -320,6 +334,7 @@ def test_rule_extraction(
     errors = result.get("errors") or []
     coded = result.get("coded_criteria")
     raw = result.get("raw_criteria")
+    llm_tokens: dict = result.get("llm_tokens") or {}
 
     response_body = {
         "recommendation": {
@@ -330,6 +345,8 @@ def test_rule_extraction(
         "raw_criteria":   raw,
         "coded_criteria": coded,
         "errors":         errors,
+        # LLM token usage for this dry run (all consensus calls combined).
+        "llm_tokens":     llm_tokens,
         # Indicates whether this result would be written to Neo4j by the rule
         # generator.  False when any term failed to SNOMED-code (partial results).
         "would_write":    coded is not None and not any(
@@ -464,9 +481,12 @@ def get_rule_diff(
         if not pred_id:
             return {"has_predecessor": False}
 
-        pred_criteria_raw = [
-            c for c in (row.get("predecessor_criteria") or []) if c.get("concept_id")
-        ]
+        pred_logic_tree = _parse_logic_json(row.get("predecessor_logic_json")) if int(row.get("predecessor_schema_version") or 1) == 2 else None
+        pred_criteria_raw = (
+            _logic_tree_concepts(pred_logic_tree)
+            if pred_logic_tree is not None
+            else [c for c in (row.get("predecessor_criteria") or []) if c.get("concept_id")]
+        )
         pred_present = [c for c in pred_criteria_raw if c.get("predicate") == "PRESENT"]
         pred_absent = [c for c in pred_criteria_raw if c.get("predicate") == "ABSENT"]
 
@@ -474,7 +494,11 @@ def get_rule_diff(
             d for d in (row.get("predecessor_decisions") or []) if d.get("action")
         ]
 
-        new_criteria = rule["present_criteria"] + rule["absent_criteria"]
+        new_criteria = (
+            rule.get("criteria_concepts")
+            if int(rule.get("schema_version") or 1) == 2
+            else rule["present_criteria"] + rule["absent_criteria"]
+        )
         diff = _compute_diff(new_criteria, pred_criteria_raw)
 
         return {
@@ -486,9 +510,12 @@ def get_rule_diff(
                 "recommendation_text": row.get("predecessor_recommendation_text"),
                 "recommendation_number": row.get("predecessor_recommendation_number"),
                 "superseded_at": str(row.get("superseded_at", "")),
-                "plain_english": _plain_english_criteria(pred_present, pred_absent),
+                "schema_version": int(row.get("predecessor_schema_version") or 1),
+                "plain_english": _plain_english_logic(pred_logic_tree) if pred_logic_tree is not None else _plain_english_criteria(pred_present, pred_absent),
                 "present_criteria": pred_present,
                 "absent_criteria": pred_absent,
+                "logic_tree": pred_logic_tree,
+                "criteria_concepts": pred_criteria_raw,
                 "decisions": pred_decisions,
             },
             "diff": diff,
@@ -579,7 +606,12 @@ def promote_rule_to_domain(
                 ),
             )
 
-        concepts = [c for c in (row.get("concepts") or []) if c.get("concept_id")]
+        logic_tree = _parse_logic_json(row.get("logic_json")) if int(row.get("schema_version") or 1) == 2 else None
+        concepts = (
+            _logic_tree_concepts(logic_tree)
+            if logic_tree is not None
+            else [c for c in (row.get("concepts") or []) if c.get("concept_id")]
+        )
         if not concepts:
             return {
                 "domain_id": domain_id,
@@ -683,21 +715,32 @@ def _compute_diff(
 
 def _format_rule(r: dict) -> dict:
     """Format a Neo4j rule record into a plain-English API response."""
+    schema_version = int(r.get("schema_version") or 1)
     criteria = [c for c in (r.get("criteria") or []) if c.get("concept_id")]
     present = [c for c in criteria if c.get("predicate") == "PRESENT"]
     absent = [c for c in criteria if c.get("predicate") == "ABSENT"]
+    logic_tree = _parse_logic_json(r.get("logic_json")) if schema_version == 2 else None
+    logic_concepts = _logic_tree_concepts(logic_tree) if logic_tree else []
+    display_plain_english = (
+        _plain_english_logic(logic_tree)
+        if logic_tree is not None
+        else _plain_english_criteria(present, absent)
+    )
     return {
         "rule_id": r.get("rule_id"),
         "name": r.get("name"),
         "status": r.get("status"),
         "strength": r.get("strength"),
+        "schema_version": schema_version,
         "guideline_id": r.get("guideline_id"),
         "guideline_version": r.get("guideline_version"),
         "chapter_title": r.get("chapter_title"),
         "recommendation_text": r.get("recommendation_text"),
-        "plain_english": _plain_english_criteria(present, absent),
+        "plain_english": display_plain_english,
         "present_criteria": present,
         "absent_criteria": absent,
+        "logic_tree": logic_tree,
+        "criteria_concepts": logic_concepts,
         "created_at": str(r.get("created_at", "")),
         "has_predecessor": bool(r.get("has_predecessor")),
         "predecessor_id": r.get("predecessor_id"),
@@ -721,6 +764,77 @@ def _plain_english_criteria(
     if not parts:
         return "No criteria defined yet."
     return "Triggers when: " + " AND ".join(parts)
+
+
+def _parse_logic_json(value: str | None) -> dict | None:
+    if not value:
+        return None
+    try:
+        parsed = json.loads(value)
+        return parsed if isinstance(parsed, dict) else None
+    except Exception:
+        return None
+
+
+def _logic_tree_concepts(node: dict | None) -> list[dict]:
+    if not node:
+        return []
+    kind = str(node.get("kind") or "").lower()
+    if kind == "concept":
+        criterion = dict(node.get("criterion") or {})
+        concept_id = criterion.get("snomed_concept_id")
+        if not concept_id:
+            return []
+        return [{
+            "predicate": "LOGIC",
+            "concept_id": concept_id,
+            "preferred_term": criterion.get("preferred_term") or criterion.get("term") or concept_id,
+        }]
+    items: list[dict] = []
+    for child in node.get("children") or []:
+        if isinstance(child, dict):
+            items.extend(_logic_tree_concepts(child))
+    seen: set[tuple[str, str]] = set()
+    deduped: list[dict] = []
+    for item in items:
+        key = (str(item.get("predicate") or ""), str(item.get("concept_id") or ""))
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(item)
+    return deduped
+
+
+def _plain_english_logic(node: dict | None) -> str:
+    if not node:
+        return "No criteria defined yet."
+    return "Triggers when: " + _logic_node_to_text(node)
+
+
+def _logic_node_to_text(node: dict) -> str:
+    kind = str(node.get("kind") or "").upper()
+    if kind == "CONCEPT":
+        criterion = dict(node.get("criterion") or {})
+        return str(criterion.get("preferred_term") or criterion.get("term") or "unknown concept")
+    if kind == "DEMOGRAPHIC":
+        field = node.get("field")
+        operator = node.get("operator")
+        value = node.get("value")
+        unit = node.get("unit")
+        suffix = f" {unit}" if unit else ""
+        return f"{field} {operator} {value}{suffix}".strip()
+    child_texts = [_logic_node_to_text(child) for child in (node.get("children") or []) if isinstance(child, dict)]
+    if not child_texts:
+        return "unknown condition"
+    if kind == "AND":
+        return " AND ".join(f"({text})" for text in child_texts)
+    if kind == "OR":
+        return " OR ".join(f"({text})" for text in child_texts)
+    if kind == "NOT":
+        return f"NOT ({child_texts[0]})"
+    if kind == "AT_LEAST":
+        return f"at least {int(node.get('min') or 1)} of: " + ", ".join(child_texts)
+    return "unknown condition"
 
 
 def _run_generation(job_id: str, guideline_id: str) -> None:

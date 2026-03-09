@@ -100,7 +100,7 @@ describe("assessPathwayRisk", () => {
     });
     const risk = assessPathwayRisk(ep, TODAY);
     expect(risk.level).toBe("breached");
-    expect(risk.worstBreach?.target.label).toBe("2WW");
+    expect(risk.worstBreach?.target.label).toBe("2-week wait");
   });
 
   it("returns unknown when no referral date", () => {
@@ -132,7 +132,7 @@ describe("assessPathwayRisk", () => {
     const risk = assessPathwayRisk(ep, TODAY);
     expect(risk.level).toBe("breached");
     expect(risk.breaches.length).toBeGreaterThan(0);
-    const tww = risk.breaches.find((b) => b.target.label === "2WW");
+    const tww = risk.breaches.find((b) => b.target.label === "2-week wait");
     expect(tww?.daysElapsed).toBe(25);
   });
 
@@ -145,7 +145,7 @@ describe("assessPathwayRisk", () => {
       ],
     });
     const risk = assessPathwayRisk(ep, TODAY);
-    const tww = risk.breaches.find((b) => b.target.label === "2WW");
+    const tww = risk.breaches.find((b) => b.target.label === "2-week wait");
     expect(tww?.achieved).toBe(true);
     expect(tww?.breached).toBe(false);
   });

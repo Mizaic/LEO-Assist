@@ -10,10 +10,13 @@ import {
   evaluateMeasure,
 } from "../analyticsApi";
 
-const PROXY = "http://localhost:8000/api/proxy";
+const PROXY = "http://localhost/api/proxy";
 const ANALYTICS = PROXY;
 const FHIR = PROXY;
-const CREDENTIALS = { credentials: "include" as RequestCredentials };
+const REQUEST_OPTIONS = {
+  credentials: "include" as RequestCredentials,
+  headers: { "X-Requested-With": "XMLHttpRequest" },
+};
 
 function mockFetchOk(data: unknown) {
   (global.fetch as jest.Mock).mockResolvedValueOnce({
@@ -36,7 +39,7 @@ describe("Analytics API — episodes", () => {
     await fetchEpisodeSummary();
     expect(global.fetch).toHaveBeenCalledWith(
       `${ANALYTICS}/analytics/episodes/summary`,
-      CREDENTIALS,
+      REQUEST_OPTIONS,
     );
   });
 
@@ -45,7 +48,7 @@ describe("Analytics API — episodes", () => {
     await fetchEpisodeSummary("ORG1");
     expect(global.fetch).toHaveBeenCalledWith(
       `${ANALYTICS}/analytics/episodes/summary?org_id=ORG1`,
-      CREDENTIALS,
+      REQUEST_OPTIONS,
     );
   });
 
@@ -54,7 +57,7 @@ describe("Analytics API — episodes", () => {
     await fetchEpisodeTimeline();
     expect(global.fetch).toHaveBeenCalledWith(
       `${ANALYTICS}/analytics/episodes/timeline`,
-      CREDENTIALS,
+      REQUEST_OPTIONS,
     );
   });
 
@@ -71,7 +74,7 @@ describe("Analytics API — episodes", () => {
     await fetchSafetyNetAlerts("ORG1");
     expect(global.fetch).toHaveBeenCalledWith(
       `${ANALYTICS}/analytics/safety-netting/alerts?org_id=ORG1`,
-      CREDENTIALS,
+      REQUEST_OPTIONS,
     );
   });
 });
@@ -82,7 +85,7 @@ describe("Analytics API — CCI", () => {
     const result = await fetchPatientCCI("P1");
     expect(global.fetch).toHaveBeenCalledWith(
       `${ANALYTICS}/analytics/cci/P1`,
-      CREDENTIALS,
+      REQUEST_OPTIONS,
     );
     expect(result.cci_score).toBe(4);
   });
@@ -94,7 +97,7 @@ describe("Analytics API — benchmarks", () => {
     await fetchKPIBenchmarks();
     expect(global.fetch).toHaveBeenCalledWith(
       `${ANALYTICS}/analytics/benchmarks/kpis`,
-      CREDENTIALS,
+      REQUEST_OPTIONS,
     );
   });
 
@@ -103,7 +106,7 @@ describe("Analytics API — benchmarks", () => {
     await fetchKPIBenchmarks("ORG1");
     expect(global.fetch).toHaveBeenCalledWith(
       `${ANALYTICS}/analytics/benchmarks/kpis?org_id=ORG1`,
-      CREDENTIALS,
+      REQUEST_OPTIONS,
     );
   });
 
@@ -120,7 +123,7 @@ describe("Analytics API — benchmarks", () => {
     await fetchKPITrends();
     expect(global.fetch).toHaveBeenCalledWith(
       `${ANALYTICS}/analytics/benchmarks/trends`,
-      CREDENTIALS,
+      REQUEST_OPTIONS,
     );
   });
 });
@@ -131,7 +134,7 @@ describe("Analytics API — IMD", () => {
     await fetchIMDData("SW1A 1AA");
     expect(global.fetch).toHaveBeenCalledWith(
       `${ANALYTICS}/analytics/imd/SW1A%201AA`,
-      CREDENTIALS,
+      REQUEST_OPTIONS,
     );
   });
 });
@@ -142,7 +145,7 @@ describe("FHIR API — measures", () => {
     await fetchMeasures();
     expect(global.fetch).toHaveBeenCalledWith(
       `${FHIR}/fhir/Measure`,
-      CREDENTIALS,
+      REQUEST_OPTIONS,
     );
   });
 
@@ -151,7 +154,7 @@ describe("FHIR API — measures", () => {
     await fetchMeasures("encounter-count");
     expect(global.fetch).toHaveBeenCalledWith(
       `${FHIR}/fhir/Measure?name=encounter-count`,
-      CREDENTIALS,
+      REQUEST_OPTIONS,
     );
   });
 
@@ -160,7 +163,7 @@ describe("FHIR API — measures", () => {
     await evaluateMeasure("M1", "ORG1");
     expect(global.fetch).toHaveBeenCalledWith(
       `${FHIR}/fhir/Measure/M1/$evaluate-measure?org_id=ORG1`,
-      CREDENTIALS,
+      REQUEST_OPTIONS,
     );
   });
 
@@ -169,7 +172,7 @@ describe("FHIR API — measures", () => {
     await evaluateMeasure("M1");
     expect(global.fetch).toHaveBeenCalledWith(
       `${FHIR}/fhir/Measure/M1/$evaluate-measure`,
-      CREDENTIALS,
+      REQUEST_OPTIONS,
     );
   });
 });

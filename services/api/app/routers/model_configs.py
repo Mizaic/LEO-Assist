@@ -30,6 +30,11 @@ from libs.cypher.model_config_queries import (
     LIST_MODEL_CONFIGS,
     UPDATE_MODEL_CONFIG,
 )
+from libs.cypher.service_config_queries import (
+    GET_SERVICE_CONFIG,
+    LIST_SERVICE_CONFIGS,
+    UPSERT_SERVICE_CONFIG,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -59,6 +64,13 @@ class ModelConfigUpdate(BaseModel):
     isActive: bool = True
 
 
+class ServiceConfigUpdate(BaseModel):
+    category: str
+    displayName: str
+    description: str = ""
+    config: dict[str, Any]
+
+
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def _row_to_dict(row: dict) -> dict[str, Any]:
@@ -74,6 +86,23 @@ def _row_to_dict(row: dict) -> dict[str, Any]:
         "isActive":           bool(row.get("isActive", True)),
         "source":             row.get("source", "seed"),
         "updatedAt":          str(row.get("updatedAt") or ""),
+    }
+
+
+def _service_row_to_dict(row: dict) -> dict[str, Any]:
+    raw_config = row.get("configJson") or "{}"
+    try:
+        config = json.loads(raw_config) if isinstance(raw_config, str) else dict(raw_config or {})
+    except Exception:
+        config = {}
+    return {
+        "key": row.get("key", ""),
+        "category": row.get("category", ""),
+        "displayName": row.get("displayName", ""),
+        "description": row.get("description", ""),
+        "config": config,
+        "source": row.get("source", "seed"),
+        "updatedAt": str(row.get("updatedAt") or ""),
     }
 
 
@@ -157,6 +186,57 @@ def update_model_config(
             ).single()
         if not result:
             raise HTTPException(404, f"ModelConfig {key!r} not found")
+        return {"key": key, "status": "updated"}
+    finally:
+        client.close()
+
+
+@router.get("/service-configs")
+def list_service_configs(scope: CallerScope = Depends(get_caller_scope)):
+    client = CodingGraphClient()
+    try:
+        with client.session() as session:
+            rows = session.run(LIST_SERVICE_CONFIGS).data()
+        return {"serviceConfigs": [_service_row_to_dict(r) for r in rows]}
+    finally:
+        client.close()
+
+
+@router.get("/service-configs/{key:path}")
+def get_service_config(
+    key: str,
+    scope: CallerScope = Depends(get_caller_scope),
+):
+    client = CodingGraphClient()
+    try:
+        with client.session() as session:
+            row = session.run(GET_SERVICE_CONFIG, key=key).single()
+        if not row:
+            raise HTTPException(404, f"ServiceConfig {key!r} not found")
+        return _service_row_to_dict(dict(row))
+    finally:
+        client.close()
+
+
+@router.put("/service-configs/{key:path}")
+def upsert_service_config(
+    key: str,
+    body: ServiceConfigUpdate,
+    scope: CallerScope = Depends(get_caller_scope),
+):
+    client = CodingGraphClient()
+    try:
+        with client.session() as session:
+            session.run(
+                UPSERT_SERVICE_CONFIG,
+                key=key,
+                category=body.category,
+                display_name=body.displayName,
+                description=body.description,
+                config_json=json.dumps(body.config, sort_keys=True),
+                source="user",
+            )
+        logger.info("ServiceConfig %r upserted", key)
         return {"key": key, "status": "updated"}
     finally:
         client.close()
