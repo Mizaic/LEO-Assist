@@ -106,6 +106,59 @@ _SITE_REFERRAL_RE = re.compile(
     re.IGNORECASE,
 )
 
+_QUOTED_TEXT_RE = re.compile(r"[\"'`]\s*([^\"'`]{3,120})\s*[\"'`]")
+
+_ACTION_SITE_ALIASES: dict[str, list[str]] = {
+    "oral": [
+        "fast track referral for suspected oral cancer",
+        "fast track referral for suspected head and neck cancer",
+        "urgent referral for suspected oral cancer",
+        "2 week wait referral for suspected oral cancer",
+    ],
+    "head and neck": [
+        "fast track referral for suspected head and neck cancer",
+        "urgent referral for suspected head and neck cancer",
+    ],
+    "thyroid": [
+        "fast track referral for suspected thyroid cancer",
+        "urgent referral for suspected thyroid cancer",
+    ],
+    "pancreatic": [
+        "fast track referral for suspected pancreatic cancer",
+        "urgent referral for suspected pancreatic cancer",
+        "2 week wait referral for suspected pancreatic cancer",
+    ],
+    "stomach": [
+        "fast track referral for suspected stomach cancer",
+        "fast track referral for suspected gastric cancer",
+        "urgent referral for suspected stomach cancer",
+    ],
+    "oesophageal": [
+        "fast track referral for suspected oesophageal cancer",
+        "fast track referral for suspected upper gastrointestinal cancer",
+        "urgent referral for suspected oesophageal cancer",
+    ],
+    "retinoblastoma": [
+        "urgent referral for suspected retinoblastoma",
+        "fast track referral for suspected retinoblastoma",
+    ],
+    "hodgkin": [
+        "fast track referral for suspected hodgkin lymphoma",
+        "urgent referral for suspected hodgkin lymphoma",
+        "fast track referral for suspected haematological cancer",
+    ],
+    "mesothelioma": [
+        "fast track referral for suspected mesothelioma",
+        "urgent referral for suspected mesothelioma",
+        "2 week wait referral for suspected mesothelioma",
+    ],
+    "non-site-specific": [
+        "urgent suspected cancer referral",
+        "suspected cancer pathway referral",
+        "fast track cancer referral",
+    ],
+}
+
 
 class TerminologyAPIError(RuntimeError):
     """Raised when the Terminology API cannot return candidate lists safely."""
@@ -247,6 +300,10 @@ def _parse_sex_constraint(term: str) -> dict[str, Any] | None:
 
 
 def _make_term_obj(value: Any) -> dict[str, Any]:
+    def _looks_like_threshold_term(text: str) -> bool:
+        t = (text or "").lower()
+        return any(tok in t for tok in ("fit", "ca125", "microgram", "iu/ml", ">=", "<=", "threshold", "test result"))
+
     def _expanded_search_terms(text: str, base_terms: list[str]) -> list[str]:
         variants = list(base_terms)
         normalized = _QUALIFIER_PREFIX_RE.sub("", text or "").strip()
@@ -257,6 +314,31 @@ def _make_term_obj(value: Any) -> dict[str, Any]:
             variants.append(re.sub(r"\bsuggestive of\b", "", text, flags=re.IGNORECASE).strip())
         if "consistent with" in lowered:
             variants.append(re.sub(r"\bconsistent with\b", "", text, flags=re.IGNORECASE).strip())
+        if _looks_like_threshold_term(text):
+            variants.extend(
+                [
+                    re.sub(r"\s+", " ", text).strip(),
+                    "test result above threshold",
+                    "test result below threshold",
+                    "laboratory result threshold",
+                ]
+            )
+            if "fit" in lowered:
+                variants.extend(
+                    [
+                        "faecal immunochemical test result",
+                        "faecal haemoglobin result",
+                        "faecal immunochemical test threshold",
+                    ]
+                )
+            if "ca125" in lowered:
+                variants.extend(
+                    [
+                        "serum ca125 measurement",
+                        "ca125 result",
+                        "ca125 threshold result",
+                    ]
+                )
         return _dedupe_strs(variants)
 
     if isinstance(value, dict):
@@ -331,7 +413,39 @@ def _expand_action_search_terms(action_text: str, recommendation_text: str) -> l
                 "2 week wait referral for suspected mesothelioma",
             ]
         )
+    text_blob = f"{action_text} {recommendation_text}".lower()
+    for site_key, aliases in _ACTION_SITE_ALIASES.items():
+        if site_key in text_blob:
+            variants.extend(aliases)
+    if "suspected cancer" in text_blob and not site_match:
+        variants.extend(_ACTION_SITE_ALIASES["non-site-specific"])
     return _dedupe_strs(variants)
+
+
+def _infer_expected_tag_for_term_obj(term: dict[str, Any], *, is_action: bool = False) -> str | None:
+    hint = str(term.get("semantic_hint") or "").strip().lower()
+    if hint in {"finding", "procedure", "disorder", "situation", "observable entity"}:
+        return hint
+    text = " ".join(
+        [
+            str(term.get("text") or ""),
+            str(term.get("source_text") or ""),
+            str(term.get("ambiguity_reason") or ""),
+        ]
+    ).lower()
+    if is_action:
+        return "procedure"
+    if any(tok in text for tok in ("fit", "ca125", "threshold", "test result", "microgram", "iu/ml")):
+        return "observable entity"
+    if "suspected" in text and "cancer" in text:
+        return "situation"
+    if any(tok in text for tok in ("finding", "symptom", "sign", "pain", "lump", "mass", "bleeding", "hoarseness")):
+        return "finding"
+    if any(tok in text for tok in ("x-ray finding", "ultrasound finding", "scan finding", "imaging finding")):
+        return "finding"
+    if any(tok in text for tok in ("x-ray", "ultrasound", "endoscopy", "procedure", "investigation", "referral")):
+        return "procedure"
+    return "finding"
 
 
 def _make_demographic_or_concept(value: Any) -> dict[str, Any]:
@@ -768,9 +882,18 @@ def _resolve_candidate_lists(
     if not unique_terms:
         return {}, []
 
-    expected_tags = {st: "procedure" for st in action_targets.get("action", {}).get("search_terms", [])}
+    expected_tags: dict[str, str] = {}
+    for term in targets.values():
+        tag = _infer_expected_tag_for_term_obj(term, is_action=False)
+        if not tag:
+            continue
+        for st in _dedupe_strs(list(term.get("search_terms") or []) + [str(term.get("text") or "")]):
+            expected_tags[st] = tag
     if action_targets.get("action"):
-        expected_tags[action_targets["action"]["text"]] = "procedure"
+        action_term = action_targets["action"]
+        action_tag = _infer_expected_tag_for_term_obj(action_term, is_action=True) or "procedure"
+        for st in _dedupe_strs(list(action_term.get("search_terms") or []) + [str(action_term.get("text") or "")]):
+            expected_tags[st] = action_tag
 
     client = _make_terminology_client("initial_resolve")
     resolved = client.resolve(unique_terms, expected_tags=expected_tags or None)
@@ -999,12 +1122,62 @@ def _rerun_requested_searches(
     candidate_criteria: dict[str, Any],
     verifier_result: dict[str, Any],
 ) -> dict[str, Any]:
+    def _leaf_term_lookup(node: dict[str, Any] | None, out: dict[str, str]) -> None:
+        if not node:
+            return
+        if node.get("kind") == "concept":
+            criterion = dict(node.get("criterion") or {})
+            out[str(criterion.get("node_id") or "")] = str(criterion.get("term") or "")
+            return
+        for child in node.get("children") or []:
+            if isinstance(child, dict):
+                _leaf_term_lookup(child, out)
+
+    def _auto_retry_terms(reason: str, base_term: str, expected_tag: str | None) -> list[str]:
+        out: list[str] = [base_term]
+        low = (reason or "").lower()
+        for m in _QUOTED_TEXT_RE.finditer(reason or ""):
+            out.append(m.group(1).strip())
+        if expected_tag == "finding":
+            out.extend([f"{base_term} finding", f"{base_term} symptom", f"{base_term} sign"])
+        if expected_tag == "observable entity":
+            out.extend([f"{base_term} result", f"{base_term} measurement", f"{base_term} threshold"])
+        if expected_tag == "situation":
+            out.extend([f"suspected {base_term}", f"{base_term} suspicious"])
+        if "diagnosis" in low and expected_tag == "finding":
+            out.append(f"suspicious {base_term} finding")
+        if "procedure" in low and expected_tag == "finding":
+            out.append(f"{base_term} finding")
+        if "threshold" in low or "fit" in low or "ca125" in low:
+            out.extend([f"{base_term} result", f"{base_term} above threshold", f"{base_term} below threshold"])
+        return _dedupe_strs(out)
+
     retry_terms: dict[str, list[str]] = {}
+    leaf_reason: dict[str, str] = {}
     for item in verifier_result.get("leaf_decisions") or []:
         if str(item.get("status") or "") == "retry_search":
-            retry_terms[str(item.get("node_id") or "")] = _dedupe_strs(list(item.get("retry_search_terms") or []))
+            node_id = str(item.get("node_id") or "")
+            retry_terms[node_id] = _dedupe_strs(list(item.get("retry_search_terms") or []))
+            leaf_reason[node_id] = str(item.get("reason") or "")
     action_retry = verifier_result.get("action_decision") or {}
     action_search_terms = _dedupe_strs(list(action_retry.get("retry_search_terms") or [])) if str(action_retry.get("status") or "") == "retry_search" else []
+    action_reason = str(action_retry.get("reason") or "")
+    leaf_terms: dict[str, str] = {}
+    _leaf_term_lookup(candidate_criteria.get("logic_tree"), leaf_terms)
+    for node_id in list(retry_terms.keys()):
+        base = leaf_terms.get(node_id, "")
+        expected_tag = _infer_expected_tag_for_term_obj({"text": base}, is_action=False)
+        retry_terms[node_id] = _dedupe_strs(
+            list(retry_terms.get(node_id) or [])
+            + _auto_retry_terms(leaf_reason.get(node_id, ""), base, expected_tag)
+        )
+    if str(action_retry.get("status") or "") == "retry_search":
+        action_base = str((candidate_criteria.get("action") or {}).get("term") or "")
+        action_search_terms = _dedupe_strs(
+            action_search_terms
+            + _expand_action_search_terms(action_base, "")
+            + _auto_retry_terms(action_reason, action_base, "procedure")
+        )
     if not retry_terms and not action_search_terms:
         return candidate_criteria
 
@@ -1016,7 +1189,13 @@ def _rerun_requested_searches(
     if not all_terms:
         return candidate_criteria
     client = _make_terminology_client("retry_search")
-    resolved = client.resolve(all_terms, expected_tags={t: "procedure" for t in action_search_terms} or None)
+    expected_tags: dict[str, str] = {t: "procedure" for t in action_search_terms}
+    for node_id, terms in retry_terms.items():
+        base = leaf_terms.get(node_id, "")
+        tag = _infer_expected_tag_for_term_obj({"text": base}, is_action=False) or "finding"
+        for t in terms:
+            expected_tags.setdefault(t, tag)
+    resolved = client.resolve(all_terms, expected_tags=expected_tags or None)
     if not resolved:
         raise TerminologyAPIError("alternate terminology resolve returned no results")
 
