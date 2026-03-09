@@ -411,13 +411,21 @@ class WorkflowEngine:
 
         Normalises entity keys so all downstream steps find entities
         under the canonical ``entities`` key.
+
+        Errors are accumulated, but subgraphs often pass through the errors
+        they received (so downstream steps can inspect them). To prevent the
+        same error being appended multiple times, only errors that do not
+        already exist in pipeline_state are added.
         """
         for key, value in step_output.items():
             if key in _ENTITY_KEY_ALIASES and value:
                 pipeline_state["entities"] = value
             elif key == "errors" and value:
-                existing = pipeline_state.get("errors") or []
-                pipeline_state["errors"] = existing + list(value)
+                existing = list(pipeline_state.get("errors") or [])
+                existing_set = set(existing)
+                new_errors = [e for e in value if e not in existing_set]
+                if new_errors:
+                    pipeline_state["errors"] = existing + new_errors
             else:
                 pipeline_state[key] = value
 
@@ -687,6 +695,7 @@ class WorkflowEngine:
         executed: set[str] = set()
         fallback_enqueued = False
         final_status = "completed"
+        halted_step_id: str | None = None
 
         while queue:
             action_id = queue.pop(0)
@@ -742,6 +751,21 @@ class WorkflowEngine:
                     self._merge_step_output(pipeline_state, step_result.output)
                 else:
                     final_status = "error"
+
+                # Verification quality gate: halt the pipeline when is_verified=False.
+                # This mirrors the non-stream run() path and must fire in dry_run/probe
+                # mode too so the canvas accurately reflects real-world behaviour.
+                halt_reason: str | None = None
+                if step_result.status != "error" and action.subgraph_id == "verification":
+                    if not pipeline_state.get("is_verified", True):
+                        halt_reason = "verification_failed"
+                        final_status = "needs_review"
+                        halted_step_id = action.action_id
+                        logger.info(
+                            "trace_run_stream: verification halted pipeline at step %s",
+                            action.action_id,
+                        )
+
                 out_snap = self._sanitize_state(copy.deepcopy(pipeline_state))
                 trace = {
                     "step_id": action.action_id,
@@ -752,12 +776,15 @@ class WorkflowEngine:
                     "output_state": out_snap,
                     "duration_ms": step_result.duration_ms,
                     "error": step_result.error,
-                    "status": step_result.status,
+                    # "halted" is a distinct status from "error": the step itself
+                    # ran fine but the quality gate decided to stop the pipeline.
+                    "status": "halted" if halt_reason else step_result.status,
+                    **({"halt_reason": halt_reason} if halt_reason else {}),
                 }
 
             yield {"type": "step_done", "step_trace": trace}
 
-            if trace["status"] == "error":
+            if trace["status"] in ("error", "halted"):
                 break
 
             next_edges = outgoing.get(action_id, [])
@@ -794,6 +821,7 @@ class WorkflowEngine:
         yield {
             "type": "pipeline_done",
             "status": final_status,
+            "halted_step_id": halted_step_id,
             "final_state": self._sanitize_state(dict(pipeline_state)),
         }
 

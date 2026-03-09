@@ -41,6 +41,10 @@ import Drawer from "@mui/material/Drawer";
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
 import Dialog from "@mui/material/Dialog";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import DialogActions from "@mui/material/DialogActions";
+import LinearProgress from "@mui/material/LinearProgress";
 import {
   ReactFlow,
   Background,
@@ -261,6 +265,18 @@ function buildProducedFields(mappings: FieldMappingRow[]): Record<string, Set<st
     result[key].add(field);
   }
   return result;
+}
+
+function getProducedKeysFromMappings(mappings: FieldMappingRow[] | undefined): string[] {
+  if (!mappings || mappings.length === 0) return [];
+  const keys = new Set<string>();
+  for (const row of mappings) {
+    const statePath = row.statePath?.trim();
+    if (!statePath) continue;
+    const match = statePath.match(/^(\w+)/);
+    if (match?.[1]) keys.add(match[1]);
+  }
+  return Array.from(keys);
 }
 
 function DataFlowPanel({
@@ -694,6 +710,44 @@ function buildStatePath(topKey: string, subField: string): string {
   return topKey;
 }
 
+function topKeysFromMappings(rows: FieldMappingRow[]): string[] {
+  const keys = new Set<string>();
+  for (const row of rows) {
+    const path = row.statePath?.trim();
+    if (!path) continue;
+    const match = path.match(/^(\w+)/);
+    if (match?.[1]) keys.add(match[1]);
+  }
+  return Array.from(keys);
+}
+
+function hydrateActionConfig(action: {
+  subgraphId: string;
+  label?: string;
+  config?: unknown;
+}): ActionConfig {
+  const rawConfig = (action.config ?? {}) as Record<string, unknown>;
+  const rawParams = (rawConfig.params && typeof rawConfig.params === "object"
+    ? (rawConfig.params as Record<string, unknown>)
+    : {}) as ActionConfig["params"];
+
+  // Backward compatibility: older saves stored mappings at config.field_mappings.
+  if (
+    !Array.isArray((rawParams as Record<string, unknown>).field_mappings) &&
+    Array.isArray(rawConfig.field_mappings)
+  ) {
+    (rawParams as Record<string, unknown>).field_mappings = rawConfig.field_mappings;
+  }
+
+  return {
+    ...DEFAULT_CONFIG,
+    subgraphId: action.subgraphId,
+    label: action.label || action.subgraphId,
+    ...(rawConfig as Partial<ActionConfig>),
+    params: rawParams,
+  };
+}
+
 
 /** Small inline control to let the user add a new named output group. */
 function AddGroupButton({ onAdd }: { onAdd: (name: string) => void }) {
@@ -760,11 +814,11 @@ function SchemaAlignmentPanel({
   const [undoStack, setUndoStack] = useState<FieldMappingRow[] | null>(null);
   const initialised = fieldMappings.length > 0;
 
-  // Merge static SUBGRAPH_IO writes + the AI schema's own topKey + any user-added custom groups.
-  // This means if the prompt returns "terms[]", that key appears in the dropdown automatically.
-  const staticWriteKeys: string[] = SUBGRAPH_IO[subgraphId]?.writes ?? [];
+  // Derive output groups from actual mappings and schema (not hardcoded SUBGRAPH_IO writes)
+  // so the canvas connectors match what the user/prompt configured.
+  const mappedWriteKeys = useMemo(() => topKeysFromMappings(fieldMappings), [fieldMappings]);
   const writeKeys: string[] = useMemo(() => {
-    const keys = [...staticWriteKeys];
+    const keys = [...mappedWriteKeys];
     if (schemaFields?.topKey && !keys.includes(schemaFields.topKey)) {
       keys.unshift(schemaFields.topKey);
     }
@@ -772,8 +826,7 @@ function SchemaAlignmentPanel({
       if (!keys.includes(k)) keys.push(k);
     }
     return keys;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [subgraphId, schemaFields?.topKey, extraWriteKeys]);
+  }, [mappedWriteKeys, schemaFields?.topKey, extraWriteKeys]);
 
   useEffect(() => {
     if (!promptConfigId) return;
@@ -1662,10 +1715,14 @@ function SourceConfiguratorContent({
         } else {
           const data: SamplePreview = await res.json();
           setPreview(data);
-          // Auto-populate outputs from actual record fields (all selected by default).
-          // This ensures the output handles match what the database actually returns.
+          // Auto-populate outputs from actual record fields.
+          // For graph sources the test runner aliases the text property → encounter_text
+          // so replace the raw text field name with encounter_text in the declared outputs.
           const actualKeys = Object.keys(data.properties);
-          onUpdate({ outputs: actualKeys });
+          const enrichedKeys = isGraphSource
+            ? actualKeys.map((k) => (k === textProperty ? "encounter_text" : k))
+            : actualKeys;
+          onUpdate({ outputs: enrichedKeys });
         }
       })
       .catch((e) => { if (!cancelled) setPreviewError(e.message ?? "Network error"); })
@@ -2027,7 +2084,10 @@ function ActionConfigurator({
   const backgroundSave = useCallback((latestConfig: ActionConfig) => {
     onSave(nodeId, latestConfig);   // sync local state first
     setAutoSave("saving");
-    onPathwaySave()
+    // Let React flush parent node/config state before serializing payload.
+    Promise.resolve()
+      .then(() => new Promise<void>((resolve) => setTimeout(resolve, 0)))
+      .then(() => onPathwaySave())
       .then(() => {
         setAutoSave("saved");
         setTimeout(() => setAutoSave("idle"), 2500);
@@ -2049,6 +2109,21 @@ function ActionConfigurator({
 
   const updateParam = (key: string, value: unknown) =>
     setConfig((prev) => ({ ...prev, params: { ...prev.params, [key]: value } }));
+
+  // Keep canvas handles in sync while editing (field mappings / branches / node type),
+  // without waiting for "Save step". Server persistence still happens on Next/Save.
+  useEffect(() => {
+    onSave(nodeId, config);
+  }, [onSave, nodeId, config]);
+
+  // Field mappings are high-impact for canvas ports; update local config and
+  // let the post-render effect propagate to parent state safely.
+  const setFieldMappings = useCallback((rows: FieldMappingRow[]) => {
+    setConfig((prev) => ({
+      ...prev,
+      params: { ...prev.params, field_mappings: rows },
+    }));
+  }, []);
 
   const applySubgraphChange = (id: string) => {
     const opt = SUBGRAPH_OPTIONS.find((s) => s.id === id);
@@ -2458,7 +2533,7 @@ function ActionConfigurator({
                   subgraphId={config.subgraphId}
                   promptConfigId={config.promptConfigId}
                   fieldMappings={(config.params.field_mappings as FieldMappingRow[]) ?? []}
-                  onFieldMappingsChange={(rows) => updateParam("field_mappings", rows)}
+                  onFieldMappingsChange={setFieldMappings}
                   prevStepFieldMappings={prevStepFieldMappings}
                 />
               ) : (
@@ -2647,6 +2722,8 @@ function SaveStepButton({
     setError(null);
     try {
       onSave();               // update local nodeConfigs state
+      // Ensure parent state is committed before pathway serialization.
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
       await onPathwaySave();  // persist to server
       setSaved(true);
       setTimeout(() => { setSaved(false); onClose(); }, 800);
@@ -2901,7 +2978,11 @@ function useValidationWarnings(
           const producedFields = buildProducedFields(mappings);
           for (const [stateKey, reqFields] of Object.entries(io.requiredFields)) {
             const produced = producedFields[stateKey];
-            const missingFields = reqFields.filter((f) => !produced?.has(f));
+            // Only validate sub-fields when the predecessor explicitly maps this key at
+            // sub-field level (e.g. "entities[].text"). If produced is undefined the
+            // predecessor passes the key through as a whole block — no false positive.
+            if (!produced) continue;
+            const missingFields = reqFields.filter((f) => !produced.has(f));
             if (missingFields.length > 0) {
               const label = (node.data as unknown as ActionNodeData).label;
               warnings.push({
@@ -2939,9 +3020,10 @@ function useValidationWarnings(
 
     const orphaned = nodes.filter(n => {
       const hasIncoming = edges.some(e => e.target === n.id);
-      const hasOutgoing = edges.some(e => e.source === n.id);
       const isFirst = ordered[0]?.id === n.id;
-      return !hasIncoming && !isFirst;
+      // Source nodes are data providers — they don't need an incoming edge.
+      const isSource = n.type === "source";
+      return !hasIncoming && !isFirst && !isSource;
     });
     for (const o of orphaned) {
       warnings.push({
@@ -3414,6 +3496,9 @@ export default function PathwayBuilderPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerKey, setDrawerKey] = useState(0);
   const [nodeConfigs, setNodeConfigs] = useState<Record<string, ActionConfig>>({});
+  const nodesRef = useRef<Node[]>([]);
+  const edgesRef = useRef<Edge[]>([]);
+  const nodeConfigsRef = useRef<Record<string, ActionConfig>>({});
   const [saveError, setSaveError] = useState<string | null>(null);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -3430,13 +3515,50 @@ export default function PathwayBuilderPage() {
   // Edge deletion confirmation: holds edges pending removal until confirmed
   const [pendingDeleteEdges, setPendingDeleteEdges] = useState<Edge[] | null>(null);
 
+  useEffect(() => {
+    nodesRef.current = nodes;
+  }, [nodes]);
+
+  useEffect(() => {
+    edgesRef.current = edges;
+  }, [edges]);
+
+  useEffect(() => {
+    nodeConfigsRef.current = nodeConfigs;
+  }, [nodeConfigs]);
+
   // ── Test-run state ────────────────────────────────────────────────────────
   const [testRunOpen, setTestRunOpen] = useState(false);
   const [isTestRunning, setIsTestRunning] = useState(false);
   const [testRunError, setTestRunError] = useState<string | null>(null);
+
+  // ── Batch dry-run state ───────────────────────────────────────────────────
+  const [batchPanelOpen, setBatchPanelOpen] = useState(false);
+  const [isBatchRunning, setIsBatchRunning] = useState(false);
+  const [batchLimit, setBatchLimit] = useState(20);
+  const [batchStatusFilter, setBatchStatusFilter] = useState<string>("pending");
+  type BatchCandidateResult = {
+    candidate_id: string;
+    text_preview: string;
+    status: "completed" | "halted" | "error" | "running";
+    halted_at: string | null;
+    halted_at_subgraph: string | null;
+    error: string | null;
+    duration_ms: number;
+    index: number;
+  };
+  type BatchStepStat = { label: string; ran: number; halted: number };
+  type BatchSummary = { total: number; passed: number; halted: number; errored: number; by_step_stats: Record<string, BatchStepStat> };
+  const [batchResults, setBatchResults] = useState<BatchCandidateResult[]>([]);
+  const [batchSummary, setBatchSummary] = useState<BatchSummary | null>(null);
+  // Live per-step counts while running: subgraph_id → { label, ran, halted }
+  const [batchStepCounts, setBatchStepCounts] = useState<Record<string, BatchStepStat>>({});
+  const [batchConcurrency, setBatchConcurrency] = useState(3);
   const [testTrace, setTestTrace] = useState<Record<string, StepTraceResult> | null>(null);
   /** ID of the step currently executing (null when between steps) */
   const [runningStepId, setRunningStepId] = useState<string | null>(null);
+  /** ID of the node that caused the pipeline to halt (null = completed normally) */
+  const [haltedNodeId, setHaltedNodeId] = useState<string | null>(null);
   const deleteConfirmTarget = planName.trim() || planId;
   /** Set of edge keys ("sourceId|targetId") the user has clamped a probe onto */
   const [probedEdges, setProbedEdges] = useState<Set<string>>(new Set());
@@ -3474,7 +3596,7 @@ export default function PathwayBuilderPage() {
           const loadedActionNodes: Node[] = (data.actions || [])
             .filter((a) => a.nodeType !== "source") // legacy guard: skip old source nodes saved as actions
             .map((a, i) => {
-              const cfg: ActionConfig = { ...DEFAULT_CONFIG, subgraphId: a.subgraphId, label: a.label || a.subgraphId, ...a.config, params: (a.config as ActionConfig)?.params ?? {} };
+              const cfg = hydrateActionConfig(a);
               configs[a.id] = cfg;
               return {
                 id: a.id,
@@ -3485,7 +3607,7 @@ export default function PathwayBuilderPage() {
                   subgraphId: a.subgraphId,
                   color: SUBGRAPH_OPTIONS.find((s) => s.id === a.subgraphId)?.color || "#999",
                   nodeType: a.nodeType || cfg.nodeType || "action",
-                  config: a.config,
+                  config: cfg,
                   // Restore saved field mappings so output port handles appear immediately on load.
                   fieldMappings: (cfg.params.field_mappings as FieldMappingRow[]) ?? [],
                   onConfigure: () => openConfigurator(a.id),
@@ -3508,13 +3630,15 @@ export default function PathwayBuilderPage() {
             position: on.position,
             data: { ...on.data, onConfigure: () => setOutputConfigOpen(on.id) },
           }));
+          nodeConfigsRef.current = configs;
+          nodesRef.current = [...loadedActionNodes, ...loadedSourceNodes, ...loadedOutputNodes];
           setNodeConfigs(configs);
           setNodes([...loadedActionNodes, ...loadedSourceNodes, ...loadedOutputNodes]);
           const allEdges = [
             ...(data.edges || []),
             ...(data.sourceEdges || []),   // canvas-only source → action wires
           ];
-          setEdges(allEdges.map((e, i) => ({
+          const loadedEdges = allEdges.map((e, i) => ({
             id: `e${i}-${e.source}-${e.target}`,
             source: e.source,
             target: e.target,
@@ -3522,7 +3646,9 @@ export default function PathwayBuilderPage() {
             targetHandle: e.targetHandle ?? null,
             type: "portEdge",
             data: { label: e.sourceHandle || e.targetHandle || "" },
-          })));
+          }));
+          edgesRef.current = loadedEdges;
+          setEdges(loadedEdges);
         })
         .catch(() => {});
     }
@@ -3679,17 +3805,27 @@ export default function PathwayBuilderPage() {
   const addSourceNode = useCallback((sourceType: SourceType) => {
     const meta = SOURCE_DEFINITIONS[sourceType];
     const id = `source_${Date.now()}`;
-    setNodes((nds) => [...nds, {
-      id,
-      type: "source",
-      position: { x: 60, y: (nds.length + 1) * 160 },
-      data: {
-        label: meta.label,
-        sourceType,
-        outputs: meta.outputs,
-        onConfigure: () => setSourceConfigOpen(id),
-      },
-    } as Node]);
+    setNodes((nds) => {
+      // Place to the left of the leftmost node, vertically centred on existing content
+      const existingSourceNodes = nds.filter((n) => n.type === "source");
+      const minX = nds.reduce((m, n) => Math.min(m, n.position?.x ?? 9999), 9999);
+      const midY = nds.length > 0
+        ? nds.reduce((sum, n) => sum + (n.position?.y ?? 0), 0) / nds.length
+        : 200;
+      const x = existingSourceNodes.length > 0 ? minX : Math.min(minX - 240, 60);
+      const y = Math.max(80, midY + existingSourceNodes.length * 180);
+      return [...nds, {
+        id,
+        type: "source",
+        position: { x: Math.max(20, x), y },
+        data: {
+          label: meta.label,
+          sourceType,
+          outputs: meta.outputs,
+          onConfigure: () => setSourceConfigOpen(id),
+        },
+      } as Node];
+    });
   }, [setNodes]);
 
   // ── Output node (sink) ───────────────────────────────────────────────────────
@@ -3698,24 +3834,38 @@ export default function PathwayBuilderPage() {
   const addOutputNode = useCallback((outputType: OutputType) => {
     const meta = OUTPUT_DEFINITIONS[outputType];
     const id = `output_${Date.now()}`;
-    setNodes((nds) => [...nds, {
-      id,
-      type: "output",
-      position: { x: 900, y: (nds.length + 1) * 160 },
-      data: {
-        label: meta.label,
-        outputType,
-        inputs: meta.inputs,
-        onConfigure: () => setOutputConfigOpen(id),
-      },
-    } as Node]);
+    setNodes((nds) => {
+      // Place to the right of the rightmost node, vertically centred on existing content
+      const existingOutputNodes = nds.filter((n) => n.type === "output");
+      const maxX = nds.reduce((m, n) => Math.max(m, (n.position?.x ?? 0) + 260), 400);
+      const midY = nds.length > 0
+        ? nds.reduce((sum, n) => sum + (n.position?.y ?? 0), 0) / nds.length
+        : 200;
+      const y = Math.max(80, midY + existingOutputNodes.length * 180);
+      return [...nds, {
+        id,
+        type: "output",
+        position: { x: maxX + 80, y },
+        data: {
+          label: meta.label,
+          outputType,
+          inputs: meta.inputs,
+          onConfigure: () => setOutputConfigOpen(id),
+        },
+      } as Node];
+    });
   }, [setNodes]);
 
   const handleConfigSave = useCallback((nodeId: string, config: ActionConfig) => {
-    setNodeConfigs((prev) => ({ ...prev, [nodeId]: config }));
+    setNodeConfigs((prev) => {
+      const next = { ...prev, [nodeId]: config };
+      nodeConfigsRef.current = next;
+      return next;
+    });
     const option = SUBGRAPH_OPTIONS.find((s) => s.id === config.subgraphId);
     setNodes((nds) =>
-      nds.map((n) =>
+      {
+        const nextNodes = nds.map((n) =>
         n.id === nodeId
           ? {
               ...n,
@@ -3739,16 +3889,28 @@ export default function PathwayBuilderPage() {
               },
             }
           : n
-      )
+      );
+        nodesRef.current = nextNodes;
+        return nextNodes;
+      }
     );
   }, [setNodes]);
 
   const handleDeleteNode = useCallback((nodeId: string) => {
-    setNodes((nds) => nds.filter((n) => n.id !== nodeId));
-    setEdges((eds) => eds.filter((e) => e.source !== nodeId && e.target !== nodeId));
+    setNodes((nds) => {
+      const next = nds.filter((n) => n.id !== nodeId);
+      nodesRef.current = next;
+      return next;
+    });
+    setEdges((eds) => {
+      const next = eds.filter((e) => e.source !== nodeId && e.target !== nodeId);
+      edgesRef.current = next;
+      return next;
+    });
     setNodeConfigs((prev) => {
       const next = { ...prev };
       delete next[nodeId];
+      nodeConfigsRef.current = next;
       return next;
     });
   }, [setNodes, setEdges]);
@@ -3766,21 +3928,31 @@ export default function PathwayBuilderPage() {
       .filter((e) => e.target === selectedNode)
       .map((e) => e.source);
     if (predecessorIds.length === 0) return null;
-    const allWrites = new Set<string>();
+    // Global keys are always present in every pipeline run — injected at startup by
+    // the trigger / test runner regardless of canvas wiring.
+    const GLOBAL_PIPELINE_KEYS = ["encounter_text", "patient_id", "encounter_id", "run_id"];
+    const allWrites = new Set<string>(GLOBAL_PIPELINE_KEYS);
     for (const predId of predecessorIds) {
       const predNode = nodes.find((n) => n.id === predId);
       if (predNode?.type === "source") {
         const srcOutputs = (predNode.data as { outputs?: string[] }).outputs ?? [];
         srcOutputs.forEach((k) => allWrites.add(k));
       } else {
-        const predSubgraphId = (predNode?.data as unknown as ActionNodeData | undefined)?.subgraphId;
-        if (predSubgraphId) {
-          SUBGRAPH_IO[predSubgraphId]?.writes.forEach((w) => allWrites.add(w));
+        const predData = predNode?.data as unknown as ActionNodeData | undefined;
+        const predCfg = nodeConfigs[predId];
+        const mappedKeys = getProducedKeysFromMappings(
+          (predCfg?.params?.field_mappings as FieldMappingRow[] | undefined)
+            ?? predData?.fieldMappings,
+        );
+        if (mappedKeys.length > 0) {
+          mappedKeys.forEach((k) => allWrites.add(k));
+        } else if (predData?.subgraphId) {
+          SUBGRAPH_IO[predData.subgraphId]?.writes.forEach((w) => allWrites.add(w));
         }
       }
     }
     return allWrites.size > 0 ? Array.from(allWrites) : null;
-  }, [selectedNode, edges, nodes]);
+  }, [selectedNode, edges, nodes, nodeConfigs]);
 
   // Named upstream nodes: [{label, keys[]}] — used to show "Knowledge Base → encounter_text" in Data connections step
   const prevStepSources = useMemo<Array<{ label: string; keys: string[] }>>(() => {
@@ -3798,11 +3970,18 @@ export default function PathwayBuilderPage() {
       } else {
         const data = predNode.data as unknown as ActionNodeData | undefined;
         const label = data?.label ?? "Previous step";
-        const keys = data?.subgraphId ? (SUBGRAPH_IO[data.subgraphId]?.writes ?? []) : [];
+        const predCfg = nodeConfigs[predId];
+        const mappedKeys = getProducedKeysFromMappings(
+          (predCfg?.params?.field_mappings as FieldMappingRow[] | undefined)
+            ?? data?.fieldMappings,
+        );
+        const keys = mappedKeys.length > 0
+          ? mappedKeys
+          : (data?.subgraphId ? (SUBGRAPH_IO[data.subgraphId]?.writes ?? []) : []);
         return keys.length > 0 ? [{ label, keys }] : [];
       }
     });
-  }, [selectedNode, edges, nodes]);
+  }, [selectedNode, edges, nodes, nodeConfigs]);
 
   // Collect field-level mappings from DIRECT predecessors (first predecessor wins per key).
   // Only direct predecessors matter — each step reads from the immediately preceding step.
@@ -3820,6 +3999,27 @@ export default function PathwayBuilderPage() {
     return null;
   }, [selectedNode, edges, nodeConfigs]);
 
+  // Derive output_target for a persist node from whichever output node(s) it is
+  // wired to on the canvas.  This means the user connects Persist → Knowledge Base
+  // (or Persist → Patient Records) and the wiring IS the config — no separate
+  // input field needed on the Persist node.
+  const resolveOutputTarget = useCallback((persistNodeId: string, allNodes: typeof nodes, allEdges: typeof edges): string => {
+    const OUTPUT_TYPE_MAP: Record<string, string> = {
+      knowledge_graph: "gold_training",
+      patient_graph:   "patient_graph",
+    };
+    const connectedOutputTypes = new Set<string>(
+      allEdges
+        .filter((e) => e.source === persistNodeId)
+        .map((e) => allNodes.find((n) => n.id === e.target))
+        .filter((n): n is typeof allNodes[number] => n?.type === "output")
+        .map((n) => OUTPUT_TYPE_MAP[(n.data as Record<string, unknown>)?.outputType as string] ?? "gold_training"),
+    );
+    if (connectedOutputTypes.has("patient_graph") && connectedOutputTypes.has("gold_training")) return "both";
+    if (connectedOutputTypes.has("patient_graph")) return "patient_graph";
+    return "gold_training"; // default when connected to Knowledge Base or unspecified
+  }, []);
+
   // Core streaming runner — accepts an optional pre-filtered node/edge subset
   // so both "full run" and "run to here" share the same SSE logic.
   const runTestStream = useCallback(async (
@@ -3831,6 +4031,7 @@ export default function PathwayBuilderPage() {
     setIsTestRunning(true);
     setTestTrace(null);
     setRunningStepId(null);
+    setHaltedNodeId(null);
     setTestRunOpen(false);
     // Remember last input so "run to here" can reuse it without re-opening the dialog
     testInputRef.current = { initialState };
@@ -3842,15 +4043,28 @@ export default function PathwayBuilderPage() {
            && !nodes.find((n) => n.id === e.target && canvasOnlyTypes.has(n.type ?? "")),
     );
 
+    // All nodes/edges (not just the filtered subset) are needed for output-node topology
+    const allNodesForTopology = overrideNodes ?? nodes;
+    const allEdgesForTopology = overrideEdges ?? edges;
+
     const body = {
       plan_id: planId,
-      actions: actionNodes.map((n) => ({
-        id: n.id,
-        subgraph_id: (n.data as unknown as ActionNodeData).subgraphId ?? n.type ?? "action",
-        label: (n.data as unknown as ActionNodeData).label ?? n.id,
-        node_type: (n.data as unknown as ActionNodeData).nodeType ?? n.type ?? "action",
-        config: nodeConfigs[n.id] ?? {},
-      })),
+      actions: actionNodes.map((n) => {
+        const subgraphId = (n.data as unknown as ActionNodeData).subgraphId ?? n.type ?? "action";
+        const cfg = { ...(nodeConfigs[n.id] ?? {}) };
+        // Persist nodes derive their output_target from which output node they are wired to.
+        // The engine maps camelCase outputTarget → snake_case output_target before running.
+        if (subgraphId === "persist" && !cfg.outputTarget) {
+          (cfg as Record<string, unknown>).outputTarget = resolveOutputTarget(n.id, allNodesForTopology, allEdgesForTopology);
+        }
+        return {
+          id: n.id,
+          subgraph_id: subgraphId,
+          label: (n.data as unknown as ActionNodeData).label ?? n.id,
+          node_type: (n.data as unknown as ActionNodeData).nodeType ?? n.type ?? "action",
+          config: cfg,
+        };
+      }),
       edges: testEdges.map((e) => ({
         source: e.source,
         target: e.target,
@@ -3913,8 +4127,14 @@ export default function PathwayBuilderPage() {
             traceMap[step.step_id] = step;
             setTestTrace({ ...traceMap });
             setRunningStepId(null);
+            // "halted" = the step ran but its quality gate stopped the pipeline
+            if (step.status === "halted") {
+              setHaltedNodeId(step.step_id);
+            }
           } else if (eventType === "pipeline_done") {
             setRunningStepId(null);
+            // Sync halted_step_id from the final event in case we missed the step_done
+            if (event.halted_step_id) setHaltedNodeId(event.halted_step_id as string);
           } else if (eventType === "error") {
             setTestRunError((event.message as string) ?? "Pipeline error");
           }
@@ -3969,6 +4189,101 @@ export default function PathwayBuilderPage() {
       runTestStream(initialState);
     }
   }, [runTestStream, runToStepPending, nodes, edges]);
+
+  // ── Run every step in one dry-run (reuse last test input, skip dialog) ───
+  const handleRunAllSteps = useCallback(() => {
+    if (testInputRef.current) {
+      // Re-use last input so the user doesn't have to re-enter it every iteration
+      runTestStream(testInputRef.current.initialState);
+    } else {
+      // No previous run — open dialog to collect input first
+      setTestRunOpen(true);
+    }
+  }, [runTestStream]);
+
+  // ── Batch dry-run against real TrainingCandidates ────────────────────────
+  const handleBatchRun = useCallback(async () => {
+    setBatchResults([]);
+    setBatchSummary(null);
+    setBatchStepCounts({});
+    setIsBatchRunning(true);
+    setBatchPanelOpen(true);
+
+    const canvasOnlyTypes = new Set(["source", "output"]);
+    const allNodes = nodesRef.current;
+    const allEdges = edgesRef.current;
+
+    const serialisedActions = allNodes
+      .filter((n) => !canvasOnlyTypes.has(n.type ?? ""))
+      .map((n) => {
+        const subgraphId = (n.data as unknown as ActionNodeData).subgraphId ?? n.type ?? "action";
+        const cfg = { ...(nodeConfigsRef.current[n.id] ?? {}) };
+        if (subgraphId === "persist" && !(cfg as Record<string, unknown>).outputTarget) {
+          (cfg as Record<string, unknown>).outputTarget = resolveOutputTarget(n.id, allNodes, allEdges);
+        }
+        return {
+          id: n.id,
+          subgraph_id: subgraphId,
+          label: (n.data as unknown as ActionNodeData).label ?? n.id,
+          node_type: (n.data as unknown as ActionNodeData).nodeType ?? n.type ?? "action",
+          config: cfg,
+        };
+      });
+
+    const serialisedEdges = allEdges
+      .filter(
+        (e) => !allNodes.find((n) => n.id === e.source && canvasOnlyTypes.has(n.type ?? ""))
+             && !allNodes.find((n) => n.id === e.target && canvasOnlyTypes.has(n.type ?? "")),
+      )
+      .map((e) => ({
+        source: e.source, target: e.target, source_handle: e.sourceHandle ?? null, target_handle: e.targetHandle ?? null,
+      }));
+
+    try {
+      const res = await fetch("/api/pipeline/test-run/batch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ actions: serialisedActions, edges: serialisedEdges, limit: batchLimit, status_filter: batchStatusFilter || null, concurrency: batchConcurrency }),
+      });
+      if (!res.ok || !res.body) throw new Error(`Server error ${res.status}`);
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = "";
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        const blocks = buf.split("\n\n");
+        buf = blocks.pop() ?? "";
+        for (const block of blocks) {
+          const dataLine = block.split("\n").find((l) => l.startsWith("data:"));
+          if (!dataLine) continue;
+          try {
+            const evt = JSON.parse(dataLine.slice(5).trim());
+            if (evt.type === "candidate_start") {
+              setBatchResults((prev) => [...prev, { candidate_id: evt.candidate_id, text_preview: evt.text_preview, status: "running", halted_at: null, halted_at_subgraph: null, error: null, duration_ms: 0, index: evt.index }]);
+            } else if (evt.type === "candidate_done") {
+              setBatchResults((prev) => prev.map((r) => r.candidate_id === evt.candidate_id ? { ...r, status: evt.status, halted_at: evt.halted_at, halted_at_subgraph: evt.halted_at_subgraph, error: evt.error, duration_ms: evt.duration_ms } : r));
+            } else if (evt.type === "step_progress") {
+              // Live per-step funnel update
+              setBatchStepCounts((prev) => ({
+                ...prev,
+                [evt.subgraph_id]: { label: evt.label, ran: evt.ran, halted: evt.halted },
+              }));
+            } else if (evt.type === "batch_done") {
+              setBatchSummary({ total: evt.total, passed: evt.passed, halted: evt.halted, errored: evt.errored, by_step_stats: evt.by_step_stats ?? {} });
+            }
+          } catch { /* ignore malformed event */ }
+        }
+      }
+    } catch (err) {
+      setBatchSummary({ total: 0, passed: 0, halted: 0, errored: 1, by_step_stats: {} });
+    } finally {
+      setIsBatchRunning(false);
+    }
+  }, [batchLimit, batchStatusFilter, batchConcurrency]);
 
   // ── Run to a specific step (probe "test to this point") ───────────────────
   const runToStep = useCallback((upToNodeId: string) => {
@@ -4039,6 +4354,9 @@ export default function PathwayBuilderPage() {
     setSaveError(null);
     setIsSaving(true);
     const effectiveStatus = statusOverride ?? planStatus;
+    const liveNodes = nodesRef.current;
+    const liveEdges = edgesRef.current;
+    const liveNodeConfigs = nodeConfigsRef.current;
     const payload: Record<string, unknown> = {
       name: planName,
       status: effectiveStatus,
@@ -4048,29 +4366,38 @@ export default function PathwayBuilderPage() {
       trigger: triggerEvent ? { event: triggerEvent, type: "data-changed" } : undefined,
       // Source + output nodes are canvas-only — saved separately so they survive
       // save/reload without confusing the backend execution engine.
-      sourceNodes: nodes.filter((n) => n.type === "source").map((n) => ({
+      sourceNodes: liveNodes.filter((n) => n.type === "source").map((n) => ({
         id: n.id,
         position: n.position,
         data: { ...(n.data as Record<string, unknown>), onConfigure: undefined },
       })),
-      outputNodes: nodes.filter((n) => n.type === "output").map((n) => ({
+      outputNodes: liveNodes.filter((n) => n.type === "output").map((n) => ({
         id: n.id,
         position: n.position,
         data: { ...(n.data as Record<string, unknown>), onConfigure: undefined },
       })),
-      actions: nodes.filter((n) => n.type !== "source" && n.type !== "output").map((n) => ({
-        id: n.id,
-        subgraphId: (n.data as unknown as ActionNodeData).subgraphId,
-        label: (n.data as unknown as ActionNodeData).label,
-        nodeType: (nodeConfigs[n.id]?.nodeType || n.type || "action"),
-        position: n.position,
-        config: nodeConfigs[n.id] || {},
-      })),
+      actions: liveNodes.filter((n) => n.type !== "source" && n.type !== "output").map((n) => {
+        const subgraphId = (n.data as unknown as ActionNodeData).subgraphId;
+        const cfg = { ...(liveNodeConfigs[n.id] ?? {}) };
+        // Derive output_target for persist nodes from connected output nodes so that
+        // the canvas wiring (not a separate config field) controls write destination.
+        if (subgraphId === "persist" && !cfg.outputTarget) {
+          (cfg as Record<string, unknown>).outputTarget = resolveOutputTarget(n.id, liveNodes, liveEdges);
+        }
+        return {
+          id: n.id,
+          subgraphId,
+          label: (n.data as unknown as ActionNodeData).label,
+          nodeType: (cfg.nodeType || n.type || "action"),
+          position: n.position,
+          config: cfg,
+        };
+      }),
       // Action-to-action edges — the backend uses these for execution ordering.
-      edges: edges
+      edges: liveEdges
         .filter((e) => {
-          const srcNode = nodes.find((n) => n.id === e.source);
-          const tgtNode = nodes.find((n) => n.id === e.target);
+          const srcNode = liveNodes.find((n) => n.id === e.source);
+          const tgtNode = liveNodes.find((n) => n.id === e.target);
           return srcNode?.type !== "source" && srcNode?.type !== "output"
               && tgtNode?.type !== "source" && tgtNode?.type !== "output";
         })
@@ -4081,10 +4408,10 @@ export default function PathwayBuilderPage() {
           targetHandle: e.targetHandle,
         })),
       // Canvas-only edges (source → action, action → output) — persisted for UI restore.
-      sourceEdges: edges
+      sourceEdges: liveEdges
         .filter((e) => {
-          const srcNode = nodes.find((n) => n.id === e.source);
-          const tgtNode = nodes.find((n) => n.id === e.target);
+          const srcNode = liveNodes.find((n) => n.id === e.source);
+          const tgtNode = liveNodes.find((n) => n.id === e.target);
           return srcNode?.type === "source" || tgtNode?.type === "output";
         })
         .map((e) => ({
@@ -4108,7 +4435,7 @@ export default function PathwayBuilderPage() {
     } finally {
       setIsSaving(false);
     }
-  }, [planName, planStatus, planDescription, triggerEvent, versionNotes, nodes, edges, nodeConfigs, isNew, planId, router]);
+  }, [planName, planStatus, planDescription, triggerEvent, versionNotes, isNew, planId, router]);
 
   const handlePublish = useCallback(() => {
     const errCount = validationWarnings.filter((w) => w.severity === "error").length;
@@ -4177,7 +4504,7 @@ export default function PathwayBuilderPage() {
       if (trig?.event) setTriggerEvent(trig.event);
       const configs: Record<string, ActionConfig> = {};
       const restoredNodes: Node[] = (data.actions || []).map((a, i) => {
-        const cfg: ActionConfig = { ...DEFAULT_CONFIG, subgraphId: a.subgraphId, label: a.label || a.subgraphId, ...a.config, params: (a.config as ActionConfig)?.params ?? {} };
+        const cfg = hydrateActionConfig(a);
         configs[a.id] = cfg;
         return {
           id: a.id,
@@ -4188,7 +4515,7 @@ export default function PathwayBuilderPage() {
             subgraphId: a.subgraphId,
             color: SUBGRAPH_OPTIONS.find((s) => s.id === a.subgraphId)?.color || "#999",
             nodeType: a.nodeType || cfg.nodeType || "action",
-            config: a.config,
+            config: cfg,
             fieldMappings: (cfg.params.field_mappings as FieldMappingRow[]) ?? [],
             onConfigure: () => openConfigurator(a.id),
           },
@@ -4197,8 +4524,7 @@ export default function PathwayBuilderPage() {
       // Restore source nodes
       const versionSourceNodes = ((data as unknown as Record<string, unknown>).sourceNodes as Array<{ id: string; position: { x: number; y: number }; data: Record<string, unknown> }>) || [];
       const versionOutputNodes = ((data as unknown as Record<string, unknown>).outputNodes as Array<{ id: string; position: { x: number; y: number }; data: Record<string, unknown> }>) || [];
-      setNodeConfigs(configs);
-      setNodes([
+      const restoredCanvasNodes = [
         ...restoredNodes,
         ...versionSourceNodes.map((sn) => ({
           id: sn.id, type: "source" as const, position: sn.position,
@@ -4208,12 +4534,16 @@ export default function PathwayBuilderPage() {
           id: on.id, type: "output" as const, position: on.position,
           data: { ...on.data, onConfigure: () => setOutputConfigOpen(on.id) },
         })),
-      ]);
+      ];
+      nodeConfigsRef.current = configs;
+      nodesRef.current = restoredCanvasNodes;
+      setNodeConfigs(configs);
+      setNodes(restoredCanvasNodes);
       const allRestoredEdges = [
         ...(data.edges || []),
         ...(data.sourceEdges || []),
       ];
-      setEdges(allRestoredEdges.map((e, i) => ({
+      const restoredCanvasEdges = allRestoredEdges.map((e, i) => ({
         id: `e${i}-${e.source}-${e.target}`,
         source: e.source,
         target: e.target,
@@ -4221,7 +4551,9 @@ export default function PathwayBuilderPage() {
         targetHandle: e.targetHandle ?? null,
         type: "portEdge",
         data: { label: e.sourceHandle || e.targetHandle || "" },
-      })));
+      }));
+      edgesRef.current = restoredCanvasEdges;
+      setEdges(restoredCanvasEdges);
       setLastSaved(new Date());
       setHistoryOpen(false);
     } catch {
@@ -4341,7 +4673,7 @@ export default function PathwayBuilderPage() {
             </IconButton>
           </Tooltip>
         )}
-        <Tooltip title="Dry-run the pipeline with sample data — no data is written">
+        <Tooltip title="Dry-run the pipeline with sample data — opens the input dialog">
           <span>
             <Button
               size="small"
@@ -4353,6 +4685,40 @@ export default function PathwayBuilderPage() {
               sx={{ textTransform: "none", minWidth: 90 }}
             >
               {isTestRunning ? "Running…" : "Test run"}
+            </Button>
+          </span>
+        </Tooltip>
+        <Tooltip title={
+          testInputRef.current
+            ? "Re-run every step with the same test input — stops at the first failure"
+            : "Run all steps — opens the input dialog (no previous run yet)"
+        }>
+          <span>
+            <Button
+              size="small"
+              variant={testInputRef.current ? "contained" : "outlined"}
+              color="success"
+              startIcon={isTestRunning ? <CircularProgress size={13} color="inherit" /> : <PlayArrowIcon />}
+              disabled={isTestRunning || nodes.filter((n) => n.type !== "source").length === 0}
+              onClick={handleRunAllSteps}
+              sx={{ textTransform: "none", minWidth: 110 }}
+            >
+              {isTestRunning ? "Running…" : "Run all steps"}
+            </Button>
+          </span>
+        </Tooltip>
+        <Tooltip title="Batch dry-run — run the draft pathway against real Training Candidates from the Knowledge Graph">
+          <span>
+            <Button
+              size="small"
+              variant="outlined"
+              color="secondary"
+              startIcon={isBatchRunning ? <CircularProgress size={13} color="inherit" /> : <PlayArrowIcon />}
+              disabled={isBatchRunning || isTestRunning || nodes.filter((n) => n.type !== "source").length === 0}
+              onClick={() => setBatchPanelOpen(true)}
+              sx={{ textTransform: "none", minWidth: 110 }}
+            >
+              {isBatchRunning ? "Running…" : "Batch dry run"}
             </Button>
           </span>
         </Tooltip>
@@ -4425,6 +4791,7 @@ export default function PathwayBuilderPage() {
           testTrace,
           runningStepId,
           isTestRunning,
+          haltedNodeId,
           probedEdges,
           toggleProbe,
           runToStep,
@@ -4879,6 +5246,201 @@ export default function PathwayBuilderPage() {
         isRunning={isTestRunning}
         sourceNodes={nodes.filter((n) => n.type === "source")}
       />
+
+      {/* ── Batch dry-run panel ───────────────────────────────────────────── */}
+      <Dialog
+        open={batchPanelOpen}
+        onClose={() => { if (!isBatchRunning) setBatchPanelOpen(false); }}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{ sx: { maxHeight: "80vh" } }}
+      >
+        <DialogTitle sx={{ pb: 1, display: "flex", alignItems: "center", gap: 1 }}>
+          <PlayArrowIcon sx={{ color: "secondary.main" }} />
+          Batch dry run — Training Candidates
+          <Box sx={{ flexGrow: 1 }} />
+          {!isBatchRunning && (
+            <IconButton size="small" onClick={() => setBatchPanelOpen(false)}>
+              <CloseIcon fontSize="small" />
+            </IconButton>
+          )}
+        </DialogTitle>
+
+        <DialogContent dividers sx={{ p: 2 }}>
+          {/* Controls */}
+          {!isBatchRunning && batchResults.length === 0 && (
+            <Box sx={{ display: "flex", gap: 2, alignItems: "flex-end", mb: 2, flexWrap: "wrap" }}>
+              <TextField
+                label="Max candidates"
+                type="number"
+                size="small"
+                value={batchLimit}
+                onChange={(e) => setBatchLimit(Math.max(1, Math.min(100, Number(e.target.value))))}
+                inputProps={{ min: 1, max: 100 }}
+                sx={{ width: 140 }}
+              />
+              <TextField
+                label="Status filter"
+                select
+                size="small"
+                value={batchStatusFilter}
+                onChange={(e) => setBatchStatusFilter(e.target.value)}
+                sx={{ width: 160 }}
+                SelectProps={{ native: true }}
+              >
+                <option value="pending">Pending</option>
+                <option value="completed">Completed</option>
+                <option value="failed">Failed</option>
+                <option value="">All</option>
+              </TextField>
+              <TextField
+                label="Concurrency"
+                type="number"
+                size="small"
+                value={batchConcurrency}
+                onChange={(e) => setBatchConcurrency(Math.max(1, Math.min(10, Number(e.target.value))))}
+                inputProps={{ min: 1, max: 10 }}
+                sx={{ width: 120 }}
+                helperText="1–10 in parallel"
+              />
+              <Typography variant="caption" color="text.secondary" sx={{ maxWidth: 260 }}>
+                Runs the draft pathway against real candidates in dry-run mode — nothing will be saved. Higher concurrency tests throughput but may hit LLM rate limits.
+              </Typography>
+            </Box>
+          )}
+
+          {/* Summary bar */}
+          {batchSummary && (
+            <Box sx={{ display: "flex", gap: 1, mb: 2, flexWrap: "wrap", alignItems: "center" }}>
+              <Chip label={`${batchSummary.total} total`} size="small" />
+              <Chip label={`✓ ${batchSummary.passed} passed`} size="small" color="success" />
+              {batchSummary.halted > 0 && <Chip label={`🛑 ${batchSummary.halted} halted`} size="small" color="error" />}
+              {batchSummary.errored > 0 && <Chip label={`✗ ${batchSummary.errored} errored`} size="small" color="warning" />}
+            </Box>
+          )}
+
+          {/* Live per-step funnel */}
+          {(isBatchRunning || batchSummary) && Object.keys(batchStepCounts).length > 0 && (
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, mb: 0.5, display: "block" }}>
+                Pipeline steps — live counts
+              </Typography>
+              <Box component="table" sx={{ width: "100%", borderCollapse: "collapse", fontSize: "0.78rem" }}>
+                <Box component="thead">
+                  <Box component="tr" sx={{ "& th": { p: "3px 8px", textAlign: "left", color: "text.secondary", fontWeight: 600, borderBottom: "1px solid", borderColor: "divider" } }}>
+                    <Box component="th">Step</Box>
+                    <Box component="th" sx={{ textAlign: "right" }}>Ran</Box>
+                    <Box component="th" sx={{ textAlign: "right" }}>Passed through</Box>
+                    <Box component="th" sx={{ textAlign: "right" }}>Halted here</Box>
+                  </Box>
+                </Box>
+                <Box component="tbody">
+                  {Object.entries(batchStepCounts).map(([sgId, stat]) => {
+                    const passedThrough = stat.ran - stat.halted;
+                    const haltPct = stat.ran > 0 ? (stat.halted / stat.ran) * 100 : 0;
+                    return (
+                      <Box component="tr" key={sgId} sx={{ "& td": { p: "3px 8px", borderBottom: "1px solid", borderColor: "divider" } }}>
+                        <Box component="td">{stat.label}</Box>
+                        <Box component="td" sx={{ textAlign: "right", color: "text.secondary" }}>{stat.ran}</Box>
+                        <Box component="td" sx={{ textAlign: "right", color: "success.main" }}>{passedThrough}</Box>
+                        <Box component="td" sx={{ textAlign: "right", color: stat.halted > 0 ? "error.main" : "text.disabled", fontWeight: stat.halted > 0 ? 700 : 400 }}>
+                          {stat.halted > 0 ? `🛑 ${stat.halted} (${haltPct.toFixed(0)}%)` : "—"}
+                        </Box>
+                      </Box>
+                    );
+                  })}
+                </Box>
+              </Box>
+            </Box>
+          )}
+
+          {/* Progress bar */}
+          {isBatchRunning && (
+            <LinearProgress
+              variant={batchResults.length === 0 ? "indeterminate" : "determinate"}
+              value={batchResults.filter((r) => r.status !== "running").length / Math.max(1, batchResults.length) * 100}
+              sx={{ mb: 1, borderRadius: 1 }}
+            />
+          )}
+
+          {/* Results table */}
+          {batchResults.length > 0 && (
+            <Box sx={{ overflowY: "auto", maxHeight: 420 }}>
+              <Box component="table" sx={{ width: "100%", borderCollapse: "collapse", fontSize: "0.82rem" }}>
+                <Box component="thead">
+                  <Box component="tr" sx={{ borderBottom: "2px solid", borderColor: "divider", "& th": { p: "6px 8px", textAlign: "left", color: "text.secondary", fontWeight: 600 } }}>
+                    <Box component="th">#</Box>
+                    <Box component="th">Text preview</Box>
+                    <Box component="th">Result</Box>
+                    <Box component="th">Stopped at</Box>
+                    <Box component="th" sx={{ textAlign: "right" }}>Time</Box>
+                  </Box>
+                </Box>
+                <Box component="tbody">
+                  {batchResults.map((r) => (
+                    <Box
+                      component="tr"
+                      key={r.candidate_id}
+                      sx={{
+                        borderBottom: "1px solid",
+                        borderColor: "divider",
+                        bgcolor: r.status === "completed" ? "success.50" : r.status === "halted" ? "error.50" : r.status === "running" ? "action.hover" : "warning.50",
+                        "& td": { p: "6px 8px", verticalAlign: "middle" },
+                      }}
+                    >
+                      <Box component="td" sx={{ color: "text.secondary" }}>{r.index}</Box>
+                      <Box component="td" sx={{ maxWidth: 280, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        <Tooltip title={r.text_preview}><span>{r.text_preview}</span></Tooltip>
+                      </Box>
+                      <Box component="td">
+                        {r.status === "running" && <CircularProgress size={12} />}
+                        {r.status === "completed" && <Typography variant="caption" color="success.main" fontWeight={700}>✓ Passed</Typography>}
+                        {r.status === "halted" && <Typography variant="caption" color="error.main" fontWeight={700}>🛑 Halted</Typography>}
+                        {r.status === "error" && <Typography variant="caption" color="warning.main" fontWeight={700}>✗ Error</Typography>}
+                      </Box>
+                      <Box component="td" sx={{ color: "text.secondary" }}>
+                        {r.halted_at ?? (r.error ? r.error.slice(0, 60) : "—")}
+                      </Box>
+                      <Box component="td" sx={{ textAlign: "right", color: "text.secondary", whiteSpace: "nowrap" }}>
+                        {r.duration_ms > 0 ? `${(r.duration_ms / 1000).toFixed(1)}s` : "—"}
+                      </Box>
+                    </Box>
+                  ))}
+                </Box>
+              </Box>
+            </Box>
+          )}
+
+          {batchResults.length === 0 && !isBatchRunning && !batchSummary && (
+            <Typography variant="body2" color="text.secondary">
+              Configure the options above and click <strong>Run batch</strong> to start.
+            </Typography>
+          )}
+        </DialogContent>
+
+        <DialogActions sx={{ p: 2, gap: 1 }}>
+          {!isBatchRunning && (
+            <Button
+              variant="contained"
+              color="secondary"
+              startIcon={<PlayArrowIcon />}
+              onClick={handleBatchRun}
+              disabled={nodes.filter((n) => n.type !== "source").length === 0}
+            >
+              {batchResults.length > 0 ? "Run again" : "Run batch"}
+            </Button>
+          )}
+          {isBatchRunning && (
+            <Typography variant="caption" color="text.secondary">
+              Running {batchResults.filter((r) => r.status !== "running").length} / {batchResults.length} …
+            </Typography>
+          )}
+          <Box sx={{ flexGrow: 1 }} />
+          <Button onClick={() => { if (!isBatchRunning) setBatchPanelOpen(false); }} disabled={isBatchRunning}>
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Test-run error banner */}
       {testRunError && (

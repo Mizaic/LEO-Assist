@@ -81,7 +81,11 @@ export function useValidationWarnings(
           const producedFields = buildProducedFields(mappings);
           for (const [stateKey, reqFields] of Object.entries(io.requiredFields)) {
             const produced = producedFields[stateKey];
-            const missingFields = reqFields.filter((f) => !produced?.has(f));
+            // Only validate sub-fields when the predecessor explicitly maps this key at
+            // sub-field level (e.g. "entities[].text"). If produced is undefined the
+            // predecessor passes the key through as a whole block — no false positive.
+            if (!produced) continue;
+            const missingFields = reqFields.filter((f) => !produced.has(f));
             if (missingFields.length > 0) {
               const label = (node.data as unknown as ActionNodeData).label;
               warnings.push({
@@ -120,7 +124,9 @@ export function useValidationWarnings(
     const orphaned = nodes.filter((n) => {
       const hasIncoming = edges.some((e) => e.target === n.id);
       const isFirst = ordered[0]?.id === n.id;
-      return !hasIncoming && !isFirst;
+      // Source nodes are data providers — they don't need an incoming edge.
+      const isSource = n.type === "source";
+      return !hasIncoming && !isFirst && !isSource;
     });
     for (const o of orphaned) {
       warnings.push({

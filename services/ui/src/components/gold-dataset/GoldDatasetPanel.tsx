@@ -24,6 +24,7 @@ import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import CloseIcon from "@mui/icons-material/Close";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import DownloadIcon from "@mui/icons-material/Download";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import HourglassEmptyIcon from "@mui/icons-material/HourglassEmpty";
@@ -78,12 +79,26 @@ interface Entity {
   snomed_concept_id?: string;
 }
 
+interface DeleteGoldLabelResult {
+  label_id: string;
+  candidate_id: string | null;
+  candidate_reset: boolean;
+  candidate_status: string | null;
+}
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-async function jsonFetch<T>(url: string): Promise<T> {
-  const res = await fetch(url, { credentials: "include", headers: { "X-Requested-With": "XMLHttpRequest" } });
+async function jsonFetch<T>(url: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(url, {
+    ...init,
+    credentials: "include",
+    headers: {
+      "X-Requested-With": "XMLHttpRequest",
+      ...(init?.headers as Record<string, string> | undefined),
+    },
+  });
   if (!res.ok) throw new Error(`${res.status}`);
   return res.json() as Promise<T>;
 }
@@ -348,7 +363,17 @@ function CandidateRow({ item, onClick }: { item: Candidate; onClick: () => void 
 // Gold label row
 // ---------------------------------------------------------------------------
 
-function GoldLabelRow({ item, onClick }: { item: GoldLabel; onClick: () => void }) {
+function GoldLabelRow({
+  item,
+  onClick,
+  onReset,
+  resetting,
+}: {
+  item: GoldLabel;
+  onClick: () => void;
+  onReset: () => void;
+  resetting: boolean;
+}) {
   const entities = parseEntities(item.entities_json);
   const shortId = item.label_id ? `${item.label_id.slice(0, 12)}…` : "—";
 
@@ -396,6 +421,21 @@ function GoldLabelRow({ item, onClick }: { item: GoldLabel; onClick: () => void 
             )}
           </Box>
           <Stack alignItems="flex-end" spacing={0.5} sx={{ flexShrink: 0 }}>
+            <Tooltip title="Delete this gold label and reset candidate to pending">
+              <span>
+                <IconButton
+                  size="small"
+                  color="error"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onReset();
+                  }}
+                  disabled={resetting}
+                >
+                  {resetting ? <CircularProgress size={14} /> : <DeleteOutlineIcon fontSize="small" />}
+                </IconButton>
+              </span>
+            </Tooltip>
             <Chip
               icon={<VerifiedIcon sx={{ fontSize: 14 }} />}
               label={item.quality_score !== null ? `${Math.round(item.quality_score * 100)}%` : "verified"}
@@ -452,6 +492,8 @@ export default function GoldDatasetPanel() {
 
   const [exporting, setExporting] = useState(false);
   const [exportMsg, setExportMsg] = useState<string | null>(null);
+  const [actionMsg, setActionMsg] = useState<string | null>(null);
+  const [resettingLabelId, setResettingLabelId] = useState<string | null>(null);
 
   const [selectedItem, setSelectedItem] = useState<Candidate | GoldLabel | null>(null);
 
@@ -467,21 +509,27 @@ export default function GoldDatasetPanel() {
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [search]);
 
-  // Load stats on mount
-  useEffect(() => {
+  const loadStats = useCallback(async () => {
     setStatsLoading(true);
     setStatsError(null);
-    Promise.all([
-      jsonFetch<CandidateStats>("/api/training/candidates/stats"),
-      jsonFetch<GoldStats>("/api/training/gold-labels/stats"),
-    ])
-      .then(([cs, gs]) => {
-        setCandidateStats(cs);
-        setGoldStats(gs);
-      })
-      .catch((e) => setStatsError(e instanceof Error ? e.message : "Could not load stats"))
-      .finally(() => setStatsLoading(false));
+    try {
+      const [cs, gs] = await Promise.all([
+        jsonFetch<CandidateStats>("/api/training/candidates/stats"),
+        jsonFetch<GoldStats>("/api/training/gold-labels/stats"),
+      ]);
+      setCandidateStats(cs);
+      setGoldStats(gs);
+    } catch (e) {
+      setStatsError(e instanceof Error ? e.message : "Could not load stats");
+    } finally {
+      setStatsLoading(false);
+    }
   }, []);
+
+  // Load stats on mount
+  useEffect(() => {
+    void loadStats();
+  }, [loadStats]);
 
   // Load list when tab / page / search changes
   const loadList = useCallback(async () => {
@@ -523,6 +571,7 @@ export default function GoldDatasetPanel() {
   async function handleExport() {
     setExporting(true);
     setExportMsg(null);
+    setActionMsg(null);
     try {
       const result = await exportMedSpaCyTraining({ export_name: `gold_${new Date().toISOString().slice(0, 10)}` });
       setExportMsg(
@@ -532,6 +581,38 @@ export default function GoldDatasetPanel() {
       setListError(e instanceof Error ? e.message : "Export failed");
     } finally {
       setExporting(false);
+    }
+  }
+
+  async function handleDeleteGoldLabel(item: GoldLabel) {
+    if (!item.label_id || resettingLabelId) return;
+    const confirmed = window.confirm(
+      "Delete this verified gold label and reset its training candidate back to pending?",
+    );
+    if (!confirmed) return;
+
+    setResettingLabelId(item.label_id);
+    setExportMsg(null);
+    setActionMsg(null);
+    setListError(null);
+    try {
+      const result = await jsonFetch<DeleteGoldLabelResult>(
+        `/api/training/gold-labels/${encodeURIComponent(item.label_id)}`,
+        { method: "DELETE" },
+      );
+      if (result.candidate_reset) {
+        setActionMsg("Gold label deleted. Candidate reset to pending.");
+      } else {
+        setActionMsg("Gold label deleted. No linked candidate was found to reset.");
+      }
+      if (selectedItem && "label_id" in selectedItem && selectedItem.label_id === item.label_id) {
+        setSelectedItem(null);
+      }
+      await Promise.all([loadList(), loadStats()]);
+    } catch (e) {
+      setListError(e instanceof Error ? e.message : "Failed to delete gold label");
+    } finally {
+      setResettingLabelId(null);
     }
   }
 
@@ -600,6 +681,7 @@ export default function GoldDatasetPanel() {
       </Stack>
 
       {exportMsg && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setExportMsg(null)}>{exportMsg}</Alert>}
+      {actionMsg && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setActionMsg(null)}>{actionMsg}</Alert>}
 
       {/* Tabs */}
       <Tabs value={tab} onChange={handleTabChange} sx={{ mb: 2, borderBottom: 1, borderColor: "divider" }}>
@@ -668,7 +750,13 @@ export default function GoldDatasetPanel() {
                 <CandidateRow key={item.candidate_id ?? `c-${i}`} item={item} onClick={() => setSelectedItem(item)} />
               ))
             : (items as GoldLabel[]).filter((item) => item.label_id).map((item, i) => (
-                <GoldLabelRow key={item.label_id ?? `g-${i}`} item={item} onClick={() => setSelectedItem(item)} />
+                <GoldLabelRow
+                  key={item.label_id ?? `g-${i}`}
+                  item={item}
+                  onClick={() => setSelectedItem(item)}
+                  onReset={() => void handleDeleteGoldLabel(item)}
+                  resetting={resettingLabelId === item.label_id}
+                />
               ))
           }
           {totalPages > 1 && (

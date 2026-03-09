@@ -609,7 +609,7 @@ class GuidanceRuleGenerator:
         so the billing page can display the real USD figure.
         """
         try:
-            from app.services.llm_usage import LLMUsage, LLMCostConfig
+            from libs.llm_usage import LLMUsage, LLMCostConfig
             usage = LLMUsage(
                 input_tokens=int(llm_tokens.get("input_tokens", 0)),
                 output_tokens=int(llm_tokens.get("output_tokens", 0)),

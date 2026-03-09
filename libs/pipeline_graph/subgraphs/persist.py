@@ -35,14 +35,14 @@ class PersistState(TypedDict, total=False):
 
 
 def _get_patient_graph_client():
-    from app.db.neo4j_client import PatientGraphClient
+    from libs.neo4j_client.client import PatientGraphClient
     return PatientGraphClient()
 
 
 def _get_knowledge_graph_client():
     """TrainingCandidate and GoldLabel are de-identified model knowledge → Knowledge Graph."""
-    from app.db.neo4j_client import CodingGraphClient
-    return CodingGraphClient()
+    from libs.neo4j_client.client import KnowledgeGraphClient
+    return KnowledgeGraphClient()
 
 
 def _candidate_id(encounter_text: str) -> str:
@@ -60,7 +60,7 @@ def _entity_fingerprint(encounter_text: str, entities: list[dict]) -> str:
 def write_patient_graph(state: PersistState) -> dict[str, Any]:
     if state.get("dry_run"):
         logger.info("dry_run=True — skipping patient graph write")
-        return {"documents_written": 0, "errors": list(state.get("errors") or [])}
+        return {"documents_written": 0}
 
     entities = state.get("entities") or []
     encounter_id = state.get("encounter_id") or ""
@@ -112,7 +112,7 @@ def write_patient_graph(state: PersistState) -> dict[str, Any]:
 def write_gold_training(state: PersistState) -> dict[str, Any]:
     if state.get("dry_run"):
         logger.info("dry_run=True — skipping gold training write")
-        return {"training_labels_written": 0, "errors": list(state.get("errors") or [])}
+        return {"training_labels_written": 0}
 
     entities = state.get("entities") or []
     encounter_text = state.get("encounter_text") or ""

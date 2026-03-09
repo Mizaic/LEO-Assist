@@ -14,6 +14,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import Response
 import httpx
+from starlette.requests import ClientDisconnect
 
 from app.deps import get_access_token
 
@@ -52,7 +53,11 @@ async def _proxy_request(
     session_id = request.cookies.get("leo_session", "")
     if session_id:
         headers["X-Leo-Session"] = session_id
-    body = await request.body() if method in ("POST", "PUT", "PATCH") else None
+    try:
+        body = await request.body() if method in ("POST", "PUT", "PATCH") else None
+    except ClientDisconnect:
+        logger.info("Client disconnected before request body was fully received: %s %s", method, url)
+        raise
     async with httpx.AsyncClient(timeout=60) as client:
         return await client.request(method, url, headers=headers, content=body)
 
@@ -60,6 +65,10 @@ async def _proxy_request(
 def _copy_headers(resp: httpx.Response) -> dict:
     skip = {"transfer-encoding", "content-encoding", "content-length"}
     return {k: v for k, v in resp.headers.items() if k.lower() not in skip}
+
+
+def _client_disconnect_response() -> Response:
+    return Response(content=b"", status_code=499)
 
 
 @router.api_route("/benchmarks/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
@@ -72,7 +81,10 @@ async def proxy_benchmarks(
     full_path = f"/benchmarks/{path}" if not path.startswith("/") else f"/{path}"
     if request.url.query:
         full_path = f"{full_path}?{request.url.query}"
-    resp = await _proxy_request(request.method, full_path, FHIR_BASE, token, request)
+    try:
+        resp = await _proxy_request(request.method, full_path, FHIR_BASE, token, request)
+    except ClientDisconnect:
+        return _client_disconnect_response()
     return Response(
         content=resp.content,
         status_code=resp.status_code,
@@ -91,7 +103,10 @@ async def proxy_fhir(
     full_path = f"/fhir/{path}" if not path.startswith("/") else f"/{path}"
     if request.url.query:
         full_path = f"{full_path}?{request.url.query}"
-    resp = await _proxy_request(request.method, full_path, FHIR_BASE, token, request)
+    try:
+        resp = await _proxy_request(request.method, full_path, FHIR_BASE, token, request)
+    except ClientDisconnect:
+        return _client_disconnect_response()
     return Response(
         content=resp.content,
         status_code=resp.status_code,
@@ -110,7 +125,10 @@ async def proxy_analytics(
     full_path = f"/analytics/{path}" if not path.startswith("/") else f"/{path}"
     if request.url.query:
         full_path = f"{full_path}?{request.url.query}"
-    resp = await _proxy_request(request.method, full_path, ANALYTICS_BASE, token, request)
+    try:
+        resp = await _proxy_request(request.method, full_path, ANALYTICS_BASE, token, request)
+    except ClientDisconnect:
+        return _client_disconnect_response()
     return Response(
         content=resp.content,
         status_code=resp.status_code,
@@ -129,7 +147,10 @@ async def proxy_pipeline(
     full_path = f"/pipeline/{path}" if not path.startswith("/") else f"/{path}"
     if request.url.query:
         full_path = f"{full_path}?{request.url.query}"
-    resp = await _proxy_request(request.method, full_path, CORE_API_BASE, token, request)
+    try:
+        resp = await _proxy_request(request.method, full_path, CORE_API_BASE, token, request)
+    except ClientDisconnect:
+        return _client_disconnect_response()
     return Response(
         content=resp.content,
         status_code=resp.status_code,
@@ -148,7 +169,10 @@ async def proxy_anchor_review(
     full_path = f"/anchor-review/{path}" if not path.startswith("/") else f"/{path}"
     if request.url.query:
         full_path = f"{full_path}?{request.url.query}"
-    resp = await _proxy_request(request.method, full_path, CORE_API_BASE, token, request)
+    try:
+        resp = await _proxy_request(request.method, full_path, CORE_API_BASE, token, request)
+    except ClientDisconnect:
+        return _client_disconnect_response()
     return Response(
         content=resp.content,
         status_code=resp.status_code,

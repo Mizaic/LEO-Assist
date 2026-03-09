@@ -7,6 +7,8 @@ torch>=2.0.0
 # This avoids cupy.cublas DLL-load failures on Windows without a system CUDA install.
 cupy-cuda12x[ctk]>=14
 azure-storage-blob>=12.20.0
+azure-identity>=1.19.0
+azure-keyvault-secrets>=4.8.0
 redis>=5.0.0
 neo4j>=5.0.0
 httpx>=0.27.0

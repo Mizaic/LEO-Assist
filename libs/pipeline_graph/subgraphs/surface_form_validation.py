@@ -106,9 +106,9 @@ def _apply_or_queue(state: SurfaceFormValidationState) -> dict[str, Any]:
         return {"entities": entities, "surface_form_tasks_created": 0, "errors": errors}
 
     try:
-        from app.db.neo4j_client import CodingGraphClient
+        from libs.neo4j_client.client import KnowledgeGraphClient
 
-        client = CodingGraphClient()
+        client = KnowledgeGraphClient()
         try:
             with client.session() as session:
                 for mm in mismatches:

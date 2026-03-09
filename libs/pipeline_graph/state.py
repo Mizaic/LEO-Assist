@@ -48,6 +48,7 @@ class PostProcessingState(TypedDict, total=False):
     enable_disorder_gate: bool
     coding_mode: str
     processed_entities: list[dict[str, Any]]
+    post_processing_trace: list[dict[str, Any]]
 
 
 class TerminologyState(TypedDict, total=False):

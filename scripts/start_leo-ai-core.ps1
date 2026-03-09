@@ -35,6 +35,7 @@ param(
     [int]$AnalyticsPort       = 8003,
     [int]$ModelInferencePort  = 8004,
     [int]$TrainingWorkerPort  = 8005,
+    [int]$PipelineWorkerPort  = 8006,
     [int]$UiPort              = 3000,
     [int]$PipelineWorkers     = 1,
     [int]$TermWorkers         = 1,
@@ -221,7 +222,7 @@ Write-Host "  Starting services..." -ForegroundColor Green
 
 # 1  Core API  (services/api)  ->  :8000
 if (ShouldStart "api") {
-    Start-ServiceWindow -Title "Core API :$ApiPort" -Command "& '$VenvPython' -m uvicorn app.main:app --app-dir '$ApiDir' --reload --host 0.0.0.0 --port $ApiPort"
+    Start-ServiceWindow -Title "Core API :$ApiPort" -Command "& '$VenvPython' -m uvicorn app.main:app --app-dir '$ApiDir' --reload --reload-dir services/api --reload-dir libs --host 0.0.0.0 --port $ApiPort"
     Write-Host "    Core API           http://localhost:$ApiPort" -ForegroundColor White
     $windowCount++
 }
@@ -261,14 +262,14 @@ if (ShouldStart "terminology_api") {
 
 # 3  FHIR API  (services/fhir_api)  ->  :8002
 if (ShouldStart "fhir_api") {
-    Start-ServiceWindow -Title "FHIR API :$FhirPort" -Command "& '$VenvPython' -m uvicorn services.fhir_api.app.main:app --reload --host 0.0.0.0 --port $FhirPort"
+    Start-ServiceWindow -Title "FHIR API :$FhirPort" -Command "& '$VenvPython' -m uvicorn services.fhir_api.app.main:app --reload --reload-dir services/fhir_api --reload-dir libs --host 0.0.0.0 --port $FhirPort"
     Write-Host "    FHIR API           http://localhost:$FhirPort" -ForegroundColor White
     $windowCount++
 }
 
 # 4  Analytics API  (services/analytics_api)  ->  :8003
 if (ShouldStart "analytics_api") {
-    Start-ServiceWindow -Title "Analytics API :$AnalyticsPort" -Command "& '$VenvPython' -m uvicorn services.analytics_api.app.main:app --reload --host 0.0.0.0 --port $AnalyticsPort"
+    Start-ServiceWindow -Title "Analytics API :$AnalyticsPort" -Command "& '$VenvPython' -m uvicorn services.analytics_api.app.main:app --reload --reload-dir services/analytics_api --reload-dir libs --host 0.0.0.0 --port $AnalyticsPort"
     Write-Host "    Analytics API      http://localhost:$AnalyticsPort" -ForegroundColor White
     $windowCount++
 }
@@ -304,12 +305,19 @@ if (-not $NoTrainingWorker -and (ShouldStart "training_worker")) {
     Write-Host "    Training Worker    [skipped; use without -NoTrainingWorker to start]" -ForegroundColor DarkGray
 }
 
-# 6  Pipeline Worker  (unified: extraction, analytics, verification — all via LangGraph subgraphs)
+# 6  Pipeline Worker  (dual-mode: message bus consumer + HTTP SSE on :$PipelineWorkerPort)
+#    The first worker runs uvicorn so /test-run/batch SSE is reachable by the UI.
+#    Additional workers (PipelineWorkers > 1) run on sequential ports for scale.
 if (-not $NoWorkers -and (ShouldStart "pipeline_worker")) {
     for ($i = 1; $i -le $PipelineWorkers; $i++) {
-        Start-ServiceWindow -Title "Pipeline Worker $i" -Command "& '$VenvPython' -m services.pipeline_worker.app.main"
+        $workerPort = $PipelineWorkerPort + ($i - 1)
+        # Set port env var inline then launch uvicorn. The dual-mode FastAPI app
+        # runs the message bus consumer as a background lifespan task alongside
+        # the HTTP server, so /test-run/batch SSE is served here, not on the Core API.
+        Start-ServiceWindow -Title "Pipeline Worker $i :$workerPort" `
+            -Command "`$env:PIPELINE_WORKER_PORT='$workerPort'; & '$VenvPython' -m uvicorn services.pipeline_worker.app.main:app --host 0.0.0.0 --port $workerPort --log-level info"
     }
-    Write-Host "    Pipeline Workers   (x$PipelineWorkers - unified pipeline, message bus listeners)" -ForegroundColor White
+    Write-Host "    Pipeline Workers   (x$PipelineWorkers - HTTP :$PipelineWorkerPort + message bus)" -ForegroundColor White
     $windowCount += $PipelineWorkers
 }
 

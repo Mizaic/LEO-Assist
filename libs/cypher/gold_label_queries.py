@@ -101,3 +101,22 @@ RETURN
     toString(g.verified_at) AS verified_at
 ORDER BY g.created_at ASC
 """
+
+DELETE_GOLD_LABEL_AND_RESET_CANDIDATE = """
+MATCH (g:GoldLabel {label_id: $label_id})
+OPTIONAL MATCH (c:TrainingCandidate {candidate_id: g.candidate_id})
+OPTIONAL MATCH (:TrainingCandidate)-[rel:PRODUCED]->(g)
+WITH g, c, collect(rel) AS rels, g.label_id AS deleted_label_id
+FOREACH (_ IN CASE WHEN c IS NULL THEN [] ELSE [1] END |
+    SET c.status = 'pending',
+        c.updated_at = datetime()
+)
+FOREACH (r IN rels | DELETE r)
+WITH g, c, deleted_label_id
+DELETE g
+RETURN
+    deleted_label_id AS label_id,
+    c.candidate_id AS candidate_id,
+    CASE WHEN c IS NULL THEN false ELSE true END AS candidate_reset,
+    CASE WHEN c IS NULL THEN null ELSE c.status END AS candidate_status
+"""

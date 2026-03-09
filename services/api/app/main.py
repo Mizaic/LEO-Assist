@@ -96,11 +96,7 @@ async def lifespan(app: object):
     _validate_startup_deps()
 
     from app.db.neo4j_client import PatientGraphClient
-    from app.services.pipeline_service import PipelineService
     from app.services.tenant_seed import seed_tenant_defaults
-
-    def _preload():
-        PipelineService.preload_embedder()
 
     def _tenant_seed():
         try:
@@ -150,17 +146,14 @@ async def lifespan(app: object):
                 "[PromptSeed] Seed failed (non-fatal): %s", exc
             )
 
-    t1 = threading.Thread(target=_preload, daemon=True)
+    t1 = threading.Thread(target=_tenant_seed, daemon=True)
     t1.start()
-    t2 = threading.Thread(target=_tenant_seed, daemon=True)
+    t2 = threading.Thread(target=_model_config_seed, daemon=True)
     t2.start()
-    t3 = threading.Thread(target=_model_config_seed, daemon=True)
+    t3 = threading.Thread(target=_service_config_seed, daemon=True)
     t3.start()
-    t4 = threading.Thread(target=_service_config_seed, daemon=True)
+    t4 = threading.Thread(target=_prompt_seed, daemon=True)
     t4.start()
-    t5 = threading.Thread(target=_prompt_seed, daemon=True)
-    t5.start()
-    # Don't block startup; embedder loads in background; pipeline will wait if needed
     yield
 
 

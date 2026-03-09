@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import re
 import subprocess
 import sys
@@ -26,6 +27,7 @@ import threading
 import uuid
 from typing import Any, Optional
 
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
@@ -82,6 +84,7 @@ from libs.cypher.training_candidate_queries import (
 )
 from libs.cypher.gold_label_queries import (
     COUNT_GOLD_LABELS_PAGE,
+    DELETE_GOLD_LABEL_AND_RESET_CANDIDATE,
     GET_ALL_GOLD_LABELS_FOR_EXPORT,
     GET_GOLD_LABEL_BY_ID,
     GET_GOLD_LABEL_STATS,
@@ -100,13 +103,11 @@ from services.terminology_api.app.queries.terminology import (
 from libs.cypher.label_verification_queries import (
     COUNT_VERIFICATION_HISTORY,
     COUNT_VERIFICATION_QUEUE_PENDING,
-    DELETE_ALL_VERIFICATION_REVIEWS_FOR_INCLUDED,
     GET_VERIFICATION_HISTORY,
     GET_LABEL_VERIFIER_SCORECARD,
     GET_LABEL_VERIFIER_SCORECARD_BREAKDOWN,
     GET_VERIFICATION_QUEUE,
     GET_VERIFICATION_STATS,
-    RESET_TRAINING_LABEL_VERIFICATION_FIELDS,
     RESOLVE_LABEL_VERIFICATION_REVIEW,
 )
 from libs.cypher.post_processor_rule_queries import (
@@ -114,21 +115,39 @@ from libs.cypher.post_processor_rule_queries import (
     UPSERT_POST_PROCESSOR_RULE,
     UPDATE_POST_PROCESSOR_RULE_ACTIVE,
 )
-from libs.llm_client.escalation import escalate_coding
 from libs.ner.schema_mapper import LABEL_TO_SNOMED_TAG
 from libs.ner.training_label_writer import bulk_upsert_training_labels
 from libs.utils.logging import logging_context
-from app.services.label_verifier import (
-    begin_job,
-    begin_job_with_mode,
-    get_job_state,
-    request_stop_job,
-    run_verification,
-)
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/training", tags=["training"])
+PIPELINE_WORKER_BASE = os.getenv("PIPELINE_WORKER_URL", "http://localhost:8006").rstrip("/")
+
+
+async def _proxy_pipeline_worker_json(
+    method: str,
+    path: str,
+    *,
+    json_body: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    url = f"{PIPELINE_WORKER_BASE}{path}"
+    async with httpx.AsyncClient(timeout=60) as client:
+        resp = await client.request(method, url, json=json_body)
+
+    if resp.status_code >= 400:
+        detail: Any
+        try:
+            payload = resp.json()
+            detail = payload.get("detail", payload)
+        except ValueError:
+            detail = resp.text or f"Pipeline worker error ({resp.status_code})"
+        raise HTTPException(status_code=resp.status_code, detail=detail)
+
+    try:
+        return resp.json()
+    except ValueError as exc:
+        raise HTTPException(status_code=502, detail="Pipeline worker returned invalid JSON") from exc
 
 
 # ---------------------------------------------------------------------------
@@ -450,73 +469,28 @@ def update_label_entities(
 
 
 @router.post("/labels/verify-all")
-def verify_all_labels(
+async def verify_all_labels(
     body: VerifyAllRequest | None = None,
     scope: CallerScope = Depends(get_caller_scope),
 ) -> dict[str, Any]:
     """Trigger background dual-model verification over included labels."""
-    if body is None:
-        started = begin_job()
-        mode = "all"
-        reset_pending = False
-    else:
-        mode = body.mode if body.mode in {"all", "hitl_only", "re_extract"} else "all"
-        reset_pending = bool(body.reset_pending)
-        started = begin_job_with_mode(run_mode=mode, reset_pending=reset_pending)
-
-    if not started:
-        raise HTTPException(status_code=409, detail="A label verification job is already running")
-
-    if reset_pending:
-        client = PatientGraphClient()
-        try:
-            with client.session() as session:
-                session.run(RESET_TRAINING_LABEL_VERIFICATION_FIELDS)
-                session.run(DELETE_ALL_VERIFICATION_REVIEWS_FOR_INCLUDED)
-        finally:
-            client.close()
-
-    thread = threading.Thread(target=run_verification, daemon=True)
-    thread.start()
-    return {
-        "status": "started",
-        "mode": mode,
-        "reset_pending": reset_pending,
-        "message": "Label verification started in background",
-    }
+    _ = scope
+    payload = {"mode": "all", "reset_pending": False} if body is None else body.model_dump()
+    return await _proxy_pipeline_worker_json("POST", "/label-verify/start", json_body=payload)
 
 
 @router.post("/labels/verify-all/cancel")
-def cancel_verify_all(scope: CallerScope = Depends(get_caller_scope)) -> dict[str, Any]:
+async def cancel_verify_all(scope: CallerScope = Depends(get_caller_scope)) -> dict[str, Any]:
     """Request graceful cancellation of running label verification job."""
-    if not request_stop_job():
-        raise HTTPException(status_code=409, detail="No running label verification job to cancel")
-    return {"status": "stopping", "message": "Cancellation requested"}
+    _ = scope
+    return await _proxy_pipeline_worker_json("POST", "/label-verify/stop")
 
 
 @router.get("/labels/verify-all/status")
-def verification_status(scope: CallerScope = Depends(get_caller_scope)) -> dict[str, Any]:
+async def verification_status(scope: CallerScope = Depends(get_caller_scope)) -> dict[str, Any]:
     """Return current background verification status plus corpus stats."""
-    state = get_job_state()
-    client = PatientGraphClient()
-    try:
-        with client.session() as session:
-            stats_row = session.run(GET_VERIFICATION_STATS).single()
-            pending_row = session.run(COUNT_VERIFICATION_QUEUE_PENDING).single()
-        return {
-            **state,
-            "auto_resolved": int(state.get("auto_resolved", 0) or 0),
-            "stats": dict(stats_row) if stats_row else {
-                "total_labels": 0,
-                "verified_labels": 0,
-                "agreements": 0,
-                "disagreements": 0,
-                "pending": 0,
-            },
-            "pending_review": pending_row["pending"] if pending_row else 0,
-        }
-    finally:
-        client.close()
+    _ = scope
+    return await _proxy_pipeline_worker_json("GET", "/label-verify/status")
 
 
 # ------------------------------------------------------------------
@@ -1502,6 +1476,8 @@ def ask_leo_coding(
     Encounter text is used to extract measurement units for disambiguation.
     Returns a concept suggestion with confidence and plain-language rationale.
     """
+    from libs.llm_client.escalation import escalate_coding
+
     result = escalate_coding(
         entity_text=body.entity_text,
         entity_label=body.entity_label or "clinical finding",
@@ -2249,6 +2225,8 @@ def _apply_recheck_item(
 
     # Last resort: model escalation (small -> big -> max) for unresolved items
     if try_alternatives:
+        from libs.llm_client.escalation import escalate_coding
+
         esc = escalate_coding(
             entity_text=entity_text,
             entity_label=entity_label,
@@ -2919,6 +2897,25 @@ def get_gold_label(
     try:
         with client.session() as session:
             row = session.run(GET_GOLD_LABEL_BY_ID, label_id=label_id).single()
+        if not row:
+            raise HTTPException(status_code=404, detail=f"GoldLabel {label_id!r} not found")
+        return dict(row)
+    finally:
+        client.close()
+
+
+@router.delete("/gold-labels/{label_id}")
+def delete_gold_label_and_reset_candidate(
+    label_id: str,
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    client = KnowledgeGraphClient()
+    try:
+        with client.session() as session:
+            row = session.run(
+                DELETE_GOLD_LABEL_AND_RESET_CANDIDATE,
+                label_id=label_id,
+            ).single()
         if not row:
             raise HTTPException(status_code=404, detail=f"GoldLabel {label_id!r} not found")
         return dict(row)

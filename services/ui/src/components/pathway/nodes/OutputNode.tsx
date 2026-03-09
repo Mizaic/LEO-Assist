@@ -7,20 +7,33 @@ import Typography from "@mui/material/Typography";
 import Tooltip from "@mui/material/Tooltip";
 import SendIcon from "@mui/icons-material/Send";
 import HubIcon from "@mui/icons-material/Hub";
+import StorageIcon from "@mui/icons-material/Storage";
+import PersonIcon from "@mui/icons-material/Person";
 import { Handle, Position, type NodeProps } from "@xyflow/react";
 
 /**
  * OutputNode — a terminal node on the canvas that represents an outbound
- * destination (e.g. a Pub/Sub topic to publish to after the pipeline runs).
- * It has INPUT handles only; it never forwards data further.
+ * destination. It has INPUT handles only; it never forwards data further.
  */
 
-export type OutputType = "pubsub_publish" | "webhook";
+export type OutputType = "knowledge_graph" | "patient_graph" | "pubsub_publish" | "webhook";
 
 export const OUTPUT_DEFINITIONS: Record<
   OutputType,
   { label: string; description: string; color: string; inputs: string[] }
 > = {
+  knowledge_graph: {
+    label: "Knowledge Base",
+    description: "Write processed clinical facts back to the de-identified knowledge database",
+    color: "#00695C",
+    inputs: ["entities", "documents_written"],
+  },
+  patient_graph: {
+    label: "Patient Records",
+    description: "Write results to the live patient record database",
+    color: "#6A1B9A",
+    inputs: ["entities", "documents_written"],
+  },
   pubsub_publish: {
     label: "Message Queue (Publish)",
     description: "Push pipeline results to a topic or queue",
@@ -36,8 +49,10 @@ export const OUTPUT_DEFINITIONS: Record<
 };
 
 const OUTPUT_ICONS: Record<OutputType, React.ReactNode> = {
-  pubsub_publish: <HubIcon  sx={{ fontSize: "1rem" }} />,
-  webhook:        <SendIcon sx={{ fontSize: "1rem" }} />,
+  knowledge_graph: <StorageIcon sx={{ fontSize: "1rem" }} />,
+  patient_graph:   <PersonIcon  sx={{ fontSize: "1rem" }} />,
+  pubsub_publish:  <HubIcon     sx={{ fontSize: "1rem" }} />,
+  webhook:         <SendIcon    sx={{ fontSize: "1rem" }} />,
 };
 
 function OutputNodeComponent({ data, selected }: NodeProps) {
@@ -48,8 +63,8 @@ function OutputNodeComponent({ data, selected }: NodeProps) {
     onConfigure?: () => void;
   };
 
-  const outputType: OutputType = d.outputType ?? "pubsub_publish";
-  const meta = OUTPUT_DEFINITIONS[outputType] ?? OUTPUT_DEFINITIONS.pubsub_publish;
+  const outputType: OutputType = d.outputType ?? "knowledge_graph";
+  const meta = OUTPUT_DEFINITIONS[outputType] ?? OUTPUT_DEFINITIONS.knowledge_graph;
   const inputs: string[] = d.inputs ?? meta.inputs;
 
   return (
@@ -122,7 +137,7 @@ function OutputNodeComponent({ data, selected }: NodeProps) {
       </Box>
       <Chip
         size="small"
-        label="Output"
+        label={outputType === "knowledge_graph" || outputType === "patient_graph" ? "Write destination" : "Output"}
         sx={{ bgcolor: meta.color, color: "#fff", fontSize: "0.65rem", height: 20 }}
       />
       <Typography variant="caption" color="text.disabled" sx={{ display: "block", mt: 0.5, fontSize: "0.6rem" }}>

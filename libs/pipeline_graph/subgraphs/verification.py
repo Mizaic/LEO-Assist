@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from typing import Any, TypedDict
 
 from langgraph.graph import END, START, StateGraph
@@ -27,14 +28,24 @@ Source text:
 Extracted entities (JSON):
 {entities_json}
 
-Check ONLY these aspects (do NOT evaluate SNOMED or terminology codes):
-1. Text spans: Does each entity's text exactly match a substring of the source?
-2. Completeness: For comma-separated lists (e.g. "diabetes, hypertension"), are all items extracted?
-3. Labels: Is the semantic_tag/label correct for each entity?
-4. Assertions: Is the assertion (present/absent/hypothetical) correct?
+IMPORTANT: Character offsets (start/end fields) are set by a trusted NLP sentence splitter
+(PyRuSH) and are NOT your responsibility to verify. Do NOT raise issues about character
+positions, start/end values, or span boundaries — those are always correct.
+
+Check ONLY these three clinical aspects:
+1. Completeness: Are all clinically significant entities present?
+   Pay special attention to comma-separated lists (e.g. "diabetes, hypertension") —
+   each item should be a separate entity.
+2. Labels: Is the semantic_tag/label correct for each entity?
+   (e.g. "disorder", "finding", "procedure", "substance")
+3. Assertions: Is the assertion correct for each entity?
+   Valid values: present, absent, hypothetical, possible, historical.
 
 Respond with JSON only:
 {{"is_accurate": true|false, "confidence": 0.0-1.0, "issues": ["issue1", "issue2"]}}"""
+
+_JSON_FENCE_RE = re.compile(r"```(?:json)?\s*(\{[\s\S]*?\})\s*```", re.IGNORECASE)
+_JSON_OBJECT_RE = re.compile(r"\{[\s\S]*\}")
 
 
 def _resolve_verify_prompt(state: dict) -> str:
@@ -57,8 +68,162 @@ class VerificationState(TypedDict, total=False):
     confidence_threshold: float
     extraction_attempts: list[dict]
     verification_result: dict
+    verification_non_retryable: bool
     is_verified: bool
     errors: list[str]
+
+
+def _parse_verification_json(raw: str) -> dict[str, Any]:
+    """Parse model verification JSON from plain/fenced/mixed content."""
+    text = (raw or "").strip()
+    if not text:
+        raise ValueError("Empty verifier response")
+
+    candidates: list[str] = []
+    fence_match = _JSON_FENCE_RE.search(text)
+    if fence_match:
+        candidates.append(fence_match.group(1).strip())
+
+    if text.startswith("{") and text.endswith("}"):
+        candidates.append(text)
+
+    object_match = _JSON_OBJECT_RE.search(text)
+    if object_match:
+        candidates.append(object_match.group(0).strip())
+
+    candidates.append(text)
+
+    seen: set[str] = set()
+    for candidate in candidates:
+        if not candidate or candidate in seen:
+            continue
+        seen.add(candidate)
+        try:
+            parsed = json.loads(candidate)
+            if isinstance(parsed, dict):
+                return parsed
+            raise ValueError(f"Verifier returned non-object JSON: {type(parsed).__name__}")
+        except Exception:
+            continue
+
+    raise ValueError(f"Verifier returned invalid JSON: {text[:220]}")
+
+
+def _normalise_verification_result(result: dict[str, Any]) -> dict[str, Any]:
+    """Coerce verifier output into stable shape used by downstream nodes."""
+    normalised = dict(result)
+    normalised.setdefault("is_accurate", False)
+    try:
+        normalised["confidence"] = float(normalised.get("confidence", 0.0))
+    except Exception:
+        normalised["confidence"] = 0.0
+    issues = normalised.get("issues")
+    if isinstance(issues, list):
+        normalised["issues"] = [str(i) for i in issues]
+    elif issues is None:
+        normalised["issues"] = []
+    else:
+        normalised["issues"] = [str(issues)]
+    return normalised
+
+
+_USER_DATA_TEMPLATE = """\
+Encounter text:
+---
+{encounter_text}
+---
+
+Entities to verify (JSON):
+{entities_json}
+
+Note: character offsets (start/end) are set by a trusted NLP tool — do NOT check or
+raise issues about span positions. Only assess clinical accuracy: completeness, labels,
+and assertions.
+
+Respond with JSON only — no prose, no markdown fences.
+Required keys: is_accurate (bool), confidence (0.0-1.0), issues (list of strings).
+"""
+
+# Bedrock tool-forcing config.
+# When toolChoice forces a specific tool, Claude physically cannot return prose —
+# it must call the named tool and populate its schema-validated input.
+# This is the most reliable JSON-enforcement mechanism available on Bedrock.
+_VERIFICATION_TOOL_CONFIG: dict = {
+    "tools": [
+        {
+            "toolSpec": {
+                "name": "verification_result",
+                "description": (
+                    "Submit the structured NER verification result. "
+                    "You MUST call this tool — do not return free text."
+                ),
+                "inputSchema": {
+                    "json": {
+                        "type": "object",
+                        "properties": {
+                            "is_accurate": {
+                                "type": "boolean",
+                                "description": (
+                                    "True if every extracted entity is correct "
+                                    "(text span, label, assertion). False if any issue exists."
+                                ),
+                            },
+                            "confidence": {
+                                "type": "number",
+                                "description": "Overall confidence score from 0.0 (no confidence) to 1.0 (certain).",
+                            },
+                            "issues": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": (
+                                    "Specific issues found with individual entities. "
+                                    "Empty list when is_accurate is true."
+                                ),
+                            },
+                        },
+                        "required": ["is_accurate", "confidence", "issues"],
+                    }
+                },
+            }
+        }
+    ],
+    "toolChoice": {"tool": {"name": "verification_result"}},
+}
+
+
+def _build_verify_messages(
+    system_prompt: str,
+    encounter_text: str,
+    entities_json: str,
+) -> tuple[str, list[dict]]:
+    """Return (system, messages) ready to pass to llm.converse().
+
+    Two styles are supported:
+    - Combined template: system_prompt contains ``{encounter_text}`` — the
+      data is injected directly into it, which then becomes the user message.
+      The system param gets a minimal instruction string.
+    - Instructions-only (V2 style): no placeholders — the system_prompt is
+      used as the system param verbatim, and the data is sent as a separate
+      user message.  This is correct for prompts managed via /admin/prompts.
+    """
+    if "{encounter_text}" in system_prompt:
+        # Legacy combined-template style (e.g. _FALLBACK_VERIFY_PROMPT).
+        user_content = system_prompt.format(
+            encounter_text=encounter_text,
+            entities_json=entities_json,
+        )
+        return (
+            "You are a clinical NER verifier. Respond only with valid JSON.",
+            [{"role": "user", "content": user_content}],
+        )
+
+    # Instructions-only style (e.g. LABEL_VERIFICATION_V2 from Neo4j).
+    # System carries the full instructions; user message carries the data.
+    user_content = _USER_DATA_TEMPLATE.format(
+        encounter_text=encounter_text,
+        entities_json=entities_json,
+    )
+    return system_prompt, [{"role": "user", "content": user_content}]
 
 
 def verify_entities(state: VerificationState) -> dict[str, Any]:
@@ -67,35 +232,75 @@ def verify_entities(state: VerificationState) -> dict[str, Any]:
     tier = state.get("model_tier") or "big"
     attempts = list(state.get("extraction_attempts") or [])
     errors = list(state.get("errors") or [])
+    raw = ""
     try:
         from libs.llm_client.factory import create_llm
 
         llm = create_llm(tier=tier)
         system_prompt = _resolve_verify_prompt(state)
-        prompt = system_prompt.format(
-            encounter_text=encounter_text,
-            entities_json=json.dumps(entities, indent=2),
+        system, messages = _build_verify_messages(
+            system_prompt,
+            encounter_text,
+            json.dumps(entities, indent=2),
         )
         resp = llm.converse(
-            system="You are a clinical NER verifier. Respond only with valid JSON.",
-            messages=[{"role": "user", "content": prompt}],
+            system=system,
+            messages=messages,
+            # Bedrock (Claude): toolChoice forces Claude to call the named tool —
+            # it physically cannot return prose when toolChoice is set.
+            tool_config=_VERIFICATION_TOOL_CONFIG,
+            # Azure OpenAI: response_format=json_object hard-locks JSON output.
+            json_mode=True,
         )
-        raw = resp.text.strip()
-        if raw.startswith("```"):
-            raw = raw.split("```")[1]
-            if raw.startswith("json"):
-                raw = raw[4:]
-        result = json.loads(raw)
+
+        # Bedrock tool-forced responses arrive in tool_uses, not text.
+        # Azure json_mode responses arrive in text as usual.
+        if resp.tool_uses:
+            raw = json.dumps(resp.tool_uses[0].get("input", {}))
+        else:
+            raw = (resp.text or "").strip()
+
+        result = _normalise_verification_result(_parse_verification_json(raw))
         attempts.append(result)
         return {
             "extraction_attempts": attempts,
             "verification_result": result,
+            "verification_non_retryable": False,
+            "errors": errors,
+        }
+    except ValueError as e:
+        # Invalid/empty verifier payload is not recoverable by immediate retry.
+        logger.warning("Verification failed: %s", e)
+        errors.append(str(e))
+        failed_result = {
+            "is_accurate": False,
+            "confidence": 0.0,
+            "issues": [f"verification_parse_error: {e}"],
+            "raw_response": (raw[:4000] if raw else ""),
+        }
+        attempts.append(failed_result)
+        return {
+            "extraction_attempts": attempts,
+            "verification_result": failed_result,
+            "verification_non_retryable": True,
             "errors": errors,
         }
     except Exception as e:
         logger.exception("Verification failed")
         errors.append(str(e))
-        return {"extraction_attempts": attempts, "errors": errors}
+        failed_result = {
+            "is_accurate": False,
+            "confidence": 0.0,
+            "issues": [f"verification_parse_error: {e}"],
+            "raw_response": (raw[:4000] if raw else ""),
+        }
+        attempts.append(failed_result)
+        return {
+            "extraction_attempts": attempts,
+            "verification_result": failed_result,
+            "verification_non_retryable": False,
+            "errors": errors,
+        }
 
 
 def evaluate_result(state: VerificationState) -> dict[str, Any]:
@@ -119,6 +324,8 @@ def evaluate_result(state: VerificationState) -> dict[str, Any]:
 
 
 def _route_after_evaluate(state: VerificationState) -> str:
+    if state.get("verification_non_retryable"):
+        return "end"
     result = state.get("verification_result") or {}
     threshold = float(state.get("confidence_threshold") or 0.8)
     max_retries = int(state.get("max_retries") or 2)
