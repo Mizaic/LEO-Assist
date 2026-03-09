@@ -60,6 +60,8 @@ def _register_extensions() -> None:
         Span.set_extension("is_refuted", default=False)
 
 
+from spacy.symbols import ORTH
+
 _CONTEXT_RULE_KEYS = frozenset(
     {"pattern", "category", "max_scope", "metadata", "max_targets",
      "literal", "excluded_types", "allowed_types", "direction"}
@@ -79,6 +81,12 @@ def _build_nlp(extra_rules: list[dict] | None = None) -> spacy.language.Language
 
     _register_extensions()
     nlp = spacy.blank("en")
+
+    # Fix for "#s." tokenization where "s." is treated as an abbreviation
+    # Also handle common laterality abbreviations at end of sentence (#l., #r.)
+    for abbrev in ["s.", "l.", "r.", "n."]:
+        nlp.tokenizer.add_special_case(abbrev, [{ORTH: abbrev[0]}, {ORTH: "."}])
+
     nlp.add_pipe("sentencizer")
     context = nlp.add_pipe(
         "medspacy_context",

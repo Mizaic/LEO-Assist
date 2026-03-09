@@ -4,8 +4,8 @@
       "literal": "nil",
       "category": "NEGATED_EXISTENCE",
       "direction": "FORWARD",
-      "max_scope": 3,
-      "description": "Doctors use 'nil' as a shorthand for 'none' or 'nothing'. When it appears before a condition, it means the patient does NOT have that problem. Scope is kept tight (3 tokens) because GP shorthand often lists separate findings after a period (e.g. 'nil #s. medial CPPD.') and 'nil' should only negate the immediately following term.",
+      "max_scope": 6,
+      "description": "Doctors use 'nil' as a shorthand for 'none' or 'nothing'. When it appears before a condition, it means the patient does NOT have that problem.",
       "example": "nil chest pain → the patient has no chest pain"
     },
     {
