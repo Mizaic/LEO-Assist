@@ -52,7 +52,7 @@ export const SUBGRAPH_IO: Record<string, {
     requiredFields: { entities: ["text", "semantic_tag", "assertion"] },
   },
   persist: {
-    reads: ["entities", "encounter_id", "patient_id", "output_target"],
+    reads: ["entities", "encounter_id", "patient_id"],
     writes: ["documents_written", "training_labels_written"],
     requiredFields: { entities: ["text", "lookup_term", "semantic_tag", "assertion"] },
   },

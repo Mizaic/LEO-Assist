@@ -21,7 +21,6 @@ from app.models.contracts import LLMUsageResponse, PipelineRunRequest, PipelineR
 from app.models.neo4j_schema import DELETE_ENCOUNTER_DOCUMENTS, RESET_ENCOUNTER_REVIEW_QUEUE
 from app.services.pipeline_service import PipelineService, _REMOVED_MSG
 from libs.auth.org_scope import CallerScope, get_caller_scope, require_patient_in_scope
-from libs.pipeline_graph.registry import get_registry
 
 PIPELINE_QUEUE = os.getenv("PIPELINE_QUEUE_NAME", "pipeline-jobs")
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
@@ -46,6 +45,7 @@ SUBGRAPH_PORTS: dict[str, dict[str, object]] = {
     "surface_form_validation": {"reads": ["entities"], "writes": ["entities", "errors"]},
     "rest_connector": {"reads": ["*"], "writes": ["connector_response", "errors"]},
     "queue_publish": {"reads": ["*"], "writes": ["queued", "errors"]},
+    "guidance_rule_extraction": {"reads": ["recommendation", "guideline_id"], "writes": ["coded_criteria", "errors"]},
 }
 
 
@@ -68,184 +68,17 @@ class RunCohortRequest(BaseModel):
     preview: bool = False
 
 
-# ── Test-run models ──────────────────────────────────────────────────────────
-
-class TestRunAction(BaseModel):
-    id: str
-    subgraph_id: str
-    label: str = ""
-    node_type: str = "action"
-    config: dict = {}
-
-
-class TestRunEdge(BaseModel):
-    source: str
-    target: str
-    source_handle: str | None = None
-    target_handle: str | None = None
-
-
-class StepTrace(BaseModel):
-    step_id: str
-    subgraph_id: str
-    label: str
-    node_type: str
-    input_state: dict
-    output_state: dict
-    duration_ms: int
-    error: str | None
-    status: str
-
-
-class TestRunRequest(BaseModel):
-    plan_id: str | None = None
-    actions: list[TestRunAction]
-    edges: list[TestRunEdge]
-    input: dict  # {encounter_text?, patient_id?, encounter_id?}
-
-
-class TestRunResponse(BaseModel):
-    status: str
-    steps: list[StepTrace]
-    final_state: dict
-
-
-@router.post("/test-run", response_model=TestRunResponse)
-async def test_run_pipeline(
-    body: TestRunRequest,
-    scope: CallerScope = Depends(get_caller_scope),
-) -> TestRunResponse:
-    """Dry-run the pipeline against provided input data.
-
-    Executes each step in DAG order, capturing pipeline_state snapshots
-    before and after every step. No data is written to any database.
-    The caller provides the canvas actions and edges inline so the plan
-    does not need to be saved first.
-    """
-    from libs.workflow.engine import ActionDefinition, WorkflowEngine
-
-    # Build target → [incoming edges] mapping (engine format)
-    edges_by_target: dict[str, list[dict]] = {}
-    for e in body.edges:
-        edges_by_target.setdefault(e.target, []).append({
-            "actionId": e.source,
-            "sourceHandle": e.source_handle,
-            "targetHandle": e.target_handle,
-        })
-
-    actions: list[ActionDefinition] = [
-        ActionDefinition(
-            action_id=a.id,
-            subgraph_id=a.subgraph_id,
-            trigger_type=a.config.get("trigger_type", ""),
-            trigger_name=a.config.get("trigger_name", ""),
-            node_type=a.node_type,
-            config={"label": a.label, **a.config},
-            related_edges=edges_by_target.get(a.id, []),
-            sequence=idx,
-        )
-        for idx, a in enumerate(body.actions)
-    ]
-
-    initial: dict = dict(body.input)
-    initial.setdefault("patient_id", "test-patient")
-    initial.setdefault("encounter_id", "test-encounter")
-    initial.setdefault("run_id", str(uuid.uuid4()))
-
-    engine = WorkflowEngine()  # no Neo4j driver — plan loaded inline
-    result = await engine.trace_run(actions, initial)
-
-    return TestRunResponse(
-        status=result["status"],
-        steps=[StepTrace(**s) for s in result["steps"]],
-        final_state=result["final_state"],
-    )
-
-
-@router.post("/test-run/stream")
-async def test_run_pipeline_stream(
-    body: TestRunRequest,
-    scope: CallerScope = Depends(get_caller_scope),
-) -> StreamingResponse:
-    """SSE stream of a pipeline dry-run — yields one event per step in real time.
-
-    Event format (text/event-stream):
-        event: step_start
-        data: {"type":"step_start","step_id":"...","label":"...","subgraph_id":"...","node_type":"..."}
-
-        event: step_done
-        data: {"type":"step_done","step_trace":{...StepTrace...}}
-
-        event: pipeline_done
-        data: {"type":"pipeline_done","status":"completed","final_state":{...}}
-
-    The caller receives each event as the step finishes, not all at once.
-    No data is written to any database (dry_run=True in pipeline state).
-    """
-    from libs.workflow.engine import ActionDefinition, WorkflowEngine
-
-    edges_by_target: dict[str, list[dict]] = {}
-    for e in body.edges:
-        edges_by_target.setdefault(e.target, []).append({
-            "actionId": e.source,
-            "sourceHandle": e.source_handle,
-            "targetHandle": e.target_handle,
-        })
-
-    actions: list[ActionDefinition] = [
-        ActionDefinition(
-            action_id=a.id,
-            subgraph_id=a.subgraph_id,
-            trigger_type=a.config.get("trigger_type", ""),
-            trigger_name=a.config.get("trigger_name", ""),
-            node_type=a.node_type,
-            config={"label": a.label, **a.config},
-            related_edges=edges_by_target.get(a.id, []),
-            sequence=idx,
-        )
-        for idx, a in enumerate(body.actions)
-    ]
-
-    initial: dict = dict(body.input)
-    initial.setdefault("patient_id", "test-patient")
-    initial.setdefault("encounter_id", "test-encounter")
-    initial.setdefault("run_id", str(uuid.uuid4()))
-
-    engine = WorkflowEngine()
-
-    async def event_stream():
-        try:
-            async for event in engine.trace_run_stream(actions, initial):
-                event_name = event["type"]
-                yield f"event: {event_name}\ndata: {json.dumps(event)}\n\n"
-        except Exception as exc:
-            err = {"type": "error", "message": str(exc)}
-            yield f"event: error\ndata: {json.dumps(err)}\n\n"
-
-    return StreamingResponse(
-        event_stream(),
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "X-Accel-Buffering": "no",
-            "Connection": "keep-alive",
-        },
-    )
-
 
 @router.get("/subgraphs")
 def list_pipeline_subgraphs(scope: CallerScope = Depends(get_caller_scope)) -> dict[str, object]:
     _ = scope  # reserved for future role-specific filtering
-    registry_items = get_registry().list_subgraphs()
     items: list[dict[str, object]] = []
-    for item in registry_items:
-        subgraph_id = str(item.get("id", ""))
-        port_meta = SUBGRAPH_PORTS.get(subgraph_id, {"reads": [], "writes": []})
+    for subgraph_id, port_meta in SUBGRAPH_PORTS.items():
         items.append(
             {
                 "id": subgraph_id,
                 "label": subgraph_id.replace("_", " ").title(),
-                "description": item.get("description", ""),
+                "description": "",
                 "reads": port_meta.get("reads", []),
                 "writes": port_meta.get("writes", []),
                 "requiredFields": {},

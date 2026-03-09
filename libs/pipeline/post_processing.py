@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import logging
 import re
+import time
 from typing import Any
 
 from libs.llm_client.disorder_verifier import DisorderVerdict, verify_disorder
@@ -418,6 +419,225 @@ def _apply_situation_lookup(entities: list[dict[str, Any]]) -> None:
 # ── Public API ──
 
 
+def _entity_anchor(entity: dict[str, Any]) -> str:
+    """Stable per-entity anchor for before/after layer comparisons."""
+    return "|".join(
+        [
+            str(entity.get("start", "")),
+            str(entity.get("end", "")),
+            str(entity.get("text", "")),
+        ]
+    )
+
+
+def _entity_preview(entity: dict[str, Any]) -> str:
+    """Compact preview used in layer telemetry."""
+    text = str(entity.get("text", "")).strip()
+    label = str(entity.get("label", "")).strip()
+    assertion = str(entity.get("assertion", "")).strip()
+    parts = [p for p in (text, label, assertion) if p]
+    return " | ".join(parts[:3])
+
+
+def _summarise_layer_delta(
+    before_entities: list[dict[str, Any]],
+    after_entities: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Return add/remove/update counts and short samples for one layer."""
+    before_map = {_entity_anchor(e): e for e in before_entities}
+    after_map = {_entity_anchor(e): e for e in after_entities}
+
+    added_anchors = [a for a in after_map if a not in before_map]
+    removed_anchors = [a for a in before_map if a not in after_map]
+    shared = [a for a in before_map if a in after_map]
+    updated_anchors = [a for a in shared if before_map[a] != after_map[a]]
+
+    return {
+        "added_count": len(added_anchors),
+        "removed_count": len(removed_anchors),
+        "updated_count": len(updated_anchors),
+        "sample_added": [_entity_preview(after_map[a]) for a in added_anchors[:3]],
+        "sample_removed": [_entity_preview(before_map[a]) for a in removed_anchors[:3]],
+        "sample_updated": [
+            {
+                "before": _entity_preview(before_map[a]),
+                "after": _entity_preview(after_map[a]),
+            }
+            for a in updated_anchors[:3]
+        ],
+    }
+
+
+def run_post_processing_with_trace(
+    encounter_text: str,
+    entities: list[dict],
+    *,
+    rules: list[PostProcessorRule] | None = None,
+    enable_disorder_gate: bool = False,
+    coding_mode: str = "hitl",
+) -> tuple[list[dict], list[dict[str, Any]]]:
+    """Run post-processing and return (entities, per-layer trace)."""
+    working = [dict(e) for e in entities]
+    layer_trace: list[dict[str, Any]] = []
+
+    def _run_layer(
+        layer_id: str,
+        name: str,
+        fn,
+        *,
+        skip_when: bool = False,
+        skip_reason: str | None = None,
+    ) -> None:
+        nonlocal working
+        if skip_when:
+            layer_trace.append(
+                {
+                    "layer_id": layer_id,
+                    "name": name,
+                    "status": "skipped",
+                    "reason": skip_reason or "disabled",
+                    "before_count": len(working),
+                    "after_count": len(working),
+                    "added_count": 0,
+                    "removed_count": 0,
+                    "updated_count": 0,
+                    "duration_ms": 0,
+                }
+            )
+            return
+
+        before = [dict(e) for e in working]
+        started = time.perf_counter()
+        try:
+            result = fn(working)
+            if result is not None:
+                working = result
+            after = [dict(e) for e in working]
+            delta = _summarise_layer_delta(before, after)
+            layer_trace.append(
+                {
+                    "layer_id": layer_id,
+                    "name": name,
+                    "status": "completed",
+                    "before_count": len(before),
+                    "after_count": len(after),
+                    "duration_ms": int((time.perf_counter() - started) * 1000),
+                    **delta,
+                }
+            )
+        except Exception as exc:
+            layer_trace.append(
+                {
+                    "layer_id": layer_id,
+                    "name": name,
+                    "status": "error",
+                    "error": str(exc),
+                    "before_count": len(before),
+                    "after_count": len(working),
+                    "added_count": 0,
+                    "removed_count": 0,
+                    "updated_count": 0,
+                    "duration_ms": int((time.perf_counter() - started) * 1000),
+                }
+            )
+            raise
+
+    # Layer 1: Post-Processor Rules
+    _run_layer(
+        "layer_1",
+        "Post-Processor Rules",
+        lambda current: apply_rules_to_entities(encounter_text, current, rules) if rules else current,
+        skip_when=rules is None,
+        skip_reason="no rules configured",
+    )
+
+    # Layer 2: Lab-Value Guard
+    def _layer_2(current: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        for ent in current:
+            ent_start = int(ent.get("start", 0) or 0)
+            ent_end = int(ent.get("end", 0) or 0)
+            sentence_window = _extract_sentence_window(encounter_text, ent_start, ent_end)
+            normalized = str(
+                ent.get("normalized")
+                or ent.get("normalized_lookup")
+                or ent.get("lookup_term")
+                or ent.get("text", "")
+            )
+            if should_suppress_disorder(
+                entity_text=str(ent.get("text", "")),
+                entity_semantic_tag=str(ent.get("label", "")),
+                entity_normalized=normalized,
+                sentence_text=sentence_window,
+                entity_numeric_value=str(ent.get("value", "") or ""),
+                entity_unit=str(ent.get("unit", "") or ""),
+            ):
+                ent["__suppress__"] = True
+        return [e for e in current if not e.get("__suppress__")]
+
+    _run_layer("layer_2", "Lab-Value Guard", _layer_2)
+
+    # Layer 3: Scope Guard
+    _run_layer(
+        "layer_3",
+        "Scope Guard",
+        lambda current: (_apply_scope_guard_to_dicts(encounter_text, current), current)[1],
+    )
+
+    # Layer 4: Observable Normalisation
+    _run_layer(
+        "layer_4",
+        "Observable Normalisation",
+        lambda current: normalize_observable_entities(
+            encounter_text,
+            current,
+            add_qualifier_value=True,
+        ),
+    )
+
+    # Layer 5: Entity-Type Normalisation
+    _run_layer(
+        "layer_5",
+        "Entity-Type Normalisation",
+        lambda current: (normalise_entity_types(current), current)[1],
+    )
+
+    # Layer 6: Value-Unit Linking
+    _run_layer(
+        "layer_6",
+        "Value-Unit Linking",
+        lambda current: (link_observable_value_units(current), current)[1],
+    )
+
+    # Layer 7: ConText Assertion Detection
+    _run_layer(
+        "layer_7",
+        "ConText Assertion Detection",
+        lambda current: (apply_context_detection_to_dicts(encounter_text, current), current)[1],
+    )
+
+    # Layer 8: Situation Lookup Normalisation
+    _run_layer(
+        "layer_8",
+        "Situation Lookup Normalisation",
+        lambda current: (_apply_situation_lookup(current), current)[1],
+    )
+
+    # Layer 9: Disorder Gate (optional)
+    def _layer_9(current: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        _apply_disorder_gate(encounter_text, current, coding_mode=coding_mode)
+        return [e for e in current if not e.get("__suppress__")]
+
+    _run_layer(
+        "layer_9",
+        "Disorder Gate",
+        _layer_9,
+        skip_when=not enable_disorder_gate,
+        skip_reason="disabled",
+    )
+
+    return working, layer_trace
+
+
 def run_post_processing(
     encounter_text: str,
     entities: list[dict],
@@ -440,59 +660,11 @@ def run_post_processing(
     Returns:
         The (mutated) entity list after all layers have run.
     """
-    working = [dict(e) for e in entities]
-
-    # Layer 1: Post-Processor Rules
-    if rules:
-        working = apply_rules_to_entities(encounter_text, working, rules)
-
-    # Layer 2: Lab-Value Guard
-    for ent in working:
-        ent_start = int(ent.get("start", 0) or 0)
-        ent_end = int(ent.get("end", 0) or 0)
-        sentence_window = _extract_sentence_window(encounter_text, ent_start, ent_end)
-        normalized = str(
-            ent.get("normalized")
-            or ent.get("normalized_lookup")
-            or ent.get("lookup_term")
-            or ent.get("text", "")
-        )
-        if should_suppress_disorder(
-            entity_text=str(ent.get("text", "")),
-            entity_semantic_tag=str(ent.get("label", "")),
-            entity_normalized=normalized,
-            sentence_text=sentence_window,
-            entity_numeric_value=str(ent.get("value", "") or ""),
-            entity_unit=str(ent.get("unit", "") or ""),
-        ):
-            ent["__suppress__"] = True
-    working = [e for e in working if not e.get("__suppress__")]
-
-    # Layer 3: Scope Guard
-    _apply_scope_guard_to_dicts(encounter_text, working)
-
-    # Layer 4: Observable Normalisation
-    working = normalize_observable_entities(
+    processed, _trace = run_post_processing_with_trace(
         encounter_text,
-        working,
-        add_qualifier_value=True,
+        entities,
+        rules=rules,
+        enable_disorder_gate=enable_disorder_gate,
+        coding_mode=coding_mode,
     )
-
-    # Layer 5: Entity-Type Normalisation
-    normalise_entity_types(working)
-
-    # Layer 6: Value-Unit Linking
-    link_observable_value_units(working)
-
-    # Layer 7: ConText Assertion Detection
-    apply_context_detection_to_dicts(encounter_text, working)
-
-    # Layer 8: Situation Lookup Normalisation
-    _apply_situation_lookup(working)
-
-    # Layer 9: Disorder Gate (optional)
-    if enable_disorder_gate:
-        _apply_disorder_gate(encounter_text, working, coding_mode=coding_mode)
-        working = [e for e in working if not e.get("__suppress__")]
-
-    return working
+    return processed

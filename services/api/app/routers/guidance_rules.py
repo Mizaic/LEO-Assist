@@ -16,25 +16,52 @@ from __future__ import annotations
 
 import json
 import logging
-import threading
+import os
 import uuid
-from datetime import datetime, timezone
 from typing import Literal
 
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from app.db.neo4j_client import CodingGraphClient
 from app.deps import require_admin
-from app.services.guidance_rule_generator import GuidanceRuleGenerator
 from libs.auth.org_scope import CallerScope
-from libs.pipeline_graph.registry import get_registry
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/guidance", tags=["guidance-rules"])
+PIPELINE_WORKER_BASE = os.getenv("PIPELINE_WORKER_URL", "http://localhost:8006").rstrip("/")
 
-_generate_jobs: dict[str, dict] = {}
+
+def get_registry():
+    from libs.pipeline_graph.registry import get_registry as _get_registry
+
+    return _get_registry()
+
+
+async def _proxy_pipeline_worker_json(
+    method: str,
+    path: str,
+    *,
+    json_body: dict | None = None,
+) -> dict:
+    url = f"{PIPELINE_WORKER_BASE}{path}"
+    async with httpx.AsyncClient(timeout=180) as client:
+        resp = await client.request(method, url, json=json_body)
+
+    if resp.status_code >= 400:
+        try:
+            payload = resp.json()
+            detail = payload.get("detail", payload)
+        except ValueError:
+            detail = resp.text or f"Pipeline worker error ({resp.status_code})"
+        raise HTTPException(status_code=resp.status_code, detail=detail)
+
+    try:
+        return resp.json()
+    except ValueError as exc:
+        raise HTTPException(status_code=502, detail="Pipeline worker returned invalid JSON") from exc
 
 _FETCH_RULES = """
 MATCH (rule:AppropriatenessRule)
@@ -355,6 +382,12 @@ def test_rule_extraction(
     }
 
     if coded is None:
+        if errors:
+            logger.warning(
+                "Rule extraction test returned warnings for %s without coded output: %s",
+                recommendation_id, errors,
+            )
+            return response_body
         # Pipeline produced no coded output at all — hard failure.
         logger.error(
             "Rule extraction test FAILED for %s — coded_criteria is None. Errors: %s",
@@ -375,7 +408,7 @@ def test_rule_extraction(
 
 
 @router.post("/rules/generate", status_code=202)
-def generate_rules(
+async def generate_rules(
     req: GenerateRulesRequest,
     scope: CallerScope = Depends(require_admin),
 ) -> dict:
@@ -384,22 +417,12 @@ def generate_rules(
     Returns a job ID immediately. Rule generation runs in the background.
     Rules will appear in the review queue once complete.
     """
-    job_id = str(uuid.uuid4())
-    _generate_jobs[job_id] = {
-        "job_id": job_id,
-        "guideline_id": req.guideline_id,
-        "status": "running",
-        "started_at": datetime.now(timezone.utc).isoformat(),
-        "rule_ids": [],
-        "error": None,
-    }
-    thread = threading.Thread(
-        target=_run_generation,
-        args=(job_id, req.guideline_id),
-        daemon=True,
+    _ = scope
+    return await _proxy_pipeline_worker_json(
+        "POST",
+        "/guidance/generate",
+        json_body=req.model_dump(),
     )
-    thread.start()
-    return {"job_id": job_id}
 
 
 @router.get("/rules/review")
@@ -837,21 +860,3 @@ def _logic_node_to_text(node: dict) -> str:
     return "unknown condition"
 
 
-def _run_generation(job_id: str, guideline_id: str) -> None:
-    """Background thread: run LLM rule generation."""
-    try:
-        client = _kg_client()
-        generator = GuidanceRuleGenerator(client._driver)
-        rule_ids = generator.generate_rules_for_guideline(guideline_id)
-        _generate_jobs[job_id].update({
-            "status": "done",
-            "rule_ids": rule_ids,
-            "completed_at": datetime.now(timezone.utc).isoformat(),
-        })
-        client.close()
-    except Exception as exc:
-        logger.exception("Rule generation failed for %s", guideline_id)
-        _generate_jobs[job_id].update({
-            "status": "error",
-            "error": str(exc),
-        })

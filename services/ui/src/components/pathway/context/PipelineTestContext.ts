@@ -20,6 +20,11 @@ export interface PipelineTestContextValue {
   /** ID of the step currently executing (null between steps) */
   runningStepId: string | null;
   isTestRunning: boolean;
+  /**
+   * ID of the node that caused the pipeline to halt (e.g. verification failure).
+   * null when the last run completed normally or no run has happened.
+   */
+  haltedNodeId: string | null;
   /** Set of edge keys ("sourceId|targetId") the user has clamped a probe onto */
   probedEdges: Set<string>;
   toggleProbe: (sourceNodeId: string, targetNodeId: string) => void;
@@ -42,6 +47,7 @@ export const PipelineTestContext = createContext<PipelineTestContextValue>({
   testTrace: null,
   runningStepId: null,
   isTestRunning: false,
+  haltedNodeId: null,
   probedEdges: new Set(),
   toggleProbe: () => undefined,
   runToStep: () => undefined,

@@ -2,13 +2,26 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Drawer from "@mui/material/Drawer";
-import { getSmoothStepPath, EdgeLabelRenderer, BaseEdge, type EdgeProps } from "@xyflow/react";
+import { getSmoothStepPath, EdgeLabelRenderer, BaseEdge, type EdgeProps, useReactFlow } from "@xyflow/react";
 import { usePipelineTest } from "../context/PipelineTestContext";
+import { PROBE_STRATEGIES, TargetHint, getSubgraphLabel } from "./probeStrategies";
 
 type PathSegment = string | number;
 type SearchMatch = { path: PathSegment[]; preview: string };
 type ProbeTab = "changes" | "data" | "validate";
 type StateChangeKind = "added" | "removed" | "changed";
+type PostProcessingLayerTrace = {
+  layer_id: string;
+  name: string;
+  status: string;
+  before_count: number;
+  after_count: number;
+  added_count: number;
+  removed_count: number;
+  updated_count: number;
+  duration_ms: number;
+  error?: string;
+};
 type StateChange = {
   kind: StateChangeKind;
   path: PathSegment[];
@@ -38,6 +51,17 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function asPostProcessingTrace(value: unknown): PostProcessingLayerTrace[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item): item is PostProcessingLayerTrace => {
+    if (!isRecord(item)) return false;
+    return typeof item.name === "string"
+      && typeof item.status === "string"
+      && typeof item.before_count === "number"
+      && typeof item.after_count === "number";
+  });
+}
+
 function safeStringify(value: unknown, spacing = 2): string {
   try {
     return JSON.stringify(value, null, spacing) ?? "null";
@@ -59,6 +83,19 @@ function formatPrimitive(value: unknown): string {
 
 function pluralize(count: number, singular: string, plural = `${singular}s`): string {
   return `${count} ${count === 1 ? singular : plural}`;
+}
+
+function friendlyError(raw: string): string {
+  if (/invalid JSON/i.test(raw) || /JSONDecodeError/i.test(raw) || /json\.loads/i.test(raw))
+    return "The AI replied with plain text instead of the expected format. The step carried on without it.";
+  if (/timeout/i.test(raw))
+    return "This step took too long and was stopped.";
+  if (/connection|ECONNREFUSED|network/i.test(raw))
+    return "Could not reach the service — it may be offline.";
+  if (/ImportError|ModuleNotFound/i.test(raw))
+    return "A required library is missing on the server.";
+  if (raw.length > 120) return `${raw.slice(0, 100)}…`;
+  return raw;
 }
 
 function summarizeValue(value: unknown): string {
@@ -747,10 +784,37 @@ interface MonitorProps {
 }
 
 function ProbeMonitor({ sourceId, targetId, x, y, onClose }: MonitorProps) {
-  const { testTrace, isTestRunning, runningStepId, runToStep, getNodeExpectedInputs } = usePipelineTest();
+  const { testTrace, isTestRunning, runningStepId, haltedNodeId, runToStep, getNodeExpectedInputs } = usePipelineTest();
   const [tab, setTab] = useState<ProbeTab>("changes");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedPath, setSelectedPath] = useState<PathSegment[]>([]);
+  const [showAllChanges, setShowAllChanges] = useState(false);
+
+  // Drag-to-reposition state — lets users move overlapping probes apart
+  const [dragOffset, setDragOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [isRaised, setIsRaised] = useState(false);
+  const dragStart = useRef<{ mx: number; my: number; ox: number; oy: number } | null>(null);
+
+  const handleDragMouseDown = (e: React.MouseEvent) => {
+    if (e.button !== 0) return;
+    e.stopPropagation();
+    dragStart.current = { mx: e.clientX, my: e.clientY, ox: dragOffset.x, oy: dragOffset.y };
+    setIsRaised(true);
+    const onMove = (ev: MouseEvent) => {
+      if (!dragStart.current) return;
+      setDragOffset({
+        x: dragStart.current.ox + ev.clientX - dragStart.current.mx,
+        y: dragStart.current.oy + ev.clientY - dragStart.current.my,
+      });
+    };
+    const onUp = () => {
+      dragStart.current = null;
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+    };
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  };
 
   const sourceTrace = testTrace?.[sourceId] ?? null;
   const targetTrace = testTrace?.[targetId] ?? null;
@@ -758,6 +822,17 @@ function ProbeMonitor({ sourceId, targetId, x, y, onClose }: MonitorProps) {
   const wireState: Record<string, unknown> | null = sourceTrace
     ? sourceTrace.output_state
     : (targetTrace ? targetTrace.input_state : null);
+  const postProcessingTrace = asPostProcessingTrace(wireState?.post_processing_trace);
+  const { getNode } = useReactFlow();
+  const sourceSubgraphId = sourceTrace?.subgraph_id
+    ?? ((getNode(sourceId)?.data as Record<string, unknown>)?.subgraphId as string)
+    ?? "";
+  const targetSubgraphId = targetTrace?.subgraph_id
+    ?? ((getNode(targetId)?.data as Record<string, unknown>)?.subgraphId as string)
+    ?? "";
+  const strategy = PROBE_STRATEGIES[sourceSubgraphId] ?? null;
+  const sourceLabel = sourceTrace?.label ?? getSubgraphLabel(sourceSubgraphId);
+  const targetLabel = targetTrace?.label ?? getSubgraphLabel(targetSubgraphId);
   const wireStatus = sourceTrace?.status ?? (targetTrace ? "injected" : null);
   const wireDuration = sourceTrace?.duration_ms ?? null;
   const wireLabel = sourceTrace?.label ?? (isInjectedEdge ? `Injected into ${targetTrace?.label ?? targetId}` : null);
@@ -768,7 +843,23 @@ function ProbeMonitor({ sourceId, targetId, x, y, onClose }: MonitorProps) {
   const entries = topLevelEntries(wireState);
   const highlights = getMeaningfulHighlights(entries);
   const stepChanges = useMemo(
-    () => (sourceTrace ? collectStateChanges(sourceTrace.input_state, sourceTrace.output_state) : []),
+    () => (
+      sourceTrace
+        ? collectStateChanges(sourceTrace.input_state, sourceTrace.output_state)
+            .filter((change) => String(change.path[0] ?? "") !== "post_processing_trace")
+        : []
+    ),
+    [sourceTrace],
+  );
+  const hadRetries = useMemo(() => {
+    const attempts = sourceTrace?.output_state?.extraction_attempts;
+    return Array.isArray(attempts) && (attempts as unknown[]).length > 1;
+  }, [sourceTrace]);
+  const hasSoftErrors = wireStatus === "completed" && stepChanges.some(
+    (c) => String(c.path[0] ?? "").toLowerCase().includes("error") && c.kind === "added",
+  );
+  const sourceOutputEntries = useMemo(
+    () => (sourceTrace ? topLevelEntries(sourceTrace.output_state) : []),
     [sourceTrace],
   );
   const changeCounts = useMemo(
@@ -808,11 +899,19 @@ function ProbeMonitor({ sourceId, targetId, x, y, onClose }: MonitorProps) {
   const extra = produced.filter((key) => !expected.includes(key));
   const hasExpected = expected.length > 0;
 
-  const statusColor = (wireStatus === "completed" || wireStatus === "injected")
-    ? "#a6e3a1"
-    : wireStatus === "error"
-      ? "#f38ba8"
-      : "#89b4fa";
+  // "halted" = the source step ran but its quality gate stopped the pipeline
+  const isSourceHalted = sourceTrace?.status === "halted";
+  // "not reached" = a run finished but this edge's source never executed because
+  // something upstream halted first
+  const isEdgeNotReached = !isTestRunning && testTrace !== null && !sourceTrace && !!haltedNodeId;
+
+  const statusColor = isSourceHalted
+    ? "#f38ba8"
+    : (wireStatus === "completed" || wireStatus === "injected")
+      ? "#a6e3a1"
+      : wireStatus === "error"
+        ? "#f38ba8"
+        : "#89b4fa";
 
   const openInspector = (path: PathSegment[]) => {
     setSelectedPath(path);
@@ -830,9 +929,9 @@ function ProbeMonitor({ sourceId, targetId, x, y, onClose }: MonitorProps) {
 
   const availableTabs: ProbeTab[] = sourceTrace ? ["changes", "data", "validate"] : ["data", "validate"];
   const changeSummaryBits = [
-    changeCounts.added > 0 ? `added ${pluralize(changeCounts.added, "value")}` : null,
-    changeCounts.changed > 0 ? `updated ${pluralize(changeCounts.changed, "value")}` : null,
-    changeCounts.removed > 0 ? `removed ${pluralize(changeCounts.removed, "value")}` : null,
+    changeCounts.added > 0 ? `added ${pluralize(changeCounts.added, "thing")}` : null,
+    changeCounts.changed > 0 ? `changed ${pluralize(changeCounts.changed, "thing")}` : null,
+    changeCounts.removed > 0 ? `removed ${pluralize(changeCounts.removed, "thing")}` : null,
   ].filter(Boolean);
 
   return (
@@ -841,7 +940,7 @@ function ProbeMonitor({ sourceId, targetId, x, y, onClose }: MonitorProps) {
         className="nodrag nopan"
         style={{
           position: "absolute",
-          transform: `translate(-50%, 0) translate(${x}px, ${y + 18}px)`,
+          transform: `translate(-50%, 0) translate(${x + dragOffset.x}px, ${y + 18 + dragOffset.y}px)`,
           pointerEvents: "all",
           background: "#1e1e2e",
           color: "#cdd6f4",
@@ -849,28 +948,33 @@ function ProbeMonitor({ sourceId, targetId, x, y, onClose }: MonitorProps) {
           border: `2px solid ${statusColor}`,
           fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
           fontSize: 11,
-          minWidth: 320,
-          maxWidth: 460,
-          boxShadow: "0 8px 32px rgba(0,0,0,0.6)",
-          zIndex: 1000,
+          minWidth: 520,
+          maxWidth: 680,
+          boxShadow: isRaised ? "0 16px 48px rgba(0,0,0,0.85)" : "0 8px 32px rgba(0,0,0,0.6)",
+          zIndex: isRaised ? 1100 : 1000,
           overflow: "hidden",
-          userSelect: "none",
+          userSelect: dragStart.current ? "none" : "auto",
         }}
       >
-        <div style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "5px 10px",
-          background: "#313244",
-          borderBottom: `1px solid ${statusColor}40`,
-        }}>
+        <div
+          onMouseDown={handleDragMouseDown}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "5px 10px",
+            background: "#313244",
+            borderBottom: `1px solid ${statusColor}40`,
+            cursor: dragStart.current ? "grabbing" : "grab",
+          }}
+        >
           <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={{ fontSize: 13 }}>⊕</span>
+            <span style={{ color: "#45475a", fontSize: 12, letterSpacing: 1 }}>⠿</span>
+            <span style={{ fontSize: 13 }}>{strategy?.icon ?? "⊕"}</span>
             <span style={{ color: "#89b4fa", fontWeight: 700, fontSize: 10, letterSpacing: "0.05em" }}>PROBE</span>
-            <span style={{ color: "#6c7086", fontSize: 10 }}>{sourceId} → {targetId}</span>
+            <span style={{ color: "#6c7086", fontSize: 10 }}>{sourceLabel || sourceId} → {targetLabel || targetId}</span>
           </span>
-          <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <span onMouseDown={(e) => e.stopPropagation()} style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <button
               onClick={() => runToStep(sourceId)}
               disabled={isTestRunning}
@@ -906,7 +1010,48 @@ function ProbeMonitor({ sourceId, targetId, x, y, onClose }: MonitorProps) {
           </span>
         </div>
 
-        {wireState && (
+        {/* ── Pipeline halted at source node ─────────────────────────── */}
+        {isSourceHalted && (
+          <div style={{
+            padding: "10px 12px",
+            background: "#2d1b1b",
+            borderBottom: "1px solid #f38ba840",
+          }}>
+            <div style={{ color: "#f38ba8", fontWeight: 700, fontSize: 11, marginBottom: 6 }}>
+              🛑 Pipeline stopped here
+            </div>
+            <div style={{ color: "#cdd6f4", fontSize: 10, lineHeight: 1.5 }}>
+              This step ran but the quality gate decided the results weren't good enough
+              to continue. Check the probe details above to see what failed, then fix the
+              issue and run again.
+            </div>
+            {(sourceTrace as Record<string, unknown>)?.halt_reason === "verification_failed" && (
+              <div style={{ color: "#fab387", fontSize: 10, marginTop: 6 }}>
+                Verification found issues with the extracted entities. Downstream steps
+                (terminology coding, saving, etc.) were not run.
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Edge was never reached (upstream halt) ──────────────── */}
+        {isEdgeNotReached && (
+          <div style={{
+            padding: "14px 12px",
+            background: "#1a1a2e",
+            borderBottom: "1px solid #313244",
+          }}>
+            <div style={{ color: "#6c7086", fontWeight: 700, fontSize: 11, marginBottom: 6 }}>
+              ⏹ Pipeline stopped before reaching this step
+            </div>
+            <div style={{ color: "#45475a", fontSize: 10, lineHeight: 1.5 }}>
+              A quality gate earlier in the pipeline halted the run. This step never
+              executed. Fix the problem on the node marked 🛑 red and run again.
+            </div>
+          </div>
+        )}
+
+        {!isEdgeNotReached && wireState && (
           <div style={{
             display: "flex",
             gap: 0,
@@ -931,16 +1076,16 @@ function ProbeMonitor({ sourceId, targetId, x, y, onClose }: MonitorProps) {
                 }}
               >
                 {section === "changes"
-                  ? `What changed${stepChanges.length > 0 ? ` ${stepChanges.length}` : ""}`
+                  ? `What's different${stepChanges.length > 0 ? ` (${stepChanges.length})` : ""}`
                   : section === "data"
-                    ? (isInjectedEdge ? "Arriving data" : "After this step")
-                    : `Connector check ${missing.length > 0 ? "⚠" : matched.length > 0 ? "✓" : ""}`}
+                    ? (isInjectedEdge ? "Data going in" : "Results")
+                    : `Wiring ${missing.length > 0 ? "⚠" : matched.length > 0 ? "✓" : ""}`}
               </button>
             ))}
           </div>
         )}
 
-        {wireState && (
+        {!isEdgeNotReached && wireState && (
           <div style={{
             display: "flex",
             flexWrap: "wrap",
@@ -951,34 +1096,36 @@ function ProbeMonitor({ sourceId, targetId, x, y, onClose }: MonitorProps) {
             borderBottom: "1px solid #313244",
           }}>
             <span style={{ color: statusColor, fontWeight: 700 }}>
-              {wireStatus === "injected" ? "⬇ INJECTED" : wireStatus === "completed" ? "✓ PASS" : "✗ FAIL"}
+              {isSourceHalted ? "🛑 Halted" : wireStatus === "injected" ? "⬇ Data fed in" : wireStatus === "completed" ? "✓ Worked" : "✗ Problem"}
             </span>
             {wireDuration !== null && (
               <span style={{ color: "#6c7086" }}>
-                {wireDuration < 1000 ? `${wireDuration}ms` : `${(wireDuration / 1000).toFixed(2)}s`}
+                took {wireDuration < 1000 ? `${wireDuration}ms` : `${(wireDuration / 1000).toFixed(1)}s`}
               </span>
             )}
             {sourceTrace && changeSummaryBits.length > 0 && (
               <span style={{ color: "#6c7086" }}>
-                Δ {changeSummaryBits.join(" · ")}
+                {changeSummaryBits.join(", ")}
               </span>
             )}
-            <span style={{ color: "#6c7086" }}>{entries.length} top-level field{entries.length === 1 ? "" : "s"}</span>
+            <span style={{ color: "#6c7086" }}>{entries.length} field{entries.length === 1 ? "" : "s"} total</span>
             {wireLabel && <span style={{ color: "#6c7086" }}>{wireLabel}</span>}
           </div>
         )}
 
-        <div style={{ padding: "8px 10px", maxHeight: 280, overflowY: "auto" }}>
+        <div style={{ padding: "8px 10px", maxHeight: "60vh", overflowY: "auto" }}>
           {tab === "changes" && sourceTrace && (
             <div style={{ display: "grid", gap: 8 }}>
               <div style={{ border: "1px solid #313244", borderRadius: 8, padding: "8px 9px", background: "#181825" }}>
                 <div style={{ color: "#89b4fa", fontSize: 10, fontWeight: 700, marginBottom: 6, letterSpacing: "0.04em", textTransform: "uppercase" }}>
-                  Step summary
+                  {strategy ? `${strategy.icon} What happened` : "What happened"}
                 </div>
-                <div style={{ color: "#cdd6f4", fontSize: 11, lineHeight: 1.45 }}>
-                  {stepChanges.length === 0
-                    ? "This step passed the same state through unchanged."
-                    : `This step ${changeSummaryBits.join(", ")} across ${pluralize(changedRoots.length, "top-level field")}.`}
+                <div style={{ color: "#cdd6f4", fontSize: strategy ? 12 : 11, lineHeight: 1.45 }}>
+                  {strategy
+                    ? strategy.headline(sourceTrace.output_state ?? {}, sourceTrace.input_state ?? {})
+                    : stepChanges.length === 0
+                      ? "Nothing changed — data passed straight through."
+                      : `This step ${changeSummaryBits.join(", ")} in ${pluralize(changedRoots.length, "area")}.`}
                 </div>
                 {arrayCountDeltas.length > 0 && (
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 6, fontSize: 10 }}>
@@ -989,7 +1136,7 @@ function ProbeMonitor({ sourceId, targetId, x, y, onClose }: MonitorProps) {
                     ))}
                   </div>
                 )}
-                {changedRoots.length > 0 && (
+                {!strategy && changedRoots.length > 0 && (
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
                     {changedRoots.slice(0, 6).map((root) => (
                       <button
@@ -1018,72 +1165,205 @@ function ProbeMonitor({ sourceId, targetId, x, y, onClose }: MonitorProps) {
                 )}
               </div>
 
-              {stepChanges.length === 0 ? (
+              {strategy && sourceTrace && (
+                <div style={{ border: "1px solid #313244", borderRadius: 8, padding: "8px 9px", background: "#181825" }}>
+                  {strategy.Detail({ output: sourceTrace.output_state ?? {}, input: sourceTrace.input_state ?? {}, openInspector })}
+                </div>
+              )}
+
+              {!strategy && sourceOutputEntries.length > 0 && (
+                <div style={{ border: "1px solid #313244", borderRadius: 8, padding: "8px 9px", background: "#181825" }}>
+                  <div style={{ color: "#89b4fa", fontSize: 10, fontWeight: 700, marginBottom: 6, letterSpacing: "0.04em", textTransform: "uppercase" }}>
+                    What this step produced
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>
+                    {sourceOutputEntries.slice(0, 12).map(([key, value]) => (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => openInspector([key])}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          gap: 6,
+                          width: "100%",
+                          textAlign: "left",
+                          border: key === "verification_result" ? "1px solid #a6adc8" : "1px solid #313244",
+                          background: "#11111b",
+                          borderRadius: 6,
+                          padding: "4px 7px",
+                          color: "#cdd6f4",
+                          cursor: "pointer",
+                        }}
+                      >
+                        <span style={{ color: key === "verification_result" ? "#f9e2af" : "#89b4fa", fontFamily: "monospace", fontSize: 10, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {key}
+                        </span>
+                        <span style={{ color: valueTone(value), fontSize: 10, flexShrink: 0 }}>
+                          {summarizeValue(value)}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                  {sourceOutputEntries.length > 12 && (
+                    <div style={{ color: "#6c7086", fontSize: 10, marginTop: 4 }}>
+                      …and {sourceOutputEntries.length - 12} more
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {!strategy && postProcessingTrace.length > 0 && (
+                <div style={{ border: "1px solid #313244", borderRadius: 8, overflow: "hidden", background: "#181825" }}>
+                  <div style={{ color: "#89b4fa", fontSize: 10, fontWeight: 700, padding: "7px 9px", letterSpacing: "0.04em", textTransform: "uppercase", borderBottom: "1px solid #313244" }}>
+                    Did each clean-up step run?
+                  </div>
+                  {postProcessingTrace.map((layer, i) => {
+                    const isSkipped = layer.status === "skipped";
+                    const isError = layer.status === "error";
+                    const statusColor = isError ? "#f38ba8" : isSkipped ? "#6c7086" : "#a6e3a1";
+                    const statusIcon = isError ? "✗" : isSkipped ? "○" : "✓";
+                    const statusLabel = isError ? "Error" : isSkipped ? "Skipped" : "Ran OK";
+                    const delta = layer.after_count - layer.before_count;
+                    const hasChanges = layer.added_count > 0 || layer.removed_count > 0 || layer.updated_count > 0;
+                    const changeParts: string[] = [];
+                    if (layer.added_count > 0) changeParts.push(`+${layer.added_count} added`);
+                    if (layer.removed_count > 0) changeParts.push(`−${layer.removed_count} removed`);
+                    if (layer.updated_count > 0) changeParts.push(`${layer.updated_count} updated`);
+                    const changeText = isSkipped ? "—" : hasChanges ? changeParts.join(", ") : "no change";
+                    const changeColor = delta < 0 ? "#f38ba8" : delta > 0 ? "#a6e3a1" : "#6c7086";
+                    return (
+                      <div
+                        key={layer.layer_id}
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "1fr auto auto",
+                          alignItems: "center",
+                          gap: 10,
+                          padding: "5px 9px",
+                          borderBottom: i < postProcessingTrace.length - 1 ? "1px solid #31324440" : "none",
+                          opacity: isSkipped ? 0.6 : 1,
+                        }}
+                      >
+                        <span style={{ color: "#cdd6f4", fontSize: 10, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {layer.name}
+                        </span>
+                        <span style={{ color: changeColor, fontSize: 10, whiteSpace: "nowrap" }}>
+                          {changeText}
+                        </span>
+                        <span style={{ color: statusColor, fontSize: 10, fontWeight: 700, whiteSpace: "nowrap", minWidth: 60, textAlign: "right" }}>
+                          {statusIcon} {statusLabel}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {targetSubgraphId && <TargetHint targetSubgraphId={targetSubgraphId} producedKeys={produced} />}
+
+              {strategy && stepChanges.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowAllChanges(prev => !prev)}
+                  style={{
+                    background: "none", border: "none", color: "#6c7086",
+                    cursor: "pointer", fontSize: 10, textAlign: "left", padding: "4px 0",
+                  }}
+                >
+                  {showAllChanges ? "▾ Hide" : "▸ Show"} {stepChanges.length} individual changes
+                </button>
+              )}
+
+              {(!strategy || showAllChanges) && (stepChanges.length === 0 ? (
                 <div style={{ color: "#6c7086", fontSize: 11 }}>
-                  No detected differences between this step's input and output.
+                  Everything stayed the same — no differences found.
                 </div>
               ) : (
-                <div style={{ display: "grid", gap: 6 }}>
+                <div style={{ display: "grid", gap: 3 }}>
+                  {hasSoftErrors && (
+                    <div style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                      padding: "5px 7px",
+                      borderRadius: 6,
+                      background: "#fab38712",
+                      border: "1px solid #fab38740",
+                      fontSize: 10,
+                      color: "#fab387",
+                    }}>
+                      <span>{hadRetries ? "↺" : "⚠"}</span>
+                      <span>
+                        {hadRetries
+                          ? "A retry succeeded — the ⚠ error rows below are from earlier failed attempts."
+                          : "These errors are non-fatal — the step logged them and carried on."}
+                      </span>
+                    </div>
+                  )}
                   {stepChanges.map((change, index) => {
                     const inspectPath = resolveInspectablePath(sourceTrace.output_state, change.path);
                     const canInspect = inspectPath.length > 0;
-                    const beforePreview = change.kind === "added" ? "—" : previewForChange(change.beforeValue, change.path, 2);
-                    const afterPreview = change.kind === "removed" ? "—" : previewForAdded(change.afterValue, change.path);
+                    const isErrorField = String(change.path[0] ?? "").toLowerCase().includes("error");
+                    const isSoftError = isErrorField && change.kind === "added" && wireStatus === "completed";
+                    const rawBefore = change.kind === "added" ? "—" : previewForChange(change.beforeValue, change.path, 2);
+                    const rawAfter = change.kind === "removed" ? "—" : previewForAdded(change.afterValue, change.path);
+                    const beforePreview = isErrorField ? friendlyError(rawBefore) : rawBefore;
+                    const afterPreview = isErrorField ? friendlyError(rawAfter) : rawAfter;
+                    const rowLabel = isSoftError ? "⚠" : labelForChange(change.kind);
+                    const rowLabelColor = isSoftError ? "#fab387" : toneForChange(change.kind);
                     return (
                       <button
                         key={`${describePath(change.path)}:${index}`}
                         type="button"
-                        onClick={() => {
-                          if (canInspect) openInspector(inspectPath);
-                        }}
+                        onClick={() => { if (canInspect) openInspector(inspectPath); }}
                         disabled={!canInspect}
                         style={{
                           display: "grid",
-                          gridTemplateColumns: "auto 1fr auto",
-                          gap: 8,
-                          alignItems: "center",
+                          gridTemplateColumns: "54px 1fr auto",
+                          gap: 6,
+                          alignItems: "baseline",
                           width: "100%",
                           textAlign: "left",
-                          border: "1px solid #313244",
-                          background: canInspect ? "#181825" : "#11111b",
-                          borderRadius: 8,
-                          padding: "7px 8px",
+                          border: "none",
+                          borderBottom: "1px solid #31324440",
+                          background: "transparent",
+                          padding: "4px 4px",
                           color: "#cdd6f4",
                           cursor: canInspect ? "pointer" : "default",
-                          opacity: canInspect ? 1 : 0.82,
+                          opacity: canInspect ? 1 : 0.7,
                         }}
                       >
-                        <span
-                          style={{
-                            borderRadius: 999,
-                            padding: "2px 7px",
-                            fontSize: 10,
-                            fontWeight: 700,
-                            color: toneForChange(change.kind),
-                            border: `1px solid ${toneForChange(change.kind)}40`,
-                            background: `${toneForChange(change.kind)}12`,
-                          }}
-                        >
-                          {labelForChange(change.kind)}
+                        <span style={{ fontSize: 9, fontWeight: 700, color: rowLabelColor }}>
+                          {rowLabel}
                         </span>
                         <span style={{ minWidth: 0 }}>
-                          <div style={{ color: "#89b4fa", fontFamily: "monospace", fontSize: 11 }}>
+                          <span style={{ color: "#89b4fa", fontFamily: "monospace", fontSize: 10 }}>
                             {describePath(change.path)}
-                          </div>
-                          <div style={{ color: "#bac2de", fontSize: 10, wordBreak: "break-word", whiteSpace: "normal" }}>
+                          </span>
+                          {" "}
+                          <span style={{ color: isSoftError ? "#fab38799" : "#6c7086", fontSize: 10 }}>
                             {change.kind === "removed"
-                              ? `Removed: ${beforePreview}`
+                              ? beforePreview
                               : change.kind === "added"
-                                ? `Added: ${afterPreview}`
+                                ? afterPreview
                                 : `${beforePreview} → ${afterPreview}`}
-                          </div>
+                          </span>
                         </span>
-                        <span style={{ color: canInspect ? "#6c7086" : "#45475a", fontSize: 10 }}>
-                          {canInspect ? "Inspect" : ""}
-                        </span>
+                        {canInspect && <span style={{ color: "#45475a", fontSize: 9 }}>→</span>}
                       </button>
                     );
                   })}
+                </div>
+              ))}
+
+              {wireState && hasExpected && (
+                <div style={{ borderTop: "1px solid #313244", padding: "6px 4px 2px", marginTop: 6, fontSize: 10, display: "flex", flexWrap: "wrap", gap: 6 }}>
+                  <span style={{ color: "#89b4fa", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em" }}>Wiring</span>
+                  {matched.length > 0 && <span style={{ color: "#a6e3a1" }}>✓ {matched.join(", ")} reaching next step</span>}
+                  {missing.length > 0 && <span style={{ color: "#f38ba8" }}>✗ Missing: {missing.join(", ")}</span>}
+                  {extra.length > 0 && <span style={{ color: "#6c7086" }}>also has: {extra.slice(0, 4).join(", ")}{extra.length > 4 ? ` +${extra.length - 4}` : ""}</span>}
                 </div>
               )}
             </div>
@@ -1091,7 +1371,7 @@ function ProbeMonitor({ sourceId, targetId, x, y, onClose }: MonitorProps) {
 
           {tab === "data" && !isTestRunning && !wireState && (
             <div style={{ color: "#585b70", padding: "6px 0", textAlign: "center" }}>
-              No data yet — click <span style={{ color: "#cba6f7" }}>Run to here</span> or <span style={{ color: "#cba6f7" }}>Test run</span> to activate
+              No results yet — click <span style={{ color: "#cba6f7" }}>Run to here</span> to see what this step does
             </div>
           )}
 
@@ -1127,7 +1407,7 @@ function ProbeMonitor({ sourceId, targetId, x, y, onClose }: MonitorProps) {
             <>
               <div style={{ marginBottom: 8 }}>
                 <div style={{ color: "#89b4fa", fontSize: 10, fontWeight: 700, marginBottom: 6, letterSpacing: "0.04em", textTransform: "uppercase" }}>
-                  What happened here
+                  Key results
                 </div>
                 <div style={{ display: "grid", gap: 6 }}>
                   {highlights.map(([key, value]) => (
@@ -1161,7 +1441,7 @@ function ProbeMonitor({ sourceId, targetId, x, y, onClose }: MonitorProps) {
 
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
                 <div style={{ color: "#89b4fa", fontSize: 10, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase" }}>
-                  Top-level fields
+                  All fields
                 </div>
                 <button
                   type="button"
@@ -1217,7 +1497,7 @@ function ProbeMonitor({ sourceId, targetId, x, y, onClose }: MonitorProps) {
 
           {tab === "data" && wireError && (
             <div style={{ color: "#f38ba8", marginTop: 8, fontSize: 10, wordBreak: "break-word" }}>
-              ✗ {wireError}
+              ✗ {friendlyError(wireError)}
             </div>
           )}
 
@@ -1225,15 +1505,15 @@ function ProbeMonitor({ sourceId, targetId, x, y, onClose }: MonitorProps) {
             <div style={{ paddingTop: 4 }}>
               {!hasExpected && (
                 <div style={{ color: "#585b70", fontSize: 10 }}>
-                  No input expectations configured on the target step.
-                  Open the step configurator and set up field mappings or input ports.
+                  The next step hasn't said what data it needs yet.
+                  Open its settings and set up what it reads.
                 </div>
               )}
 
               {missing.length > 0 && (
                 <div style={{ marginBottom: 6 }}>
                   <div style={{ color: "#f38ba8", fontWeight: 700, fontSize: 10, marginBottom: 3 }}>
-                    ✗ Missing — target expects these but source does not produce them
+                    ✗ Missing — the next step needs these but they're not here
                   </div>
                   {missing.map((key) => (
                     <div key={key} style={{ display: "flex", alignItems: "center", gap: 6, padding: "1.5px 0" }}>
@@ -1247,7 +1527,7 @@ function ProbeMonitor({ sourceId, targetId, x, y, onClose }: MonitorProps) {
               {matched.length > 0 && (
                 <div style={{ marginBottom: 6 }}>
                   <div style={{ color: "#a6e3a1", fontWeight: 700, fontSize: 10, marginBottom: 3 }}>
-                    ✓ Matched — flowing correctly
+                    ✓ Connected — these are reaching the next step
                   </div>
                   {matched.map((key) => (
                     <button
@@ -1279,7 +1559,7 @@ function ProbeMonitor({ sourceId, targetId, x, y, onClose }: MonitorProps) {
               {extra.length > 0 && (
                 <div>
                   <div style={{ color: "#6c7086", fontWeight: 700, fontSize: 10, marginBottom: 3 }}>
-                    ◌ Also available (not expected by target)
+                    ◌ Also here but the next step doesn't use them
                   </div>
                   {extra.slice(0, 8).map((key) => (
                     <button

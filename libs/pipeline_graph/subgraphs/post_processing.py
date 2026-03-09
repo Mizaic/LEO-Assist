@@ -18,6 +18,7 @@ class PostProcessingState(TypedDict, total=False):
     enable_disorder_gate: bool
     coding_mode: str
     processed_entities: list[dict[str, Any]]
+    post_processing_trace: list[dict[str, Any]]
     errors: list[str]
 
 
@@ -25,7 +26,7 @@ def run_post_process(state: PostProcessingState) -> dict[str, Any]:
     errors = list(state.get("errors") or [])
     try:
         from libs.ner.post_processor_rules import parse_rules
-        from libs.pipeline.post_processing import run_post_processing
+        from libs.pipeline.post_processing import run_post_processing_with_trace
 
         encounter_text = state.get("encounter_text") or ""
         entities = state.get("entities") or []
@@ -33,22 +34,63 @@ def run_post_process(state: PostProcessingState) -> dict[str, Any]:
         enable_disorder_gate = state.get("enable_disorder_gate", False)
         coding_mode = state.get("coding_mode", "hitl")
         rules = parse_rules(raw_rules) if raw_rules else None
-        processed = run_post_processing(
+        processed, layer_trace = run_post_processing_with_trace(
             encounter_text,
             entities,
             rules=rules,
             enable_disorder_gate=enable_disorder_gate,
             coding_mode=coding_mode,
         )
-        return {"entities": processed, "processed_entities": processed, "errors": errors}
+        return {
+            "entities": processed,
+            "processed_entities": processed,
+            "post_processing_trace": layer_trace,
+            "errors": errors,
+        }
     except ImportError as e:
         logger.warning("Post-processing module unavailable: %s", e)
         errors.append(f"post_processing: {e}")
-        return {"entities": state.get("entities", []), "processed_entities": state.get("entities", []), "errors": errors}
+        return {
+            "entities": state.get("entities", []),
+            "processed_entities": state.get("entities", []),
+            "post_processing_trace": [
+                {
+                    "layer_id": "post_processing",
+                    "name": "Post-processing",
+                    "status": "error",
+                    "error": str(e),
+                    "before_count": len(state.get("entities", []) or []),
+                    "after_count": len(state.get("entities", []) or []),
+                    "added_count": 0,
+                    "removed_count": 0,
+                    "updated_count": 0,
+                    "duration_ms": 0,
+                }
+            ],
+            "errors": errors,
+        }
     except Exception as e:
         logger.exception("Post-processing failed")
         errors.append(f"post_processing: {e}")
-        return {"entities": state.get("entities", []), "processed_entities": state.get("entities", []), "errors": errors}
+        return {
+            "entities": state.get("entities", []),
+            "processed_entities": state.get("entities", []),
+            "post_processing_trace": [
+                {
+                    "layer_id": "post_processing",
+                    "name": "Post-processing",
+                    "status": "error",
+                    "error": str(e),
+                    "before_count": len(state.get("entities", []) or []),
+                    "after_count": len(state.get("entities", []) or []),
+                    "added_count": 0,
+                    "removed_count": 0,
+                    "updated_count": 0,
+                    "duration_ms": 0,
+                }
+            ],
+            "errors": errors,
+        }
 
 
 def build_post_processing_subgraph() -> CompiledStateGraph:

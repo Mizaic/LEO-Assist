@@ -22,9 +22,13 @@ const PORT_COLORS: Record<PortDefinition["dataType"], string> = {
 function ActionNodeComponent({ id, data, selected }: NodeProps) {
   const actionData = data as unknown as ActionNodeData;
   const [outputHovered, setOutputHovered] = useState(false);
-  const { testTrace, isTestRunning, runningStepId } = usePipelineTest();
+  const { testTrace, isTestRunning, runningStepId, haltedNodeId } = usePipelineTest();
   const stepResult = testTrace?.[id] ?? null;
   const isThisRunning = isTestRunning && runningStepId === id;
+  const isHalted = stepResult?.status === "halted";
+  // "Not reached" = a run happened (testTrace not null) but this node has no result
+  // AND something upstream caused a halt
+  const isNotReached = testTrace !== null && !stepResult && !isThisRunning && !!haltedNodeId;
 
   const subgraphLabel = useMemo(
     () => SUBGRAPH_OPTIONS.find((s) => s.id === actionData.subgraphId)?.label ?? actionData.subgraphId,
@@ -47,16 +51,25 @@ function ActionNodeComponent({ id, data, selected }: NodeProps) {
         py: 1.5,
         borderRadius: 2,
         border: "2px solid",
-        borderColor: isThisRunning
-          ? "primary.main"
-          : selected
+        borderColor: isHalted
+          ? "error.main"
+          : isThisRunning
             ? "primary.main"
-            : actionData.color,
-        bgcolor: isThisRunning ? "primary.50" : "background.paper",
+            : selected
+              ? "primary.main"
+              : actionData.color,
+        bgcolor: isHalted
+          ? "error.50"
+          : isThisRunning
+            ? "primary.50"
+            : isNotReached
+              ? "grey.50"
+              : "background.paper",
+        opacity: isNotReached ? 0.45 : 1,
         minWidth: 220,
         cursor: "pointer",
         position: "relative",
-        // Pulse outline when this step is actively running
+        // Running: blue pulse
         ...(isThisRunning && {
           animation: "nodePulse 1s ease-in-out infinite",
           "@keyframes nodePulse": {
@@ -65,41 +78,67 @@ function ActionNodeComponent({ id, data, selected }: NodeProps) {
             "100%": { boxShadow: "0 0 0 0 rgba(25,118,210,0)" },
           },
         }),
+        // Halted: red glow — persistent, not looping
+        ...(isHalted && {
+          animation: "nodeHalt 1.4s ease-in-out infinite",
+          "@keyframes nodeHalt": {
+            "0%":   { boxShadow: "0 0 0 0 rgba(211,47,47,0.55)" },
+            "60%":  { boxShadow: "0 0 0 10px rgba(211,47,47,0)" },
+            "100%": { boxShadow: "0 0 0 0 rgba(211,47,47,0)" },
+          },
+        }),
       }}
       onClick={actionData.onConfigure}
     >
-      {/* Input port handles */}
-      {inputs.map((port, i) => (
-        <Tooltip
-          key={`in-${port.key}`}
-          title={`Input: ${port.key} — drag a connection here from a previous step`}
-          placement="left"
-          arrow
-        >
-          <Box sx={{
-            position: "absolute",
-            left: -88,
-            top: `${((i + 1) / (inputs.length + 1)) * 100}%`,
-            transform: "translateY(-50%)",
-            width: 80,
-            textAlign: "right",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "flex-end",
-            gap: "4px",
-          }}>
-            <Typography variant="caption" sx={{ fontFamily: "monospace", fontSize: "0.62rem", color: "text.secondary" }}>
-              {port.key}
-            </Typography>
+      {/* Input handles (React Flow controls absolute positioning) */}
+      {inputs.map((port, i) => {
+        const topPct = `${((i + 1) / (inputs.length + 1)) * 100}%`;
+        return (
+          <Tooltip
+            key={`in-${port.key}`}
+            title={`Input: ${port.key} — drag a connection here from a previous step`}
+            placement="left"
+            arrow
+          >
             <Handle
               id={port.key}
               type="target"
               position={Position.Left}
-              style={{ width: 14, height: 14, background: PORT_COLORS[port.dataType], border: "2px solid #fff", position: "relative", left: "auto", top: "auto", transform: "none" }}
+              style={{
+                top: topPct,
+                width: 14,
+                height: 14,
+                background: PORT_COLORS[port.dataType],
+                border: "2px solid #fff",
+                borderRadius: "50%",
+              }}
             />
-          </Box>
-        </Tooltip>
-      ))}
+          </Tooltip>
+        );
+      })}
+      {inputs.map((port, i) => {
+        const topPct = `${((i + 1) / (inputs.length + 1)) * 100}%`;
+        return (
+          <Typography
+            key={`in-label-${port.key}`}
+            variant="caption"
+            sx={{
+              position: "absolute",
+              left: -10,
+              top: topPct,
+              transform: "translateY(-50%) translateX(-100%)",
+              fontFamily: "monospace",
+              fontSize: "0.62rem",
+              color: "text.secondary",
+              whiteSpace: "nowrap",
+              pointerEvents: "none",
+              pr: 0.5,
+            }}
+          >
+            {port.key}
+          </Typography>
+        );
+      })}
 
       <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
         <Typography variant="body2" fontWeight={600} sx={{ flex: 1 }}>{actionData.label}</Typography>
@@ -116,9 +155,18 @@ function ActionNodeComponent({ id, data, selected }: NodeProps) {
           </Tooltip>
         )}
 
-        {/* Queued / not yet reached */}
+        {/* Queued / waiting during an active run */}
         {isTestRunning && !stepResult && !isThisRunning && (
           <Box sx={{ width: 7, height: 7, borderRadius: "50%", bgcolor: "grey.300", flexShrink: 0 }} />
+        )}
+
+        {/* Not reached — pipeline was halted upstream */}
+        {isNotReached && (
+          <Tooltip title="Pipeline stopped before reaching this step">
+            <Typography variant="caption" sx={{ fontSize: "0.6rem", color: "text.disabled" }}>
+              skipped
+            </Typography>
+          </Tooltip>
         )}
 
         {/* Passed */}
@@ -133,7 +181,19 @@ function ActionNodeComponent({ id, data, selected }: NodeProps) {
           </Tooltip>
         )}
 
-        {/* Failed */}
+        {/* Halted — step ran but quality gate stopped the pipeline */}
+        {isHalted && (
+          <Tooltip title="Pipeline stopped here — check the probe for details">
+            <Box sx={{ display: "flex", alignItems: "center", gap: 0.4 }}>
+              <Box component="span" sx={{ fontSize: "0.75rem", lineHeight: 1 }}>🛑</Box>
+              <Typography variant="caption" sx={{ fontSize: "0.6rem", color: "error.dark", fontWeight: 700 }}>
+                halted
+              </Typography>
+            </Box>
+          </Tooltip>
+        )}
+
+        {/* Errored — step crashed */}
         {stepResult?.status === "error" && (
           <Tooltip title={stepResult.error ?? "Step failed"}>
             <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: "error.main", flexShrink: 0 }} />
@@ -146,40 +206,57 @@ function ActionNodeComponent({ id, data, selected }: NodeProps) {
         sx={{ mt: 0.5, bgcolor: actionData.color, color: "#fff", fontSize: "0.65rem", height: 20 }}
       />
 
-      {/* Output port handles */}
-      {outputs.map((port, i) => (
-        <Tooltip
-          key={`out-${port.key}`}
-          title={`Output: ${port.key} — drag this dot to connect to the next step`}
-          placement="right"
-          arrow
-        >
-          <Box
-            onMouseEnter={() => setOutputHovered(true)}
-            onMouseLeave={() => setOutputHovered(false)}
-            sx={{
-              position: "absolute",
-              right: -88,
-              top: `${((i + 1) / (outputs.length + 1)) * 100}%`,
-              transform: "translateY(-50%)",
-              width: 80,
-              display: "flex",
-              alignItems: "center",
-              gap: "4px",
-            }}
+      {/* Output handles (React Flow controls absolute positioning) */}
+      {outputs.map((port, i) => {
+        const topPct = `${((i + 1) / (outputs.length + 1)) * 100}%`;
+        return (
+          <Tooltip
+            key={`out-${port.key}`}
+            title={`Output: ${port.key} — drag this dot to connect to the next step`}
+            placement="right"
+            arrow
           >
             <Handle
               id={port.key}
               type="source"
               position={Position.Right}
-              style={{ width: 14, height: 14, background: PORT_COLORS[port.dataType], border: "2px solid #fff", position: "relative", right: "auto", top: "auto", transform: "none" }}
+              onMouseEnter={() => setOutputHovered(true)}
+              onMouseLeave={() => setOutputHovered(false)}
+              style={{
+                top: topPct,
+                width: 14,
+                height: 14,
+                background: PORT_COLORS[port.dataType],
+                border: "2px solid #fff",
+                borderRadius: "50%",
+              }}
             />
-            <Typography variant="caption" sx={{ fontFamily: "monospace", fontSize: "0.62rem", color: "text.secondary" }}>
-              {port.key}
-            </Typography>
-          </Box>
-        </Tooltip>
-      ))}
+          </Tooltip>
+        );
+      })}
+      {outputs.map((port, i) => {
+        const topPct = `${((i + 1) / (outputs.length + 1)) * 100}%`;
+        return (
+          <Typography
+            key={`out-label-${port.key}`}
+            variant="caption"
+            sx={{
+              position: "absolute",
+              right: -8,
+              top: topPct,
+              transform: "translateY(-50%) translateX(100%)",
+              fontFamily: "monospace",
+              fontSize: "0.62rem",
+              color: "text.secondary",
+              whiteSpace: "nowrap",
+              pointerEvents: "none",
+              pl: 0.5,
+            }}
+          >
+            {port.key}
+          </Typography>
+        );
+      })}
 
       {/* Hint shown when step has no outputs configured yet */}
       {!hasOutputs && (

@@ -6,9 +6,17 @@
  * in any environment without rebuilding.
  *
  * Env vars (all have localhost defaults for local dev):
- *   INTERNAL_API_BASE    - core-api  (default http://localhost:8000)
- *   TERMINOLOGY_API_URL  - terminology-api (default http://localhost:8001)
- *   TRAINING_WORKER_URL  - training-worker (default http://localhost:8005)
+ *   INTERNAL_API_BASE      - core-api           (default http://localhost:8000)
+ *   TERMINOLOGY_API_URL    - terminology-api     (default http://localhost:8001)
+ *   TRAINING_WORKER_URL    - training-worker     (default http://localhost:8005)
+ *   PIPELINE_WORKER_URL    - pipeline-worker     (default http://localhost:8006)
+ *
+ * ROUTING NOTE — NextResponse.rewrite() with an absolute external URL
+ * short-circuits Next.js routing entirely; App Router Route Handlers are
+ * never consulted for paths that hit an external-rewrite middleware rule.
+ * Therefore all test-run paths (which belong on the pipeline worker, not
+ * the core API) must be declared explicitly here, BEFORE the generic
+ * /api/pipeline/ rule, so the first-match wins logic routes them correctly.
  */
 import { NextRequest, NextResponse } from "next/server";
 
@@ -33,6 +41,13 @@ function trainWorker(): string {
   );
 }
 
+function pipelineWorker(): string {
+  return (process.env.PIPELINE_WORKER_URL || "http://localhost:8006").replace(
+    /\/+$/,
+    "",
+  );
+}
+
 const EXACT_ROUTES: Record<string, () => string> = {
   "/auth/login": () => `${coreApi()}/auth/login`,
   "/auth/logout": () => `${coreApi()}/auth/logout`,
@@ -51,6 +66,11 @@ const PREFIX_RULES: PrefixRule[] = [
   { prefix: "/api/mail/", rewrite: (r) => `${coreApi()}/mail/${r}` },
   { prefix: "/api/proxy/", rewrite: (r) => `${coreApi()}/api/proxy/${r}` },
   { prefix: "/api/patients/", rewrite: (r) => `${coreApi()}/patients/${r}` },
+  // ── Pipeline Worker routes (must come BEFORE the generic /api/pipeline/ rule) ──
+  // All interactive dry-run endpoints run on the pipeline worker, not the Core API,
+  // so that LLM/NLP work does not compete with live API request serving.
+  { prefix: "/api/pipeline/test-run", rewrite: (r) => `${pipelineWorker()}/test-run${r}` },
+  // ── Core API — all other pipeline endpoints (production runs, stats, etc.) ──
   { prefix: "/api/pipeline/", rewrite: (r) => `${coreApi()}/pipeline/${r}` },
   { prefix: "/api/review/", rewrite: (r) => `${coreApi()}/review/${r}` },
   { prefix: "/api/exports/", rewrite: (r) => `${coreApi()}/exports/${r}` },

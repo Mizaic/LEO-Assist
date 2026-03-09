@@ -165,6 +165,7 @@ class LLMClient:
         max_tokens: int = 2048,
         temperature: float = 0.0,
         tool_config: dict[str, Any] | None = None,
+        json_mode: bool = False,
     ) -> LLMResponse:
         """Synchronous call. Returns unified response regardless of provider.
 
@@ -172,12 +173,20 @@ class LLMClient:
             tool_config: Optional Bedrock toolConfig dict. When provided, passes
                 it to the Converse API and populates LLMResponse.tool_uses with
                 any toolUse content blocks returned. Ignored for Azure provider.
+            json_mode: When True, instructs the provider to emit only valid JSON.
+                * Azure OpenAI: sets ``response_format={"type": "json_object"}``.
+                  Requires the word "JSON" to appear somewhere in the prompt
+                  (already true for all structured-output callers in this codebase).
+                * AWS Bedrock: JSON enforcement is handled via ``tool_config`` —
+                  pass a schema-constrained toolConfig and Claude is forced to use
+                  the tool (it physically cannot return prose).  ``json_mode=True``
+                  is a no-op for Bedrock when ``tool_config`` is already supplied.
         """
         client = self._get_client()
         if self.provider == "aws":
             return self._converse_bedrock(client, system, messages, max_tokens, temperature, tool_config)
         else:
-            return self._converse_azure(client, system, messages, max_tokens, temperature)
+            return self._converse_azure(client, system, messages, max_tokens, temperature, json_mode=json_mode)
 
     def _converse_bedrock(
         self,
@@ -287,6 +296,7 @@ class LLMClient:
         max_tokens: int,
         temperature: float,
         *,
+        json_mode: bool = False,
         _max_retries: int = 3,
         _base_delay: float = 1.0,
         _max_delay: float = 30.0,
@@ -306,6 +316,13 @@ class LLMClient:
             oai_messages.append({"role": role, "content": content})
 
         kwargs: dict[str, Any] = {"model": self.model_id, "messages": oai_messages}
+
+        # Force JSON-only output.  response_format is supported by GPT-4-turbo,
+        # GPT-5, and o-series (reasoning) models on 2024-12-01-preview+.
+        # Requires the word "JSON" to appear somewhere in the prompt (already true
+        # for every structured-output caller in this codebase).
+        if json_mode:
+            kwargs["response_format"] = {"type": "json_object"}
 
         if self.use_reasoning:
             # Pick tier-appropriate effort; individual override via azure_reasoning_effort.
