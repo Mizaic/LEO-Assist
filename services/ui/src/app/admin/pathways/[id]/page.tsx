@@ -3543,6 +3543,11 @@ export default function PathwayBuilderPage() {
     status: "completed" | "halted" | "error" | "running";
     halted_at: string | null;
     halted_at_subgraph: string | null;
+    halt_reason?: string | null;
+    verification_is_accurate?: boolean | null;
+    verification_confidence?: number | null;
+    verification_threshold?: number | null;
+    verification_issues?: string[] | null;
     error: string | null;
     duration_ms: number;
     index: number;
@@ -4104,16 +4109,17 @@ export default function PathwayBuilderPage() {
         if (done) break;
         sseBuffer += decoder.decode(value, { stream: true });
 
-        // SSE events are separated by double newlines
-        const parts = sseBuffer.split("\n\n");
+        // SSE events are separated by a blank line; support LF and CRLF framing.
+        const parts = sseBuffer.split(/\r?\n\r?\n/);
         sseBuffer = parts.pop() ?? "";   // keep incomplete trailing fragment
 
         for (const part of parts) {
           let eventType = "message";
           let dataLine = "";
-          for (const line of part.split("\n")) {
-            if (line.startsWith("event: ")) eventType = line.slice(7).trim();
-            if (line.startsWith("data: "))  dataLine  = line.slice(6).trim();
+          for (const line of part.split(/\r?\n/)) {
+            const trimmed = line.trimStart();
+            if (trimmed.startsWith("event: ")) eventType = trimmed.slice(7).trim();
+            if (trimmed.startsWith("data: "))  dataLine  = trimmed.slice(6).trim();
           }
           if (!dataLine) continue;
 
@@ -4255,17 +4261,47 @@ export default function PathwayBuilderPage() {
         const { value, done } = await reader.read();
         if (done) break;
         buf += decoder.decode(value, { stream: true });
-        const blocks = buf.split("\n\n");
+        const blocks = buf.split(/\r?\n\r?\n/);
         buf = blocks.pop() ?? "";
         for (const block of blocks) {
-          const dataLine = block.split("\n").find((l) => l.startsWith("data:"));
+          const dataLine = block
+            .split(/\r?\n/)
+            .find((l) => l.trimStart().startsWith("data:"));
           if (!dataLine) continue;
           try {
-            const evt = JSON.parse(dataLine.slice(5).trim());
+            const evt = JSON.parse(dataLine.trimStart().slice(5).trim());
             if (evt.type === "candidate_start") {
-              setBatchResults((prev) => [...prev, { candidate_id: evt.candidate_id, text_preview: evt.text_preview, status: "running", halted_at: null, halted_at_subgraph: null, error: null, duration_ms: 0, index: evt.index }]);
+              setBatchResults((prev) => [...prev, {
+                candidate_id: evt.candidate_id,
+                text_preview: evt.text_preview,
+                status: "running",
+                halted_at: null,
+                halted_at_subgraph: null,
+                halt_reason: null,
+                verification_is_accurate: null,
+                verification_confidence: null,
+                verification_threshold: null,
+                verification_issues: null,
+                error: null,
+                duration_ms: 0,
+                index: evt.index,
+              }]);
             } else if (evt.type === "candidate_done") {
-              setBatchResults((prev) => prev.map((r) => r.candidate_id === evt.candidate_id ? { ...r, status: evt.status, halted_at: evt.halted_at, halted_at_subgraph: evt.halted_at_subgraph, error: evt.error, duration_ms: evt.duration_ms } : r));
+              setBatchResults((prev) => prev.map((r) => r.candidate_id === evt.candidate_id
+                ? {
+                    ...r,
+                    status: evt.status,
+                    halted_at: evt.halted_at,
+                    halted_at_subgraph: evt.halted_at_subgraph,
+                    halt_reason: evt.halt_reason ?? null,
+                    verification_is_accurate: evt.verification_is_accurate ?? null,
+                    verification_confidence: typeof evt.verification_confidence === "number" ? evt.verification_confidence : null,
+                    verification_threshold: typeof evt.verification_threshold === "number" ? evt.verification_threshold : null,
+                    verification_issues: Array.isArray(evt.verification_issues) ? evt.verification_issues.map((x: unknown) => String(x)) : null,
+                    error: evt.error,
+                    duration_ms: evt.duration_ms,
+                  }
+                : r));
             } else if (evt.type === "step_progress") {
               // Live per-step funnel update
               setBatchStepCounts((prev) => ({
@@ -5373,6 +5409,7 @@ export default function PathwayBuilderPage() {
                     <Box component="th">Text preview</Box>
                     <Box component="th">Result</Box>
                     <Box component="th">Stopped at</Box>
+                    <Box component="th">Why halted</Box>
                     <Box component="th" sx={{ textAlign: "right" }}>Time</Box>
                   </Box>
                 </Box>
@@ -5400,6 +5437,31 @@ export default function PathwayBuilderPage() {
                       </Box>
                       <Box component="td" sx={{ color: "text.secondary" }}>
                         {r.halted_at ?? (r.error ? r.error.slice(0, 60) : "—")}
+                      </Box>
+                      <Box component="td" sx={{ color: "text.secondary", maxWidth: 260 }}>
+                        {r.status === "halted" ? (
+                          (() => {
+                            const details: string[] = [];
+                            if (typeof r.verification_confidence === "number") {
+                              const thresholdText = typeof r.verification_threshold === "number"
+                                ? ` / ${r.verification_threshold.toFixed(2)}`
+                                : "";
+                              details.push(`confidence ${r.verification_confidence.toFixed(2)}${thresholdText}`);
+                            }
+                            if (r.verification_is_accurate === false) details.push("is_accurate=false");
+                            if (r.halt_reason) details.push(r.halt_reason);
+                            const issueText = (r.verification_issues ?? []).slice(0, 2).join("; ");
+                            const text = [details.join(", "), issueText].filter(Boolean).join(" — ");
+                            if (!text) return "Verification gate failed";
+                            return (
+                              <Tooltip title={text}>
+                                <span style={{ display: "inline-block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 240 }}>
+                                  {text}
+                                </span>
+                              </Tooltip>
+                            );
+                          })()
+                        ) : "—"}
                       </Box>
                       <Box component="td" sx={{ textAlign: "right", color: "text.secondary", whiteSpace: "nowrap" }}>
                         {r.duration_ms > 0 ? `${(r.duration_ms / 1000).toFixed(1)}s` : "—"}

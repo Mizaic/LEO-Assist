@@ -26,6 +26,11 @@ You must NOT flatten distinct branches into one approximate list.
 5. If the NICE text uses vague or narrative phrasing, keep a clinically broad \
    display term and provide multiple `search_terms` to help the terminology \
    resolver find the correct SNOMED concept.
+   - For phrases like "associated symptoms", "symptoms of X", or
+     "additional symptoms/signs/findings", explicitly enumerate plausible
+     patient-presenting symptom terms implied by the recommendation text.
+   - Keep terms clinically conservative and broad; do not invent extra risk
+     factors or diagnoses not present in the recommendation.
 6. If the recommendation is a service standard with no patient-level trigger, \
    return `logic_tree: null` and `action: null`.
 

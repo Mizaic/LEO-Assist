@@ -378,7 +378,7 @@ def test_rule_extraction(
         # generator.  False when any term failed to SNOMED-code (partial results).
         "would_write":    coded is not None and not any(
             "terminology_api_unavailable" in e for e in errors
-        ),
+        ) and not bool((coded or {}).get("no_rule_expected")),
     }
 
     if coded is None:

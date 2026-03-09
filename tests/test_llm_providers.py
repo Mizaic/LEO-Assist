@@ -257,3 +257,19 @@ class TestLLMClientToolUse:
             model_id="test-model",
         )
         assert resp.tool_uses == []
+
+    def test_converse_reads_cache_read_input_tokens_key(self):
+        """cached_input_tokens is parsed from canonical Bedrock usage key."""
+        from libs.llm_client.factory import LLMClient
+
+        with patch("libs.llm_client.bedrock_retry.converse_with_retry") as mock_retry, \
+             patch.object(LLMClient, "_init_bedrock", return_value=MagicMock()):
+            mock_retry.return_value = {
+                "output": {"message": {"content": [{"text": "ok"}]}},
+                "usage": {"inputTokens": 20, "outputTokens": 10, "cacheReadInputTokens": 7},
+                "stopReason": "end_turn",
+            }
+            client = LLMClient(provider="aws", model_id="test-model")
+            resp = client.converse(system="s", messages=[{"role": "user", "content": "t"}])
+
+        assert resp.cached_input_tokens == 7

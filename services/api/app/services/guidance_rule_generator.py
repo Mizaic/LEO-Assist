@@ -360,6 +360,19 @@ class GuidanceRuleGenerator:
             )
             return None
 
+        if bool(coded.get("no_rule_expected")):
+            logger.info(
+                "Recommendation %s marked no_rule_expected (%s) — skipping rule write.",
+                rec["id"],
+                coded.get("reason") or "non_codable_service_recommendation",
+            )
+            self._write_guidance_audit_event(
+                rec=rec, guideline_id=guideline_id,
+                status="skipped_non_codable", llm_tokens=llm_tokens,
+                duration_ms=duration_ms, errors=errors_out,
+            )
+            return None
+
         # Abort the Neo4j write if any term failed due to Terminology API being
         # unavailable — a partially coded rule would have missing criteria groups
         # and would either never fire or fire incorrectly for patients.

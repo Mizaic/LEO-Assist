@@ -6,6 +6,16 @@ import os
 from dataclasses import dataclass, field
 
 
+def _bedrock_cache_read_tokens(usage: dict) -> int:
+    """Read Bedrock cache-read tokens across SDK/doc field variants."""
+    return int(
+        usage.get("cacheReadInputTokens")
+        or usage.get("cacheReadInputTokenCount")
+        or usage.get("CacheReadInputTokens")
+        or 0
+    )
+
+
 @dataclass(frozen=True)
 class LLMCostConfig:
     """Per-token cost rates loaded from environment variables."""
@@ -53,7 +63,7 @@ class LLMUsage:
         return cls(
             input_tokens=int(usage.get("inputTokens", 0)),
             output_tokens=int(usage.get("outputTokens", 0)),
-            cached_input_tokens=int(usage.get("cacheReadInputTokenCount", 0)),
+            cached_input_tokens=_bedrock_cache_read_tokens(usage),
             llm_calls=1,
         )
 

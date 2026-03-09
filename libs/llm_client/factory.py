@@ -90,6 +90,16 @@ _AZURE_REASONING_EFFORT_BY_TIER: dict[str, str] = {
 _AZURE_REASONING_EFFORT = os.getenv("AZURE_REASONING_EFFORT", "high")  # legacy override
 
 
+def _bedrock_cache_read_tokens(usage: dict[str, Any]) -> int:
+    """Read Bedrock cache-read tokens across SDK/doc field variants."""
+    return int(
+        usage.get("cacheReadInputTokens")
+        or usage.get("cacheReadInputTokenCount")
+        or usage.get("CacheReadInputTokens")
+        or 0
+    )
+
+
 class LLMClient:
     """Sync LLM client wrapping a single provider + model."""
 
@@ -282,7 +292,7 @@ class LLMClient:
             text=text,
             input_tokens=usage.get("inputTokens", 0),
             output_tokens=usage.get("outputTokens", 0),
-            cached_input_tokens=usage.get("cacheReadInputTokenCount", 0),
+            cached_input_tokens=_bedrock_cache_read_tokens(usage),
             stop_reason=stop_reason,
             model_id=self.model_id,
             tool_uses=tool_uses,

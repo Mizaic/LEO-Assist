@@ -272,14 +272,55 @@ class LLMExtractorAdapter:
 
         terms = data.get("terms", [])
         items: list[ExtractionItem] = []
+        sentence_index = {
+            str(s.sentence_id): s
+            for s in sentences
+            if getattr(s, "sentence_id", None)
+        }
+        sentence_cursors: dict[str, int] = {}
+        encounter_cursor = 0
+        encounter_text_lower = encounter_text.lower()
+
+        def _resolve_span(term: dict[str, Any], text_val: str) -> tuple[int, int]:
+            nonlocal encounter_cursor
+            term_text = text_val.strip()
+            fallback_len = max(len(term_text), 1)
+            sentence_id = str(term.get("sentence_id") or "")
+            sentence = sentence_index.get(sentence_id)
+            if sentence and term_text:
+                sentence_text = str(sentence.text or "")
+                sentence_text_lower = sentence_text.lower()
+                term_lower = term_text.lower()
+                start_hint = sentence_cursors.get(sentence_id, 0)
+                local_idx = sentence_text_lower.find(term_lower, start_hint)
+                if local_idx < 0:
+                    local_idx = sentence_text_lower.find(term_lower)
+                if local_idx >= 0:
+                    sentence_cursors[sentence_id] = local_idx + len(term_text)
+                    abs_start = int(sentence.start) + local_idx
+                    return abs_start, abs_start + len(term_text)
+                abs_start = int(sentence.start)
+                return abs_start, abs_start + fallback_len
+
+            if term_text:
+                term_lower = term_text.lower()
+                idx = encounter_text_lower.find(term_lower, encounter_cursor)
+                if idx < 0:
+                    idx = encounter_text_lower.find(term_lower)
+                if idx >= 0:
+                    encounter_cursor = idx + len(term_text)
+                    return idx, idx + len(term_text)
+            return 0, fallback_len
+
         for t in terms:
             text_val = t.get("text", "")
+            span_start, span_end = _resolve_span(t, text_val)
             items.append(
                 ExtractionItem(
                     sentence_id=t.get("sentence_id", ""),
                     text=text_val,
-                    span_start=0,
-                    span_end=len(text_val),
+                    span_start=span_start,
+                    span_end=span_end,
                     semantic_tag=t.get("semantic_tag", "finding"),
                     assertion=t.get("assertion", "present"),
                     confidence=1.0,
