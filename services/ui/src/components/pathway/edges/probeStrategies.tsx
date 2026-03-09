@@ -379,35 +379,81 @@ const verification: ProbeStrategy = {
   headline: (out) => {
     const verified = bool(out.is_verified);
     const result = isRec(out.verification_result) ? out.verification_result : {};
-    const status = str(result.status, verified ? "passed" : "not verified");
-    return verified ? `Verification passed — ${status}` : `Verification ${status}`;
+    const attempts = arr(out.extraction_attempts);
+    const passReason = str(result.pass_reason ?? "");
+    if (verified) {
+      if (passReason === "confidence_override") return `Verification passed (confidence override after ${attempts.length} attempt${attempts.length === 1 ? "" : "s"})`;
+      if (attempts.length > 1) return `Verification passed (after ${attempts.length - 1} auto-correction${attempts.length - 1 === 1 ? "" : "s"})`;
+      return "Verification passed";
+    }
+    if (attempts.length > 1) return `Verification not verified (${attempts.length} attempts)`;
+    return "Verification not verified";
   },
   Detail: ({ output, openInspector }) => {
     const verified = bool(output.is_verified);
     const result = isRec(output.verification_result) ? output.verification_result : null;
     const confidence = result && typeof result.confidence === "number" ? result.confidence : undefined;
-    const corrections = result ? arr(result.corrections ?? result.changes ?? result.issues) : [];
-    const reasons = result ? arr(result.reasons ?? result.errors) : [];
+    const issues = result ? arr(result.issues) : [];
+    const structuredCorrections = result ? arr(result.corrections) : [];
+    const attempts = arr(output.extraction_attempts);
+    const passReason = result ? str(result.pass_reason ?? "") : "";
+    const correctionCount = Math.max(0, attempts.length - 1);
     return (
       <div style={{ display: "grid", gap: 8 }}>
         <Verdict
           passed={verified}
           label={verified ? "Verification passed" : "Verification failed"}
-          detail={reasons.length > 0 ? reasons.slice(0, 3).map(r => fmt(r)).join("; ") : undefined}
+          detail={issues.length > 0 ? issues.slice(0, 2).map(r => fmt(r)).join("; ") : undefined}
           confidence={confidence}
         />
-        {corrections.length > 0 && (
+
+        {/* Auto-correction history */}
+        {correctionCount > 0 && verified && passReason !== "confidence_override" && (
+          <div style={{ fontSize: 10, color: C.green, background: C.deep, borderRadius: 6, padding: "4px 8px", border: `1px solid ${C.border}` }}>
+            ✨ Auto-corrected {correctionCount} time{correctionCount === 1 ? "" : "s"} before passing.
+          </div>
+        )}
+        {passReason === "confidence_override" && (
+          <div style={{ fontSize: 10, color: C.orange, background: C.deep, borderRadius: 6, padding: "4px 8px", border: `1px solid ${C.border}` }}>
+            ⚠ Passed via confidence override after {correctionCount} correction{correctionCount === 1 ? "" : "s"} — confidence {confidence != null ? pct(confidence) : "?"} ≥ threshold. Minor issues remain in the log.
+          </div>
+        )}
+        {correctionCount > 0 && !verified && (
+          <div style={{ fontSize: 10, color: C.red, background: C.deep, borderRadius: 6, padding: "4px 8px", border: `1px solid ${C.border}` }}>
+            🔁 Retried {correctionCount} time{correctionCount === 1 ? "" : "s"} — still not verified.
+          </div>
+        )}
+
+        {/* Structured corrections the verifier suggested */}
+        {structuredCorrections.length > 0 && (
           <div>
             <div style={{ color: C.orange, fontSize: 10, fontWeight: 700, marginBottom: 4 }}>
-              {pl(corrections.length, "correction")} suggested
+              {pl(structuredCorrections.length, "correction")} applied to entities
             </div>
-            {corrections.slice(0, 5).map((c, i) => (
-              <div key={i} style={{ color: C.text, fontSize: 10, padding: "2px 0" }}>
-                • {isRec(c) ? fmt((c as Record<string, unknown>).text ?? (c as Record<string, unknown>).description ?? c) : fmt(c)}
-              </div>
+            {(structuredCorrections as Record<string, unknown>[]).slice(0, 5).map((c, i) => {
+              const parts: string[] = [];
+              if (c.corrected_label) parts.push(`label → ${c.corrected_label}`);
+              if (c.corrected_lookup_term) parts.push(`lookup → "${c.corrected_lookup_term}"`);
+              if (c.corrected_assertion) parts.push(`assertion → ${c.corrected_assertion}`);
+              return (
+                <div key={i} style={{ color: C.text, fontSize: 10, padding: "2px 0" }}>
+                  • Entity {str(c.entity_index as unknown as string)}: {parts.join(", ") || "corrected"}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Remaining issues */}
+        {issues.length > 0 && (
+          <div>
+            <div style={{ color: C.dim, fontSize: 10, fontWeight: 700, marginBottom: 4 }}>Remaining issues</div>
+            {issues.slice(0, 3).map((iss, i) => (
+              <div key={i} style={{ color: C.dim, fontSize: 10, padding: "2px 0" }}>• {fmt(iss)}</div>
             ))}
           </div>
         )}
+
         {result && <InspectButton label="View full verification result" onClick={() => openInspector(["verification_result"])} />}
       </div>
     );

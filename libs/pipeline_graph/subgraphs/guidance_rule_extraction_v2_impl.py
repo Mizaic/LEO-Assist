@@ -443,9 +443,9 @@ def _infer_expected_tag_for_term_obj(term: dict[str, Any], *, is_action: bool = 
         return "finding"
     if any(tok in text for tok in ("x-ray finding", "ultrasound finding", "scan finding", "imaging finding")):
         return "finding"
-    if any(tok in text for tok in ("x-ray", "ultrasound", "endoscopy", "procedure", "investigation", "referral")):
-        return "procedure"
-    return "finding"
+    # Keep constraints high-confidence only; over-constraining every leaf to
+    # "finding" reduced retrieval recall for mixed and edge-case phrasing.
+    return None
 
 
 def _make_demographic_or_concept(value: Any) -> dict[str, Any]:
@@ -1192,7 +1192,9 @@ def _rerun_requested_searches(
     expected_tags: dict[str, str] = {t: "procedure" for t in action_search_terms}
     for node_id, terms in retry_terms.items():
         base = leaf_terms.get(node_id, "")
-        tag = _infer_expected_tag_for_term_obj({"text": base}, is_action=False) or "finding"
+        tag = _infer_expected_tag_for_term_obj({"text": base}, is_action=False)
+        if not tag:
+            continue
         for t in terms:
             expected_tags.setdefault(t, tag)
     resolved = client.resolve(all_terms, expected_tags=expected_tags or None)

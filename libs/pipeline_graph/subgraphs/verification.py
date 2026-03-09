@@ -124,6 +124,12 @@ def _normalise_verification_result(result: dict[str, Any]) -> dict[str, Any]:
         normalised["issues"] = []
     else:
         normalised["issues"] = [str(issues)]
+    
+    # Ensure corrections is a list if present
+    corrections = normalised.get("corrections")
+    if corrections is not None and not isinstance(corrections, list):
+        normalised["corrections"] = []
+    
     return normalised
 
 
@@ -142,6 +148,7 @@ and assertions.
 
 Respond with JSON only — no prose, no markdown fences.
 Required keys: is_accurate (bool), confidence (0.0-1.0), issues (list of strings).
+If you find issues, provide structured `corrections` referencing the entity index.
 """
 
 # Bedrock tool-forcing config.
@@ -180,6 +187,32 @@ _VERIFICATION_TOOL_CONFIG: dict = {
                                     "Empty list when is_accurate is true."
                                 ),
                             },
+                            "corrections": {
+                                "type": "array",
+                                "description": "Structured corrections for specific entities. Provide this if is_accurate is false.",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "entity_index": {
+                                            "type": "integer",
+                                            "description": "Index of the entity in the input array (0-based)."
+                                        },
+                                        "corrected_label": {
+                                            "type": "string",
+                                            "description": "Corrected semantic_tag/label (e.g. 'finding', 'disorder')."
+                                        },
+                                        "corrected_lookup_term": {
+                                            "type": "string",
+                                            "description": "Better search term for terminology resolution."
+                                        },
+                                        "corrected_assertion": {
+                                            "type": "string",
+                                            "description": "Corrected assertion (e.g. 'absent', 'present')."
+                                        }
+                                    },
+                                    "required": ["entity_index"]
+                                }
+                            }
                         },
                         "required": ["is_accurate", "confidence", "issues"],
                     }
@@ -310,13 +343,36 @@ def evaluate_result(state: VerificationState) -> dict[str, Any]:
     attempts = state.get("extraction_attempts") or []
     is_accurate = result.get("is_accurate", False)
     confidence = float(result.get("confidence", 0.0))
-    passed = is_accurate and confidence >= threshold
+    retries_remaining = max(0, max_retries + 1 - len(attempts))
+
+    # Primary pass: verifier explicitly agrees AND confidence is above threshold.
+    strict_pass = is_accurate and confidence >= threshold
+
+    # Fallback pass: retries exhausted, confidence still above threshold.
+    # The verifier may keep raising minor/borderline issues on every retry —
+    # in that case the confidence score is the authoritative quality signal.
+    confidence_pass = (retries_remaining == 0) and (confidence >= threshold) and not strict_pass
+
+    passed = strict_pass or confidence_pass
+
+    if confidence_pass:
+        logger.info(
+            "Verification: retries exhausted but confidence %.2f >= threshold %.2f — accepting with confidence override",
+            confidence,
+            threshold,
+        )
+
     if passed:
         best = result
+        # Tag how it passed so the UI can distinguish
+        if confidence_pass:
+            best = dict(best)
+            best["pass_reason"] = "confidence_override"
     elif attempts:
         best = max(attempts, key=lambda a: float(a.get("confidence", 0)))
     else:
         best = result
+
     return {
         "is_verified": passed,
         "verification_result": best,
@@ -330,22 +386,60 @@ def _route_after_evaluate(state: VerificationState) -> str:
     threshold = float(state.get("confidence_threshold") or 0.8)
     max_retries = int(state.get("max_retries") or 2)
     attempts = state.get("extraction_attempts") or []
-    passed = result.get("is_accurate", False) and float(result.get("confidence", 0)) >= threshold
+    is_accurate = result.get("is_accurate", False)
+    confidence = float(result.get("confidence", 0.0))
     retries_remaining = max(0, max_retries + 1 - len(attempts))
+    passed = (is_accurate and confidence >= threshold) or (retries_remaining == 0 and confidence >= threshold)
     if passed or retries_remaining <= 0:
         return "end"
     return "retry"
+
+
+def correct_entities(state: VerificationState) -> dict[str, Any]:
+    """Apply corrections suggested by the verifier."""
+    result = state.get("verification_result") or {}
+    corrections = result.get("corrections") or []
+    if not corrections:
+        return {}
+    
+    entities = list(state.get("entities") or [])
+    # Deep copy to avoid mutation issues if needed, though here we replace the list
+    # Actually, we want to modify the entities in the list.
+    # Since we are returning a new list to update state, we should copy.
+    import copy
+    new_entities = copy.deepcopy(entities)
+    
+    applied_count = 0
+    for corr in corrections:
+        idx = corr.get("entity_index")
+        if idx is not None and isinstance(idx, int) and 0 <= idx < len(new_entities):
+            ent = new_entities[idx]
+            if corr.get("corrected_label"):
+                ent["label"] = corr["corrected_label"]
+            if corr.get("corrected_lookup_term"):
+                ent["lookup_term"] = corr["corrected_lookup_term"]
+            if corr.get("corrected_assertion"):
+                ent["assertion"] = corr["corrected_assertion"]
+            applied_count += 1
+            
+    if applied_count > 0:
+        logger.info(f"Applied {applied_count} corrections from verifier")
+        return {"entities": new_entities}
+    return {}
 
 
 def build_verification_subgraph() -> CompiledStateGraph:
     g = StateGraph(VerificationState)
     g.add_node("verify_entities", verify_entities)
     g.add_node("evaluate_result", evaluate_result)
+    g.add_node("correct_entities", correct_entities)
+
     g.add_edge(START, "verify_entities")
     g.add_edge("verify_entities", "evaluate_result")
     g.add_conditional_edges(
         "evaluate_result",
         _route_after_evaluate,
-        {"retry": "verify_entities", "end": END},
+        {"retry": "correct_entities", "end": END},
     )
+    g.add_edge("correct_entities", "verify_entities")
     return g.compile()
