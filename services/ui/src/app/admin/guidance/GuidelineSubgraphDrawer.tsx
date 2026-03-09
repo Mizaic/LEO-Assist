@@ -404,22 +404,45 @@ function ExtractionResultPanel({ result }: { result: ExtractionTestResult }) {
 
 interface RecommendationRowProps {
   rec: RecEntry;
+  open?: boolean;
+  onToggle?: () => void;
   /** Result pushed from a "Test All" run in the parent. */
   externalResult?: ExtractionTestResult | null;
   externalError?: string | null;
   externalTesting?: boolean;
 }
 
-function RecommendationRow({ rec, externalResult, externalError, externalTesting }: RecommendationRowProps) {
-  const [open, setOpen] = useState(false);
+function RecommendationRow({
+  rec,
+  open,
+  onToggle,
+  externalResult,
+  externalError,
+  externalTesting,
+}: RecommendationRowProps) {
+  const [localOpen, setLocalOpen] = useState(false);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<ExtractionTestResult | null>(null);
   const [testError, setTestError] = useState<string | null>(null);
+  const isOpen = open ?? localOpen;
+
+  function toggleOpen() {
+    if (onToggle) {
+      onToggle();
+      return;
+    }
+    setLocalOpen((o) => !o);
+  }
 
   // Auto-expand when an external result arrives
   useEffect(() => {
-    if (externalResult || externalError) setOpen(true);
-  }, [externalResult, externalError]);
+    if (!(externalResult || externalError) || isOpen) return;
+    if (onToggle) {
+      onToggle();
+      return;
+    }
+    setLocalOpen(true);
+  }, [externalResult, externalError, isOpen, onToggle]);
 
   const hasText = rec.verbatim && rec.verbatim.trim().length > 0;
   const preview = rec.verbatim ? rec.verbatim.slice(0, 120) : "(no text stored)";
@@ -435,7 +458,10 @@ function RecommendationRow({ rec, externalResult, externalError, externalTesting
     setTesting(true);
     setTestResult(null);
     setTestError(null);
-    setOpen(true);
+    if (!isOpen) {
+      if (onToggle) onToggle();
+      else setLocalOpen(true);
+    }
     try {
       const result = await runExtractionTest(rec.rec_id);
       setTestResult(result);
@@ -452,10 +478,10 @@ function RecommendationRow({ rec, externalResult, externalError, externalTesting
         {/* Expand toggle */}
         <Box
           sx={{ cursor: hasText ? "pointer" : "default", display: "flex", alignItems: "flex-start", pt: 0.3 }}
-          onClick={() => hasText && setOpen((o) => !o)}
+          onClick={() => hasText && toggleOpen()}
         >
           {hasText ? (
-            open ? (
+            isOpen ? (
               <ExpandMoreIcon sx={{ fontSize: 16, color: "text.secondary", flexShrink: 0 }} />
             ) : (
               <ChevronRightIcon sx={{ fontSize: 16, color: "text.secondary", flexShrink: 0 }} />
@@ -465,7 +491,7 @@ function RecommendationRow({ rec, externalResult, externalError, externalTesting
           )}
         </Box>
 
-        <Box sx={{ flex: 1, minWidth: 0 }} onClick={() => hasText && setOpen((o) => !o)} style={{ cursor: hasText ? "pointer" : "default" }}>
+        <Box sx={{ flex: 1, minWidth: 0 }} onClick={() => hasText && toggleOpen()} style={{ cursor: hasText ? "pointer" : "default" }}>
           <Stack direction="row" spacing={0.8} alignItems="center" flexWrap="wrap">
             {rec.rec_title && (
               <Typography
@@ -516,7 +542,7 @@ function RecommendationRow({ rec, externalResult, externalError, externalTesting
             }}
           >
             {preview}
-            {rec.verbatim && rec.verbatim.length > 120 && !open ? "…" : ""}
+            {rec.verbatim && rec.verbatim.length > 120 && !isOpen ? "…" : ""}
           </Typography>
 
           {/* Rules */}
@@ -551,7 +577,7 @@ function RecommendationRow({ rec, externalResult, externalError, externalTesting
       </Stack>
 
       {/* Collapsible content: full text + test result */}
-      <Collapse in={open}>
+      <Collapse in={isOpen}>
         <Box sx={{ ml: 2, mt: 0.5 }}>
           {/* Full verbatim text */}
           <Box
@@ -618,14 +644,21 @@ function groupBySectionTitle(recs: RecEntry[]): [string, RecEntry[]][] {
 
 function ChapterAccordion({
   chapter,
+  open,
+  onToggle,
+  recommendationOpenMap,
+  onToggleRecommendation,
   testAllResults,
   testAllRunning,
 }: {
   chapter: ChapterEntry;
+  open: boolean;
+  onToggle: () => void;
+  recommendationOpenMap: Record<string, boolean>;
+  onToggleRecommendation: (recId: string) => void;
   testAllResults?: TestAllResults;
   testAllRunning?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
   const ruleCount = chapter.recommendations.reduce((n, r) => n + r.rules.length, 0);
   const normativeCount = chapter.recommendations.filter((r) => r.is_normative).length;
   const crossRefCount = chapter.recommendations.length - normativeCount;
@@ -646,7 +679,7 @@ function ChapterAccordion({
           bgcolor: open ? "primary.50" : "grey.100",
           "&:hover": { bgcolor: open ? "primary.100" : "grey.200" },
         }}
-        onClick={() => setOpen((o) => !o)}
+        onClick={onToggle}
       >
         {open ? (
           <ExpandMoreIcon fontSize="small" color="primary" />
@@ -727,6 +760,8 @@ function ChapterAccordion({
                   <RecommendationRow
                     key={rec.rec_id}
                     rec={rec}
+                    open={!!recommendationOpenMap[rec.rec_id]}
+                    onToggle={() => onToggleRecommendation(rec.rec_id)}
                     externalResult={testAllResults?.[rec.rec_id]?.result}
                     externalError={testAllResults?.[rec.rec_id]?.error}
                     externalTesting={testAllRunning && !testAllResults?.[rec.rec_id]}
@@ -742,6 +777,8 @@ function ChapterAccordion({
                 <RecommendationRow
                   key={rec.rec_id}
                   rec={rec}
+                  open={!!recommendationOpenMap[rec.rec_id]}
+                  onToggle={() => onToggleRecommendation(rec.rec_id)}
                   externalResult={testAllResults?.[rec.rec_id]?.result}
                   externalError={testAllResults?.[rec.rec_id]?.error}
                   externalTesting={testAllRunning && !testAllResults?.[rec.rec_id]}
@@ -759,7 +796,14 @@ function ChapterAccordion({
               </Divider>
               {chapter.recommendations
                 .filter((r) => !r.is_normative)
-                .map((rec) => <RecommendationRow key={rec.rec_id} rec={rec} />)}
+                .map((rec) => (
+                  <RecommendationRow
+                    key={rec.rec_id}
+                    rec={rec}
+                    open={!!recommendationOpenMap[rec.rec_id]}
+                    onToggle={() => onToggleRecommendation(rec.rec_id)}
+                  />
+                ))}
             </Box>
           )}
         </Box>
@@ -774,6 +818,8 @@ export default function GuidelineSubgraphDrawer({ code, onClose }: Props) {
   const [data, setData] = useState<SubgraphData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [chapterOpenMap, setChapterOpenMap] = useState<Record<string, boolean>>({});
+  const [recommendationOpenMap, setRecommendationOpenMap] = useState<Record<string, boolean>>({});
 
   const [testAllRunning, setTestAllRunning] = useState(false);
   const [testAllProgress, setTestAllProgress] = useState<{ done: number; total: number } | null>(null);
@@ -818,7 +864,22 @@ export default function GuidelineSubgraphDrawer({ code, onClose }: Props) {
         const body = await r.json().catch(() => ({}));
         throw new Error(body.detail || `HTTP ${r.status}`);
       }
-      setData(await r.json());
+      const payload = await r.json() as SubgraphData;
+      setData(payload);
+      const initialOpenMap: Record<string, boolean> = {};
+      const initialRecommendationOpenMap: Record<string, boolean> = {};
+      for (const chapter of payload.chapters) {
+        if (chapter.recommendations.length > 0) {
+          initialOpenMap[chapter.chapter_id] = false;
+        }
+        for (const rec of chapter.recommendations) {
+          if (rec.verbatim?.trim()) {
+            initialRecommendationOpenMap[rec.rec_id] = false;
+          }
+        }
+      }
+      setChapterOpenMap(initialOpenMap);
+      setRecommendationOpenMap(initialRecommendationOpenMap);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not load subgraph.");
     } finally {
@@ -832,12 +893,47 @@ export default function GuidelineSubgraphDrawer({ code, onClose }: Props) {
       setTestAllResults({});
       setTestAllProgress(null);
       setTestAllRunning(false);
+      setChapterOpenMap({});
+      setRecommendationOpenMap({});
     }
   }, [code, load]);
 
   const open = Boolean(code);
   const chaptersWithRecs = data?.chapters.filter((c) => c.recommendations.length > 0) ?? [];
   const chaptersEmpty = data?.chapters.filter((c) => c.recommendations.length === 0) ?? [];
+  const hasChaptersWithRecs = chaptersWithRecs.length > 0;
+  const recommendationsWithText = chaptersWithRecs.flatMap((c) =>
+    c.recommendations.filter((r) => r.verbatim?.trim())
+  );
+  const hasExpandableRecommendations = recommendationsWithText.length > 0;
+  const allChaptersExpanded =
+    hasChaptersWithRecs && chaptersWithRecs.every((c) => chapterOpenMap[c.chapter_id]);
+  const allRecommendationsExpanded =
+    hasExpandableRecommendations &&
+    recommendationsWithText.every((r) => recommendationOpenMap[r.rec_id]);
+  const allExpanded = allChaptersExpanded && (!hasExpandableRecommendations || allRecommendationsExpanded);
+
+  function toggleAllChapters() {
+    const nextOpen = !allExpanded;
+    const nextMap: Record<string, boolean> = {};
+    for (const chapter of chaptersWithRecs) {
+      nextMap[chapter.chapter_id] = nextOpen;
+    }
+    setChapterOpenMap(nextMap);
+    const nextRecommendationMap: Record<string, boolean> = {};
+    for (const rec of recommendationsWithText) {
+      nextRecommendationMap[rec.rec_id] = nextOpen;
+    }
+    setRecommendationOpenMap(nextRecommendationMap);
+  }
+
+  function toggleChapter(chapterId: string) {
+    setChapterOpenMap((prev) => ({ ...prev, [chapterId]: !prev[chapterId] }));
+  }
+
+  function toggleRecommendation(recId: string) {
+    setRecommendationOpenMap((prev) => ({ ...prev, [recId]: !prev[recId] }));
+  }
 
   return (
     <Drawer
@@ -900,39 +996,54 @@ export default function GuidelineSubgraphDrawer({ code, onClose }: Props) {
           </Box>
 
           {/* Test All button */}
-          {data && data.totals.recommendations > 0 && (
-            <Tooltip
-              title={
-                testAllRunning
-                  ? `Testing… ${testAllProgress?.done ?? 0} / ${testAllProgress?.total ?? 0}`
-                  : testAllProgress
-                  ? `Tested ${testAllProgress.done} recommendations — click to re-run`
-                  : "Run AI extraction on all normative recommendations (dry run)"
-              }
-              arrow
-            >
-              <span>
+          {data && (
+            <>
+              {hasChaptersWithRecs && (
                 <Button
                   size="small"
-                  variant="outlined"
-                  color="primary"
-                  startIcon={
-                    testAllRunning ? (
-                      <CircularProgress size={12} color="inherit" />
-                    ) : (
-                      <PlayArrowIcon sx={{ fontSize: 15 }} />
-                    )
-                  }
-                  onClick={handleTestAll}
-                  disabled={testAllRunning || loading}
+                  variant="text"
+                  onClick={toggleAllChapters}
+                  disabled={loading}
                   sx={{ fontSize: "0.72rem", py: 0.4, px: 1, whiteSpace: "nowrap", flexShrink: 0 }}
                 >
-                  {testAllRunning
-                    ? `${testAllProgress?.done ?? 0} / ${testAllProgress?.total ?? 0}`
-                    : "Test All"}
+                  {allExpanded ? "Collapse all" : "Expand all"}
                 </Button>
-              </span>
-            </Tooltip>
+              )}
+              {data.totals.recommendations > 0 && (
+                <Tooltip
+                  title={
+                    testAllRunning
+                      ? `Testing… ${testAllProgress?.done ?? 0} / ${testAllProgress?.total ?? 0}`
+                      : testAllProgress
+                      ? `Tested ${testAllProgress.done} recommendations — click to re-run`
+                      : "Run AI extraction on all normative recommendations (dry run)"
+                  }
+                  arrow
+                >
+                  <span>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      color="primary"
+                      startIcon={
+                        testAllRunning ? (
+                          <CircularProgress size={12} color="inherit" />
+                        ) : (
+                          <PlayArrowIcon sx={{ fontSize: 15 }} />
+                        )
+                      }
+                      onClick={handleTestAll}
+                      disabled={testAllRunning || loading}
+                      sx={{ fontSize: "0.72rem", py: 0.4, px: 1, whiteSpace: "nowrap", flexShrink: 0 }}
+                    >
+                      {testAllRunning
+                        ? `${testAllProgress?.done ?? 0} / ${testAllProgress?.total ?? 0}`
+                        : "Test All"}
+                    </Button>
+                  </span>
+                </Tooltip>
+              )}
+            </>
           )}
 
           <IconButton onClick={onClose} size="small" aria-label="Close subgraph view">
@@ -1007,6 +1118,10 @@ export default function GuidelineSubgraphDrawer({ code, onClose }: Props) {
               <ChapterAccordion
                 key={ch.chapter_id}
                 chapter={ch}
+                open={!!chapterOpenMap[ch.chapter_id]}
+                onToggle={() => toggleChapter(ch.chapter_id)}
+                recommendationOpenMap={recommendationOpenMap}
+                onToggleRecommendation={toggleRecommendation}
                 testAllResults={testAllResults}
                 testAllRunning={testAllRunning}
               />

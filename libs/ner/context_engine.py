@@ -79,6 +79,7 @@ def _build_nlp(extra_rules: list[dict] | None = None) -> spacy.language.Language
 
     _register_extensions()
     nlp = spacy.blank("en")
+    nlp.add_pipe("sentencizer")
     context = nlp.add_pipe(
         "medspacy_context",
         config={"span_attrs": _SPAN_ATTRS, "max_scope": 10, "rules": "default"},
@@ -291,6 +292,8 @@ def apply_context_detection_to_dicts(
     try:
         nlp = _get_nlp()
         doc = nlp.make_doc(encounter_text)
+        if nlp.has_pipe("sentencizer"):
+            doc = nlp.get_pipe("sentencizer")(doc)
         pending = []
         for idx in needs:
             ent = entities[idx]
@@ -351,6 +354,8 @@ def detect_assertions_for_encounter(
     try:
         nlp = _get_nlp()
         doc = nlp.make_doc(encounter_text)
+        if nlp.has_pipe("sentencizer"):
+            doc = nlp.get_pipe("sentencizer")(doc)
         pending = _make_pending_spans(doc, items, needs)
         passes = _deduplicate_spans(pending)
 

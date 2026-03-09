@@ -166,6 +166,28 @@ class TestParseOutput:
         assert result["logic_tree"]["kind"] == "AND"
 
 
+class TestGuidancePromptHeuristics:
+    def test_vague_symptom_phrase_detection(self):
+        from libs.pipeline_graph.subgraphs.guidance_rule_extraction_v2_impl import _looks_like_vague_symptom_clause
+
+        assert _looks_like_vague_symptom_clause(
+            "Take into account any associated symptoms, particularly fever and weight loss."
+        )
+        assert not _looks_like_vague_symptom_clause("Refer people with dysphagia.")
+
+    def test_instruction_issue_detection(self):
+        from libs.pipeline_graph.subgraphs.guidance_rule_extraction_v2_impl import _has_instruction_issue
+
+        verifier_result = {
+            "overall_status": "rejected",
+            "leaf_decisions": [
+                {"node_id": "n1", "status": "rejected", "reason": "JSON format invalid for required schema."},
+            ],
+            "action_decision": {"status": "not_required", "reason": "No action"},
+        }
+        assert _has_instruction_issue(verifier_result)
+
+
 class TestCodeSnomed:
     """code_snomed node: batched terminology resolve produces candidate payloads."""
 

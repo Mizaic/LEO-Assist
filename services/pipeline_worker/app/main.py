@@ -409,6 +409,11 @@ async def batch_test_run(body: BatchTestRequest) -> StreamingResponse:
                 final_status = "completed"
                 halted_at: str | None = None
                 halted_at_subgraph: str | None = None
+                halt_reason: str | None = None
+                verification_is_accurate: bool | None = None
+                verification_confidence: float | None = None
+                verification_threshold: float | None = None
+                verification_issues: list[str] | None = None
                 error_msg: str | None = None
 
                 try:
@@ -427,6 +432,32 @@ async def batch_test_run(body: BatchTestRequest) -> StreamingResponse:
                                 final_status = "halted"
                                 halted_at = lbl
                                 halted_at_subgraph = sg
+                                halt_reason = trace.get("halt_reason")
+                                if sg == "verification":
+                                    out_state = trace.get("output_state") or {}
+                                    if isinstance(out_state, dict):
+                                        verification_threshold_raw = out_state.get("confidence_threshold")
+                                        try:
+                                            verification_threshold = float(verification_threshold_raw)
+                                        except Exception:
+                                            verification_threshold = None
+                                        verification = out_state.get("verification_result") or {}
+                                        if isinstance(verification, dict):
+                                            verification_is_accurate = bool(
+                                                verification.get("is_accurate", False)
+                                            )
+                                            conf_raw = verification.get("confidence")
+                                            try:
+                                                verification_confidence = float(conf_raw)
+                                            except Exception:
+                                                verification_confidence = None
+                                            issues_raw = verification.get("issues")
+                                            if isinstance(issues_raw, list):
+                                                verification_issues = [str(i) for i in issues_raw if str(i).strip()]
+                                            elif issues_raw is None:
+                                                verification_issues = []
+                                            else:
+                                                verification_issues = [str(issues_raw)]
                                 entry["halted"] += 1
                             elif st == "error" and final_status != "halted":
                                 final_status = "error"
@@ -466,6 +497,11 @@ async def batch_test_run(body: BatchTestRequest) -> StreamingResponse:
                     "status": final_status,
                     "halted_at": halted_at,
                     "halted_at_subgraph": halted_at_subgraph,
+                    "halt_reason": halt_reason,
+                    "verification_is_accurate": verification_is_accurate,
+                    "verification_confidence": verification_confidence,
+                    "verification_threshold": verification_threshold,
+                    "verification_issues": verification_issues,
                     "error": error_msg,
                     "duration_ms": duration_ms,
                     "index": idx + 1,

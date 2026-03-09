@@ -17,7 +17,7 @@ export const SUBGRAPH_OPTIONS = [
   { id: "next_best_action",  label: "Next Best Action",       color: "#673AB7", category: "Safety",          description: "Suggest the most appropriate next clinical action based on the patient context." },
   { id: "rest_connector",    label: "Call REST API",          color: "#607D8B", category: "Integration",     description: "Send runtime state to an external REST API and map the response back into the pipeline." },
   { id: "queue_publish",     label: "Publish Queue Message",  color: "#455A64", category: "Integration",     description: "Publish a message to the configured queue or topic for asynchronous downstream work." },
-  { id: "guidance_rule_extraction", label: "Extract Guidance Rule", color: "#6A1B9A", category: "Clinical AI", description: "Turn a guideline recommendation into structured criteria groups and a coded action." },
+  { id: "guidance_rule_extraction", label: "Extract Guidance Rule", color: "#6A1B9A", category: "Clinical AI", description: "Turn a guideline recommendation into a structured logic tree and a coded action." },
 ];
 
 export const SUBGRAPH_IO: Record<string, {

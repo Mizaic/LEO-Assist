@@ -744,28 +744,38 @@ const queuePublish: ProbeStrategy = {
   },
 };
 
+function countLogicLeaves(node: unknown): number {
+  if (!isRec(node)) return 0;
+  const kind = str(node.kind).toUpperCase();
+  if (kind === "CONCEPT") return 1;
+  return arr(node.children).reduce((n, child) => n + countLogicLeaves(child), 0);
+}
+
 const guidanceRuleExtraction: ProbeStrategy = {
   icon: "📖",
   headline: (out) => {
     const coded = isRec(out.coded_criteria) ? out.coded_criteria : {};
-    const groups = arr(coded.criteria_groups);
-    return groups.length > 0 ? `Extracted ${pl(groups.length, "criteria group")}` : "Guidance rule extraction completed";
+    const logicTree = isRec(coded.logic_tree) ? coded.logic_tree : null;
+    const leaves = countLogicLeaves(logicTree);
+    return logicTree ? `Extracted logic tree (${pl(leaves, "criterion")})` : "Guidance rule extraction completed";
   },
   Detail: ({ output, openInspector }) => {
     const coded = isRec(output.coded_criteria) ? output.coded_criteria : {};
-    const groups = arr(coded.criteria_groups).filter(isRec) as Record<string, unknown>[];
+    const logicTree = isRec(coded.logic_tree) ? coded.logic_tree : null;
+    const schemaVersion = num(coded.schema_version, 0);
+    const leaves = countLogicLeaves(logicTree);
     const action = isRec(coded.action) ? coded.action : null;
     return (
       <div style={{ display: "grid", gap: 8 }}>
-        {groups.length > 0 && (
-          <MiniTable
-            cols={["title", "condition", "operator"]}
-            rows={groups}
-            onRow={(i) => openInspector(["coded_criteria"])}
-          />
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+          {schemaVersion > 0 && <Pill label="Schema" value={`v${schemaVersion}`} color={C.blue} />}
+          {logicTree && <Pill label="Criteria leaves" value={leaves} color={C.green} />}
+        </div>
+        {action && <SectionCard title="Action" text={fmt(action.term ?? action.preferred_term ?? action.snomed_concept_id ?? action)} color={C.purple} />}
+        {(logicTree || action) && (
+          <InspectButton label="View full coded criteria" onClick={() => openInspector(["coded_criteria"])} />
         )}
-        {action && <SectionCard title="Action" text={fmt(action.description ?? action.code ?? action.type ?? action)} color={C.purple} />}
-        {groups.length === 0 && !action && <div style={{ color: C.dim, fontSize: 10 }}>No structured criteria extracted.</div>}
+        {!logicTree && !action && <div style={{ color: C.dim, fontSize: 10 }}>No structured criteria extracted.</div>}
       </div>
     );
   },

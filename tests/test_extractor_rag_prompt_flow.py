@@ -86,3 +86,32 @@ def test_invalid_max_few_shot_defaults_to_20() -> None:
         provider="aws",
     )
     assert adapter._max_few_shot == 20
+
+
+def test_llm_extractor_assigns_distinct_spans_for_multiple_terms(monkeypatch) -> None:
+    class _SpanFakeLLM:
+        def converse(self, system, messages, max_tokens=0, temperature=0.0):  # noqa: ANN001
+            _ = (system, messages, max_tokens, temperature)
+            return _FakeResp(
+                '{"terms": ['
+                '{"sentence_id":"s0","text":"change in bowel habit","lookup_term":"change in bowel habit","semantic_tag":"finding","assertion":"absent"},'
+                '{"sentence_id":"s0","text":"rectal bleeding","lookup_term":"rectal bleeding","semantic_tag":"finding","assertion":"absent"}'
+                ']}'
+            )
+
+    monkeypatch.setattr("libs.llm_client.factory.create_llm", lambda tier="small": _SpanFakeLLM())
+
+    adapter = LLMExtractorAdapter(
+        system_prompt="Base instructions",
+        output_schema_json='{"type":"object","properties":{"terms":{"type":"array"}}}',
+        few_shot_examples=[],
+        provider="aws",
+    )
+
+    encounter = "No change in bowel habit. No rectal bleeding."
+    items = adapter.extract_batch(encounter, [SentenceChunk("s0", encounter, 0, len(encounter))])
+
+    assert len(items) == 2
+    assert items[0].span_start != items[1].span_start
+    assert items[0].span_end > items[0].span_start
+    assert items[1].span_end > items[1].span_start

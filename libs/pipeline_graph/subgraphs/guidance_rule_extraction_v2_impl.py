@@ -75,6 +75,37 @@ _SEX_TERMS = {
     "men": "male",
 }
 
+_VAGUE_SYMPTOM_PHRASE_RE = re.compile(
+    r"\b(associated symptoms|symptoms of|additional symptoms|additional signs|additional findings)\b",
+    re.IGNORECASE,
+)
+
+_INSTRUCTION_ISSUE_TOKENS = (
+    "instruction",
+    "schema",
+    "json",
+    "format",
+    "parse",
+    "invalid",
+    "missing field",
+)
+
+_NON_CODABLE_CHAPTER_HINTS = (
+    "patient information and support",
+    "safety netting",
+    "diagnostic process",
+)
+
+_QUALIFIER_PREFIX_RE = re.compile(
+    r"^\s*(unexplained|persistent|recurrent|possible|suspected|new[- ]onset)\s+",
+    re.IGNORECASE,
+)
+
+_SITE_REFERRAL_RE = re.compile(
+    r"suspected\s+([a-z0-9 \-/']+?)\s+cancer",
+    re.IGNORECASE,
+)
+
 
 class TerminologyAPIError(RuntimeError):
     """Raised when the Terminology API cannot return candidate lists safely."""
@@ -216,10 +247,22 @@ def _parse_sex_constraint(term: str) -> dict[str, Any] | None:
 
 
 def _make_term_obj(value: Any) -> dict[str, Any]:
+    def _expanded_search_terms(text: str, base_terms: list[str]) -> list[str]:
+        variants = list(base_terms)
+        normalized = _QUALIFIER_PREFIX_RE.sub("", text or "").strip()
+        if normalized and normalized.lower() != (text or "").strip().lower():
+            variants.append(normalized)
+        lowered = (text or "").lower()
+        if "suggestive of" in lowered:
+            variants.append(re.sub(r"\bsuggestive of\b", "", text, flags=re.IGNORECASE).strip())
+        if "consistent with" in lowered:
+            variants.append(re.sub(r"\bconsistent with\b", "", text, flags=re.IGNORECASE).strip())
+        return _dedupe_strs(variants)
+
     if isinstance(value, dict):
         text = str(value.get("text") or "").strip()
         source_text = value.get("source_text")
-        search_terms = _dedupe_strs([text] + list(value.get("search_terms") or []))
+        search_terms = _expanded_search_terms(text, [text] + list(value.get("search_terms") or []))
         return {
             "text": text,
             "source_text": str(source_text) if source_text else None,
@@ -250,6 +293,45 @@ def _normalise_action(action: Any) -> dict[str, Any] | None:
     if not text:
         return None
     return {"text": text, "search_terms": [text]}
+
+
+def _expand_action_search_terms(action_text: str, recommendation_text: str) -> list[str]:
+    base = _dedupe_strs([action_text])
+    if not action_text:
+        return base
+    variants = list(base)
+    lowered = action_text.lower()
+    if "referral" in lowered:
+        variants.extend(
+            [
+                "suspected cancer referral",
+                "urgent suspected cancer referral",
+                "fast track referral suspected cancer",
+                "2 week wait suspected cancer referral",
+                "2ww suspected cancer referral",
+            ]
+        )
+    site_match = _SITE_REFERRAL_RE.search(action_text) or _SITE_REFERRAL_RE.search(recommendation_text or "")
+    if site_match:
+        site = " ".join(site_match.group(1).split())
+        variants.extend(
+            [
+                f"fast track referral for suspected {site} cancer",
+                f"urgent referral for suspected {site} cancer",
+                f"2 week wait referral for suspected {site} cancer",
+                f"2ww referral for suspected {site} cancer",
+                f"suspected {site} cancer pathway referral",
+            ]
+        )
+    if "mesothelioma" in lowered or "mesothelioma" in (recommendation_text or "").lower():
+        variants.extend(
+            [
+                "fast track referral for suspected mesothelioma",
+                "urgent referral for suspected mesothelioma",
+                "2 week wait referral for suspected mesothelioma",
+            ]
+        )
+    return _dedupe_strs(variants)
 
 
 def _make_demographic_or_concept(value: Any) -> dict[str, Any]:
@@ -413,9 +495,41 @@ def _parse_verifier_output(raw: str) -> dict[str, Any] | None:
     return _parse_json_object(raw, max_chars=16000)
 
 
+def _looks_like_vague_symptom_clause(text: str) -> bool:
+    return bool(_VAGUE_SYMPTOM_PHRASE_RE.search(text or ""))
+
+
+def _has_instruction_issue(verifier_result: dict[str, Any] | None) -> bool:
+    if not verifier_result:
+        return False
+    reasons: list[str] = []
+    if verifier_result.get("reason"):
+        reasons.append(str(verifier_result.get("reason")))
+    for item in verifier_result.get("leaf_decisions") or []:
+        if isinstance(item, dict) and item.get("reason"):
+            reasons.append(str(item.get("reason")))
+    action_decision = verifier_result.get("action_decision") or {}
+    if isinstance(action_decision, dict) and action_decision.get("reason"):
+        reasons.append(str(action_decision.get("reason")))
+    haystack = " ".join(reasons).lower()
+    return any(token in haystack for token in _INSTRUCTION_ISSUE_TOKENS)
+
+
+def _is_non_codable_service_recommendation(rec: dict[str, Any]) -> bool:
+    chapter = str(rec.get("chapter_title") or "").lower()
+    section = str(rec.get("section_title") or "").lower()
+    title_blob = f"{chapter} {section}"
+    return any(hint in title_blob for hint in _NON_CODABLE_CHAPTER_HINTS)
+
+
 def resolve_prompt(state: GuidanceRuleExtractionState) -> dict[str, Any]:
     """Load extraction prompt and few-shot examples from Neo4j."""
     errors: list[str] = list(state.get("errors") or [])
+    rec = state.get("recommendation") or {}
+    if _is_non_codable_service_recommendation(rec):
+        # Non-codable service/process guidance short-circuits in extract_criteria;
+        # avoid adding noisy prompt_missing errors for this path.
+        return {"system_prompt": "", "few_shot_examples": [], "errors": errors}
     cfg = state.get("prompt_config") or {}
     if cfg.get("systemPrompt"):
         return {
@@ -475,6 +589,22 @@ def extract_criteria(state: GuidanceRuleExtractionState) -> dict[str, Any]:
     system_prompt = state.get("system_prompt") or ""
     few_shot_examples = list(state.get("few_shot_examples") or [])
     prior_tokens: dict[str, int] = dict(state.get("llm_tokens") or {})
+    if _is_non_codable_service_recommendation(rec):
+        logger.info(
+            "Recommendation %s appears non-codable service/process guidance; marking no_rule_expected.",
+            rec.get("id"),
+        )
+        return {
+            "raw_criteria": {
+                "schema_version": 2,
+                "logic_tree": None,
+                "action": None,
+                "no_rule_expected": True,
+                "reason": "non_codable_service_recommendation",
+            },
+            "errors": errors,
+            "llm_tokens": prior_tokens,
+        }
 
     if not system_prompt.strip():
         msg = (
@@ -515,36 +645,64 @@ def extract_criteria(state: GuidanceRuleExtractionState) -> dict[str, Any]:
         "Preserve OR branches, AND branches, threshold logic such as '2 or more', "
         "and demographic constraints exactly. Do not approximate."
     )
+    if _looks_like_vague_symptom_clause(safe_verbatim):
+        context_parts.append(
+            "This recommendation contains vague symptom-family wording. "
+            "Expand it into specific patient-presenting symptom/sign terms that are "
+            "clinically plausible from this exact recommendation, and include broad "
+            "search_terms for each concept."
+        )
     user_msg = "\n".join(context_parts)
 
     try:
         from libs.llm_client.consensus import run_consensus
 
-        result = run_consensus(
-            system_prompt=guarded_system,
-            user_msg=user_msg,
-            parse_fn=_parse_llm_output,
-            fail_verdict=None,
-            max_tokens=1400,
-        )
-        merged = _merge_tokens(
-            prior_tokens,
-            {
-                "input_tokens": result.input_tokens,
-                "output_tokens": result.output_tokens,
-                "cached_input_tokens": result.cached_input_tokens,
-                "llm_calls": result.llm_calls,
-            },
-        )
-        if result.verdict is None:
-            logger.warning(
-                "No criteria extracted for recommendation %s — "
-                "LLM returned no parseable verdict. Rule will NOT be written.",
-                rec.get("id"),
+        merged = dict(prior_tokens)
+        attempt_msgs = [
+            user_msg,
+            user_msg
+            + "\n\nSTRICT OUTPUT REMINDER: return ONLY one valid JSON object matching the required schema.",
+        ]
+        for attempt, attempt_msg in enumerate(attempt_msgs):
+            result = run_consensus(
+                system_prompt=guarded_system,
+                user_msg=attempt_msg,
+                parse_fn=_parse_llm_output,
+                fail_verdict=None,
+                max_tokens=1400,
             )
-            errors.append(f"extraction_empty:no_llm_verdict:{rec.get('id')}")
-            return {"raw_criteria": None, "errors": errors, "llm_tokens": merged}
-        return {"raw_criteria": result.verdict, "errors": errors, "llm_tokens": merged}
+            merged = _merge_tokens(
+                merged,
+                {
+                    "input_tokens": result.input_tokens,
+                    "output_tokens": result.output_tokens,
+                    "cached_input_tokens": result.cached_input_tokens,
+                    "llm_calls": result.llm_calls,
+                },
+            )
+            if result.verdict is not None:
+                verdict = dict(result.verdict)
+                action = verdict.get("action")
+                if isinstance(action, dict):
+                    action["search_terms"] = _expand_action_search_terms(
+                        str(action.get("text") or ""),
+                        safe_verbatim,
+                    )
+                    verdict["action"] = action
+                return {"raw_criteria": verdict, "errors": errors, "llm_tokens": merged}
+            if attempt == 0:
+                logger.warning(
+                    "No parseable extraction verdict for %s on first attempt; retrying with strict JSON reminder.",
+                    rec.get("id"),
+                )
+                continue
+        logger.warning(
+            "No criteria extracted for recommendation %s — "
+            "LLM returned no parseable verdict after retry. Rule will NOT be written.",
+            rec.get("id"),
+        )
+        errors.append(f"extraction_empty:no_llm_verdict:{rec.get('id')}")
+        return {"raw_criteria": None, "errors": errors, "llm_tokens": merged}
     except Exception as exc:
         logger.exception("LLM consensus failed for recommendation %s", rec.get("id"))
         errors.append(f"llm_error:{rec.get('id')}:{exc}")
@@ -660,6 +818,17 @@ def code_snomed(state: GuidanceRuleExtractionState) -> dict[str, Any]:
     raw = state.get("raw_criteria")
     if raw is None:
         return {"candidate_criteria": None, "errors": errors}
+    if bool(raw.get("no_rule_expected")):
+        return {
+            "candidate_criteria": {
+                "schema_version": 2,
+                "logic_tree": None,
+                "action": None,
+                "no_rule_expected": True,
+                "reason": str(raw.get("reason") or "non_codable_service_recommendation"),
+            },
+            "errors": errors,
+        }
 
     try:
         logic_tree = raw.get("logic_tree")
@@ -911,6 +1080,22 @@ def verify_codes(state: GuidanceRuleExtractionState) -> dict[str, Any]:
     prior_tokens: dict[str, int] = dict(state.get("llm_tokens") or {})
     if not candidate_criteria:
         return {"coded_criteria": None, "errors": errors, "llm_tokens": prior_tokens}
+    if bool(candidate_criteria.get("no_rule_expected")):
+        return {
+            "coded_criteria": {
+                "schema_version": 2,
+                "logic_tree": None,
+                "action": None,
+                "no_rule_expected": True,
+                "reason": str(candidate_criteria.get("reason") or "non_codable_service_recommendation"),
+                "verifier": {
+                    "overall_status": "no_rule_expected",
+                    "reason": str(candidate_criteria.get("reason") or "non_codable_service_recommendation"),
+                },
+            },
+            "errors": errors,
+            "llm_tokens": prior_tokens,
+        }
 
     try:
         verifier_prompt, few_shot = _load_verifier_prompt()
@@ -944,10 +1129,18 @@ def verify_codes(state: GuidanceRuleExtractionState) -> dict[str, Any]:
             )
             verifier_result = verdict.verdict
             if verifier_result is None:
+                if attempt == 0:
+                    continue
                 errors.append(f"verifier_empty:{rec.get('id')}")
                 return {"coded_criteria": None, "errors": errors, "llm_tokens": merged_tokens}
             if str(verifier_result.get("overall_status") or "") == "retry_search" and attempt == 0:
                 working = _rerun_requested_searches(working, verifier_result)
+                continue
+            if str(verifier_result.get("overall_status") or "") == "rejected" and attempt == 0 and _has_instruction_issue(verifier_result):
+                logger.warning(
+                    "Verifier rejected %s due to likely instruction/schema issue; retrying once.",
+                    rec.get("id"),
+                )
                 continue
             break
         except TerminologyAPIError as exc:
@@ -1014,7 +1207,7 @@ def _should_resolve(state: GuidanceRuleExtractionState) -> str:
     raw = state.get("raw_criteria")
     if not raw:
         return "end"
-    return "resolve" if raw.get("logic_tree") is not None or raw.get("action") else "end"
+    return "resolve" if (raw.get("logic_tree") is not None or raw.get("action") or raw.get("no_rule_expected")) else "end"
 
 
 def _should_verify(state: GuidanceRuleExtractionState) -> str:

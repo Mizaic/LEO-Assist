@@ -39,6 +39,31 @@ function ActionNodeComponent({ id, data, selected }: NodeProps) {
     () => getPortsFromDescriptor(actionData.subgraphId, actionData.fieldMappings),
     [actionData.subgraphId, actionData.fieldMappings],
   );
+  const haltedTooltip = useMemo(() => {
+    if (!isHalted) return "Pipeline stopped here — check the probe for details";
+    const outputState = (stepResult?.output_state ?? null) as Record<string, unknown> | null;
+    const verification = outputState?.verification_result as Record<string, unknown> | undefined;
+    if (!verification) return "Pipeline stopped here — check the probe for details";
+
+    const parts: string[] = [];
+    const confidence = verification.confidence;
+    const threshold = outputState?.confidence_threshold;
+    if (typeof confidence === "number") {
+      if (typeof threshold === "number") {
+        parts.push(`verification confidence ${confidence.toFixed(2)} < threshold ${threshold.toFixed(2)}`);
+      } else {
+        parts.push(`verification confidence ${confidence.toFixed(2)}`);
+      }
+    }
+    if (verification.is_accurate === false) parts.push("is_accurate=false");
+    const issues = Array.isArray(verification.issues)
+      ? verification.issues.map((i) => String(i)).filter(Boolean)
+      : [];
+    if (issues.length > 0) parts.push(issues.slice(0, 2).join("; "));
+    return parts.length > 0
+      ? `Pipeline stopped here — ${parts.join(" — ")}`
+      : "Pipeline stopped here — verification gate failed";
+  }, [isHalted, stepResult]);
   const inputs = ports.filter((p) => p.direction === "input");
   const outputs = ports.filter((p) => p.direction === "output");
 
@@ -183,7 +208,7 @@ function ActionNodeComponent({ id, data, selected }: NodeProps) {
 
         {/* Halted — step ran but quality gate stopped the pipeline */}
         {isHalted && (
-          <Tooltip title="Pipeline stopped here — check the probe for details">
+          <Tooltip title={haltedTooltip}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 0.4 }}>
               <Box component="span" sx={{ fontSize: "0.75rem", lineHeight: 1 }}>🛑</Box>
               <Typography variant="caption" sx={{ fontSize: "0.6rem", color: "error.dark", fontWeight: 700 }}>

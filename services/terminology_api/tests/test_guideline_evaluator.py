@@ -269,3 +269,70 @@ class TestSchemaV2LogicTree:
         )
         result = ev.evaluate_patient(["bleed"])
         assert result["matched_rules"] == []
+
+    def test_schema_v2_at_least_matches_threshold(self, evaluator_factory):
+        bm_cough = BitMap([1])
+        bm_weight = BitMap([2])
+        bm_fatigue = BitMap([3])
+        ruleset = {
+            "version": "v2",
+            "rules": [{
+                "rule_id": "r3",
+                "name": "AT_LEAST test",
+                "strength": "refer",
+                "schema_version": 2,
+                "guideline_id": "NG12",
+                "guideline_title": "Cancer",
+                "chapter_title": None,
+                "recommendation_verbatim": "test",
+                "logic_tree": {
+                    "kind": "AT_LEAST",
+                    "min": 2,
+                    "children": [
+                        {"kind": "concept", "bitmap_id": "bm_cough"},
+                        {"kind": "concept", "bitmap_id": "bm_weight"},
+                        {"kind": "concept", "bitmap_id": "bm_fatigue"},
+                    ],
+                },
+                "action": None,
+            }],
+        }
+        ev = evaluator_factory(
+            current_ruleset=ruleset,
+            int_id_map={"cough": 1, "weight": 2},
+            bitmaps={"bm_cough": bm_cough, "bm_weight": bm_weight, "bm_fatigue": bm_fatigue},
+        )
+        result = ev.evaluate_patient(["cough", "weight"])
+        assert len(result["matched_rules"]) == 1
+
+    def test_schema_v2_not_with_multiple_children_fails_closed(self, evaluator_factory):
+        bm_a = BitMap([1])
+        bm_b = BitMap([2])
+        ruleset = {
+            "version": "v2",
+            "rules": [{
+                "rule_id": "r4",
+                "name": "Bad NOT",
+                "strength": "refer",
+                "schema_version": 2,
+                "guideline_id": "NG12",
+                "guideline_title": "Cancer",
+                "chapter_title": None,
+                "recommendation_verbatim": "test",
+                "logic_tree": {
+                    "kind": "NOT",
+                    "children": [
+                        {"kind": "concept", "bitmap_id": "bm_a"},
+                        {"kind": "concept", "bitmap_id": "bm_b"},
+                    ],
+                },
+                "action": None,
+            }],
+        }
+        ev = evaluator_factory(
+            current_ruleset=ruleset,
+            int_id_map={"code1": 1},
+            bitmaps={"bm_a": bm_a, "bm_b": bm_b},
+        )
+        result = ev.evaluate_patient(["code1"])
+        assert result["matched_rules"] == []
