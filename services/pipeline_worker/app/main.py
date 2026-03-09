@@ -73,6 +73,8 @@ async def main():
         logger.info("Pipeline Worker shutting down")
     finally:
         await bus.close()
+        if neo4j_driver is not None:
+            await neo4j_driver.close()
 
 
 if __name__ == "__main__":

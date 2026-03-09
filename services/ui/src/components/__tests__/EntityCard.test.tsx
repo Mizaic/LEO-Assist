@@ -2,6 +2,7 @@ import React from "react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import EntityCard from "../EntityCard";
+import { SnackbarProvider } from "@/context/SnackbarContext";
 import type { EncounterTerm } from "@/lib/types";
 
 const term: EncounterTerm = {
@@ -28,30 +29,38 @@ const defaults = {
 };
 
 describe("EntityCard", () => {
+  function renderCard() {
+    return render(
+      <SnackbarProvider>
+        <EntityCard {...defaults} />
+      </SnackbarProvider>,
+    );
+  }
+
   it("renders term text and extraction method", () => {
-    render(<EntityCard {...defaults} />);
+    renderCard();
     expect(screen.getByText("chest pain")).toBeInTheDocument();
     expect(screen.getByText("llm")).toBeInTheDocument();
   });
 
   it("renders SNOMED concept ID and term", () => {
-    render(<EntityCard {...defaults} />);
+    renderCard();
     expect(screen.getByText("29857009")).toBeInTheDocument();
     expect(screen.getByText("Chest pain")).toBeInTheDocument();
   });
 
   it("renders Read code", () => {
-    render(<EntityCard {...defaults} />);
+    renderCard();
     expect(screen.getByText(/Read: 182/)).toBeInTheDocument();
   });
 
   it("renders confidence score", () => {
-    render(<EntityCard {...defaults} />);
+    renderCard();
     expect(screen.getByText("92%")).toBeInTheDocument();
   });
 
   it("renders context flag chips", () => {
-    render(<EntityCard {...defaults} />);
+    renderCard();
     expect(screen.getByText("Neg")).toBeInTheDocument();
     expect(screen.getByText("Unc")).toBeInTheDocument();
     expect(screen.getByText("Hist")).toBeInTheDocument();
@@ -60,21 +69,21 @@ describe("EntityCard", () => {
 
   it("calls onReassign when Reassign code button is clicked", async () => {
     const user = userEvent.setup();
-    render(<EntityCard {...defaults} />);
+    renderCard();
     await user.click(screen.getByRole("button", { name: "Reassign code" }));
     expect(defaults.onReassign).toHaveBeenCalledWith("T1");
   });
 
   it("calls onAdjustSpan when Adjust span button is clicked", async () => {
     const user = userEvent.setup();
-    render(<EntityCard {...defaults} />);
+    renderCard();
     await user.click(screen.getByRole("button", { name: "Adjust span" }));
     expect(defaults.onAdjustSpan).toHaveBeenCalledWith("T1");
   });
 
   it("calls onRemove and onCorrection when Remove entity is clicked", async () => {
     const user = userEvent.setup();
-    render(<EntityCard {...defaults} />);
+    renderCard();
     await user.click(screen.getByRole("button", { name: "Remove entity" }));
     expect(defaults.onRemove).toHaveBeenCalledWith("T1");
     expect(defaults.onCorrection).toHaveBeenCalledWith(
@@ -84,7 +93,7 @@ describe("EntityCard", () => {
 
   it("toggling a context flag calls onContextChange", async () => {
     const user = userEvent.setup();
-    render(<EntityCard {...defaults} />);
+    renderCard();
     await user.click(screen.getByText("Neg"));
     expect(defaults.onContextChange).toHaveBeenCalledWith(
       "T1",

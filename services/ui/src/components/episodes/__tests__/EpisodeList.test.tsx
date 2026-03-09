@@ -51,7 +51,7 @@ describe("EpisodeList", () => {
         onSelect={jest.fn()}
       />,
     );
-    expect(screen.getByText("Breached")).toBeInTheDocument();
+    expect(screen.getByText("Overdue")).toBeInTheDocument();
     expect(screen.getByText("On track")).toBeInTheDocument();
   });
 

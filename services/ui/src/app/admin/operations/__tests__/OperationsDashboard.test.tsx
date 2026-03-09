@@ -37,12 +37,11 @@ describe("Operations dashboard", () => {
     jest.restoreAllMocks();
   });
 
-  it("renders four summary cards", async () => {
+  it("renders the current operations cards", async () => {
     render(<AdminOperationsPage />);
     await waitFor(() => expect(screen.getByText("Run the AI")).toBeInTheDocument());
     expect(screen.getByText("Things to check")).toBeInTheDocument();
-    expect(screen.getByText("Teaching examples")).toBeInTheDocument();
-    expect(screen.getByText("AI model")).toBeInTheDocument();
+    expect(screen.getByText("Verification examples")).toBeInTheDocument();
   });
 });
 

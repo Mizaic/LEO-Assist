@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import time
 from urllib.parse import urlencode
 
@@ -112,7 +113,7 @@ def _verify_id_token(id_token: str) -> dict:
 
     Multi-tenant validation strategy:
     1. Verify RS256 signature against /common/ JWKS (cryptographic trust)
-    2. Verify audience matches our CLIENT_ID
+    2. Verify audience matches our CLIENT_ID (or API app ID when using api:// scope)
     3. Verify expiry and not-before
     4. Reject v1.0 tokens (sts.windows.net issuer checked in callback)
     5. Validate tid claim against tenant allowlist (business trust boundary)
@@ -122,23 +123,34 @@ def _verify_id_token(id_token: str) -> dict:
     """
     if not CLIENT_ID:
         raise HTTPException(500, "Azure AD not configured")
+    # Accept both client app ID and API app ID (api://xxx) as audience — Azure may use either
+    # when scope includes api://.../.default. python-jose requires audience to be str or None.
+    audiences = [CLIENT_ID]
+    if "api://" in SCOPE:
+        m = re.search(r"api://([a-fA-F0-9\-]+)/", SCOPE)
+        if m:
+            api_id = m.group(1)
+            audiences.append(api_id)  # GUID only
+            audiences.append(f"api://{api_id}")  # full URI (Azure may use either)
     try:
         jwks = _get_jwks()
-        claims = jwt.decode(
-            id_token,
-            jwks,
-            algorithms=["RS256"],
-            audience=CLIENT_ID,
-            options={
-                "verify_exp": True,
-                "verify_nbf": True,
-                "verify_iss": False,  # multi-tenant: issuer varies per NHS tenant; validated via tid allowlist below
-            },
-        )
-        return claims
-    except JWTError as exc:
-        logger.warning("id_token verification failed: %s", exc)
-        raise HTTPException(status_code=401, detail="Token verification failed") from exc
+        opts = {"verify_exp": True, "verify_nbf": True, "verify_iss": False}
+        last_error: JWTError | None = None
+        for aud in audiences:
+            try:
+                return jwt.decode(id_token, jwks, algorithms=["RS256"], audience=aud, options=opts)
+            except JWTError as exc:
+                last_error = exc
+        if last_error:
+            logger.warning(
+                "id_token verification failed: %s (type=%s). Check: CLIENT_ID vs token aud, server clock, token expiry.",
+                last_error,
+                type(last_error).__name__,
+            )
+            raise HTTPException(status_code=401, detail="Token verification failed") from last_error
+        raise HTTPException(status_code=401, detail="Token verification failed")
+    except HTTPException:
+        raise
     except Exception as exc:
         logger.error("Unexpected error verifying id_token: %s", exc)
         raise HTTPException(status_code=401, detail="Token verification error") from exc

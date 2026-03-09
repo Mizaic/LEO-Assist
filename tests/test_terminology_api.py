@@ -39,6 +39,34 @@ class TestCodingResolver:
         assert result["headache"][0].snomed_concept_id == "25064002"
 
 
+class TestTerminologyClient:
+    """Tests for the shared terminology client parser."""
+
+    def test_parse_results_accepts_current_api_field_names(self):
+        from libs.terminology.client import _parse_results
+
+        parsed = _parse_results(
+            {
+                "haemoptysis": [
+                    {
+                        "snomed_concept_id": "66857006",
+                        "snomed_term": "Haemoptysis",
+                        "semantic_tag": "finding",
+                        "read_code": "173..",
+                        "score": 0.97,
+                        "source": "hybrid",
+                    }
+                ]
+            }
+        )
+
+        assert "haemoptysis" in parsed
+        assert len(parsed["haemoptysis"]) == 1
+        assert parsed["haemoptysis"][0].concept_id == "66857006"
+        assert parsed["haemoptysis"][0].term == "Haemoptysis"
+        assert parsed["haemoptysis"][0].read_code == "173.."
+
+
 class TestWritebackService:
     """Tests for terminology writeback."""
 

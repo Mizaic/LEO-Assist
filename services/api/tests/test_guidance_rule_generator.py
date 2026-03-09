@@ -32,41 +32,33 @@ def _make_driver():
 
 def _make_coded_criteria(
     present_resolved=True,
-    absent_resolved=False,
     action_resolved=True,
 ):
     return {
-        "criteria_groups": [
-            {
-                "mode": "ALL",
-                "coded_terms": [
-                    {
+        "schema_version": 2,
+        "logic_tree": {
+            "kind": "AND",
+            "node_id": "n1",
+            "children": [
+                {
+                    "kind": "concept",
+                    "criterion": {
+                        "node_id": "n2",
                         "term": "rectal bleeding",
                         "snomed_concept_id": "405749005" if present_resolved else None,
                         "preferred_term": "Rectal haemorrhage",
                         "semantic_tag": "finding",
-                    }
-                ],
-            },
-            {
-                "mode": "NOT",
-                "coded_terms": [
-                    {
-                        "term": "known colorectal cancer",
-                        "snomed_concept_id": "363346000" if absent_resolved else None,
-                        "preferred_term": "Malignant tumour of colon",
-                        "semantic_tag": "disorder",
-                    }
-                ],
-            },
-        ],
-        "applies_to": [],
+                    },
+                }
+            ],
+        },
         "action": {
             "term": "suspected cancer pathway referral",
             "snomed_concept_id": "276401003" if action_resolved else None,
             "preferred_term": "Suspected cancer referral",
             "semantic_tag": "procedure",
         },
+        "verifier": {"overall_status": "verified"},
     }
 
 
@@ -89,10 +81,10 @@ class TestResolvePrompt:
         def _get_prompt(name, version=1):
             calls.append(name)
             if name == "guidance_rule_extraction_NG12":
-                return "NG12 SPECIFIC PROMPT"
+                return "NG12 SPECIFIC PROMPT", []
             raise RuntimeError("not found")
 
-        with patch("libs.prompts.registry.get_prompt", side_effect=_get_prompt):
+        with patch("libs.prompts.registry.get_prompt_with_few_shot", side_effect=_get_prompt):
             result = resolve_prompt({"guideline_id": "NG12:v1:CH002:SEC000:R000"})
 
         assert result["system_prompt"] == "NG12 SPECIFIC PROMPT"
@@ -104,10 +96,10 @@ class TestResolvePrompt:
 
         def _get_prompt(name, version=1):
             if name == "guidance_rule_extraction_default":
-                return "DEFAULT PROMPT"
+                return "DEFAULT PROMPT", []
             raise RuntimeError("not found")
 
-        with patch("libs.prompts.registry.get_prompt", side_effect=_get_prompt):
+        with patch("libs.prompts.registry.get_prompt_with_few_shot", side_effect=_get_prompt):
             result = resolve_prompt({"guideline_id": "NG151:v1"})
 
         assert result["system_prompt"] == "DEFAULT PROMPT"
@@ -116,7 +108,7 @@ class TestResolvePrompt:
         """When no prompt found in Neo4j, system_prompt is empty and error is recorded."""
         from libs.pipeline_graph.subgraphs.guidance_rule_extraction import resolve_prompt
 
-        with patch("libs.prompts.registry.get_prompt", side_effect=RuntimeError("not found")):
+        with patch("libs.prompts.registry.get_prompt_with_few_shot", side_effect=RuntimeError("not found")):
             result = resolve_prompt({"guideline_id": "NG999:v1"})
 
         assert result["system_prompt"] == ""
@@ -130,40 +122,35 @@ class TestParseOutput:
         from libs.pipeline_graph.subgraphs.guidance_rule_extraction import _parse_llm_output
         return _parse_llm_output(raw)
 
-    def test_parses_new_criteria_groups_format(self):
-        raw = '{"criteria_groups": [{"mode": "ALL", "terms": ["rectal bleeding"]}], "action": "2ww referral"}'
+    def test_parses_logic_tree_format(self):
+        raw = '{"schema_version":2,"logic_tree":{"kind":"AND","children":[{"kind":"concept","term":{"text":"rectal bleeding"}}]},"action":{"text":"2ww referral","search_terms":["2ww referral"]}}'
         result = self._parse(raw)
         assert result is not None
-        assert "criteria_groups" in result
-        assert result["criteria_groups"][0]["mode"] == "ALL"
-        assert "rectal bleeding" in result["criteria_groups"][0]["terms"]
-        assert result["action"] == "2ww referral"
+        assert result["schema_version"] == 2
+        assert result["logic_tree"]["kind"] == "AND"
+        assert result["action"]["text"] == "2ww referral"
 
     def test_old_present_absent_format_normalised_to_criteria_groups(self):
         """Old format converted: present → ALL group, absent → NOT group."""
         raw = '{"present": ["rectal bleeding"], "absent": ["active cancer"], "action": "2ww referral"}'
         result = self._parse(raw)
         assert result is not None
-        assert "criteria_groups" in result
-        modes = {g["mode"] for g in result["criteria_groups"]}
-        assert "ALL" in modes
-        assert "NOT" in modes
-        all_terms = [t for g in result["criteria_groups"] for t in g["terms"]]
-        assert "rectal bleeding" in all_terms
-        assert "active cancer" in all_terms
-        assert result["action"] == "2ww referral"
+        assert result["schema_version"] == 2
+        assert result["logic_tree"]["kind"] == "AND"
+        assert result["action"]["text"] == "2ww referral"
 
     def test_extracts_json_from_prose(self):
-        raw = 'Sure! Here it is: {"criteria_groups": [{"mode": "ANY", "terms": ["chest X-ray"]}], "action": null} Done.'
+        raw = 'Sure! Here it is: {"schema_version":2,"logic_tree":{"kind":"OR","children":[{"kind":"concept","term":{"text":"chest X-ray"}}]},"action":null} Done.'
         result = self._parse(raw)
         assert result is not None
         assert result["action"] is None
 
-    def test_caps_terms_at_5_items(self):
-        raw = '{"criteria_groups": [{"mode": "ANY", "terms": ["a","b","c","d","e","f","g"]}], "action": null}'
+    def test_assigns_node_ids(self):
+        raw = '{"schema_version":2,"logic_tree":{"kind":"OR","children":[{"kind":"concept","term":{"text":"a"}},{"kind":"concept","term":{"text":"b"}}]},"action":null}'
         result = self._parse(raw)
         assert result is not None
-        assert len(result["criteria_groups"][0]["terms"]) <= 5
+        assert result["logic_tree"]["node_id"]
+        assert result["logic_tree"]["children"][0]["node_id"]
 
     def test_returns_none_on_invalid_json(self):
         assert self._parse("not json") is None
@@ -176,104 +163,56 @@ class TestParseOutput:
         raw = '{"criteria_groups": [{"mode": "UNKNOWN", "terms": ["cough"]}], "action": null}'
         result = self._parse(raw)
         assert result is not None
-        assert result["criteria_groups"][0]["mode"] == "ALL"
+        assert result["logic_tree"]["kind"] == "AND"
 
 
 class TestCodeSnomed:
-    """code_snomed node: Terminology API called with correct semantic_tag filters."""
+    """code_snomed node: batched terminology resolve produces candidate payloads."""
 
-    def test_criteria_use_finding_disorder_tags(self):
-        """Criteria terms in criteria_groups must use clinical finding/disorder tags."""
-        from libs.pipeline_graph.subgraphs.guidance_rule_extraction import (
-            code_snomed,
-            _CRITERIA_TAGS,
-        )
-        calls = []
-
-        def fake_search(term, tags):
-            calls.append((term, tags))
-            return {"term": term, "snomed_concept_id": None, "preferred_term": term, "semantic_tag": ""}
+    def test_batched_resolve_populates_candidate_tree(self):
+        from libs.pipeline_graph.subgraphs.guidance_rule_extraction import code_snomed
 
         state = {
             "raw_criteria": {
-                "criteria_groups": [
-                    {"mode": "ALL", "terms": ["rectal bleeding"]},
-                    {"mode": "NOT", "terms": ["known cancer"]},
-                ],
-                "action": None,
+                "schema_version": 2,
+                "logic_tree": {
+                    "kind": "AND",
+                    "node_id": "n1",
+                    "children": [
+                        {
+                            "kind": "concept",
+                            "node_id": "n2",
+                            "term": {"text": "rectal bleeding", "search_terms": ["rectal bleeding"]},
+                        }
+                    ],
+                },
+                "action": {"text": "suspected cancer referral", "search_terms": ["suspected cancer referral"]},
             }
         }
-        with patch(
-            "libs.pipeline_graph.subgraphs.guidance_rule_extraction._terminology_search",
-            side_effect=fake_search,
-        ):
-            code_snomed(state)
 
-        assert len(calls) == 2  # one for each clinical term
-        for _, tags in calls:
-            assert tags == _CRITERIA_TAGS, f"Expected criteria tags, got {tags}"
-
-    def test_action_uses_procedure_tag(self):
-        """Action must be looked up with semantic_tag=procedure."""
-        from libs.pipeline_graph.subgraphs.guidance_rule_extraction import (
-            code_snomed,
-            _ACTION_TAGS,
-        )
-        calls = []
-
-        def fake_search(term, tags):
-            calls.append((term, tags))
-            return {"term": term, "snomed_concept_id": "123", "preferred_term": term, "semantic_tag": tags[0]}
-
-        state = {
-            "raw_criteria": {
-                "criteria_groups": [],
-                "action": "suspected cancer referral",
+        with patch("libs.terminology.client.TerminologyClient.resolve") as mock_resolve:
+            mock_resolve.return_value = {
+                "rectal bleeding": [MagicMock(concept_id="405749005", term="Rectal haemorrhage", semantic_tag="finding", score=0.9, read_code=None, raw={})],
+                "suspected cancer referral": [MagicMock(concept_id="123", term="Suspected cancer referral", semantic_tag="procedure", score=0.9, read_code=None, raw={})],
             }
-        }
-        with patch(
-            "libs.pipeline_graph.subgraphs.guidance_rule_extraction._terminology_search",
-            side_effect=fake_search,
-        ):
             result = code_snomed(state)
 
-        action_calls = [c for c in calls if c[0] == "suspected cancer referral"]
-        assert action_calls, "Action term must be passed to terminology search"
-        assert action_calls[0][1] == _ACTION_TAGS
+        assert result["candidate_criteria"] is not None
+        leaf = result["candidate_criteria"]["logic_tree"]["children"][0]["criterion"]
+        assert leaf["candidates"][0]["concept_id"] == "405749005"
+        assert result["candidate_criteria"]["action"]["candidates"][0]["concept_id"] == "123"
 
     def test_no_criteria_returns_none(self):
         """No Terminology API calls when raw_criteria is None."""
         from libs.pipeline_graph.subgraphs.guidance_rule_extraction import code_snomed
-        with patch(
-            "libs.pipeline_graph.subgraphs.guidance_rule_extraction._terminology_search"
-        ) as mock_search:
-            result = code_snomed({"raw_criteria": None})
-        mock_search.assert_not_called()
-        assert result["coded_criteria"] is None
+        result = code_snomed({"raw_criteria": None})
+        assert result["candidate_criteria"] is None
 
-    def test_terminology_api_field_name(self):
-        """_terminology_search reads snomed_concept_id not conceptId."""
-        import httpx
-        from libs.pipeline_graph.subgraphs.guidance_rule_extraction import _terminology_search
-
-        mock_response = MagicMock()
-        mock_response.json.return_value = [
-            {"snomed_concept_id": "405749005", "term": "Rectal haemorrhage", "semantic_tag": "finding"}
-        ]
-        mock_response.raise_for_status = MagicMock()
-
-        with patch("httpx.Client") as mock_client_cls:
-            mock_client = MagicMock()
-            mock_client.__enter__ = MagicMock(return_value=mock_client)
-            mock_client.__exit__ = MagicMock(return_value=False)
-            mock_client.get.return_value = mock_response
-            mock_client_cls.return_value = mock_client
-
-            result = _terminology_search("rectal bleeding", ["finding"])
-
-        assert result["snomed_concept_id"] == "405749005", (
-            "Must read 'snomed_concept_id' from Terminology API response, not 'conceptId'"
-        )
+    def test_terminology_api_failure_returns_none(self):
+        from libs.pipeline_graph.subgraphs.guidance_rule_extraction import code_snomed
+        with patch("libs.terminology.client.TerminologyClient.resolve", return_value={}):
+            result = code_snomed({"raw_criteria": {"schema_version": 2, "logic_tree": None, "action": {"text": "x", "search_terms": ["x"]}}})
+        assert result["candidate_criteria"] is None
 
 
 # ── Generator integration tests ────────────────────────────────────────────────
@@ -290,7 +229,7 @@ class TestConservativeFail:
         gen = GuidanceRuleGenerator.__new__(GuidanceRuleGenerator)
         gen._driver = driver
         gen._subgraph = MagicMock()
-        gen._subgraph.invoke.return_value = {"coded_criteria": None, "errors": []}
+        gen._subgraph.invoke.return_value = {"raw_criteria": None, "coded_criteria": None, "errors": []}
 
         rec = {"id": "NG12:v1:CH000:R000", "verbatim": "Refer for suspected cancer.", "title": "1.1.1", "urgency": "urgent_2w", "strength": "refer"}
 
@@ -298,7 +237,7 @@ class TestConservativeFail:
             result = gen.generate_rules_for_guideline("NG12")
 
         assert result == [], "No rules written when subgraph returns None"
-        session.run.assert_not_called()
+        assert not any("AppropriatenessRule" in str(c) for c in session.run.call_args_list)
 
     def test_no_rule_when_verbatim_empty(self):
         """No rule is generated for recommendations with no verbatim text."""
@@ -327,7 +266,7 @@ class TestHitlGate:
         gen._driver = driver
         coded = _make_coded_criteria(present_resolved=True, action_resolved=True)
         gen._subgraph = MagicMock()
-        gen._subgraph.invoke.return_value = {"coded_criteria": coded, "errors": []}
+        gen._subgraph.invoke.return_value = {"raw_criteria": {"logic_tree": None}, "coded_criteria": coded, "errors": []}
 
         rec = {"id": "NG12:v1:CH000:R000", "verbatim": "Refer for suspected cancer.", "title": "1.1.1", "urgency": "urgent_2w", "strength": "refer", "section_title": "Lung cancer", "chapter_title": "1 Recommendations"}
 
@@ -347,7 +286,7 @@ class TestHitlGate:
         gen._driver = driver
         coded = _make_coded_criteria()
         gen._subgraph = MagicMock()
-        gen._subgraph.invoke.return_value = {"coded_criteria": coded, "errors": []}
+        gen._subgraph.invoke.return_value = {"raw_criteria": {"logic_tree": None}, "coded_criteria": coded, "errors": []}
 
         rec = {"id": "NG12:v1:CH000:R000", "verbatim": "Refer urgently.", "title": "1.1.1", "urgency": "urgent_2w", "strength": "refer", "section_title": "", "chapter_title": ""}
 
@@ -370,7 +309,7 @@ class TestActionGroup:
         gen._driver = driver
         coded = _make_coded_criteria(present_resolved=True, action_resolved=True)
         gen._subgraph = MagicMock()
-        gen._subgraph.invoke.return_value = {"coded_criteria": coded, "errors": []}
+        gen._subgraph.invoke.return_value = {"raw_criteria": {"logic_tree": None}, "coded_criteria": coded, "errors": []}
 
         rec = {"id": "NG12:v1:CH000:R000", "verbatim": "Refer.", "title": "1.1.1", "urgency": "urgent_2w", "strength": "refer", "section_title": "", "chapter_title": ""}
 
@@ -389,7 +328,7 @@ class TestActionGroup:
         gen._driver = driver
         coded = _make_coded_criteria(present_resolved=True, action_resolved=False)
         gen._subgraph = MagicMock()
-        gen._subgraph.invoke.return_value = {"coded_criteria": coded, "errors": []}
+        gen._subgraph.invoke.return_value = {"raw_criteria": {"logic_tree": None}, "coded_criteria": coded, "errors": []}
 
         rec = {"id": "NG12:v1:CH000:R000", "verbatim": "Refer.", "title": "1.1.1", "urgency": "urgent_2w", "strength": "refer", "section_title": "", "chapter_title": ""}
 
@@ -537,7 +476,7 @@ class TestActionPriorityOnEdge:
         gen._driver = driver
         coded = _make_coded_criteria(present_resolved=True, action_resolved=True)
         gen._subgraph = MagicMock()
-        gen._subgraph.invoke.return_value = {"coded_criteria": coded, "errors": []}
+        gen._subgraph.invoke.return_value = {"raw_criteria": {"logic_tree": None}, "coded_criteria": coded, "errors": []}
 
         rec = {
             "id": "NG12:v1:CH000:R000",

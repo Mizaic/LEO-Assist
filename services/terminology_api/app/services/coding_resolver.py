@@ -139,6 +139,11 @@ def _push(merged: dict[str, dict[str, Any]], rec: dict[str, Any], branch: str) -
         base["vector_raw"] = max(base["vector_raw"], score)
 
 
+def _has_lexical_candidates(merged: dict[str, dict[str, Any]]) -> bool:
+    """Return True once exact/fulltext produced at least one candidate."""
+    return any(float(candidate.get("lexical_raw", 0.0)) > 0.0 for candidate in merged.values())
+
+
 def _parse_related_concepts_row(row: dict[str, Any]) -> list[dict[str, str]]:
     """Parse a RELATED_CONCEPTS_QUERY / BATCH_RELATED_CONCEPTS_QUERY row."""
     related: list[dict[str, str]] = []
@@ -298,13 +303,13 @@ class CodingResolver:
         )
 
         # ── Vector branch (1-2 round trips per term, run after exact+fulltext) ──
-        # Short-circuit: skip vector for terms already resolved by exact match.
-        # Exact hits score >= 1.0 and are high-confidence; the marginal accuracy
-        # gain from vector is not worth 6-13s of AuraDB round-trip latency.
+        # Short-circuit: only run vector for terms that still have NO lexical
+        # candidates after exact+fulltext. Once lexical retrieval has any hits,
+        # vector is usually marginally useful but disproportionately expensive.
         # Set TERMINOLOGY_ENABLE_VECTOR=false to disable entirely (e.g. for eval runs
         # where AuraDB vector index latency would otherwise dominate request time).
         vector_enabled = os.getenv("TERMINOLOGY_ENABLE_VECTOR", "true").lower() != "false"
-        vector_needed = [t for t in unique_texts if t not in exact_hit_terms]
+        vector_needed = [t for t in unique_texts if not _has_lexical_candidates(merged_all[t])]
         if embeddings and vector_needed and vector_enabled:
             for text in vector_needed:
                 idx = unique_texts.index(text)
@@ -623,7 +628,7 @@ class CodingResolver:
                         self._surface_form_fulltext_ok = False
 
         # Branch 3 & 4: vector
-        if embedding:
+        if embedding and not _has_lexical_candidates(merged):
             self._run_vector_for_term(mention, embedding, session, merged)
 
         return self._fuse_and_rank(merged, expected_tag=expected_tag)

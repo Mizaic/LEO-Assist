@@ -79,7 +79,7 @@ describe("PatientGroupList", () => {
     expect(screen.getByText(/2 pathways/)).toBeInTheDocument();
   });
 
-  it("shows convergence badge for patients with multiple active referrals", () => {
+  it("shows multiple referrals badge for patients with multiple active referrals", () => {
     const groups = makeGroups([
       {
         episode_id: "EP-1",
@@ -105,7 +105,7 @@ describe("PatientGroupList", () => {
       />,
     );
 
-    expect(screen.getByText("Convergence")).toBeInTheDocument();
+    expect(screen.getByText("Multiple referrals")).toBeInTheDocument();
   });
 
   it("does not show convergence badge for single-pathway patients", () => {
@@ -127,7 +127,7 @@ describe("PatientGroupList", () => {
       />,
     );
 
-    expect(screen.queryByText("Convergence")).not.toBeInTheDocument();
+    expect(screen.queryByText("Multiple referrals")).not.toBeInTheDocument();
   });
 
   it("auto-expands breached patient groups", () => {

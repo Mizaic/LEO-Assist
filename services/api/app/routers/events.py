@@ -59,8 +59,16 @@ async def _publish_to_pipeline(message: PipelineJobMessage) -> dict[str, str]:
     """Publish a pipeline job message to the Service Bus queue."""
     try:
         from libs.message_bus.factory import create_message_bus
+        from libs.message_bus.base import Message
         bus = create_message_bus()
-        await bus.send(PIPELINE_QUEUE, message.model_dump())
+        await bus.send(
+            PIPELINE_QUEUE,
+            Message(
+                body=message.model_dump(),
+                correlation_id=message.patient_id,
+                subject=message.event_type,
+            ),
+        )
         await bus.close()
         return {"status": "queued", "event_type": message.event_type}
     except Exception as exc:
@@ -132,14 +140,23 @@ async def schedule_timer_event(
     )
     try:
         from libs.message_bus.factory import create_message_bus
+        from libs.message_bus.base import Message
         bus = create_message_bus()
-        message = {
-            "patient_id": patient_id,
-            "event_type": "timer",
-            "plan_definition_id": plan_definition_id,
-            "context": {"timer_action_id": action_id},
-        }
-        await bus.send(PIPELINE_QUEUE, message, schedule_after_seconds=delay_seconds)
+        message = Message(
+            body={
+                "patient_id": patient_id,
+                "event_type": "timer",
+                "plan_definition_id": plan_definition_id,
+                "context": {"timer_action_id": action_id},
+            },
+            correlation_id=patient_id,
+            subject="timer",
+        )
+        await bus.send(
+            PIPELINE_QUEUE,
+            message,
+            schedule_after_seconds=delay_seconds,
+        )
         await bus.close()
         return {"status": "scheduled", "delay_seconds": str(delay_seconds)}
     except Exception as exc:

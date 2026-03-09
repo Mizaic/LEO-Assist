@@ -15,17 +15,37 @@ export interface StepTraceResult {
 }
 
 export interface PipelineTestContextValue {
-  /** null = no test run yet */
+  /** null = no test run yet; partial map grows as steps complete during streaming */
   testTrace: Record<string, StepTraceResult> | null;
+  /** ID of the step currently executing (null between steps) */
+  runningStepId: string | null;
   isTestRunning: boolean;
-  /** Called when the user clicks an edge to peek at its data */
-  onPeekEdge: (sourceNodeId: string, targetNodeId: string) => void;
+  /** Set of edge keys ("sourceId|targetId") the user has clamped a probe onto */
+  probedEdges: Set<string>;
+  toggleProbe: (sourceNodeId: string, targetNodeId: string) => void;
+  /**
+   * Run only the pipeline ancestors of `upToNodeId` (inclusive) so the user
+   * can validate the output shape at any point in the graph without having
+   * completed the full pipeline first.  Re-uses the last test input; if none
+   * exists, opens the TestRunDialog.
+   */
+  runToStep: (upToNodeId: string) => void;
+  /**
+   * Return the field names that a given step expects to find in pipeline_state
+   * (derived from its field_mapping / input_ports config).  Used by the probe
+   * monitor to flag connector mismatches.
+   */
+  getNodeExpectedInputs: (nodeId: string) => string[];
 }
 
 export const PipelineTestContext = createContext<PipelineTestContextValue>({
   testTrace: null,
+  runningStepId: null,
   isTestRunning: false,
-  onPeekEdge: () => undefined,
+  probedEdges: new Set(),
+  toggleProbe: () => undefined,
+  runToStep: () => undefined,
+  getNodeExpectedInputs: () => [],
 });
 
 export function usePipelineTest() {

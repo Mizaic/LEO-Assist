@@ -57,6 +57,10 @@ def _sha(value: str) -> str:
     return hashlib.sha256(value.encode("utf-8")).hexdigest()
 
 
+def _gold_label_id(text: str, entities_json: str) -> str:
+    return _sha(f"{text}\n{entities_json}")
+
+
 def main() -> None:
     # Patient Graph — source of legacy TrainingLabel nodes
     pg_uri = os.getenv("NEO4J_URI", "bolt://localhost:7687")

@@ -188,6 +188,7 @@ class LLMClient:
         temperature: float,
         tool_config: dict[str, Any] | None = None,
     ) -> LLMResponse:
+        from botocore.exceptions import ParamValidationError
         from libs.llm_client.bedrock_retry import converse_with_retry
 
         bedrock_messages = []
@@ -227,7 +228,17 @@ class LLMClient:
         elif tool_config is not None:
             converse_kwargs["toolConfig"] = tool_config
 
-        response = converse_with_retry(client, **converse_kwargs)
+        try:
+            response = converse_with_retry(client, **converse_kwargs)
+        except ParamValidationError as exc:
+            if "cachePoint" not in str(exc):
+                raise
+            logger.warning(
+                "Bedrock model %s rejected cachePoint in system prompt; retrying without prompt caching marker.",
+                self.model_id,
+            )
+            converse_kwargs["system"] = [{"text": system}]
+            response = converse_with_retry(client, **converse_kwargs)
 
         output_content = response.get("output", {}).get("message", {}).get("content", [])
         text_parts: list[str] = []

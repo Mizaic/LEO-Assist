@@ -19,12 +19,10 @@ from pydantic import BaseModel
 from app.db.neo4j_client import CodingGraphClient, PatientGraphClient, run_with_retry
 from app.models.contracts import LLMUsageResponse, PipelineRunRequest, PipelineRunResponse
 from app.models.neo4j_schema import DELETE_ENCOUNTER_DOCUMENTS, RESET_ENCOUNTER_REVIEW_QUEUE
-from app.services.pipeline_service import PipelineService
+from app.services.pipeline_service import PipelineService, _REMOVED_MSG
 from libs.auth.org_scope import CallerScope, get_caller_scope, require_patient_in_scope
 from libs.pipeline_graph.registry import get_registry
 
-CODING_QUEUE = os.getenv("CODING_QUEUE_NAME", "coding-jobs")
-ANALYSIS_QUEUE = os.getenv("ANALYSIS_QUEUE_NAME", "analysis-jobs")
 PIPELINE_QUEUE = os.getenv("PIPELINE_QUEUE_NAME", "pipeline-jobs")
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 _PROGRESS_IDLE_TIMEOUT_S = 300  # close relay after 5 min of silence
@@ -164,6 +162,77 @@ async def test_run_pipeline(
     )
 
 
+@router.post("/test-run/stream")
+async def test_run_pipeline_stream(
+    body: TestRunRequest,
+    scope: CallerScope = Depends(get_caller_scope),
+) -> StreamingResponse:
+    """SSE stream of a pipeline dry-run — yields one event per step in real time.
+
+    Event format (text/event-stream):
+        event: step_start
+        data: {"type":"step_start","step_id":"...","label":"...","subgraph_id":"...","node_type":"..."}
+
+        event: step_done
+        data: {"type":"step_done","step_trace":{...StepTrace...}}
+
+        event: pipeline_done
+        data: {"type":"pipeline_done","status":"completed","final_state":{...}}
+
+    The caller receives each event as the step finishes, not all at once.
+    No data is written to any database (dry_run=True in pipeline state).
+    """
+    from libs.workflow.engine import ActionDefinition, WorkflowEngine
+
+    edges_by_target: dict[str, list[dict]] = {}
+    for e in body.edges:
+        edges_by_target.setdefault(e.target, []).append({
+            "actionId": e.source,
+            "sourceHandle": e.source_handle,
+            "targetHandle": e.target_handle,
+        })
+
+    actions: list[ActionDefinition] = [
+        ActionDefinition(
+            action_id=a.id,
+            subgraph_id=a.subgraph_id,
+            trigger_type=a.config.get("trigger_type", ""),
+            trigger_name=a.config.get("trigger_name", ""),
+            node_type=a.node_type,
+            config={"label": a.label, **a.config},
+            related_edges=edges_by_target.get(a.id, []),
+            sequence=idx,
+        )
+        for idx, a in enumerate(body.actions)
+    ]
+
+    initial: dict = dict(body.input)
+    initial.setdefault("patient_id", "test-patient")
+    initial.setdefault("encounter_id", "test-encounter")
+    initial.setdefault("run_id", str(uuid.uuid4()))
+
+    engine = WorkflowEngine()
+
+    async def event_stream():
+        try:
+            async for event in engine.trace_run_stream(actions, initial):
+                event_name = event["type"]
+                yield f"event: {event_name}\ndata: {json.dumps(event)}\n\n"
+        except Exception as exc:
+            err = {"type": "error", "message": str(exc)}
+            yield f"event: error\ndata: {json.dumps(err)}\n\n"
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "Connection": "keep-alive",
+        },
+    )
+
+
 @router.get("/subgraphs")
 def list_pipeline_subgraphs(scope: CallerScope = Depends(get_caller_scope)) -> dict[str, object]:
     _ = scope  # reserved for future role-specific filtering
@@ -200,15 +269,20 @@ async def _publish_coding_jobs(
     try:
         for pid in patient_ids:
             await bus.send(
-                CODING_QUEUE,
+                PIPELINE_QUEUE,
                 Message(
                     body={
+                        "event_type": "encounter-created",
                         "patient_id": pid,
-                        "dry_run": preview,
-                        "mode": mode,
-                        "trigger_analysis": trigger_analysis,
+                        "plan_definition_id": "pd-gp-encounter-coding",
+                        "context": {
+                            "dry_run": preview,
+                            "mode": mode,
+                            "trigger_analysis": trigger_analysis,
+                        },
                     },
                     correlation_id=run_id,
+                    subject="encounter-created",
                 ),
             )
     finally:
@@ -223,10 +297,16 @@ async def _publish_analysis_jobs(patient_ids: list[str], *, run_id: str) -> None
     try:
         for pid in patient_ids:
             await bus.send(
-                ANALYSIS_QUEUE,
+                PIPELINE_QUEUE,
                 Message(
-                    body={"patient_id": pid, "trigger": "manual_run_analysis"},
+                    body={
+                        "event_type": "manual_run_analysis",
+                        "patient_id": pid,
+                        "plan_definition_id": "pd-gp-encounter-coding",
+                        "context": {},
+                    },
                     correlation_id=run_id,
+                    subject="manual_run_analysis",
                 ),
             )
     finally:
@@ -295,29 +375,10 @@ def run_pipeline(
     scope: CallerScope = Depends(get_caller_scope),
     service: V3PipelineService = Depends(get_creator),
 ):
-    patient_ids = payload.patient_ids
-    if not patient_ids and payload.cohort_id:
-        patient_ids = _resolve_cohort_patients(payload.cohort_id)
-    if not patient_ids and payload.org_id:
-        patient_ids = _resolve_org_patients(payload.org_id)
-    if not patient_ids:
-        raise HTTPException(400, "Provide patient_ids, cohort_id, or org_id")
-    _require_patients_in_scope(scope, patient_ids)
-
-    run_id, stats = service.run(
-        patient_ids=patient_ids,
-        max_encounters_per_patient=payload.max_encounters_per_patient,
-        dry_run=payload.dry_run,
-    )
-    snap = stats.snapshot()
-    usage_dict = snap.get("llm_usage", {})
-    return PipelineRunResponse(
-        run_id=run_id,
-        processed_encounters=stats.processed_encounters,
-        queued_for_review=stats.queued_for_review,
-        rejected_hard_fail=stats.rejected_hard_fail,
-        warnings_only=stats.warnings_only,
-        llm_usage=LLMUsageResponse(**usage_dict) if usage_dict else None,
+    _ = (payload, scope, service)
+    raise HTTPException(
+        status_code=410,
+        detail=_REMOVED_MSG,
     )
 
 
@@ -373,59 +434,10 @@ def stream_unprocessed(
     workers: int = Query(default=4, ge=1, le=8),
     scope: CallerScope = Depends(get_caller_scope),
 ):
-    """Run pipeline only for encounters that don't yet have :DOCUMENTS links."""
-    ids = [pid.strip() for pid in patient_ids.split(",") if pid.strip()]
-    if not ids:
-        ids = [patient_ids.strip()]
-    _require_patients_in_scope(scope, ids)
-
-    service = get_creator()
-    events: queue.Queue[dict[str, object] | None] = queue.Queue()
-
-    def emit(event: dict[str, object]) -> None:
-        events.put(event)
-
-    def worker() -> None:
-        try:
-            service.run_unprocessed(
-                patient_ids=ids,
-                dry_run=dry_run,
-                workers=workers,
-                progress_hook=emit,
-            )
-        except Exception as exc:
-            events.put({"type": "pipeline_error", "message": str(exc)})
-        finally:
-            try:
-                service.patient_graph.close()
-                service.coding_graph.close()
-            finally:
-                events.put(None)
-
-    threading.Thread(target=worker, daemon=True).start()
-
-    def event_generator():
-        while True:
-            try:
-                event = events.get(timeout=2.0)
-            except queue.Empty:
-                yield _format_sse(
-                    "heartbeat", {"type": "heartbeat", "ts": time.time()}
-                )
-                continue
-            if event is None:
-                break
-            event_type = str(event.get("type", "message"))
-            yield _format_sse(event_type, event)
-
-    return StreamingResponse(
-        event_generator(),
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-            "X-Accel-Buffering": "no",
-        },
+    _ = (patient_ids, dry_run, workers, scope)
+    raise HTTPException(
+        status_code=410,
+        detail=_REMOVED_MSG,
     )
 
 
@@ -436,69 +448,10 @@ def stream_encounter(
     dry_run: bool = Query(default=False),
     scope: CallerScope = Depends(get_caller_scope),
 ):
-    """Reset a single encounter (DOCUMENTS + review queue) then re-run the pipeline on it."""
-    _require_patients_in_scope(scope, [patient_id])
-    service = get_creator()
-    events: queue.Queue[dict[str, object] | None] = queue.Queue()
-
-    def emit(event: dict[str, object]) -> None:
-        events.put(event)
-
-    def worker() -> None:
-        try:
-            run_with_retry(
-                service.patient_graph,
-                DELETE_ENCOUNTER_DOCUMENTS,
-                patient_id=patient_id,
-                encounter_id=encounter_id,
-            )
-            run_with_retry(
-                service.patient_graph,
-                RESET_ENCOUNTER_REVIEW_QUEUE,
-                patient_id=patient_id,
-                encounter_id=encounter_id,
-            )
-            emit({"type": "reset_completed", "patient_id": patient_id, "encounter_id": encounter_id})
-
-            service.run_single_encounter(
-                patient_id=patient_id,
-                encounter_id=encounter_id,
-                dry_run=dry_run,
-                progress_hook=emit,
-            )
-        except Exception as exc:
-            events.put({"type": "pipeline_error", "message": str(exc)})
-        finally:
-            try:
-                service.patient_graph.close()
-                service.coding_graph.close()
-            finally:
-                events.put(None)
-
-    threading.Thread(target=worker, daemon=True).start()
-
-    def event_generator():
-        while True:
-            try:
-                event = events.get(timeout=2.0)
-            except queue.Empty:
-                yield _format_sse(
-                    "heartbeat", {"type": "heartbeat", "ts": time.time()}
-                )
-                continue
-            if event is None:
-                break
-            event_type = str(event.get("type", "message"))
-            yield _format_sse(event_type, event)
-
-    return StreamingResponse(
-        event_generator(),
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-            "X-Accel-Buffering": "no",
-        },
+    _ = (patient_id, encounter_id, dry_run, scope)
+    raise HTTPException(
+        status_code=410,
+        detail=_REMOVED_MSG,
     )
 
 
@@ -586,59 +539,10 @@ def stream_pipeline(
     workers: int = Query(default=4, ge=1, le=8),
     scope: CallerScope = Depends(get_caller_scope),
 ):
-    ids = [pid.strip() for pid in patient_ids.split(",") if pid.strip()]
-    if not ids:
-        ids = [patient_ids.strip()]
-    _require_patients_in_scope(scope, ids)
-
-    service = get_creator()
-    events: queue.Queue[dict[str, object] | None] = queue.Queue()
-
-    def emit(event: dict[str, object]) -> None:
-        events.put(event)
-
-    def worker() -> None:
-        try:
-            service.run(
-                patient_ids=ids,
-                max_encounters_per_patient=max_encounters_per_patient,
-                dry_run=dry_run,
-                workers=workers,
-                progress_hook=emit,
-            )
-        except Exception as exc:  # pragma: no cover
-            events.put({"type": "pipeline_error", "message": str(exc)})
-        finally:
-            try:
-                service.patient_graph.close()
-                service.coding_graph.close()
-            finally:
-                events.put(None)
-
-    threading.Thread(target=worker, daemon=True).start()
-
-    def event_generator():
-        while True:
-            try:
-                event = events.get(timeout=2.0)
-            except queue.Empty:
-                yield _format_sse(
-                    "heartbeat", {"type": "heartbeat", "ts": time.time()}
-                )
-                continue
-            if event is None:
-                break
-            event_type = str(event.get("type", "message"))
-            yield _format_sse(event_type, event)
-
-    return StreamingResponse(
-        event_generator(),
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-            "X-Accel-Buffering": "no",
-        },
+    _ = (patient_ids, max_encounters_per_patient, dry_run, workers, scope)
+    raise HTTPException(
+        status_code=410,
+        detail=_REMOVED_MSG,
     )
 
 

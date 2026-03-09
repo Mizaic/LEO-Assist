@@ -46,6 +46,8 @@ _SPAN_ATTRS: dict = {
 }
 
 # Module-level singleton -- lazy-initialised on first call.
+# Call reload_nlp() after creating/deactivating Neo4j ContextRule nodes so the
+# pipeline picks up changes without a full service restart.
 _nlp: spacy.language.Language | None = None
 
 
@@ -64,8 +66,15 @@ _CONTEXT_RULE_KEYS = frozenset(
 )
 
 
-def _build_nlp() -> spacy.language.Language:
-    """Create a blank spaCy pipeline with medspaCy ConText and UK rules."""
+def _build_nlp(extra_rules: list[dict] | None = None) -> spacy.language.Language:
+    """Create a blank spaCy pipeline with medspaCy ConText and UK rules.
+
+    Args:
+        extra_rules: Optional list of additional rule dicts (e.g. fetched from
+            Neo4j) to append after the built-in JSON rules.  Each dict must
+            contain at least ``literal``, ``category``, ``direction``, and
+            ``max_scope`` keys — the same shape returned by ``GET_CONTEXT_RULES``.
+    """
     from medspacy.context import ConTextRule
 
     _register_extensions()
@@ -74,16 +83,33 @@ def _build_nlp() -> spacy.language.Language:
         "medspacy_context",
         config={"span_attrs": _SPAN_ATTRS, "max_scope": 10, "rules": "default"},
     )
+
+    # ── Built-in rules from the shipped JSON file ────────────────────────────
+    builtin_rules: list[ConTextRule] = []
     if _UK_RULES_PATH.exists():
         raw = json.loads(_UK_RULES_PATH.read_text(encoding="utf-8"))
-        rules = []
         for entry in raw.get("context_rules", []):
             clean = {k: v for k, v in entry.items() if k in _CONTEXT_RULE_KEYS}
-            rules.append(ConTextRule(**clean))
-        context.add(rules)
-        logger.info("Loaded %d UK ConText rules from %s", len(rules), _UK_RULES_PATH)
+            builtin_rules.append(ConTextRule(**clean))
+        logger.info("Loaded %d built-in UK ConText rules from %s", len(builtin_rules), _UK_RULES_PATH)
     else:
-        logger.warning("UK ConText rules not found at %s", _UK_RULES_PATH)
+        logger.warning("Built-in UK ConText rules not found at %s", _UK_RULES_PATH)
+
+    # ── Custom rules injected by the caller (e.g. from Neo4j) ───────────────
+    custom_rules: list[ConTextRule] = []
+    for entry in (extra_rules or []):
+        try:
+            clean = {k: v for k, v in entry.items() if k in _CONTEXT_RULE_KEYS}
+            custom_rules.append(ConTextRule(**clean))
+        except Exception:
+            logger.warning("Skipping malformed custom ConText rule: %s", entry, exc_info=True)
+    if custom_rules:
+        logger.info("Loaded %d custom ConText rules from Neo4j", len(custom_rules))
+
+    all_rules = builtin_rules + custom_rules
+    if all_rules:
+        context.add(all_rules)
+
     return nlp
 
 
@@ -121,11 +147,49 @@ def get_builtin_rules() -> list[dict[str, Any]]:
         return []
 
 
+def _fetch_neo4j_rules() -> list[dict]:
+    """Fetch active custom ContextRule nodes from the Patient Graph.
+
+    Returns an empty list (and logs a warning) if the DB is unreachable so that
+    the engine can still run on built-in rules alone.
+    """
+    try:
+        from libs.cypher.coding_review_queries import GET_CONTEXT_RULES
+        from libs.neo4j_client.client import PatientGraphClient  # noqa: PLC0415
+
+        client = PatientGraphClient()
+        try:
+            with client.session() as session:
+                rows = list(session.run(GET_CONTEXT_RULES, active_only=True, org_id=None))
+            return [dict(r) for r in rows]
+        finally:
+            client.close()
+    except Exception:
+        logger.warning(
+            "Could not fetch custom ConText rules from Neo4j — running on built-in rules only",
+            exc_info=True,
+        )
+        return []
+
+
 def _get_nlp() -> spacy.language.Language:
     global _nlp
     if _nlp is None:
-        _nlp = _build_nlp()
+        custom = _fetch_neo4j_rules()
+        _nlp = _build_nlp(extra_rules=custom)
     return _nlp
+
+
+def reload_nlp() -> None:
+    """Rebuild the ConText NLP singleton, re-fetching custom rules from Neo4j.
+
+    Call this from the API after a ContextRule is created or deactivated so the
+    pipeline picks up the change without a service restart.
+    """
+    global _nlp
+    custom = _fetch_neo4j_rules()
+    _nlp = _build_nlp(extra_rules=custom)
+    logger.info("ConText NLP pipeline reloaded")
 
 
 def _span_to_assertion(span: Span) -> str:

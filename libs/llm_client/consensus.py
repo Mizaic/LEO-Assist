@@ -62,20 +62,37 @@ def _call_provider(
     )
 
 
-def _normalise_verdict(verdict: Any) -> Any:
-    """Normalise a verdict for equality comparison.
+def _normalise_verdict(verdict: Any) -> str:
+    """Normalise a verdict to a canonical string for equality comparison.
 
-    For dict verdicts (used by guidance rule extraction), list values are
-    sorted so that ordering differences between models do not trigger
-    unnecessary Sonnet arbitration.  All other verdict types are returned
-    as-is.
+    Converts the verdict to JSON with keys and any string-only lists sorted so
+    that ordering differences between models (e.g. same SNOMED terms returned
+    in a different order, or dict keys in a different order) do not trigger
+    unnecessary Sonnet arbitration.
+
+    Works correctly for:
+    - Simple string verdicts
+    - Flat dicts with string/int values
+    - Nested structures such as ``criteria_groups`` (list of dicts) — these are
+      serialised to JSON and the whole blob is sorted, avoiding the ``TypeError:
+      '<' not supported between instances of 'dict' and 'dict'`` that ``sorted()``
+      raises when list elements are dicts.
     """
-    if not isinstance(verdict, dict):
-        return verdict
-    return {
-        k: sorted(v) if isinstance(v, list) else v
-        for k, v in verdict.items()
-    }
+    def _sort_obj(obj: Any) -> Any:
+        if isinstance(obj, dict):
+            return {k: _sort_obj(v) for k, v in sorted(obj.items())}
+        if isinstance(obj, list):
+            items = [_sort_obj(i) for i in obj]
+            try:
+                # Try sorting directly (works for lists of scalars).
+                return sorted(items)  # type: ignore[type-var]
+            except TypeError:
+                # Elements are dicts or other non-comparable types — sort by their
+                # JSON representation so the comparison is stable and deterministic.
+                return sorted(items, key=lambda x: _json.dumps(x, sort_keys=True, ensure_ascii=False))
+        return obj
+
+    return _json.dumps(_sort_obj(verdict), sort_keys=True, ensure_ascii=False)
 
 
 def _fmt_verdict(v: Any) -> str:
