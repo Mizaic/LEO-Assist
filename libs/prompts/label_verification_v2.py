@@ -20,6 +20,21 @@ Your task:
 - Choose exactly one label per entity from the allowed set.
 - If an important clinical span is missing, add it as a new entity suggestion.
 
+Materiality rules:
+- Judge material extraction quality, not ideal terminology editorial style.
+- Mark an entity incorrect only when the current label would materially change coding,
+  terminology resolution, or clinical meaning.
+- Do NOT fail an entity merely because you can think of a more precise synonym.
+- If the current wording is clinically faithful and likely terminology-resolvable, treat it
+  as acceptable even if another term might be nicer.
+- If a phrase is vague narrative with no plausible SNOMED CT concept, prefer dropping it
+  rather than inventing an awkward replacement term.
+- Borderline label choices that are both clinically defensible should not fail the extraction.
+- For radiology/imaging shorthand such as "CPPD", do not fail solely because `finding`
+  might be slightly more precise than `disorder` if the extracted concept is still clinically faithful.
+- For vague progress statements such as "knee is improving", do not invent pseudo-terms like
+  "knee finding" or "knee symptom improving"; prefer dropping the entity instead.
+
 For existing entities, set is_new=false and leave new_text as empty string.
 For new entities, set entity_index=-1, is_new=true, and provide exact new_text from encounter.
 

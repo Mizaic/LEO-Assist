@@ -37,7 +37,59 @@ except Exception:  # pragma: no cover - unit tests may run without langgraph ins
 
 from libs.terminology.client import ResolvedTerm, TerminologyClient, get_runtime_config
 
+from libs.pipeline_graph.subgraphs.verification import (
+    _build_tool_result_block,
+    _execute_lookup_snomed,
+)
+
 logger = logging.getLogger(__name__)
+
+# Max iterations for SNOMED resolver tool loop (same pattern as verification.py).
+_MAX_SNOMED_RESOLVER_ITERATIONS = max(1, int(os.getenv("GUIDANCE_SNOMED_RESOLVER_MAX_ITERATIONS", "4")))
+
+# Bedrock tool config for guidance SNOMED resolver (lookup_snomed + accept_code).
+_ACCEPT_CODE_INPUT_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "properties": {
+        "concept_id": {"type": "string", "description": "SNOMED concept ID."},
+        "preferred_term": {"type": "string", "description": "Preferred term for the concept."},
+        "confidence": {"type": "number", "description": "Confidence 0.0-1.0."},
+        "reason": {"type": "string", "description": "Short explanation."},
+    },
+    "required": ["concept_id", "preferred_term"],
+}
+
+_GUIDANCE_SNOMED_TOOL_CONFIG: dict[str, Any] = {
+    "tools": [
+        {
+            "toolSpec": {
+                "name": "lookup_snomed",
+                "description": (
+                    "Look up a clinical term in SNOMED. Use query and optional expected_label (e.g. finding, procedure)."
+                ),
+                "inputSchema": {
+                    "json": {
+                        "type": "object",
+                        "properties": {
+                            "query": {"type": "string", "description": "Term or phrase to look up."},
+                            "expected_label": {"type": "string", "description": "Optional semantic tag."},
+                            "entity_index": {"type": "integer", "description": "Unused; pass 0."},
+                            "reason": {"type": "string", "description": "Why lookup is needed."},
+                        },
+                        "required": ["query"],
+                    }
+                },
+            }
+        },
+        {
+            "toolSpec": {
+                "name": "accept_code",
+                "description": "Submit the selected SNOMED concept when satisfied.",
+                "inputSchema": {"json": _ACCEPT_CODE_INPUT_SCHEMA},
+            }
+        },
+    ],
+}
 
 # Guidance-rule extraction is latency-tolerant compared with interactive flows,
 # so default to a less aggressive timeout while still honoring any larger global
@@ -108,55 +160,134 @@ _SITE_REFERRAL_RE = re.compile(
 
 _QUOTED_TEXT_RE = re.compile(r"[\"'`]\s*([^\"'`]{3,120})\s*[\"'`]")
 
+_USC_REFERRAL_CANONICAL: dict[str, str] = {
+    "oesophageal": "fast track referral for suspected upper gastrointestinal cancer",
+    "stomach": "fast track referral for suspected upper gastrointestinal cancer",
+    "gastric": "fast track referral for suspected upper gastrointestinal cancer",
+    "anal": "fast track referral for suspected lower gastrointestinal cancer",
+    "colorectal": "fast track referral for suspected colorectal cancer",
+    "vulval": "fast track referral for suspected gynaecological cancer",
+    "vulva": "fast track referral for suspected gynaecological cancer",
+    "cervical": "fast track referral for suspected gynaecological cancer",
+    "ovarian": "fast track referral for suspected gynaecological cancer",
+    "endometrial": "fast track referral for suspected gynaecological cancer",
+    "oral": "fast track referral for suspected head and neck cancer",
+    "laryngeal": "fast track referral for suspected head and neck cancer",
+    "thyroid": "fast track referral for suspected head and neck cancer",
+    "nasopharyngeal": "fast track referral for suspected head and neck cancer",
+    "sarcoma": "fast track referral for suspected sarcoma",
+    "soft tissue": "fast track referral for suspected sarcoma",
+    "bone": "fast track referral for suspected sarcoma",
+    "myeloma": "fast track referral for suspected haematology malignancy",
+    "lymphoma": "fast track referral for suspected haematology malignancy",
+    "hodgkin": "fast track referral for suspected haematology malignancy",
+    "leukaemia": "fast track referral for suspected haematology malignancy",
+    "neuroblastoma": "fast track referral for suspected childrens tumour",
+    "retinoblastoma": "fast track referral for suspected childrens tumour",
+    "wilms": "fast track referral for suspected childrens tumour",
+    "brain": "fast track referral for suspected brain tumour",
+    "cns": "fast track referral for suspected brain tumour",
+    "lung": "fast track referral for suspected lung cancer",
+    "mesothelioma": "fast track referral for suspected lung cancer",
+    "breast": "fast track referral for suspected breast cancer",
+    "skin": "fast track referral for suspected skin cancer",
+    "melanoma": "fast track referral for suspected skin cancer",
+    "basal cell": "fast track referral for suspected skin cancer",
+    "squamous cell": "fast track referral for suspected skin cancer",
+    "bladder": "fast track referral for suspected urological cancer",
+    "renal": "fast track referral for suspected urological cancer",
+    "prostate": "fast track referral for suspected urological cancer",
+    "testicular": "fast track referral for suspected urological cancer",
+    "penile": "fast track referral for suspected urological cancer",
+    "non-site-specific": "fast track referral for suspected cancer due to non-site-specific symptoms",
+}
+
 _ACTION_SITE_ALIASES: dict[str, list[str]] = {
-    "oral": [
-        "fast track referral for suspected oral cancer",
-        "fast track referral for suspected head and neck cancer",
-        "urgent referral for suspected oral cancer",
-        "2 week wait referral for suspected oral cancer",
-    ],
-    "head and neck": [
-        "fast track referral for suspected head and neck cancer",
-        "urgent referral for suspected head and neck cancer",
-    ],
-    "thyroid": [
-        "fast track referral for suspected thyroid cancer",
-        "urgent referral for suspected thyroid cancer",
-    ],
-    "pancreatic": [
-        "fast track referral for suspected pancreatic cancer",
-        "urgent referral for suspected pancreatic cancer",
-        "2 week wait referral for suspected pancreatic cancer",
-    ],
-    "stomach": [
-        "fast track referral for suspected stomach cancer",
-        "fast track referral for suspected gastric cancer",
-        "urgent referral for suspected stomach cancer",
-    ],
-    "oesophageal": [
-        "fast track referral for suspected oesophageal cancer",
-        "fast track referral for suspected upper gastrointestinal cancer",
-        "urgent referral for suspected oesophageal cancer",
-    ],
-    "retinoblastoma": [
-        "urgent referral for suspected retinoblastoma",
-        "fast track referral for suspected retinoblastoma",
-    ],
-    "hodgkin": [
-        "fast track referral for suspected hodgkin lymphoma",
-        "urgent referral for suspected hodgkin lymphoma",
-        "fast track referral for suspected haematological cancer",
-    ],
-    "mesothelioma": [
-        "fast track referral for suspected mesothelioma",
-        "urgent referral for suspected mesothelioma",
-        "2 week wait referral for suspected mesothelioma",
-    ],
+    "brain": ["fast track referral for suspected brain tumour"],
+    "bladder": ["fast track referral for suspected urological cancer"],
+    "cervical": ["fast track referral for suspected gynaecological cancer"],
+    "gynaecological": ["fast track referral for suspected gynaecological cancer"],
+    "haematological": ["fast track referral for suspected haematology malignancy"],
+    "oral": ["fast track referral for suspected head and neck cancer"],
+    "head and neck": ["fast track referral for suspected head and neck cancer"],
+    "thyroid": ["fast track referral for suspected head and neck cancer"],
+    "pancreatic": ["fast track referral for suspected upper gastrointestinal cancer"],
+    "stomach": ["fast track referral for suspected upper gastrointestinal cancer"],
+    "oesophageal": ["fast track referral for suspected upper gastrointestinal cancer"],
+    "retinoblastoma": ["fast track referral for suspected childrens tumour"],
+    "hodgkin": ["fast track referral for suspected haematology malignancy"],
+    "mesothelioma": ["fast track referral for suspected lung cancer"],
+    "sarcoma": ["fast track referral for suspected sarcoma"],
+    "skin": ["fast track referral for suspected skin cancer"],
+    "testicular": ["fast track referral for suspected urological cancer"],
+    "upper gastrointestinal": ["fast track referral for suspected upper gastrointestinal cancer"],
+    "urological": ["fast track referral for suspected urological cancer"],
+    "vulval": ["fast track referral for suspected gynaecological cancer"],
+    "lower gastrointestinal": ["fast track referral for suspected lower gastrointestinal cancer"],
+    "children": ["fast track referral for suspected childrens tumour"],
     "non-site-specific": [
-        "urgent suspected cancer referral",
-        "suspected cancer pathway referral",
+        "fast track referral for suspected cancer due to non-site-specific symptoms",
+        "fast track referral for suspected cancer due to non-site-specific symptoms (procedure)",
         "fast track cancer referral",
     ],
+}
+
+_ACTION_SITE_PATTERNS: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("retinoblastoma", ("retinoblastoma",)),
+    ("soft_tissue_sarcoma", ("soft tissue sarcoma",)),
+    ("bone_sarcoma", ("bone sarcoma",)),
+    ("sarcoma", ("sarcoma",)),
+    ("mesothelioma", ("mesothelioma",)),
+    ("lung", ("lung cancer", "lung tumour", "lung tumor")),
+    ("myeloma", ("myeloma", "plasma cell")),
+    ("haematological", ("haematological", "hematological", "lymphoma", "hodgkin")),
+    ("children", ("children", "child", "paediatric", "pediatric", "neuroblastoma", "retinoblastoma")),
+    ("brain_cns", ("brain cancer", "brain tumour", "brain tumor", "central nervous system", " cns ", "brain or cns")),
+    ("vulval", ("vulval", "vulva")),
+    ("cervical", ("cervical", "cervix")),
+    ("gynaecological", ("gynaecological", "gynecological")),
+    ("bladder", ("bladder",)),
+    ("prostate", ("prostate",)),
+    ("testicular", ("testicular", "testis")),
+    ("urological", ("urological", "urology")),
+    ("stomach", ("stomach", "gastric")),
+    ("oesophageal", ("oesophageal", "esophageal")),
+    ("upper_gi", ("upper gastrointestinal", "upper gi", "oesophagogastric", "esophagogastric")),
+    ("lower_gi", ("lower gastrointestinal", "lower gi")),
+    ("oral", (" oral ", "mouth cancer")),
+    ("head_neck", ("head and neck",)),
+    ("skin", ("skin cancer", "squamous cell carcinoma", "skin lesion")),
+    ("colorectal", ("colorectal", "rectal", "colon", "bowel")),
+    ("generic_cancer", ("suspected cancer", "cancer referral", "cancer pathway")),
+)
+
+_ACTION_SITE_COMPATIBILITY: dict[str, tuple[str, ...]] = {
+    "retinoblastoma": ("retinoblastoma", "children", "generic_cancer"),
+    "soft_tissue_sarcoma": ("soft_tissue_sarcoma", "sarcoma"),
+    "bone_sarcoma": ("bone_sarcoma", "sarcoma"),
+    "sarcoma": ("sarcoma", "generic_cancer"),
+    "mesothelioma": ("mesothelioma", "lung", "generic_cancer"),
+    "lung": ("lung", "mesothelioma", "generic_cancer"),
+    "myeloma": ("myeloma", "haematological", "generic_cancer"),
+    "haematological": ("haematological", "myeloma", "hodgkin", "generic_cancer"),
+    "brain_cns": ("brain_cns", "generic_cancer"),
+    "vulval": ("vulval", "gynaecological"),
+    "cervical": ("cervical", "gynaecological"),
+    "gynaecological": ("gynaecological", "generic_cancer"),
+    "bladder": ("bladder", "urological"),
+    "prostate": ("prostate", "urological"),
+    "testicular": ("testicular", "urological"),
+    "urological": ("urological", "generic_cancer"),
+    "stomach": ("stomach", "upper_gi", "generic_cancer"),
+    "oesophageal": ("oesophageal", "upper_gi", "generic_cancer"),
+    "upper_gi": ("upper_gi", "generic_cancer"),
+    "oral": ("oral", "head_neck"),
+    "head_neck": ("head_neck", "generic_cancer"),
+    "skin": ("skin", "generic_cancer"),
+    "colorectal": ("colorectal", "generic_cancer"),
+    "lower_gi": ("lower_gi", "colorectal", "generic_cancer"),
+    "children": ("children", "retinoblastoma", "generic_cancer"),
+    "generic_cancer": ("generic_cancer",),
 }
 
 
@@ -185,6 +316,12 @@ class CriterionResult(TypedDict, total=False):
     verification_status: str
     verification_reason: str
     confidence: float
+    original_phrase: str | None
+    expansion_source: str | None
+    expanded_from: list[str] | None
+    resolver_turns: int | None
+    needs_human_review: bool
+    search_history: list[list[str]] | None
 
 
 class ActionResult(TypedDict, total=False):
@@ -196,6 +333,12 @@ class ActionResult(TypedDict, total=False):
     verification_status: str
     verification_reason: str
     confidence: float
+    original_phrase: str | None
+    expansion_source: str | None
+    expanded_from: list[str] | None
+    resolver_turns: int | None
+    needs_human_review: bool
+    search_history: list[list[str]] | None
 
 
 class CodedLogicNode(TypedDict, total=False):
@@ -216,6 +359,8 @@ class CodedCriteria(TypedDict, total=False):
     logic_tree: CodedLogicNode | None
     action: ActionResult | None
     verifier: dict[str, Any]
+    needs_human_review: bool
+    hitl_terms: list[dict[str, Any]]
 
 
 class GuidanceRuleExtractionState(TypedDict, total=False):
@@ -225,7 +370,9 @@ class GuidanceRuleExtractionState(TypedDict, total=False):
     system_prompt: str
     few_shot_examples: list[dict[str, Any]]
     raw_criteria: dict[str, Any] | None
+    expanded_criteria: dict[str, Any] | None
     candidate_criteria: dict[str, Any] | None
+    agentic_terms: list[dict[str, Any]]
     coded_criteria: CodedCriteria | None
     errors: list[str]
     llm_tokens: dict[str, int]
@@ -393,6 +540,14 @@ def _expand_action_search_terms(action_text: str, recommendation_text: str) -> l
                 "2ww suspected cancer referral",
             ]
         )
+        if "non-urgent" in lowered or "routine" in lowered or "routine referral" in lowered:
+            variants.extend(
+                [
+                    "non-urgent referral for suspected cancer",
+                    "routine referral for suspected cancer",
+                    "routine cancer referral",
+                ]
+            )
     site_match = _SITE_REFERRAL_RE.search(action_text) or _SITE_REFERRAL_RE.search(recommendation_text or "")
     if site_match:
         site = " ".join(site_match.group(1).split())
@@ -403,6 +558,8 @@ def _expand_action_search_terms(action_text: str, recommendation_text: str) -> l
                 f"2 week wait referral for suspected {site} cancer",
                 f"2ww referral for suspected {site} cancer",
                 f"suspected {site} cancer pathway referral",
+                f"non-urgent referral for suspected {site} cancer",
+                f"routine referral for suspected {site} cancer",
             ]
         )
     if "mesothelioma" in lowered or "mesothelioma" in (recommendation_text or "").lower():
@@ -414,12 +571,147 @@ def _expand_action_search_terms(action_text: str, recommendation_text: str) -> l
             ]
         )
     text_blob = f"{action_text} {recommendation_text}".lower()
+    for keyword, canonical in _USC_REFERRAL_CANONICAL.items():
+        if keyword in text_blob:
+            variants.append(canonical)
     for site_key, aliases in _ACTION_SITE_ALIASES.items():
         if site_key in text_blob:
             variants.extend(aliases)
     if "suspected cancer" in text_blob and not site_match:
         variants.extend(_ACTION_SITE_ALIASES["non-site-specific"])
     return _dedupe_strs(variants)
+
+
+def _normalise_action_text(text: str) -> str:
+    return f" {re.sub(r'[^a-z0-9]+', ' ', (text or '').lower()).strip()} "
+
+
+def _is_referral_text(text: str) -> bool:
+    low = _normalise_action_text(text)
+    return any(token in low for token in (" referral ", " refer ", " pathway "))
+
+
+def _requested_action_urgency(rec: dict[str, Any], action_text: str) -> str:
+    urgency = str(rec.get("urgency") or "").lower()
+    blob = _normalise_action_text(f"{action_text} {rec.get('verbatim') or ''}")
+    if "non urgent" in blob or "routine" in blob or urgency == "routine":
+        return "routine"
+    if "very urgent" in blob or "48 hour" in blob or "48 hours" in blob or urgency in {"very_urgent_48h", "immediate"}:
+        return "very_urgent"
+    if (
+        "fast track" in blob
+        or "2 week wait" in blob
+        or "2ww" in blob
+        or "suspected cancer pathway" in blob
+        or urgency == "urgent_2w"
+    ):
+        return "fast_track"
+    if "urgent" in blob or urgency.startswith("urgent"):
+        return "urgent"
+    return "routine" if _is_referral_text(action_text) else "unspecified"
+
+
+def _detect_action_site(text: str) -> str | None:
+    low = _normalise_action_text(text)
+    for site, patterns in _ACTION_SITE_PATTERNS:
+        if any(f" {pattern} " in low for pattern in patterns):
+            return site
+    return None
+
+
+def _candidate_action_urgency(candidate: ResolutionCandidate) -> str:
+    low = _normalise_action_text(str(candidate.get("preferred_term") or ""))
+    if "non urgent" in low or "routine" in low:
+        return "routine"
+    if "very urgent" in low or "48 hour" in low or "48 hours" in low:
+        return "very_urgent"
+    if "fast track" in low or "2 week wait" in low or "2ww" in low or "suspected cancer pathway" in low:
+        return "fast_track"
+    if "urgent" in low:
+        return "urgent"
+    return "routine" if _is_referral_text(str(candidate.get("preferred_term") or "")) else "unspecified"
+
+
+def _action_candidate_allowed_site(requested_site: str | None, candidate_site: str | None) -> bool:
+    if not requested_site:
+        return True
+    allowed = _ACTION_SITE_COMPATIBILITY.get(requested_site, (requested_site,))
+    return bool(candidate_site and candidate_site in allowed)
+
+
+def _action_candidate_allowed_urgency(
+    requested_urgency: str,
+    candidate_urgency: str,
+    *,
+    is_referral: bool,
+) -> bool:
+    if not is_referral:
+        return True
+    if requested_urgency == "routine":
+        return candidate_urgency == "routine"
+    if requested_urgency == "very_urgent":
+        return candidate_urgency == "very_urgent"
+    if requested_urgency == "fast_track":
+        return candidate_urgency in {"fast_track", "very_urgent"}
+    if requested_urgency == "urgent":
+        return candidate_urgency in {"urgent", "fast_track", "very_urgent"}
+    return candidate_urgency != "routine"
+
+
+def _select_action_candidate(
+    rec: dict[str, Any],
+    action_term: str,
+    candidates: list[ResolutionCandidate],
+    verifier_choice: ResolutionCandidate | None,
+) -> tuple[ResolutionCandidate | None, str | None]:
+    requested_site = _detect_action_site(
+        f"{action_term} {rec.get('section_title') or ''} {rec.get('chapter_title') or ''} {rec.get('verbatim') or ''}"
+    )
+    requested_urgency = _requested_action_urgency(rec, action_term)
+    requested_is_referral = _is_referral_text(action_term)
+
+    def _score(candidate: ResolutionCandidate) -> tuple[int, int, float]:
+        candidate_site = _detect_action_site(str(candidate.get("preferred_term") or ""))
+        candidate_urgency = _candidate_action_urgency(candidate)
+        if requested_is_referral != _is_referral_text(str(candidate.get("preferred_term") or "")):
+            return (-1, -1, -1.0)
+        if not _action_candidate_allowed_site(requested_site, candidate_site):
+            return (-1, -1, -1.0)
+        if not _action_candidate_allowed_urgency(
+            requested_urgency,
+            candidate_urgency,
+            is_referral=requested_is_referral,
+        ):
+            return (-1, -1, -1.0)
+        site_score = 1
+        if requested_site and candidate_site == requested_site:
+            site_score = 3
+        elif requested_site and candidate_site in _ACTION_SITE_COMPATIBILITY.get(requested_site, ()):
+            site_score = 2
+        urgency_score = 1
+        if requested_urgency == candidate_urgency:
+            urgency_score = 3
+        elif requested_urgency == "urgent" and candidate_urgency in {"fast_track", "very_urgent"}:
+            urgency_score = 2
+        elif requested_urgency == "fast_track" and candidate_urgency == "very_urgent":
+            urgency_score = 2
+        return (site_score, urgency_score, float(candidate.get("score") or 0.0))
+
+    ranked = sorted(
+        candidates,
+        key=_score,
+        reverse=True,
+    )
+    best = ranked[0] if ranked and _score(ranked[0])[0] >= 0 else None
+    if best is None:
+        return None, None
+    if verifier_choice and str(verifier_choice.get("concept_id")) == str(best.get("concept_id")):
+        return best, None
+    reason = (
+        "Applied deterministic action fallback policy: selected the closest site/urgency-compatible "
+        "procedure candidate without changing referral urgency or specialty intent."
+    )
+    return best, reason
 
 
 def _infer_expected_tag_for_term_obj(term: dict[str, Any], *, is_action: bool = False) -> str | None:
@@ -613,6 +905,121 @@ def _looks_like_vague_symptom_clause(text: str) -> bool:
     return bool(_VAGUE_SYMPTOM_PHRASE_RE.search(text or ""))
 
 
+def _classify_leaf_difficulty(text: str) -> str:
+    low = (text or "").lower()
+    if any(tok in low for tok in ("suggestive of", "compatible with", "consistent with", "raises suspicion", "suspicious")):
+        return "abstract_phrase"
+    if any(tok in low for tok in ("new-onset", "new onset", "progressive", "increasing in size", "sub-acute", "subacute")):
+        return "temporal_modifier"
+    if any(tok in low for tok in ("fit", "ca125", "microgram", "iu/ml", "threshold", ">=", "<=", "per gram")):
+        return "quantitative"
+    if any(tok in low for tok in ("results suggest", "results of the blood tests", "results of blood tests", "panel", "combination of")):
+        return "composite_pattern"
+    if any(tok in low for tok in ("lip", "oral", "vulval", "vulva", "foreskin", "prepuce", "testicular", "glans")):
+        return "narrow_body_site"
+    return "concrete"
+
+
+def _expand_term_variants(text: str, category: str) -> list[str]:
+    variants = [text]
+    low = (text or "").lower()
+    if category == "abstract_phrase":
+        variants.extend(
+            [
+                re.sub(r"\b(suggestive of|compatible with|consistent with|raises suspicion of)\b", "", text, flags=re.IGNORECASE).strip(),
+                f"{text} finding",
+                f"{text} symptom",
+                f"{text} sign",
+            ]
+        )
+    if category == "narrow_body_site":
+        variants.extend(
+            [
+                text.replace("foreskin", "prepuce"),
+                text.replace("vulval", "vulva"),
+                text.replace("lip lump", "lump of lip"),
+                text.replace("lip lump", "labial mass"),
+                text.replace("oral cavity", "mouth"),
+            ]
+        )
+    if category == "temporal_modifier":
+        stripped = _QUALIFIER_PREFIX_RE.sub("", text).strip()
+        variants.extend([stripped, f"{stripped} finding", f"{stripped} disorder"])
+    if category == "quantitative":
+        variants.extend(
+            [
+                "laboratory result threshold",
+                "test result above threshold",
+                "test result below threshold",
+            ]
+        )
+    if category == "composite_pattern":
+        variants.extend([f"{text} finding", f"{text} result", f"suspected {text}"])
+    if "chest signs compatible with pleural disease" in low:
+        variants.extend(
+            [
+                "pleural disease signs",
+                "signs of pleural effusion",
+                "pleural friction rub",
+                "dullness to percussion",
+                "reduced breath sounds",
+            ]
+        )
+    if "chest x-ray findings suggestive of lung cancer" in low:
+        variants.extend(
+            [
+                "abnormal chest x-ray finding",
+                "chest radiograph suspicious finding",
+                "lung lesion on chest x-ray",
+            ]
+        )
+    return _dedupe_strs([v for v in variants if str(v or "").strip()])
+
+
+def _expand_leaves_in_logic_tree(node: dict[str, Any] | None) -> None:
+    if not node:
+        return
+    if node.get("kind") == "concept":
+        term = dict(node.get("term") or {})
+        text = str(term.get("text") or "")
+        category = _classify_leaf_difficulty(text)
+        expanded = _expand_term_variants(text, category)
+        term["search_terms"] = _dedupe_strs(list(term.get("search_terms") or []) + expanded)
+        if category != "concrete":
+            term["original_phrase"] = text
+            term["expansion_source"] = category
+            term["expanded_from"] = expanded
+            if not term.get("source_text"):
+                term["source_text"] = text
+        node["term"] = term
+        return
+    for child in node.get("children") or []:
+        if isinstance(child, dict):
+            _expand_leaves_in_logic_tree(child)
+
+
+def expand_leaves(state: GuidanceRuleExtractionState) -> dict[str, Any]:
+    errors: list[str] = list(state.get("errors") or [])
+    raw = copy.deepcopy(state.get("raw_criteria"))
+    if not raw:
+        return {"expanded_criteria": raw, "errors": errors}
+    if bool(raw.get("no_rule_expected")):
+        return {"expanded_criteria": raw, "errors": errors}
+
+    _expand_leaves_in_logic_tree(raw.get("logic_tree"))
+    action = dict(raw.get("action") or {})
+    if action:
+        action_text = str(action.get("text") or "")
+        action_terms = _expand_action_search_terms(action_text, str((state.get("recommendation") or {}).get("verbatim") or ""))
+        action["search_terms"] = _dedupe_strs(list(action.get("search_terms") or []) + action_terms)
+        if action_text:
+            action["original_phrase"] = action_text
+            action["expansion_source"] = "action_expansion"
+            action["expanded_from"] = action_terms
+        raw["action"] = action
+    return {"expanded_criteria": raw, "errors": errors}
+
+
 def _has_instruction_issue(verifier_result: dict[str, Any] | None) -> bool:
     if not verifier_result:
         return False
@@ -661,13 +1068,19 @@ def resolve_prompt(state: GuidanceRuleExtractionState) -> dict[str, Any]:
         if guideline_code:
             candidates.append(f"guidance_rule_extraction_{guideline_code}")
         candidates += ["guidance_rule_extraction_default", "guidance_rule_extraction"]
-        for name in candidates:
-            try:
-                text, examples = get_prompt_with_few_shot(name, version=1)
-                logger.debug("Resolved prompt %r for guideline %s", name, guideline_id)
-                return {"system_prompt": text, "few_shot_examples": examples, "errors": errors}
-            except RuntimeError:
-                continue
+        for version in (2, 1):
+            for name in candidates:
+                try:
+                    text, examples = get_prompt_with_few_shot(name, version=version)
+                    logger.debug(
+                        "Resolved prompt %r v%d for guideline %s",
+                        name,
+                        version,
+                        guideline_id,
+                    )
+                    return {"system_prompt": text, "few_shot_examples": examples, "errors": errors}
+                except RuntimeError:
+                    continue
         msg = (
             f"No guidance_rule_extraction prompt found in Neo4j for guideline "
             f"{guideline_id!r}. Run: python -m scripts.seed_prompt_configs"
@@ -796,6 +1209,22 @@ def extract_criteria(state: GuidanceRuleExtractionState) -> dict[str, Any]:
             )
             if result.verdict is not None:
                 verdict = dict(result.verdict)
+                has_logic = verdict.get("logic_tree") is not None
+                has_action = bool(verdict.get("action"))
+                no_rule_expected = bool(verdict.get("no_rule_expected"))
+                if not has_logic and not has_action and not no_rule_expected and attempt == 0:
+                    # Normative recommendation produced an empty payload; retry once
+                    # with a stricter extraction instruction before failing.
+                    logger.warning(
+                        "Empty extraction payload for %s on first parseable attempt; retrying with forced criterion reminder.",
+                        rec.get("id"),
+                    )
+                    attempt_msgs[1] = (
+                        attempt_msgs[1]
+                        + "\n\nThis recommendation MUST include at least one patient-level criterion "
+                        "unless it is explicitly a service/process-only recommendation."
+                    )
+                    continue
                 action = verdict.get("action")
                 if isinstance(action, dict):
                     action["search_terms"] = _expand_action_search_terms(
@@ -918,6 +1347,9 @@ def _annotate_candidate_tree(
             "node_id": out.get("node_id", ""),
             "term": term.get("text", ""),
             "source_text": term.get("source_text"),
+            "original_phrase": term.get("original_phrase"),
+            "expansion_source": term.get("expansion_source"),
+            "expanded_from": term.get("expanded_from"),
             "candidates": candidate_map.get(out.get("node_id", ""), []),
             "snomed_concept_id": None,
             "preferred_term": term.get("text", ""),
@@ -938,7 +1370,7 @@ def _annotate_candidate_tree(
 def code_snomed(state: GuidanceRuleExtractionState) -> dict[str, Any]:
     """Resolve all concept leaves via batched /terminology/resolve."""
     errors: list[str] = list(state.get("errors") or [])
-    raw = state.get("raw_criteria")
+    raw = state.get("expanded_criteria") or state.get("raw_criteria")
     if raw is None:
         return {"candidate_criteria": None, "errors": errors}
     if bool(raw.get("no_rule_expected")):
@@ -962,6 +1394,9 @@ def code_snomed(state: GuidanceRuleExtractionState) -> dict[str, Any]:
         if action:
             action_payload = {
                 "term": action["text"],
+                "original_phrase": action.get("original_phrase"),
+                "expansion_source": action.get("expansion_source"),
+                "expanded_from": action.get("expanded_from"),
                 "candidates": action_candidates,
                 "snomed_concept_id": None,
                 "preferred_term": action["text"],
@@ -1024,11 +1459,12 @@ def _load_verifier_prompt() -> tuple[str, list[dict[str, Any]]]:
         "guidance_rule_code_verifier_default",
         "guidance_rule_code_verifier",
     ]
-    for name in candidates:
-        try:
-            return get_prompt_with_few_shot(name, version=1)
-        except RuntimeError:
-            continue
+    for version in (2, 1):
+        for name in candidates:
+            try:
+                return get_prompt_with_few_shot(name, version=version)
+            except RuntimeError:
+                continue
     raise RuntimeError(
         "No guidance_rule_code_verifier prompt found in Neo4j. "
         "Run: python -m scripts.seed_prompt_configs"
@@ -1099,6 +1535,9 @@ def _apply_leaf_decisions(node: dict[str, Any] | None, decisions: dict[str, dict
             "node_id": node_id,
             "term": criterion.get("term", ""),
             "source_text": criterion.get("source_text"),
+            "original_phrase": criterion.get("original_phrase"),
+            "expansion_source": criterion.get("expansion_source"),
+            "expanded_from": criterion.get("expanded_from"),
             "snomed_concept_id": candidate.get("concept_id"),
             "preferred_term": candidate.get("preferred_term", criterion.get("term", "")),
             "semantic_tag": candidate.get("semantic_tag", ""),
@@ -1106,6 +1545,9 @@ def _apply_leaf_decisions(node: dict[str, Any] | None, decisions: dict[str, dict
             "verification_status": "verified",
             "verification_reason": str(decision.get("reason") or ""),
             "confidence": float(decision.get("confidence") or 0.0),
+            "resolver_turns": criterion.get("resolver_turns"),
+            "needs_human_review": bool(criterion.get("needs_human_review")),
+            "search_history": criterion.get("search_history"),
         }
         return out, []
     children = []
@@ -1136,6 +1578,7 @@ def _rerun_requested_searches(
     def _auto_retry_terms(reason: str, base_term: str, expected_tag: str | None) -> list[str]:
         out: list[str] = [base_term]
         low = (reason or "").lower()
+        base_low = (base_term or "").lower()
         for m in _QUOTED_TEXT_RE.finditer(reason or ""):
             out.append(m.group(1).strip())
         if expected_tag == "finding":
@@ -1150,6 +1593,147 @@ def _rerun_requested_searches(
             out.append(f"{base_term} finding")
         if "threshold" in low or "fit" in low or "ca125" in low:
             out.extend([f"{base_term} result", f"{base_term} above threshold", f"{base_term} below threshold"])
+        if ("ultrasound" in low and any(tok in low for tok in ("uncertain", "indeterminate", "equivocal", "inconclusive"))):
+            out.extend(
+                [
+                    "indeterminate ultrasound finding",
+                    "equivocal ultrasound scan finding",
+                    "inconclusive ultrasound result",
+                    "uncertain imaging finding",
+                    "ultrasound scan abnormality",
+                ]
+            )
+        if any(tok in low for tok in ("clinical concern", "clinical suspicion", "persistent concern", "ongoing clinical concern")):
+            out.extend(
+                [
+                    "clinical suspicion",
+                    "persistent clinical concern",
+                    "ongoing clinical concern",
+                    "clinical concern for malignancy",
+                    "suspicion finding",
+                ]
+            )
+        if "progressive" in low and "neurolog" in low:
+            out.extend(
+                [
+                    "progressive neurological deterioration",
+                    "progressive neurological decline",
+                    "subacute neurological deficit",
+                    "progressive central neurological deficit",
+                    "focal neurological deficit progressive",
+                ]
+            )
+        if "pleural" in low or ("chest signs" in low and "pleural" in low) or "pleural disease" in base_low:
+            out.extend(
+                [
+                    "pleural disease signs",
+                    "signs of pleural effusion",
+                    "pleural friction rub",
+                    "dullness to percussion",
+                    "reduced breath sounds",
+                    "abnormal chest examination findings",
+                ]
+            )
+        if "skin lesion" in low or "squamous cell carcinoma" in low:
+            out.extend(
+                [
+                    "suspicious skin lesion",
+                    "skin lesion suspicious for malignancy",
+                    "skin lesion finding",
+                    "suspected squamous cell carcinoma of skin",
+                    "skin lesion suspicious for squamous cell carcinoma",
+                ]
+            )
+        if "cerv" in low:
+            out.extend(
+                [
+                    "abnormal cervix on examination",
+                    "cervical lesion",
+                    "suspicious cervical lesion",
+                    "cervical appearance abnormal",
+                    "cervical finding suggestive of malignancy",
+                ]
+            )
+        if "vulv" in low and "bleed" in low:
+            out.extend(
+                [
+                    "vulval bleeding",
+                    "bleeding from vulva",
+                    "vulvar hemorrhage",
+                    "vulval haemorrhage",
+                ]
+            )
+        if "red reflex" in low or "fundal" in low or "leukocoria" in low:
+            out.extend(
+                [
+                    "absent red reflex",
+                    "red reflex absent",
+                    "leukocoria",
+                    "white pupil reflex",
+                    "absent fundal red reflex",
+                ]
+            )
+        if "hepatosplen" in low or ("enlarged liver" in low and "spleen" in low):
+            out.extend(
+                [
+                    "hepatosplenomegaly",
+                    "hepatosplenomegaly finding",
+                    "enlarged liver and spleen finding",
+                    "hepatomegaly and splenomegaly finding",
+                ]
+            )
+        if expected_tag == "procedure":
+            if any(tok in low for tok in ("stomach", "gastric", "upper gastrointestinal", "upper gi", "oesophageal")):
+                out.extend(
+                    [
+                        "fast track referral for suspected stomach cancer",
+                        "fast track referral for suspected gastric cancer",
+                        "fast track referral for suspected upper gastrointestinal cancer",
+                        "urgent referral for suspected upper gastrointestinal cancer",
+                    ]
+                )
+            if any(tok in low for tok in ("vulval", "vulva", "cervical", "cervix", "gynaecological", "gynecological")):
+                out.extend(
+                    [
+                        "fast track referral for suspected gynaecological cancer",
+                        "urgent referral for suspected gynaecological cancer",
+                    ]
+                )
+            if "retinoblastoma" in low:
+                out.extend(
+                    [
+                        "fast track referral for suspected retinoblastoma",
+                        "fast track cancer referral",
+                        "urgent suspected cancer referral",
+                    ]
+                )
+            if "bladder" in low and any(tok in low for tok in ("non-urgent", "routine")):
+                out.extend(
+                    [
+                        "non-urgent referral for suspected bladder cancer",
+                        "non-urgent referral for suspected urological cancer",
+                        "routine referral for suspected bladder cancer",
+                        "routine referral for suspected urological cancer",
+                    ]
+                )
+            if "sarcoma" in low:
+                out.extend(
+                    [
+                        "fast track referral for suspected sarcoma",
+                        "urgent referral for suspected sarcoma",
+                        "fast track referral for suspected soft tissue sarcoma",
+                        "fast track referral for suspected bone sarcoma",
+                    ]
+                )
+            if any(tok in low for tok in ("children", "child", "young people", "young person", "paediatric", "pediatric")) and "suspected cancer" in low:
+                out.extend(
+                    [
+                        "referral for suspected cancer",
+                        "urgent referral for suspected cancer",
+                        "referral for suspected malignancy",
+                        "urgent referral to paediatric oncology",
+                    ]
+                )
         return _dedupe_strs(out)
 
     retry_terms: dict[str, list[str]] = {}
@@ -1252,6 +1836,368 @@ def _rerun_requested_searches(
     return updated
 
 
+def _needs_agentic_retry(candidates: list[ResolutionCandidate], *, threshold: float = 0.8) -> bool:
+    if not candidates:
+        return True
+    best = max(float(c.get("score") or 0.0) for c in candidates)
+    return best < threshold
+
+
+def _flatten_resolved(resolved: dict[str, list[ResolvedTerm]], search_terms: list[str]) -> list[ResolutionCandidate]:
+    candidates: dict[str, ResolutionCandidate] = {}
+    for search_term in search_terms:
+        for cand in resolved.get(search_term, []):
+            key = str(cand.concept_id or cand.term or search_term)
+            candidates[key] = {
+                "concept_id": cand.concept_id,
+                "preferred_term": str(cand.term or search_term),
+                "semantic_tag": str(cand.semantic_tag or ""),
+                "score": float(cand.score or 0.0),
+                "read_code": cand.read_code,
+                "source": str(cand.raw.get("source") or "hybrid"),
+                "search_term": search_term,
+            }
+    return sorted(candidates.values(), key=lambda c: float(c.get("score") or 0.0), reverse=True)[:8]
+
+
+def _heuristic_agentic_search(base_term: str, expected_tag: str | None, recommendation_text: str) -> dict[str, Any]:
+    """Fallback when Bedrock tool loop fails: deterministic multi-turn terminology search."""
+    variants = _expand_term_variants(base_term, _classify_leaf_difficulty(base_term))
+    if expected_tag == "procedure":
+        variants = _dedupe_strs(variants + _expand_action_search_terms(base_term, recommendation_text))
+    turns = [variants[:5], variants[5:10], variants[10:15]]
+    search_history: list[list[str]] = []
+    best: list[ResolutionCandidate] = []
+    client = _make_terminology_client("agentic_fallback")
+    for idx, turn_terms in enumerate(turns, start=1):
+        if not turn_terms:
+            break
+        search_history.append(turn_terms)
+        expected_tags = {t: expected_tag for t in turn_terms if expected_tag}
+        resolved = client.resolve(turn_terms, expected_tags=expected_tags or None)
+        current = _flatten_resolved(resolved, turn_terms)
+        if current:
+            merged = {str(c.get("concept_id") or c.get("preferred_term") or ""): c for c in (best + current)}
+            best = sorted(merged.values(), key=lambda c: float(c.get("score") or 0.0), reverse=True)[:8]
+            if not _needs_agentic_retry(best):
+                return {
+                    "selected": best[0],
+                    "needs_human_review": False,
+                    "resolver_turns": idx,
+                    "best_candidates": best,
+                    "search_history": search_history,
+                    "reason": "Resolved by iterative terminology search fallback.",
+                }
+    return {
+        "selected": best[0] if best else None,
+        "needs_human_review": True,
+        "resolver_turns": min(3, len(search_history) or 3),
+        "best_candidates": best,
+        "search_history": search_history,
+        "reason": "No safe match after 3 turns; requires human review.",
+    }
+
+
+def _run_snomed_resolver_tool_loop(
+    base_term: str, expected_tag: str | None, recommendation_text: str
+) -> dict[str, Any]:
+    """Verification-style tool loop: create_llm().converse(tool_config=...) with lookup_snomed + accept_code."""
+    from libs.llm_client.factory import create_llm
+    from libs.llm_client.prompt_safety import sanitise_for_prompt
+
+    system = (
+        "You are a clinical terminology resolver for SNOMED CT. "
+        "Use lookup_snomed to search for concepts. If you find a safe match (score >= 0.8), call accept_code. "
+        "Try at most 3 lookups, refining the query each time. "
+        "If no safe match exists, do NOT call accept_code; respond with a short explanation."
+    )
+    user_payload = {
+        "term": base_term,
+        "semantic_tag": expected_tag,
+        "recommendation_text": sanitise_for_prompt(recommendation_text, max_chars=4000),
+    }
+    messages: list[dict[str, Any]] = [
+        {"role": "user", "content": json.dumps(user_payload, ensure_ascii=False)}
+    ]
+
+    llm = create_llm(tier="big")
+    search_history: list[list[str]] = []
+    pool: list[ResolutionCandidate] = []
+    accepted: dict[str, Any] | None = None
+
+    for _ in range(_MAX_SNOMED_RESOLVER_ITERATIONS):
+        resp = llm.converse(
+            system=system,
+            messages=messages,
+            tool_config=_GUIDANCE_SNOMED_TOOL_CONFIG,
+            json_mode=True,
+        )
+
+        if resp.tool_uses:
+            assistant_content: list[dict[str, Any]] = []
+            if resp.text:
+                assistant_content.append({"text": resp.text})
+            assistant_content.extend({"toolUse": tu} for tu in resp.tool_uses)
+            messages.append({"role": "assistant", "content": assistant_content})
+
+            accept_tool = next((tu for tu in resp.tool_uses if tu.get("name") == "accept_code"), None)
+            if accept_tool is not None:
+                accepted = dict(accept_tool.get("input") or {})
+                break
+
+            tool_results: list[dict[str, Any]] = []
+            for tu in resp.tool_uses:
+                if tu.get("name") != "lookup_snomed":
+                    tool_results.append(
+                        _build_tool_result_block(
+                            str(tu.get("toolUseId") or ""),
+                            {"ok": False, "error": f"unsupported_tool:{tu.get('name')}"},
+                        )
+                    )
+                    continue
+                inp = dict(tu.get("input") or {})
+                inp.setdefault("entity_index", 0)
+                payload, _ = _execute_lookup_snomed(inp)
+                if payload.get("ok") and payload.get("candidates"):
+                    for c in payload["candidates"]:
+                        pool.append({
+                            "concept_id": c.get("concept_id"),
+                            "preferred_term": c.get("term"),
+                            "semantic_tag": c.get("semantic_tag"),
+                            "score": c.get("score", 0.0),
+                            "read_code": c.get("read_code"),
+                            "source": "agentic_tool",
+                            "search_term": inp.get("query", ""),
+                        })
+                    q = str(inp.get("query") or "").strip()
+                    if q:
+                        search_history.append([q])
+                tool_results.append(_build_tool_result_block(str(tu.get("toolUseId") or ""), payload))
+
+            if not tool_results:
+                break
+            messages.append({"role": "user", "content": tool_results})
+            continue
+
+        break
+
+    merged = {
+        str(c.get("concept_id") or c.get("preferred_term") or ""): c
+        for c in pool
+        if isinstance(c, dict)
+    }
+    best = sorted(merged.values(), key=lambda c: float(c.get("score") or 0.0), reverse=True)[:8]
+
+    if accepted:
+        selected = next(
+            (c for c in best if str(c.get("concept_id") or "") == str(accepted.get("concept_id") or "")),
+            best[0] if best else None,
+        )
+        return {
+            "selected": selected,
+            "needs_human_review": selected is None,
+            "resolver_turns": min(3, max(1, len(search_history))),
+            "best_candidates": best,
+            "search_history": search_history,
+            "reason": str(accepted.get("reason") or "Accepted by agent tool call."),
+        }
+
+    if best and not _needs_agentic_retry(best):
+        return {
+            "selected": best[0],
+            "needs_human_review": False,
+            "resolver_turns": min(3, max(1, len(search_history))),
+            "best_candidates": best,
+            "search_history": search_history,
+            "reason": "Resolved by agentic search.",
+        }
+
+    return {
+        "selected": best[0] if best else None,
+        "needs_human_review": True,
+        "resolver_turns": min(3, max(1, len(search_history))),
+        "best_candidates": best,
+        "search_history": search_history,
+        "reason": "No safe match after tool loop; requires human review.",
+    }
+
+
+def _run_agentic_resolver(base_term: str, expected_tag: str | None, recommendation_text: str) -> dict[str, Any]:
+    """Run verification-style SNOMED tool loop; fall back to heuristic search on failure."""
+    try:
+        return _run_snomed_resolver_tool_loop(base_term, expected_tag, recommendation_text)
+    except Exception:
+        logger.exception("Agentic resolver failed for term %r; falling back.", base_term)
+        return _heuristic_agentic_search(base_term, expected_tag, recommendation_text)
+
+
+def agentic_resolve(state: GuidanceRuleExtractionState) -> dict[str, Any]:
+    errors: list[str] = list(state.get("errors") or [])
+    candidate_criteria = copy.deepcopy(state.get("candidate_criteria"))
+    if not candidate_criteria:
+        return {"candidate_criteria": candidate_criteria, "agentic_terms": [], "errors": errors}
+    if bool(candidate_criteria.get("no_rule_expected")):
+        return {"candidate_criteria": candidate_criteria, "agentic_terms": [], "errors": errors}
+
+    rec = state.get("recommendation") or {}
+    recommendation_text = str(rec.get("verbatim") or "")
+    hitl_terms: list[dict[str, Any]] = []
+
+    def _walk(node: dict[str, Any] | None) -> None:
+        if not node:
+            return
+        if node.get("kind") == "concept":
+            criterion = dict(node.get("criterion") or {})
+            candidates = list(criterion.get("candidates") or [])
+            if _needs_agentic_retry(candidates):
+                term = str(criterion.get("term") or "")
+                result = _run_agentic_resolver(term, "finding", recommendation_text)
+                extra = list(result.get("best_candidates") or [])
+                if extra:
+                    merged = {
+                        str(c.get("concept_id") or c.get("preferred_term") or ""): c
+                        for c in (candidates + extra)
+                    }
+                    criterion["candidates"] = sorted(
+                        merged.values(),
+                        key=lambda c: float(c.get("score") or 0.0),
+                        reverse=True,
+                    )[:8]
+                criterion["resolver_turns"] = int(result.get("resolver_turns") or 0)
+                criterion["search_history"] = list(result.get("search_history") or [])
+                if bool(result.get("needs_human_review")):
+                    criterion["needs_human_review"] = True
+                    hitl_terms.append(
+                        {
+                            "kind": "leaf",
+                            "node_id": criterion.get("node_id"),
+                            "term": term,
+                            "reason": result.get("reason"),
+                            "search_history": criterion.get("search_history") or [],
+                            "best_candidates": list(result.get("best_candidates") or []),
+                        }
+                    )
+                node["criterion"] = criterion
+            return
+        for child in node.get("children") or []:
+            if isinstance(child, dict):
+                _walk(child)
+
+    _walk(candidate_criteria.get("logic_tree"))
+    action = dict(candidate_criteria.get("action") or {})
+    if action and _needs_agentic_retry(list(action.get("candidates") or [])):
+        term = str(action.get("term") or "")
+        result = _run_agentic_resolver(term, "procedure", recommendation_text)
+        extra = list(result.get("best_candidates") or [])
+        if extra:
+            merged = {
+                str(c.get("concept_id") or c.get("preferred_term") or ""): c
+                for c in (list(action.get("candidates") or []) + extra)
+            }
+            action["candidates"] = sorted(merged.values(), key=lambda c: float(c.get("score") or 0.0), reverse=True)[:8]
+        action["resolver_turns"] = int(result.get("resolver_turns") or 0)
+        action["search_history"] = list(result.get("search_history") or [])
+        if bool(result.get("needs_human_review")):
+            action["needs_human_review"] = True
+            hitl_terms.append(
+                {
+                    "kind": "action",
+                    "term": term,
+                    "reason": result.get("reason"),
+                    "search_history": action.get("search_history") or [],
+                    "best_candidates": list(result.get("best_candidates") or []),
+                }
+            )
+        candidate_criteria["action"] = action
+
+    for item in hitl_terms:
+        errors.append(f"needs_human_review:{item.get('kind')}:{item.get('term') or item.get('node_id')}")
+
+    return {
+        "candidate_criteria": candidate_criteria,
+        "agentic_terms": hitl_terms,
+        "errors": errors,
+    }
+
+
+def _build_partial_from_candidates(candidate_criteria: dict[str, Any], hitl_terms: list[dict[str, Any]]) -> dict[str, Any]:
+    def _walk(node: dict[str, Any] | None) -> dict[str, Any] | None:
+        if not node:
+            return None
+        out = dict(node)
+        if out.get("kind") == "concept":
+            criterion = dict(out.get("criterion") or {})
+            cands = list(criterion.get("candidates") or [])
+            best = cands[0] if cands else None
+            out["criterion"] = {
+                "node_id": criterion.get("node_id", ""),
+                "term": criterion.get("term", ""),
+                "source_text": criterion.get("source_text"),
+                "snomed_concept_id": (best or {}).get("concept_id"),
+                "preferred_term": (best or {}).get("preferred_term", criterion.get("term", "")),
+                "semantic_tag": (best or {}).get("semantic_tag", ""),
+                "candidates": cands,
+                "verification_status": "needs_human_review" if not best else "provisionally_verified",
+                "verification_reason": "partial_hitl",
+                "confidence": float((best or {}).get("score") or 0.0),
+                "resolver_turns": criterion.get("resolver_turns"),
+                "needs_human_review": not bool(best) or bool(criterion.get("needs_human_review")),
+                "search_history": criterion.get("search_history"),
+            }
+            return out
+        out["children"] = [c for c in (_walk(ch) for ch in (out.get("children") or [])) if c is not None]
+        return out
+
+    action = dict(candidate_criteria.get("action") or {})
+    action_payload = None
+    if action:
+        cands = list(action.get("candidates") or [])
+        best = cands[0] if cands else None
+        action_payload = {
+            "term": action.get("term", ""),
+            "snomed_concept_id": (best or {}).get("concept_id"),
+            "preferred_term": (best or {}).get("preferred_term", action.get("term", "")),
+            "semantic_tag": (best or {}).get("semantic_tag", ""),
+            "candidates": cands,
+            "verification_status": "needs_human_review" if not best else "provisionally_verified",
+            "verification_reason": "partial_hitl",
+            "confidence": float((best or {}).get("score") or 0.0),
+            "resolver_turns": action.get("resolver_turns"),
+            "needs_human_review": not bool(best) or bool(action.get("needs_human_review")),
+            "search_history": action.get("search_history"),
+        }
+    return {
+        "schema_version": 2,
+        "logic_tree": _walk(candidate_criteria.get("logic_tree")),
+        "action": action_payload,
+        "needs_human_review": bool(hitl_terms),
+        "hitl_terms": hitl_terms,
+        "verifier": {"overall_status": "partial_hitl"},
+    }
+
+
+def assemble_result(state: GuidanceRuleExtractionState) -> dict[str, Any]:
+    verified = verify_codes(state)
+    if verified.get("coded_criteria") is not None:
+        coded = dict(verified["coded_criteria"] or {})
+        coded.setdefault("needs_human_review", bool(state.get("agentic_terms")))
+        coded.setdefault("hitl_terms", list(state.get("agentic_terms") or []))
+        verified["coded_criteria"] = coded
+        return verified
+
+    candidate_criteria = state.get("candidate_criteria")
+    hitl_terms = list(state.get("agentic_terms") or [])
+    errors = list(verified.get("errors") or [])
+    if candidate_criteria and hitl_terms:
+        partial = _build_partial_from_candidates(candidate_criteria, hitl_terms)
+        return {
+            "coded_criteria": partial,
+            "errors": errors,
+            "llm_tokens": verified.get("llm_tokens") or dict(state.get("llm_tokens") or {}),
+        }
+    return verified
+
+
 def verify_codes(state: GuidanceRuleExtractionState) -> dict[str, Any]:
     """Always-run verifier pass over terminology candidates."""
     errors: list[str] = list(state.get("errors") or [])
@@ -1351,21 +2297,39 @@ def verify_codes(state: GuidanceRuleExtractionState) -> dict[str, Any]:
         action_decision = verifier_result.get("action_decision") or {}
         action_id = str(action_decision.get("selected_concept_id") or "")
         candidate = action_lookup.get(action_id)
-        if str(action_decision.get("status") or "") != "verified" or candidate is None:
+        selected_action, fallback_reason = _select_action_candidate(
+            rec,
+            str(action.get("term") or ""),
+            list(action.get("candidates") or []),
+            candidate if str(action_decision.get("status") or "") == "verified" else None,
+        )
+        if selected_action is None:
             errors.append(f"verifier_unresolved:action:{action_decision.get('reason') or 'no approved action'}")
         else:
             action_payload = {
                 "term": action.get("term", ""),
-                "snomed_concept_id": candidate.get("concept_id"),
-                "preferred_term": candidate.get("preferred_term", action.get("term", "")),
-                "semantic_tag": candidate.get("semantic_tag", ""),
+                "original_phrase": action.get("original_phrase"),
+                "expansion_source": action.get("expansion_source"),
+                "expanded_from": action.get("expanded_from"),
+                "snomed_concept_id": selected_action.get("concept_id"),
+                "preferred_term": selected_action.get("preferred_term", action.get("term", "")),
+                "semantic_tag": selected_action.get("semantic_tag", ""),
                 "candidates": action.get("candidates") or [],
                 "verification_status": "verified",
-                "verification_reason": str(action_decision.get("reason") or ""),
-                "confidence": float(action_decision.get("confidence") or 0.0),
+                "verification_reason": (
+                    fallback_reason
+                    or str(action_decision.get("reason") or "")
+                ),
+                "confidence": float(action_decision.get("confidence") or selected_action.get("score") or 0.0),
+                "resolver_turns": action.get("resolver_turns"),
+                "needs_human_review": bool(action.get("needs_human_review")),
+                "search_history": action.get("search_history"),
             }
 
-    if errors or verified_tree is None or str(verifier_result.get("overall_status") or "") != "verified":
+    if errors or verified_tree is None or (
+        str(verifier_result.get("overall_status") or "") != "verified"
+        and action_payload is None
+    ):
         logger.error(
             "Verifier rejected or left unresolved terms for %s — rule will NOT be written. Errors=%s",
             rec.get("id"), errors,
@@ -1395,16 +2359,32 @@ def _should_verify(state: GuidanceRuleExtractionState) -> str:
     return "verify" if state.get("candidate_criteria") is not None else "end"
 
 
+def batch_resolve(state: GuidanceRuleExtractionState) -> dict[str, Any]:
+    return code_snomed(state)
+
+
+def _should_batch(state: GuidanceRuleExtractionState) -> str:
+    return "resolve" if state.get("expanded_criteria") is not None else "end"
+
+
+def _should_agentic(state: GuidanceRuleExtractionState) -> str:
+    return "agentic" if state.get("candidate_criteria") is not None else "end"
+
+
 def build_guidance_rule_extraction_subgraph() -> CompiledStateGraph:
     """Build the exact guidance extraction subgraph."""
     g = StateGraph(GuidanceRuleExtractionState)
     g.add_node("resolve_prompt", resolve_prompt)
     g.add_node("extract_criteria", extract_criteria)
-    g.add_node("code_snomed", code_snomed)
-    g.add_node("verify_codes", verify_codes)
+    g.add_node("expand_leaves", expand_leaves)
+    g.add_node("batch_resolve", batch_resolve)
+    g.add_node("agentic_resolve", agentic_resolve)
+    g.add_node("assemble_result", assemble_result)
     g.add_edge(START, "resolve_prompt")
     g.add_edge("resolve_prompt", "extract_criteria")
-    g.add_conditional_edges("extract_criteria", _should_resolve, {"resolve": "code_snomed", "end": END})
-    g.add_conditional_edges("code_snomed", _should_verify, {"verify": "verify_codes", "end": END})
-    g.add_edge("verify_codes", END)
+    g.add_conditional_edges("extract_criteria", _should_resolve, {"resolve": "expand_leaves", "end": END})
+    g.add_conditional_edges("expand_leaves", _should_batch, {"resolve": "batch_resolve", "end": END})
+    g.add_conditional_edges("batch_resolve", _should_agentic, {"agentic": "agentic_resolve", "end": END})
+    g.add_edge("agentic_resolve", "assemble_result")
+    g.add_edge("assemble_result", END)
     return g.compile()

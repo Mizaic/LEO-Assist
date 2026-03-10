@@ -518,3 +518,279 @@ class TestActionPriorityOnEdge:
         _, _, _, priority_meta = mock_action.call_args.args
         assert priority_meta["priority"] == "2ww"
         assert priority_meta["due_days"] == 14
+
+
+class TestPromptVersionPreference:
+    def test_resolve_prompt_prefers_v2_when_available(self):
+        from libs.pipeline_graph.subgraphs.guidance_rule_extraction import resolve_prompt
+
+        seen = []
+
+        def _get_prompt(name, version=1):
+            seen.append((name, version))
+            if name == "guidance_rule_extraction_NG12" and version == 2:
+                return "NG12 V2 PROMPT", []
+            raise RuntimeError("not found")
+
+        with patch("libs.prompts.registry.get_prompt_with_few_shot", side_effect=_get_prompt):
+            result = resolve_prompt({"guideline_id": "NG12:v1:CH002:SEC000:R000"})
+
+        assert result["system_prompt"] == "NG12 V2 PROMPT"
+        assert ("guidance_rule_extraction_NG12", 2) in seen
+
+
+class TestActionFallbackPolicy:
+    def test_select_action_candidate_allows_upper_gi_fallback_for_stomach(self):
+        from libs.pipeline_graph.subgraphs.guidance_rule_extraction_v2_impl import _select_action_candidate
+
+        rec = {
+            "urgency": "urgent_2w",
+            "section_title": "Stomach cancer",
+            "verbatim": "Offer a fast track referral for suspected stomach cancer.",
+        }
+        selected, reason = _select_action_candidate(
+            rec,
+            "fast track referral for suspected stomach cancer",
+            [
+                {
+                    "concept_id": "ugi",
+                    "preferred_term": "Fast track referral for suspected upper gastrointestinal cancer",
+                    "semantic_tag": "procedure",
+                    "score": 0.7,
+                },
+                {
+                    "concept_id": "generic",
+                    "preferred_term": "Urgent referral",
+                    "semantic_tag": "procedure",
+                    "score": 0.95,
+                },
+            ],
+            verifier_choice=None,
+        )
+
+        assert selected is not None
+        assert selected["concept_id"] == "ugi"
+        assert "fallback" in (reason or "").lower()
+
+    def test_select_action_candidate_rejects_urgent_for_routine_referral(self):
+        from libs.pipeline_graph.subgraphs.guidance_rule_extraction_v2_impl import _select_action_candidate
+
+        rec = {
+            "urgency": "routine",
+            "section_title": "Bladder cancer",
+            "verbatim": "Consider a non-urgent referral for suspected bladder cancer.",
+        }
+        selected, _ = _select_action_candidate(
+            rec,
+            "non-urgent referral for suspected bladder cancer",
+            [
+                {
+                    "concept_id": "fasttrack",
+                    "preferred_term": "Fast track referral for suspected urological cancer",
+                    "semantic_tag": "procedure",
+                    "score": 0.99,
+                }
+            ],
+            verifier_choice=None,
+        )
+
+        assert selected is None
+
+    def test_expand_action_search_terms_adds_non_urgent_variants(self):
+        from libs.pipeline_graph.subgraphs.guidance_rule_extraction_v2_impl import _expand_action_search_terms
+
+        terms = _expand_action_search_terms(
+            "non-urgent referral for suspected bladder cancer",
+            "Consider a non-urgent referral for suspected bladder cancer.",
+        )
+        assert "non-urgent referral for suspected bladder cancer" in terms
+        assert "routine referral for suspected bladder cancer" in terms
+        assert "non-urgent referral for suspected urological cancer" in terms
+
+
+class TestRetrySearchTemplates:
+    def test_retry_search_adds_ultrasound_uncertainty_templates(self):
+        from libs.pipeline_graph.subgraphs.guidance_rule_extraction_v2_impl import _rerun_requested_searches
+
+        candidate_criteria = {
+            "logic_tree": {
+                "kind": "concept",
+                "criterion": {
+                    "node_id": "n1",
+                    "term": "uncertain ultrasound findings",
+                    "candidates": [],
+                },
+            },
+            "action": None,
+        }
+        verifier_result = {
+            "leaf_decisions": [
+                {
+                    "node_id": "n1",
+                    "status": "retry_search",
+                    "reason": "No candidate adequately captures uncertain or indeterminate ultrasound findings.",
+                    "retry_search_terms": [],
+                }
+            ],
+            "action_decision": {"status": "not_required"},
+        }
+
+        seen_terms = []
+
+        def _fake_resolve(terms, expected_tags=None):
+            seen_terms.extend(terms)
+            return {term: [] for term in terms}
+
+        with patch("libs.terminology.client.TerminologyClient.resolve", side_effect=_fake_resolve):
+            _rerun_requested_searches(candidate_criteria, verifier_result)
+
+        assert "indeterminate ultrasound finding" in seen_terms
+        assert "equivocal ultrasound scan finding" in seen_terms
+
+    def test_retry_search_adds_skin_suspicion_templates(self):
+        from libs.pipeline_graph.subgraphs.guidance_rule_extraction_v2_impl import _rerun_requested_searches
+
+        candidate_criteria = {
+            "logic_tree": {
+                "kind": "concept",
+                "criterion": {
+                    "node_id": "n1",
+                    "term": "skin lesion raising suspicion of squamous cell carcinoma",
+                    "candidates": [],
+                },
+            },
+            "action": None,
+        }
+        verifier_result = {
+            "leaf_decisions": [
+                {
+                    "node_id": "n1",
+                    "status": "retry_search",
+                    "reason": "A finding-level suspicious skin lesion concept is required.",
+                    "retry_search_terms": [],
+                }
+            ],
+            "action_decision": {"status": "not_required"},
+        }
+
+        seen_terms = []
+
+        def _fake_resolve(terms, expected_tags=None):
+            seen_terms.extend(terms)
+            return {term: [] for term in terms}
+
+        with patch("libs.terminology.client.TerminologyClient.resolve", side_effect=_fake_resolve):
+            _rerun_requested_searches(candidate_criteria, verifier_result)
+
+        assert "suspicious skin lesion" in seen_terms
+        assert "skin lesion suspicious for squamous cell carcinoma" in seen_terms
+
+
+class TestAgenticExpansionAndPartial:
+    def test_classify_leaf_difficulty(self):
+        from libs.pipeline_graph.subgraphs.guidance_rule_extraction_v2_impl import _classify_leaf_difficulty
+
+        assert _classify_leaf_difficulty("chest signs compatible with pleural disease") == "abstract_phrase"
+        assert _classify_leaf_difficulty("new-onset diabetes") == "temporal_modifier"
+        assert _classify_leaf_difficulty("FIT result >= 10 micrograms per gram") == "quantitative"
+        assert _classify_leaf_difficulty("results of blood tests suggest myeloma") == "composite_pattern"
+        assert _classify_leaf_difficulty("vulval lump") == "narrow_body_site"
+        assert _classify_leaf_difficulty("haemoptysis") == "concrete"
+
+    def test_expand_leaves_adds_traceability_metadata(self):
+        from libs.pipeline_graph.subgraphs.guidance_rule_extraction_v2_impl import expand_leaves
+
+        state = {
+            "recommendation": {"verbatim": "Refer for suspected oesophageal cancer"},
+            "raw_criteria": {
+                "schema_version": 2,
+                "logic_tree": {
+                    "kind": "concept",
+                    "node_id": "n1",
+                    "term": {"text": "chest signs compatible with pleural disease", "search_terms": []},
+                },
+                "action": {"text": "fast track referral for suspected oesophageal cancer", "search_terms": []},
+            },
+        }
+        out = expand_leaves(state)
+        expanded = out["expanded_criteria"]
+        term = expanded["logic_tree"]["term"]
+        action = expanded["action"]
+        assert term["original_phrase"] == "chest signs compatible with pleural disease"
+        assert term["expansion_source"] == "abstract_phrase"
+        assert "pleural disease signs" in term["search_terms"]
+        assert "fast track referral for suspected upper gastrointestinal cancer" in action["search_terms"]
+
+    def test_agentic_resolve_marks_hitl_after_three_turns(self):
+        from libs.pipeline_graph.subgraphs.guidance_rule_extraction_v2_impl import agentic_resolve
+
+        state = {
+            "recommendation": {"verbatim": "Refer for suspected thyroid cancer"},
+            "candidate_criteria": {
+                "schema_version": 2,
+                "logic_tree": {
+                    "kind": "concept",
+                    "criterion": {"node_id": "n1", "term": "lip lump", "candidates": []},
+                },
+                "action": {"term": "fast track referral for suspected thyroid cancer", "candidates": []},
+            },
+        }
+
+        with patch(
+            "libs.pipeline_graph.subgraphs.guidance_rule_extraction_v2_impl._run_agentic_resolver",
+            return_value={
+                "selected": None,
+                "needs_human_review": True,
+                "resolver_turns": 3,
+                "best_candidates": [],
+                "search_history": [["a"], ["b"], ["c"]],
+                "reason": "No safe match after 3 turns; requires human review.",
+            },
+        ):
+            out = agentic_resolve(state)
+
+        assert out["agentic_terms"]
+        assert any(e.startswith("needs_human_review:") for e in out["errors"])
+        leaf = out["candidate_criteria"]["logic_tree"]["criterion"]
+        assert leaf["needs_human_review"] is True
+        assert leaf["resolver_turns"] == 3
+
+    def test_assemble_result_returns_partial_when_hitl_exists(self):
+        from libs.pipeline_graph.subgraphs.guidance_rule_extraction_v2_impl import assemble_result
+
+        state = {
+            "candidate_criteria": {
+                "schema_version": 2,
+                "logic_tree": {
+                    "kind": "concept",
+                    "criterion": {
+                        "node_id": "n1",
+                        "term": "lip lump",
+                        "candidates": [],
+                    },
+                },
+                "action": None,
+            },
+            "agentic_terms": [
+                {
+                    "kind": "leaf",
+                    "node_id": "n1",
+                    "term": "lip lump",
+                    "reason": "No safe match after 3 turns; requires human review.",
+                    "search_history": [["a"], ["b"], ["c"]],
+                    "best_candidates": [],
+                }
+            ],
+            "errors": ["needs_human_review:leaf:n1"],
+            "llm_tokens": {},
+        }
+
+        with patch(
+            "libs.pipeline_graph.subgraphs.guidance_rule_extraction_v2_impl.verify_codes",
+            return_value={"coded_criteria": None, "errors": ["needs_human_review:leaf:n1"], "llm_tokens": {}},
+        ):
+            out = assemble_result(state)
+
+        assert out["coded_criteria"] is not None
+        assert out["coded_criteria"]["needs_human_review"] is True
+        assert out["coded_criteria"]["hitl_terms"]

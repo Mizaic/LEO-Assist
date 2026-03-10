@@ -295,6 +295,31 @@ _add(
     description="Verifies extracted label quality against the source text before gold-label persistence.",
 )
 
+# ── Pipeline verification ─────────────────────────────────────────────────────
+from libs.prompts.verification_output_schema import VERIFICATION_OUTPUT_SCHEMA
+from libs.prompts.verification_examples import VERIFICATION_EXAMPLES
+
+_add(
+    "verification", 1,
+    "libs.prompts.verification_v1.VERIFICATION_V1",
+    output_schema=json.dumps(VERIFICATION_OUTPUT_SCHEMA),
+    few_shot_examples=[
+        {
+            "id": f"seed_verify_{i:03d}",
+            "input": ex["input"],
+            "output": ex["output"],
+            "deidentified": True,
+            "category": ex.get("category", ""),
+            "model_scope": ex.get("model_scope", "any"),
+            "description": ex.get("description", ""),
+            "core": bool(ex.get("core", False)),
+        }
+        for i, ex in enumerate(VERIFICATION_EXAMPLES)
+    ],
+    max_few_shot=12,
+    description="Pipeline verification judge for material extraction errors with optional terminology lookups.",
+)
+
 # ── Label disambiguation ───────────────────────────────────────────────────────
 from libs.prompts.label_disambiguation_output_schema import LABEL_DISAMBIGUATION_OUTPUT_SCHEMA
 from libs.prompts.label_disambiguation_examples import LABEL_DISAMBIGUATION_EXAMPLES
@@ -365,6 +390,39 @@ _add(
     max_few_shot=4,
     description=_GRE_DESCRIPTION,
 )
+_add(
+    "guidance_rule_extraction", 2,
+    "libs.prompts.guidance_rule_extraction_v1.GUIDANCE_RULE_EXTRACTION_SYSTEM_V2",
+    output_schema=json.dumps(GUIDANCE_RULE_EXTRACTION_OUTPUT_SCHEMA),
+    few_shot_examples=_GRE_FEW_SHOT,
+    max_few_shot=4,
+    description=_GRE_DESCRIPTION,
+)
+_add(
+    "guidance_rule_extraction_default", 2,
+    "libs.prompts.guidance_rule_extraction_v1.GUIDANCE_RULE_EXTRACTION_SYSTEM_V2",
+    output_schema=json.dumps(GUIDANCE_RULE_EXTRACTION_OUTPUT_SCHEMA),
+    few_shot_examples=_GRE_FEW_SHOT,
+    max_few_shot=4,
+    description=_GRE_DESCRIPTION,
+)
+_add(
+    "guidance_rule_leaf_expansion", 1,
+    "libs.prompts.guidance_rule_extraction_v1.GUIDANCE_RULE_LEAF_EXPANSION_SYSTEM_V1",
+    output_schema=json.dumps({
+        "type": "object",
+        "properties": {
+            "category": {"type": "string"},
+            "concrete_terms": {"type": "array", "items": {"type": "string"}},
+            "search_terms": {"type": "array", "items": {"type": "string"}},
+            "safety_note": {"type": "string"},
+        },
+        "required": ["category", "concrete_terms", "search_terms"],
+    }),
+    few_shot_examples=[],
+    max_few_shot=0,
+    description="Expands abstract NICE criterion phrases into concrete codable findings/search terms.",
+)
 
 _GUIDANCE_RULE_EXTRACTION_NG12_V1 = """\
 You are a clinical decision-support analyst working with NICE guideline NG12
@@ -384,9 +442,27 @@ Do NOT flatten multiple branches into one approximate list.
 The `action` must be the site-specific procedure/referral term.
 Use explicit fast-track referral wording when the recommendation is a suspected
 cancer pathway referral, for example:
+- `fast track referral for suspected sarcoma`
 - `fast track referral for suspected lung cancer`
-- `fast track referral for suspected mesothelioma`
+- `fast track referral for suspected skin cancer`
+- `fast track referral for suspected brain tumour`
+- `fast track referral for suspected breast cancer`
+- `fast track referral for suspected childrens tumour`
 - `fast track referral for suspected urological cancer`
+- `fast track referral for suspected colorectal cancer`
+- `fast track referral for suspected head and neck cancer`
+- `fast track referral for suspected gynaecological cancer`
+- `fast track referral for suspected haematology malignancy`
+- `fast track referral for suspected lower gastrointestinal cancer`
+- `fast track referral for suspected upper gastrointestinal cancer`
+- `fast track referral for suspected cancer due to non-site-specific symptoms`
+
+Map site wording to these USC pathways:
+- stomach/gastric/oesophageal -> upper gastrointestinal
+- anal -> lower gastrointestinal
+- thyroid/oral/laryngeal -> head and neck
+- myeloma/lymphoma/hodgkin -> haematology malignancy
+- neuroblastoma/retinoblastoma -> childrens tumour
 
 When the recommendation is an investigation, use a specific procedure term such
 as:
@@ -401,8 +477,15 @@ as:
    main coded term, but keep the original wording in `source_text` if helpful.
 3. For vague NICE phrases, provide 1-5 broad `search_terms` that a terminology
    resolver can try.
-4. Use `demographic` nodes for age or sex.
-5. If the recommendation is a service standard with no patient trigger, return
+4. For wording such as `suggestive of`, `suspicious of`, `raises suspicion of`,
+   or `consistent with`, keep the leaf at finding/situation level unless the
+   NICE text is explicitly diagnostic.
+5. Use `demographic` nodes for age or sex.
+6. If an exact site-specific referral term is unavailable, prefer the closest
+   specialty umbrella referral that preserves site intent (`gynaecological`,
+   `urological`, `upper gastrointestinal`) rather than a wrong-site referral.
+7. Do not inflate urgency. Keep `non-urgent` or `routine` actions as such.
+8. If the recommendation is a service standard with no patient trigger, return
    `logic_tree: null` and `action: null`.
 
 ## Output format
@@ -426,6 +509,19 @@ _NG12_FEW_SHOT = [
 SEED_PROMPTS.append({
     "name": "guidance_rule_extraction_NG12",
     "version": 1,
+    "description": (
+        "NG12-specific exact rule extraction prompt. Produces schema_version=2 "
+        "logic trees with site-specific fast-track referral or investigation actions."
+    ),
+    "system_prompt": _GUIDANCE_RULE_EXTRACTION_NG12_V1,
+    "output_schema": json.dumps(GUIDANCE_RULE_EXTRACTION_OUTPUT_SCHEMA),
+    "verification": False,
+    "few_shot_examples": _NG12_FEW_SHOT,
+    "max_few_shot": 4,
+})
+SEED_PROMPTS.append({
+    "name": "guidance_rule_extraction_NG12",
+    "version": 2,
     "description": (
         "NG12-specific exact rule extraction prompt. Produces schema_version=2 "
         "logic trees with site-specific fast-track referral or investigation actions."
@@ -466,6 +562,22 @@ _add(
 _add(
     "guidance_rule_code_verifier_default", 1,
     "libs.prompts.guidance_rule_code_verifier_v1.GUIDANCE_RULE_CODE_VERIFIER_SYSTEM_V1",
+    output_schema=json.dumps(GUIDANCE_RULE_CODE_VERIFIER_OUTPUT_SCHEMA),
+    few_shot_examples=_GRCV_FEW_SHOT,
+    max_few_shot=4,
+    description=_GRCV_DESCRIPTION,
+)
+_add(
+    "guidance_rule_code_verifier", 2,
+    "libs.prompts.guidance_rule_code_verifier_v1.GUIDANCE_RULE_CODE_VERIFIER_SYSTEM_V2",
+    output_schema=json.dumps(GUIDANCE_RULE_CODE_VERIFIER_OUTPUT_SCHEMA),
+    few_shot_examples=_GRCV_FEW_SHOT,
+    max_few_shot=4,
+    description=_GRCV_DESCRIPTION,
+)
+_add(
+    "guidance_rule_code_verifier_default", 2,
+    "libs.prompts.guidance_rule_code_verifier_v1.GUIDANCE_RULE_CODE_VERIFIER_SYSTEM_V2",
     output_schema=json.dumps(GUIDANCE_RULE_CODE_VERIFIER_OUTPUT_SCHEMA),
     few_shot_examples=_GRCV_FEW_SHOT,
     max_few_shot=4,

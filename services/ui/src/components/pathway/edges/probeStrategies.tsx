@@ -392,6 +392,8 @@ const verification: ProbeStrategy = {
   Detail: ({ output, openInspector }) => {
     const verified = bool(output.is_verified);
     const result = isRec(output.verification_result) ? output.verification_result : null;
+    const promptMeta = isRec(output.verification_prompt) ? output.verification_prompt : null;
+    const toolTrace = arr(output.verification_tool_trace);
     const confidence = result && typeof result.confidence === "number" ? result.confidence : undefined;
     const issues = result ? arr(result.issues) : [];
     const structuredCorrections = result ? arr(result.corrections) : [];
@@ -406,6 +408,21 @@ const verification: ProbeStrategy = {
           detail={issues.length > 0 ? issues.slice(0, 2).map(r => fmt(r)).join("; ") : undefined}
           confidence={confidence}
         />
+
+        {promptMeta && (
+          <div style={{ fontSize: 10, color: C.dim, background: C.deep, borderRadius: 6, padding: "4px 8px", border: `1px solid ${C.border}` }}>
+            Prompt: {str(promptMeta.prompt_name, "unknown")}
+            {promptMeta.prompt_version != null ? ` v${str(promptMeta.prompt_version)}` : ""}
+            {" · "}
+            {str(promptMeta.prompt_source, "unknown")}
+          </div>
+        )}
+
+        {toolTrace.length > 0 && (
+          <div style={{ fontSize: 10, color: C.dim, background: C.deep, borderRadius: 6, padding: "4px 8px", border: `1px solid ${C.border}` }}>
+            SNOMED lookups used: {toolTrace.length}
+          </div>
+        )}
 
         {/* Auto-correction history */}
         {correctionCount > 0 && verified && passReason !== "confidence_override" && (
@@ -430,14 +447,21 @@ const verification: ProbeStrategy = {
             <div style={{ color: C.orange, fontSize: 10, fontWeight: 700, marginBottom: 4 }}>
               {pl(structuredCorrections.length, "correction")} applied to entities
             </div>
-            {(structuredCorrections as Record<string, unknown>[]).slice(0, 5).map((c, i) => {
+            {(structuredCorrections as Record<string, unknown>[]).slice(0, 8).map((c, i) => {
+              if (c.drop) {
+                return (
+                  <div key={i} style={{ color: C.dim, fontSize: 10, padding: "2px 0" }}>
+                    🗑 Entity {str(c.entity_index as unknown as string)}: <span style={{ fontStyle: "italic" }}>dropped — not SNOMED-representable</span>
+                  </div>
+                );
+              }
               const parts: string[] = [];
               if (c.corrected_label) parts.push(`label → ${c.corrected_label}`);
               if (c.corrected_lookup_term) parts.push(`lookup → "${c.corrected_lookup_term}"`);
               if (c.corrected_assertion) parts.push(`assertion → ${c.corrected_assertion}`);
               return (
                 <div key={i} style={{ color: C.text, fontSize: 10, padding: "2px 0" }}>
-                  • Entity {str(c.entity_index as unknown as string)}: {parts.join(", ") || "corrected"}
+                  ✏ Entity {str(c.entity_index as unknown as string)}: {parts.join(", ") || "corrected"}
                 </div>
               );
             })}
@@ -454,6 +478,8 @@ const verification: ProbeStrategy = {
           </div>
         )}
 
+        {promptMeta && <InspectButton label="View prompt metadata" onClick={() => openInspector(["verification_prompt"])} />}
+        {toolTrace.length > 0 && <InspectButton label="View SNOMED lookup trace" onClick={() => openInspector(["verification_tool_trace"])} />}
         {result && <InspectButton label="View full verification result" onClick={() => openInspector(["verification_result"])} />}
       </div>
     );
