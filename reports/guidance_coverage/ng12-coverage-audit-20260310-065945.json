@@ -1,0 +1,2488 @@
+{
+  "generated_at_utc": "2026-03-10T06:59:45.205196+00:00",
+  "code": "NG12",
+  "summary": {
+    "total": 109,
+    "success": 47,
+    "partial": 0,
+    "failed": 62,
+    "http_error": 0,
+    "vague_total": 10,
+    "vague_non_success": 7
+  },
+  "error_prefix_counts": {
+    "verifier_unresolved": 78,
+    "extraction_empty": 2,
+    "verifier_empty": 1
+  },
+  "results": [
+    {
+      "rec_id": "NG12:v1:CH002:SEC000:R000",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.1 Lung and pleural cancers",
+      "rec_title": "1.1.1",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 200,
+      "elapsed_ms": 48992,
+      "outcome": "success",
+      "would_write": true,
+      "leaf_count": 2,
+      "error_prefixes": [],
+      "errors": [],
+      "detail": null,
+      "raw_search_term_lengths": [
+        4,
+        3
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC000:R001",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.1 Lung and pleural cancers",
+      "rec_title": "1.1.2",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 200,
+      "elapsed_ms": 61796,
+      "outcome": "success",
+      "would_write": true,
+      "leaf_count": 13,
+      "error_prefixes": [],
+      "errors": [],
+      "detail": null,
+      "raw_search_term_lengths": [
+        1,
+        2,
+        3,
+        1,
+        2,
+        3,
+        3,
+        1,
+        2,
+        3,
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC000:R002",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.1 Lung and pleural cancers",
+      "rec_title": "1.1.3",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 422,
+      "elapsed_ms": 63969,
+      "outcome": "failed",
+      "would_write": false,
+      "leaf_count": 0,
+      "error_prefixes": [
+        "verifier_unresolved",
+        "verifier_unresolved"
+      ],
+      "errors": [
+        "verifier_unresolved:n8:No suitable candidate provided. Current options are either non-specific examination findings (laryngeal, nasopharyngeal signs), unrelated findings (drug withdrawal, lung cavitation), or a diagnosis concept (malignant neoplasm). NICE phrase 'chest signs consistent with lung cancer' requires a finding or situation concept representing clinical examination findings suggestive of but not diagnostic of lung cancer.",
+        "verifier_unresolved:action:Plain X-ray of chest (procedure) is the correct investigation procedure. NICE specifies 'urgent chest X-ray (to be done within 2 weeks)' which is an investigation, not a referral pathway. This concept directly matches the imaging investigation requested."
+      ],
+      "detail": null,
+      "raw_search_term_lengths": [
+        4,
+        3,
+        2,
+        3,
+        3,
+        2
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC000:R003",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.1 Lung and pleural cancers",
+      "rec_title": "1.1.4",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 422,
+      "elapsed_ms": 55246,
+      "outcome": "failed",
+      "would_write": false,
+      "leaf_count": 0,
+      "error_prefixes": [
+        "verifier_unresolved"
+      ],
+      "errors": [
+        "verifier_unresolved:action:No mesothelioma-specific fast-track referral concept is available among candidates. 'Fast track cancer referral (procedure)' preserves the urgency (fast-track/suspected cancer pathway) without inverting urgency or incorrectly assigning a different cancer site (e.g. sarcoma, colorectal, lung). This is acceptable under rule 9 when no safer specialty/site-specific option exists."
+      ],
+      "detail": null,
+      "raw_search_term_lengths": [
+        5
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC000:R004",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.1 Lung and pleural cancers",
+      "rec_title": "1.1.5",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 422,
+      "elapsed_ms": 35142,
+      "outcome": "failed",
+      "would_write": false,
+      "leaf_count": 0,
+      "error_prefixes": [
+        "extraction_empty"
+      ],
+      "errors": [
+        "extraction_empty:no_llm_verdict:NG12:v1:CH002:SEC000:R004"
+      ],
+      "detail": null,
+      "raw_search_term_lengths": []
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC000:R005",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.1 Lung and pleural cancers",
+      "rec_title": "1.1.6",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 422,
+      "elapsed_ms": 76577,
+      "outcome": "failed",
+      "would_write": false,
+      "leaf_count": 0,
+      "error_prefixes": [
+        "verifier_unresolved",
+        "verifier_unresolved"
+      ],
+      "errors": [
+        "verifier_unresolved:n5:No suitable candidate is present. 'Pleural friction rub' is too narrow (one specific sign only); the urine/histology/cytology candidates are entirely unrelated; 'On examination - chest finding' is too generic and non-specific to pleural disease. The NICE phrase 'chest signs compatible with pleural disease' requires a concept capturing pleural-related physical examination findings (e.g. reduced breath sounds, stony dullness, pleural effusion signs) without implying a confirmed diagnosis.",
+        "verifier_unresolved:action:Plain X-ray of chest is the correct procedure concept matching the NICE recommendation for an urgent chest X-ray. The fast-track referral candidates are wrong site or wrong action type. The urgency (within 2 weeks) is captured in the clinical context rather than requiring a separate fast-track referral concept."
+      ],
+      "detail": null,
+      "raw_search_term_lengths": [
+        3,
+        5
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC001:R000",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.2 Upper gastrointestinal tract cancers",
+      "rec_title": "1.2.1",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 422,
+      "elapsed_ms": 69440,
+      "outcome": "failed",
+      "would_write": false,
+      "leaf_count": 0,
+      "error_prefixes": [
+        "verifier_unresolved"
+      ],
+      "errors": [
+        "verifier_unresolved:action:No suitable candidate provided. The action requires a fast-track referral for suspected oesophageal cancer. Candidate 276311000000101 is for gynaecological cancer (wrong site). Candidate 199251000000107 is a generic fast-track cancer referral without site specificity. Candidates 1304244006, 183497001, and 183496005 are either screening procedures, non-urgent admissions, or ENT admissions—none match the required urgent upper gastrointestinal/oesophageal fast-track referral."
+      ],
+      "detail": null,
+      "raw_search_term_lengths": [
+        2,
+        1,
+        2,
+        2,
+        2
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC001:R001",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.2 Upper gastrointestinal tract cancers",
+      "rec_title": "1.2.2",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 422,
+      "elapsed_ms": 33445,
+      "outcome": "failed",
+      "would_write": false,
+      "leaf_count": 0,
+      "error_prefixes": [
+        "verifier_unresolved"
+      ],
+      "errors": [
+        "verifier_unresolved:action:Esophagogastroduodenoscopy (procedure) is the correct investigation concept for 'non-urgent direct access upper gastrointestinal endoscopy'. All fast-track referral candidates are rejected: NICE explicitly states 'non-urgent' which contradicts fast-track urgency (safety rule 9), and the other candidates are for wrong cancer sites (gynaecological, urological, breast)."
+      ],
+      "detail": null,
+      "raw_search_term_lengths": [
+        4
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC001:R002",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.2 Upper gastrointestinal tract cancers",
+      "rec_title": "1.2.3",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 422,
+      "elapsed_ms": 67411,
+      "outcome": "failed",
+      "would_write": false,
+      "leaf_count": 0,
+      "error_prefixes": [
+        "verifier_unresolved"
+      ],
+      "errors": [
+        "verifier_unresolved:action:Esophagogastroduodenoscopy (procedure) is the correct investigation procedure. The NICE recommendation explicitly states 'non-urgent direct access upper gastrointestinal endoscopy', and this concept matches the procedure itself. The fast-track referral concepts are rejected because the recommendation explicitly specifies 'non-urgent', which would be contradicted by fast-track/urgent referral concepts."
+      ],
+      "detail": null,
+      "raw_search_term_lengths": [
+        3,
+        3,
+        3,
+        2,
+        3,
+        3,
+        1,
+        1,
+        1,
+        2,
+        2,
+        2
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC001:R003",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.2 Upper gastrointestinal tract cancers",
+      "rec_title": "1.2.4",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 422,
+      "elapsed_ms": 63524,
+      "outcome": "failed",
+      "would_write": false,
+      "leaf_count": 0,
+      "error_prefixes": [
+        "verifier_unresolved"
+      ],
+      "errors": [
+        "verifier_unresolved:action:No suitable pancreatic cancer-specific fast-track referral concept is present. Candidate 276311000000101 is for gynaecological cancer (wrong site — safety rule 9 prohibits this). Candidate 199251000000107 is labelled for gastric cancer, which changes site intent. Candidate 306206005 is a generic referral with no urgency or site specificity. A pancreatic or hepatopancreatobiliary suspected-cancer pathway referral concept is required."
+      ],
+      "detail": null,
+      "raw_search_term_lengths": [
+        3
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC001:R004",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.2 Upper gastrointestinal tract cancers",
+      "rec_title": "1.2.5",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 422,
+      "elapsed_ms": 71777,
+      "outcome": "failed",
+      "would_write": false,
+      "leaf_count": 0,
+      "error_prefixes": [
+        "verifier_unresolved",
+        "verifier_unresolved"
+      ],
+      "errors": [
+        "verifier_unresolved:n11:Candidates are problematic: 233821000 is 'New onset angina' (wrong condition), 405749004 'Newly diagnosed diabetes' is acceptable but lacks specificity for the acute presentation context; remaining candidates are assessment scales or unrelated disorders. Need better match for new-onset diabetes as a clinical presentation.",
+        "verifier_unresolved:action:No candidate safely captures the dual-pathway action (CT scan within 2 weeks OR ultrasound if CT unavailable) with urgency and pancreatic cancer assessment intent. Candidate 418394000 (ultrasound abdomen/pelvis) omits CT and urgency; 241551006 (CT pancreas) omits the ultrasound alternative and urgency specification; 276311000000101 is gynaecological cancer (wrong site); others are incomplete or misdirected. Need a concept that represents urgent imaging (CT or ultrasound) for pancreatic cancer assessment."
+      ],
+      "detail": null,
+      "raw_search_term_lengths": [
+        1,
+        2,
+        1,
+        1,
+        1,
+        1,
+        1,
+        3
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC001:R005",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.2 Upper gastrointestinal tract cancers",
+      "rec_title": "1.2.6",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 200,
+      "elapsed_ms": 62963,
+      "outcome": "success",
+      "would_write": true,
+      "leaf_count": 1,
+      "error_prefixes": [],
+      "errors": [],
+      "detail": null,
+      "raw_search_term_lengths": [
+        5
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC001:R006",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.2 Upper gastrointestinal tract cancers",
+      "rec_title": "1.2.7",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 200,
+      "elapsed_ms": 72898,
+      "outcome": "success",
+      "would_write": true,
+      "leaf_count": 5,
+      "error_prefixes": [],
+      "errors": [],
+      "detail": null,
+      "raw_search_term_lengths": [
+        2,
+        2,
+        3,
+        3,
+        2
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC001:R007",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.2 Upper gastrointestinal tract cancers",
+      "rec_title": "1.2.8",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 422,
+      "elapsed_ms": 38389,
+      "outcome": "failed",
+      "would_write": false,
+      "leaf_count": 0,
+      "error_prefixes": [
+        "verifier_unresolved"
+      ],
+      "errors": [
+        "verifier_unresolved:action:Esophagogastroduodenoscopy (procedure) correctly maps to the NICE recommendation for non-urgent direct access upper gastrointestinal endoscopy. All fast-track referral candidates are rejected: the recommendation explicitly states 'non-urgent', and selecting any fast-track/urgent concept would invert urgency in violation of safety rule 9. The procedure itself (EGD) is what NICE recommends, not a referral pathway."
+      ],
+      "detail": null,
+      "raw_search_term_lengths": [
+        3
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC001:R008",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.2 Upper gastrointestinal tract cancers",
+      "rec_title": "1.2.9",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 422,
+      "elapsed_ms": 53644,
+      "outcome": "failed",
+      "would_write": false,
+      "leaf_count": 0,
+      "error_prefixes": [
+        "verifier_unresolved"
+      ],
+      "errors": [
+        "verifier_unresolved:action:Esophagogastroduodenoscopy (procedure) is the correct procedure concept for upper gastrointestinal endoscopy. The NICE text specifies 'non-urgent direct access' endoscopy, not a fast-track referral pathway. The procedure concept is safer and more clinically faithful than fast-track referral concepts, which would invert the urgency intent."
+      ],
+      "detail": null,
+      "raw_search_term_lengths": [
+        3,
+        3,
+        3,
+        2,
+        3,
+        3,
+        1,
+        1,
+        1,
+        2,
+        2,
+        2
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC001:R009",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.2 Upper gastrointestinal tract cancers",
+      "rec_title": "1.2.10",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 422,
+      "elapsed_ms": 36058,
+      "outcome": "failed",
+      "would_write": false,
+      "leaf_count": 0,
+      "error_prefixes": [
+        "verifier_unresolved"
+      ],
+      "errors": [
+        "verifier_unresolved:action:'Ultrasound scan of upper abdomen (procedure)' is the exact anatomical site match for the NICE recommendation to perform an urgent direct access ultrasound to assess for gallbladder cancer. The fast-track referral candidates are inappropriate as they refer to unrelated cancer sites (gynaecological, urological, lung) and the action is a direct imaging investigation, not a referral pathway."
+      ],
+      "detail": null,
+      "raw_search_term_lengths": [
+        6
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC001:R010",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.2 Upper gastrointestinal tract cancers",
+      "rec_title": "1.2.11",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 422,
+      "elapsed_ms": 59518,
+      "outcome": "failed",
+      "would_write": false,
+      "leaf_count": 0,
+      "error_prefixes": [
+        "verifier_unresolved"
+      ],
+      "errors": [
+        "verifier_unresolved:action:Ultrasound scan of upper abdomen (procedure) is the most clinically faithful match. The NICE recommendation specifies assessment of an upper abdominal mass for liver cancer, and upper abdominal ultrasound is the appropriate site-specific procedure. This preserves urgency (direct access/within 2 weeks) and anatomical intent."
+      ],
+      "detail": null,
+      "raw_search_term_lengths": [
+        7
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC002:R000",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.3 Lower gastrointestinal tract cancers",
+      "rec_title": "1.3.1",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 422,
+      "elapsed_ms": 58894,
+      "outcome": "failed",
+      "would_write": false,
+      "leaf_count": 0,
+      "error_prefixes": [
+        "verifier_unresolved"
+      ],
+      "errors": [
+        "verifier_unresolved:action:Fast track referral for suspected colorectal cancer is the exact site-specific and urgency-appropriate procedure concept matching the NICE recommendation for FIT to guide referral for suspected colorectal cancer."
+      ],
+      "detail": null,
+      "raw_search_term_lengths": [
+        1,
+        2,
+        2,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        2,
+        1,
+        1,
+        2
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC002:R001",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.3 Lower gastrointestinal tract cancers",
+      "rec_title": "1.3.2",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 200,
+      "elapsed_ms": 34927,
+      "outcome": "success",
+      "would_write": true,
+      "leaf_count": 1,
+      "error_prefixes": [],
+      "errors": [],
+      "detail": null,
+      "raw_search_term_lengths": [
+        9
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC002:R002",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.3 Lower gastrointestinal tract cancers",
+      "rec_title": "1.3.3",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 422,
+      "elapsed_ms": 116446,
+      "outcome": "failed",
+      "would_write": false,
+      "leaf_count": 0,
+      "error_prefixes": [
+        "verifier_unresolved",
+        "verifier_unresolved",
+        "verifier_unresolved"
+      ],
+      "errors": [
+        "verifier_unresolved:n2:Current candidates are either specimen collection concepts or generic screening procedures. The NICE text refers to a patient state (non-return of sample) rather than a specimen type or collection action. Need a concept capturing 'non-compliance with faecal testing' or 'failure to provide faecal sample'.",
+        "verifier_unresolved:n4:The NICE criterion specifies a quantitative FIT result threshold (below 10 µg Hb/g). Current candidates are generic observable entities unrelated to FIT or faecal haemoglobin measurement. Need a concept for 'FIT result' or 'faecal immunochemical test result' with threshold semantics.",
+        "verifier_unresolved:action:The NICE text explicitly states referral should not be delayed when there is strong clinical concern of cancer. This is a fast-track pathway scenario. The concept 'Fast track referral for suspected lower gastrointestinal cancer' is site-specific (lower gastrointestinal), urgency-appropriate (fast-track), and preserves the intent of the recommendation without inverting urgency."
+      ],
+      "detail": null,
+      "raw_search_term_lengths": [
+        3,
+        10,
+        4
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC002:R003",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.3 Lower gastrointestinal tract cancers",
+      "rec_title": "1.3.4",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 422,
+      "elapsed_ms": 5336,
+      "outcome": "failed",
+      "would_write": false,
+      "leaf_count": 0,
+      "error_prefixes": [],
+      "errors": [],
+      "detail": null,
+      "raw_search_term_lengths": []
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC002:R004",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.3 Lower gastrointestinal tract cancers",
+      "rec_title": "1.3.5",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 200,
+      "elapsed_ms": 32730,
+      "outcome": "success",
+      "would_write": true,
+      "leaf_count": 1,
+      "error_prefixes": [],
+      "errors": [],
+      "detail": null,
+      "raw_search_term_lengths": [
+        3
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC002:R005",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.3 Lower gastrointestinal tract cancers",
+      "rec_title": "1.3.6",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 422,
+      "elapsed_ms": 74204,
+      "outcome": "failed",
+      "would_write": false,
+      "leaf_count": 0,
+      "error_prefixes": [
+        "verifier_unresolved"
+      ],
+      "errors": [
+        "verifier_unresolved:action:No candidate matches a fast-track referral for suspected anal cancer. Anal cancer is anatomically and clinically distinct from colorectal cancer and should not be mapped to a colorectal cancer pathway without explicit NICE support. Urological, breast, skin, and lung candidates are clearly wrong site. A specific anal cancer or lower GI suspected cancer referral concept is needed."
+      ],
+      "detail": null,
+      "raw_search_term_lengths": [
+        4,
+        4
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC003:R000",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.4 Breast cancer",
+      "rec_title": "1.4.1",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 200,
+      "elapsed_ms": 78826,
+      "outcome": "success",
+      "would_write": true,
+      "leaf_count": 2,
+      "error_prefixes": [],
+      "errors": [],
+      "detail": null,
+      "raw_search_term_lengths": [
+        3,
+        5
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC003:R001",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.4 Breast cancer",
+      "rec_title": "1.4.2",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 200,
+      "elapsed_ms": 45653,
+      "outcome": "success",
+      "would_write": true,
+      "leaf_count": 2,
+      "error_prefixes": [],
+      "errors": [],
+      "detail": null,
+      "raw_search_term_lengths": [
+        6,
+        4
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC003:R002",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.4 Breast cancer",
+      "rec_title": "1.4.3",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 200,
+      "elapsed_ms": 66100,
+      "outcome": "success",
+      "would_write": true,
+      "leaf_count": 1,
+      "error_prefixes": [],
+      "errors": [],
+      "detail": null,
+      "raw_search_term_lengths": [
+        3
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC004:R000",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.5 Gynaecological cancers",
+      "rec_title": "1.5.1",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 200,
+      "elapsed_ms": 42612,
+      "outcome": "success",
+      "would_write": true,
+      "leaf_count": 4,
+      "error_prefixes": [],
+      "errors": [],
+      "detail": null,
+      "raw_search_term_lengths": [
+        3,
+        3,
+        3,
+        3
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC004:R001",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.5 Gynaecological cancers",
+      "rec_title": "1.5.2",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 422,
+      "elapsed_ms": 32896,
+      "outcome": "failed",
+      "would_write": false,
+      "leaf_count": 0,
+      "error_prefixes": [
+        "extraction_empty"
+      ],
+      "errors": [
+        "extraction_empty:no_llm_verdict:NG12:v1:CH002:SEC004:R001"
+      ],
+      "detail": null,
+      "raw_search_term_lengths": []
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC004:R002",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.5 Gynaecological cancers",
+      "rec_title": "1.5.3",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 422,
+      "elapsed_ms": 62688,
+      "outcome": "failed",
+      "would_write": false,
+      "leaf_count": 0,
+      "error_prefixes": [
+        "verifier_unresolved"
+      ],
+      "errors": [
+        "verifier_unresolved:action:No suitable candidate provided. The action is 'consider carrying out tests in primary care', a general investigation directive. All supplied candidates are irrelevant (molecular skin testing, falls assessment, care plan evaluation) and do not represent a general primary care diagnostic workup concept."
+      ],
+      "detail": null,
+      "raw_search_term_lengths": [
+        2,
+        3,
+        3
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC004:R003",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.5 Gynaecological cancers",
+      "rec_title": "1.5.4",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 422,
+      "elapsed_ms": 16886,
+      "outcome": "failed",
+      "would_write": false,
+      "leaf_count": 0,
+      "error_prefixes": [],
+      "errors": [],
+      "detail": null,
+      "raw_search_term_lengths": []
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC004:R004",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.5 Gynaecological cancers",
+      "rec_title": "1.5.5",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 422,
+      "elapsed_ms": 76114,
+      "outcome": "failed",
+      "would_write": false,
+      "leaf_count": 0,
+      "error_prefixes": [
+        "verifier_unresolved",
+        "verifier_unresolved"
+      ],
+      "errors": [
+        "verifier_unresolved:n4:Neither candidate is ideal. '251381007 Gastrointestinal symptoms reproduced' is an obscure finding unlikely to be used in coding practice and does not clearly represent IBS-suggestive symptoms. '21522001 Abdominal pain' is too narrow a single symptom to represent the full IBS symptom complex. The IBS disorder concept (10743008) is too diagnostic for 'symptoms that suggest IBS'. A better concept would be one representing IBS-like symptoms or a situation/finding of suspected/possible IBS.",
+        "verifier_unresolved:action:Exact procedure concept for measurement of cancer antigen 125 in serum specimen, directly matching the NICE recommendation for ovarian cancer testing."
+      ],
+      "detail": null,
+      "raw_search_term_lengths": [
+        7
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC004:R005",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.5 Gynaecological cancers",
+      "rec_title": "1.5.6",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 422,
+      "elapsed_ms": 86990,
+      "outcome": "failed",
+      "would_write": false,
+      "leaf_count": 0,
+      "error_prefixes": [
+        "verifier_unresolved",
+        "verifier_unresolved"
+      ],
+      "errors": [
+        "verifier_unresolved:n3:The candidates provided are individual symptoms (bloating, abdominal pain, urinary urgency during pregnancy) or generic/irrelevant findings (suspicion, family concern). None represent the umbrella concept of 'symptoms suggestive of ovarian cancer' as intended by the NICE recommendation. A concept capturing the clinical presentation or symptom cluster associated with ovarian cancer suspicion is needed.",
+        "verifier_unresolved:action:None of the supplied procedure candidates correspond to serum CA125 measurement. All candidates are measurements of unrelated serum substances (ferritin, pseudocholinesterase, cholecystokinin, phenobarbitone, albumin). A specific SNOMED concept for CA125 measurement is required."
+      ],
+      "detail": null,
+      "raw_search_term_lengths": [
+        6
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC004:R006",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.5 Gynaecological cancers",
+      "rec_title": "1.5.7",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 422,
+      "elapsed_ms": 52675,
+      "outcome": "failed",
+      "would_write": false,
+      "leaf_count": 0,
+      "error_prefixes": [
+        "verifier_unresolved"
+      ],
+      "errors": [
+        "verifier_unresolved:action:Exact procedure match for ultrasound scan of abdomen and pelvis as specified in the NICE recommendation."
+      ],
+      "detail": null,
+      "raw_search_term_lengths": [
+        12
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC004:R007",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.5 Gynaecological cancers",
+      "rec_title": "1.5.8",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 200,
+      "elapsed_ms": 39413,
+      "outcome": "success",
+      "would_write": true,
+      "leaf_count": 1,
+      "error_prefixes": [],
+      "errors": [],
+      "detail": null,
+      "raw_search_term_lengths": [
+        6
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC004:R008",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.5 Gynaecological cancers",
+      "rec_title": "1.5.9",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 422,
+      "elapsed_ms": 15410,
+      "outcome": "failed",
+      "would_write": false,
+      "leaf_count": 0,
+      "error_prefixes": [],
+      "errors": [],
+      "detail": null,
+      "raw_search_term_lengths": []
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC004:R009",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.5 Gynaecological cancers",
+      "rec_title": "1.5.10",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 200,
+      "elapsed_ms": 34037,
+      "outcome": "success",
+      "would_write": true,
+      "leaf_count": 1,
+      "error_prefixes": [],
+      "errors": [],
+      "detail": null,
+      "raw_search_term_lengths": [
+        4
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC004:R010",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.5 Gynaecological cancers",
+      "rec_title": "1.5.11",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 200,
+      "elapsed_ms": 32952,
+      "outcome": "success",
+      "would_write": true,
+      "leaf_count": 1,
+      "error_prefixes": [],
+      "errors": [],
+      "detail": null,
+      "raw_search_term_lengths": [
+        5
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC004:R011",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.5 Gynaecological cancers",
+      "rec_title": "1.5.12",
+      "is_normative": true,
+      "is_vague_clause": true,
+      "status_code": 422,
+      "elapsed_ms": 67710,
+      "outcome": "failed",
+      "would_write": false,
+      "leaf_count": 0,
+      "error_prefixes": [
+        "verifier_unresolved",
+        "verifier_unresolved"
+      ],
+      "errors": [
+        "verifier_unresolved:n6:No suitable candidate provided. All candidates are either unrelated (asthma, angina) or describe symptom frequency rather than first presentation status.",
+        "verifier_unresolved:action:No suitable candidate provided. The NICE recommendation specifies 'direct access ultrasound scan to assess for endometrial cancer' which requires a pelvic/endometrial ultrasound procedure concept. Candidates include unrelated procedures (chorionicity scan, pelvic vessel ultrasound), a fast-track referral (which changes the action from direct investigation to referral), and an endometrial biopsy (wrong procedure type). A direct access pelvic ultrasound or transvaginal ultrasound for endometrial assessment is needed."
+      ],
+      "detail": null,
+      "raw_search_term_lengths": [
+        3,
+        4,
+        3,
+        4,
+        4,
+        3,
+        4
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC004:R012",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.5 Gynaecological cancers",
+      "rec_title": "1.5.13",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 422,
+      "elapsed_ms": 83061,
+      "outcome": "failed",
+      "would_write": false,
+      "leaf_count": 0,
+      "error_prefixes": [
+        "verifier_unresolved"
+      ],
+      "errors": [
+        "verifier_unresolved:n3:None of the candidate concepts represent a finding or situation of an abnormal or suspicious cervical appearance. All candidates are unrelated (eye appearance, vomit appearance, skin appearance, generic morphology, age-consistent appearance) and do not capture 'cervical appearance consistent with cervical cancer'. A cervix-specific finding or situation concept is required."
+      ],
+      "detail": null,
+      "raw_search_term_lengths": [
+        6
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC004:R013",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.5 Gynaecological cancers",
+      "rec_title": "1.5.14",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 422,
+      "elapsed_ms": 82045,
+      "outcome": "failed",
+      "would_write": false,
+      "leaf_count": 0,
+      "error_prefixes": [
+        "verifier_unresolved",
+        "verifier_unresolved",
+        "verifier_unresolved"
+      ],
+      "errors": [
+        "verifier_unresolved:n4:Candidates are too generic or anatomically misplaced. 'Swelling (finding)' lacks vulval specificity; perianal/perineal/ischiorectal lumps are wrong anatomical sites; 'Vulva finding' is too vague. Need a specific vulval lump/mass concept.",
+        "verifier_unresolved:n5:Candidates are procedure concepts or non-specific findings. 'On examination - vulva' and procedure codes do not represent ulceration as a clinical sign. 'Broken skin' is too generic and not vulval-specific. Need a vulval ulceration/ulcer finding concept.",
+        "verifier_unresolved:n6:Candidates are non-specific vulval findings or unrelated symptoms (pain, irritation, hyperplasia). None represent vulval bleeding/haemorrhage as a clinical sign. Need a vulval bleeding or vulval haemorrhage finding concept."
+      ],
+      "detail": null,
+      "raw_search_term_lengths": [
+        3,
+        3,
+        3
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC004:R014",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.5 Gynaecological cancers",
+      "rec_title": "1.5.15",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 200,
+      "elapsed_ms": 49232,
+      "outcome": "success",
+      "would_write": true,
+      "leaf_count": 1,
+      "error_prefixes": [],
+      "errors": [],
+      "detail": null,
+      "raw_search_term_lengths": [
+        5
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC005:R000",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.6 Urological cancers",
+      "rec_title": "1.6.1",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 200,
+      "elapsed_ms": 41527,
+      "outcome": "success",
+      "would_write": true,
+      "leaf_count": 1,
+      "error_prefixes": [],
+      "errors": [],
+      "detail": null,
+      "raw_search_term_lengths": [
+        5
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC005:R001",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.6 Urological cancers",
+      "rec_title": "1.6.2",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 422,
+      "elapsed_ms": 40969,
+      "outcome": "failed",
+      "would_write": false,
+      "leaf_count": 0,
+      "error_prefixes": [
+        "verifier_unresolved"
+      ],
+      "errors": [
+        "verifier_unresolved:n5:Candidates are problematic: pregnancy-specific finding is too narrow; qualifier value is not a clinical finding; BPH-specific finding narrows scope; stool urgency is wrong organ. Need generic urinary urgency finding."
+      ],
+      "detail": null,
+      "raw_search_term_lengths": [
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        3
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC005:R002",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.6 Urological cancers",
+      "rec_title": "1.6.3",
+      "is_normative": true,
+      "is_vague_clause": true,
+      "status_code": 200,
+      "elapsed_ms": 61937,
+      "outcome": "success",
+      "would_write": true,
+      "leaf_count": 2,
+      "error_prefixes": [],
+      "errors": [],
+      "detail": null,
+      "raw_search_term_lengths": [
+        13,
+        8
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC005:R003",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.6 Urological cancers",
+      "rec_title": "1.6.4",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 200,
+      "elapsed_ms": 47301,
+      "outcome": "success",
+      "would_write": true,
+      "leaf_count": 5,
+      "error_prefixes": [],
+      "errors": [],
+      "detail": null,
+      "raw_search_term_lengths": [
+        3,
+        4,
+        3,
+        3,
+        4
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC005:R004",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.6 Urological cancers",
+      "rec_title": "1.6.5",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 422,
+      "elapsed_ms": 70880,
+      "outcome": "failed",
+      "would_write": false,
+      "leaf_count": 0,
+      "error_prefixes": [
+        "verifier_unresolved"
+      ],
+      "errors": [
+        "verifier_unresolved:action:No safe candidate available. The NICE recommendation explicitly states 'non-urgent referral' but all supplied candidates are either urgent/fast-track procedures or specialty-specific non-urgent admissions unrelated to urology (rheumatology, ophthalmology, psychiatry). A non-urgent urological referral concept is required to preserve both the urgency intent and site specificity."
+      ],
+      "detail": null,
+      "raw_search_term_lengths": [
+        4
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC005:R005",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.6 Urological cancers",
+      "rec_title": "1.6.6",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 200,
+      "elapsed_ms": 44888,
+      "outcome": "success",
+      "would_write": true,
+      "leaf_count": 3,
+      "error_prefixes": [],
+      "errors": [],
+      "detail": null,
+      "raw_search_term_lengths": [
+        3,
+        3,
+        5
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC005:R006",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.6 Urological cancers",
+      "rec_title": "1.6.7",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 422,
+      "elapsed_ms": 82739,
+      "outcome": "failed",
+      "would_write": false,
+      "leaf_count": 0,
+      "error_prefixes": [
+        "verifier_unresolved",
+        "verifier_unresolved"
+      ],
+      "errors": [
+        "verifier_unresolved:n5:No suitable candidate provided. 'Testicular feature (observable entity)' is too vague and does not represent a change in shape. Other candidates are unrelated disorders, qualifier values, or procedures. A specific finding or sign concept for testicular shape change is needed.",
+        "verifier_unresolved:n6:No suitable candidate provided. 'Nodularity (attribute)' is an attribute not a finding, 'Change in nail texture' is unrelated, and remaining candidates are body structure, procedure, or irrelevant findings. A finding concept specifically for testicular texture or consistency change is needed."
+      ],
+      "detail": null,
+      "raw_search_term_lengths": [
+        3,
+        2,
+        2
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC005:R007",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.6 Urological cancers",
+      "rec_title": "1.6.8",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 422,
+      "elapsed_ms": 32455,
+      "outcome": "failed",
+      "would_write": false,
+      "leaf_count": 0,
+      "error_prefixes": [
+        "verifier_unresolved"
+      ],
+      "errors": [
+        "verifier_unresolved:action:Ultrasonography of bilateral testes (procedure) is the exact imaging procedure specified in the NICE recommendation. It directly matches 'direct access ultrasound scan of testes' and is the appropriate investigation for testicular cancer suspicion. The fast-track referral concepts are incorrect because the NICE text specifies an ultrasound scan, not a referral pathway."
+      ],
+      "detail": null,
+      "raw_search_term_lengths": [
+        5
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC005:R008",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.6 Urological cancers",
+      "rec_title": "1.6.9",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 200,
+      "elapsed_ms": 45190,
+      "outcome": "success",
+      "would_write": true,
+      "leaf_count": 5,
+      "error_prefixes": [],
+      "errors": [],
+      "detail": null,
+      "raw_search_term_lengths": [
+        2,
+        3,
+        3,
+        3,
+        3
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC005:R009",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.6 Urological cancers",
+      "rec_title": "1.6.10",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 422,
+      "elapsed_ms": 97343,
+      "outcome": "failed",
+      "would_write": false,
+      "leaf_count": 0,
+      "error_prefixes": [
+        "verifier_unresolved",
+        "verifier_unresolved"
+      ],
+      "errors": [
+        "verifier_unresolved:n4:Supplied candidates are either too generic (unexplained symptoms continue, symptom frequency codes) or too narrow/specific (prepuce hypertrophy, mass of prepuce). None captures 'unexplained or persistent symptoms affecting the foreskin' as a clinical red flag finding. Need a finding concept for prepuce/foreskin symptoms or lesions without being overly specific.",
+        "verifier_unresolved:n5:All supplied candidates are symptom-frequency concepts (daily, weekly, monthly, yearly, hourly) which are entirely unrelated to 'symptoms affecting the glans'. Need a finding concept for glans symptoms, lesions, or abnormalities as a clinical red flag for penile cancer."
+      ],
+      "detail": null,
+      "raw_search_term_lengths": [
+        5,
+        5
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC006:R000",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.7 Skin cancers",
+      "rec_title": "1.7.1",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 422,
+      "elapsed_ms": 80996,
+      "outcome": "failed",
+      "would_write": false,
+      "leaf_count": 0,
+      "error_prefixes": [
+        "verifier_unresolved"
+      ],
+      "errors": [
+        "verifier_unresolved:n1:No candidate adequately captures 'suspicious pigmented skin lesion with 7-point checklist score of 3 or more'. 'Change in skin lesion (finding)' is too generic and does not reflect the melanoma risk stratification context. 'Benign pigmented skin lesion' is clinically contradictory. 'Atypia suspicious for malignancy' is a morphologic abnormality rather than a clinical finding. The Brief Assessment Checklist concept is entirely off-topic. A retry is needed for a finding/situation concept reflecting suspicious melanocytic or pigmented lesion."
+      ],
+      "detail": null,
+      "raw_search_term_lengths": [
+        5
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC006:R001",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.7 Skin cancers",
+      "rec_title": "1.7.2",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 422,
+      "elapsed_ms": 84181,
+      "outcome": "failed",
+      "would_write": false,
+      "leaf_count": 0,
+      "error_prefixes": [
+        "verifier_unresolved"
+      ],
+      "errors": [
+        "verifier_unresolved:n1:None of the provided candidates capture 'dermoscopy findings suggestive of melanoma'. Available concepts are either benign skin lesion findings, generic skin lesion changes, or specific dermoscopic signs (shininess, redness, cyanosis) — none represent a suspicious/concerning dermoscopic finding for melanoma. The NICE text uses 'suggests', indicating a suspicious finding rather than confirmed diagnosis, so a situation or finding concept is needed."
+      ],
+      "detail": null,
+      "raw_search_term_lengths": [
+        6
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC006:R002",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.7 Skin cancers",
+      "rec_title": "1.7.3",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 200,
+      "elapsed_ms": 50824,
+      "outcome": "success",
+      "would_write": true,
+      "leaf_count": 2,
+      "error_prefixes": [],
+      "errors": [],
+      "detail": null,
+      "raw_search_term_lengths": [
+        4,
+        4
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC006:R003",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.7 Skin cancers",
+      "rec_title": "1.7.4",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 200,
+      "elapsed_ms": 90283,
+      "outcome": "success",
+      "would_write": true,
+      "leaf_count": 1,
+      "error_prefixes": [],
+      "errors": [],
+      "detail": null,
+      "raw_search_term_lengths": [
+        5
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC006:R004",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.7 Skin cancers",
+      "rec_title": "1.7.5",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 422,
+      "elapsed_ms": 50475,
+      "outcome": "failed",
+      "would_write": false,
+      "leaf_count": 0,
+      "error_prefixes": [
+        "verifier_unresolved"
+      ],
+      "errors": [
+        "verifier_unresolved:action:NICE recommendation explicitly states 'routine referral' (non-urgent), but all supplied candidates are 'fast track' referrals (urgent). This inverts urgency and violates safety rule 9. No routine/non-urgent skin cancer referral concept is available in candidates. Recommendation cannot be safely coded with provided options."
+      ],
+      "detail": null,
+      "raw_search_term_lengths": [
+        3,
+        3,
+        5
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC006:R005",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.7 Skin cancers",
+      "rec_title": "1.7.6",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 422,
+      "elapsed_ms": 93655,
+      "outcome": "failed",
+      "would_write": false,
+      "leaf_count": 0,
+      "error_prefixes": [
+        "verifier_unresolved",
+        "verifier_unresolved",
+        "verifier_unresolved"
+      ],
+      "errors": [
+        "verifier_unresolved:n2:The NICE text uses 'raises the suspicion of basal cell carcinoma', which is a finding/situation phrase, not a confirmed diagnosis. Concept 254701007 is a confirmed disorder and changes the meaning. Concept 706876006 ('Suspicion') is too generic and not linked to skin lesion or BCC. No supplied candidate safely captures 'suspected basal cell carcinoma' as a situation/finding. A retry is needed for a situation or finding concept.",
+        "verifier_unresolved:n4:None of the candidates capture the clinical intent of 'lesion site of particular concern' (e.g., facial, periocular, near vital structures). Candidates such as 'Delusion concerning appearance', 'Head and neck swelling', '1/3 meter', and 'Tumor invades head and neck' are semantically unrelated or too specific/narrow.",
+        "verifier_unresolved:n5:None of the candidates represent 'lesion size with significant impact concern'. Concepts like 'Benign pigmented skin lesion', 'Change in skin lesion', 'Family is cause for concern', and 'Redness of skin over lesion' are unrelated or too vague to capture large or extensive lesion size as a clinical concern factor."
+      ],
+      "detail": null,
+      "raw_search_term_lengths": [
+        4,
+        5,
+        4
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC006:R006",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.7 Skin cancers",
+      "rec_title": "1.7.7",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 422,
+      "elapsed_ms": 3297,
+      "outcome": "failed",
+      "would_write": false,
+      "leaf_count": 0,
+      "error_prefixes": [],
+      "errors": [],
+      "detail": null,
+      "raw_search_term_lengths": []
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC007:R000",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.8 Head and neck cancers",
+      "rec_title": "1.8.1",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 422,
+      "elapsed_ms": 98788,
+      "outcome": "failed",
+      "would_write": false,
+      "leaf_count": 0,
+      "error_prefixes": [
+        "verifier_unresolved"
+      ],
+      "errors": [
+        "verifier_unresolved:action:None of the supplied procedure candidates correspond to a fast-track referral for suspected laryngeal or head and neck cancer. All candidates are site-specific fast-track referrals for unrelated cancer types (urological, colorectal, breast, skin, lung). A head and neck or ENT-specific suspected cancer pathway referral concept is required."
+      ],
+      "detail": null,
+      "raw_search_term_lengths": [
+        4,
+        5
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC007:R001",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.8 Head and neck cancers",
+      "rec_title": "1.8.2",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 422,
+      "elapsed_ms": 74763,
+      "outcome": "failed",
+      "would_write": false,
+      "leaf_count": 0,
+      "error_prefixes": [
+        "verifier_unresolved"
+      ],
+      "errors": [
+        "verifier_unresolved:action:No candidate concept for 'fast track referral for suspected oral cancer' is present. All supplied candidates are for other cancer sites (colorectal, skin, breast, urological, lung) and would change site intent. A head and neck or oral cancer-specific fast-track referral concept is required."
+      ],
+      "detail": null,
+      "raw_search_term_lengths": [
+        4,
+        4
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC007:R002",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.8 Head and neck cancers",
+      "rec_title": "1.8.3",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 422,
+      "elapsed_ms": 93776,
+      "outcome": "failed",
+      "would_write": false,
+      "leaf_count": 0,
+      "error_prefixes": [
+        "verifier_unresolved",
+        "verifier_unresolved",
+        "verifier_unresolved"
+      ],
+      "errors": [
+        "verifier_unresolved:n2:Candidates are anatomically incorrect (neck, face, thigh, finger, extremities). Need lip-specific lump/nodule concept.",
+        "verifier_unresolved:n3:Candidates are anatomically incorrect (pinna, iris, testicle, eyelid). Need oral cavity/mouth-specific mass concept.",
+        "verifier_unresolved:action:Referral to dentist is the correct specialty and site-specific procedure. While not explicitly marked as urgent in the concept, this is the most appropriate dental referral concept. The urgency (2-week appointment) is captured in the NICE recommendation context."
+      ],
+      "detail": null,
+      "raw_search_term_lengths": [
+        3,
+        4,
+        5,
+        5
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC007:R003",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.8 Head and neck cancers",
+      "rec_title": "1.8.4",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 422,
+      "elapsed_ms": 126262,
+      "outcome": "failed",
+      "would_write": false,
+      "leaf_count": 0,
+      "error_prefixes": [
+        "verifier_unresolved"
+      ],
+      "errors": [
+        "verifier_unresolved:action:No candidate matches the action requirement. The NICE text specifies 'fast track referral for suspected oral cancer' but all supplied candidates are for other cancer sites (colorectal, skin, breast, urological, lung). A head and neck or oral cancer-specific fast-track referral concept is required."
+      ],
+      "detail": null,
+      "raw_search_term_lengths": [
+        5,
+        5,
+        5,
+        5
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC007:R004",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.8 Head and neck cancers",
+      "rec_title": "1.8.5",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 422,
+      "elapsed_ms": 73202,
+      "outcome": "failed",
+      "would_write": false,
+      "leaf_count": 0,
+      "error_prefixes": [
+        "verifier_unresolved"
+      ],
+      "errors": [
+        "verifier_unresolved:action:No supplied procedure concepts match a fast-track/urgent referral for suspected thyroid cancer; all candidates are for wrong cancer sites (urological, colorectal, breast, skin, lung). A thyroid-specific or head-and-neck specialty referral concept is required."
+      ],
+      "detail": null,
+      "raw_search_term_lengths": [
+        4
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC008:R000",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.9 Brain and central nervous system cancers",
+      "rec_title": "1.9.1",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 422,
+      "elapsed_ms": 80074,
+      "outcome": "failed",
+      "would_write": false,
+      "leaf_count": 0,
+      "error_prefixes": [
+        "verifier_unresolved",
+        "verifier_unresolved"
+      ],
+      "errors": [
+        "verifier_unresolved:n3:No candidate adequately captures 'progressive sub-acute loss of central neurological function'. Candidate 931031000000104 includes 'intellectual' deterioration not specified in NICE text. Candidate 264552009 (Neurological deficit) lacks the progressive/sub-acute temporal qualifier. Candidate 18373002 is an observable entity, not a clinical finding. A more specific concept for progressive central neurological decline is needed.",
+        "verifier_unresolved:action:No candidate correctly represents the action. The NICE recommendation specifies 'urgent, direct access MRI scan of the brain (or CT scan if MRI contraindicated)' — this is a direct imaging investigation procedure, not a referral. Candidate 276581000000102 is a fast-track referral for suspected brain tumour, which changes the action from direct imaging to a referral pathway. Candidates 276341000000100, 276281000000104, and 276401000000108 are referrals for other cancer types (breast, skin, colorectal) and are clinically incorrect. Candidate 303639007 (Direct brain stimulation) is clinically inappropriate. A direct imaging procedure concept (MRI brain or CT brain) is required."
+      ],
+      "detail": null,
+      "raw_search_term_lengths": [
+        5
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC008:R001",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.9 Brain and central nervous system cancers",
+      "rec_title": "1.9.2",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 422,
+      "elapsed_ms": 48917,
+      "outcome": "failed",
+      "would_write": false,
+      "leaf_count": 0,
+      "error_prefixes": [
+        "verifier_unresolved"
+      ],
+      "errors": [
+        "verifier_unresolved:action:'Fast track referral for suspected brain tumour' is the only candidate with correct site (brain/CNS). All other candidates refer to wrong cancer sites (breast, gynaecological, skin, urological). The fast-track/very urgent urgency aligns with the NICE 48-hour referral requirement."
+      ],
+      "detail": null,
+      "raw_search_term_lengths": [
+        5
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC009:R000",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.10 Haematological cancers",
+      "rec_title": "1.10.1",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 422,
+      "elapsed_ms": 38650,
+      "outcome": "failed",
+      "would_write": false,
+      "leaf_count": 0,
+      "error_prefixes": [
+        "verifier_unresolved"
+      ],
+      "errors": [
+        "verifier_unresolved:action:Complete blood count (procedure) is the standard SNOMED concept for full blood count investigation. The urgency (very urgent/within 48 hours) is captured in the recommendation context and clinical workflow, not in the procedure concept itself."
+      ],
+      "detail": null,
+      "raw_search_term_lengths": [
+        2,
+        2,
+        2,
+        3,
+        3,
+        2,
+        2,
+        2,
+        4
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC009:R001",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.10 Haematological cancers",
+      "rec_title": "1.10.2",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 422,
+      "elapsed_ms": 41739,
+      "outcome": "failed",
+      "would_write": false,
+      "leaf_count": 0,
+      "error_prefixes": [
+        "verifier_unresolved"
+      ],
+      "errors": [
+        "verifier_unresolved:action:Specialist assessment (procedure) is the most appropriate available concept for 'immediate specialist assessment for suspected leukaemia'. It preserves the specialist referral intent without incorrectly mapping to mental health, social services, or other unrelated specialist assessment types. No haematology-specific urgent referral concept is available among the candidates."
+      ],
+      "detail": null,
+      "raw_search_term_lengths": [
+        3,
+        3
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC009:R002",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.10 Haematological cancers",
+      "rec_title": "1.10.3",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 422,
+      "elapsed_ms": 30089,
+      "outcome": "failed",
+      "would_write": false,
+      "leaf_count": 0,
+      "error_prefixes": [
+        "verifier_unresolved"
+      ],
+      "errors": [
+        "verifier_unresolved:action:Complete blood count is the correct and standard procedure for assessing full blood count. It has the highest confidence score (1.29) and directly matches the clinical intent. The other candidates are overly specific component counts (metamyelocyte, prolymphocyte, blast, promyelocyte) that are subsets of a full blood count rather than the complete assessment requested. The urgency (very urgent/within 48 hours) is a scheduling attribute, not a procedure concept modifier, so the base procedure concept is appropriate."
+      ],
+      "detail": null,
+      "raw_search_term_lengths": []
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC009:R003",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.10 Haematological cancers",
+      "rec_title": "1.10.4",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 422,
+      "elapsed_ms": 64351,
+      "outcome": "failed",
+      "would_write": false,
+      "leaf_count": 0,
+      "error_prefixes": [
+        "verifier_unresolved"
+      ],
+      "errors": [
+        "verifier_unresolved:n6:No suitable candidate provided. 'Pathological fracture' is a disorder concept that implies confirmed diagnosis; 'unexplained fracture' as a finding is not present. Current candidates are semantically unrelated (cough, infertility, falls, symptoms)."
+      ],
+      "detail": null,
+      "raw_search_term_lengths": [
+        2,
+        2,
+        3
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC009:R004",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.10 Haematological cancers",
+      "rec_title": "1.10.5",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 422,
+      "elapsed_ms": 85352,
+      "outcome": "failed",
+      "would_write": false,
+      "leaf_count": 0,
+      "error_prefixes": [
+        "verifier_unresolved",
+        "verifier_unresolved"
+      ],
+      "errors": [
+        "verifier_unresolved:n1:All candidates are individual laboratory observables (free light chains, paraprotein, electrophoresis) rather than a composite finding or situation representing 'blood test results suggestive of myeloma'. The NICE criterion requires a holistic assessment of multiple blood tests pointing to myeloma, not a single test parameter. A situation or finding concept capturing the overall clinical picture is needed.",
+        "verifier_unresolved:action:No site-specific or haematology-specific fast-track referral concept for myeloma is present. The generic 'Fast track cancer referral' (199251000000107) is the closest available but does not capture the haematological/myeloma-specific intent. The sarcoma, colorectal, and skin cancer concepts are wrong sites and must not be used. A myeloma or haematological malignancy specific suspected cancer pathway referral concept should be sought."
+      ],
+      "detail": null,
+      "raw_search_term_lengths": [
+        7
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC009:R005",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.10 Haematological cancers",
+      "rec_title": "1.10 Haematological cancers",
+      "is_normative": true,
+      "is_vague_clause": true,
+      "status_code": 422,
+      "elapsed_ms": 61328,
+      "outcome": "failed",
+      "would_write": false,
+      "leaf_count": 0,
+      "error_prefixes": [
+        "verifier_empty"
+      ],
+      "errors": [
+        "verifier_empty:NG12:v1:CH002:SEC009:R005"
+      ],
+      "detail": null,
+      "raw_search_term_lengths": [
+        3,
+        3,
+        3,
+        3,
+        2,
+        3,
+        3,
+        2,
+        3,
+        3,
+        2,
+        3,
+        3,
+        2
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC009:R006",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.10 Haematological cancers",
+      "rec_title": "1.10 Haematological cancers",
+      "is_normative": true,
+      "is_vague_clause": true,
+      "status_code": 422,
+      "elapsed_ms": 72948,
+      "outcome": "failed",
+      "would_write": false,
+      "leaf_count": 0,
+      "error_prefixes": [
+        "verifier_unresolved"
+      ],
+      "errors": [
+        "verifier_unresolved:action:No supplied candidate appropriately captures 'very urgent referral for specialist assessment for suspected non-Hodgkin's lymphoma'. Candidates are either wrong specialty (sarcoma, dementia), wrong urgency (non-urgent), or too generic (assessment for referral). A haematology-specific urgent referral concept is needed."
+      ],
+      "detail": null,
+      "raw_search_term_lengths": [
+        4,
+        3,
+        3,
+        2,
+        3,
+        3,
+        2
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC009:R007",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.10 Haematological cancers",
+      "rec_title": "1.10 Haematological cancers",
+      "is_normative": true,
+      "is_vague_clause": true,
+      "status_code": 422,
+      "elapsed_ms": 74906,
+      "outcome": "failed",
+      "would_write": false,
+      "leaf_count": 0,
+      "error_prefixes": [
+        "verifier_unresolved"
+      ],
+      "errors": [
+        "verifier_unresolved:action:No candidate precisely matches 'fast track referral for suspected Hodgkin's lymphoma'. Candidates are either wrong site (sarcoma), wrong urgency (non-urgent), or too generic. A haematology-specific fast-track referral concept is needed."
+      ],
+      "detail": null,
+      "raw_search_term_lengths": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        2,
+        2
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC009:R008",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.10 Haematological cancers",
+      "rec_title": "1.10 Haematological cancers",
+      "is_normative": true,
+      "is_vague_clause": true,
+      "status_code": 422,
+      "elapsed_ms": 80294,
+      "outcome": "failed",
+      "would_write": false,
+      "leaf_count": 0,
+      "error_prefixes": [
+        "verifier_unresolved"
+      ],
+      "errors": [
+        "verifier_unresolved:action:No supplied candidate accurately represents 'very urgent referral for specialist assessment for Hodgkin's lymphoma within 48 hours'. Current candidates are either wrong specialty (ophthalmology, sarcoma), too generic (assessment for referral), or misaligned with haematological cancer pathway. A haematology-specific urgent referral concept is needed."
+      ],
+      "detail": null,
+      "raw_search_term_lengths": [
+        4,
+        3,
+        3,
+        3,
+        3,
+        3
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC010:R000",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.11 Sarcomas",
+      "rec_title": "1.11.1",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 200,
+      "elapsed_ms": 44686,
+      "outcome": "success",
+      "would_write": true,
+      "leaf_count": 1,
+      "error_prefixes": [],
+      "errors": [],
+      "detail": null,
+      "raw_search_term_lengths": [
+        6
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC010:R001",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.11 Sarcomas",
+      "rec_title": "1.11.2",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 422,
+      "elapsed_ms": 37580,
+      "outcome": "failed",
+      "would_write": false,
+      "leaf_count": 0,
+      "error_prefixes": [
+        "verifier_unresolved"
+      ],
+      "errors": [
+        "verifier_unresolved:action:Fast track referral for suspected sarcoma is the most specific and clinically faithful concept available. It preserves the site intent (bone sarcoma), matches the urgency (very urgent/fast-track within 48 hours), and is appropriately scoped to sarcoma rather than generic cancer pathways or unrelated cancer sites."
+      ],
+      "detail": null,
+      "raw_search_term_lengths": [
+        4
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC010:R002",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.11 Sarcomas",
+      "rec_title": "1.11.3",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 422,
+      "elapsed_ms": 82416,
+      "outcome": "failed",
+      "would_write": false,
+      "leaf_count": 0,
+      "error_prefixes": [
+        "verifier_unresolved"
+      ],
+      "errors": [
+        "verifier_unresolved:action:The NICE recommendation specifies a very urgent direct access X-ray (within 48 hours) of bone at an unspecified site. The limb-specific X-ray candidates are too narrow (upper or lower limb only), and the fast-track referral concept changes the nature of the action from an imaging investigation to a referral pathway. No safe unspecified-site plain X-ray of bone concept is present among the candidates."
+      ],
+      "detail": null,
+      "raw_search_term_lengths": [
+        3,
+        3
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC010:R003",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.11 Sarcomas",
+      "rec_title": "1.11.4",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 422,
+      "elapsed_ms": 30516,
+      "outcome": "failed",
+      "would_write": false,
+      "leaf_count": 0,
+      "error_prefixes": [
+        "verifier_unresolved"
+      ],
+      "errors": [
+        "verifier_unresolved:action:Generic ultrasonography procedure best represents the NICE-specified 'urgent direct access ultrasound scan'. The fast-track referral concept changes the action type from an investigation to a referral, which does not match the NICE text."
+      ],
+      "detail": null,
+      "raw_search_term_lengths": [
+        6
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC010:R004",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.11 Sarcomas",
+      "rec_title": "1.11.5",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 422,
+      "elapsed_ms": 100376,
+      "outcome": "failed",
+      "would_write": false,
+      "leaf_count": 0,
+      "error_prefixes": [
+        "verifier_unresolved",
+        "verifier_unresolved",
+        "verifier_unresolved"
+      ],
+      "errors": [
+        "verifier_unresolved:n2:No candidate appropriately matches ultrasound findings suggestive of soft tissue sarcoma. Candidates are wrong modality (X-ray, mammography, renal ultrasound, oral soft tissue) or too generic (tissue cytology). Need an ultrasound-specific soft tissue finding concept.",
+        "verifier_unresolved:n4:No candidate appropriately captures uncertain/equivocal ultrasound findings in the context of soft tissue imaging. Candidates are unrelated (indeterminate sex, fetal abnormality, cystic fibrosis) or too generic.",
+        "verifier_unresolved:n5:NICE text uses 'clinical concern persists' as a qualifier, not a confirmed diagnosis. Confirmed disorder/morphology concepts (sarcoma, Kaposi's, histiocytic) are too specific and diagnostic. 'Suspicion (finding)' (706876006) is too generic and lacks soft tissue sarcoma context. A situation or finding concept capturing clinical suspicion of soft tissue sarcoma without confirming diagnosis is needed."
+      ],
+      "detail": null,
+      "raw_search_term_lengths": [
+        5,
+        4,
+        3
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC010:R005",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.11 Sarcomas",
+      "rec_title": "1.11.6",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 422,
+      "elapsed_ms": 95293,
+      "outcome": "failed",
+      "would_write": false,
+      "leaf_count": 0,
+      "error_prefixes": [
+        "verifier_unresolved"
+      ],
+      "errors": [
+        "verifier_unresolved:action:Exact procedure match: ultrasound scan of soft tissue mass. Preserves the imaging modality, site specificity (soft tissue), and urgency intent. Superior to generic fast-track referral or craniofacial-specific ultrasound."
+      ],
+      "detail": null,
+      "raw_search_term_lengths": [
+        4
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC010:R006",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.11 Sarcomas",
+      "rec_title": "1.11.7",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 422,
+      "elapsed_ms": 94917,
+      "outcome": "failed",
+      "would_write": false,
+      "leaf_count": 0,
+      "error_prefixes": [
+        "verifier_unresolved",
+        "verifier_unresolved"
+      ],
+      "errors": [
+        "verifier_unresolved:n8:No suitable candidate provided. Current options are either unrelated (indeterminate sex, cystic fibrosis) or too specific (fetal abnormality). Need a concept for uncertain/equivocal ultrasound findings in soft tissue context.",
+        "verifier_unresolved:action:Fast track referral for suspected sarcoma is the most specific and clinically faithful match. It preserves the sarcoma site intent, matches the urgency (very urgent/fast-track within 48 hours), and is a dedicated sarcoma referral pathway rather than a generic cancer referral."
+      ],
+      "detail": null,
+      "raw_search_term_lengths": [
+        5,
+        3,
+        2
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC011:R000",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.12 Childhood cancers",
+      "rec_title": "1.12.1",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 200,
+      "elapsed_ms": 106817,
+      "outcome": "success",
+      "would_write": true,
+      "leaf_count": 2,
+      "error_prefixes": [],
+      "errors": [],
+      "detail": null,
+      "raw_search_term_lengths": [
+        2,
+        4
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC011:R001",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.12 Childhood cancers",
+      "rec_title": "1.12.2",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 422,
+      "elapsed_ms": 78071,
+      "outcome": "failed",
+      "would_write": false,
+      "leaf_count": 0,
+      "error_prefixes": [
+        "verifier_unresolved"
+      ],
+      "errors": [
+        "verifier_unresolved:action:No suitable candidate represents an urgent/fast-track ophthalmology referral for suspected retinoblastoma. Candidate 276521000000103 is for sarcoma (wrong site), 183498006 is non-urgent ophthalmological admission (inverts urgency), 134403003 is a generic urgent referral without site or specialty specificity, 978821000000103 is a discussion rather than a referral, and 410623006 is a well-child visit (wrong context entirely). A site-specific urgent or suspected cancer pathway referral to ophthalmology is required."
+      ],
+      "detail": null,
+      "raw_search_term_lengths": [
+        4
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC011:R002",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.12 Childhood cancers",
+      "rec_title": "1.12.3",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 200,
+      "elapsed_ms": 274340,
+      "outcome": "success",
+      "would_write": true,
+      "leaf_count": 3,
+      "error_prefixes": [],
+      "errors": [],
+      "detail": null,
+      "raw_search_term_lengths": [
+        2,
+        4,
+        3
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC012:R000",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.13 Non-site-specific symptoms",
+      "rec_title": "1.13.1",
+      "is_normative": true,
+      "is_vague_clause": true,
+      "status_code": 422,
+      "elapsed_ms": 256737,
+      "outcome": "failed",
+      "would_write": false,
+      "leaf_count": 0,
+      "error_prefixes": [
+        "verifier_unresolved"
+      ],
+      "errors": [
+        "verifier_unresolved:action:The NICE recommendation uses 'consider referral' language without specifying urgency or site. Generic patient referral is safest and preserves the non-urgent, discretionary nature of the recommendation. Site-specific or fast-track oncology referral would be inappropriate as this is a non-site-specific symptom criterion."
+      ],
+      "detail": null,
+      "raw_search_term_lengths": [
+        5,
+        4
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC012:R001",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.13 Non-site-specific symptoms",
+      "rec_title": "1.13.2",
+      "is_normative": true,
+      "is_vague_clause": true,
+      "status_code": 200,
+      "elapsed_ms": 201404,
+      "outcome": "success",
+      "would_write": true,
+      "leaf_count": 1,
+      "error_prefixes": [],
+      "errors": [],
+      "detail": null,
+      "raw_search_term_lengths": [
+        3
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC012:R002",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.13 Non-site-specific symptoms",
+      "rec_title": "1.13.3",
+      "is_normative": true,
+      "is_vague_clause": true,
+      "status_code": 200,
+      "elapsed_ms": 228203,
+      "outcome": "success",
+      "would_write": true,
+      "leaf_count": 1,
+      "error_prefixes": [],
+      "errors": [],
+      "detail": null,
+      "raw_search_term_lengths": [
+        4
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH002:SEC012:R003",
+      "chapter_title": "Recommendations organised by site of cancer",
+      "section_title": "1.13 Non-site-specific symptoms",
+      "rec_title": "1.13.4",
+      "is_normative": true,
+      "is_vague_clause": true,
+      "status_code": 422,
+      "elapsed_ms": 304828,
+      "outcome": "failed",
+      "would_write": false,
+      "leaf_count": 0,
+      "error_prefixes": [
+        "verifier_unresolved",
+        "verifier_unresolved",
+        "verifier_unresolved"
+      ],
+      "errors": [
+        "verifier_unresolved:n4:Supplied candidates are clinically inappropriate. 'Breast signs and symptoms' is irrelevant to urogenital cancer. Lower urinary tract symptoms are too narrow and do not capture the full range of urogenital cancer presentations (prostate, bladder, renal, testicular symptoms). Need broader urogenital cancer symptom/sign concepts.",
+        "verifier_unresolved:n7:Supplied candidates are clinically inappropriate. All candidates are fetal presentation findings (cephalic, funic, vertex, acromion) which are completely unrelated to lung cancer symptoms. Need respiratory/pulmonary symptom concepts.",
+        "verifier_unresolved:action:Fast track cancer referral (procedure) is appropriate. The NICE text specifies 'urgent investigation or a suspected cancer pathway referral' for DVT with possible underlying cancer. This is a generic fast-track suspected cancer pathway that preserves the urgency and multi-site intent without inverting to non-urgent. More specific site-based fast-track concepts (urological, gynaecological) would be inappropriate here since the recommendation covers multiple cancer sites (urogenital, breast, colorectal, lung) and the specific site is to be determined by additional assessment."
+      ],
+      "detail": null,
+      "raw_search_term_lengths": [
+        3,
+        5,
+        5,
+        5,
+        5
+      ]
+    },
+    {
+      "rec_id": "NG12:v1:CH003:SEC000:R000",
+      "chapter_title": "Recommendations on patient support, safety netting and the diagnostic process",
+      "section_title": "1.14 Patient information and support",
+      "rec_title": "1.14.1",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 200,
+      "elapsed_ms": 0,
+      "outcome": "success",
+      "would_write": true,
+      "leaf_count": 0,
+      "error_prefixes": [],
+      "errors": [],
+      "detail": null,
+      "raw_search_term_lengths": []
+    },
+    {
+      "rec_id": "NG12:v1:CH003:SEC000:R001",
+      "chapter_title": "Recommendations on patient support, safety netting and the diagnostic process",
+      "section_title": "1.14 Patient information and support",
+      "rec_title": "1.14.2",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 200,
+      "elapsed_ms": 0,
+      "outcome": "success",
+      "would_write": true,
+      "leaf_count": 0,
+      "error_prefixes": [],
+      "errors": [],
+      "detail": null,
+      "raw_search_term_lengths": []
+    },
+    {
+      "rec_id": "NG12:v1:CH003:SEC000:R002",
+      "chapter_title": "Recommendations on patient support, safety netting and the diagnostic process",
+      "section_title": "1.14 Patient information and support",
+      "rec_title": "1.14.3",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 200,
+      "elapsed_ms": 0,
+      "outcome": "success",
+      "would_write": true,
+      "leaf_count": 0,
+      "error_prefixes": [],
+      "errors": [],
+      "detail": null,
+      "raw_search_term_lengths": []
+    },
+    {
+      "rec_id": "NG12:v1:CH003:SEC000:R003",
+      "chapter_title": "Recommendations on patient support, safety netting and the diagnostic process",
+      "section_title": "1.14 Patient information and support",
+      "rec_title": "1.14.4",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 200,
+      "elapsed_ms": 0,
+      "outcome": "success",
+      "would_write": true,
+      "leaf_count": 0,
+      "error_prefixes": [],
+      "errors": [],
+      "detail": null,
+      "raw_search_term_lengths": []
+    },
+    {
+      "rec_id": "NG12:v1:CH003:SEC000:R004",
+      "chapter_title": "Recommendations on patient support, safety netting and the diagnostic process",
+      "section_title": "1.14 Patient information and support",
+      "rec_title": "1.14.5",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 200,
+      "elapsed_ms": 0,
+      "outcome": "success",
+      "would_write": true,
+      "leaf_count": 0,
+      "error_prefixes": [],
+      "errors": [],
+      "detail": null,
+      "raw_search_term_lengths": []
+    },
+    {
+      "rec_id": "NG12:v1:CH003:SEC000:R005",
+      "chapter_title": "Recommendations on patient support, safety netting and the diagnostic process",
+      "section_title": "1.14 Patient information and support",
+      "rec_title": "1.14.6",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 200,
+      "elapsed_ms": 0,
+      "outcome": "success",
+      "would_write": true,
+      "leaf_count": 0,
+      "error_prefixes": [],
+      "errors": [],
+      "detail": null,
+      "raw_search_term_lengths": []
+    },
+    {
+      "rec_id": "NG12:v1:CH003:SEC000:R006",
+      "chapter_title": "Recommendations on patient support, safety netting and the diagnostic process",
+      "section_title": "1.14 Patient information and support",
+      "rec_title": "1.14.7",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 200,
+      "elapsed_ms": 0,
+      "outcome": "success",
+      "would_write": true,
+      "leaf_count": 0,
+      "error_prefixes": [],
+      "errors": [],
+      "detail": null,
+      "raw_search_term_lengths": []
+    },
+    {
+      "rec_id": "NG12:v1:CH003:SEC000:R007",
+      "chapter_title": "Recommendations on patient support, safety netting and the diagnostic process",
+      "section_title": "1.14 Patient information and support",
+      "rec_title": "1.14.8",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 200,
+      "elapsed_ms": 0,
+      "outcome": "success",
+      "would_write": true,
+      "leaf_count": 0,
+      "error_prefixes": [],
+      "errors": [],
+      "detail": null,
+      "raw_search_term_lengths": []
+    },
+    {
+      "rec_id": "NG12:v1:CH003:SEC000:R008",
+      "chapter_title": "Recommendations on patient support, safety netting and the diagnostic process",
+      "section_title": "1.14 Patient information and support",
+      "rec_title": "1.14.9",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 200,
+      "elapsed_ms": 1,
+      "outcome": "success",
+      "would_write": true,
+      "leaf_count": 0,
+      "error_prefixes": [],
+      "errors": [],
+      "detail": null,
+      "raw_search_term_lengths": []
+    },
+    {
+      "rec_id": "NG12:v1:CH003:SEC000:R009",
+      "chapter_title": "Recommendations on patient support, safety netting and the diagnostic process",
+      "section_title": "1.14 Patient information and support",
+      "rec_title": "1.14.10",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 200,
+      "elapsed_ms": 0,
+      "outcome": "success",
+      "would_write": true,
+      "leaf_count": 0,
+      "error_prefixes": [],
+      "errors": [],
+      "detail": null,
+      "raw_search_term_lengths": []
+    },
+    {
+      "rec_id": "NG12:v1:CH003:SEC000:R010",
+      "chapter_title": "Recommendations on patient support, safety netting and the diagnostic process",
+      "section_title": "1.14 Patient information and support",
+      "rec_title": "1.14.11",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 200,
+      "elapsed_ms": 0,
+      "outcome": "success",
+      "would_write": true,
+      "leaf_count": 0,
+      "error_prefixes": [],
+      "errors": [],
+      "detail": null,
+      "raw_search_term_lengths": []
+    },
+    {
+      "rec_id": "NG12:v1:CH003:SEC001:R000",
+      "chapter_title": "Recommendations on patient support, safety netting and the diagnostic process",
+      "section_title": "1.15 Safety netting",
+      "rec_title": "1.15.1",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 200,
+      "elapsed_ms": 0,
+      "outcome": "success",
+      "would_write": true,
+      "leaf_count": 0,
+      "error_prefixes": [],
+      "errors": [],
+      "detail": null,
+      "raw_search_term_lengths": []
+    },
+    {
+      "rec_id": "NG12:v1:CH003:SEC001:R001",
+      "chapter_title": "Recommendations on patient support, safety netting and the diagnostic process",
+      "section_title": "1.15 Safety netting",
+      "rec_title": "1.15.2",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 200,
+      "elapsed_ms": 1,
+      "outcome": "success",
+      "would_write": true,
+      "leaf_count": 0,
+      "error_prefixes": [],
+      "errors": [],
+      "detail": null,
+      "raw_search_term_lengths": []
+    },
+    {
+      "rec_id": "NG12:v1:CH003:SEC002:R000",
+      "chapter_title": "Recommendations on patient support, safety netting and the diagnostic process",
+      "section_title": "1.16 The diagnostic process",
+      "rec_title": "1.16.1",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 200,
+      "elapsed_ms": 0,
+      "outcome": "success",
+      "would_write": true,
+      "leaf_count": 0,
+      "error_prefixes": [],
+      "errors": [],
+      "detail": null,
+      "raw_search_term_lengths": []
+    },
+    {
+      "rec_id": "NG12:v1:CH003:SEC002:R001",
+      "chapter_title": "Recommendations on patient support, safety netting and the diagnostic process",
+      "section_title": "1.16 The diagnostic process",
+      "rec_title": "1.16.2",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 200,
+      "elapsed_ms": 0,
+      "outcome": "success",
+      "would_write": true,
+      "leaf_count": 0,
+      "error_prefixes": [],
+      "errors": [],
+      "detail": null,
+      "raw_search_term_lengths": []
+    },
+    {
+      "rec_id": "NG12:v1:CH003:SEC002:R002",
+      "chapter_title": "Recommendations on patient support, safety netting and the diagnostic process",
+      "section_title": "1.16 The diagnostic process",
+      "rec_title": "1.16.3",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 200,
+      "elapsed_ms": 0,
+      "outcome": "success",
+      "would_write": true,
+      "leaf_count": 0,
+      "error_prefixes": [],
+      "errors": [],
+      "detail": null,
+      "raw_search_term_lengths": []
+    },
+    {
+      "rec_id": "NG12:v1:CH003:SEC002:R003",
+      "chapter_title": "Recommendations on patient support, safety netting and the diagnostic process",
+      "section_title": "1.16 The diagnostic process",
+      "rec_title": "1.16.4",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 200,
+      "elapsed_ms": 0,
+      "outcome": "success",
+      "would_write": true,
+      "leaf_count": 0,
+      "error_prefixes": [],
+      "errors": [],
+      "detail": null,
+      "raw_search_term_lengths": []
+    },
+    {
+      "rec_id": "NG12:v1:CH003:SEC002:R004",
+      "chapter_title": "Recommendations on patient support, safety netting and the diagnostic process",
+      "section_title": "1.16 The diagnostic process",
+      "rec_title": "1.16.5",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 200,
+      "elapsed_ms": 0,
+      "outcome": "success",
+      "would_write": true,
+      "leaf_count": 0,
+      "error_prefixes": [],
+      "errors": [],
+      "detail": null,
+      "raw_search_term_lengths": []
+    },
+    {
+      "rec_id": "NG12:v1:CH003:SEC002:R005",
+      "chapter_title": "Recommendations on patient support, safety netting and the diagnostic process",
+      "section_title": "1.16 The diagnostic process",
+      "rec_title": "1.16.6",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 200,
+      "elapsed_ms": 0,
+      "outcome": "success",
+      "would_write": true,
+      "leaf_count": 0,
+      "error_prefixes": [],
+      "errors": [],
+      "detail": null,
+      "raw_search_term_lengths": []
+    },
+    {
+      "rec_id": "NG12:v1:CH003:SEC002:R006",
+      "chapter_title": "Recommendations on patient support, safety netting and the diagnostic process",
+      "section_title": "1.16 The diagnostic process",
+      "rec_title": "1.16.7",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 200,
+      "elapsed_ms": 0,
+      "outcome": "success",
+      "would_write": true,
+      "leaf_count": 0,
+      "error_prefixes": [],
+      "errors": [],
+      "detail": null,
+      "raw_search_term_lengths": []
+    },
+    {
+      "rec_id": "NG12:v1:CH003:SEC002:R007",
+      "chapter_title": "Recommendations on patient support, safety netting and the diagnostic process",
+      "section_title": "1.16 The diagnostic process",
+      "rec_title": "1.16.8",
+      "is_normative": true,
+      "is_vague_clause": false,
+      "status_code": 200,
+      "elapsed_ms": 0,
+      "outcome": "success",
+      "would_write": true,
+      "leaf_count": 0,
+      "error_prefixes": [],
+      "errors": [],
+      "detail": null,
+      "raw_search_term_lengths": []
+    }
+  ]
+}

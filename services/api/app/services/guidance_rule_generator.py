@@ -391,9 +391,10 @@ class GuidanceRuleGenerator:
             return None
 
         rule_id = self._write_rule(guideline_id, rec, raw, coded)
+        status = "partial" if bool((coded or {}).get("needs_human_review")) else "success"
         self._write_guidance_audit_event(
             rec=rec, guideline_id=guideline_id,
-            status="success", llm_tokens=llm_tokens,
+            status=status, llm_tokens=llm_tokens,
             duration_ms=duration_ms, errors=errors_out,
             rule_id=rule_id,
         )
