@@ -18,6 +18,11 @@ import Pagination from "@mui/material/Pagination";
 import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 import Tab from "@mui/material/Tab";
+import Table from "@mui/material/Table";
+import TableBody from "@mui/material/TableBody";
+import TableCell from "@mui/material/TableCell";
+import TableHead from "@mui/material/TableHead";
+import TableRow from "@mui/material/TableRow";
 import Tabs from "@mui/material/Tabs";
 import TextField from "@mui/material/TextField";
 import Tooltip from "@mui/material/Tooltip";
@@ -28,10 +33,14 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import DownloadIcon from "@mui/icons-material/Download";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import HourglassEmptyIcon from "@mui/icons-material/HourglassEmpty";
+import LinkIcon from "@mui/icons-material/Link";
+import NotInterestedIcon from "@mui/icons-material/NotInterested";
 import SearchIcon from "@mui/icons-material/Search";
 import SyncIcon from "@mui/icons-material/Sync";
 import VerifiedIcon from "@mui/icons-material/Verified";
-import { exportMedSpaCyTraining } from "@/lib/api/legacy";
+import { exportMedSpaCyTraining, patchGoldLabelEntities, upsertSurfaceFormMapping } from "@/lib/api/legacy";
+import type { TermSearchResult } from "@/lib/types";
+import TermSearch from "@/components/TermSearch";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -77,6 +86,7 @@ interface Entity {
   label?: string;
   semantic_tag?: string;
   snomed_concept_id?: string;
+  assertion?: string;
 }
 
 interface DeleteGoldLabelResult {
@@ -112,6 +122,58 @@ function parseEntities(json: string | null): Entity[] {
   } catch {
     return [];
   }
+}
+
+const ASSERTION_LABEL: Record<string, string> = {
+  present:      "Present",
+  absent:       "Absent",
+  refuted:      "Refuted",
+  possible:     "Possible",
+  uncertain:    "Uncertain",
+  historical:   "Historical",
+  family:       "Family history",
+  hypothetical: "Hypothetical",
+};
+
+function formatAssertion(assertion: string | undefined): string {
+  const key = (assertion ?? "present").toLowerCase().replace(/_/g, " ").trim();
+  return ASSERTION_LABEL[key] ?? (key.charAt(0).toUpperCase() + key.slice(1));
+}
+
+/** Returns true for assertions that differ meaningfully from "present" */
+function isNonPresent(assertion: string | undefined): boolean {
+  const key = (assertion ?? "present").toLowerCase().trim();
+  return key !== "present";
+}
+
+function assertionColor(
+  assertion: string | undefined,
+): "default" | "success" | "warning" | "info" | "error" {
+  switch ((assertion ?? "present").toLowerCase()) {
+    case "present":      return "success";
+    case "possible":
+    case "uncertain":    return "warning";
+    case "historical":
+    case "family":       return "info";
+    case "absent":
+    case "refuted":      return "error";
+    case "hypothetical": return "warning";
+    default:             return "default";
+  }
+}
+
+/** Build a brief assertion summary line from a list of entities */
+function assertionSummary(entities: Entity[]): string | null {
+  const counts: Record<string, number> = {};
+  for (const e of entities) {
+    const key = formatAssertion(e.assertion);
+    counts[key] = (counts[key] ?? 0) + 1;
+  }
+  const parts = Object.entries(counts)
+    .sort(([a], [b]) => (a === "Present" ? -1 : b === "Present" ? 1 : 0))
+    .map(([k, v]) => `${v} ${k.toLowerCase()}`);
+  if (parts.length <= 1 && counts["Present"] === entities.length) return null;
+  return parts.join(" · ");
 }
 
 function truncate(text: string, max = 140) {
@@ -229,93 +291,354 @@ function CandidateDetailDialog({ item, onClose }: { item: Candidate; onClose: ()
   );
 }
 
-function GoldLabelDetailDialog({ item, onClose }: { item: GoldLabel; onClose: () => void }) {
-  const entities = parseEntities(item.entities_json);
+// State for the row being looked up: index into entities array
+interface LookupTarget {
+  entityIndex: number;
+  entityText: string;
+  entityLabel: string;
+}
+
+function GoldLabelDetailDialog({
+  item,
+  onClose,
+  onEntitiesChanged,
+}: {
+  item: GoldLabel;
+  onClose: () => void;
+  onEntitiesChanged?: () => void;
+}) {
+  const [entities, setEntities] = useState<Entity[]>(() => parseEntities(item.entities_json));
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveMsg, setSaveMsg] = useState<string | null>(null);
+  const [lookupTarget, setLookupTarget] = useState<LookupTarget | null>(null);
+
+  async function persistEntities(next: Entity[], successMsg: string) {
+    setSaving(true);
+    setSaveError(null);
+    setSaveMsg(null);
+    try {
+      await patchGoldLabelEntities(
+        item.label_id,
+        next.map((e) => ({
+          text: e.text,
+          label: e.label ?? "finding",
+          assertion: e.assertion,
+          snomed_concept_id: e.snomed_concept_id,
+          semantic_tag: e.semantic_tag,
+        })),
+      );
+      setEntities(next);
+      setSaveMsg(successMsg);
+      onEntitiesChanged?.();
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : "Could not save changes");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function handleRemoveEntity(idx: number) {
+    const next = entities.filter((_, i) => i !== idx);
+    void persistEntities(next, `Removed "${entities[idx].text}" from this label.`);
+  }
+
+  async function handleSnomedSelected(result: TermSearchResult, alsoFixSurfaceForm: boolean) {
+    if (lookupTarget === null) return;
+    const { entityIndex, entityText } = lookupTarget;
+    setLookupTarget(null);
+
+    const next = entities.map((e, i) =>
+      i === entityIndex
+        ? { ...e, snomed_concept_id: result.snomed_concept_id, semantic_tag: result.semantic_tag ?? e.semantic_tag }
+        : e,
+    );
+
+    if (alsoFixSurfaceForm) {
+      try {
+        const normalized = entityText.toLowerCase().trim();
+        await upsertSurfaceFormMapping(normalized, entityText, result.snomed_concept_id, {
+          provenance: "manual_correction",
+          source: "gold_label_editor",
+        });
+      } catch {
+        // Surface form failure is non-blocking - entity save continues
+      }
+    }
+
+    void persistEntities(next, `Updated SNOMED code to ${result.snomed_concept_id} — ${result.term}.`);
+  }
+
+  const summary = assertionSummary(entities);
 
   return (
-    <Dialog open onClose={onClose} maxWidth="md" fullWidth scroll="paper">
-      <DialogTitle sx={{ pr: 6 }}>
-        Verified gold label
-        <Typography component="span" variant="body2" sx={{ fontFamily: "monospace", color: "text.secondary", ml: 1 }}>
-          {item.label_id}
-        </Typography>
-        <IconButton onClick={onClose} size="small" sx={{ position: "absolute", top: 12, right: 12 }}>
-          <CloseIcon fontSize="small" />
-        </IconButton>
-      </DialogTitle>
-      <DialogContent dividers>
-        <DetailField label="Encounter text">
-          <Typography variant="body2" sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
-            {item.text || "—"}
+    <>
+      <Dialog open onClose={onClose} maxWidth="md" fullWidth scroll="paper">
+        <DialogTitle sx={{ pr: 6 }}>
+          Verified gold label
+          <Typography component="span" variant="body2" sx={{ fontFamily: "monospace", color: "text.secondary", ml: 1 }}>
+            {item.label_id}
           </Typography>
-        </DetailField>
+          <IconButton onClick={onClose} size="small" sx={{ position: "absolute", top: 12, right: 12 }}>
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent dividers>
+          {saveError && (
+            <Alert severity="error" sx={{ mb: 2 }} onClose={() => setSaveError(null)}>
+              {saveError}
+            </Alert>
+          )}
+          {saveMsg && (
+            <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSaveMsg(null)}>
+              {saveMsg}
+            </Alert>
+          )}
 
-        {entities.length > 0 && (
-          <>
-            <Divider sx={{ my: 2 }} />
-            <DetailField label={`Entities (${entities.length})`}>
-              <Stack spacing={1}>
-                {entities.map((e, i) => (
-                  <Box key={i} sx={{ display: "flex", alignItems: "flex-start", gap: 1, flexWrap: "wrap" }}>
-                    <Chip
-                      label={e.text}
-                      size="small"
-                      variant="outlined"
-                      sx={{ fontSize: "0.75rem", fontWeight: 500 }}
-                    />
-                    {e.label && (
-                      <Typography variant="caption" color="primary.main" sx={{ alignSelf: "center", fontWeight: 600 }}>
-                        {e.label}
-                      </Typography>
-                    )}
-                    {e.semantic_tag && e.semantic_tag !== e.label && (
-                      <Typography variant="caption" color="text.secondary" sx={{ alignSelf: "center" }}>
-                        {e.semantic_tag}
-                      </Typography>
-                    )}
-                    {e.snomed_concept_id && (
-                      <Typography variant="caption" sx={{ alignSelf: "center", fontFamily: "monospace", color: "text.disabled" }}>
-                        SNOMED: {e.snomed_concept_id}
-                      </Typography>
-                    )}
-                  </Box>
-                ))}
-              </Stack>
-            </DetailField>
-          </>
-        )}
-
-        <Divider sx={{ my: 2 }} />
-        <Stack direction="row" flexWrap="wrap" spacing={3} useFlexGap>
-          <DetailField label="Quality score">
-            <Chip
-              icon={<VerifiedIcon sx={{ fontSize: 14 }} />}
-              label={item.quality_score !== null ? `${Math.round(item.quality_score * 100)}%` : "unscored"}
-              color={qualityColor(item.quality_score)}
-              size="small"
-              sx={{ fontWeight: 700 }}
-            />
-          </DetailField>
-          <DetailField label="Source">
-            <Typography variant="body2">{item.source || "—"}</Typography>
-          </DetailField>
-          <DetailField label="Verified by">
-            <Typography variant="body2">{item.verified_by || "—"}</Typography>
-          </DetailField>
-          <DetailField label="Verified at">
-            <Typography variant="body2">{formatDate(item.verified_at)}</Typography>
-          </DetailField>
-          <DetailField label="Candidate ID">
-            <Typography variant="body2" sx={{ fontFamily: "monospace", fontSize: "0.8rem" }}>
-              {item.candidate_id || "—"}
+          <DetailField label="Encounter text">
+            <Typography variant="body2" sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+              {item.text || "—"}
             </Typography>
           </DetailField>
-          <DetailField label="Updated">
-            <Typography variant="body2">{formatDate(item.updated_at)}</Typography>
-          </DetailField>
-        </Stack>
-      </DialogContent>
-    </Dialog>
+
+          {entities.length > 0 && (
+            <>
+              <Divider sx={{ my: 2 }} />
+              <DetailField label={`Entities (${entities.length})`}>
+                {summary && (
+                  <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1, fontStyle: "italic" }}>
+                    {summary}
+                  </Typography>
+                )}
+                <Table size="small" sx={{ "& td, & th": { px: 1.25, py: 0.75 } }}>
+                  <TableHead>
+                    <TableRow sx={{ "& th": { fontWeight: 700, fontSize: "0.72rem", color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.04em", borderBottom: "2px solid", borderColor: "divider" } }}>
+                      <TableCell>Term</TableCell>
+                      <TableCell>Type</TableCell>
+                      <TableCell>Assertion</TableCell>
+                      <TableCell>SNOMED CT</TableCell>
+                      <TableCell sx={{ width: 80 }} />
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {entities.map((e, i) => {
+                      const nonPresent = isNonPresent(e.assertion);
+                      const aColor = assertionColor(e.assertion);
+                      const hasSnomed = !!e.snomed_concept_id;
+                      return (
+                        <TableRow
+                          key={i}
+                          sx={{
+                            "&:last-child td": { border: 0 },
+                            bgcolor: nonPresent ? `${aColor}.50` : "transparent",
+                            "&:hover": { bgcolor: nonPresent ? `${aColor}.100` : "action.hover" },
+                          }}
+                        >
+                          <TableCell>
+                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                              {e.text}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="caption" color="primary.main" sx={{ fontWeight: 600 }}>
+                              {e.label ?? e.semantic_tag ?? "—"}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            {nonPresent ? (
+                              <Chip
+                                icon={<NotInterestedIcon sx={{ fontSize: "0.75rem !important" }} />}
+                                label={formatAssertion(e.assertion)}
+                                size="small"
+                                color={aColor}
+                                variant="filled"
+                                sx={{ fontSize: "0.7rem", fontWeight: 600, height: 20 }}
+                              />
+                            ) : (
+                              <Typography variant="caption" color="text.disabled">Present</Typography>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {hasSnomed ? (
+                              <Typography variant="caption" sx={{ fontFamily: "monospace", color: "text.secondary" }}>
+                                {e.snomed_concept_id}
+                              </Typography>
+                            ) : (
+                              <Typography variant="caption" color="error.main" sx={{ fontStyle: "italic" }}>
+                                No code
+                              </Typography>
+                            )}
+                          </TableCell>
+                          <TableCell align="right">
+                            <Stack direction="row" spacing={0.25} justifyContent="flex-end">
+                              <Tooltip title={hasSnomed ? "Fix SNOMED code" : "Look up SNOMED code"}>
+                                <span>
+                                  <IconButton
+                                    size="small"
+                                    color={hasSnomed ? "default" : "warning"}
+                                    disabled={saving}
+                                    onClick={() =>
+                                      setLookupTarget({
+                                        entityIndex: i,
+                                        entityText: e.text,
+                                        entityLabel: e.label ?? e.semantic_tag ?? "",
+                                      })
+                                    }
+                                  >
+                                    {saving ? (
+                                      <CircularProgress size={14} />
+                                    ) : (
+                                      <SearchIcon sx={{ fontSize: 16 }} />
+                                    )}
+                                  </IconButton>
+                                </span>
+                              </Tooltip>
+                              <Tooltip title="Remove this entity from the label">
+                                <span>
+                                  <IconButton
+                                    size="small"
+                                    color="error"
+                                    disabled={saving}
+                                    onClick={() => handleRemoveEntity(i)}
+                                  >
+                                    <DeleteOutlineIcon sx={{ fontSize: 16 }} />
+                                  </IconButton>
+                                </span>
+                              </Tooltip>
+                            </Stack>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </DetailField>
+            </>
+          )}
+
+          <Divider sx={{ my: 2 }} />
+          <Stack direction="row" flexWrap="wrap" spacing={3} useFlexGap>
+            <DetailField label="Quality score">
+              <Chip
+                icon={<VerifiedIcon sx={{ fontSize: 14 }} />}
+                label={item.quality_score !== null ? `${Math.round(item.quality_score * 100)}%` : "unscored"}
+                color={qualityColor(item.quality_score)}
+                size="small"
+                sx={{ fontWeight: 700 }}
+              />
+            </DetailField>
+            <DetailField label="Source">
+              <Typography variant="body2">{item.source || "—"}</Typography>
+            </DetailField>
+            <DetailField label="Verified by">
+              <Typography variant="body2">{item.verified_by || "—"}</Typography>
+            </DetailField>
+            <DetailField label="Verified at">
+              <Typography variant="body2">{formatDate(item.verified_at)}</Typography>
+            </DetailField>
+            <DetailField label="Candidate ID">
+              <Typography variant="body2" sx={{ fontFamily: "monospace", fontSize: "0.8rem" }}>
+                {item.candidate_id || "—"}
+              </Typography>
+            </DetailField>
+            <DetailField label="Updated">
+              <Typography variant="body2">{formatDate(item.updated_at)}</Typography>
+            </DetailField>
+          </Stack>
+        </DialogContent>
+      </Dialog>
+
+      {lookupTarget && (
+        <SnomedLookupDialog
+          entityText={lookupTarget.entityText}
+          entityLabel={lookupTarget.entityLabel}
+          hasExistingCode={!!entities[lookupTarget.entityIndex]?.snomed_concept_id}
+          onSelect={handleSnomedSelected}
+          onClose={() => setLookupTarget(null)}
+        />
+      )}
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// SNOMED lookup dialog wrapper -- wraps TermSearch and adds "fix surface form"
+// ---------------------------------------------------------------------------
+
+function SnomedLookupDialog({
+  entityText,
+  entityLabel,
+  hasExistingCode,
+  onSelect,
+  onClose,
+}: {
+  entityText: string;
+  entityLabel: string;
+  hasExistingCode: boolean;
+  onSelect: (result: TermSearchResult, alsoFixSurfaceForm: boolean) => void;
+  onClose: () => void;
+}) {
+  const [pendingResult, setPendingResult] = useState<TermSearchResult | null>(null);
+
+  if (pendingResult) {
+    return (
+      <Dialog open onClose={() => setPendingResult(null)} maxWidth="xs" fullWidth>
+        <DialogTitle>Apply SNOMED code</DialogTitle>
+        <DialogContent dividers>
+          <Typography variant="body2" sx={{ mb: 1 }}>
+            Selected: <strong>{pendingResult.term}</strong>
+          </Typography>
+          <Typography variant="caption" sx={{ fontFamily: "monospace", color: "text.secondary", display: "block", mb: 2 }}>
+            {pendingResult.snomed_concept_id}
+          </Typography>
+          {hasExistingCode && (
+            <Alert severity="info" sx={{ mb: 2, py: 0.5 }}>
+              This will replace the existing SNOMED code for &ldquo;{entityText}&rdquo;.
+            </Alert>
+          )}
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Would you also like to fix the surface form mapping in the terminology server? This helps the
+            pipeline recognise &ldquo;{entityText}&rdquo; as this concept in future runs.
+          </Typography>
+          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+            <Button
+              variant="contained"
+              size="small"
+              startIcon={<LinkIcon />}
+              onClick={() => onSelect(pendingResult, true)}
+            >
+              Apply and fix surface form
+            </Button>
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={() => onSelect(pendingResult, false)}
+            >
+              Apply code only
+            </Button>
+            <Button variant="text" size="small" onClick={() => setPendingResult(null)}>
+              Back
+            </Button>
+          </Stack>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  const typeLabel = entityLabel ? entityLabel.replace(/_/g, " ") : null;
+
+  return (
+    <TermSearch
+      initialQuery={entityText}
+      entityText={entityText}
+      entityLabel={entityLabel}
+      title={hasExistingCode ? "Fix SNOMED code" : "Find SNOMED code"}
+      contextLabel={typeLabel ? `"${entityText}" · ${typeLabel}` : `"${entityText}"`}
+      preventAutoClose
+      onSelect={(result) => setPendingResult(result)}
+      onClose={onClose}
+      onCorrection={() => {}}
+    />
   );
 }
 
@@ -394,26 +717,29 @@ function GoldLabelRow({
             </Typography>
             {entities.length > 0 && (
               <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
-                {entities.slice(0, 6).map((e, i) => (
-                  <Tooltip
-                    key={i}
-                    title={[e.label ?? e.semantic_tag, e.snomed_concept_id].filter(Boolean).join(" · ")}
-                  >
-                    <Chip
-                      label={e.text}
-                      size="small"
-                      sx={{
-                        fontSize: "0.72rem",
-                        bgcolor: "primary.50",
-                        borderColor: "primary.200",
-                        fontWeight: 500,
-                        cursor: "default",
-                        mb: 0.5,
-                      }}
-                      variant="outlined"
-                    />
-                  </Tooltip>
-                ))}
+                {entities.slice(0, 6).map((e, i) => {
+                  const nonPresent = isNonPresent(e.assertion);
+                  const tipParts = [e.label ?? e.semantic_tag, e.snomed_concept_id];
+                  if (nonPresent) tipParts.push(formatAssertion(e.assertion));
+                  return (
+                    <Tooltip key={i} title={tipParts.filter(Boolean).join(" · ")}>
+                      <Chip
+                        label={e.text}
+                        size="small"
+                        sx={{
+                          fontSize: "0.72rem",
+                          bgcolor: nonPresent ? `${assertionColor(e.assertion)}.50` : "primary.50",
+                          borderColor: nonPresent ? `${assertionColor(e.assertion)}.300` : "primary.200",
+                          color: nonPresent ? `${assertionColor(e.assertion)}.dark` : undefined,
+                          fontWeight: 500,
+                          cursor: "default",
+                          mb: 0.5,
+                        }}
+                        variant="outlined"
+                      />
+                    </Tooltip>
+                  );
+                })}
                 {entities.length > 6 && (
                   <Chip label={`+${entities.length - 6} more`} size="small" variant="outlined" sx={{ fontSize: "0.72rem", mb: 0.5 }} />
                 )}
@@ -781,7 +1107,11 @@ export default function GoldDatasetPanel() {
         <CandidateDetailDialog item={selectedItem as Candidate} onClose={() => setSelectedItem(null)} />
       )}
       {selectedItem && tab === "gold" && (
-        <GoldLabelDetailDialog item={selectedItem as GoldLabel} onClose={() => setSelectedItem(null)} />
+        <GoldLabelDetailDialog
+          item={selectedItem as GoldLabel}
+          onClose={() => setSelectedItem(null)}
+          onEntitiesChanged={() => void loadList()}
+        />
       )}
     </Box>
   );
