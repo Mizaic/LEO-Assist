@@ -209,6 +209,7 @@ export default function PortalPage() {
                 ods_address: node.ods_address,
                 onboarding_status: node.onboarding_status,
                 patient_count: node.patient_count ?? 0,
+                labels: [],
                 parent_id: undefined,
                 parent_name: undefined,
                 alliance_id: undefined,

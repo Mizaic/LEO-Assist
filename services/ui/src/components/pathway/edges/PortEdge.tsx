@@ -144,7 +144,7 @@ function valueTone(value: unknown): string {
 }
 
 function pathToString(path: PathSegment[]): string {
-  return path.reduce((acc, part, index) => {
+  return path.reduce<string>((acc, part, index) => {
     if (typeof part === "number") return `${acc}[${part}]`;
     if (index === 0) return String(part);
     return `${acc}.${String(part)}`;
@@ -562,8 +562,8 @@ function SemanticSection({ fieldKey, value }: { fieldKey: string; value: unknown
               <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>
                 {formatPrimitive(row.title ?? row.name ?? row.rule ?? `Rule ${index + 1}`)}
               </div>
-              {row.condition && <div style={{ fontSize: 12, color: "#334155", marginBottom: 4 }}><strong>When:</strong> {formatPrimitive(row.condition)}</div>}
-              {(row.action ?? row.recommendation) && (
+              {Boolean(row.condition) && <div style={{ fontSize: 12, color: "#334155", marginBottom: 4 }}><strong>When:</strong> {formatPrimitive(row.condition)}</div>}
+              {Boolean(row.action ?? row.recommendation) && (
                 <div style={{ fontSize: 12, color: "#334155" }}>
                   <strong>Then:</strong> {formatPrimitive(row.action ?? row.recommendation)}
                 </div>
@@ -1025,7 +1025,7 @@ function ProbeMonitor({ sourceId, targetId, x, y, onClose }: MonitorProps) {
               to continue. Check the probe details above to see what failed, then fix the
               issue and run again.
             </div>
-            {(sourceTrace as Record<string, unknown>)?.halt_reason === "verification_failed" && (
+            {((sourceTrace as unknown as { halt_reason?: string } | null)?.halt_reason === "verification_failed") && (
               <div style={{ color: "#fab387", fontSize: 10, marginTop: 6 }}>
                 Verification found issues with the extracted entities. Downstream steps
                 (terminology coding, saving, etc.) were not run.

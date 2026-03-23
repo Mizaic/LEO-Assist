@@ -76,9 +76,9 @@ export default function DemographicsSection({ result, comorbidities, loading, er
     : (["practice", "national"] as const);
 
   // Only show benchmark and live comparators that have at least one non-null value
-  const ageBenchmarkKeys = (ageKeys as readonly string[]).filter((k) =>
-    ageChart.some((r) => r[k as keyof ComparisonDataRow] != null),
-  ) as typeof ageKeys;
+  const ageBenchmarkKeys = ageKeys.filter((k) =>
+    ageChart.some((r) => r[k] != null),
+  );
 
   const ethChart: ComparisonDataRow[] = (practice?.ethnicity ?? []).slice(0, 6).map((row) => {
     const aRow = allianceLive?.ethnicity.find((r) => r.ethnicity === row.ethnicity);

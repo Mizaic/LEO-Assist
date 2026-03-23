@@ -52,6 +52,8 @@ def _call_provider(
     system_prompt: str,
     user_msg: str,
     max_tokens: int,
+    *,
+    json_mode: bool = False,
 ) -> LLMResponse:
     client = create_llm(provider=provider, tier=tier)
     return client.converse(
@@ -59,6 +61,7 @@ def _call_provider(
         messages=[{"role": "user", "content": user_msg}],
         temperature=0.0,
         max_tokens=max_tokens,
+        json_mode=json_mode,
     )
 
 
@@ -130,12 +133,13 @@ def _call_arbitrator(
         f"Model A: {_fmt_verdict(aws_verdict)}\n"
         f"Model B: {_fmt_verdict(azure_verdict)}"
     )
-    client = create_llm(provider="aws", tier="big")
-    resp = client.converse(
-        system=system_prompt,
-        messages=[{"role": "user", "content": arb_msg}],
-        temperature=0.0,
-        max_tokens=max_tokens,
+    resp = _call_provider(
+        "aws",
+        "big",
+        system_prompt,
+        arb_msg,
+        max_tokens,
+        json_mode=False,
     )
     return resp, resp.text or ""
 
@@ -157,6 +161,7 @@ def run_consensus(
     parse_fn: Callable[[str], Any],
     fail_verdict: Any,
     max_tokens: int = 150,
+    json_mode: bool = False,
 ) -> ConsensusResult:
     """Run dual-model consensus with Sonnet arbitration on disagreement.
 
@@ -201,28 +206,101 @@ def run_consensus(
     azure_model = ""
     aws_resp: LLMResponse | None = None
     azure_resp: LLMResponse | None = None
+    aws_call_failed = False
+    azure_call_failed = False
+    aws_parse_failed = False
+    azure_parse_failed = False
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
         fut_aws = pool.submit(
-            _call_provider, "aws", "small", system_prompt, user_msg, max_tokens,
+            _call_provider, "aws", "small", system_prompt, user_msg, max_tokens, json_mode=json_mode,
         )
         fut_azure = pool.submit(
-            _call_provider, "azure", "small", system_prompt, user_msg, max_tokens,
+            _call_provider, "azure", "small", system_prompt, user_msg, max_tokens, json_mode=json_mode,
         )
 
         try:
             aws_resp = fut_aws.result(timeout=60)
             aws_verdict = parse_fn(aws_resp.text)
             aws_model = aws_resp.model_id
+            aws_parse_failed = not bool(aws_verdict)
+            if aws_parse_failed:
+                logger.warning(
+                    "Consensus AWS small call parse-failed (model=%s stop_reason=%r text_len=%d)",
+                    aws_resp.model_id,
+                    aws_resp.stop_reason,
+                    len(aws_resp.text or ""),
+                )
         except Exception:
+            aws_call_failed = True
             logger.warning("Consensus AWS small call failed", exc_info=True)
 
         try:
             azure_resp = fut_azure.result(timeout=60)
             azure_verdict = parse_fn(azure_resp.text)
             azure_model = azure_resp.model_id
+            azure_parse_failed = not bool(azure_verdict)
+            if azure_parse_failed:
+                logger.warning(
+                    "Consensus Azure small call parse-failed (model=%s stop_reason=%r text_len=%d)",
+                    azure_resp.model_id,
+                    azure_resp.stop_reason,
+                    len(azure_resp.text or ""),
+                )
         except Exception:
+            azure_call_failed = True
             logger.warning("Consensus Azure small call failed", exc_info=True)
+
+    # One targeted parse-retry for JSON-mode prompts (most extraction/verifier calls).
+    # This addresses empty/non-parseable provider output without conflating it with
+    # transport/provider failures.
+    if json_mode and aws_parse_failed and not aws_call_failed:
+        try:
+            retry_msg = (
+                user_msg
+                + "\n\nSTRICT OUTPUT REMINDER: Return ONLY one valid JSON object. "
+                + "No prose, no markdown fences, no explanation."
+            )
+            aws_resp_retry = _call_provider(
+                "aws",
+                "small",
+                system_prompt,
+                retry_msg,
+                max_tokens,
+                json_mode=True,
+            )
+            aws_verdict = parse_fn(aws_resp_retry.text)
+            if aws_verdict:
+                aws_resp = aws_resp_retry
+                aws_parse_failed = False
+                aws_model = aws_resp_retry.model_id
+                logger.info("Consensus AWS small parse-retry recovered.")
+        except Exception:
+            logger.warning("Consensus AWS small parse-retry failed", exc_info=True)
+
+    if json_mode and azure_parse_failed and not azure_call_failed:
+        try:
+            retry_msg = (
+                user_msg
+                + "\n\nSTRICT OUTPUT REMINDER: Return ONLY one valid JSON object. "
+                + "No prose, no markdown fences, no explanation."
+            )
+            azure_resp_retry = _call_provider(
+                "azure",
+                "small",
+                system_prompt,
+                retry_msg,
+                max_tokens + 400,
+                json_mode=True,
+            )
+            azure_verdict = parse_fn(azure_resp_retry.text)
+            if azure_verdict:
+                azure_resp = azure_resp_retry
+                azure_parse_failed = False
+                azure_model = azure_resp_retry.model_id
+                logger.info("Consensus Azure small parse-retry recovered.")
+        except Exception:
+            logger.warning("Consensus Azure small parse-retry failed", exc_info=True)
 
     model_ids = [m for m in (aws_model, azure_model) if m]
     provider_resps: list[LLMResponse | None] = [aws_resp, azure_resp]
@@ -249,8 +327,9 @@ def run_consensus(
 
     if not aws_verdict:
         logger.warning(
-            "Consensus: AWS provider FAILED — using Azure verdict only. "
+            "Consensus: AWS provider %s — using Azure verdict only. "
             "Output is UNVALIDATED (single-model). Rule will be flagged for mandatory human review.",
+            "CALL_FAILED" if aws_call_failed else "PARSE_FAILED",
         )
         return _make_result(
             verdict=azure_verdict,
@@ -261,8 +340,9 @@ def run_consensus(
         )
     if not azure_verdict:
         logger.warning(
-            "Consensus: Azure provider FAILED — using AWS verdict only. "
+            "Consensus: Azure provider %s — using AWS verdict only. "
             "Output is UNVALIDATED (single-model). Rule will be flagged for mandatory human review.",
+            "CALL_FAILED" if azure_call_failed else "PARSE_FAILED",
         )
         return _make_result(
             verdict=aws_verdict,
@@ -344,7 +424,10 @@ def run_consensus(
             verdict=fail_verdict,
             aws_verdict=aws_verdict,
             azure_verdict=azure_verdict,
-            reason="arbitrator failed after 2 attempts on a disagreement; returning fail_verdict",
+            reason=(
+                "arbitrator failed after 2 attempts on a disagreement; "
+                "unparseable/empty arbitrator output; returning fail_verdict"
+            ),
             model_ids=model_ids,
             _extra_resps=arb_resps,
         )

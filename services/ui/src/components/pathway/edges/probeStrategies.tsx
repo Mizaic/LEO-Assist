@@ -755,13 +755,13 @@ const nextBestAction: ProbeStrategy = {
               <div style={{ color: C.text, fontSize: 10, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {fmt(r.action ?? r.recommendation ?? r.title)}
               </div>
-              {r.reason && (
+              {Boolean(r.reason) && (
                 <div style={{ color: C.dim, fontSize: 9, marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {fmt(r.reason)}
                 </div>
               )}
             </div>
-            {r.priority && <span style={{ color: C.orange, fontSize: 9, fontWeight: 700 }}>{str(r.priority)}</span>}
+            {Boolean(r.priority) && <span style={{ color: C.orange, fontSize: 9, fontWeight: 700 }}>{str(r.priority)}</span>}
           </button>
         ))}
       </div>
@@ -820,7 +820,7 @@ function countLogicLeaves(node: unknown): number {
   if (!isRec(node)) return 0;
   const kind = str(node.kind).toUpperCase();
   if (kind === "CONCEPT") return 1;
-  return arr(node.children).reduce((n, child) => n + countLogicLeaves(child), 0);
+  return arr(node.children).reduce<number>((n, child) => n + countLogicLeaves(child), 0);
 }
 
 const guidanceRuleExtraction: ProbeStrategy = {

@@ -41,10 +41,7 @@ export async function POST(request: NextRequest) {
         Cookie: cookie,
       },
       body,
-      // Node 18+ fetch: disable response body timeout so the stream can run
-      // for as long as the backend needs.
-      // @ts-expect-error — Next.js exposes this non-standard option
-      signal: null,
+      // Keep this request simple and stream the upstream response body directly.
     });
   } catch (err) {
     return NextResponse.json(
@@ -70,5 +67,44 @@ export async function POST(request: NextRequest) {
       "X-Accel-Buffering": "no",
       Connection: "keep-alive",
     },
+  });
+}
+
+export async function GET(request: NextRequest) {
+  const cookie = request.headers.get("cookie") ?? "";
+  const batchRunId = request.nextUrl.searchParams.get("batch_run_id");
+  const candidateId = request.nextUrl.searchParams.get("candidate_id");
+  if (!batchRunId || !candidateId) {
+    return NextResponse.json(
+      { detail: "batch_run_id and candidate_id are required" },
+      { status: 400 },
+    );
+  }
+
+  let upstream: Response;
+  try {
+    const params = new URLSearchParams({
+      batch_run_id: batchRunId,
+      candidate_id: candidateId,
+    });
+    upstream = await fetch(`${PIPELINE_WORKER_BASE}/test-run/batch/trace?${params.toString()}`, {
+      method: "GET",
+      headers: {
+        "X-Requested-With": "XMLHttpRequest",
+        Accept: "application/json",
+        Cookie: cookie,
+      },
+    });
+  } catch (err) {
+    return NextResponse.json(
+      { detail: `Failed to reach pipeline API: ${String(err)}` },
+      { status: 502 },
+    );
+  }
+
+  const text = await upstream.text();
+  return new NextResponse(text, {
+    status: upstream.status,
+    headers: { "Content-Type": "application/json" },
   });
 }

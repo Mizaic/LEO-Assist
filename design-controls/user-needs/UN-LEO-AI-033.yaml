@@ -1,0 +1,99 @@
+# -- UN-LEO-AI-033 -- Referrer Quality Feedback
+
+- id: "UN-LEO-AI-033"
+  title: "Referring clinicians and their practice managers need structured, regular feedback on their referral quality -- including rejection rates, common reasons for rejection, and completeness scores -- so they can improve the quality of future referrals without waiting to be told by a rejected letter."
+  description: |
+    Referring clinicians currently receive no systematic feedback on the quality
+    of their referrals. They learn about problems only when a referral is
+    rejected, and even then the rejection note is often generic. They have no
+    visibility of their rejection rate, how they compare to peers, or which
+    information types they most commonly omit. Practice managers have no
+    practice-level view of referral quality across their clinical team.
+
+    The system must calculate per-referrer and per-practice quality metrics
+    from the structured referral processing data, and surface these through
+    a feedback dashboard and periodic summary reports. Feedback must be
+    constructive, specific, and actionable -- showing not just what was wrong
+    but what was needed and where to find it.
+
+  stakeholder:
+    type: "nhs_user"
+    role: "GP Partner / Practice Manager / Referring Clinician"
+    organization: "NHS GP Practice / Primary Care Network"
+
+  priority: "SHOULD"
+
+  rationale: |
+    Referral quality is a learnable skill. Clinicians who do not receive
+    feedback cannot improve. The same completeness failures recur repeatedly
+    across referrals from the same clinician or practice because there is no
+    feedback loop. Structured quality feedback has been shown in other clinical
+    domains to improve documentation standards without requiring mandated training.
+    Improving referral quality at source reduces the downstream burden on
+    triage teams and pathway coordinators.
+
+  benefit: |
+    Reduction in rejection rates as referring clinicians learn pathway-specific
+    requirements. Practice managers can identify training needs without
+    individual clinician comparison. ICBs can use aggregate quality data for
+    commissioning and provider development discussions.
+
+  use_case: |
+    1. A GP or practice manager logs in and opens their referral quality view.
+    2. They see: referral volume, rejection rate, mean completeness score,
+       and top five missing information types for the selected period.
+    3. A trend chart shows how these metrics are changing over time.
+    4. Peer comparison shows their metrics against the anonymised average
+       for their specialty across the ICB patch.
+    5. Each rejected referral shows the specific items that were missing
+       and a link to the pathway-specific requirements.
+    6. A monthly summary email is sent to the practice manager with the
+       key metrics in plain language.
+
+  current_solution: |
+    None. Rejection letters are sent back to the referrer but contain no
+    structured quality data. No practice-level aggregation exists.
+
+  pain_points:
+    - "Referring clinicians do not know their rejection rate"
+    - "The same completeness failures recur because there is no feedback"
+    - "Clinicians learn pathway requirements only through trial and error"
+    - "Practice managers have no view of referral quality across their team"
+    - "No peer comparison to calibrate whether performance is above or below average"
+
+  acceptance_criteria:
+    - "Per-referrer metrics are calculated: referral volume, rejection rate, completeness score, top missing items"
+    - "Per-practice aggregate metrics are available to practice managers"
+    - "Feedback is available in a self-service dashboard and as a periodic summary report"
+    - "Peer comparison shows anonymised ICB-level averages"
+    - "Each metric links to specific pathway requirements that explain what was needed and why"
+    - "Feedback data is scoped to the referrer's own referrals -- cross-referrer data is anonymised"
+
+  success_metrics:
+    - metric: "Rejection rate for practices with feedback enabled"
+      target: "20% reduction within 6 months compared to control group"
+      baseline: "Estimated 20-30% current rejection rate"
+    - metric: "Completeness score trend"
+      target: "Upward trend within 3 months of first feedback delivery"
+      baseline: "Not currently measured"
+
+  regulatory_impact: "low"
+  safety_impact: "medium"
+  safety_class: "B"
+
+  derived_from:
+    - "Intended Use Statement DC-IU-001"
+    - "IEC 62304:2006/AMD1:2015 Class B software lifecycle"
+
+  related_standards:
+    - "IEC 62304:2006/AMD1:2015"
+
+  metadata:
+    created_by: "Engineering Team"
+    created_date: "2026-03-11"
+    status: "draft"
+    evidence_source: "User interviews P03, P06 -- UR-LEO-AI-001"
+
+  design_inputs: []
+  validation_tests: []
+  tags: ["referral-triage", "referrer-feedback", "quality-improvement", "practice-management", "rejection-rate"]

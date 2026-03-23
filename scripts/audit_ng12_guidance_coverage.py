@@ -28,6 +28,22 @@ VAGUE_RE = re.compile(
     r"\b(associated symptoms|symptoms of|additional symptoms|additional signs|additional findings|take into account)\b",
     re.IGNORECASE,
 )
+INVESTIGATION_RE = re.compile(
+    r"\b(x-?ray|ultrasound|ct|mri|endoscopy|blood test|full blood count|fit|ca125|measure)\b",
+    re.IGNORECASE,
+)
+REFERRAL_RE = re.compile(
+    r"\b(referral|suspected cancer pathway|2ww|2 week wait|fast track)\b",
+    re.IGNORECASE,
+)
+THRESHOLD_RE = re.compile(
+    r"(>=|<=|>|<|\bthreshold\b|\bper month\b|\bmicrograms?\b|\biu/ml\b|\bfirst presentation\b|\bpersistent\b|\bprogressive\b|\bsub-acute\b)",
+    re.IGNORECASE,
+)
+SITE_SPECIFIC_RE = re.compile(
+    r"\b(oesophageal|pancreatic|anal|oral|thyroid|myeloma|lymphoma|retinoblastoma|sarcoma|vulval|cervical|ovarian|testicular|urological|upper gastrointestinal|lower gastrointestinal)\b",
+    re.IGNORECASE,
+)
 
 
 @dataclass
@@ -141,6 +157,43 @@ def _extract_error_prefixes(errors: list[str]) -> list[str]:
     return prefixes
 
 
+def _derive_failure_categories(
+    *,
+    recommendation_text: str,
+    section_title: str,
+    chapter_title: str,
+    errors: list[str],
+    error_prefixes: list[str],
+) -> list[str]:
+    """Bucket non-success cases into clinical outcome categories."""
+    text = " ".join(
+        [
+            recommendation_text or "",
+            section_title or "",
+            chapter_title or "",
+            " ".join(errors or []),
+        ]
+    ).lower()
+    categories: list[str] = []
+    if VAGUE_RE.search(text) or any(tok in text for tok in ("suggestive of", "compatible with", "consistent with")):
+        categories.append("vague_composite_findings")
+    if INVESTIGATION_RE.search(text):
+        categories.append("investigation_mapping")
+    if REFERRAL_RE.search(text):
+        categories.append("referral_mapping")
+    if SITE_SPECIFIC_RE.search(text) and REFERRAL_RE.search(text):
+        categories.append("site_specific_referral")
+    if THRESHOLD_RE.search(text):
+        categories.append("threshold_or_qualifier")
+    if "verifier_unresolved" in error_prefixes:
+        categories.append("verifier_unresolved")
+    if "verifier_empty" in error_prefixes or "extraction_empty" in error_prefixes:
+        categories.append("empty_or_operational")
+    if not categories:
+        categories.append("other")
+    return sorted(set(categories))
+
+
 def _run_case(base_url: str, case: RecommendationCase, timeout: float) -> dict[str, Any]:
     encoded = urllib.parse.quote(case.rec_id, safe="")
     url = f"{base_url.rstrip('/')}/guidance/rules/test/{encoded}"
@@ -173,6 +226,17 @@ def _run_case(base_url: str, case: RecommendationCase, timeout: float) -> dict[s
         outcome = "partial"
     else:
         outcome = "success"
+    failure_categories = (
+        _derive_failure_categories(
+            recommendation_text=case.verbatim,
+            section_title=case.section_title,
+            chapter_title=case.chapter_title,
+            errors=[str(e) for e in errors],
+            error_prefixes=error_prefixes,
+        )
+        if outcome != "success"
+        else []
+    )
 
     return {
         "rec_id": case.rec_id,
@@ -190,6 +254,7 @@ def _run_case(base_url: str, case: RecommendationCase, timeout: float) -> dict[s
         "errors": errors,
         "detail": body.get("detail"),
         "raw_search_term_lengths": search_term_lengths,
+        "failure_categories": failure_categories,
     }
 
 
@@ -254,6 +319,17 @@ def _run_case_direct(case: RecommendationCase, subgraph: Any) -> dict[str, Any]:
         outcome = "partial"
     else:
         outcome = "success"
+    failure_categories = (
+        _derive_failure_categories(
+            recommendation_text=case.verbatim,
+            section_title=case.section_title,
+            chapter_title=case.chapter_title,
+            errors=[str(e) for e in errors],
+            error_prefixes=error_prefixes,
+        )
+        if outcome != "success"
+        else []
+    )
 
     return {
         "rec_id": case.rec_id,
@@ -271,6 +347,7 @@ def _run_case_direct(case: RecommendationCase, subgraph: Any) -> dict[str, Any]:
         "errors": errors,
         "detail": body.get("detail"),
         "raw_search_term_lengths": search_term_lengths,
+        "failure_categories": failure_categories,
     }
 
 
@@ -348,6 +425,9 @@ def _write_reports(
 
     outcome_counts = Counter(r["outcome"] for r in results)
     error_counts = Counter(err for r in results for err in r["error_prefixes"])
+    category_counts = Counter(
+        cat for r in results for cat in (r.get("failure_categories") or [])
+    )
     vague = [r for r in results if r["is_vague_clause"]]
     vague_fail = [r for r in vague if r["outcome"] != "success"]
     slowest = sorted(results, key=lambda r: int(r["elapsed_ms"]), reverse=True)[:10]
@@ -365,6 +445,7 @@ def _write_reports(
             "vague_non_success": len(vague_fail),
         },
         "error_prefix_counts": dict(error_counts),
+        "failure_category_counts": dict(category_counts),
         "results": results,
     }
     json_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
@@ -400,6 +481,12 @@ def _write_reports(
             f"- `{row['rec_id']}` — {row['outcome']} (HTTP {row['status_code']})"
             + (f" — {errs}" if errs else "")
         )
+    lines += ["", "## Outcome categories", ""]
+    if category_counts:
+        for k, v in category_counts.most_common():
+            lines.append(f"- `{k}`: {v}")
+    else:
+        lines.append("- None")
 
     md_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return json_path, md_path

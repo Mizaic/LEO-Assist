@@ -58,6 +58,10 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(
     const [mode, setModeState] = useState<EditorMode>(initialMode);
     const onChangeRef = useRef(onChange);
     onChangeRef.current = onChange;
+    const readMarkdown = useCallback((storage: unknown): string => {
+      const markdown = (storage as { markdown?: { getMarkdown?: () => string } }).markdown;
+      return typeof markdown?.getMarkdown === "function" ? markdown.getMarkdown() : "";
+    }, []);
 
     const editor = useEditor({
       immediatelyRender: false,
@@ -87,7 +91,7 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(
       editable: mode !== "view",
       autofocus: autoFocus,
       onUpdate({ editor: ed }) {
-        const md = (ed.storage.markdown as { getMarkdown(): string }).getMarkdown();
+        const md = readMarkdown(ed.storage);
         onChangeRef.current?.(md);
       },
     });
@@ -113,8 +117,8 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(
 
     const getMarkdown = useCallback((): string => {
       if (!editor) return "";
-      return (editor.storage.markdown as { getMarkdown(): string }).getMarkdown();
-    }, [editor]);
+      return readMarkdown(editor.storage);
+    }, [editor, readMarkdown]);
 
     const setMarkdown = useCallback(
       (md: string) => {

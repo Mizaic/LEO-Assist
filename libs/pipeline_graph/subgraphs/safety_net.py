@@ -66,6 +66,7 @@ def detect_safety_net(state: SafetyNetState) -> dict[str, Any]:
                     start_date=str(state.get("window_start") or ""),
                     end_date=str(state.get("window_end") or ""),
                     patient_client=_Client(),
+                    org_id=str(state.get("org_id") or "") or None,
                 )
             )
 

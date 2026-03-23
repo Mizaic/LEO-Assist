@@ -1,0 +1,106 @@
+# -- UN-LEO-AI-046 -- Multi-Channel Referral Ingestion
+
+- id: "UN-LEO-AI-046"
+  title: "Referral management administrators need the system to ingest incoming referrals from all channels -- e-RS, email, letter, fax, and direct API -- into a single unified queue, so that no referral is lost or delayed because it arrived through a channel that nobody was monitoring."
+  description: |
+    Referrals currently arrive through multiple channels. e-RS is the primary
+    NHS channel, but email referrals, posted letters, faxed letters, and in some
+    cases direct EHR-to-EHR referrals also occur. Each channel requires a
+    different monitoring process. Referrals arriving outside e-RS are not
+    automatically visible to the referral management team and can sit undetected
+    in a generic email inbox for days. Even within e-RS, referrals may be
+    directed to wrong mailboxes or departments.
+
+    The system must provide adapters for each major referral channel that
+    extract the referral content, normalise it to a standard internal format,
+    and place it in the unified queue within a defined time limit from arrival.
+    Channel of origin must be recorded with every referral for audit purposes.
+
+  stakeholder:
+    type: "nhs_user"
+    role: "Referral Management Administrator / Medical Secretary"
+    organization: "NHS Acute Trust"
+
+  priority: "MUST"
+
+  rationale: |
+    A referral that arrives but is not detected is a patient safety risk.
+    Multi-channel ingestion is the technical precondition for the unified queue
+    (UN-LEO-AI-032) and for the backlog alerting capability (UN-LEO-AI-036).
+    Neither of those capabilities can function if referrals arriving through
+    non-e-RS channels are invisible to the system. The NHS has not yet fully
+    standardised on e-RS, and fax and email referrals remain common in many
+    trusts. The system must meet referral management teams where they are,
+    not where standards aspire them to be.
+
+  benefit: |
+    No referral is lost because it arrived through the wrong channel.
+    Referral management administrators have a single inbox rather than
+    multiple channel-specific processes. Backlog alerting and queue management
+    cover all referrals, not only those arriving through e-RS.
+
+  use_case: |
+    1. Referral arrives via any supported channel.
+    2. Channel adapter extracts the referral content (PDF letter, structured
+       e-RS message, email body and attachments, fax image with OCR).
+    3. Extracted content is normalised to the standard internal referral format.
+    4. Normalised referral appears in the unified queue within 5 minutes of
+       arrival, with channel of origin clearly labelled.
+    5. If OCR or extraction quality is below a confidence threshold, the
+       referral is flagged for manual review before pipeline processing.
+    6. Channel of origin, arrival timestamp, extraction method, and
+       confidence score are stored in the referral record.
+
+  current_solution: |
+    e-RS referrals are visible in the trust's e-RS worklist. Email referrals
+    sit in generic inboxes. Fax referrals are printed and physically placed
+    in paper trays. Letter referrals are opened by post room staff. No unified
+    view. No automatic detection of arrivals outside e-RS.
+
+  pain_points:
+    - "Referrals arriving outside e-RS are invisible to automated tracking"
+    - "Email referrals sit undetected in generic inboxes for days"
+    - "Fax referrals require physical processing and can be misplaced"
+    - "Referral management team monitors multiple disconnected channels manually"
+    - "No unified arrival timestamp means pathway clock start is inconsistently recorded"
+
+  acceptance_criteria:
+    - "System supports ingestion from at minimum: e-RS, email (with attachment handling), scanned letter (with OCR), and direct FHIR R4 API"
+    - "All ingested referrals appear in the unified queue within 5 minutes of arrival"
+    - "Channel of origin is recorded with every referral"
+    - "Low-confidence extractions (OCR quality below threshold) are flagged for manual review"
+    - "Arrival timestamp is recorded at point of system receipt, not at point of processing"
+    - "Failed ingestion attempts are logged with error detail and trigger an alert"
+
+  success_metrics:
+    - metric: "Referrals arriving outside e-RS detected within 5 minutes"
+      target: "Above 99% of referrals ingested through supported channels"
+      baseline: "0% for non-e-RS channels -- detected only by manual monitoring"
+    - metric: "Referrals lost or significantly delayed due to channel misrouting"
+      target: "Zero after deployment"
+      baseline: "Multiple incidents per quarter currently"
+
+  regulatory_impact: "medium"
+  safety_impact: "high"
+  safety_class: "B"
+
+  derived_from:
+    - "Intended Use Statement DC-IU-001"
+    - "IEC 62304:2006/AMD1:2015 Class B software lifecycle"
+    - "ISO 14971:2019 risk management"
+
+  related_standards:
+    - "IEC 62304:2006/AMD1:2015"
+    - "ISO 14971:2019"
+    - "FHIR R4"
+    - "DCB0129"
+
+  metadata:
+    created_by: "Engineering Team"
+    created_date: "2026-03-11"
+    status: "draft"
+    evidence_source: "User interviews P02, P15 -- UR-LEO-AI-001"
+
+  design_inputs: []
+  validation_tests: []
+  tags: ["referral-ingestion", "multi-channel", "e-rs", "fhir", "queue-management", "ocr"]

@@ -1,0 +1,104 @@
+# -- UN-LEO-AI-048 -- NHS-Specific ROI and Commercial Evidence Pack
+
+- id: "UN-LEO-AI-048"
+  title: "Commercial and procurement teams need the system to produce an evidence pack that quantifies the value of the platform in NHS-specific financial terms -- reduced pathway breaches, reduced coding income leakage, and reduced serious incident costs -- so that procurement conversations can be grounded in measurable economic impact rather than time-saving claims alone."
+  description: |
+    NHS procurement decisions require evidence of value expressed in terms that
+    NHS finance teams recognise: breach penalties avoided, HRG tariff income
+    recovered through improved coding, serious incident investigation costs
+    saved, and waiting list management costs reduced. Time saving alone is not
+    a compelling NHS business case because clinician time is not directly
+    monetised in most NHS accounting frameworks.
+
+    The system must collect the operational data required to calculate these
+    metrics -- breach rates before and after deployment, rejection rates and
+    their reduction, coding completeness improvements -- and present them in
+    a format suitable for NHS business case submission. This evidence pack
+    must be generatable from real deployment data without manual analysis.
+
+  stakeholder:
+    type: "internal_user"
+    role: "Commercial Director / Account Manager"
+    organization: "LEO AI Engineering / Mizaic"
+
+  priority: "SHOULD"
+
+  rationale: |
+    NHS procurement is evidence-driven and time-consuming. A product that cannot
+    produce a quantified NHS business case in the first commercial conversation
+    loses ground to competitors who can, even if the clinical product is superior.
+    The metrics required for a compelling NHS business case are all measurable
+    from the operational data the platform already collects: breach rates,
+    rejection rates, coding completeness, and triage times. Presenting these
+    in NHS financial terms (pounds and pence, not hours saved) is the difference
+    between a conversation that progresses and one that stalls.
+
+  benefit: |
+    Commercial conversations progress faster when grounded in quantified NHS
+    financial impact. Pilots produce business case data automatically rather
+    than requiring manual analysis. Commissioners and COOs can present the
+    evidence to their boards without additional analytical work. Renewal
+    conversations are supported by live impact data.
+
+  use_case: |
+    1. Account manager opens the ROI evidence dashboard for a specific tenant.
+    2. Dashboard shows: baseline metrics (pre-deployment or month 1),
+       current metrics, and calculated change.
+    3. Key metrics include:
+       - Two-week-wait breach rate (before vs after)
+       - Rejection rate reduction (estimated avoided re-referral cost)
+       - Triage time reduction (converted to WTE hours)
+       - Coding completeness improvement (estimated HRG tariff impact)
+       - Referrals processed per triage session (throughput improvement)
+    4. A one-page summary PDF is generated automatically, formatted for
+       NHS board presentation.
+    5. Account manager shares the PDF with the COO or Medical Director
+       as part of the renewal or expansion conversation.
+
+  current_solution: |
+    None. Metrics must be compiled manually from system logs and clinical
+    reporting, requiring significant analysis time per account.
+
+  pain_points:
+    - "Commercial teams must manually compile impact evidence for each account"
+    - "Time-saving claims are not compelling to NHS finance teams"
+    - "Breach penalty avoidance and coding income recovery are high-value but unquantified"
+    - "Pilots do not produce business case data automatically"
+    - "Renewal conversations lack structured impact evidence"
+
+  acceptance_criteria:
+    - "ROI dashboard is available per tenant with configurable reporting period"
+    - "Dashboard shows at minimum: breach rate, rejection rate, triage time, coding completeness, throughput"
+    - "Metrics are shown with baseline comparison (pre-deployment or period 1)"
+    - "Financial impact estimates are calculated using configurable unit costs (breach penalty, re-referral admin cost)"
+    - "One-page summary PDF is generated automatically in a format suitable for NHS board presentation"
+    - "All metrics are sourced from platform operational data without manual data entry"
+
+  success_metrics:
+    - metric: "Time to produce ROI evidence pack per account"
+      target: "Under 5 minutes from opening dashboard to exported PDF"
+      baseline: "Estimated 4-8 hours of manual analysis currently"
+    - metric: "Procurement conversations that progress beyond initial meeting"
+      target: "Increase from baseline (to be tracked by commercial team)"
+      baseline: "Not currently tracked against ROI evidence availability"
+
+  regulatory_impact: "none"
+  safety_impact: "none"
+  safety_class: "A"
+
+  derived_from:
+    - "Intended Use Statement DC-IU-001"
+    - "ISO 13485:2016 clause 7.1 (planning of product realisation)"
+
+  related_standards:
+    - "ISO 13485:2016"
+
+  metadata:
+    created_by: "Engineering Team"
+    created_date: "2026-03-11"
+    status: "draft"
+    evidence_source: "User interviews P20 -- UR-LEO-AI-001"
+
+  design_inputs: []
+  validation_tests: []
+  tags: ["commercial", "roi", "nhs-business-case", "procurement", "breach-penalties", "billing"]

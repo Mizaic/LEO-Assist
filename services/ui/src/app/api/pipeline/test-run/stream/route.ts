@@ -31,8 +31,6 @@ export async function POST(request: NextRequest) {
         Cookie: cookie,
       },
       body,
-      // @ts-expect-error — disable fetch abort so long streams aren't cut short
-      signal: null,
     });
   } catch (err) {
     return NextResponse.json(

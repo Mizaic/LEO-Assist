@@ -1,0 +1,110 @@
+# -- UN-LEO-AI-044 -- Structured Override Error Categories for Model Improvement
+
+- id: "UN-LEO-AI-044"
+  title: "NLP engineers and clinical AI teams need every human override of an AI triage recommendation or coded extraction to be recorded with a structured error category -- not just that an override occurred, but why -- so that model weaknesses can be identified and addressed systematically rather than through anecdote."
+  description: |
+    When a triage clinician or reviewer overrides an AI recommendation -- for
+    example, upgrading a referral the AI classified as routine to two-week-wait,
+    or correcting an incorrectly extracted SNOMED code -- the override is currently
+    logged as a binary event. The reason for the override is not captured in a
+    structured form. NLP engineers can see that overrides happen but cannot
+    determine whether they are caused by missed entities, wrong assertion context,
+    incorrect urgency classification, guideline criteria not applied correctly,
+    or something else entirely.
+
+    Every override must prompt the reviewer to select a structured error category
+    from a configured list, with an optional free-text comment. These categories
+    must be reportable in aggregate to identify the most common failure modes
+    and direct model improvement work to the highest-impact areas.
+
+  stakeholder:
+    type: "internal_user"
+    role: "NLP / AI Engineer / Clinical AI Quality Lead"
+    organization: "LEO AI Engineering"
+
+  priority: "SHOULD"
+
+  rationale: |
+    Model improvement without structured error data is guided by intuition
+    rather than evidence. The most common failure modes may be missed entities,
+    incorrect negation handling, wrong urgency classification, or something else
+    entirely -- and each requires a different technical intervention. Structured
+    override categories transform the human review loop from a quality gate into
+    a continuous model improvement signal. This is consistent with the post-
+    deployment monitoring requirements of DCB0129 and with good machine learning
+    engineering practice.
+
+  benefit: |
+    NLP engineers can identify the most common failure modes and prioritise
+    model improvement work. The override rate can be decomposed by error type
+    to show which failures are being resolved and which persist. Post-deployment
+    monitoring reports can include structured evidence of model improvement over
+    time. Clinical AI quality leads can produce evidence of continuous improvement
+    for regulatory and commissioner audiences.
+
+  use_case: |
+    1. Reviewer overrides an AI recommendation or corrects an extracted code.
+    2. An override reason modal appears with a list of structured categories:
+       - Missed clinical entity
+       - Wrong assertion context (e.g. coded as present, should be negated)
+       - Wrong urgency classification
+       - Guideline criteria applied incorrectly
+       - Missing information not detected by completeness check
+       - Correct extraction but wrong clinical interpretation
+       - Other (requires free-text explanation)
+    3. Reviewer selects the applicable category (multi-select if needed)
+       and optionally adds a comment.
+    4. The override is logged with: original AI output, corrected output,
+       category, comment, reviewer role, and timestamp.
+    5. Engineering team runs weekly override reports to identify the top
+       error categories and direct model improvement sprints.
+
+  current_solution: |
+    Override events are logged as binary events. No structured reason is
+    captured. Model improvement is guided by case-by-case manual review.
+
+  pain_points:
+    - "Cannot identify the most common model failure modes without reading individual override cases"
+    - "Model improvement sprints are not evidence-based"
+    - "Override rate can be tracked but cannot be decomposed by failure type"
+    - "Post-deployment monitoring reports lack structured evidence of model improvement"
+    - "Reviewers who override without explanation provide no learning signal"
+
+  acceptance_criteria:
+    - "Every override triggers a structured category selection before it can be submitted"
+    - "Categories are configurable by the engineering team without code deployment"
+    - "Multi-select is supported where multiple failure types apply"
+    - "Override reason is stored alongside the override event in the audit trail"
+    - "Override analytics report shows: override rate, category breakdown, trend over time, breakdown by reviewer role"
+    - "Category data is exportable for model improvement analysis"
+
+  success_metrics:
+    - metric: "Proportion of overrides with structured reason recorded"
+      target: "100% -- category selection is mandatory before override can be submitted"
+      baseline: "0% -- structured reasons not currently captured"
+    - metric: "Time from identification of top error category to model improvement deployment"
+      target: "Reduction in cycle time as structured data replaces manual case review"
+      baseline: "Not currently measurable"
+
+  regulatory_impact: "medium"
+  safety_impact: "medium"
+  safety_class: "B"
+
+  derived_from:
+    - "Intended Use Statement DC-IU-001"
+    - "IEC 62304:2006/AMD1:2015 Class B software lifecycle"
+    - "DCB0129 post-deployment monitoring requirements"
+
+  related_standards:
+    - "IEC 62304:2006/AMD1:2015"
+    - "DCB0129"
+
+  metadata:
+    created_by: "Engineering Team"
+    created_date: "2026-03-11"
+    status: "draft"
+    evidence_source: "User interviews P12, P16 -- UR-LEO-AI-001"
+
+  design_inputs: []
+  validation_tests: []
+  tags: ["model-improvement", "override-feedback", "post-deployment-monitoring", "nlp", "continuous-improvement"]

@@ -557,7 +557,8 @@ class WorkflowEngine:
             return []
         query = """
         MATCH (pd:PlanDefinition {id: $plan_id})-[:HAS_ACTION]->(a:Action)
-        WHERE a.trigger_type = 'data-changed' AND a.trigger_name = $event_type
+        WHERE a.trigger_name = $event_type
+          AND coalesce(a.trigger_type, 'data-changed') IN ['data-changed', 'admin-action']
         OPTIONAL MATCH (a)-[:USES_DEFINITION]->(ad:ActivityDefinition)
         RETURN a, ad
         ORDER BY a.sequence
@@ -575,7 +576,8 @@ class WorkflowEngine:
             return []
         query = """
         MATCH (pd:PlanDefinition {status: 'active'})-[:HAS_ACTION]->(a:Action)
-        WHERE a.trigger_type = 'data-changed' AND a.trigger_name = $event_type
+        WHERE a.trigger_name = $event_type
+          AND coalesce(a.trigger_type, 'data-changed') IN ['data-changed', 'admin-action']
         OPTIONAL MATCH (a)-[:USES_DEFINITION]->(ad:ActivityDefinition)
         RETURN pd, a, ad
         ORDER BY pd.name, a.sequence

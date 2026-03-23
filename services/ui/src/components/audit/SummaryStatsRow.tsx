@@ -26,7 +26,7 @@ export interface SummaryStatRow {
 
 interface SummaryStatsTableProps {
   rows: SummaryStatRow[];
-  visibleKeys?: Array<"practice" | "similar" | "alliance" | "national">;
+  visibleKeys?: ReadonlyArray<"practice" | "similar" | "alliance" | "national">;
   caption?: string;
   orgSelected?: boolean;
 }

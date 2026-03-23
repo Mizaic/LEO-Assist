@@ -87,7 +87,7 @@ export function resolveBenchmarkValueByCancer(
 }
 
 interface BenchmarkLegendProps {
-  visibleKeys?: Array<keyof typeof BENCHMARK_COLOURS>;
+  visibleKeys?: ReadonlyArray<keyof typeof BENCHMARK_COLOURS>;
   /** When true, shows practice-centric labels; when false shows England-centric labels. */
   orgSelected?: boolean;
   /** Override specific label text. */

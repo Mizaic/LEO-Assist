@@ -14,6 +14,12 @@ export interface StepTraceResult {
   status: string;
 }
 
+export interface ViewerTraceSnapshot {
+  step: StepTraceResult | null;
+  source: "single" | "batch" | null;
+  candidateId: string | null;
+}
+
 export interface PipelineTestContextValue {
   /** null = no test run yet; partial map grows as steps complete during streaming */
   testTrace: Record<string, StepTraceResult> | null;
@@ -41,6 +47,11 @@ export interface PipelineTestContextValue {
    * monitor to flag connector mismatches.
    */
   getNodeExpectedInputs: (nodeId: string) => string[];
+  /**
+   * Resolve the most relevant upstream step trace for a canvas viewer node.
+   * Uses the currently active inspection trace source (single-run or batch).
+   */
+  getViewerTraceSnapshot: (viewerNodeId: string) => ViewerTraceSnapshot;
 }
 
 export const PipelineTestContext = createContext<PipelineTestContextValue>({
@@ -52,6 +63,7 @@ export const PipelineTestContext = createContext<PipelineTestContextValue>({
   toggleProbe: () => undefined,
   runToStep: () => undefined,
   getNodeExpectedInputs: () => [],
+  getViewerTraceSnapshot: () => ({ step: null, source: null, candidateId: null }),
 });
 
 export function usePipelineTest() {

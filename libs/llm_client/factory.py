@@ -29,6 +29,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 logger = logging.getLogger(__name__)
+_BEDROCK_CACHEPOINT_UNSUPPORTED_MODELS: set[str] = set()
 
 _TIER_ENV = {
     "aws": {
@@ -223,10 +224,23 @@ class LLMClient:
         effective_temp      = 1.0 if self.use_reasoning else temperature
         effective_max_tokens = max_tokens + self.reasoning_budget if self.use_reasoning else max_tokens
 
+        prompt_caching_mode = str(os.getenv("BEDROCK_PROMPT_CACHING", "auto")).strip().lower()
+        use_cachepoint = (
+            prompt_caching_mode in {"on", "true", "1", "yes"}
+            or (
+                prompt_caching_mode == "auto"
+                and self.model_id not in _BEDROCK_CACHEPOINT_UNSUPPORTED_MODELS
+            )
+        )
+        system_blocks = (
+            [{"text": system}, {"cachePoint": {"type": "default"}}]
+            if use_cachepoint
+            else [{"text": system}]
+        )
+
         converse_kwargs: dict[str, Any] = dict(
             model_id=self.model_id,
-            # Mark the static system prompt prefix cacheable for Bedrock prompt caching.
-            system=[{"text": system}, {"cachePoint": {"type": "default"}}],
+            system=system_blocks,
             messages=bedrock_messages,
             inferenceConfig={"maxTokens": effective_max_tokens, "temperature": effective_temp},
         )
@@ -252,8 +266,9 @@ class LLMClient:
         except ParamValidationError as exc:
             if "cachePoint" not in str(exc):
                 raise
+            _BEDROCK_CACHEPOINT_UNSUPPORTED_MODELS.add(self.model_id)
             logger.warning(
-                "Bedrock model %s rejected cachePoint in system prompt; retrying without prompt caching marker.",
+                "Bedrock model %s rejected cachePoint in system prompt; disabling prompt cache marker for this model.",
                 self.model_id,
             )
             converse_kwargs["system"] = [{"text": system}]

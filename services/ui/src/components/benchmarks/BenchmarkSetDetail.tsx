@@ -295,8 +295,8 @@ export function BenchmarkSetDetail({ setId }: Props) {
                       {isEditing ? (
                         <TextField
                           size="small"
-                          value={editState.currentValue}
-                          onChange={(e) => setEditState({ ...editState, currentValue: e.target.value })}
+                          value={editState?.currentValue ?? ""}
+                          onChange={(e) => setEditState((prev) => (prev ? { ...prev, currentValue: e.target.value } : prev))}
                           sx={{ width: 100 }}
                           inputProps={{ 'aria-label': 'Edit value' }}
                           autoFocus

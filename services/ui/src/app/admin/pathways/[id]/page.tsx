@@ -77,13 +77,13 @@ import { OUTPUT_DEFINITIONS, type OutputType } from "@/components/pathway/nodes/
 import {
   PipelineTestContext,
   type StepTraceResult,
+  type ViewerTraceSnapshot,
 } from "@/components/pathway/context/PipelineTestContext";
 import {
   PIPELINE_GENERATED_SENTINEL,
   DEFAULT_CONFIG,
   type ActionConfig,
   type ActionNodeData,
-  type FieldMappingRow,
   type PlanData,
   type ModelPreset,
 } from "@/components/pathway/config/types";
@@ -94,6 +94,29 @@ const edgeTypes = { portEdge: PortEdge };
 
 const NODE_WIDTH  = 220;
 const NODE_HEIGHT = 80;
+const CANVAS_ONLY_NODE_TYPES = new Set(["source", "output", "viewer"]);
+
+function isCanvasOnlyNodeType(nodeType: string | null | undefined): boolean {
+  return CANVAS_ONLY_NODE_TYPES.has(nodeType ?? "");
+}
+
+function filterExecutionNodes(nodes: Node[]): Node[] {
+  return nodes.filter((n) => !isCanvasOnlyNodeType(n.type ?? ""));
+}
+
+function filterExecutionEdges(edges: Edge[], nodes: Node[]): Edge[] {
+  return edges.filter(
+    (e) => !nodes.find((n) => n.id === e.source && isCanvasOnlyNodeType(n.type ?? ""))
+      && !nodes.find((n) => n.id === e.target && isCanvasOnlyNodeType(n.type ?? "")),
+  );
+}
+
+type PersistedCanvasEdge = {
+  source: string;
+  target: string;
+  sourceHandle?: string | null;
+  targetHandle?: string | null;
+};
 
 function applyDagreLayout(nodes: Node[], edges: Edge[]): Node[] {
   const g = new dagre.graphlib.Graph();
@@ -3533,13 +3556,16 @@ export default function PathwayBuilderPage() {
   const [testRunError, setTestRunError] = useState<string | null>(null);
 
   // ── Batch dry-run state ───────────────────────────────────────────────────
+  type ViewerMode = "auto" | "entities" | "verification" | "surface_forms" | "json";
   const [batchPanelOpen, setBatchPanelOpen] = useState(false);
   const [isBatchRunning, setIsBatchRunning] = useState(false);
   const [batchLimit, setBatchLimit] = useState(20);
   const [batchStatusFilter, setBatchStatusFilter] = useState<string>("pending");
   type BatchCandidateResult = {
+    batch_run_id: string | null;
     candidate_id: string;
     text_preview: string;
+    encounter_text?: string | null;
     status: "completed" | "halted" | "error" | "running";
     halted_at: string | null;
     halted_at_subgraph: string | null;
@@ -3551,11 +3577,16 @@ export default function PathwayBuilderPage() {
     error: string | null;
     duration_ms: number;
     index: number;
+    trace_saved?: boolean;
   };
   type BatchStepStat = { label: string; ran: number; halted: number };
   type BatchSummary = { total: number; passed: number; halted: number; errored: number; by_step_stats: Record<string, BatchStepStat> };
   const [batchResults, setBatchResults] = useState<BatchCandidateResult[]>([]);
   const [batchSummary, setBatchSummary] = useState<BatchSummary | null>(null);
+  const [batchRunId, setBatchRunId] = useState<string | null>(null);
+  const [batchTraceLoadingId, setBatchTraceLoadingId] = useState<string | null>(null);
+  const [selectedBatchCandidateId, setSelectedBatchCandidateId] = useState<string | null>(null);
+  const [selectedBatchTrace, setSelectedBatchTrace] = useState<Record<string, StepTraceResult> | null>(null);
   // Live per-step counts while running: subgraph_id → { label, ran, halted }
   const [batchStepCounts, setBatchStepCounts] = useState<Record<string, BatchStepStat>>({});
   const [batchConcurrency, setBatchConcurrency] = useState(3);
@@ -3599,7 +3630,7 @@ export default function PathwayBuilderPage() {
           if (trig?.event) setTriggerEvent(trig.event);
           const configs: Record<string, ActionConfig> = {};
           const loadedActionNodes: Node[] = (data.actions || [])
-            .filter((a) => a.nodeType !== "source") // legacy guard: skip old source nodes saved as actions
+            .filter((a) => !isCanvasOnlyNodeType(a.nodeType)) // legacy guard: skip old canvas-only nodes saved as actions
             .map((a, i) => {
               const cfg = hydrateActionConfig(a);
               configs[a.id] = cfg;
@@ -3619,29 +3650,36 @@ export default function PathwayBuilderPage() {
                 },
               };
             });
-          // Restore canvas-only source nodes
           const savedSourceNodes = ((data as unknown as Record<string, unknown>).sourceNodes as Array<{ id: string; position: { x: number; y: number }; data: Record<string, unknown> }>) || [];
+          const savedOutputNodes = ((data as unknown as Record<string, unknown>).outputNodes as Array<{ id: string; position: { x: number; y: number }; data: Record<string, unknown> }>) || [];
+          const savedViewerNodes = ((data as unknown as Record<string, unknown>).viewerNodes as Array<{ id: string; position: { x: number; y: number }; data: Record<string, unknown> }>) || [];
           const loadedSourceNodes: Node[] = savedSourceNodes.map((sn) => ({
             id: sn.id,
             type: "source",
             position: sn.position,
             data: { ...sn.data, onConfigure: () => setSourceConfigOpen(sn.id) },
           }));
-          // Restore canvas-only output (sink) nodes
-          const savedOutputNodes = ((data as unknown as Record<string, unknown>).outputNodes as Array<{ id: string; position: { x: number; y: number }; data: Record<string, unknown> }>) || [];
           const loadedOutputNodes: Node[] = savedOutputNodes.map((on) => ({
             id: on.id,
             type: "output",
             position: on.position,
             data: { ...on.data, onConfigure: () => setOutputConfigOpen(on.id) },
           }));
+          const loadedViewerNodes: Node[] = savedViewerNodes.map((vn) => ({
+            id: vn.id,
+            type: "viewer",
+            position: vn.position,
+            data: { ...vn.data, onConfigure: () => setViewerConfigOpen(vn.id) },
+          }));
           nodeConfigsRef.current = configs;
-          nodesRef.current = [...loadedActionNodes, ...loadedSourceNodes, ...loadedOutputNodes];
+          nodesRef.current = [...loadedActionNodes, ...loadedSourceNodes, ...loadedOutputNodes, ...loadedViewerNodes];
           setNodeConfigs(configs);
-          setNodes([...loadedActionNodes, ...loadedSourceNodes, ...loadedOutputNodes]);
-          const allEdges = [
+          setNodes([...loadedActionNodes, ...loadedSourceNodes, ...loadedOutputNodes, ...loadedViewerNodes]);
+          const legacySourceEdges = ((data as unknown as Record<string, unknown>).sourceEdges as PersistedCanvasEdge[]) || [];
+          const canvasEdges = ((data as unknown as Record<string, unknown>).canvasEdges as PersistedCanvasEdge[]) || [];
+          const allEdges: PersistedCanvasEdge[] = [
             ...(data.edges || []),
-            ...(data.sourceEdges || []),   // canvas-only source → action wires
+            ...(canvasEdges.length > 0 ? canvasEdges : legacySourceEdges),   // canvas-only wires
           ];
           const loadedEdges = allEdges.map((e, i) => ({
             id: `e${i}-${e.source}-${e.target}`,
@@ -3861,6 +3899,32 @@ export default function PathwayBuilderPage() {
     });
   }, [setNodes]);
 
+  // ── Mini HITL viewer node ───────────────────────────────────────────────────
+  const [viewerConfigOpen, setViewerConfigOpen] = useState<string | null>(null);
+
+  const addViewerNode = useCallback(() => {
+    const id = `viewer_${Date.now()}`;
+    setNodes((nds) => {
+      const maxX = nds.reduce((m, n) => Math.max(m, (n.position?.x ?? 0) + 260), 400);
+      const midY = nds.length > 0
+        ? nds.reduce((sum, n) => sum + (n.position?.y ?? 0), 0) / nds.length
+        : 220;
+      return [
+        ...nds,
+        {
+          id,
+          type: "viewer",
+          position: { x: maxX + 120, y: Math.max(80, midY) },
+          data: {
+            label: "Mini HITL",
+            mode: "auto" as ViewerMode,
+            onConfigure: () => setViewerConfigOpen(id),
+          },
+        } as Node,
+      ];
+    });
+  }, [setNodes]);
+
   const handleConfigSave = useCallback((nodeId: string, config: ActionConfig) => {
     setNodeConfigs((prev) => {
       const next = { ...prev, [nodeId]: config };
@@ -4038,15 +4102,13 @@ export default function PathwayBuilderPage() {
     setRunningStepId(null);
     setHaltedNodeId(null);
     setTestRunOpen(false);
+    setSelectedBatchCandidateId(null);
+    setSelectedBatchTrace(null);
     // Remember last input so "run to here" can reuse it without re-opening the dialog
     testInputRef.current = { initialState };
 
-    const canvasOnlyTypes = new Set(["source", "output"]);
-    const actionNodes = overrideNodes ?? nodes.filter((n) => !canvasOnlyTypes.has(n.type ?? ""));
-    const testEdges = overrideEdges ?? edges.filter(
-      (e) => !nodes.find((n) => n.id === e.source && canvasOnlyTypes.has(n.type ?? ""))
-           && !nodes.find((n) => n.id === e.target && canvasOnlyTypes.has(n.type ?? "")),
-    );
+    const actionNodes = overrideNodes ?? filterExecutionNodes(nodes);
+    const testEdges = overrideEdges ?? filterExecutionEdges(edges, nodes);
 
     // All nodes/edges (not just the filtered subset) are needed for output-node topology
     const allNodesForTopology = overrideNodes ?? nodes;
@@ -4169,12 +4231,8 @@ export default function PathwayBuilderPage() {
       // User opened dialog via "run to here" — build the partial graph then stream
       const upToNodeId = runToStepPending;
       setRunToStepPending(null);
-      const canvasOnly = new Set(["source", "output"]);
-      const actionNodes = nodes.filter((n) => !canvasOnly.has(n.type ?? ""));
-      const actionEdges = edges.filter(
-        (e) => !nodes.find((n) => n.id === e.source && canvasOnly.has(n.type ?? ""))
-             && !nodes.find((n) => n.id === e.target && canvasOnly.has(n.type ?? "")),
-      );
+      const actionNodes = filterExecutionNodes(nodes);
+      const actionEdges = filterExecutionEdges(edges, nodes);
       const ancestors = new Set<string>([upToNodeId]);
       let changed = true;
       while (changed) {
@@ -4212,15 +4270,17 @@ export default function PathwayBuilderPage() {
     setBatchResults([]);
     setBatchSummary(null);
     setBatchStepCounts({});
+    setBatchRunId(null);
+    setSelectedBatchCandidateId(null);
+    setSelectedBatchTrace(null);
     setIsBatchRunning(true);
     setBatchPanelOpen(true);
 
-    const canvasOnlyTypes = new Set(["source", "output"]);
     const allNodes = nodesRef.current;
     const allEdges = edgesRef.current;
 
     const serialisedActions = allNodes
-      .filter((n) => !canvasOnlyTypes.has(n.type ?? ""))
+      .filter((n) => !isCanvasOnlyNodeType(n.type ?? ""))
       .map((n) => {
         const subgraphId = (n.data as unknown as ActionNodeData).subgraphId ?? n.type ?? "action";
         const cfg = { ...(nodeConfigsRef.current[n.id] ?? {}) };
@@ -4236,11 +4296,7 @@ export default function PathwayBuilderPage() {
         };
       });
 
-    const serialisedEdges = allEdges
-      .filter(
-        (e) => !allNodes.find((n) => n.id === e.source && canvasOnlyTypes.has(n.type ?? ""))
-             && !allNodes.find((n) => n.id === e.target && canvasOnlyTypes.has(n.type ?? "")),
-      )
+    const serialisedEdges = filterExecutionEdges(allEdges, allNodes)
       .map((e) => ({
         source: e.source, target: e.target, source_handle: e.sourceHandle ?? null, target_handle: e.targetHandle ?? null,
       }));
@@ -4271,9 +4327,12 @@ export default function PathwayBuilderPage() {
           try {
             const evt = JSON.parse(dataLine.trimStart().slice(5).trim());
             if (evt.type === "candidate_start") {
+              if (typeof evt.batch_run_id === "string") setBatchRunId(evt.batch_run_id);
               setBatchResults((prev) => [...prev, {
+                batch_run_id: typeof evt.batch_run_id === "string" ? evt.batch_run_id : null,
                 candidate_id: evt.candidate_id,
                 text_preview: evt.text_preview,
+                encounter_text: typeof evt.encounter_text === "string" ? evt.encounter_text : null,
                 status: "running",
                 halted_at: null,
                 halted_at_subgraph: null,
@@ -4285,12 +4344,16 @@ export default function PathwayBuilderPage() {
                 error: null,
                 duration_ms: 0,
                 index: evt.index,
+                trace_saved: false,
               }]);
             } else if (evt.type === "candidate_done") {
+              if (typeof evt.batch_run_id === "string") setBatchRunId(evt.batch_run_id);
               setBatchResults((prev) => prev.map((r) => r.candidate_id === evt.candidate_id
                 ? {
                     ...r,
+                    batch_run_id: typeof evt.batch_run_id === "string" ? evt.batch_run_id : r.batch_run_id,
                     status: evt.status,
+                    encounter_text: typeof evt.encounter_text === "string" ? evt.encounter_text : r.encounter_text,
                     halted_at: evt.halted_at,
                     halted_at_subgraph: evt.halted_at_subgraph,
                     halt_reason: evt.halt_reason ?? null,
@@ -4300,6 +4363,7 @@ export default function PathwayBuilderPage() {
                     verification_issues: Array.isArray(evt.verification_issues) ? evt.verification_issues.map((x: unknown) => String(x)) : null,
                     error: evt.error,
                     duration_ms: evt.duration_ms,
+                    trace_saved: Boolean(evt.trace_saved),
                   }
                 : r));
             } else if (evt.type === "step_progress") {
@@ -4309,6 +4373,7 @@ export default function PathwayBuilderPage() {
                 [evt.subgraph_id]: { label: evt.label, ran: evt.ran, halted: evt.halted },
               }));
             } else if (evt.type === "batch_done") {
+              if (typeof evt.batch_run_id === "string") setBatchRunId(evt.batch_run_id);
               setBatchSummary({ total: evt.total, passed: evt.passed, halted: evt.halted, errored: evt.errored, by_step_stats: evt.by_step_stats ?? {} });
             }
           } catch { /* ignore malformed event */ }
@@ -4321,29 +4386,72 @@ export default function PathwayBuilderPage() {
     }
   }, [batchLimit, batchStatusFilter, batchConcurrency]);
 
+  const inspectBatchCandidate = useCallback(async (candidate: BatchCandidateResult) => {
+    const runId = candidate.batch_run_id ?? batchRunId;
+    if (candidate.trace_saved && runId) {
+      setBatchTraceLoadingId(candidate.candidate_id);
+      try {
+        const params = new URLSearchParams({
+          batch_run_id: runId,
+          candidate_id: candidate.candidate_id,
+        });
+        const res = await fetch(`/api/pipeline/test-run/batch?${params.toString()}`);
+        if (!res.ok) throw new Error(`Trace fetch failed (${res.status})`);
+        const payload = await res.json() as { step_traces?: StepTraceResult[] };
+        const traces = Array.isArray(payload.step_traces) ? payload.step_traces : [];
+        const map: Record<string, StepTraceResult> = {};
+        traces.forEach((step) => { map[step.step_id] = step; });
+        setSelectedBatchCandidateId(candidate.candidate_id);
+        setSelectedBatchTrace(map);
+        setTestTrace(null);
+        setTestRunError(null);
+      } catch (err) {
+        setTestRunError(err instanceof Error ? err.message : "Failed to load batch trace");
+      } finally {
+        setBatchTraceLoadingId(null);
+      }
+      return;
+    }
+
+    // Fallback: replay this candidate through the single-run path.
+    runTestStream({
+      encounter_text: candidate.encounter_text || candidate.text_preview,
+      patient_id: "batch-dry-run",
+      encounter_id: candidate.candidate_id,
+      candidate_id: candidate.candidate_id,
+    });
+  }, [batchRunId, runTestStream]);
+
   // ── Run to a specific step (probe "test to this point") ───────────────────
   const runToStep = useCallback((upToNodeId: string) => {
-    const canvasOnly = new Set(["source", "output"]);
+    const canvasOnly = CANVAS_ONLY_NODE_TYPES;
 
     // If the caller passed a canvas-only node (e.g. a source node), resolve to its first
     // downstream action so the user actually sees something run.
     let resolvedId = upToNodeId;
     const selfNode = nodes.find((n) => n.id === upToNodeId);
     if (selfNode && canvasOnly.has(selfNode.type ?? "")) {
-      const firstDownstreamEdge = edges.find(
-        (e) => e.source === upToNodeId
-             && !canvasOnly.has(nodes.find((n) => n.id === e.target)?.type ?? ""),
+      // Viewer-like canvas nodes usually terminate the graph, so resolve to their first
+      // upstream action. Source-like nodes resolve to first downstream action.
+      const firstUpstreamEdge = edges.find(
+        (e) => e.target === upToNodeId
+             && !canvasOnly.has(nodes.find((n) => n.id === e.source)?.type ?? ""),
       );
-      if (!firstDownstreamEdge) return; // no action connected, nothing to run
-      resolvedId = firstDownstreamEdge.target;
+      if (firstUpstreamEdge) {
+        resolvedId = firstUpstreamEdge.source;
+      } else {
+        const firstDownstreamEdge = edges.find(
+          (e) => e.source === upToNodeId
+               && !canvasOnly.has(nodes.find((n) => n.id === e.target)?.type ?? ""),
+        );
+        if (!firstDownstreamEdge) return; // no action connected, nothing to run
+        resolvedId = firstDownstreamEdge.target;
+      }
     }
 
     // Compute the ancestor set of resolvedId in the action-only graph (BFS backwards)
-    const actionNodes = nodes.filter((n) => !canvasOnly.has(n.type ?? ""));
-    const actionEdges = edges.filter(
-      (e) => !nodes.find((n) => n.id === e.source && canvasOnly.has(n.type ?? ""))
-           && !nodes.find((n) => n.id === e.target && canvasOnly.has(n.type ?? "")),
-    );
+    const actionNodes = filterExecutionNodes(nodes);
+    const actionEdges = filterExecutionEdges(edges, nodes);
 
     const ancestors = new Set<string>([resolvedId]);
     let changed = true;
@@ -4386,6 +4494,31 @@ export default function PathwayBuilderPage() {
     return [...new Set([...fromMapping, ...fromPorts])];
   }, [nodeConfigs]);
 
+  const getViewerTraceSnapshot = useCallback((viewerNodeId: string): ViewerTraceSnapshot => {
+    const activeTrace = selectedBatchTrace ?? testTrace;
+    if (!activeTrace) return { step: null, source: null, candidateId: null };
+    const sourceType: "batch" | "single" = selectedBatchTrace ? "batch" : "single";
+    const allNodes = nodesRef.current;
+    const allEdges = edgesRef.current.filter((e) => e.target === viewerNodeId);
+    for (const edge of allEdges) {
+      const sourceNode = allNodes.find((n) => n.id === edge.source);
+      if (!sourceNode || isCanvasOnlyNodeType(sourceNode.type ?? "")) continue;
+      const step = activeTrace[sourceNode.id] ?? null;
+      if (step) {
+        return {
+          step,
+          source: sourceType,
+          candidateId: selectedBatchCandidateId,
+        };
+      }
+    }
+    return {
+      step: null,
+      source: sourceType,
+      candidateId: selectedBatchCandidateId,
+    };
+  }, [selectedBatchTrace, selectedBatchCandidateId, testTrace]);
+
   const handleSave = useCallback(async (statusOverride?: string) => {
     setSaveError(null);
     setIsSaving(true);
@@ -4412,7 +4545,12 @@ export default function PathwayBuilderPage() {
         position: n.position,
         data: { ...(n.data as Record<string, unknown>), onConfigure: undefined },
       })),
-      actions: liveNodes.filter((n) => n.type !== "source" && n.type !== "output").map((n) => {
+      viewerNodes: liveNodes.filter((n) => n.type === "viewer").map((n) => ({
+        id: n.id,
+        position: n.position,
+        data: { ...(n.data as Record<string, unknown>), onConfigure: undefined },
+      })),
+      actions: liveNodes.filter((n) => !isCanvasOnlyNodeType(n.type ?? "")).map((n) => {
         const subgraphId = (n.data as unknown as ActionNodeData).subgraphId;
         const cfg = { ...(liveNodeConfigs[n.id] ?? {}) };
         // Derive output_target for persist nodes from connected output nodes so that
@@ -4434,8 +4572,8 @@ export default function PathwayBuilderPage() {
         .filter((e) => {
           const srcNode = liveNodes.find((n) => n.id === e.source);
           const tgtNode = liveNodes.find((n) => n.id === e.target);
-          return srcNode?.type !== "source" && srcNode?.type !== "output"
-              && tgtNode?.type !== "source" && tgtNode?.type !== "output";
+          return !isCanvasOnlyNodeType(srcNode?.type ?? "")
+              && !isCanvasOnlyNodeType(tgtNode?.type ?? "");
         })
         .map((e) => ({
           source: e.source,
@@ -4443,12 +4581,13 @@ export default function PathwayBuilderPage() {
           sourceHandle: e.sourceHandle,
           targetHandle: e.targetHandle,
         })),
-      // Canvas-only edges (source → action, action → output) — persisted for UI restore.
-      sourceEdges: liveEdges
+      // Canvas-only edges (source/output/viewer connections) — persisted for UI restore.
+      canvasEdges: liveEdges
         .filter((e) => {
           const srcNode = liveNodes.find((n) => n.id === e.source);
           const tgtNode = liveNodes.find((n) => n.id === e.target);
-          return srcNode?.type === "source" || tgtNode?.type === "output";
+          return isCanvasOnlyNodeType(srcNode?.type ?? "")
+              || isCanvasOnlyNodeType(tgtNode?.type ?? "");
         })
         .map((e) => ({
           source: e.source,
@@ -4539,7 +4678,9 @@ export default function PathwayBuilderPage() {
       const trig = (data as any).trigger;
       if (trig?.event) setTriggerEvent(trig.event);
       const configs: Record<string, ActionConfig> = {};
-      const restoredNodes: Node[] = (data.actions || []).map((a, i) => {
+      const restoredNodes: Node[] = (data.actions || [])
+        .filter((a) => !isCanvasOnlyNodeType(a.nodeType))
+        .map((a, i) => {
         const cfg = hydrateActionConfig(a);
         configs[a.id] = cfg;
         return {
@@ -4560,6 +4701,7 @@ export default function PathwayBuilderPage() {
       // Restore source nodes
       const versionSourceNodes = ((data as unknown as Record<string, unknown>).sourceNodes as Array<{ id: string; position: { x: number; y: number }; data: Record<string, unknown> }>) || [];
       const versionOutputNodes = ((data as unknown as Record<string, unknown>).outputNodes as Array<{ id: string; position: { x: number; y: number }; data: Record<string, unknown> }>) || [];
+      const versionViewerNodes = ((data as unknown as Record<string, unknown>).viewerNodes as Array<{ id: string; position: { x: number; y: number }; data: Record<string, unknown> }>) || [];
       const restoredCanvasNodes = [
         ...restoredNodes,
         ...versionSourceNodes.map((sn) => ({
@@ -4570,14 +4712,20 @@ export default function PathwayBuilderPage() {
           id: on.id, type: "output" as const, position: on.position,
           data: { ...on.data, onConfigure: () => setOutputConfigOpen(on.id) },
         })),
+        ...versionViewerNodes.map((vn) => ({
+          id: vn.id, type: "viewer" as const, position: vn.position,
+          data: { ...vn.data, onConfigure: () => setViewerConfigOpen(vn.id) },
+        })),
       ];
       nodeConfigsRef.current = configs;
       nodesRef.current = restoredCanvasNodes;
       setNodeConfigs(configs);
       setNodes(restoredCanvasNodes);
-      const allRestoredEdges = [
+      const restoredLegacySourceEdges = ((data as unknown as Record<string, unknown>).sourceEdges as PersistedCanvasEdge[]) || [];
+      const restoredCanvasEdgePayload = ((data as unknown as Record<string, unknown>).canvasEdges as PersistedCanvasEdge[]) || [];
+      const allRestoredEdges: PersistedCanvasEdge[] = [
         ...(data.edges || []),
-        ...(data.sourceEdges || []),
+        ...(restoredCanvasEdgePayload.length > 0 ? restoredCanvasEdgePayload : restoredLegacySourceEdges),
       ];
       const restoredCanvasEdges = allRestoredEdges.map((e, i) => ({
         id: `e${i}-${e.source}-${e.target}`,
@@ -4599,13 +4747,18 @@ export default function PathwayBuilderPage() {
     }
   }, [planId, openConfigurator, setNodes, setEdges]);
 
+  const executionNodeCount = useMemo(
+    () => filterExecutionNodes(nodes).length,
+    [nodes],
+  );
+
   return (
     <Box sx={{ height: "100vh", display: "flex", flexDirection: "column" }}>
-      <Box sx={{ px: 2, py: 1.25, display: "flex", alignItems: "center", gap: 1.5, borderBottom: 1, borderColor: "divider" }}>
-        <IconButton size="small" onClick={() => router.push("/admin/pathways")}><ArrowBackIcon /></IconButton>
+      <Box sx={{ px: 2, py: 1.25, display: "flex", alignItems: "center", gap: 1.5, borderBottom: 1, borderColor: "divider", overflowX: "auto", flexShrink: 0 }}>
+        <IconButton size="small" onClick={() => router.push("/admin/pathways")} sx={{ flexShrink: 0 }}><ArrowBackIcon /></IconButton>
         <TextField
           size="small" placeholder="Pathway name" value={planName}
-          onChange={(e) => setPlanName(e.target.value)} sx={{ width: 260 }}
+          onChange={(e) => setPlanName(e.target.value)} sx={{ width: 200, flexShrink: 0 }}
         />
         {/* Status badge — read-only display; changed via Publish / Retire */}
         <Chip
@@ -4613,38 +4766,61 @@ export default function PathwayBuilderPage() {
           label={planStatus.charAt(0).toUpperCase() + planStatus.slice(1)}
           color={planStatus === "active" ? "success" : planStatus === "retired" ? "default" : "warning"}
           variant="outlined"
-          sx={{ fontWeight: 600, fontSize: "0.72rem" }}
+          sx={{ fontWeight: 600, fontSize: "0.72rem", flexShrink: 0 }}
         />
         {/* Retire action */}
         {planStatus !== "retired" && (
           <Tooltip title="Mark this pathway as retired (no longer in use)">
             <Button size="small" variant="text" color="inherit"
-              sx={{ textTransform: "none", fontSize: "0.72rem", color: "text.disabled", minWidth: 0, px: 1 }}
+              sx={{ textTransform: "none", fontSize: "0.72rem", color: "text.disabled", minWidth: 0, px: 1, flexShrink: 0 }}
               onClick={() => handleSave("retired")}
             >
               Retire
             </Button>
           </Tooltip>
         )}
-        <Box sx={{ flex: 1 }} />
+        <Box sx={{ flex: 1, minWidth: 8 }} />
+        {/* Save draft — always safe, never changes live status */}
+        <Button
+          variant="outlined"
+          size="small"
+          startIcon={isSaving ? <CircularProgress size={13} color="inherit" /> : <SaveIcon />}
+          disabled={isSaving}
+          onClick={() => handleSave()}
+          sx={{ textTransform: "none", minWidth: 100, flexShrink: 0 }}
+        >
+          {isSaving ? "Saving…" : "Save draft"}
+        </Button>
+        {/* Publish — validates first, sets status=active */}
+        <Tooltip title={planStatus === "active" ? "Re-publish to apply latest draft changes to live" : "Validate and publish this pathway to live"}>
+          <span style={{ flexShrink: 0 }}>
+            <Button
+              variant="contained"
+              size="small"
+              color="success"
+              startIcon={<CloudUploadIcon />}
+              disabled={isSaving}
+              onClick={handlePublish}
+              sx={{ textTransform: "none", minWidth: 90 }}
+            >
+              Publish
+            </Button>
+          </span>
+        </Tooltip>
+        <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
         {/* Last-saved indicator */}
-        {isSaving ? (
-          <Stack direction="row" alignItems="center" spacing={0.75}>
-            <CircularProgress size={11} thickness={5} />
-            <Typography variant="caption" color="text.disabled" sx={{ fontSize: "0.7rem" }}>Saving…</Typography>
-          </Stack>
-        ) : lastSaved ? (
-          <Typography variant="caption" color="text.disabled" sx={{ fontSize: "0.7rem" }}>
-            Draft saved {formatSaveTime(lastSaved)}
+        {!isSaving && lastSaved && (
+          <Typography variant="caption" color="text.disabled" sx={{ fontSize: "0.7rem", flexShrink: 0, whiteSpace: "nowrap" }}>
+            Saved {formatSaveTime(lastSaved)}
           </Typography>
-        ) : null}
+        )}
         {saveError && (
-          <Alert severity="error" sx={{ py: 0, fontSize: "0.72rem" }} onClose={() => setSaveError(null)}>
+          <Alert severity="error" sx={{ py: 0, fontSize: "0.72rem", flexShrink: 0 }} onClose={() => setSaveError(null)}>
             {saveError}
           </Alert>
         )}
         {/* Add data source — creates a fan-out source node on the canvas */}
-        <FormControl size="small" sx={{ minWidth: 175 }}>
+        <FormControl size="small" sx={{ minWidth: 160, flexShrink: 0 }}>
           <InputLabel>Add a data source</InputLabel>
           <Select label="Add a data source" value="" onChange={(e) => { if (e.target.value) addSourceNode(e.target.value as SourceType); }}>
             <MenuItem value="">Add a data source…</MenuItem>
@@ -4659,10 +4835,19 @@ export default function PathwayBuilderPage() {
           </Select>
         </FormControl>
 
-        {/* Add output destination — creates a sink node on the canvas */}
-        <FormControl size="small" sx={{ minWidth: 175 }}>
+        {/* Add output destination — creates a sink node on the canvas; includes canvas-only viewer */}
+        <FormControl size="small" sx={{ minWidth: 160, flexShrink: 0 }}>
           <InputLabel>Add an output</InputLabel>
-          <Select label="Add an output" value="" onChange={(e) => { if (e.target.value) addOutputNode(e.target.value as OutputType); }}>
+          <Select
+            label="Add an output"
+            value=""
+            onChange={(e) => {
+              const val = e.target.value;
+              if (!val) return;
+              if (val === "__viewer__") { addViewerNode(); return; }
+              addOutputNode(val as OutputType);
+            }}
+          >
             <MenuItem value="">Add an output…</MenuItem>
             {(Object.entries(OUTPUT_DEFINITIONS) as [OutputType, typeof OUTPUT_DEFINITIONS[OutputType]][]).map(([type, meta]) => (
               <MenuItem key={type} value={type}>
@@ -4672,10 +4857,17 @@ export default function PathwayBuilderPage() {
                 </Box>
               </MenuItem>
             ))}
+            <Divider />
+            <MenuItem value="__viewer__">
+              <Box>
+                <Typography variant="body2">Mini HITL viewer</Typography>
+                <Typography variant="caption" color="text.secondary">Canvas-only preview node — inspect step output in context</Typography>
+              </Box>
+            </MenuItem>
           </Select>
         </FormControl>
 
-        <FormControl size="small" sx={{ minWidth: 190 }}>
+        <FormControl size="small" sx={{ minWidth: 170, flexShrink: 0 }}>
           <InputLabel>Add a step</InputLabel>
           <Select label="Add a step" value="" onChange={(e) => addAction(e.target.value)}>
             <MenuItem value="">Add a step…</MenuItem>
@@ -4696,29 +4888,29 @@ export default function PathwayBuilderPage() {
         </FormControl>
         {/* Auto-layout */}
         <Tooltip title="Auto-layout — rearrange steps into a tidy flow (top to bottom)">
-          <IconButton size="small" onClick={autoLayout} sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1.5 }}>
+          <IconButton size="small" onClick={autoLayout} sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1.5, flexShrink: 0 }}>
             <AccountTreeIcon sx={{ fontSize: "1.1rem" }} />
           </IconButton>
         </Tooltip>
         {/* Test run */}
         {testTrace && (
           <Tooltip title="Clear test results">
-              <IconButton size="small" onClick={() => { setTestTrace(null); setTestRunError(null); setProbedEdges(new Set()); }}
-              sx={{ border: "1px solid", borderColor: "success.light", borderRadius: 1.5, color: "success.main" }}>
+              <IconButton size="small" onClick={() => { setTestTrace(null); setSelectedBatchTrace(null); setSelectedBatchCandidateId(null); setTestRunError(null); setProbedEdges(new Set()); }}
+              sx={{ border: "1px solid", borderColor: "success.light", borderRadius: 1.5, color: "success.main", flexShrink: 0 }}>
               <CloseIcon sx={{ fontSize: "1rem" }} />
             </IconButton>
           </Tooltip>
         )}
         <Tooltip title="Dry-run the pipeline with sample data — opens the input dialog">
-          <span>
+          <span style={{ flexShrink: 0 }}>
             <Button
               size="small"
               variant="outlined"
               color="success"
               startIcon={isTestRunning ? <CircularProgress size={13} color="inherit" /> : <PlayArrowIcon />}
-              disabled={isTestRunning || nodes.filter((n) => n.type !== "source").length === 0}
+              disabled={isTestRunning || executionNodeCount === 0}
               onClick={() => setTestRunOpen(true)}
-              sx={{ textTransform: "none", minWidth: 90 }}
+              sx={{ textTransform: "none", minWidth: 85 }}
             >
               {isTestRunning ? "Running…" : "Test run"}
             </Button>
@@ -4729,30 +4921,30 @@ export default function PathwayBuilderPage() {
             ? "Re-run every step with the same test input — stops at the first failure"
             : "Run all steps — opens the input dialog (no previous run yet)"
         }>
-          <span>
+          <span style={{ flexShrink: 0 }}>
             <Button
               size="small"
               variant={testInputRef.current ? "contained" : "outlined"}
               color="success"
               startIcon={isTestRunning ? <CircularProgress size={13} color="inherit" /> : <PlayArrowIcon />}
-              disabled={isTestRunning || nodes.filter((n) => n.type !== "source").length === 0}
+              disabled={isTestRunning || executionNodeCount === 0}
               onClick={handleRunAllSteps}
-              sx={{ textTransform: "none", minWidth: 110 }}
+              sx={{ textTransform: "none", minWidth: 100 }}
             >
               {isTestRunning ? "Running…" : "Run all steps"}
             </Button>
           </span>
         </Tooltip>
         <Tooltip title="Batch dry-run — run the draft pathway against real Training Candidates from the Knowledge Graph">
-          <span>
+          <span style={{ flexShrink: 0 }}>
             <Button
               size="small"
               variant="outlined"
               color="secondary"
               startIcon={isBatchRunning ? <CircularProgress size={13} color="inherit" /> : <PlayArrowIcon />}
-              disabled={isBatchRunning || isTestRunning || nodes.filter((n) => n.type !== "source").length === 0}
+              disabled={isBatchRunning || isTestRunning || executionNodeCount === 0}
               onClick={() => setBatchPanelOpen(true)}
-              sx={{ textTransform: "none", minWidth: 110 }}
+              sx={{ textTransform: "none", minWidth: 100 }}
             >
               {isBatchRunning ? "Running…" : "Batch dry run"}
             </Button>
@@ -4761,14 +4953,14 @@ export default function PathwayBuilderPage() {
         {/* Version history */}
         {!isNew && (
           <Tooltip title="Version history — view and restore previous published versions">
-            <IconButton size="small" onClick={openHistory} sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1.5 }}>
+            <IconButton size="small" onClick={openHistory} sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1.5, flexShrink: 0 }}>
               <HistoryIcon sx={{ fontSize: "1.1rem" }} />
             </IconButton>
           </Tooltip>
         )}
         {!isNew && (
           <Tooltip title={isSeededPathway ? "Seeded pathways cannot be deleted from the UI" : "Delete this pathway permanently"}>
-            <span>
+            <span style={{ flexShrink: 0 }}>
               <Button
                 variant="outlined"
                 size="small"
@@ -4776,40 +4968,13 @@ export default function PathwayBuilderPage() {
                 startIcon={<DeleteOutlineIcon />}
                 disabled={isSaving || isDeletingPathway || isSeededPathway}
                 onClick={() => { setDeleteConfirmText(""); setDeleteDialogOpen(true); }}
-                sx={{ textTransform: "none", minWidth: 110 }}
+                sx={{ textTransform: "none", minWidth: 90 }}
               >
                 Delete
               </Button>
             </span>
           </Tooltip>
         )}
-        {/* Save draft — always safe, never changes live status */}
-        <Button
-          variant="outlined"
-          size="small"
-          startIcon={isSaving ? <CircularProgress size={13} color="inherit" /> : <SaveIcon />}
-          disabled={isSaving}
-          onClick={() => handleSave()}
-          sx={{ textTransform: "none", minWidth: 110 }}
-        >
-          Save draft
-        </Button>
-        {/* Publish — validates first, sets status=active */}
-        <Tooltip title={planStatus === "active" ? "Re-publish to apply latest draft changes to live" : "Validate and publish this pathway to live"}>
-          <span>
-            <Button
-              variant="contained"
-              size="small"
-              color="success"
-              startIcon={<CloudUploadIcon />}
-              disabled={isSaving}
-              onClick={handlePublish}
-              sx={{ textTransform: "none", minWidth: 100 }}
-            >
-              Publish
-            </Button>
-          </span>
-        </Tooltip>
       </Box>
 
       <TriggerContextPanel
@@ -4832,6 +4997,7 @@ export default function PathwayBuilderPage() {
           toggleProbe,
           runToStep,
           getNodeExpectedInputs,
+          getViewerTraceSnapshot,
         }}>
           <ReactFlow
             nodes={nodes}
@@ -5118,6 +5284,75 @@ export default function PathwayBuilderPage() {
         })()}
       </Dialog>
 
+      {/* ── Mini HITL viewer configurator dialog ─────────────────────────── */}
+      <Dialog
+        open={Boolean(viewerConfigOpen)}
+        onClose={() => setViewerConfigOpen(null)}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 3 } }}
+      >
+        {viewerConfigOpen && (() => {
+          const viewerNode = nodes.find((n) => n.id === viewerConfigOpen);
+          if (!viewerNode) return null;
+          const d = viewerNode.data as { label?: string; mode?: ViewerMode };
+          return (
+            <>
+              <Box sx={{ px: 3, pt: 2.5, pb: 1, overflowY: "auto", maxHeight: "80vh" }}>
+                <Typography variant="h6" fontWeight={700} gutterBottom>Mini HITL viewer</Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  Canvas-only preview node for inspecting upstream outputs in a familiar HITL-style view.
+                </Typography>
+                <Stack spacing={1.5}>
+                  <TextField
+                    size="small"
+                    label="Title"
+                    value={d.label || "Mini HITL"}
+                    onChange={(e) =>
+                      setNodes((nds) => nds.map((n) =>
+                        n.id === viewerConfigOpen ? { ...n, data: { ...n.data, label: e.target.value } } : n
+                      ))
+                    }
+                  />
+                  <TextField
+                    select
+                    size="small"
+                    label="Display mode"
+                    value={d.mode || "auto"}
+                    onChange={(e) =>
+                      setNodes((nds) => nds.map((n) =>
+                        n.id === viewerConfigOpen ? { ...n, data: { ...n.data, mode: e.target.value as ViewerMode } } : n
+                      ))
+                    }
+                    SelectProps={{ native: true }}
+                  >
+                    <option value="auto">Auto</option>
+                    <option value="entities">Entities focus</option>
+                    <option value="verification">Verification focus</option>
+                    <option value="surface_forms">Surface forms focus</option>
+                    <option value="json">Raw JSON</option>
+                  </TextField>
+                </Stack>
+              </Box>
+              <Box sx={{ px: 3, pb: 2.5, pt: 1.5, display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: 1, borderColor: "divider" }}>
+                <Button size="small" color="error" sx={{ textTransform: "none" }}
+                  onClick={() => {
+                    setNodes((nds) => nds.filter((n) => n.id !== viewerConfigOpen));
+                    setEdges((eds) => eds.filter((e) => e.source !== viewerConfigOpen && e.target !== viewerConfigOpen));
+                    setViewerConfigOpen(null);
+                  }}
+                >
+                  Remove viewer node
+                </Button>
+                <Button variant="contained" onClick={() => setViewerConfigOpen(null)} sx={{ textTransform: "none" }}>
+                  Done
+                </Button>
+              </Box>
+            </>
+          );
+        })()}
+      </Dialog>
+
       {/* ── Edge deletion confirmation dialog ────────────────────────────── */}
       <Dialog open={Boolean(pendingDeleteEdges)} onClose={() => setPendingDeleteEdges(null)} maxWidth="xs" fullWidth
         PaperProps={{ sx: { borderRadius: 3 } }}>
@@ -5352,7 +5587,13 @@ export default function PathwayBuilderPage() {
               <Chip label={`✓ ${batchSummary.passed} passed`} size="small" color="success" />
               {batchSummary.halted > 0 && <Chip label={`🛑 ${batchSummary.halted} halted`} size="small" color="error" />}
               {batchSummary.errored > 0 && <Chip label={`✗ ${batchSummary.errored} errored`} size="small" color="warning" />}
+              {batchRunId && <Chip label={`Run ${batchRunId.slice(0, 8)}`} size="small" variant="outlined" />}
             </Box>
+          )}
+          {selectedBatchCandidateId && (
+            <Alert severity="info" sx={{ mb: 2, fontSize: "0.78rem" }}>
+              Inspecting batch candidate <strong>{selectedBatchCandidateId}</strong> on the canvas mini HITL node.
+            </Alert>
           )}
 
           {/* Live per-step funnel */}
@@ -5411,6 +5652,7 @@ export default function PathwayBuilderPage() {
                     <Box component="th">Stopped at</Box>
                     <Box component="th">Why halted</Box>
                     <Box component="th" sx={{ textAlign: "right" }}>Time</Box>
+                    <Box component="th" sx={{ textAlign: "right" }}>Inspect</Box>
                   </Box>
                 </Box>
                 <Box component="tbody">
@@ -5466,6 +5708,17 @@ export default function PathwayBuilderPage() {
                       <Box component="td" sx={{ textAlign: "right", color: "text.secondary", whiteSpace: "nowrap" }}>
                         {r.duration_ms > 0 ? `${(r.duration_ms / 1000).toFixed(1)}s` : "—"}
                       </Box>
+                      <Box component="td" sx={{ textAlign: "right" }}>
+                        <Button
+                          size="small"
+                          variant={selectedBatchCandidateId === r.candidate_id ? "contained" : "outlined"}
+                          disabled={batchTraceLoadingId === r.candidate_id || r.status === "running"}
+                          onClick={() => inspectBatchCandidate(r)}
+                          sx={{ textTransform: "none", minWidth: 90, fontSize: "0.7rem" }}
+                        >
+                          {batchTraceLoadingId === r.candidate_id ? "Loading..." : (r.trace_saved ? "Inspect" : "Replay")}
+                        </Button>
+                      </Box>
                     </Box>
                   ))}
                 </Box>
@@ -5487,7 +5740,7 @@ export default function PathwayBuilderPage() {
               color="secondary"
               startIcon={<PlayArrowIcon />}
               onClick={handleBatchRun}
-              disabled={nodes.filter((n) => n.type !== "source").length === 0}
+              disabled={executionNodeCount === 0}
             >
               {batchResults.length > 0 ? "Run again" : "Run batch"}
             </Button>
