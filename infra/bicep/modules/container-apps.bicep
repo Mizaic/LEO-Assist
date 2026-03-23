@@ -111,6 +111,8 @@ var sharedEnv = [
   { name: 'MODEL_STORE_CONTAINER', value: modelStoreContainer }
   { name: 'MODEL_STORE_MODEL_NAME', value: modelStoreModelName }
   { name: 'MODEL_REGISTRY_STORE', value: 'neo4j' }
+  // Keep fallback path aligned with local startup script for json mode.
+  { name: 'MODEL_REGISTRY_STORE_PATH', value: '/var/model_cache/model_registry.json' }
 
   // Model quality gates
   { name: 'MODEL_MIN_PRECISION', value: modelMinPrecision }
@@ -150,6 +152,8 @@ var sharedEnv = [
   // Terminology
   { name: 'SNOMED_TERMINOLOGY_SERVER', value: snomedTerminologyServer }
   { name: 'NCDA_CONFIG_DIR', value: 'configs/snomed' }
+  // Local startup exports TERMINOLOGY_API_URLS; set single ACA endpoint for parity.
+  { name: 'TERMINOLOGY_API_URLS', value: termApiUrl }
 
   // Security / session
   { name: 'COOKIE_SECURE', value: cookieSecure }
