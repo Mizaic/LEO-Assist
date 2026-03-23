@@ -276,7 +276,7 @@ def test_gap009_xhr_middleware_blocks_post_without_header():
         req = MagicMock()
         req.method = "POST"
         req.url.path = "/api/patients"
-        req.headers = {}
+        req.headers = MagicMock()
         req.headers.get = lambda k, d="": d  # no X-Requested-With
 
         # Reproduce middleware logic

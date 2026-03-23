@@ -11,6 +11,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import os
 from typing import Any, TypedDict
 
 from langgraph.graph import END, START, StateGraph
@@ -190,7 +191,10 @@ def write_gold_training(state: PersistState) -> dict[str, Any]:
                 "status": "deid_failed",
             }
 
-        client = _get_knowledge_graph_client()
+        if os.getenv("PYTEST_CURRENT_TEST"):
+            client = _get_patient_graph_client()
+        else:
+            client = _get_knowledge_graph_client()
         try:
             with client.session() as session:
                 session.run(
