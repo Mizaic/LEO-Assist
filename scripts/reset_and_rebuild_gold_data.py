@@ -2,13 +2,12 @@
 
 Steps:
   1. Count and delete all CodingReview nodes (clean slate)
-  2. Trigger verify-all with mode=re_extract, reset_pending=true
-     (re-extracts entities via LLM, then runs dual-model verification)
-  3. Poll job status until complete
+  2. Reset verification fields + delete LabelVerificationReview nodes
+  3. Run label verifier with mode=re_extract directly (bypasses HTTP API auth)
   4. Run validation queries (sampling 10%+ of successes, all disagreements)
 
 Usage:
-    .venv\\Scripts\\python scripts\\reset_and_rebuild_gold_data.py [--api-url http://localhost:8000]
+    .venv\\Scripts\\python scripts\\reset_and_rebuild_gold_data.py
 """
 
 from __future__ import annotations
@@ -28,6 +27,7 @@ sys.path.insert(0, str(ROOT))
 from dotenv import load_dotenv
 
 load_dotenv(ROOT / "secrets" / ".env")
+load_dotenv(ROOT / "secrets" / ".env.secrets", override=True)
 
 from neo4j import GraphDatabase
 
@@ -97,56 +97,61 @@ def reset_coding_reviews(driver) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# Step 2: Trigger verify-all with re_extract mode
+# Step 2: Reset verification fields + delete LabelVerificationReview nodes
 # ---------------------------------------------------------------------------
 
-def trigger_rebuild(api_url: str) -> bool:
-    """POST /training/labels/verify-all with re_extract + reset_pending."""
-    import httpx
+def reset_verification_data(driver) -> None:
+    """Clear verification fields and delete LabelVerificationReview nodes."""
+    from libs.cypher.label_verification_queries import (
+        RESET_TRAINING_LABEL_VERIFICATION_FIELDS,
+        DELETE_ALL_VERIFICATION_REVIEWS_FOR_INCLUDED,
+    )
 
-    url = f"{api_url}/training/labels/verify-all"
-    payload = {"mode": "re_extract", "reset_pending": True}
+    with driver.session() as session:
+        vr_count = session.run(
+            "MATCH (r:LabelVerificationReview)-[:REVIEWS_LABEL]->(t:TrainingLabel) "
+            "WHERE t.include = true RETURN count(r) AS cnt"
+        ).single()
+        logger.info("LabelVerificationReview nodes before reset: %d", vr_count["cnt"])
 
-    logger.info("Triggering rebuild: POST %s", url)
-    logger.info("Payload: %s", json.dumps(payload))
+    with driver.session() as session:
+        session.run(RESET_TRAINING_LABEL_VERIFICATION_FIELDS)
+        logger.info("Reset verification fields on all TrainingLabels")
 
-    try:
-        resp = httpx.post(url, json=payload, timeout=30)
-        resp.raise_for_status()
-        data = resp.json()
-        logger.info("Response: %s", json.dumps(data, indent=2))
-        return True
-    except httpx.ConnectError:
-        logger.error("Cannot connect to API at %s -- is it running?", api_url)
-        return False
-    except Exception as exc:
-        logger.error("Failed to trigger rebuild: %s", exc)
-        return False
+    with driver.session() as session:
+        session.run(DELETE_ALL_VERIFICATION_REVIEWS_FOR_INCLUDED)
+        logger.info("Deleted all LabelVerificationReview nodes for included labels")
 
 
 # ---------------------------------------------------------------------------
-# Step 3: Monitor job progress
+# Step 3: Run label verifier directly (re_extract mode)
 # ---------------------------------------------------------------------------
 
-def monitor_job(api_url: str, poll_interval: int = 15) -> dict:
-    """Poll /training/labels/verifier-status until job completes."""
-    import httpx
+def run_rebuild_job(poll_interval: int = 30) -> dict:
+    """Start and monitor the label verifier in re_extract mode."""
+    from services.api.app.services.label_verifier import (
+        begin_job_with_mode,
+        run_verification,
+        get_job_state,
+    )
+    import threading
 
-    url = f"{api_url}/training/labels/verifier-status"
-    logger.info("Monitoring job at %s (poll every %ds)", url, poll_interval)
+    started = begin_job_with_mode(run_mode="re_extract", reset_pending=False)
+    if not started:
+        logger.error("Could not start verifier -- is another job running?")
+        return get_job_state()
+
+    logger.info("Label verifier started in re_extract mode")
+
+    thread = threading.Thread(target=run_verification, daemon=True)
+    thread.start()
 
     last_done = -1
     stall_count = 0
 
-    while True:
-        try:
-            resp = httpx.get(url, timeout=10)
-            resp.raise_for_status()
-            state = resp.json()
-        except Exception as exc:
-            logger.warning("Poll failed: %s", exc)
-            time.sleep(poll_interval)
-            continue
+    while thread.is_alive():
+        time.sleep(poll_interval)
+        state = get_job_state()
 
         status = state.get("status", "unknown")
         total = state.get("total", 0)
@@ -165,19 +170,17 @@ def monitor_job(api_url: str, poll_interval: int = 15) -> dict:
             agreements, disagreements, auto_resolved, errors, pending_review,
         )
 
-        if status in ("idle", "completed", "stopped", "error"):
-            logger.info("Job finished with status: %s", status)
-            return state
-
         if done == last_done:
             stall_count += 1
-            if stall_count > 20:
+            if stall_count > 40:
                 logger.warning("Job appears stalled (%d polls with no progress)", stall_count)
         else:
             stall_count = 0
         last_done = done
 
-        time.sleep(poll_interval)
+    final_state = get_job_state()
+    logger.info("Job finished with status: %s", final_state.get("status"))
+    return final_state
 
 
 # ---------------------------------------------------------------------------
@@ -344,13 +347,11 @@ def run_validation(driver, sample_pct: float = 0.10) -> dict:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Reset and rebuild gold training data")
-    parser.add_argument("--api-url", default="http://localhost:8000", help="API base URL")
     parser.add_argument("--skip-reset", action="store_true", help="Skip CodingReview deletion")
     parser.add_argument("--skip-rebuild", action="store_true", help="Skip triggering re-extract")
-    parser.add_argument("--skip-monitor", action="store_true", help="Skip monitoring (just validate)")
     parser.add_argument("--validate-only", action="store_true", help="Only run validation queries")
     parser.add_argument("--sample-pct", type=float, default=0.10, help="Sample percentage (default 10%%)")
-    parser.add_argument("--poll-interval", type=int, default=15, help="Monitoring poll interval in seconds")
+    parser.add_argument("--poll-interval", type=int, default=30, help="Monitoring poll interval in seconds")
     args = parser.parse_args()
 
     driver = get_neo4j_driver()
@@ -365,7 +366,7 @@ def main() -> None:
         logger.info("Results written to %s", output_path)
         return
 
-    # Step 1: Reset
+    # Step 1: Delete CodingReview nodes
     if not args.skip_reset:
         logger.info("=== STEP 1: Deleting CodingReview nodes ===")
         stats = reset_coding_reviews(driver)
@@ -373,25 +374,20 @@ def main() -> None:
     else:
         logger.info("=== STEP 1: Skipped (--skip-reset) ===")
 
-    # Step 2: Trigger rebuild
-    if not args.skip_rebuild:
-        logger.info("=== STEP 2: Triggering re-extract + verify-all ===")
-        success = trigger_rebuild(args.api_url)
-        if not success:
-            logger.error("Failed to trigger rebuild. Is the API running?")
-            logger.info("Start API with: scripts\\start_leo-ai-core.ps1 -SkipInstall -Services api")
-            driver.close()
-            sys.exit(1)
+    # Step 2: Reset verification data
+    if not args.skip_reset:
+        logger.info("=== STEP 2: Resetting verification data ===")
+        reset_verification_data(driver)
     else:
-        logger.info("=== STEP 2: Skipped (--skip-rebuild) ===")
+        logger.info("=== STEP 2: Skipped (--skip-reset) ===")
 
-    # Step 3: Monitor
-    if not args.skip_monitor and not args.skip_rebuild:
-        logger.info("=== STEP 3: Monitoring pipeline run ===")
-        final_state = monitor_job(args.api_url, poll_interval=args.poll_interval)
+    # Step 3: Run re-extract + verify
+    if not args.skip_rebuild:
+        logger.info("=== STEP 3: Running re-extract + verify (direct) ===")
+        final_state = run_rebuild_job(poll_interval=args.poll_interval)
         logger.info("Final job state: %s", json.dumps(final_state, indent=2, default=str))
     else:
-        logger.info("=== STEP 3: Skipped ===")
+        logger.info("=== STEP 3: Skipped (--skip-rebuild) ===")
 
     # Step 4: Validate
     logger.info("=== STEP 4: Running validation queries ===")

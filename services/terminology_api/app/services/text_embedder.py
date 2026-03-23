@@ -42,8 +42,24 @@ class TerminologyTextEmbedder:
         try:
             device = self.device
             if device == "auto":
-                import torch
-                device = "cuda" if torch.cuda.is_available() else "cpu"
+                try:
+                    import torch
+                    device = "cuda" if torch.cuda.is_available() else "cpu"
+                except Exception:
+                    device = "cpu"
+            elif device == "cuda":
+                # Verify CUDA is actually usable; CPU-only torch builds raise
+                # AssertionError inside torch.cuda rather than returning False.
+                try:
+                    import torch
+                    if not torch.cuda.is_available():
+                        raise RuntimeError("cuda unavailable")
+                except Exception:
+                    logger.warning(
+                        "VECTOR_DEVICE=cuda but CUDA is not available on this build "
+                        "— falling back to CPU"
+                    )
+                    device = "cpu"
             offline = os.getenv("HF_HUB_OFFLINE", "0") == "1"
             self._model = SentenceTransformer(
                 self.model_name,

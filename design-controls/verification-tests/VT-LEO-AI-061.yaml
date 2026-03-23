@@ -1,0 +1,13 @@
+# -- VT-LEO-AI-061 -- DI-ID Gate
+
+- id: "VT-LEO-AI-061"
+  version: "1.0"
+  status: "draft"
+  traceability:
+    design_inputs: ["DI-LEO-AI-055"]
+    risks: ["R-LEO-AI-040"]
+  metadata:
+    title: "Gold pipeline blocks records with residual PHI patterns"
+    test_level: "unit"
+    automation_framework: "pytest"
+    test_file_paths: ["tests/test_deid_verification_gate.py"]

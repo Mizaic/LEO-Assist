@@ -14,6 +14,7 @@ jest.mock("@/lib/analyticsApi", () => ({
   fetchDiagnosedSummary: jest.fn(),
   fetchKPIBenchmarks: jest.fn(),
   fetchSafetyNetAlerts: jest.fn(),
+  actionSafetyNetAlert: jest.fn(),
 }));
 jest.mock("@/context/OrgContext", () => ({
   useOrgId: () => "org-1",
@@ -29,6 +30,9 @@ jest.mock("@/components/dashboard/DiagnosedByTypeChart", () => function MockDiag
 });
 jest.mock("@/components/dashboard/SafetyNetAlertsSummary", () => function MockAlerts() {
   return <div data-testid="alerts-summary" />;
+});
+jest.mock("@/components/dashboard/LLMSpendPanel", () => function MockSpendPanel() {
+  return <div data-testid="llm-spend-panel" />;
 });
 
 const theme = createTheme();

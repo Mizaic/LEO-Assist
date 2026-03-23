@@ -1,123 +1,111 @@
-"""Clinical Safety Signal (safety-net) and Unwarranted Variation detector.
-
-Identifies NG12 pathway signals, safety-netting gaps, and safety-net alerts
-by scanning episodes and coded encounter data against guideline pathways.
-"""
-
 from __future__ import annotations
 
-import logging
-from typing import Any, Dict, List
+from datetime import datetime
+from typing import Any
 
-logger = logging.getLogger(__name__)
 
-_SAFETY_NETTING_PATTERNS = (
-    "safety net", "safety-net", "if symptoms persist",
-    "return if", "re-attend if", "seek help if", "advised to re",
+_SAFETY_NET_TERMS = (
+    "safety net",
+    "symptoms persist",
+    "worsen",
+    "return sooner",
+    "call 999",
+    "call 111",
+    "not improving",
+    "red flag",
+    "continue to monitor",
 )
 
-_INVESTIGATION_CONCEPTS = frozenset([
-    "colonoscopy", "ct scan", "mri", "ultrasound", "biopsy",
-    "endoscopy", "sigmoidoscopy", "blood test",
-])
+
+def _check_safety_netting(data: dict[str, Any]) -> bool:
+    for encounter in data.get("encounters") or []:
+        if str(encounter.get("milestone_type") or "") != "first_presentation":
+            continue
+        text = str(encounter.get("text") or "").lower()
+        if any(term in text for term in _SAFETY_NET_TERMS):
+            return True
+    return False
+
+
+def _check_investigation_gap(data: dict[str, Any]) -> str | None:
+    encounters = list(data.get("encounters") or [])
+    milestone_types = {str(e.get("milestone_type") or "") for e in encounters}
+    if "referral" in milestone_types and "investigation" not in milestone_types:
+        return "Referral recorded without follow-up investigation"
+    return None
+
+
+def _check_referral_wait(data: dict[str, Any]) -> int | None:
+    referral_date: datetime | None = None
+    follow_up_date: datetime | None = None
+    for encounter in data.get("encounters") or []:
+        milestone_type = str(encounter.get("milestone_type") or "")
+        raw_date = encounter.get("date")
+        if not raw_date:
+            continue
+        try:
+            parsed = datetime.fromisoformat(str(raw_date))
+        except ValueError:
+            continue
+        if milestone_type == "referral" and referral_date is None:
+            referral_date = parsed
+        if milestone_type in {"investigation", "specialist_visit", "diagnosis"} and follow_up_date is None:
+            follow_up_date = parsed
+    if referral_date is None or follow_up_date is None:
+        return None
+    return (follow_up_date.date() - referral_date.date()).days
 
 
 def detect_safety_net_signals(
     patient_id: str,
-    episode_ids: List[str],
+    episode_ids: list[str],
     patient_client,
-    knowledge_client,
-) -> List[Dict[str, Any]]:
-    """Detect CSS and unwarranted variation signals across episodes."""
+    _knowledge_client,
+) -> list[dict[str, Any]]:
     signals: list[dict[str, Any]] = []
-
     for episode_id in episode_ids:
-        episode_data = _load_episode_data(episode_id, patient_client)
-        if not episode_data:
+        encounters = list(
+            patient_client.run(
+                "MATCH (ep:EpisodeOfCare)<-[:IS_PART_OF]-(e:Encounter) RETURN e",
+                patient_id=patient_id,
+                episode_id=episode_id,
+            )
+            or []
+        )
+        if not encounters:
             continue
-
-        safety_net = _check_safety_netting(episode_data)
-        if not safety_net:
-            signals.append({
-                "type": "missing_safety_netting",
-                "episode_id": episode_id,
-                "severity": "warning",
-                "description": "No safety-netting language found in pre-referral encounters",
-            })
-
-        investigation_gap = _check_investigation_gap(episode_data)
-        if investigation_gap:
-            signals.append({
-                "type": "investigation_gap",
-                "episode_id": episode_id,
-                "severity": "alert",
-                "description": investigation_gap,
-            })
-
-        wait_time = _check_referral_wait(episode_data)
-        if wait_time and wait_time > 14:
-            signals.append({
-                "type": "excessive_referral_wait",
-                "episode_id": episode_id,
-                "severity": "alert",
-                "description": f"Referral to first specialist contact: {wait_time} days (target: 14)",
-                "value": wait_time,
-            })
-
+        episode_data = {"episode_id": episode_id, "encounters": encounters}
+        if not _check_safety_netting(episode_data):
+            signals.append(
+                {
+                    "episode_id": episode_id,
+                    "patient_id": patient_id,
+                    "type": "missing_safety_netting",
+                    "severity": "warning",
+                    "description": "No safety-netting advice recorded at first presentation",
+                }
+            )
+        gap = _check_investigation_gap(episode_data)
+        if gap:
+            signals.append(
+                {
+                    "episode_id": episode_id,
+                    "patient_id": patient_id,
+                    "type": "investigation_gap",
+                    "severity": "warning",
+                    "description": gap,
+                }
+            )
+        wait_days = _check_referral_wait(episode_data)
+        if wait_days is not None and wait_days > 31:
+            signals.append(
+                {
+                    "episode_id": episode_id,
+                    "patient_id": patient_id,
+                    "type": "excessive_referral_wait",
+                    "severity": "high",
+                    "description": f"Referral wait exceeded threshold ({wait_days} days)",
+                    "wait_days": wait_days,
+                }
+            )
     return signals
-
-
-def _load_episode_data(episode_id: str, client) -> Dict[str, Any]:
-    rows = client.run(
-        "MATCH (e:Encounter)-[r:IS_PART_OF]->(ep:EpisodeOfCare {episode_id: $eid}) "
-        "RETURN e.id AS encounter_id, e.text AS text, e.date AS date, "
-        "       r.milestone_type AS milestone_type "
-        "ORDER BY e.date",
-        eid=episode_id,
-    )
-    return {"episode_id": episode_id, "encounters": rows} if rows else {}
-
-
-def _check_safety_netting(episode_data: Dict[str, Any]) -> bool:
-    for enc in episode_data.get("encounters", []):
-        if enc.get("milestone_type") in ("first_presentation", "referral"):
-            text = (str(enc.get("text", "")) or "").lower()
-            if any(p in text for p in _SAFETY_NETTING_PATTERNS):
-                return True
-    return False
-
-
-def _check_investigation_gap(episode_data: Dict[str, Any]) -> str | None:
-    has_referral = False
-    has_investigation = False
-    for enc in episode_data.get("encounters", []):
-        mt = enc.get("milestone_type", "")
-        if mt == "referral":
-            has_referral = True
-        if mt == "investigation":
-            has_investigation = True
-    if has_referral and not has_investigation:
-        return "No investigation encounter found after referral"
-    return None
-
-
-def _check_referral_wait(episode_data: Dict[str, Any]) -> int | None:
-    referral_date = None
-    specialist_date = None
-    for enc in episode_data.get("encounters", []):
-        mt = enc.get("milestone_type", "")
-        d = str(enc.get("date", ""))[:10]
-        if mt == "referral" and d:
-            referral_date = d
-        if mt in ("specialist_visit", "investigation") and d:
-            if specialist_date is None or d < specialist_date:
-                specialist_date = d
-    if referral_date and specialist_date:
-        try:
-            from datetime import datetime
-            rd = datetime.strptime(referral_date, "%Y-%m-%d")
-            sd = datetime.strptime(specialist_date, "%Y-%m-%d")
-            return (sd - rd).days
-        except ValueError:
-            pass
-    return None

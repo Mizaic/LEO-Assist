@@ -15,7 +15,7 @@ jest.mock("recharts", () => {
 describe("EpisodesByTypeChart", () => {
   it("shows empty message when no data", () => {
     render(<EpisodesByTypeChart data={[]} />);
-    expect(screen.getByText(/No referral pathway data available/)).toBeInTheDocument();
+    expect(screen.getByText(/No referral data to show for this period/)).toBeInTheDocument();
   });
 
   it("renders chart container when data is provided", () => {

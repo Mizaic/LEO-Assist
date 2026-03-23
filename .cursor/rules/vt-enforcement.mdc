@@ -17,6 +17,14 @@ All steps below are **blocking** — do not write code until the gap is resolved
 
 ## Workflow: Before Writing Any Code
 
+### Step 0.5 -- Identify or create the User Need (UN)
+
+- Check `design-controls/user-needs/` for a UN-LEO-AI-*.yaml that covers the feature area being changed.
+- If **no UN exists** for the user-facing capability -> **stop**: create `UN-LEO-AI-<next>.yaml` with all required fields: id, title, description, stakeholder, priority, rationale, acceptance_criteria, metadata.
+- Every DI `derived_from` field MUST contain `UN-LEO-AI-*` IDs only. Risk IDs (`R-*`) and DI IDs (`DI-*`) are NOT valid.
+- After creating any DI, update the referenced UN's `design_inputs` array to include the new DI ID.
+- Next UN number: check the highest existing number in `design-controls/user-needs/` and increment by 1.
+
 ### Step 1 — Identify or create the Design Input (DI)
 
 - Read DI YAMLs in `design-controls/design-inputs/` whose `technical_details.file_structure` or `machine_spec` covers the file(s) being changed.
@@ -34,7 +42,12 @@ All steps below are **blocking** — do not write code until the gap is resolved
 - Check `design-controls/risks/` for any R-LEO-AI-*.yaml whose `mitigation_measures[].implemented_by` references the DI, or whose `hazard` description covers the change.
 - If the change introduces a new safety-relevant behaviour with **no existing risk** covering it → **stop**: create `R-LEO-AI-<next>.yaml` using the schema below.
 - If an existing risk's mitigation is affected → update `mitigation_measures` and `residual_risk_estimate` accordingly.
-- Next Risk number: check the highest existing number in `design-controls/risks/` and increment by 1.
+- Next Risk number: check the highest existing ID INSIDE all risk files (including multi-document files that contain multiple risks), not just filenames. Use one risk per file for all new risks. Never embed multiple new risks in a single file.
+
+- Every new risk MUST include ALL required ISO 14971 fields before proceeding: `hazardous_situation`, `initial_risk_estimate` (severity, probability, detectability, rpn, risk_level), `mitigation_measures` (with `implemented_by` and `verified_by` populated), `residual_risk_estimate` (severity, probability, detectability, rpn, risk_level, acceptability, justification), `monitoring`, and `metadata` (identified_by, identified_date, status).
+- Severity vocabulary: use ONLY `{negligible, minor, serious, critical, catastrophic}`. The text label in `harm.severity` must match the numeric value in risk estimates: negligible=1, minor=2, serious=3, critical=4, catastrophic=5.
+- Every `mitigation_measures` entry MUST have at least one DI in `implemented_by` and at least one VT in `verified_by`. Empty arrays `[]` are not acceptable for implemented controls.
+- DIs with `safety_class` B or C MUST have at least one risk ID in their `risks` field. Class A DIs may have empty `risks: []`.
 
 ### Step 4 — Check VT coverage
 
@@ -78,6 +91,7 @@ Update the VT YAML `execution_history` with a new entry. Set `status: "passed"` 
 After creating or updating any DI, DO, Risk, VT, or VAL:
 
 - Add or update the corresponding row in `design-controls/DC-TM-001-traceability-matrix.md`.
+- Add or update the corresponding entry in `design-controls/DC-TM-002-traceability-matrix.csv`.
 - Add or update the corresponding entry in `design-controls/README.md` artefact tables.
 
 ---

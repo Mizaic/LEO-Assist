@@ -25,18 +25,18 @@
   mitigation_measures:
     - control_type: "protective_measure"
       description: "Health check endpoints detect database unavailability"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-029"]
+      verified_by: ["VT-LEO-AI-018"]
       effectiveness: "effective"
     - control_type: "protective_measure"
       description: "Graceful error handling returns clear error messages to users"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-029"]
+      verified_by: ["VT-LEO-AI-018"]
       effectiveness: "effective"
     - control_type: "information_for_safety"
       description: "Monitoring alerts notify operators of database connectivity issues"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-029"]
+      verified_by: ["VT-LEO-AI-018"]
       effectiveness: "effective"
 
   residual_risk_estimate:

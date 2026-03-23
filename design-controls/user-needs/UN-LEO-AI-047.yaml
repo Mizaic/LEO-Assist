@@ -1,0 +1,112 @@
+# -- UN-LEO-AI-047 -- Active Engagement Design to Prevent Automation Bias
+
+- id: "UN-LEO-AI-047"
+  title: "Clinical safety officers and clinical leads need the system to be designed so that human reviewers are required to actively engage with the clinical content and criteria evidence when confirming an AI triage recommendation -- not just acknowledge it -- so that automation bias does not reduce the human review gate to a rubber stamp."
+  description: |
+    A human review gate is a necessary but not sufficient control against AI
+    errors. When the AI recommendation is correct the majority of the time,
+    human reviewers rapidly learn to trust it and stop reading the underlying
+    evidence. Over time, the review gate becomes a formality -- the reviewer
+    clicks confirm without engaging with the clinical content. This is
+    automation bias, and it is well-documented in clinical decision support
+    contexts. When the AI is wrong, the biased reviewer will not catch it.
+
+    The system's review UX must be designed to require active clinical engagement
+    rather than passive confirmation. This means: displaying the evidence that
+    drove the recommendation, requiring the reviewer to confirm specific clinical
+    facts before the overall recommendation can be confirmed, and designing
+    interaction patterns that prevent one-click approval of an AI summary.
+
+  stakeholder:
+    type: "nhs_user"
+    role: "Clinical Safety Officer / Triage Clinician"
+    organization: "NHS Trust / LEO AI Engineering"
+
+  priority: "MUST"
+
+  rationale: |
+    Automation bias in clinical AI is a well-evidenced patient safety risk.
+    DCB0129 requires that the clinical safety case addresses the risk of
+    over-reliance on AI recommendations. A review gate designed around a
+    single "Accept" button does not meet this requirement because it does
+    not prevent the reviewer from approving without reading. The UX must
+    make it structurally difficult to approve without engaging, while not
+    making the interaction so burdensome that reviewers abandon it. This
+    balance is achievable through evidence-first presentation, targeted
+    confirmation of key clinical facts, and designed friction on high-risk
+    decisions.
+
+  benefit: |
+    Clinical safety case can demonstrate that the human review gate is a
+    genuine clinical control rather than a compliance formality. AI errors
+    are more likely to be caught because reviewers remain engaged with the
+    clinical evidence. Override rates reflect genuine disagreement rather
+    than fatigue. DCB0129 clinical safety officer sign-off is facilitated.
+
+  use_case: |
+    1. Triage clinician opens a referral with an AI triage recommendation.
+    2. The recommendation is presented alongside the evidence: coded clinical
+       findings that triggered it, guideline criteria met, and completeness status.
+    3. Before they can confirm the recommendation, the clinician must interact
+       with the evidence panel: for example, confirming the urgency-determining
+       finding is correct (one explicit confirmation step per recommendation).
+    4. For two-week-wait recommendations, an additional confirmation step
+       requires the clinician to confirm the primary red-flag criterion.
+    5. Once the required confirmations are completed, the overall confirm
+       button becomes active.
+    6. If the clinician disagrees with any confirmed finding, they can correct
+       it -- which automatically triggers re-evaluation of the recommendation.
+    7. Override rate and confirmation engagement metrics are reported to the
+       clinical safety officer for post-deployment monitoring.
+
+  current_solution: |
+    Not yet implemented. Review UI design has not yet addressed automation bias
+    risk. Single-action approval is the default pattern.
+
+  pain_points:
+    - "Single-click approval patterns encourage rubber-stamping without clinical engagement"
+    - "Clinical safety officers cannot demonstrate that the review gate is a genuine control"
+    - "Automation bias is well-evidenced in clinical AI and is a DCB0129 risk"
+    - "Override rates reflect genuine disagreement only if reviewers are actively engaged"
+    - "UX design choices can either mitigate or amplify automation bias"
+
+  acceptance_criteria:
+    - "Overall recommendation cannot be confirmed without completing at minimum one evidence confirmation step"
+    - "For two-week-wait recommendations, the primary urgency criterion must be explicitly confirmed"
+    - "Evidence confirmation steps require an active gesture (click, selection, or confirmation) -- not just reading"
+    - "Correcting a confirmed finding triggers automatic re-evaluation of the recommendation"
+    - "Confirmation engagement metrics (time on evidence panel, number of findings reviewed) are logged"
+    - "Metrics are available to clinical safety officer in post-deployment monitoring dashboard"
+
+  success_metrics:
+    - metric: "Mean time spent on evidence panel before recommendation confirmation"
+      target: "Maintained above a minimum threshold (to be calibrated post-deployment) indicating genuine review"
+      baseline: "Not currently measured"
+    - metric: "Urgent referrals missed (false negatives on two-week-wait classification)"
+      target: "Zero undetected by human reviewer in post-deployment audit"
+      baseline: "Not currently measured"
+
+  regulatory_impact: "high"
+  safety_impact: "high"
+  safety_class: "B"
+
+  derived_from:
+    - "Intended Use Statement DC-IU-001"
+    - "IEC 62304:2006/AMD1:2015 Class B software lifecycle"
+    - "ISO 14971:2019 risk management"
+
+  related_standards:
+    - "IEC 62304:2006/AMD1:2015"
+    - "ISO 14971:2019"
+    - "DCB0129"
+    - "IEC 62366-1 -- Usability Engineering"
+
+  metadata:
+    created_by: "Engineering Team"
+    created_date: "2026-03-11"
+    status: "draft"
+    evidence_source: "User interviews P14, P18 -- UR-LEO-AI-001"
+
+  design_inputs: []
+  validation_tests: []
+  tags: ["automation-bias", "ux-safety", "human-review", "clinical-safety", "dcb0129", "hitl"]

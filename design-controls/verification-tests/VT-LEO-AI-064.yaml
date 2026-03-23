@@ -1,0 +1,14 @@
+# -- VT-LEO-AI-064 -- LLM Rule Generation and HITL Review
+
+- id: "VT-LEO-AI-064"
+  version: "1.0"
+  status: "draft"
+  traceability:
+    design_inputs: ["DI-LEO-AI-064"]
+    risks: ["R-LEO-AI-042", "R-LEO-AI-043"]
+  metadata:
+    title: "LLM rule generator applies INJECTION_GUARD, conservative fail, and HITL gate"
+    test_level: "unit"
+    automation_framework: "pytest"
+    test_file_paths:
+      - "services/api/tests/test_guidance_rule_generator.py"

@@ -23,7 +23,7 @@ describe("CaseloadStrip", () => {
 
   it("renders segment labels", () => {
     render(<CaseloadStrip summary={summary} />);
-    expect(screen.getByText("Breached")).toBeInTheDocument();
+    expect(screen.getByText("Overdue")).toBeInTheDocument();
     expect(screen.getByText("At risk")).toBeInTheDocument();
     expect(screen.getByText("On track")).toBeInTheDocument();
     expect(screen.getByText("Completed")).toBeInTheDocument();

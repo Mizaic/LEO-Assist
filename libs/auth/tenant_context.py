@@ -14,6 +14,7 @@ from typing import Dict, List, Optional
 
 import requests
 from fastapi import Header, HTTPException
+
 from jose import JWTError, jwt
 
 logger = logging.getLogger("libs.auth")

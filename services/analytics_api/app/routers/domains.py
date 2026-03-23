@@ -17,9 +17,11 @@ import json
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
+from libs.cypher.terminology_queries import DESCENDANTS_TEMPLATE
 from libs.domain_config.registry import DomainRegistry
 from libs.neo4j_client.client import KnowledgeGraphClient
 
@@ -58,7 +60,7 @@ def _ensure_default_domain() -> None:
         domain_id = "cancer_audit"
         client.run(
             "MERGE (d:AuditDomain {id: $id}) "
-            "SET d.name = $name, d.description = $desc",
+            "SET d.name = $name, d.description = $desc, d.source = 'platform'",
             id=domain_id,
             name="Cancer Audit",
             desc="National Cancer Diagnosis Audit domains",
@@ -110,17 +112,24 @@ def _parse_concepts_from_raw(raw_json: Optional[str]) -> List[Dict[str, Any]]:
                 concept_id = int(code)
             except (ValueError, TypeError):
                 concept_id = 0
+            designations = c.get("designation") or []
             synonyms = [
                 d.get("value", "")
-                for d in c.get("designation") or []
+                for d in designations
                 if (d.get("use") or {}).get("code") == "synonym"
             ]
+            benchmark_key = next(
+                (d.get("value") for d in designations
+                 if (d.get("use") or {}).get("code") == "benchmark_key"),
+                None,
+            )
             concepts.append({
                 "concept_id": concept_id,
                 "term": display,
                 "preferred_term": display,
                 "semantic_tag": None,
                 "guideline_synonyms": synonyms,
+                "benchmark_key": benchmark_key,
             })
     return concepts
 
@@ -215,6 +224,7 @@ class DomainSummary(BaseModel):
     name: str
     description: str
     subdomain_count: int = 0
+    source: str = "tenant"
 
 
 class DomainDetail(DomainSummary):
@@ -250,30 +260,51 @@ class AddConceptRequest(BaseModel):
     concept_id: int
     term: str = Field(..., min_length=1)
     synonyms: List[str] = []
+    benchmark_key: Optional[str] = None
 
 
 # ── Domain endpoints ─────────────────────────────────────────────────────
 
 
 @router.get("/domains", response_model=List[DomainSummary])
-def list_domains():
-    """List all audit domains."""
+def list_domains(source: Optional[str] = Query(default=None, description="Filter by source: nice, platform, or tenant")):
+    """List all audit domains.
+
+    Use the ``source`` query parameter to filter:
+    - ``nice`` — areas from official NICE guidelines
+    - ``platform`` — built-in domains provided out of the box
+    - ``tenant`` — domains created by your organisation
+    """
     _ensure_default_domain()
     client = KnowledgeGraphClient()
     try:
-        rows = client.run(
-            "MATCH (d:AuditDomain) "
-            "OPTIONAL MATCH (d)-[:HAS_SUBDOMAIN]->(v:ValueSet) "
-            "RETURN d.id AS id, d.name AS name, d.description AS description, "
-            "count(v) AS subdomain_count "
-            "ORDER BY d.name"
-        )
+        if source:
+            cypher = (
+                "MATCH (d:AuditDomain) "
+                "WHERE coalesce(d.source, 'tenant') = $source "
+                "OPTIONAL MATCH (d)-[:HAS_SUBDOMAIN]->(v:ValueSet) "
+                "RETURN d.id AS id, d.name AS name, d.description AS description, "
+                "coalesce(d.source, 'tenant') AS source, "
+                "count(v) AS subdomain_count "
+                "ORDER BY d.name"
+            )
+            rows = client.run(cypher, source=source)
+        else:
+            rows = client.run(
+                "MATCH (d:AuditDomain) "
+                "OPTIONAL MATCH (d)-[:HAS_SUBDOMAIN]->(v:ValueSet) "
+                "RETURN d.id AS id, d.name AS name, d.description AS description, "
+                "coalesce(d.source, 'tenant') AS source, "
+                "count(v) AS subdomain_count "
+                "ORDER BY d.name"
+            )
         return [
             DomainSummary(
                 id=r["id"],
                 name=r["name"] or r["id"],
                 description=r.get("description") or "",
                 subdomain_count=r.get("subdomain_count", 0),
+                source=r.get("source", "tenant"),
             )
             for r in rows
         ]
@@ -293,7 +324,7 @@ def create_domain(body: DomainCreateRequest):
         if existing:
             raise HTTPException(400, f"Domain '{body.name}' already exists")
         client.run(
-            "CREATE (d:AuditDomain {id: $id, name: $name, description: $desc})",
+            "CREATE (d:AuditDomain {id: $id, name: $name, description: $desc, source: 'tenant', createdAt: datetime()})",
             id=domain_id,
             name=body.name,
             desc=body.description,
@@ -303,6 +334,7 @@ def create_domain(body: DomainCreateRequest):
             name=body.name,
             description=body.description,
             subdomain_count=0,
+            source="tenant",
         )
     finally:
         client.close()
@@ -316,7 +348,8 @@ def get_domain(domain_id: str):
     try:
         rows = client.run(
             "MATCH (d:AuditDomain {id: $id}) "
-            "RETURN d.id AS id, d.name AS name, d.description AS description",
+            "RETURN d.id AS id, d.name AS name, d.description AS description, "
+            "coalesce(d.source, 'tenant') AS source",
             id=domain_id,
         )
         if not rows:
@@ -360,6 +393,7 @@ def get_domain(domain_id: str):
             description=d.get("description") or "",
             subdomain_count=len(subdomains),
             subdomains=subdomains,
+            source=d.get("source", "tenant"),
         )
     finally:
         client.close()
@@ -410,14 +444,27 @@ def update_domain(domain_id: str, body: DomainUpdateRequest):
 
 @router.delete("/domains/{domain_id}", status_code=204)
 def delete_domain(domain_id: str):
-    """Delete an audit domain (does not delete subdomains/ValueSets)."""
+    """Delete an audit domain (does not delete subdomains/ValueSets).
+
+    NICE domains (source=nice) and platform domains (source=platform)
+    cannot be deleted. These are protected system domains.
+    """
     client = KnowledgeGraphClient()
     try:
         existing = client.run(
-            "MATCH (d:AuditDomain {id: $id}) RETURN d.id AS id", id=domain_id
+            "MATCH (d:AuditDomain {id: $id}) RETURN d.id AS id, coalesce(d.source, 'tenant') AS source",
+            id=domain_id,
         )
         if not existing:
             raise HTTPException(404, f"Domain '{domain_id}' not found")
+        domain_source = existing[0].get("source", "tenant")
+        if domain_source in ("nice", "platform"):
+            raise HTTPException(
+                403,
+                f"This domain cannot be deleted because it is a "
+                f"{'NICE guideline' if domain_source == 'nice' else 'built-in platform'} domain. "
+                "You can manage its concepts, but you cannot delete it.",
+            )
         client.run("MATCH (d:AuditDomain {id: $id}) DETACH DELETE d", id=domain_id)
     finally:
         client.close()
@@ -644,6 +691,8 @@ def add_concept(
     for syn in body.synonyms:
         if syn.strip():
             designations.append({"use": {"code": "synonym"}, "value": syn.strip()})
+    if body.benchmark_key and body.benchmark_key.strip():
+        designations.append({"use": {"code": "benchmark_key"}, "value": body.benchmark_key.strip()})
 
     concepts.append({
         "code": str(body.concept_id),
@@ -831,6 +880,93 @@ def remove_concept(domain_id: str, subdomain_name: str, concept_id: str):
         semantic_tags=tags,
         concepts=_parse_concepts_from_raw(vr.get("rawJson")),
         concept_count=_count_concepts_from_raw(vr.get("rawJson")),
+    )
+
+
+# ── Export endpoint ──────────────────────────────────────────────────────
+
+
+@router.get(
+    "/domains/{domain_id}/subdomains/{subdomain_name}/export",
+)
+def export_subdomain(
+    domain_id: str,
+    subdomain_name: str,
+    include_children: bool = Query(
+        default=False,
+        description="When true, expand each concept via IS_A hierarchy and include all descendants",
+    ),
+    depth: int = Query(default=3, ge=1, le=5, description="IS_A traversal depth for child expansion"),
+):
+    """Export subdomain concept config as JSON.
+
+    Without include_children: returns the stored top-level concepts only.
+    With include_children: expands each concept's IS_A descendants and groups them under
+    their parent, providing the full set of codes that will match in queries.
+    """
+    _ensure_domain_owns_subdomain(domain_id, subdomain_name)
+
+    vs_id = _subdomain_to_valueset_id(subdomain_name)
+    raw = _get_valueset_raw(vs_id)
+    if raw is None:
+        raise HTTPException(404, f"Subdomain '{subdomain_name}' not found")
+
+    concepts = _parse_concepts_from_raw(raw)
+
+    if not include_children:
+        payload = {
+            "domain_id": domain_id,
+            "subdomain": subdomain_name,
+            "include_children": False,
+            "concepts": [
+                {
+                    "concept_id": c["concept_id"],
+                    "term": c["preferred_term"],
+                    "synonyms": c.get("guideline_synonyms", []),
+                }
+                for c in concepts
+            ],
+        }
+        return JSONResponse(
+            content=payload,
+            headers={"Content-Disposition": f'attachment; filename="{subdomain_name}.json"'},
+        )
+
+    # Expand each concept's IS_A descendants
+    kg = KnowledgeGraphClient()
+    try:
+        expanded = []
+        for c in concepts:
+            rows = kg.run(
+                DESCENDANTS_TEMPLATE.format(depth=int(depth)),
+                concept_id=str(c["concept_id"]),
+                semantic_tag=None,
+                limit=500,
+            )
+            children = [
+                {"concept_id": int(r["snomed_concept_id"]), "term": r["term"]}
+                for r in (rows or [])
+            ]
+            expanded.append({
+                "concept_id": c["concept_id"],
+                "term": c["preferred_term"],
+                "synonyms": c.get("guideline_synonyms", []),
+                "child_count": len(children),
+                "children": children,
+            })
+    finally:
+        kg.close()
+
+    payload = {
+        "domain_id": domain_id,
+        "subdomain": subdomain_name,
+        "include_children": True,
+        "expansion_depth": depth,
+        "concepts": expanded,
+    }
+    return JSONResponse(
+        content=payload,
+        headers={"Content-Disposition": f'attachment; filename="{subdomain_name}-expanded.json"'},
     )
 
 

@@ -104,7 +104,6 @@ class UpsertMappingRequest(BaseModel):
     confidence: float = 1.0
     source: str = "manual"
     provenance: str = "manual_correction"
-    created_by: str = "ui_user"
 
 
 @router.post("/surface-forms/upsert-mapping")
@@ -120,7 +119,6 @@ def upsert_surface_form_mapping(body: UpsertMappingRequest, _: None = Depends(ve
             confidence=body.confidence,
             source=body.source,
             provenance=body.provenance,
-            created_by=body.created_by,
         )
         if not rows:
             raise HTTPException(status_code=404, detail=f"Concept {body.concept_id} not found")

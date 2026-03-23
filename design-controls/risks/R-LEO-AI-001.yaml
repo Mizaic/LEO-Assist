@@ -25,18 +25,18 @@
   mitigation_measures:
     - control_type: "protective_measure"
       description: "Human review required for all NLP coding proposals before acceptance as audit data"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-003", "DI-LEO-AI-006"]
+      verified_by: ["VT-LEO-AI-002", "VT-LEO-AI-004"]
       effectiveness: "highly_effective"
     - control_type: "protective_measure"
       description: "Validation checks verify SNOMED code plausibility against clinical context"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-003", "DI-LEO-AI-006"]
+      verified_by: ["VT-LEO-AI-002", "VT-LEO-AI-004"]
       effectiveness: "effective"
     - control_type: "procedural_control"
       description: "Gold-standard labelled dataset regression testing with F1 >= 0.85 threshold"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-003", "DI-LEO-AI-006"]
+      verified_by: ["VT-LEO-AI-002", "VT-LEO-AI-004"]
       effectiveness: "highly_effective"
 
   residual_risk_estimate:

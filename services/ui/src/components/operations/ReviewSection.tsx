@@ -36,6 +36,8 @@ interface CodingGroup {
   decision_tier: number | null;
   tier_reason: string | null;
   tier_decision: string | null;
+  suggested_label: string | null;
+  tag_mismatch_delta: number | null;
 }
 
 interface AssertionGroup {
@@ -57,6 +59,16 @@ interface HitlTask {
   reason: string;
 }
 
+interface SurfaceFormTask {
+  task_id: string;
+  entity_text: string;
+  current_concept: string;
+  current_term: string;
+  suggested_concept: string;
+  suggested_term: string;
+  confidence: number;
+}
+
 function codingGroupToItem(g: CodingGroup): ReviewItem {
   const base: ReviewItem = {
     id: `coding:${g.entity_text}`,
@@ -73,6 +85,8 @@ function codingGroupToItem(g: CodingGroup): ReviewItem {
     decisionTier: (g.decision_tier as 1 | 2 | 3 | null) ?? null,
     tierReason: g.tier_reason ?? null,
     tierDecision: g.tier_decision ?? null,
+    suggestedLabel: g.suggested_label ?? undefined,
+    tagMismatchDelta: g.tag_mismatch_delta ?? undefined,
   };
   base.question = buildQuestion(base);
   base.explanation = buildExplanation(base);
@@ -117,15 +131,34 @@ function assertionGroupToItem(g: AssertionGroup): ReviewItem {
   return base;
 }
 
+function surfaceFormTaskToItem(t: SurfaceFormTask): ReviewItem {
+  const base: ReviewItem = {
+    id: `surface_form:${t.task_id}`,
+    kind: "coding",
+    entityText: t.entity_text,
+    entityLabel: "surface_form",
+    count: 1,
+    confidence: t.confidence ?? null,
+    uncoded: false,
+    question: "",
+    explanation: "",
+  };
+  base.question = `Check this code mapping for "${t.entity_text}"`;
+  base.explanation = `Current ${t.current_concept || "none"} -> suggested ${t.suggested_concept || "none"}`;
+  return base;
+}
+
 // -- Component ---------------------------------------------------------------
 
 interface Props {
   onStatsChange?: () => void;
+  /** When this changes, the queue is reloaded (e.g. after delete-all). */
+  refreshKey?: number;
 }
 
-type FilterKey = "all" | "coding" | "hitl" | "context" | "tier1" | "tier2" | "tier3";
+type FilterKey = "all" | "coding" | "hitl" | "context" | "tier1" | "tier2" | "tier3" | "surface";
 
-export default function ReviewSection({ onStatsChange }: Props) {
+export default function ReviewSection({ onStatsChange, refreshKey }: Props) {
   const [queue, setQueue] = useState<ReviewItem[]>([]);
   const [index, setIndex] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -138,7 +171,7 @@ export default function ReviewSection({ onStatsChange }: Props) {
     setLoading(true);
     setError("");
     try {
-      const [codingRes, hitlRes, contextRes] = await Promise.allSettled([
+      const [codingRes, hitlRes, contextRes, sfRes] = await Promise.allSettled([
         jsonFetch<{ groups: CodingGroup[] }>(
           "/api/training/coding-review/grouped?page=1&page_size=50",
         ),
@@ -147,6 +180,9 @@ export default function ReviewSection({ onStatsChange }: Props) {
         ),
         jsonFetch<{ groups: AssertionGroup[] }>(
           "/api/training/coding-review/assertion-queue?page=1&page_size=50",
+        ),
+        jsonFetch<{ items: SurfaceFormTask[] }>(
+          "/api/training/surface-form-tasks?page=1&page_size=50&status=pending",
         ),
       ]);
 
@@ -159,6 +195,9 @@ export default function ReviewSection({ onStatsChange }: Props) {
       }
       if (contextRes.status === "fulfilled") {
         items.push(...contextRes.value.groups.map(assertionGroupToItem));
+      }
+      if (sfRes.status === "fulfilled") {
+        items.push(...sfRes.value.items.map(surfaceFormTaskToItem));
       }
 
       items.sort((a, b) => {
@@ -179,13 +218,14 @@ export default function ReviewSection({ onStatsChange }: Props) {
 
   useEffect(() => {
     loadQueue();
-  }, [loadQueue]);
+  }, [loadQueue, refreshKey]);
 
   const filtered = queue.filter((item) => {
     if (filter === "all") return true;
     if (filter === "tier1") return item.decisionTier === 1;
     if (filter === "tier2") return item.decisionTier === 2;
     if (filter === "tier3") return item.decisionTier === 3;
+    if (filter === "surface") return item.id.startsWith("surface_form:");
     return item.kind === filter;
   });
 
@@ -205,6 +245,20 @@ export default function ReviewSection({ onStatsChange }: Props) {
     async (item: ReviewItem, result: TermSearchResult) => {
       setBusy(true);
       try {
+        if (item.id.startsWith("surface_form:")) {
+          const taskId = item.id.replace("surface_form:", "");
+          await jsonFetch(`/api/training/surface-form-tasks/${taskId}/resolve`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              status: "approved",
+              resolved_concept: result.snomed_concept_id,
+              resolved_by: "operations_ui",
+            }),
+          });
+          advance();
+          return;
+        }
         await jsonFetch("/api/training/coding-review/batch-resolve", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -306,17 +360,20 @@ export default function ReviewSection({ onStatsChange }: Props) {
 
       {/* Filters */}
       <Stack role="group" aria-label="Review filters" direction="row" gap={0.75} flexWrap="wrap">
-        {(["all", "coding", "hitl", "context"] as FilterKey[]).map((key) => {
+        {(["all", "coding", "hitl", "context", "surface"] as FilterKey[]).map((key) => {
           const labels: Record<string, string> = {
             all: "All",
             coding: "Coding",
             hitl: "Tasks",
             context: "Context",
+            surface: "Surface forms",
           };
           const count =
             key === "all"
               ? queue.length
-              : queue.filter((i) => i.kind === key).length;
+              : key === "surface"
+                ? queue.filter((i) => i.id.startsWith("surface_form:")).length
+                : queue.filter((i) => i.kind === key).length;
           const hasAlert = key === "context" && count > 0;
           const isActive = filter === key;
           return (

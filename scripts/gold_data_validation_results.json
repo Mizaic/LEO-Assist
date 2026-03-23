@@ -1,57 +1,59 @@
 {
   "overall": {
     "total_labels": 12656,
-    "has_entities": 12568,
+    "has_entities": 12574,
     "verified": 12656,
     "avg_entities": 2.3
   },
   "coding_review": {
-    "total": 0,
-    "coded": 0,
-    "uncoded": 0,
+    "total": 2909,
+    "coded": 1346,
+    "uncoded": 1563,
     "resolved": 0,
-    "pending": 0
+    "pending": 2909
   },
   "verification_reviews": {
-    "None": 2395
+    "None": 2309
   },
   "sample": {
-    "n_sampled": 1256,
-    "n_verified_total": 12568,
+    "n_sampled": 1257,
+    "n_verified_total": 12574,
     "empty_extractions": 0,
-    "total_entities_in_sample": 2828,
-    "avg_entities_per_label": 2.3,
+    "total_entities_in_sample": 2772,
+    "avg_entities_per_label": 2.2,
     "entity_type_distribution": {
-      "qualifier_value": 817,
-      "observable_entity": 664,
-      "finding": 612,
-      "procedure": 200,
-      "situation": 156,
-      "disorder": 133,
-      "X_TEMPORAL": 82,
-      "record_artifact": 62,
-      "substance": 28,
-      "body_structure": 15,
-      "event": 12,
-      "medicinal_product": 12,
-      "regime_therapy": 11,
+      "qualifier_value": 818,
+      "finding": 594,
+      "observable_entity": 583,
+      "procedure": 228,
+      "disorder": 159,
+      "situation": 95,
+      "X_TEMPORAL": 69,
+      "record_artifact": 68,
+      "substance": 63,
+      "body_structure": 31,
+      "event": 17,
+      "regime_therapy": 10,
       "X_FREQUENCY": 7,
-      "clinical_drug": 4,
-      "assessment_scale": 4,
+      "assessment_scale": 6,
+      "physical_object": 5,
+      "attribute": 4,
       "environment": 4,
-      "attribute": 2,
-      "product": 1,
+      "morphologic_abnormality": 3,
+      "medicinal_product": 3,
+      "clinical_drug": 2,
       "staging_scale": 1,
-      "physical_object": 1
+      "product": 1,
+      "X_ROUTE": 1
     },
     "assertion_distribution": {
-      "present": 2057,
-      "possible": 315,
-      "absent": 246,
-      "hypothetical": 111,
-      "historical": 93,
-      "family": 5,
-      "cancelled": 1
+      "present": 2257,
+      "absent": 225,
+      "hypothetical": 142,
+      "possible": 67,
+      "historical": 64,
+      "family": 13,
+      "declined": 4
     }
   },
   "disagreements": {

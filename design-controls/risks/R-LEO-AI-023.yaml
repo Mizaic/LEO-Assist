@@ -25,18 +25,18 @@
   mitigation_measures:
     - control_type: "protective_measure"
       description: "Guideline rule accuracy validated against expert-reviewed cases with threshold >= 90%"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-008", "DI-LEO-AI-024"]
+      verified_by: ["VT-LEO-AI-006"]
       effectiveness: "highly_effective"
     - control_type: "protective_measure"
       description: "Human review of all guideline alerts before they are actioned"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-008", "DI-LEO-AI-024"]
+      verified_by: ["VT-LEO-AI-006"]
       effectiveness: "highly_effective"
     - control_type: "procedural_control"
       description: "Guideline rules reviewed by clinical team when NICE guidance is updated"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-008", "DI-LEO-AI-024"]
+      verified_by: ["VT-LEO-AI-006"]
       effectiveness: "effective"
 
   residual_risk_estimate:

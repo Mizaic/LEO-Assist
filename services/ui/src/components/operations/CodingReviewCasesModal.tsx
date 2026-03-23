@@ -81,6 +81,8 @@ interface CaseRecord {
   encounter_text: string;
   source: string;
   assertion?: string;
+  suggested_label?: string | null;
+  tag_mismatch_delta?: number | null;
 }
 
 interface SiblingEntity {
@@ -879,6 +881,17 @@ function CaseCard({
         <Alert severity="info" sx={{ mb: 1.5, py: 0.5 }}>
           This procedure was planned or awaiting. Check whether it was completed
           before accepting a code.
+        </Alert>
+      )}
+
+      {caseRecord.suggested_label && (
+        <Alert severity="warning" sx={{ mb: 1.5, py: 0.5 }}>
+          <strong>Semantic tag mismatch:</strong> LLM extracted this as &apos;{caseRecord.entity_label.replace(/_/g, " ")}&apos;,
+          but the SNOMED resolver suggests &apos;{caseRecord.suggested_label.replace(/_/g, " ")}&apos;
+          {caseRecord.tag_mismatch_delta != null && (
+            <> (score delta: {((caseRecord.tag_mismatch_delta) * 100).toFixed(0)}%)</>
+          )}.
+          Consider correcting the entity type above before coding.
         </Alert>
       )}
 

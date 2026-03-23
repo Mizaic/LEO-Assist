@@ -1,0 +1,1150 @@
+{
+  "Mammography normal": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 168749009 Mammography normal (finding) score=8.76",
+    "finding",
+    "[procedure] 71651007 Mammography (procedure) score=5.88 \\"
+  ],
+  "Body mass index 30+": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 162864005 Body mass index 30+ - obesity (finding) score=10.74",
+    "finding",
+    "[procedure] 698094009 Measurement of body mass index (procedure) score=7.41 \\"
+  ],
+  "Faecal Immunochemical Test (FIT)": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 71711000112103 Occult blood detected in feces by immunoassay (finding) score=14.87",
+    "finding",
+    "[procedure] 149421000000109 Provision of faecal immunochemical test kit (procedure) score=12.87 \\"
+  ],
+  "chemotherapy completed": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 373834005 Chemotherapy changed - acute chemotherapy toxicity (finding) score=5.03",
+    "finding",
+    "[procedure] 367336001 Chemotherapy (procedure) score=5.37 \\"
+  ],
+  "lump": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 237557003 Mass of thyroid gland (finding) score=4.79",
+    "finding",
+    "[procedure] 392021009 Lumpectomy of breast (procedure) score=3.98 \\"
+  ],
+  "?fracture": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 733826000 Pain due to fracture (finding) score=2.97",
+    "finding",
+    "[procedure] 7108004 Osteoclasis (procedure) score=2.97 \\"
+  ],
+  "Body mass index index 25-29": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 162863004 Body mass index 25-29 - overweight (finding) score=16.72",
+    "finding",
+    "[procedure] 698094009 Measurement of body mass index (procedure) score=10.35 \\"
+  ],
+  "Breast neoplasm screening normal": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 171175005 Breast neoplasm screening normal (finding) score=10.53",
+    "finding",
+    "[procedure] 268547008 Screening for malignant neoplasm of breast (procedure) score=8.35 \\"
+  ],
+  "NEGATIVE FIT": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 91175000 Seizure (finding) score=5.64",
+    "finding",
+    "[procedure] 275811000 Diaphragm fit (procedure) score=5.07 \\"
+  ],
+  "TFTs": [
+    "LLM_PICK",
+    "[AWS only — Azure failed] TFTs is an abbreviation for thyroid function tests, which represents the act of ordering or performing a panel of thyroid tests rather than a single measured value, making it a procedure concept.",
+    "54024002",
+    "",
+    "-"
+  ],
+  "alcohol habits": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 1293193004 Toxicophilic habits (finding) score=6.32",
+    "finding",
+    "[procedure] 63267000 Alcohol measurement (procedure) score=3.98 \\"
+  ],
+  "injured": [
+    "LLM_PICK",
+    "[AWS only — Azure failed] The candidate concept is contextually inappropriate for a generic 'injured' finding; it is overly specific to aircraft accidents and does not represent the general clinical concept of injury that would typically appear in a GP note.",
+    "5380001",
+    "",
+    "[finding] 5380001 On ground bystander victim in aircraft accident (finding) score=1.93"
+  ],
+  "mild elevation of ALT": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 251260005 TU elevation (finding) score=5.09",
+    "finding",
+    "[procedure] 34608000 Alanine aminotransferase measurement (procedure) score=6.60 \\"
+  ],
+  "mood + affect": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 6140007 Blunted affect (finding) score=6.03",
+    "finding",
+    "[procedure] 386366009 Mood management (procedure) score=4.76 \\"
+  ],
+  "negative FIT test": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 168386007 Helicobacter pylori not detected by rapid urease test (finding) score=6.33",
+    "finding",
+    "[procedure] 149421000000109 Provision of faecal immunochemical test kit (procedure) score=5.23 \\"
+  ],
+  "reduced hearing": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 64379006 Decrease in appetite (finding) score=4.62",
+    "finding",
+    "[procedure] 398171003 Hearing examination (procedure) score=4.22 \\"
+  ],
+  "wound": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 945771000000102 Traumatic wound (finding) score=3.21",
+    "finding",
+    "[procedure] 225116006 Irrigation of wound (procedure) score=3.21 \\"
+  ],
+  "??cdiff": [
+    "LLM_PICK",
+    "[AWS only — Azure failed] No SNOMED CT candidates provided; 'cdiff' likely refers to Clostridioides difficile infection (finding), but cannot map without candidate options.",
+    "unknown",
+    "",
+    "-"
+  ],
+  "?cystic": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 369746007 Cystic tumor configuration (finding) score=3.98",
+    "finding",
+    "[procedure] 287341003 Cystic hygroma incision (procedure) score=3.98 \\"
+  ],
+  "?fungal infection": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 769148006 Finding of presence of unicellular fungus (finding) score=4.65",
+    "finding",
+    "[procedure] 250197002 Fungal killing test (procedure) score=5.12 \\"
+  ],
+  "?possible infection": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 165071007 Temperature chart: possible ovulation (finding) score=4.89",
+    "finding",
+    "[procedure] 427230007 Amniocentesis for possible chromosomal abnormality (procedure) score=4.51 \\"
+  ],
+  "?ulceration": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 396565007 Tumor ulceration absent (finding) score=4.71",
+    "finding",
+    "[procedure] 1127091000000109 Assessment using pulpal involvement, ulceration, fistula and abscess index (procedure) score=3.04 \\"
+  ],
+  "Alpha fetoprotein": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 365802003 Finding of alpha-fetoprotein level (finding) score=8.58",
+    "finding",
+    "[procedure] 169188005 Alpha-fetoprotein radioimmunoassay (procedure) score=8.58 \\"
+  ],
+  "B2 lesion": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 226143008 Vitamin B2-rich diet (finding) score=4.64",
+    "finding",
+    "[procedure] 11017006 Thromboxane B2 assay (procedure) score=5.06 \\"
+  ],
+  "BMI: Body mass index 20-24 - normal": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 412768003 Body mass index 20-24 - normal (finding) score=18.09",
+    "finding",
+    "[procedure] 698094009 Measurement of body mass index (procedure) score=7.41 \\"
+  ],
+  "BMI: Body mass index index 25-29 - overweight": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 162863004 Body mass index 25-29 - overweight (finding) score=21.04",
+    "finding",
+    "[procedure] 698094009 Measurement of body mass index (procedure) score=10.35 \\"
+  ],
+  "Body mass index 20-24": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 412768003 Body mass index 20-24 - normal (finding) score=12.43",
+    "finding",
+    "[procedure] 698094009 Measurement of body mass index (procedure) score=7.41 \\"
+  ],
+  "Body mass index normal K/M2": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 35425004 Normal body mass index (finding) score=10.92",
+    "finding",
+    "[procedure] 698094009 Measurement of body mass index (procedure) score=7.41 \\"
+  ],
+  "COPD changes": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 275258002 Breast changes (finding) score=4.99",
+    "finding",
+    "[procedure] 741056003 Education about chronic obstructive pulmonary disease (procedure) score=4.28 \\"
+  ],
+  "Coryzal sympoms": [
+    "LLM_PICK",
+    "[AWS only — Azure failed] Coryza is the clinical term for acute rhinitis with nasal symptoms; the text describes symptomatic presentation, which is a clinical finding rather than a procedure or measurable entity.",
+    "82288004",
+    "",
+    "-"
+  ],
+  "ECGs": [
+    "LLM_PICK",
+    "[AWS only — Azure failed] ECG refers to the act of performing or ordering an electrocardiogram test, not a measurable property or result value, making it a procedure rather than an observable entity.",
+    "12345678",
+    "",
+    "-"
+  ],
+  "ELCS": [
+    "LLM_PICK",
+    "[AWS only — Azure failed] ELCS is the standard abbreviation for elective caesarean section, a surgical procedure commonly documented in UK GP notes for obstetric history and referrals.",
+    "302383004",
+    "",
+    "-"
+  ],
+  "F2F examination": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 274296009 On examination - rectal examination (finding) score=3.29",
+    "finding",
+    "[procedure] 73761001 Colonoscopy (procedure) score=3.32 \\"
+  ],
+  "FH: Asthma - mother": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 289256000 Mother delivered (finding) score=4.77",
+    "finding",
+    "[procedure] 1371350009 Administration of prophylactic drug or medicament for asthma (procedure) score=4.33 \\"
+  ],
+  "FIT neg": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 278148006 Blood group O Rh(D) negative (finding) score=6.56",
+    "finding",
+    "[procedure] 275811000 Diaphragm fit (procedure) score=5.07 \\"
+  ],
+  "FIT neg.": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 278148006 Blood group O Rh(D) negative (finding) score=6.56",
+    "finding",
+    "[procedure] 275811000 Diaphragm fit (procedure) score=5.07 \\"
+  ],
+  "FIT negative": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 91175000 Seizure (finding) score=5.64",
+    "finding",
+    "[procedure] 275811000 Diaphragm fit (procedure) score=5.07 \\"
+  ],
+  "FIT normal": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 91175000 Seizure (finding) score=5.64",
+    "finding",
+    "[procedure] 275811000 Diaphragm fit (procedure) score=5.07 \\"
+  ],
+  "FIT test": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 71711000112103 Occult blood detected in feces by immunoassay (finding) score=6.04",
+    "finding",
+    "[procedure] 149421000000109 Provision of faecal immunochemical test kit (procedure) score=5.23 \\"
+  ],
+  "FOBT Normal": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 22803001 Normal respiratory function (finding) score=3.48",
+    "finding",
+    "[procedure] 177184002 Normal delivery procedure (procedure) score=3.48 \\"
+  ],
+  "Faecal Immunochemical Test (FIT) is positive": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 71711000112103 Occult blood detected in feces by immunoassay (finding) score=17.83",
+    "finding",
+    "[procedure] 149421000000109 Provision of faecal immunochemical test kit (procedure) score=12.87 \\"
+  ],
+  "Ferritin <1000": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 165626000 Ferritin level below reference range (finding) score=5.61",
+    "finding",
+    "[procedure] 489004 Ferritin measurement (procedure) score=6.18 \\"
+  ],
+  "Gastroscopy normal": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 165141001 Gastroscopy normal (finding) score=9.69",
+    "finding",
+    "[procedure] 386831001 Endoscopy of stomach (procedure) score=6.91 \\"
+  ],
+  "Globulin levels": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 365758001 Finding of electrolyte levels (finding) score=5.04",
+    "finding",
+    "[procedure] 250707004 Globulin measurement (procedure) score=4.69 \\"
+  ],
+  "Haematocrit - low 0.340": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 165414004 Hematocrit below reference range (finding) score=10.03",
+    "finding",
+    "[procedure] 28317006 Hematocrit determination (procedure) score=6.89 \\"
+  ],
+  "International normalised ratio Normal": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 165582006 International normalized ratio within reference range (finding) score=14.00",
+    "finding",
+    "[procedure] 440685005 Calculation of international normalized ratio (procedure) score=10.25 \\"
+  ],
+  "JAK2-positive": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 246658005 Seeing blob in vision (finding) score=3.86",
+    "finding",
+    "[procedure] 710155001 Promotion of positive relationship (procedure) score=3.50 \\"
+  ],
+  "Language barrier": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 22541000175109 At increased risk of language barrier (finding) score=6.44",
+    "finding",
+    "[procedure] 275830000 Reverse barrier nursing (procedure) score=5.10 \\"
+  ],
+  "Likely Viral infection": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 870438008 Likely to find match with unrelated donor (finding) score=4.43",
+    "finding",
+    "[procedure] 16961000000101 Scottish certification visual handicap - likely to improve (procedure) score=4.43 \\"
+  ],
+  "MF was stopped": [
+    "LLM_PICK",
+    "[AWS only — Azure failed] MF likely refers to a medication (e.g., mycophenolate or similar) being discontinued; while 'stopped' suggests an action, the candidates are all findings describing cessation states rather than procedures, making 'Stopped smoking' the closest semantic match for a discontinuation event, though ideally a medication discontinuation concept would be preferred.",
+    "160617001",
+    "",
+    "[finding] 160617001 Stopped smoking (finding) score=4.96"
+  ],
+  "MSU": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 167225007 Mid stream urine = abnormal (finding) score=6.65",
+    "finding",
+    "[procedure] 225271002 Collection of mid-stream specimen of urine (procedure) score=4.14 \\"
+  ],
+  "MSU shows infection": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 167225007 Mid stream urine = abnormal (finding) score=6.65",
+    "finding",
+    "[procedure] 225271002 Collection of mid-stream specimen of urine (procedure) score=4.14 \\"
+  ],
+  "New infection": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 276068009 Changed job (finding) score=4.68",
+    "finding",
+    "[procedure] 406902000 New fuchsin stain method (procedure) score=4.25 \\"
+  ],
+  "Normal FBC": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 165406005 Full blood count within reference range (finding) score=8.68",
+    "finding",
+    "[procedure] 26604007 Complete blood count (procedure) score=6.52 \\"
+  ],
+  "Normal FIT": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 91175000 Seizure (finding) score=5.64",
+    "finding",
+    "[procedure] 275811000 Diaphragm fit (procedure) score=5.07 \\"
+  ],
+  "OCD symtpoms": [
+    "LLM_PICK",
+    "[AWS only — Azure failed] The entity 'OCD symptoms' describes clinical observations rather than a procedure, but no direct OCD symptom finding concept is available in candidates; the highest-scoring procedure concept is selected as the least inappropriate option, though ideally a finding concept like 'Obsessive-compulsive disorder (disorder)' would be more semantically correct.",
+    "1057321000000101",
+    "",
+    "[procedure] 1057321000000101 Signposting to Obsessive-Compulsive Disorder Action (procedure) score=4.86"
+  ],
+  "One kidney removed": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 367091000000109 Removed from kidney transplant waiting list (finding) score=6.41",
+    "finding",
+    "[procedure] 406155005 Removal of all drains (procedure) score=4.90 \\"
+  ],
+  "PUing more": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 1144481009 Feeling more empowered (finding) score=3.81",
+    "finding",
+    "[procedure] 73947002 Circulation time, two or more test materials (procedure) score=2.79 \\"
+  ],
+  "PV discharge": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 300132001 Ear discharge (finding) score=3.88",
+    "finding",
+    "[procedure] 271214007 Plasma viscosity measurement (procedure) score=5.84 \\"
+  ],
+  "Possible hip arthritis": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 772109006 Nudix hydrolase 15 possible intermediate metabolizer (finding) score=4.89",
+    "finding",
+    "[procedure] 427230007 Amniocentesis for possible chromosomal abnormality (procedure) score=4.51 \\"
+  ],
+  "Previous smear HPV+": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 391144006 Human papillomavirus test consent given (finding) score=4.86",
+    "finding",
+    "[procedure] 67778008 Human papillomavirus typing (procedure) score=5.84 \\"
+  ],
+  "Previous smear in 2023 HPV+": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 391144006 Human papillomavirus test consent given (finding) score=4.86",
+    "finding",
+    "[procedure] 67778008 Human papillomavirus typing (procedure) score=5.84 \\"
+  ],
+  "Quantitative faecal immunochemical test result received": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 71711000112103 Occult blood detected in feces by immunoassay (finding) score=10.98",
+    "finding",
+    "[procedure] 149421000000109 Provision of faecal immunochemical test kit (procedure) score=10.19 \\"
+  ],
+  "SLR normal": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 164570008 On examination - straight leg raising reduced on left (finding) score=5.10",
+    "finding",
+    "[procedure] 177184002 Normal delivery procedure (procedure) score=3.48 \\"
+  ],
+  "SOL": [
+    "LLM_PICK",
+    "[AWS only — Azure failed] SOL (space-occupying lesion) is a clinical finding but no SNOMED CT candidates were provided; recommend manual review or use parent concept 'Lesion (finding)' [404684003] as fallback.",
+    "null",
+    "",
+    "-"
+  ],
+  "Seen by nephrologist": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 305683000 Seen by nephrologist (finding) score=11.45",
+    "finding",
+    "[procedure] 306439005 Discharge by nephrologist (procedure) score=7.92 \\"
+  ],
+  "Similar symptoms": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 162004006 Tooth symptoms (finding) score=4.13",
+    "finding",
+    "[procedure] 223413005 Signs and symptoms education (procedure) score=3.44 \\"
+  ],
+  "Smoking status": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 308512009 Smoking monitoring status (finding) score=7.74",
+    "finding",
+    "[procedure] 196771000000101 Smoking assessment (procedure) score=4.78 \\"
+  ],
+  "T.s and A.s": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 931031000000104 Progressive intellectual and neurological deterioration (finding) score=1.88",
+    "finding",
+    "[procedure] 703423002 Combined chemotherapy and radiation therapy (procedure) score=1.88 \\"
+  ],
+  "UEs": [
+    "LLM_PICK",
+    "[AWS only — Azure failed] UEs is the standard UK abbreviation for urea and electrolytes panel, which represents a set of measured laboratory values rather than the act of ordering the test.",
+    "410377005",
+    "",
+    "-"
+  ],
+  "Undergoing Braca Testing": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 1325411000000106 Requires distraction technique whilst undergoing care procedure (finding) score=4.66",
+    "finding",
+    "[procedure] 87221008 Sterility testing (procedure) score=4.72 \\"
+  ],
+  "XR Chest": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 249674001 Chest over-expanded (finding) score=3.91",
+    "finding",
+    "[procedure] 386043001 Respiratory tract evaluation (procedure) score=3.91 \\"
+  ],
+  "Xray": [
+    "LLM_PICK",
+    "[AWS only — Azure failed] While 'Xray' typically refers to ordering an imaging procedure, the only candidate available is a finding concept indicating receipt of a report; this represents the documented outcome rather than the act of ordering, though a procedure concept would be more semantically precise.",
+    "2071000000108",
+    "",
+    "[finding] 2071000000108 X-ray report received (finding) score=7.26"
+  ],
+  "achey": [
+    "LLM_PICK",
+    "[AWS only — Azure failed] The term 'achey' is a colloquial description of pain or discomfort, which is a clinical finding representing the patient's subjective symptom.",
+    "13577407009",
+    "",
+    "-"
+  ],
+  "atrophy": [
+    "LLM_PICK",
+    "[AWS only — Azure failed] All candidates are equally scored organ-specific atrophy findings; without clinical context specifying anatomical location, choroidal atrophy is selected as a common primary care ophthalmological finding, but a more general atrophy concept may be more appropriate if the anatomical site is unspecified.",
+    "247200005",
+    "",
+    "[finding] 247200005 Choroidal atrophy (finding) score=4.26"
+  ],
+  "bleeding lesion": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 131148009 Bleeding (finding) score=4.94",
+    "finding",
+    "[procedure] 30381006 Bleeding precautions (procedure) score=4.44 \\"
+  ],
+  "blood sugars": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 250406009 Blood incompatible (finding) score=2.80",
+    "finding",
+    "[procedure] 299341000000104 Checking blood and blood products (procedure) score=2.93 \\"
+  ],
+  "breast cysts": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 365694007 Finding of presence of ova cysts and parasites (finding) score=3.86",
+    "finding",
+    "[procedure] 37149007 Destruction of retroperitoneal cysts (procedure) score=4.51 \\"
+  ],
+  "catheter": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 1156073005 Blocked catheter (finding) score=3.62",
+    "finding",
+    "[procedure] 225272009 Cleaning around catheter (procedure) score=3.62 \\"
+  ],
+  "ccough": [
+    "LLM_PICK",
+    "[AWS only — Azure failed] Despite no candidates provided, 'ccough' is a clear typographical variant of 'cough', which is a clinical symptom and sign best represented as a finding in SNOMED CT.",
+    "49727002",
+    "",
+    "-"
+  ],
+  "chest xray": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 2071000000108 X-ray report received (finding) score=7.26",
+    "finding",
+    "[procedure] 386043001 Respiratory tract evaluation (procedure) score=3.91 \\"
+  ],
+  "clot formation": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 36123008 Abnormal bone formation (finding) score=4.74",
+    "finding",
+    "[procedure] 42828001 Clot retraction, screen (procedure) score=4.88 \\"
+  ],
+  "cold symptoms": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 83547004 Cold sweat (finding) score=4.60",
+    "finding",
+    "[procedure] 50052006 Cold pressor test (procedure) score=4.60 \\"
+  ],
+  "cold type symptoms": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 248836003 Breast cold (finding) score=4.60",
+    "finding",
+    "[procedure] 77056006 Atomic absorption, flameless type (procedure) score=5.80 \\"
+  ],
+  "collection": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 367241000000108 Timed collection: specimen collection, overnight (finding) score=4.76",
+    "finding",
+    "[procedure] 17636008 Specimen collection (procedure) score=4.56 \\"
+  ],
+  "coryzal symptoms": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 10171000132106 Behavioral and psychological symptoms of dementia (finding) score=4.13",
+    "finding",
+    "[procedure] 223413005 Signs and symptoms education (procedure) score=3.44 \\"
+  ],
+  "current weight": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 77176002 Smoker (finding) score=5.12",
+    "finding",
+    "[procedure] 313513005 Sweat weight measurement (procedure) score=4.13 \\"
+  ],
+  "cytosponge test": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 226219004 Test diet (finding) score=2.80",
+    "finding",
+    "[procedure] 674004 Abduction test of knee (procedure) score=2.80 \\"
+  ],
+  "daily": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 228319007 Drinks alcohol daily (finding) score=4.58",
+    "finding",
+    "[procedure] 225315002 Daily bathing (procedure) score=4.58 \\"
+  ],
+  "deconditioned": [
+    "LLM_PICK",
+    "[AWS only — Azure failed] Deconditioning is a clinical interpretation describing reduced physical fitness or functional capacity, appropriately classified as a finding rather than a procedure or observable entity.",
+    "3184004",
+    "",
+    "-"
+  ],
+  "development": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 118201000 Finding related to development of sexuality (finding) score=4.42",
+    "finding",
+    "[procedure] 386446004 Staff development (procedure) score=4.42 \\"
+  ],
+  "diameter >6mm": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 51381009 Increased diameter (finding) score=5.13",
+    "finding",
+    "[procedure] 121257001 Platelet mean diameter determination (procedure) score=4.26 \\"
+  ],
+  "diverticulae": [
+    "LLM_PICK",
+    "[AWS only — Azure failed] Diverticulae are anatomical outpouchings representing a morphologic abnormality that would be identified and documented as a clinical finding on examination or imaging.",
+    "20912009",
+    "",
+    "-"
+  ],
+  "ear infection": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 247234006 Ear finding (finding) score=3.52",
+    "finding",
+    "[procedure] 128392000 Ear excision (procedure) score=3.52 \\"
+  ],
+  "exacerbation": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 135860001 Exacerbation of backache (finding) score=4.80",
+    "finding",
+    "[procedure] 966031000000101 Severe asthma exacerbation risk assessment (procedure) score=4.06 \\"
+  ],
+  "faecal calprotectin": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 933811000000100 Faecal calprotectin test indeterminate (finding) score=9.42",
+    "finding",
+    "[procedure] 444006004 Quantitative measurement of mass content of calprotectin in stool specimen (procedure) score=10.29 \\"
+  ],
+  "faecal elastase": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 142251000119102 Fecal incontinence with fecal urgency (finding) score=5.03",
+    "finding",
+    "[procedure] 390953005 Fecal elastase 1 level (procedure) score=9.09 \\"
+  ],
+  "family hx": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 81935006 Family conflict (finding) score=3.28",
+    "finding",
+    "[procedure] 397619005 Family planning education (procedure) score=3.28 \\"
+  ],
+  "folate": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 226148004 Folic acid-rich diet (finding) score=4.83",
+    "finding",
+    "[procedure] 60306005 Folic acid measurement, serum (procedure) score=4.83 \\"
+  ],
+  "frequency": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 57196006 Gene frequency (finding) score=4.78",
+    "finding",
+    "[procedure] 277390006 Frequency resolution test (procedure) score=4.34 \\"
+  ],
+  "glands up in neck": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 161882006 Stiff neck (finding) score=4.88",
+    "finding",
+    "[procedure] 862251000000105 In-house follow-up (procedure) score=4.84 \\"
+  ],
+  "hand-foot syndrome": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 102551008 Cramp in foot (finding) score=3.19",
+    "finding",
+    "[procedure] 178841003 Complex reconstruction operations on hand and foot (procedure) score=4.22 \\"
+  ],
+  "has made changes to diet and activity": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 247949007 Resistance to changes in patterns of activity (finding) score=7.12",
+    "finding",
+    "[procedure] 419155003 Recommendation to change diet (procedure) score=4.87 \\"
+  ],
+  "heart burn": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 846341000000109 Burn healed (finding) score=3.58",
+    "finding",
+    "[procedure] 90660004 Application of dressing for burn (procedure) score=3.58 \\"
+  ],
+  "heart size": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 15454001 Increased size (finding) score=4.39",
+    "finding",
+    "[procedure] 165472008 Red blood cell size determination (procedure) score=3.65 \\"
+  ],
+  "high temp": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 112080002 Cheerful mood (finding) score=3.73",
+    "finding",
+    "[procedure] 173326008 Insertion of temporary dental filling in tooth (procedure) score=4.80 \\"
+  ],
+  "hirstutism": [
+    "LLM_PICK",
+    "[AWS only — Azure failed] Hirsutism is a clinical sign representing excessive hair growth in a male pattern distribution, appropriately classified as a finding rather than a procedure or observable entity.",
+    "60348009",
+    "",
+    "-"
+  ],
+  "hirsuitism": [
+    "LLM_PICK",
+    "[AWS only — Azure failed] Hirsutism is a clinical sign representing excessive hair growth in a male pattern distribution, which is a clinical observation and interpretation rather than a procedure or measurable property.",
+    "165232002",
+    "",
+    "-"
+  ],
+  "impact on family health": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 1074071000000106 Does recognise impact of self on others (finding) score=4.98",
+    "finding",
+    "[procedure] 370803007 Evaluation of psychosocial impact on plan of care (procedure) score=4.98 \\"
+  ],
+  "implant": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 860691008 Uses drug-eluting contraceptive implant (finding) score=3.57",
+    "finding",
+    "[procedure] 234667005 Expose jaw implant (procedure) score=3.57 \\"
+  ],
+  "inflammation": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 225540005 Wound inflammation (finding) score=4.25",
+    "finding",
+    "[procedure] 168527001 Radiotherapy for inflammation (procedure) score=3.86 \\"
+  ],
+  "joint-effusiom": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 2764000 Joint crepitus (finding) score=2.56",
+    "finding",
+    "[procedure] 302495003 Arthrotomy (procedure) score=2.56 \\"
+  ],
+  "knee XR": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 309566008 Problem knee (finding) score=3.47",
+    "finding",
+    "[procedure] 116321006 Knee maneuver (procedure) score=3.47 \\"
+  ],
+  "knee XRs": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 309566008 Problem knee (finding) score=3.47",
+    "finding",
+    "[procedure] 116321006 Knee maneuver (procedure) score=3.47 \\"
+  ],
+  "landed directly onto R knee": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 284743005 Throwing self onto floor (finding) score=4.86",
+    "finding",
+    "[procedure] 182882002 Drug intake observed (procedure) score=4.92 \\"
+  ],
+  "language barrier": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 22541000175109 At increased risk of language barrier (finding) score=6.44",
+    "finding",
+    "[procedure] 275830000 Reverse barrier nursing (procedure) score=5.10 \\"
+  ],
+  "language difficulties": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 161129001 Learning difficulties (finding) score=4.95",
+    "finding",
+    "[procedure] 450318004 Assessment using strengths and difficulties questionnaire (procedure) score=3.52 \\"
+  ],
+  "large baby": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 278978003 Well baby (finding) score=4.42",
+    "finding",
+    "[procedure] 431259009 Bathing infant (procedure) score=4.42 \\"
+  ],
+  "last ferritin aug 24": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 848471000000108 Bowels not opened in last 24 hours (finding) score=5.90",
+    "finding",
+    "[procedure] 489004 Ferritin measurement (procedure) score=6.18 \\"
+  ],
+  "level of poor appetite": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 64379006 Decrease in appetite (finding) score=10.25",
+    "finding",
+    "[procedure] 709263008 Assessment of appetite (procedure) score=5.77 \\"
+  ],
+  "likely fungal infection": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 769148006 Finding of presence of unicellular fungus (finding) score=4.65",
+    "finding",
+    "[procedure] 250197002 Fungal killing test (procedure) score=5.12 \\"
+  ],
+  "likely infection throat and trachea": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 297268004 Ear, nose and throat finding (finding) score=4.86",
+    "finding",
+    "[procedure] 27032005 Nose and throat examination (procedure) score=5.27 \\"
+  ],
+  "malignant looking LNs": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 788876001 Cachexia due to malignant neoplastic disease (finding) score=2.80",
+    "finding",
+    "[procedure] 178292004 Sampling of lymph node (procedure) score=7.09 \\"
+  ],
+  "mirena fitted in April": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 285621000000102 Mirena coil check (finding) score=6.37",
+    "finding",
+    "[procedure] 443131005 Provision of personal alarm device with link to provider service (procedure) score=4.76 \\"
+  ],
+  "mood": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 18963009 Mood swings (finding) score=4.76",
+    "finding",
+    "[procedure] 386366009 Mood management (procedure) score=4.76 \\"
+  ],
+  "new sympts": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 276068009 Changed job (finding) score=4.68",
+    "finding",
+    "[procedure] 185387006 New patient consultation (procedure) score=4.25 \\"
+  ],
+  "normal FIT": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 91175000 Seizure (finding) score=5.64",
+    "finding",
+    "[procedure] 275811000 Diaphragm fit (procedure) score=5.07 \\"
+  ],
+  "ongoing erectile problems": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 473327001 Complaining of erectile dysfunction (finding) score=4.59",
+    "finding",
+    "[procedure] 395101001 Ongoing review (procedure) score=6.09 \\"
+  ],
+  "pain relief": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 428346000 Pain relief by medication (finding) score=7.69",
+    "finding",
+    "[procedure] 182970005 Pain relief (procedure) score=9.24 \\"
+  ],
+  "possible obstruction": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 165071007 Temperature chart: possible ovulation (finding) score=4.89",
+    "finding",
+    "[procedure] 427230007 Amniocentesis for possible chromosomal abnormality (procedure) score=4.51 \\"
+  ],
+  "potassium": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 55180007 Potassium diet (finding) score=4.12",
+    "finding",
+    "[procedure] 49833001 Potassium measurement, urine (procedure) score=4.12 \\"
+  ],
+  "preg tests": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 166345007 Thyroid hormone tests outside reference range (finding) score=4.05",
+    "finding",
+    "[procedure] 167257008 High sensitivity urine pregnancy test (procedure) score=4.98 \\"
+  ],
+  "prev knee surgery": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 183370007 Convalescence after surgery (finding) score=3.50",
+    "finding",
+    "[procedure] 387713003 Surgical procedure (procedure) score=4.29 \\"
+  ],
+  "previous abnormal LFTs": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 127362006 Previous pregnancies (finding) score=4.58",
+    "finding",
+    "[procedure] 65657001 Take-down of stoma of gallbladder (procedure) score=3.81 \\"
+  ],
+  "rashes": [
+    "LLM_PICK",
+    "[AWS only — Azure failed] Rash is a clinical sign or observable skin manifestation that represents an interpreted clinical observation rather than a procedure or measurable quantity.",
+    "271807003",
+    "",
+    "-"
+  ],
+  "reconstruction": [
+    "LLM_PICK",
+    "[AWS only — Azure failed] Generic 'reconstruction' without anatomical specificity maps to the broad parent concept; breast and neck reconstructions are more specific procedures requiring explicit anatomical context in the clinical note.",
+    "122465003",
+    "",
+    "[procedure] 122465003 Reconstruction procedure (procedure) score=4.31"
+  ],
+  "scar tissue": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 278998008 Tenderness of scar (finding) score=4.72",
+    "finding",
+    "[procedure] 287790000 Stoma scar tissue released (procedure) score=6.40 \\"
+  ],
+  "similar symptoms": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 162004006 Tooth symptoms (finding) score=4.13",
+    "finding",
+    "[procedure] 223413005 Signs and symptoms education (procedure) score=3.44 \\"
+  ],
+  "skin lesion": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 734932003 Benign pigmented skin lesion (finding) score=4.87",
+    "finding",
+    "[procedure] 225396002 Skin lesion assessment (procedure) score=5.31 \\"
+  ],
+  "slit his wrist": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 250994005 Slit-like mitral valve orifice (finding) score=4.74",
+    "finding",
+    "[procedure] 386148007 Slit skin stain method (procedure) score=6.18 \\"
+  ],
+  "small free fal": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 249117000 Breech not engaged (finding) score=3.88",
+    "finding",
+    "[procedure] 44119001 Anastomosis of small intestine to small intestine (procedure) score=3.90 \\"
+  ],
+  "spondylotic changes": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 248216009 Complexion changes (finding) score=4.99",
+    "finding",
+    "[procedure] 223488008 Discussion about changes in lifestyle (procedure) score=3.83 \\"
+  ],
+  "sputum production": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 167997000 Sputum: eosinophilia (finding) score=4.80",
+    "finding",
+    "[procedure] 167989007 Sputum inspection (procedure) score=4.80 \\"
+  ],
+  "stitches in nose": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 248580006 Whistling in nose (finding) score=5.38",
+    "finding",
+    "[procedure] 232470004 Reconstruction of nose (procedure) score=3.98 \\"
+  ],
+  "stroke hx": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 28690004 Bulge sign (finding) score=4.53",
+    "finding",
+    "[procedure] 135875009 Stroke prevention (procedure) score=4.53 \\"
+  ],
+  "surgery": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 183370007 Convalescence after surgery (finding) score=3.50",
+    "finding",
+    "[procedure] 387713003 Surgical procedure (procedure) score=4.29 \\"
+  ],
+  "suspected campy infection": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 55383003 Unidentified body but identity suspected (finding) score=3.25",
+    "finding",
+    "[procedure] 171397002 Medical examination for suspected condition (procedure) score=3.52 \\"
+  ],
+  "suspected fracture to sesamoid": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 733826000 Pain due to fracture (finding) score=4.00",
+    "finding",
+    "[procedure] 32607009 Reduction of closed sesamoid fracture (procedure) score=6.81 \\"
+  ],
+  "temp": [
+    "LLM_PICK",
+    "[AWS only — Azure failed] The candidate is a dental procedure unrelated to 'temp' as a clinical abbreviation for temperature; the extraction appears to have failed to identify appropriate temperature-related concepts.",
+    "173326008",
+    "",
+    "[procedure] 173326008 Insertion of temporary dental filling in tooth (procedure) score=4.80"
+  ],
+  "temp symptoms subsided": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 10171000132106 Behavioral and psychological symptoms of dementia (finding) score=4.13",
+    "finding",
+    "[procedure] 173326008 Insertion of temporary dental filling in tooth (procedure) score=4.80 \\"
+  ],
+  "text mum requesting contact": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 796081000000106 Requires contact by text relay (finding) score=6.60",
+    "finding",
+    "[procedure] 445450000 Encounter by short message service text messaging (procedure) score=4.53 \\"
+  ],
+  "thorn lodged below skin": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 299652006 Amputated below knee (finding) score=4.14",
+    "finding",
+    "[procedure] 88312006 Amputation of lower limb through tibia and fibula (procedure) score=4.14 \\"
+  ],
+  "tophi": [
+    "LLM_PICK",
+    "[AWS only — Azure failed] Tophi are clinical deposits of monosodium urate crystals characteristic of chronic gout, representing an interpreted clinical sign rather than a procedure or measurable property.",
+    "90806006",
+    "",
+    "-"
+  ],
+  "unsure if has temp": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 169642000 Feeding intention - unsure (finding) score=6.08",
+    "finding",
+    "[procedure] 252331000 Immunofixation (procedure) score=5.62 \\"
+  ],
+  "visuon loss": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 262285001 Weight decreased (finding) score=3.78",
+    "finding",
+    "[procedure] 313078004 Counseling for loss (procedure) score=3.75 \\"
+  ],
+  "was on 20cigs /day": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 170112009 10 day examination abnormal - on treatment (finding) score=4.84",
+    "finding",
+    "[procedure] 7133001 Psychiatric day care by day (procedure) score=4.48 \\"
+  ],
+  "weighed": [
+    "LLM_PICK",
+    "[AWS only — Azure failed] The verb 'weighed' in clinical context typically refers to the act of measuring body weight or performing a weighing procedure, though the candidate concept is specifically about dietary assessment; a more general weight measurement procedure would be more appropriate if available, but this is the closest match provided.",
+    "226072006",
+    "",
+    "[procedure] 226072006 Weighed dietary intake assessment (procedure) score=6.82"
+  ],
+  "wheexing": [
+    "LLM_PICK",
+    "[AWS only — Azure failed] Wheezing is a clinical sign representing an audible, high-pitched breathing sound indicating airway obstruction; it is an interpreted clinical observation rather than a procedure or measurable quantity.",
+    "12675008",
+    "",
+    "-"
+  ],
+  "woke up drenched": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 66857006 Hemoptysis (finding) score=4.48",
+    "finding",
+    "[procedure] 128964003 Leg up physiologic challenge (procedure) score=3.88 \\"
+  ],
+  "x3 20mg wrist injections": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 279926005 Fear of needles (finding) score=5.91",
+    "finding",
+    "[procedure] 46822003 Arthrography of wrist (procedure) score=3.60 \\"
+  ],
+  "xray in 2022": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 2071000000108 X-ray report received (finding) score=7.26",
+    "finding",
+    "[procedure] 225210009 Locked door procedure (procedure) score=1.94 \\"
+  ],
+  "xray nad": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 2071000000108 X-ray report received (finding) score=7.26",
+    "finding",
+    "[procedure] 104695007 Glutamate dehydrogenase nicotinamide adenine dinucleotide measurement (procedure) score=4.30 \\"
+  ],
+  "xray ok": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 2071000000108 X-ray report received (finding) score=7.26",
+    "finding",
+    "[procedure] 817911000000104 Open excision of intra-articular osteophyte of elbow (procedure) score=5.46 \\"
+  ],
+  "xray request": [
+    "LLM_PICK",
+    "\\",
+    "[finding] 2071000000108 X-ray report received (finding) score=7.26",
+    "finding",
+    "[procedure] 394838008 Test request (procedure) score=4.90 \\"
+  ]
+}

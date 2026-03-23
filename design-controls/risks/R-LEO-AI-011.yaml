@@ -25,18 +25,18 @@
   mitigation_measures:
     - control_type: "inherent_safety"
       description: "Pipeline hard-fails with clear error message when LLM unavailable -- no degraded fallback that could produce incorrect results"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-006", "DI-LEO-AI-014"]
+      verified_by: ["VT-LEO-AI-004", "VT-LEO-AI-020"]
       effectiveness: "highly_effective"
     - control_type: "protective_measure"
       description: "Retry logic with exponential backoff for transient failures"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-006", "DI-LEO-AI-014"]
+      verified_by: ["VT-LEO-AI-004", "VT-LEO-AI-020"]
       effectiveness: "effective"
     - control_type: "information_for_safety"
       description: "Clear error reporting to operators with suggested resolution steps"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-006", "DI-LEO-AI-014"]
+      verified_by: ["VT-LEO-AI-004", "VT-LEO-AI-020"]
       effectiveness: "effective"
 
   residual_risk_estimate:

@@ -1,0 +1,48 @@
+---
+description: Seeding scripts must not overwrite existing data in Neo4j or other stores
+globs: "**/*seed*.py"
+alwaysApply: false
+---
+
+# Seeding Script Rules
+
+Seeding scripts populate Neo4j (or other stores) with baseline data. They must **never overwrite** existing data that users may have modified.
+
+## Guard Before Seeding
+
+Add a count guard at the start of the seed logic. Skip seeding entirely if the target nodes already exist:
+
+```python
+# GOOD: Guard and return early
+result = session.run("MATCH (n:TargetLabel) RETURN count(n) AS cnt").single()
+existing = result["cnt"] if result else 0
+if existing > 0:
+    logger.info("Skipped — %d TargetLabel(s) already present.", existing)
+    return
+# ... proceed with seeding
+```
+
+## Patterns to Avoid
+
+- **MERGE ... SET** without a guard — overwrites all properties on every run
+- **DETACH DELETE** then recreate — destroys user data
+- Unconditional upserts that replace user-edited values
+
+## Acceptable Patterns
+
+- **Count guard** — skip if any target nodes exist
+- **ON CREATE SET only** — create new nodes, never touch existing
+- **Source-aware upsert** — only update when `source = 'seed'`; leave user-edited (`source <> 'seed'`) untouched
+- **ON MATCH SET** limited to non-user fields (e.g. `patient_count`, `meta`) — preserve user-defined filters/config
+
+## Docstring
+
+Document the guard in the module docstring:
+
+```python
+"""Seed X into the Knowledge Graph.
+
+Only seeds when no X nodes exist; skips if any are already present
+to avoid overwriting user-modified data.
+"""
+```

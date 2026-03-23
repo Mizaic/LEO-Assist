@@ -1,0 +1,13 @@
+# -- VT-LEO-AI-056 -- GoldLabel Required NER Fields
+
+- id: "VT-LEO-AI-056"
+  version: "1.0"
+  status: "draft"
+  traceability:
+    design_inputs: ["DI-LEO-AI-055"]
+    risks: ["R-LEO-AI-040"]
+  metadata:
+    title: "GoldLabel entities include text,label,semantic_tag,start,end,assertion"
+    test_level: "unit"
+    automation_framework: "pytest"
+    test_file_paths: ["tests/test_gold_label_queries.py"]

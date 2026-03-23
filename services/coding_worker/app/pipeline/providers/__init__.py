@@ -1,1 +1,1 @@
-"""Extractor provider implementations."""
+"""Legacy provider compatibility package."""

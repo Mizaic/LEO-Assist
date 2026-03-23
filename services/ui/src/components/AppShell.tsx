@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import CircularProgress from "@mui/material/CircularProgress";
@@ -32,12 +32,20 @@ import AssessmentOutlinedIcon from "@mui/icons-material/AssessmentOutlined";
 import GroupWorkOutlinedIcon from "@mui/icons-material/GroupWorkOutlined";
 import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
 import LibraryBooksOutlinedIcon from "@mui/icons-material/LibraryBooksOutlined";
-import SportsEsportsOutlinedIcon from "@mui/icons-material/SportsEsportsOutlined";
+import SpaOutlinedIcon from "@mui/icons-material/SpaOutlined";
 import LogoutIcon from "@mui/icons-material/Logout";
 import MenuIcon from "@mui/icons-material/Menu";
 import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettingsOutlined";
 import BusinessOutlinedIcon from "@mui/icons-material/BusinessOutlined";
 import MailOutlineIcon from "@mui/icons-material/MailOutline";
+import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
+import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
+import EditNoteOutlinedIcon from "@mui/icons-material/EditNoteOutlined";
+import ModelTrainingOutlinedIcon from "@mui/icons-material/ModelTrainingOutlined";
+import PaidOutlinedIcon from "@mui/icons-material/PaidOutlined";
+import SupportAgentOutlinedIcon from "@mui/icons-material/SupportAgentOutlined";
+import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
+import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
 import { useAuth } from "@/lib/authContext";
 import { useIdleLogout } from "@/lib/useIdleLogout";
 import Avatar from "@mui/material/Avatar";
@@ -49,7 +57,6 @@ import DialogTitle from "@mui/material/DialogTitle";
 import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
 import { useOrg } from "@/context/OrgContext";
-import { api } from "@/lib/api";
 
 const DRAWER_WIDTH = 240;
 const RAIL_WIDTH = 56;
@@ -63,8 +70,40 @@ type NavItem = {
   adminOnly?: boolean;
 };
 
-const NAV_ITEMS: NavItem[] = [
+const CARE_NAV_ITEMS: NavItem[] = [
+  { label: "Overview", path: "/care/dashboard", icon: <DashboardOutlinedIcon /> },
+  { label: "Clinical Audit", path: "/care/audit", icon: <AssignmentOutlinedIcon />, activePrefix: ["/care/audit", "/audit"] },
+  { label: "Patients", path: "/care/patients", icon: <PeopleOutlineIcon /> },
+  { label: "Referral Pathways", path: "/care/pathways", icon: <TimelineOutlinedIcon /> },
+  { label: "Safety Netting", path: "/care/safety-netting", icon: <HealthAndSafetyOutlinedIcon /> },
+  { label: "Reports", path: "/care/reports", icon: <DescriptionOutlinedIcon /> },
+  { label: "Measures", path: "/care/measures", icon: <BarChartOutlinedIcon /> },
+  { label: "Benchmarks", path: "/care/benchmarks", icon: <AssessmentOutlinedIcon /> },
+  { label: "Cohorts", path: "/care/cohorts", icon: <GroupWorkOutlinedIcon /> },
+  { label: "Wellbeing Hub", path: "/care/wellbeing", icon: <SpaOutlinedIcon /> },
+  { label: "Portal", path: "/care/portal", icon: <AdminPanelSettingsOutlinedIcon /> },
+];
+
+const ADMIN_NAV_ITEMS: NavItem[] = [
+  { label: "Operations", path: "/admin/operations", icon: <SettingsOutlinedIcon /> },
+  { label: "Pathways", path: "/admin/pathways", icon: <AccountTreeOutlinedIcon /> },
+  { label: "Prompts", path: "/admin/prompts", icon: <EditNoteOutlinedIcon /> },
+  { label: "Domains", path: "/admin/domains", icon: <TuneOutlinedIcon /> },
+  { label: "Models", path: "/admin/models", icon: <ModelTrainingOutlinedIcon /> },
+  { label: "Billing", path: "/admin/billing", icon: <PaidOutlinedIcon />, adminOnly: true },
+  { label: "Guidance", path: "/admin/guidance", icon: <MenuBookOutlinedIcon /> },
+  { label: "Terminology", path: "/admin/terminology", icon: <LibraryBooksOutlinedIcon /> },
+  { label: "Surface Forms", path: "/admin/surface-forms", icon: <DescriptionOutlinedIcon /> },
+  { label: "Context Rules", path: "/admin/context-rules", icon: <AssessmentOutlinedIcon /> },
+  { label: "Gold Dataset", path: "/admin/gold-dataset", icon: <LibraryBooksOutlinedIcon /> },
+  { label: "Users", path: "/admin/users", icon: <PeopleOutlineIcon /> },
+  { label: "Portal", path: "/admin/portal", icon: <AdminPanelSettingsOutlinedIcon /> },
+  { label: "Support", path: "/admin/support", icon: <SupportAgentOutlinedIcon /> },
+];
+
+const LEGACY_NAV_ITEMS: NavItem[] = [
   { label: "Overview", path: "/dashboard", icon: <DashboardOutlinedIcon /> },
+  { label: "Clinical Audit", path: "/audit", icon: <AssignmentOutlinedIcon />, activePrefix: ["/audit"] },
   { label: "Patients", path: "/patients", icon: <PeopleOutlineIcon /> },
   { label: "Referral Pathways", path: "/pathways", icon: <TimelineOutlinedIcon /> },
   { label: "Safety Netting", path: "/safety-netting", icon: <HealthAndSafetyOutlinedIcon /> },
@@ -72,10 +111,10 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Measures", path: "/measures", icon: <BarChartOutlinedIcon /> },
   { label: "Benchmarks", path: "/benchmarks", icon: <AssessmentOutlinedIcon /> },
   { label: "Cohorts", path: "/cohorts", icon: <GroupWorkOutlinedIcon /> },
-  { label: "Operations", path: "/operations", icon: <SettingsOutlinedIcon />, badgeKey: "reviewQueue" },
-  { label: "Games", path: "/games", icon: <SportsEsportsOutlinedIcon /> },
+  { label: "Operations", path: "/operations", icon: <SettingsOutlinedIcon /> },
+  { label: "Wellbeing Hub", path: "/games", icon: <SpaOutlinedIcon /> },
   { label: "Gold Dataset", path: "/gold-dataset", icon: <LibraryBooksOutlinedIcon /> },
-  { label: "Tenant", path: "/tenant", icon: <AdminPanelSettingsOutlinedIcon />, adminOnly: true },
+  { label: "Portal", path: "/portal", icon: <AdminPanelSettingsOutlinedIcon />, adminOnly: false },
   { label: "Support Mail", path: "/mail", icon: <MailOutlineIcon />, adminOnly: true },
   { label: "Settings", path: "/settings", icon: <TuneOutlinedIcon /> },
 ];
@@ -92,34 +131,36 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const [mobileOpen, setMobileOpen] = useState(false);
-
-  const [reviewBadge, setReviewBadge] = useState<number>(0);
+  const [uiMode, setUiMode] = useState<"care" | "admin" | "legacy">(() => {
+    if (typeof window !== "undefined") {
+      const stored = window.localStorage.getItem("leo-ui-mode");
+      if (stored === "care" || stored === "admin") return stored;
+    }
+    return "legacy";
+  });
 
   const idleMinutes = status === "authenticated" ? (session?.idleTimeoutMinutes ?? 0) : 0;
   const { isWarning, keepAlive } = useIdleLogout(idleMinutes, signOut);
 
-  const refreshReviewBadge = useCallback(async () => {
-    try {
-      const data = await api.get<{ pending_review: number }>(
-        "/pipeline/classification-disagreements?limit=1"
-      );
-      setReviewBadge(data.pending_review ?? 0);
-    } catch {
-      // badge is non-critical, silently ignore
-    }
+  const badgeCounts: Record<string, number> = {};
+
+  const navItemsForMode = uiMode === "care"
+    ? CARE_NAV_ITEMS
+    : uiMode === "admin"
+      ? ADMIN_NAV_ITEMS
+      : LEGACY_NAV_ITEMS;
+
+  const visibleNavItems = navItemsForMode.filter((item) => !item.adminOnly || isPlatformAdmin);
+
+  const toggleUiMode = useCallback(() => {
+    setUiMode((prev) => {
+      const next = prev === "legacy" ? "care" : prev === "care" ? "admin" : "care";
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem("leo-ui-mode", next);
+      }
+      return next;
+    });
   }, []);
-
-  useEffect(() => {
-    if (status === "authenticated") {
-      refreshReviewBadge();
-      const id = setInterval(refreshReviewBadge, 60_000);
-      return () => clearInterval(id);
-    }
-  }, [status, refreshReviewBadge]);
-
-  const badgeCounts: Record<string, number> = { reviewQueue: reviewBadge };
-
-  const visibleNavItems = NAV_ITEMS.filter((item) => !item.adminOnly || isPlatformAdmin);
 
   const isEditor = isEditorRoute(pathname);
   // Listing public exceptions is safer than enumerating every protected path.
@@ -175,7 +216,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           component="img"
           src="/leo-icon.svg"
           alt="LEO"
-          onClick={() => handleNav("/dashboard")}
+          onClick={() => handleNav(uiMode === "admin" ? "/admin/operations" : uiMode === "care" ? "/care/dashboard" : "/dashboard")}
           sx={{ width: 28, height: 28, mb: 1.5, cursor: "pointer" }}
         />
       </Tooltip>
@@ -331,6 +372,21 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </List>
       </Box>
 
+      {isPlatformAdmin && (
+        <Box sx={{ px: 1.5, py: 1 }}>
+          <Button
+            fullWidth
+            size="small"
+            variant="outlined"
+            startIcon={<SwapHorizIcon />}
+            onClick={toggleUiMode}
+            sx={{ textTransform: "none", fontSize: "0.75rem" }}
+          >
+            {uiMode === "care" ? "Switch to Admin" : uiMode === "admin" ? "Switch to Care" : "Switch to Care"}
+          </Button>
+        </Box>
+      )}
+
       {session?.user && (
         <Box
           sx={{
@@ -434,7 +490,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         sx={{
           flexGrow: 1,
           minWidth: 0,
-          overflowX: "hidden",
+          overflowX: "clip",
           mt: isMobile ? "48px" : 0,
           minHeight: "100vh",
           bgcolor: "background.default",

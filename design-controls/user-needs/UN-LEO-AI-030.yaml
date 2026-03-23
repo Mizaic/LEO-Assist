@@ -1,0 +1,105 @@
+# -- UN-LEO-AI-030 -- Referral Completeness Checking at Point of Triage
+
+- id: "UN-LEO-AI-030"
+  title: "Triage clinicians and referral management teams need the system to automatically flag missing mandatory information in incoming referrals before or at the point of triage, so that incomplete referrals are caught early and not bounced back after clinician time has been spent reading them."
+  description: |
+    Every clinical pathway has defined information requirements for a valid
+    referral -- specific investigation results, clinical findings, examination
+    findings, or history items that must be present for a triage decision to
+    be made safely. Currently, completeness is checked only after a clinician
+    reads the entire referral, frequently resulting in rejection and re-referral
+    round-trips that delay the patient pathway by days or weeks.
+
+    The system must parse the referral free text, extract the clinical content,
+    and compare it against the mandatory information requirements for the target
+    pathway. It must surface a completeness report alongside the referral --
+    showing what is present, what is missing, and what is optional -- before
+    the triage clinician opens the full letter.
+
+  stakeholder:
+    type: "nhs_user"
+    role: "Triage Clinician / Referral Management Administrator"
+    organization: "NHS Acute Trust / Referral Management Centre"
+
+  priority: "MUST"
+
+  rationale: |
+    Incomplete referrals are the single most cited cause of triage delay across
+    all user interviews. Each rejection and re-referral adds a minimum of 3-7
+    days to the patient pathway. For two-week-wait cancer referrals this directly
+    risks national standard breaches and delayed cancer diagnosis. Automated
+    completeness checking at ingestion prevents clinician time being spent on
+    referrals that will be rejected, and gives the referring clinician immediate
+    feedback on what is needed.
+
+  benefit: |
+    Reduction in rejection and re-referral round-trips. Faster triage decisions
+    on complete referrals. Earlier identification of at-risk referrals before
+    they consume clinician time. Improved referrer behaviour over time through
+    visible completeness feedback.
+
+  use_case: |
+    1. A referral arrives via any channel (e-RS, letter, email).
+    2. The pipeline extracts clinical content and checks it against the
+       completeness requirements for the identified target pathway.
+    3. A completeness badge appears on the referral in the queue:
+       Complete / Incomplete / Unable to determine.
+    4. Triage clinician opens the referral and sees a structured completeness
+       panel: green ticks for present items, red crosses for missing items,
+       grey for optional items.
+    5. If critical items are missing, the clinician can immediately request
+       the missing information from the referrer without reading the full letter.
+    6. If the referral is complete, the clinician proceeds directly to triage
+       with the clinical summary already prepared.
+
+  current_solution: |
+    None. Completeness is checked manually by the triage clinician after reading
+    the entire referral. Rejection rate from incomplete referrals is estimated
+    at 20-30% of incoming referrals.
+
+  pain_points:
+    - "Clinician reads full referral before discovering critical information is missing"
+    - "Rejection and re-referral adds 3-7 days to patient pathway"
+    - "For two-week-wait referrals this risks national standard breaches"
+    - "Referrers do not know what information is required until they are rejected"
+    - "No tracking of what was missing or why a referral was rejected"
+
+  acceptance_criteria:
+    - "System identifies target pathway from referral content and applies correct completeness criteria"
+    - "Completeness check completes within 60 seconds of referral ingestion"
+    - "Each completeness item is classified as present, missing, or unable-to-determine with evidence from text"
+    - "Completeness status is visible in the triage queue before the clinician opens the referral"
+    - "Missing items link back to the specific pathway requirement that defines them as mandatory"
+    - "Completeness results are stored in the audit trail with the referral record"
+
+  success_metrics:
+    - metric: "Rejection rate due to missing information"
+      target: "Reduction of 50% or more from baseline within 3 months of deployment"
+      baseline: "Estimated 20-30% of incoming referrals rejected for missing information"
+    - metric: "Time from referral receipt to completeness check"
+      target: "Under 60 seconds"
+      baseline: "Not currently performed automatically"
+
+  regulatory_impact: "medium"
+  safety_impact: "high"
+  safety_class: "B"
+
+  derived_from:
+    - "Intended Use Statement DC-IU-001"
+    - "IEC 62304:2006/AMD1:2015 Class B software lifecycle"
+    - "ISO 14971:2019 risk management"
+
+  related_standards:
+    - "IEC 62304:2006/AMD1:2015"
+    - "ISO 14971:2019"
+    - "DCB0129"
+
+  metadata:
+    created_by: "Engineering Team"
+    created_date: "2026-03-11"
+    status: "draft"
+    evidence_source: "User interviews P01, P02, P03, P04 -- UR-LEO-AI-001"
+
+  design_inputs: []
+  validation_tests: []
+  tags: ["referral-triage", "completeness", "rejection-prevention", "pathway", "two-week-wait"]

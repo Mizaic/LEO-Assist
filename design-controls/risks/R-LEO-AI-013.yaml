@@ -25,18 +25,18 @@
   mitigation_measures:
     - control_type: "protective_measure"
       description: "F1 >= 0.90 validation threshold must be met before model deployment"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-003"]
+      verified_by: ["VT-LEO-AI-002"]
       effectiveness: "highly_effective"
     - control_type: "protective_measure"
       description: "Dry-run comparison of new model against current model on holdout data"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-003"]
+      verified_by: ["VT-LEO-AI-002"]
       effectiveness: "effective"
     - control_type: "protective_measure"
       description: "Human review of all inference results provides independent quality check"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-003"]
+      verified_by: ["VT-LEO-AI-002"]
       effectiveness: "highly_effective"
 
   residual_risk_estimate:

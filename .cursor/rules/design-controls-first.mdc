@@ -24,12 +24,13 @@ If you are unsure of the class, treat it as Class B.
 
 ## Mandatory Reading Order (Class B and above)
 
-1. **`design-controls/README.md`** — overall structure and process overview
-2. **`design-controls/intended-use.md`** — intended use and safety classification
-3. **`design-controls/design-inputs/`** — requirements (DI-LEO-AI-*.yaml) that relate to the area being changed
-4. **`design-controls/design-outputs/`** — corresponding outputs (DO-LEO-AI-*.yaml)
-5. **`design-controls/risks/`** — any risks (R-LEO-AI-*.yaml) linked to the feature area
-6. **`design-controls/DC-TM-001-traceability-matrix.md`** — confirm traceability coverage before and after
+1. **`design-controls/README.md`** -- overall structure and process overview
+2. **`design-controls/intended-use.md`** -- intended use and safety classification
+3. **`design-controls/user-needs/`** -- user needs (UN-LEO-AI-*.yaml) for the feature area
+4. **`design-controls/design-inputs/`** -- requirements (DI-LEO-AI-*.yaml) that relate to the area being changed
+5. **`design-controls/design-outputs/`** -- corresponding outputs (DO-LEO-AI-*.yaml)
+6. **`design-controls/risks/`** -- any risks (R-LEO-AI-*.yaml) linked to the feature area
+7. **`design-controls/DC-TM-001-traceability-matrix.md`** -- confirm traceability coverage before and after
 
 ---
 
@@ -42,3 +43,8 @@ If you are unsure of the class, treat it as Class B.
 - Verification tests (`verification-tests/VT-LEO-AI-*.yaml`) and validation tests (`validation-tests/VAL-LEO-AI-*.yaml`) must remain consistent with any updated design outputs.
 - **Whenever a new DI, DO, VT, VAL, or Risk is created** → update the corresponding row in `design-controls/DC-TM-001-traceability-matrix.md`.
 - When in doubt, read `design-controls/DC-SRS-001-software-requirements.md` for the full software requirements specification.
+- Every DI MUST have `derived_from` containing at least one `UN-LEO-AI-*` ID. Risk IDs (`R-*`) and Design Input IDs (`DI-*`) are NOT valid in `derived_from`.
+- When creating a DI with `derived_from: ["UN-LEO-AI-XXX"]`, also update the referenced UN file to add this DI to its `design_inputs` list (bidirectional traceability).
+- If no existing UN covers the feature being built, create a new `UN-LEO-AI-<next>.yaml` BEFORE creating the DI.
+- DIs with `safety_class` B or C MUST have at least one risk ID in their `risks` field.
+- Update BOTH `DC-TM-001-traceability-matrix.md` AND `DC-TM-002-traceability-matrix.csv` when creating or updating any artefact.

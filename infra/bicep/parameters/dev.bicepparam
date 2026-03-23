@@ -34,8 +34,8 @@ param modelMinRecall = '0.75'
 // Service Bus
 param sbMaxLockRenewalSeconds = '14400'
 
-// Security
-param allowedOrigins = 'https://atlas-dev.healthcarecopilot.ai,http://localhost:3000'
+// Security (custom domain first; keep ACA hostname for direct access; local dev)
+param allowedOrigins = 'https://leo-ai-audit.healthcarecopilot.ai,https://ui.proudriver-82c5b80a.uksouth.azurecontainerapps.io,https://atlas-dev.healthcarecopilot.ai,http://localhost:3000'
 param cookieSecure = 'true'
 param sessionTtlHours = '12'
 
@@ -46,4 +46,4 @@ param snomedTerminologyServer = ''
 // - Must match an Entra app registration redirect URI (add /auth/callback suffix).
 // - Controls OAuth post-login redirects, the auth callback sent to Entra,
 //   and the sign-in link in invite emails.
-param frontendUrl = 'https://atlas-dev.healthcarecopilot.ai'
+param frontendUrl = 'https://leo-ai-audit.healthcarecopilot.ai'

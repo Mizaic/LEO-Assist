@@ -1,0 +1,107 @@
+# -- UN-LEO-AI-029 -- Per-Tenant Billing, Margin Management, and Discount Control
+
+- id: "UN-LEO-AI-029"
+  title: "Platform administrators need to track AI spend per tenant, configure a gross margin target, apply time-limited or life-of-contract discounts per organisation, and see platform operating costs separately — without requiring a code deployment."
+  description: |
+    The platform incurs AI token costs (AWS Bedrock, Azure OpenAI) on behalf of
+    tenants (GP practices, NHS organisations). Currently these costs are visible
+    only as a raw aggregate in the dashboard; there is no mechanism to:
+    (1) attribute costs to individual tenants,
+    (2) calculate billable amounts from a configurable gross margin target,
+    (3) apply promotional or contractual discounts per tenant,
+    (4) distinguish platform operating costs (training, verification) from
+        tenant-chargeable pipeline costs.
+    Platform administrators need all of this in a single, admin-only UI view
+    without touching code or redeploying services.
+
+  stakeholder:
+    type: "internal_user"
+    role: "Platform Administrator / Commercial Director"
+    organization: "Mizaic / Healthcare Copilot"
+
+  priority: "MUST"
+
+  rationale: |
+    As the platform scales to multiple NHS tenants, manual cost attribution
+    from aggregate logs is not sustainable. A configurable margin and per-tenant
+    discount model is required to support commercial operations (pricing quotes,
+    contract renewals, promotional offers). The admin-only access gate prevents
+    commercial margin data from being visible to tenant users, which is a
+    business confidentiality requirement.
+
+  benefit: |
+    Finance and commercial teams can produce accurate per-tenant invoices.
+    Commercial directors can model margin impact of proposed discounts before
+    applying them. Platform engineers can separate internal operating costs
+    from tenant-billable spend for management accounting.
+
+  use_case: |
+    1. Admin opens Billing & Pricing page (admin-only nav item).
+    2. They see the current target gross margin (default 75%) and can adjust
+       it via a slider — change takes effect for all future calculations.
+    3. A table shows every tenant with: AI raw cost, list price (raw/margin),
+       active discounts, billable amount, and effective gross margin.
+    4. Clicking a tenant row expands it to show token breakdown and a list
+       of all configured discounts for that tenant.
+    5. Admin clicks "Add discount" → selects promo or contract type, sets
+       rate (e.g. 20%) and date range (or marks perpetual for contract).
+    6. Discount appears immediately in calculations; effective margin column
+       updates. Red/amber/green colours flag tenants below margin target.
+    7. A separate "Platform operating costs" card shows costs from training
+       runs, verification runs, and gold dataset runs — clearly labelled as
+       internal (not billed to tenants).
+    8. Dashboard LLM Spend panel shows "View all tenants →" link for admins,
+       navigating to the Billing page.
+
+  current_solution: |
+    None. The LLMSpendPanel on the dashboard shows aggregate platform-wide
+    spend with no tenant attribution, no margin calculation, and no discount
+    management capability.
+
+  pain_points:
+    - "No per-tenant cost attribution — all AI spend appears as a single aggregate"
+    - "No configurable margin — billable amounts must be calculated manually in spreadsheets"
+    - "No discount mechanism — promotional and contractual discounts cannot be tracked in the system"
+    - "No separation of platform operating costs from tenant-chargeable spend"
+    - "Margin data has no access control — any user with dashboard access sees raw costs"
+
+  acceptance_criteria:
+    - "Admin-only: any user without 'admin' permission receives 403 on all /pricing/* endpoints"
+    - "Target margin is configurable in the UI without code deployment"
+    - "List price is calculated as raw_cost / (1 - target_margin)"
+    - "Billable amount is list_price × (1 - Σ active discount rates), capped at list_price"
+    - "Discounts can be time-bounded (promo with valid_from/valid_to) or perpetual (contract)"
+    - "Multiple concurrent discounts are summed, capped at 100% total"
+    - "Per-tenant spend table shows all tenants with raw cost, list price, discount, billable, margin"
+    - "Platform operating spend is shown separately and labelled as non-billable"
+    - "Dashboard LLM Spend panel shows 'View all tenants' link for admin users only"
+
+  success_metrics:
+    - metric: "Time to add a new tenant discount"
+      target: "Under 60 seconds from opening UI to discount active"
+      baseline: "Not currently possible"
+    - metric: "Margin configuration deployment"
+      target: "Zero code deployments required to change margin"
+      baseline: "Code change + redeploy required"
+
+  regulatory_impact: "low"
+  safety_impact: "none"
+  safety_class: "A"
+
+  derived_from:
+    - "Intended Use Statement DC-IU-001"
+    - "ISO 13485:2016 clause 7.1 (planning of product realisation)"
+
+  related_standards:
+    - "ISO 13485:2016"
+
+  metadata:
+    created_by: "Engineering Team"
+    created_date: "2026-03-08"
+    status: "approved"
+
+  design_inputs:
+    - "DI-LEO-AI-068"
+    - "DI-LEO-AI-069"
+  validation_tests: []
+  tags: ["billing", "pricing", "margin", "discounts", "admin-only", "per-tenant", "commercial"]

@@ -1,0 +1,119 @@
+# -- UN-LEO-AI-027 -- AI-Augmented Training Data Quality Assurance with Terminology Verification
+# IEC 62304 / ISO 13485 User Need
+# Schema: design-controls/templates/user_needs_schema.yaml
+
+- id: "UN-LEO-AI-027"
+  title: "Clinical engineers need an automated quality assurance system that uses AI to audit training labels and verify SNOMED coding accuracy against the terminology hierarchy"
+  description: |
+    The training data pipeline produces TrainingLabel records containing
+    extracted clinical entities with SNOMED CT codes. Manual review of
+    thousands of training labels is impractical. The system must provide
+    an automated auditor that uses a large language model (Opus) to review
+    every entity for correctness of span boundaries, semantic labels,
+    assertions, values, and SNOMED coding plausibility.
+    When the auditor encounters ambiguous SNOMED coding (e.g. a text span
+    of "Colposcopy biopsy" mapped to only "Colposcopy (procedure)"), it
+    must be able to query the live terminology service to look up candidate
+    SNOMED concepts, retrieve related concepts, and explore the concept
+    hierarchy -- feeding this information back to Opus to make an informed
+    recommendation. This agentic capability must be tightly controlled with
+    cost guardrails to prevent runaway API spending.
+
+  stakeholder:
+    type: "internal_user"
+    role: "Clinical NLP Engineer / Quality Lead"
+    organization: "LEO AI Engineering"
+
+  priority: "SHOULD"
+
+  rationale: |
+    Training data quality directly determines the accuracy of the
+    production NLP pipeline. Incorrect SNOMED codes, wrong assertions,
+    and over-captured spans in training labels degrade model performance
+    and ultimately affect clinical coding quality in production. Manual
+    review is not scalable at the volumes required (thousands of labels).
+    An AI-augmented auditor with terminology tool-use capability closes
+    the quality gap at scale while keeping human reviewers focused on
+    the genuinely ambiguous cases escalated by the system.
+
+  benefit: |
+    Systematic, scalable training label quality assurance at low per-record
+    cost, with terminology-informed SNOMED quality recommendations that
+    would otherwise require a trained clinical coder to verify manually.
+
+  use_case: |
+    1. Clinical engineer runs the auditor script against a batch of
+       TrainingLabel records.
+    2. Opus reviews each record (pass 1): validates span boundaries,
+       semantic labels, assertion correctness, and SNOMED plausibility.
+    3. Safe auto-fixes (assertion, label, text span corrections) are
+       applied immediately; ambiguous issues are flagged for human review.
+    4. For entities flagged as "needs_review" with SNOMED coding concerns,
+       the auditor runs a second pass (pass 2): Opus calls the terminology
+       API via Haiku to look up candidate concepts, related concepts, or
+       descendant concepts.
+    5. Terminology API results inform Opus's final verdict: it recommends
+       specific SNOMED concept splits, replacements, or confirms the
+       existing code is correct.
+    6. All tool calls, inputs, and outputs are recorded in the audit trail
+       for human review and regulatory traceability.
+    7. A Markdown audit report is generated summarising pass/fail rates,
+       auto-fixes applied, and proposals for human action.
+    8. Cost guardrails automatically halt processing if per-run token or
+       dollar budgets are exceeded.
+
+  current_solution: |
+    No automated training label auditor exists. Manual spot-checks are
+    performed by clinical engineers on a sample basis, providing no
+    systematic coverage.
+
+  pain_points:
+    - "No systematic review of SNOMED coding accuracy in training labels"
+    - "Manual review cannot scale to thousands of training records"
+    - "Ambiguous compound clinical concepts (e.g. 'Colposcopy biopsy') are frequently miscoded"
+    - "Span boundary errors from the LLM extraction pipeline are not detected"
+    - "No audit trail for training data quality decisions"
+
+  acceptance_criteria:
+    - "System shall audit every TrainingLabel record using Opus with no manual intervention"
+    - "System shall apply safe auto-fixes for assertion, label, text, value, and unit errors"
+    - "System shall flag SNOMED coding issues for human review (never auto-fix SNOMED codes)"
+    - "System shall query the terminology API for ambiguous SNOMED cases using Haiku as sub-agent"
+    - "System shall enforce a maximum of 5 tool-use iterations per record"
+    - "System shall halt automatically if per-run token or dollar budget is exceeded"
+    - "System shall record all tool calls and results in a JSONL audit trail"
+
+  success_metrics:
+    - metric: "Training label coverage"
+      target: "100% of included TrainingLabel records audited per run"
+      baseline: "0% automated coverage"
+    - metric: "Auto-fix precision"
+      target: ">=95% of auto-fixes accepted by human reviewers on spot-check sample"
+      baseline: "No baseline"
+    - metric: "Cost per 1000 records"
+      target: "<=£15 (Opus pass 1 + selective Haiku pass 2)"
+      baseline: "No baseline"
+
+  regulatory_impact: "medium"
+  safety_impact: "medium"
+
+  derived_from:
+    - "Intended Use Statement DC-IU-001"
+    - "IEC 62304 Class B software lifecycle requirements for training data pipelines"
+    - "ISO 14971 risk management requirement for clinical NLP model quality assurance"
+
+  related_standards:
+    - "IEC 62304:2006/AMD1:2015"
+    - "ISO 13485:2016"
+    - "ISO 14971:2019"
+    - "SNOMED CT Editorial Guide"
+
+  metadata:
+    created_by: "Quality Engineering"
+    created_date: "2026-03-05"
+    status: "implemented"
+
+  design_inputs: ["DI-LEO-AI-054"]
+  validation_tests: []
+
+  tags: ["training-data", "audit", "llm", "snomed", "tool-use", "agentic", "quality-assurance"]

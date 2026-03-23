@@ -37,6 +37,13 @@ const nextConfig = {
   output: "standalone",
   reactStrictMode: true,
   allowedDevOrigins: ["http://127.0.0.1:3000", "http://172.27.0.1:3000", "http://localhost:3000"],
+  turbopack: {
+    // Pin root to this app directory to avoid lockfile-based inference.
+    root: __dirname,
+  },
+  experimental: {
+    proxyTimeout: 300_000, // 5 minutes – extraction pipelines can take 60s+
+  },
   // Proxying is handled at runtime by src/middleware.ts so the same
   // Docker image works in any environment without rebuilding.
 };

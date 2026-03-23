@@ -27,7 +27,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
 from libs.auth.org_scope import CallerScope, ORG_PATIENT_FILTER, get_caller_scope
-from libs.neo4j_client.client import PatientGraphClient
+from libs.neo4j_client.client import KnowledgeGraphClient, PatientGraphClient
 from libs.cypher.exclusion_queries import (
     LIST_HITL_TASKS_BY_TYPE,
     RESOLVE_HITL_TASK,
@@ -312,7 +312,28 @@ async def get_operations_metrics(
                 tt = row["task_type"] or "unknown"
                 st = row["status"] or "unknown"
                 by_type.setdefault(tt, {})[st] = row["count"]
-        return {"metrics_by_stage": by_type}
+        # TrainingCandidate, GoldLabel, SurfaceFormTask live in the Knowledge Graph
+        kg_client = KnowledgeGraphClient()
+        try:
+            extra_counts = kg_client.run(
+                """
+                OPTIONAL MATCH (s:SurfaceFormTask {status:'pending'})
+                WITH count(s) AS surface_form_tasks_pending
+                OPTIONAL MATCH (c:TrainingCandidate)
+                WITH surface_form_tasks_pending, count(c) AS training_candidates
+                OPTIONAL MATCH (g:GoldLabel)
+                RETURN surface_form_tasks_pending, training_candidates, count(g) AS gold_labels
+                """
+            )
+        finally:
+            kg_client.close()
+        first = extra_counts[0] if extra_counts else {}
+        return {
+            "metrics_by_stage": by_type,
+            "surface_form_tasks_pending": first.get("surface_form_tasks_pending", 0),
+            "training_candidates": first.get("training_candidates", 0),
+            "gold_labels": first.get("gold_labels", 0),
+        }
     finally:
         client.close()
 

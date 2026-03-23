@@ -103,6 +103,7 @@ describe("usePipelineStream", () => {
       run_id: "starting",
       processed_encounters: 0,
       queued_for_review: 0,
+      auto_approved: 0,
       rejected_hard_fail: 0,
       warnings_only: 0,
     });
@@ -184,6 +185,7 @@ describe("usePipelineStream", () => {
       run_id: "R1",
       processed_encounters: 5,
       queued_for_review: 3,
+      auto_approved: 0,
       rejected_hard_fail: 1,
       warnings_only: 1,
       llm_usage: undefined,

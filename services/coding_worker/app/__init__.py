@@ -1,1 +1,1 @@
-"""Coding Worker service package."""
+"""Legacy coding worker application package."""

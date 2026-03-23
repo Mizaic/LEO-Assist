@@ -17,12 +17,14 @@ import {
   fetchDiagnosedSummary,
   fetchKPIBenchmarks,
   fetchSafetyNetAlerts,
+  actionSafetyNetAlert,
 } from "@/lib/analyticsApi";
 import { useOrgId } from "@/context/OrgContext";
 import KPICards from "@/components/dashboard/KPICards";
 import EpisodesByTypeChart from "@/components/dashboard/EpisodesByTypeChart";
 import DiagnosedByTypeChart from "@/components/dashboard/DiagnosedByTypeChart";
 import SafetyNetAlertsSummary from "@/components/dashboard/SafetyNetAlertsSummary";
+import LLMSpendPanel from "@/components/dashboard/LLMSpendPanel";
 
 const TERMINAL_STATUSES = new Set(["closed", "completed", "merged", "excluded"]);
 
@@ -78,6 +80,11 @@ export default function DashboardPage() {
     setAppliedFrom(dateFrom || undefined);
     setAppliedTo(dateTo || undefined);
   };
+
+  const handleAlertAction = useCallback(async (alertId: string, actioned: boolean) => {
+    await actionSafetyNetAlert(alertId, actioned);
+    setAlerts((prev) => prev.map((a) => (a.id === alertId ? { ...a, actioned } : a)));
+  }, []);
 
   const handleClear = () => {
     setDateFrom("");
@@ -314,10 +321,13 @@ export default function DashboardPage() {
                   No safety alerts for the selected period.
                 </Typography>
               ) : (
-                <SafetyNetAlertsSummary alerts={alerts.slice(0, 8)} />
+                <SafetyNetAlertsSummary alerts={alerts.slice(0, 8)} onAction={handleAlertAction} />
               )}
             </CardContent>
           </Card>
+        </Grid>
+        <Grid size={{ xs: 12 }}>
+          <LLMSpendPanel />
         </Grid>
       </Grid>
     </Box>

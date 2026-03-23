@@ -1,1 +1,1 @@
-"""Analysis Worker service package."""
+"""Analysis worker application package."""

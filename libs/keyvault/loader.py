@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 # Maps os.environ key -> Key Vault secret name (kebab-case)
 SECRET_MAP: dict[str, str] = {
-    # Neo4j
+    # Neo4j (usernames are not secret -- always "neo4j", set in .env.config)
     "NEO4J_URI":                          "neo4j-patient-uri",
     "NEO4J_PASSWORD":                     "neo4j-patient-password",
     "KNOWLEDGE_GRAPH_NEO4J_URI":          "neo4j-knowledge-uri",
@@ -50,6 +50,8 @@ SECRET_MAP: dict[str, str] = {
     "AWS_BIG_MODEL":                      "aws-big-model",
     "AWS_SMALL_MODEL":                    "aws-small-model",
     "AWS_MAX_MODEL":                      "aws-max-model",
+    # NICE Syndication API
+    "NICE_API_KEY":                       "nice-api-key",
     # Terminology / clinical APIs
     "SNOMED_API_KEY":                     "snomed-api-key",
     "UMLS_API_KEY":                       "umls-api-key",

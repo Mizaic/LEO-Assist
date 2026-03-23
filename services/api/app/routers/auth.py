@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import time
 from urllib.parse import urlencode
 
@@ -36,20 +37,49 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-TENANT_ID = os.getenv("AZURE_AD_TENANT_ID")
-CLIENT_ID = os.getenv("AZURE_AD_CLIENT_ID")
-CLIENT_SECRET = os.getenv("AZURE_AD_CLIENT_SECRET")
-# OAuth callback - frontend URL; frontend redirects to backend to complete. Add to Azure AD app redirect URIs.
-REDIRECT_URI = os.getenv("AUTH_REDIRECT_URI") or f"{os.getenv('FRONTEND_URL', 'http://localhost:3000')}/auth/callback"
-FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
-SCOPE = os.getenv("AZURE_AD_SCOPE", "openid profile email api://c97f7ad9-845f-420c-ae3f-fa5c5d815bcd/.default")
+# Read Azure AD / frontend settings at request time. Module-level os.getenv() can run
+# before Key Vault hydration or ACA secret injection is visible in edge cases; lazy reads
+# avoid stale empty values for CLIENT_ID.
 
-# v2.0 endpoints only (not v1.0 / sts.windows.net). Requires accessTokenAcceptedVersion: 2 in app manifest.
-AUTH_URL = f"https://login.microsoftonline.com/{TENANT_ID}/oauth2/v2.0/authorize"
-TOKEN_URL = f"https://login.microsoftonline.com/{TENANT_ID}/oauth2/v2.0/token"
+
+def _env_ad_tenant_id() -> str:
+    return (os.getenv("AZURE_AD_TENANT_ID") or "").strip()
+
+
+def _env_ad_client_id() -> str:
+    return (os.getenv("AZURE_AD_CLIENT_ID") or "").strip()
+
+
+def _env_ad_client_secret() -> str:
+    return (os.getenv("AZURE_AD_CLIENT_SECRET") or "").strip()
+
+
+def _frontend_url() -> str:
+    return (os.getenv("FRONTEND_URL") or "http://localhost:3000").rstrip("/")
+
+
+def _redirect_uri() -> str:
+    explicit = (os.getenv("AUTH_REDIRECT_URI") or "").strip()
+    if explicit:
+        return explicit
+    return f"{_frontend_url()}/auth/callback"
+
+
+def _oauth_scope() -> str:
+    return os.getenv(
+        "AZURE_AD_SCOPE",
+        "openid profile email api://c97f7ad9-845f-420c-ae3f-fa5c5d815bcd/.default",
+    )
+
+# Multi-tenant: use /common/ endpoints so users from any NHS Entra tenant can authenticate
+# without needing guest accounts in the Mizaic tenant. The app registration signInAudience
+# is already AzureADMultipleOrgs. Issuer validation is done by tid-allowlist (see below).
+AUTH_URL = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize"
+TOKEN_URL = "https://login.microsoftonline.com/common/oauth2/v2.0/token"
 ANALYTICS_BASE = os.getenv("ANALYTICS_API_BASE", "http://localhost:8003")
 
 # JWKS cache — fetched once per process, refreshed when keys change.
+# /common/ JWKS returns all current Microsoft signing keys (valid across all tenants).
 # Azure AD rotates keys infrequently; 1-hour TTL is conservative.
 _JWKS_CACHE: dict = {}
 _JWKS_FETCHED_AT: float = 0.0
@@ -57,12 +87,12 @@ _JWKS_TTL = 3600  # seconds
 
 
 def _get_jwks() -> dict:
-    """Return Azure AD JWKS, refreshing the cache if older than _JWKS_TTL."""
+    """Return Azure AD JWKS from /common/, refreshing the cache if older than _JWKS_TTL."""
     global _JWKS_CACHE, _JWKS_FETCHED_AT
     now = time.monotonic()
     if _JWKS_CACHE and (now - _JWKS_FETCHED_AT) < _JWKS_TTL:
         return _JWKS_CACHE
-    jwks_uri = f"https://login.microsoftonline.com/{TENANT_ID}/discovery/v2.0/keys"
+    jwks_uri = "https://login.microsoftonline.com/common/discovery/v2.0/keys"
     try:
         with httpx.Client(timeout=10) as client:
             resp = client.get(jwks_uri)
@@ -78,29 +108,78 @@ def _get_jwks() -> dict:
     return _JWKS_CACHE
 
 
+def _is_tenant_allowed(tid: str) -> bool:
+    """Check the token's tenant ID against the allowlist of onboarded organisations.
+
+    Permits:
+    - Mizaic's own tenant (for platform admins)
+    - Any tenant registered on an active Organisation node in Neo4j
+
+    This is the multi-tenant trust boundary: only pre-registered NHS tenants can sign in.
+    """
+    if not tid:
+        return False
+    # Always permit Mizaic's own tenant for platform admins
+    tenant = _env_ad_tenant_id()
+    if tenant and tid == tenant:
+        return True
+    try:
+        from libs.neo4j_client.client import PatientGraphClient
+        from libs.cypher.admin_queries import GET_ORG_BY_ENTRA_TENANT
+        client = PatientGraphClient()
+        rows = client.run(GET_ORG_BY_ENTRA_TENANT, entra_tenant_id=tid)
+        client.close()
+        return bool(rows)
+    except Exception as exc:
+        logger.error("Tenant allowlist check failed for tid=%s: %s", tid, exc)
+        return False
+
+
 def _verify_id_token(id_token: str) -> dict:
     """Verify and decode an Azure AD id_token using JWKS.
 
-    Validates: signature, issuer, audience, expiry.
-    Raises HTTPException(401) on any failure.
+    Multi-tenant validation strategy:
+    1. Verify RS256 signature against /common/ JWKS (cryptographic trust)
+    2. Verify audience matches our CLIENT_ID (or API app ID when using api:// scope)
+    3. Verify expiry and not-before
+    4. Reject v1.0 tokens (sts.windows.net issuer checked in callback)
+    5. Validate tid claim against tenant allowlist (business trust boundary)
+
+    Issuer is NOT checked against a single tenant — the app is AzureADMultipleOrgs.
     GAP-002 fix: replaces insecure base64 decode with cryptographic verification.
     """
-    if not TENANT_ID or not CLIENT_ID:
+    client_id = _env_ad_client_id()
+    if not client_id:
         raise HTTPException(500, "Azure AD not configured")
+    # Accept both client app ID and API app ID (api://xxx) as audience — Azure may use either
+    # when scope includes api://.../.default. python-jose requires audience to be str or None.
+    audiences = [client_id]
+    scope = _oauth_scope()
+    if "api://" in scope:
+        m = re.search(r"api://([a-fA-F0-9\-]+)/", scope)
+        if m:
+            api_id = m.group(1)
+            audiences.append(api_id)  # GUID only
+            audiences.append(f"api://{api_id}")  # full URI (Azure may use either)
     try:
         jwks = _get_jwks()
-        claims = jwt.decode(
-            id_token,
-            jwks,
-            algorithms=["RS256"],
-            audience=CLIENT_ID,
-            issuer=f"https://login.microsoftonline.com/{TENANT_ID}/v2.0",
-            options={"verify_exp": True, "verify_nbf": True},
-        )
-        return claims
-    except JWTError as exc:
-        logger.warning("id_token verification failed: %s", exc)
-        raise HTTPException(status_code=401, detail="Token verification failed") from exc
+        opts = {"verify_exp": True, "verify_nbf": True, "verify_iss": False}
+        last_error: JWTError | None = None
+        for aud in audiences:
+            try:
+                return jwt.decode(id_token, jwks, algorithms=["RS256"], audience=aud, options=opts)
+            except JWTError as exc:
+                last_error = exc
+        if last_error:
+            logger.warning(
+                "id_token verification failed: %s (type=%s). Check: CLIENT_ID vs token aud, server clock, token expiry.",
+                last_error,
+                type(last_error).__name__,
+            )
+            raise HTTPException(status_code=401, detail="Token verification failed") from last_error
+        raise HTTPException(status_code=401, detail="Token verification failed")
+    except HTTPException:
+        raise
     except Exception as exc:
         logger.error("Unexpected error verifying id_token: %s", exc)
         raise HTTPException(status_code=401, detail="Token verification error") from exc
@@ -150,16 +229,17 @@ def _fetch_org_context(email: str) -> tuple[bool, list[dict]]:
 @router.get("/login")
 def login(request: Request, next_url: str = "/"):
     """Redirect to Azure AD login with a session nonce for CSRF protection (GAP-010)."""
-    if not TENANT_ID or not CLIENT_ID:
+    client_id = _env_ad_client_id()
+    if not client_id:
         raise HTTPException(500, "Azure AD not configured")
     import secrets as _secrets
     nonce = _secrets.token_urlsafe(16)
     state = next_url
     params = {
-        "client_id": CLIENT_ID,
+        "client_id": client_id,
         "response_type": "code",
-        "redirect_uri": REDIRECT_URI,
-        "scope": SCOPE,
+        "redirect_uri": _redirect_uri(),
+        "scope": _oauth_scope(),
         "response_mode": "query",
         "state": state,
         "nonce": nonce,
@@ -188,9 +268,10 @@ def callback(
     error: str | None = None,
 ):
     """Handle OAuth callback, exchange code for tokens, set session cookie (GAP-010)."""
+    fe = _frontend_url()
     if error:
         logger.warning("OAuth error: %s", error)
-        return RedirectResponse(url=f"{FRONTEND_URL}/sign-in?error={error}", status_code=302)
+        return RedirectResponse(url=f"{fe}/sign-in?error={error}", status_code=302)
     if not code:
         raise HTTPException(400, "Missing code")
 
@@ -198,25 +279,26 @@ def callback(
     expected_nonce = request.cookies.get("leo_oauth_nonce")
     if not expected_nonce:
         logger.warning("OAuth callback missing nonce cookie -- possible CSRF")
-        return RedirectResponse(url=f"{FRONTEND_URL}/sign-in?error=csrf_nonce_missing", status_code=302)
-    if not CLIENT_SECRET:
+        return RedirectResponse(url=f"{fe}/sign-in?error=csrf_nonce_missing", status_code=302)
+    client_secret = _env_ad_client_secret()
+    if not client_secret:
         raise HTTPException(500, "Azure AD client secret not configured")
 
     with httpx.Client(timeout=15) as client:
         r = client.post(
             TOKEN_URL,
             data={
-                "client_id": CLIENT_ID,
-                "client_secret": CLIENT_SECRET,
+                "client_id": _env_ad_client_id(),
+                "client_secret": client_secret,
                 "code": code,
-                "redirect_uri": REDIRECT_URI,
+                "redirect_uri": _redirect_uri(),
                 "grant_type": "authorization_code",
             },
             headers={"Content-Type": "application/x-www-form-urlencoded"},
         )
     if r.status_code != 200:
         logger.error("Token exchange failed: %s %s", r.status_code, r.text[:200])
-        return RedirectResponse(url=f"{FRONTEND_URL}/sign-in?error=token_exchange_failed", status_code=302)
+        return RedirectResponse(url=f"{fe}/sign-in?error=token_exchange_failed", status_code=302)
 
     token_data = r.json()
     access_token = token_data.get("access_token")
@@ -227,7 +309,7 @@ def callback(
     id_claims: dict = {}
     if not id_token:
         logger.warning("Token exchange returned no id_token")
-        return RedirectResponse(url=f"{FRONTEND_URL}/sign-in?error=no_id_token", status_code=302)
+        return RedirectResponse(url=f"{fe}/sign-in?error=no_id_token", status_code=302)
 
     client_ip = request.client.host if request.client else "unknown"
     try:
@@ -236,7 +318,7 @@ def callback(
         emit_token_rejected(reason=exc.detail, ip=client_ip)
         emit_login_failure(reason="token_verification_failed", ip=client_ip, detail=exc.detail)
         return RedirectResponse(
-            url=f"{FRONTEND_URL}/sign-in?error=token_verification_failed",
+            url=f"{fe}/sign-in?error=token_verification_failed",
             status_code=302,
         )
 
@@ -246,7 +328,17 @@ def callback(
         logger.warning("Rejecting v1.0 token (iss=%s). Set accessTokenAcceptedVersion: 2 in Azure AD app manifest.", iss)
         emit_token_rejected(reason="v1_issuer", ip=client_ip)
         emit_login_failure(reason="token_v1_not_allowed", ip=client_ip)
-        return RedirectResponse(url=f"{FRONTEND_URL}/sign-in?error=token_v1_not_allowed", status_code=302)
+        return RedirectResponse(url=f"{fe}/sign-in?error=token_v1_not_allowed", status_code=302)
+
+    # Multi-tenant trust boundary: validate the tid (tenant ID) claim against the
+    # allowlist of onboarded organisations. Tokens from unknown tenants are rejected
+    # even if cryptographically valid — prevents any Microsoft tenant signing in.
+    tid = id_claims.get("tid", "")
+    if not _is_tenant_allowed(tid):
+        logger.warning("Rejecting token from unknown tenant tid=%s", tid)
+        emit_token_rejected(reason="tenant_not_allowed", ip=client_ip)
+        emit_login_failure(reason="tenant_not_allowed", ip=client_ip)
+        return RedirectResponse(url=f"{fe}/sign-in?error=tenant_not_allowed", status_code=302)
 
     email = (
         id_claims.get("preferred_username")
@@ -280,7 +372,7 @@ def callback(
             )
             emit_login_mfa_blocked(email=email or "unknown", ip=client_ip, amr=amr)
             return RedirectResponse(
-                url=f"{FRONTEND_URL}/sign-in?error=mfa_required",
+                url=f"{fe}/sign-in?error=mfa_required",
                 status_code=302,
             )
 
@@ -306,7 +398,7 @@ def callback(
     normalized_state = state if state.startswith("/") else f"/{state.lstrip('/')}"
     if normalized_state in {"/", "/sign-in", "/auth/callback"}:
         normalized_state = "/dashboard"
-    redirect_url = f"{FRONTEND_URL}{normalized_state}"
+    redirect_url = f"{fe}{normalized_state}"
     resp = RedirectResponse(url=redirect_url, status_code=302)
     cookie_secure = os.getenv("COOKIE_SECURE", "true").lower() not in ("false", "0", "no")
     resp.set_cookie(

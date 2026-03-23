@@ -25,13 +25,13 @@
   mitigation_measures:
     - control_type: "protective_measure"
       description: "Human reviewer sees full de-identified encounter text alongside coded entities and can add missed entities manually"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-001", "DI-LEO-AI-003"]
+      verified_by: ["VT-LEO-AI-001", "VT-LEO-AI-002"]
       effectiveness: "highly_effective"
     - control_type: "protective_measure"
       description: "Recall monitoring against gold-standard data with threshold >= 0.90"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-001", "DI-LEO-AI-003"]
+      verified_by: ["VT-LEO-AI-001", "VT-LEO-AI-002"]
       effectiveness: "effective"
 
   residual_risk_estimate:

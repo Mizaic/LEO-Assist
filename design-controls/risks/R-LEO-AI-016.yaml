@@ -25,13 +25,13 @@
   mitigation_measures:
     - control_type: "protective_measure"
       description: "Cost configuration externalised in environment variables for easy correction"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-006"]
+      verified_by: ["VT-LEO-AI-004"]
       effectiveness: "effective"
     - control_type: "protective_measure"
       description: "Unit tests verify cost calculation logic"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-006"]
+      verified_by: ["VT-LEO-AI-004"]
       effectiveness: "effective"
 
   residual_risk_estimate:

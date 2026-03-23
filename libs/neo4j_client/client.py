@@ -13,16 +13,18 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-# Load secrets/.env so services (FHIR API, analytics, terminology, workers) get
-# Neo4j credentials when run directly (uvicorn, debug) without the startup script.
+# Fallback for scripts and test harnesses that import this lib directly without
+# going through a service main.py (which calls load_keyvault_secrets() first).
+# Services always call load_keyvault_secrets() before importing, so KV wins.
 _REPO_ROOT = Path(__file__).resolve().parents[2]
-load_dotenv(_REPO_ROOT / "secrets" / ".env")
+load_dotenv(_REPO_ROOT / "secrets" / ".env.config", override=True)
+load_dotenv(_REPO_ROOT / "secrets" / ".env", override=False)
 import random
 import time
 from contextlib import contextmanager
 from typing import Any
 
-from neo4j import GraphDatabase
+from neo4j import AsyncGraphDatabase, GraphDatabase
 from neo4j.exceptions import (
     ConfigurationError,
     ServiceUnavailable,
@@ -140,9 +142,13 @@ class PatientGraphClient(_BaseClient):
 class KnowledgeGraphClient(_BaseClient):
     """Connects to the Knowledge Graph (KNOWLEDGE_GRAPH_NEO4J_URI).
 
-    Contains: Concept, Term, SurfaceForm, ReadCode, Icd10Code,
-    ValueSet, ConceptMap, Measure, Library, MeasureReport, Device,
-    PlanDefinition, Organization.
+    Contains anonymous/de-identified model knowledge — no patient identifiers:
+      Terminology:   Concept, Term, SurfaceForm, ReadCode, Icd10Code, ValueSet,
+                     ConceptMap, CodingDecision, SurfaceFormTask
+      Learning loop: TrainingCandidate, GoldLabel  (GDPR-isolated)
+      Pipeline:      PromptConfig, PipelineConfig, Device, PlanDefinition,
+                     ModelVersion, ModelRegistryConfig, ModelPreset
+      Org/FHIR:      Measure, Library, MeasureReport, Organization
     """
 
     def __init__(self) -> None:
@@ -151,3 +157,18 @@ class KnowledgeGraphClient(_BaseClient):
             os.getenv("KNOWLEDGE_GRAPH_NEO4J_USERNAME", ""),
             os.getenv("KNOWLEDGE_GRAPH_NEO4J_PASSWORD", ""),
         )
+
+
+def get_async_driver():
+    """Return an async Neo4j driver for the Knowledge Graph.
+
+    Workflow plans, actions, and activity definitions are stored in the
+    knowledge graph, so the pipeline worker needs an async KG driver rather
+    than the patient-graph client wrappers above.
+    """
+    uri = os.getenv("KNOWLEDGE_GRAPH_NEO4J_URI", "")
+    username = os.getenv("KNOWLEDGE_GRAPH_NEO4J_USERNAME", "")
+    password = os.getenv("KNOWLEDGE_GRAPH_NEO4J_PASSWORD", "")
+    if not all([uri, username, password]):
+        raise RuntimeError("Neo4j credentials missing for async knowledge graph driver")
+    return AsyncGraphDatabase.driver(uri, auth=(username, password))

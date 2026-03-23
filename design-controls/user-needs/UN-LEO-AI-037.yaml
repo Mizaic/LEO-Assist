@@ -1,0 +1,105 @@
+# -- UN-LEO-AI-037 -- Code-to-Source Provenance Linking
+
+- id: "UN-LEO-AI-037"
+  title: "Triage clinicians, clinical coders, and auditors need every AI-extracted clinical code to link back to the exact phrase in the source text that generated it, so they can verify the extraction is correct, understand the AI reasoning, and maintain an auditable record of what evidence supported each clinical finding."
+  description: |
+    When the system extracts a SNOMED CT code from a referral or clinical note,
+    the receiving clinician currently sees only the code and its display term.
+    They cannot see which words in the source text produced that code, what
+    assertion context was applied (present, negated, historical, suspected),
+    or why an LLM was invoked rather than the NLP pipeline.
+
+    Every extracted code must carry a provenance record: the exact character
+    span in the source text, the extraction method (NER, LLM, rule), the
+    confidence score, and the assertion context with its evidence. This record
+    must be viewable by the clinician when they review the extracted summary,
+    and must be retained in the audit trail for the lifetime of the referral.
+
+  stakeholder:
+    type: "nhs_user"
+    role: "Triage Clinician / Clinical Coder / Auditor"
+    organization: "NHS Acute Trust"
+
+  priority: "MUST"
+
+  rationale: |
+    Provenance is the foundation of clinical trust in AI-extracted data. Without
+    being able to see where a code came from, a clinician cannot verify it is
+    correct and cannot safely override it without reading the entire source text.
+    Provenance linking reduces verification time, supports targeted correction,
+    and enables auditors to reconstruct exactly what evidence was present at the
+    time of a triage decision. It is also a fundamental requirement for
+    explaining AI decisions under UK GDPR Article 22 and for DCB0129 clinical
+    safety compliance.
+
+  benefit: |
+    Clinicians can verify AI extractions in seconds by reading the highlighted
+    phrase rather than the full document. Incorrect extractions can be corrected
+    at the specific code level without re-reading the source. Auditors can
+    reconstruct the complete evidence chain for any triage decision. Trust in
+    AI outputs increases as the reasoning is visible.
+
+  use_case: |
+    1. Triage clinician opens the structured summary of a referral.
+    2. Each coded finding shows a small icon indicating "view source."
+    3. Clicking the icon highlights the exact phrase in the source text that
+       generated this code, shows the assertion context (e.g. "present",
+       "negated", "historical"), the confidence score, and the extraction
+       method.
+    4. If the code is wrong, the clinician can correct it and the correction
+       is logged with the original code, the replacement, and the reviewer's
+       identity.
+    5. The provenance record for every code is stored in the audit trail and
+       is retrievable for investigation purposes.
+
+  current_solution: |
+    None. Extracted codes are displayed without provenance. Clinicians must
+    read the full source text to verify extractions.
+
+  pain_points:
+    - "Clinicians cannot verify AI extractions without reading the entire source document"
+    - "No evidence chain for audit or investigation purposes"
+    - "Incorrect codes cannot be corrected at the specific code level"
+    - "Automation bias risk is higher when reasoning is invisible"
+    - "Cannot demonstrate UK GDPR Article 22 compliance without explainable AI output"
+
+  acceptance_criteria:
+    - "Every extracted code carries: source character span, extraction method, confidence score, and assertion context"
+    - "Source phrase is highlighted in the original text when a code is selected"
+    - "Assertion context shows the evidence that determined present, negated, historical, or suspected"
+    - "Provenance record is immutable once stored and is retained for 7 years"
+    - "Clinician corrections are logged with: original code, replacement code, reviewer ID, and timestamp"
+    - "Provenance is accessible to auditors via the audit trail API"
+
+  success_metrics:
+    - metric: "Time for clinician to verify a single extracted code"
+      target: "Under 10 seconds using provenance view"
+      baseline: "Requires reading full source document -- estimated 1-3 minutes per code"
+    - metric: "Clinician-reported trust in AI extractions"
+      target: "Above 80% 'agree' on post-deployment survey item: I can verify AI extractions quickly"
+      baseline: "Not currently measured"
+
+  regulatory_impact: "high"
+  safety_impact: "high"
+  safety_class: "B"
+
+  derived_from:
+    - "Intended Use Statement DC-IU-001"
+    - "IEC 62304:2006/AMD1:2015 Class B software lifecycle"
+    - "ISO 14971:2019 risk management"
+
+  related_standards:
+    - "IEC 62304:2006/AMD1:2015"
+    - "ISO 14971:2019"
+    - "DCB0129"
+    - "UK GDPR Article 22"
+
+  metadata:
+    created_by: "Engineering Team"
+    created_date: "2026-03-11"
+    status: "draft"
+    evidence_source: "User interviews P07, P14, P18 -- UR-LEO-AI-001"
+
+  design_inputs: []
+  validation_tests: []
+  tags: ["provenance", "explainability", "audit-trail", "clinical-trust", "snomed", "extraction"]

@@ -4,7 +4,7 @@
 
 - id: "DI-LEO-AI-045"
   type: "Safety"
-  derived_from: ["R-LEO-AI-030"]
+  derived_from: ["UN-LEO-AI-021"]
   requirement: >
     The system SHALL provide centralised prompt safety utilities applied at
     every LLM call site:

@@ -1,24 +1,16 @@
-"""V1 encounter pre-classification prompt.
+"""V1 encounter pre-classification prompt — INSTRUCTIONS ONLY.
 
-New for M3a — classifies encounters as admin/document/clinical before extraction.
+Output schema and few-shot examples are stored separately in Neo4j and
+assembled at runtime. Do NOT add output format sections or inline examples
+to this file — manage them via the Admin UI at /admin/prompts
+(name='encounter_classify', version=1).
+
+Run ``python -m scripts.seed_prompt_configs`` to push changes to Neo4j.
 """
-from libs.prompts.registry import register
 
 ENCOUNTER_CLASSIFY_SYSTEM_V1 = """\
 You are a UK primary care encounter classifier. Given the text of a GP encounter,
 classify its content type and clinical domains.
-
-Return ONLY valid JSON matching this schema. No explanation, no markdown, no preamble.
-
-Schema:
-{
-  "content_type": "<admin_only | document_transfer | clinical>",
-  "domains": ["<domain>", ...],
-  "encounter_purpose": ["<purpose>", ...],
-  "key_clinical_signals": ["<signal>", ...],
-  "expected_semantic_tags": ["<tag>", ...],
-  "clinical_significance": "<high | medium | low>"
-}
 
 ## Content Types
 
@@ -76,4 +68,3 @@ If YES → clinical.
   discharge_summary, clinic_letter, admin\
 """
 
-register("encounter_classify", version=1, text=ENCOUNTER_CLASSIFY_SYSTEM_V1)

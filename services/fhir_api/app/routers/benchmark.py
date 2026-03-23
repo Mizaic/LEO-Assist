@@ -46,14 +46,60 @@ def delete_benchmark_set(set_id: str):
     benchmark_service.delete_benchmark_set(set_id)
 
 
+@router.get("/sets/{set_id}/categories")
+def get_benchmark_categories(set_id: str):
+    """Get distinct metric categories present in a benchmark set."""
+    s = benchmark_service.get_benchmark_set(set_id)
+    if not s:
+        raise HTTPException(404, f"BenchmarkSet/{set_id} not found")
+    return benchmark_service.get_benchmark_categories(set_id)
+
+
+@router.get("/sets/{set_id}/scopes")
+def get_benchmark_scopes(set_id: str):
+    """Get distinct scopes (orgs) present in a benchmark set."""
+    s = benchmark_service.get_benchmark_set(set_id)
+    if not s:
+        raise HTTPException(404, f"BenchmarkSet/{set_id} not found")
+    return benchmark_service.get_benchmark_scopes(set_id)
+
+
 @router.get("/sets/{set_id}/values")
 def get_benchmark_values(
     set_id: str,
     metric_id: Optional[str] = Query(default=None),
     scope_type: Optional[str] = Query(default=None),
+    scope_id: Optional[str] = Query(default=None),
+    category: Optional[str] = Query(default=None),
 ):
     """Get benchmark values for a set, optionally filtered."""
-    return benchmark_service.get_benchmark_values(set_id, metric_id=metric_id, scope_type=scope_type)
+    return benchmark_service.get_benchmark_values(
+        set_id,
+        metric_id=metric_id,
+        scope_type=scope_type,
+        scope_id=scope_id,
+        category=category,
+    )
+
+
+@router.put("/sets/{set_id}/values/{value_id}")
+def update_benchmark_value(set_id: str, value_id: str, body: Dict[str, Any]):
+    """Update a benchmark value's numeric value."""
+    new_val = body.get("value")
+    if new_val is None:
+        raise HTTPException(400, "value is required")
+    result = benchmark_service.update_benchmark_value(value_id, float(new_val))
+    if not result:
+        raise HTTPException(404, f"BenchmarkValue/{value_id} not found")
+    return result
+
+
+@router.delete("/sets/{set_id}/values/{value_id}", status_code=204)
+def delete_benchmark_value(set_id: str, value_id: str):
+    """Delete a single benchmark value by id."""
+    deleted = benchmark_service.delete_benchmark_value(value_id)
+    if not deleted:
+        raise HTTPException(404, f"BenchmarkValue/{value_id} not found")
 
 
 @router.get("/sets/{set_id}/comparison/{metric_id}")

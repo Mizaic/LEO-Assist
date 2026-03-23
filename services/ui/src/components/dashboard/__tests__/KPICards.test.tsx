@@ -13,10 +13,10 @@ const sampleKPIs = {
 describe("KPICards", () => {
   it("renders all 4 KPI rows", () => {
     render(<KPICards kpis={sampleKPIs} />);
-    expect(screen.getByText(/Presentation → Referral/)).toBeInTheDocument();
-    expect(screen.getByText(/Referral → Diagnosis/)).toBeInTheDocument();
-    expect(screen.getByText(/Diagnosis → Treatment/)).toBeInTheDocument();
-    expect(screen.getByText(/Consultations before Referral/)).toBeInTheDocument();
+    expect(screen.getByText(/First appointment to referral/)).toBeInTheDocument();
+    expect(screen.getByText(/Referral to diagnosis/)).toBeInTheDocument();
+    expect(screen.getByText(/Diagnosis to treatment start/)).toBeInTheDocument();
+    expect(screen.getByText(/GP visits before referral/)).toBeInTheDocument();
   });
 
   it("shows rounded values with units", () => {
@@ -31,7 +31,7 @@ describe("KPICards", () => {
         kpis={{ ...sampleKPIs, avg_days_to_referral: null }}
       />,
     );
-    expect(screen.getByText((_, el) => el?.tagName === "H6" && el.textContent?.includes("—") === true)).toBeInTheDocument();
+    expect(screen.getByText("—")).toBeInTheDocument();
   });
 
   it("shows episode count", () => {
@@ -41,12 +41,12 @@ describe("KPICards", () => {
 
   it("shows empty message when kpis is null", () => {
     render(<KPICards kpis={null} />);
-    expect(screen.getByText(/No referral quality data available/)).toBeInTheDocument();
+    expect(screen.getByText(/No waiting time data is available yet/)).toBeInTheDocument();
   });
 
   it("shows target values", () => {
     render(<KPICards kpis={sampleKPIs} />);
-    expect(screen.getByText(/target: 14/)).toBeInTheDocument();
-    expect(screen.getByText(/target: 28/)).toBeInTheDocument();
+    expect(screen.getByText(/NHS target: 14 days/)).toBeInTheDocument();
+    expect(screen.getByText(/NHS target: 28 days/)).toBeInTheDocument();
   });
 });

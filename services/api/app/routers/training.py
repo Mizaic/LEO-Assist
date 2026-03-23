@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import re
 import subprocess
 import sys
@@ -26,6 +27,7 @@ import threading
 import uuid
 from typing import Any, Optional
 
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
@@ -51,6 +53,7 @@ from libs.cypher.coding_review_queries import (
     COUNT_CODING_REVIEW_GROUPS,
     COUNT_CODING_REVIEW_PENDING,
     DEACTIVATE_CODING_IGNORE_RULE,
+    DELETE_ALL_CODING_REVIEWS_UNCONDITIONAL,
     GET_ALL_CODING_IGNORE_RULES,
     GET_ASSERTION_REVIEW_QUEUE,
     GET_CODING_IGNORE_RULES,
@@ -70,6 +73,29 @@ from libs.cypher.coding_review_queries import (
     UPSERT_CODING_IGNORE_RULE,
     UPSERT_CONTEXT_RULE,
     GET_TIER_OVERRIDE_STATS,
+    DELETE_RESOLVED_CODING_REVIEWS,
+)
+from libs.cypher.exclusion_queries import DELETE_ALL_HITL_TASKS
+from libs.cypher.training_candidate_queries import (
+    COUNT_TRAINING_CANDIDATES_PAGE,
+    GET_TRAINING_CANDIDATE_BY_ID,
+    GET_TRAINING_CANDIDATE_STATS,
+    GET_TRAINING_CANDIDATES_PAGE,
+)
+from libs.cypher.gold_label_queries import (
+    COUNT_GOLD_LABELS_PAGE,
+    DELETE_GOLD_LABEL_AND_RESET_CANDIDATE,
+    GET_ALL_GOLD_LABELS_FOR_EXPORT,
+    GET_GOLD_LABEL_BY_ID,
+    GET_GOLD_LABEL_STATS,
+    GET_GOLD_LABELS_PAGE,
+)
+from libs.cypher.surface_form_task_queries import (
+    COUNT_SURFACE_FORM_TASKS,
+    DELETE_ALL_SURFACE_FORM_TASKS,
+    GET_SURFACE_FORM_TASK_BY_ID,
+    LIST_PENDING_SURFACE_FORM_TASKS,
+    RESOLVE_SURFACE_FORM_TASK,
 )
 from services.terminology_api.app.queries.terminology import (
     APPROVE_SURFACE_FORM,
@@ -77,13 +103,11 @@ from services.terminology_api.app.queries.terminology import (
 from libs.cypher.label_verification_queries import (
     COUNT_VERIFICATION_HISTORY,
     COUNT_VERIFICATION_QUEUE_PENDING,
-    DELETE_ALL_VERIFICATION_REVIEWS_FOR_INCLUDED,
     GET_VERIFICATION_HISTORY,
     GET_LABEL_VERIFIER_SCORECARD,
     GET_LABEL_VERIFIER_SCORECARD_BREAKDOWN,
     GET_VERIFICATION_QUEUE,
     GET_VERIFICATION_STATS,
-    RESET_TRAINING_LABEL_VERIFICATION_FIELDS,
     RESOLVE_LABEL_VERIFICATION_REVIEW,
 )
 from libs.cypher.post_processor_rule_queries import (
@@ -91,21 +115,39 @@ from libs.cypher.post_processor_rule_queries import (
     UPSERT_POST_PROCESSOR_RULE,
     UPDATE_POST_PROCESSOR_RULE_ACTIVE,
 )
-from libs.llm_client.escalation import escalate_coding
 from libs.ner.schema_mapper import LABEL_TO_SNOMED_TAG
 from libs.ner.training_label_writer import bulk_upsert_training_labels
 from libs.utils.logging import logging_context
-from app.services.label_verifier import (
-    begin_job,
-    begin_job_with_mode,
-    get_job_state,
-    request_stop_job,
-    run_verification,
-)
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/training", tags=["training"])
+PIPELINE_WORKER_BASE = os.getenv("PIPELINE_WORKER_URL", "http://localhost:8006").rstrip("/")
+
+
+async def _proxy_pipeline_worker_json(
+    method: str,
+    path: str,
+    *,
+    json_body: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    url = f"{PIPELINE_WORKER_BASE}{path}"
+    async with httpx.AsyncClient(timeout=60) as client:
+        resp = await client.request(method, url, json=json_body)
+
+    if resp.status_code >= 400:
+        detail: Any
+        try:
+            payload = resp.json()
+            detail = payload.get("detail", payload)
+        except ValueError:
+            detail = resp.text or f"Pipeline worker error ({resp.status_code})"
+        raise HTTPException(status_code=resp.status_code, detail=detail)
+
+    try:
+        return resp.json()
+    except ValueError as exc:
+        raise HTTPException(status_code=502, detail="Pipeline worker returned invalid JSON") from exc
 
 
 # ---------------------------------------------------------------------------
@@ -217,6 +259,12 @@ class UpdatePostProcessorRuleRequest(BaseModel):
 class VerifyAllRequest(BaseModel):
     mode: str = "all"  # all | hitl_only | re_extract
     reset_pending: bool = False
+
+
+class ResolveSurfaceFormTaskRequest(BaseModel):
+    status: str  # approved | rejected | modified
+    resolved_concept: str | None = None
+    resolved_by: str = "operations_ui"
 
 
 # ------------------------------------------------------------------
@@ -421,73 +469,34 @@ def update_label_entities(
 
 
 @router.post("/labels/verify-all")
-def verify_all_labels(
+async def verify_all_labels(
     body: VerifyAllRequest | None = None,
     scope: CallerScope = Depends(get_caller_scope),
 ) -> dict[str, Any]:
     """Trigger background dual-model verification over included labels."""
-    if body is None:
-        started = begin_job()
-        mode = "all"
-        reset_pending = False
-    else:
-        mode = body.mode if body.mode in {"all", "hitl_only", "re_extract"} else "all"
-        reset_pending = bool(body.reset_pending)
-        started = begin_job_with_mode(run_mode=mode, reset_pending=reset_pending)
-
-    if not started:
-        raise HTTPException(status_code=409, detail="A label verification job is already running")
-
-    if reset_pending:
-        client = PatientGraphClient()
-        try:
-            with client.session() as session:
-                session.run(RESET_TRAINING_LABEL_VERIFICATION_FIELDS)
-                session.run(DELETE_ALL_VERIFICATION_REVIEWS_FOR_INCLUDED)
-        finally:
-            client.close()
-
-    thread = threading.Thread(target=run_verification, daemon=True)
-    thread.start()
-    return {
-        "status": "started",
-        "mode": mode,
-        "reset_pending": reset_pending,
-        "message": "Label verification started in background",
-    }
+    _ = scope
+    payload = {"mode": "all", "reset_pending": False} if body is None else body.model_dump()
+    return await _proxy_pipeline_worker_json("POST", "/label-verify/start", json_body=payload)
 
 
 @router.post("/labels/verify-all/cancel")
-def cancel_verify_all(scope: CallerScope = Depends(get_caller_scope)) -> dict[str, Any]:
+async def cancel_verify_all(scope: CallerScope = Depends(get_caller_scope)) -> dict[str, Any]:
     """Request graceful cancellation of running label verification job."""
-    if not request_stop_job():
-        raise HTTPException(status_code=409, detail="No running label verification job to cancel")
-    return {"status": "stopping", "message": "Cancellation requested"}
+    _ = scope
+    return await _proxy_pipeline_worker_json("POST", "/label-verify/stop")
 
 
 @router.get("/labels/verify-all/status")
-def verification_status(scope: CallerScope = Depends(get_caller_scope)) -> dict[str, Any]:
+async def verification_status(scope: CallerScope = Depends(get_caller_scope)) -> dict[str, Any]:
     """Return current background verification status plus corpus stats."""
-    state = get_job_state()
-    client = PatientGraphClient()
-    try:
-        with client.session() as session:
-            stats_row = session.run(GET_VERIFICATION_STATS).single()
-            pending_row = session.run(COUNT_VERIFICATION_QUEUE_PENDING).single()
-        return {
-            **state,
-            "auto_resolved": int(state.get("auto_resolved", 0) or 0),
-            "stats": dict(stats_row) if stats_row else {
-                "total_labels": 0,
-                "verified_labels": 0,
-                "agreements": 0,
-                "disagreements": 0,
-                "pending": 0,
-            },
-            "pending_review": pending_row["pending"] if pending_row else 0,
-        }
-    finally:
-        client.close()
+    _ = scope
+    return await _proxy_pipeline_worker_json("GET", "/label-verify/status")
+
+
+# ------------------------------------------------------------------
+# POST /training/labels/agentic-audit
+# Agentic auditor endpoints removed — replaced by verification subgraph
+# in libs/pipeline_graph/subgraphs/verification.py
 
 
 # ------------------------------------------------------------------
@@ -1467,6 +1476,8 @@ def ask_leo_coding(
     Encounter text is used to extract measurement units for disambiguation.
     Returns a concept suggestion with confidence and plain-language rationale.
     """
+    from libs.llm_client.escalation import escalate_coding
+
     result = escalate_coding(
         entity_text=body.entity_text,
         entity_label=body.entity_label or "clinical finding",
@@ -2214,6 +2225,8 @@ def _apply_recheck_item(
 
     # Last resort: model escalation (small -> big -> max) for unresolved items
     if try_alternatives:
+        from libs.llm_client.escalation import escalate_coding
+
         esc = escalate_coding(
             entity_text=entity_text,
             entity_label=entity_label,
@@ -2653,6 +2666,13 @@ def create_context_rule(
     finally:
         client.close()
 
+    # Rebuild the ConText NLP pipeline so the new rule takes effect immediately.
+    try:
+        from libs.ner.context_engine import reload_nlp
+        reload_nlp()
+    except Exception:
+        logger.warning("ConText pipeline reload failed after rule creation (non-fatal)", exc_info=True)
+
 
 @router.patch("/context-rules/{rule_id}/deactivate")
 def deactivate_context_rule(
@@ -2670,6 +2690,13 @@ def deactivate_context_rule(
         return {"rule_id": rule_id, "active": False}
     finally:
         client.close()
+
+    # Rebuild the ConText NLP pipeline so the removed rule is no longer applied.
+    try:
+        from libs.ner.context_engine import reload_nlp
+        reload_nlp()
+    except Exception:
+        logger.warning("ConText pipeline reload failed after rule deactivation (non-fatal)", exc_info=True)
 
 
 # -- Surface form approval --------------------------------------------------
@@ -2691,7 +2718,6 @@ def approve_surface_form(
             row = session.run(
                 APPROVE_SURFACE_FORM,
                 normalized=normalized,
-                approved_by=scope.user_id or "reviewer",
             ).single()
         if not row:
             raise HTTPException(
@@ -2702,3 +2728,354 @@ def approve_surface_form(
         return {"normalized": row["normalized"], "status": row["status"]}
     finally:
         client.close()
+
+
+# -- Queue maintenance ------------------------------------------------------
+
+
+@router.delete("/coding-review/resolved")
+def delete_resolved_coding_reviews(
+    scope: CallerScope = Depends(require_admin),
+) -> dict[str, Any]:
+    """Delete resolved CodingReview queue items."""
+    client = PatientGraphClient()
+    try:
+        with client.session() as session:
+            summary = session.run(DELETE_RESOLVED_CODING_REVIEWS).consume()
+        return {"deleted": summary.counters.nodes_deleted}
+    finally:
+        client.close()
+
+
+@router.delete("/review-queue/all")
+def delete_all_review_queue_items(
+    scope: CallerScope = Depends(require_admin),
+) -> dict[str, Any]:
+    """Delete all review queue items (CodingReview, SurfaceFormTask, HITLTask).
+    Use when clearing items from an old pipeline before running the new one."""
+    pg_client = PatientGraphClient()
+    kg_client = KnowledgeGraphClient()
+    try:
+        with pg_client.session() as session:
+            cr_summary = session.run(DELETE_ALL_CODING_REVIEWS_UNCONDITIONAL).consume()
+            hitl_summary = session.run(DELETE_ALL_HITL_TASKS).consume()
+        with kg_client.session() as session:
+            sf_summary = session.run(DELETE_ALL_SURFACE_FORM_TASKS).consume()
+        return {
+            "coding_reviews_deleted": cr_summary.counters.nodes_deleted,
+            "surface_form_tasks_deleted": sf_summary.counters.nodes_deleted,
+            "hitl_tasks_deleted": hitl_summary.counters.nodes_deleted,
+            "total_deleted": (
+                cr_summary.counters.nodes_deleted
+                + sf_summary.counters.nodes_deleted
+                + hitl_summary.counters.nodes_deleted
+            ),
+        }
+    finally:
+        pg_client.close()
+        kg_client.close()
+
+
+# -- GDPR-isolated learning loop (Knowledge Graph) -------------------------
+# TrainingCandidate, GoldLabel and SurfaceFormTask are de-identified model
+# knowledge and belong in the Knowledge Graph, not the Patient Graph.
+
+
+@router.get("/candidates/stats")
+def get_training_candidate_stats(
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    client = KnowledgeGraphClient()
+    try:
+        with client.session() as session:
+            row = session.run(GET_TRAINING_CANDIDATE_STATS).single()
+        return dict(row) if row else {"total": 0, "pending": 0, "processing": 0, "completed": 0, "failed": 0}
+    finally:
+        client.close()
+
+
+@router.get("/candidates")
+def list_training_candidates(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(25, ge=1, le=200),
+    status: str | None = None,
+    source: str | None = None,
+    search: str | None = None,
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    skip = (page - 1) * page_size
+    client = KnowledgeGraphClient()
+    try:
+        with client.session() as session:
+            rows = session.run(
+                GET_TRAINING_CANDIDATES_PAGE,
+                skip=skip,
+                limit=page_size,
+                status=status,
+                source=source,
+                search=search,
+            )
+            items = [dict(r) for r in rows]
+            count_row = session.run(
+                COUNT_TRAINING_CANDIDATES_PAGE,
+                status=status,
+                source=source,
+                search=search,
+            ).single()
+        total = count_row["total"] if count_row else 0
+        return {"items": items, "page": page, "page_size": page_size, "total": total}
+    finally:
+        client.close()
+
+
+@router.get("/candidates/{candidate_id}")
+def get_training_candidate(
+    candidate_id: str,
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    client = KnowledgeGraphClient()
+    try:
+        with client.session() as session:
+            row = session.run(GET_TRAINING_CANDIDATE_BY_ID, candidate_id=candidate_id).single()
+        if not row:
+            raise HTTPException(status_code=404, detail=f"Candidate {candidate_id!r} not found")
+        return dict(row)
+    finally:
+        client.close()
+
+
+@router.get("/gold-labels/stats")
+def get_gold_label_stats(
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    client = KnowledgeGraphClient()
+    try:
+        with client.session() as session:
+            row = session.run(GET_GOLD_LABEL_STATS).single()
+        return dict(row) if row else {"total": 0, "avg_quality_score": 0.0, "high_quality": 0}
+    finally:
+        client.close()
+
+
+@router.get("/gold-labels")
+def list_gold_labels(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(25, ge=1, le=200),
+    source: str | None = None,
+    search: str | None = None,
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    skip = (page - 1) * page_size
+    client = KnowledgeGraphClient()
+    try:
+        with client.session() as session:
+            rows = session.run(
+                GET_GOLD_LABELS_PAGE,
+                skip=skip,
+                limit=page_size,
+                source=source,
+                search=search,
+            )
+            items = [dict(r) for r in rows]
+            count_row = session.run(
+                COUNT_GOLD_LABELS_PAGE,
+                source=source,
+                search=search,
+            ).single()
+        total = count_row["total"] if count_row else 0
+        return {"items": items, "page": page, "page_size": page_size, "total": total}
+    finally:
+        client.close()
+
+
+@router.get("/gold-labels/{label_id}")
+def get_gold_label(
+    label_id: str,
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    client = KnowledgeGraphClient()
+    try:
+        with client.session() as session:
+            row = session.run(GET_GOLD_LABEL_BY_ID, label_id=label_id).single()
+        if not row:
+            raise HTTPException(status_code=404, detail=f"GoldLabel {label_id!r} not found")
+        return dict(row)
+    finally:
+        client.close()
+
+
+@router.delete("/gold-labels/{label_id}")
+def delete_gold_label_and_reset_candidate(
+    label_id: str,
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    client = KnowledgeGraphClient()
+    try:
+        with client.session() as session:
+            row = session.run(
+                DELETE_GOLD_LABEL_AND_RESET_CANDIDATE,
+                label_id=label_id,
+            ).single()
+        if not row:
+            raise HTTPException(status_code=404, detail=f"GoldLabel {label_id!r} not found")
+        return dict(row)
+    finally:
+        client.close()
+
+
+@router.get("/gold-labels/export")
+def export_gold_labels(
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    client = KnowledgeGraphClient()
+    try:
+        with client.session() as session:
+            rows = session.run(GET_ALL_GOLD_LABELS_FOR_EXPORT)
+            return {"items": [dict(r) for r in rows]}
+    finally:
+        client.close()
+
+
+# -- Surface form review tasks (Knowledge Graph) ---------------------------
+
+
+@router.get("/surface-form-tasks")
+def list_surface_form_tasks(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(25, ge=1, le=200),
+    status: str | None = Query(default="pending"),
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    skip = (page - 1) * page_size
+    client = KnowledgeGraphClient()
+    try:
+        with client.session() as session:
+            rows = session.run(
+                LIST_PENDING_SURFACE_FORM_TASKS,
+                skip=skip,
+                limit=page_size,
+                status=status,
+            )
+            items = [dict(r) for r in rows]
+            count_row = session.run(COUNT_SURFACE_FORM_TASKS, status=status).single()
+        total = count_row["total"] if count_row else 0
+        return {"items": items, "page": page, "page_size": page_size, "total": total}
+    finally:
+        client.close()
+
+
+@router.get("/surface-form-tasks/stats")
+def surface_form_task_stats(
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    client = KnowledgeGraphClient()
+    try:
+        with client.session() as session:
+            pending = session.run(COUNT_SURFACE_FORM_TASKS, status="pending").single()
+            resolved = session.run(COUNT_SURFACE_FORM_TASKS, status="approved").single()
+        return {
+            "pending": pending["total"] if pending else 0,
+            "approved": resolved["total"] if resolved else 0,
+        }
+    finally:
+        client.close()
+
+
+@router.get("/surface-form-tasks/{task_id}")
+def get_surface_form_task(
+    task_id: str,
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    client = KnowledgeGraphClient()
+    try:
+        with client.session() as session:
+            row = session.run(GET_SURFACE_FORM_TASK_BY_ID, task_id=task_id).single()
+        if not row:
+            raise HTTPException(status_code=404, detail=f"SurfaceFormTask {task_id!r} not found")
+        return dict(row)
+    finally:
+        client.close()
+
+
+@router.post("/surface-form-tasks/{task_id}/resolve")
+def resolve_surface_form_task(
+    task_id: str,
+    body: ResolveSurfaceFormTaskRequest,
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    if body.status not in {"approved", "rejected", "modified"}:
+        raise HTTPException(status_code=422, detail="status must be approved|rejected|modified")
+    client = KnowledgeGraphClient()
+    try:
+        with client.session() as session:
+            row = session.run(
+                RESOLVE_SURFACE_FORM_TASK,
+                task_id=task_id,
+                status=body.status,
+                resolved_concept=body.resolved_concept or "",
+                resolved_by=body.resolved_by or "operations_ui",
+            ).single()
+        if not row:
+            raise HTTPException(status_code=404, detail=f"SurfaceFormTask {task_id!r} not found")
+        return {"task_id": row["task_id"], "status": row["status"]}
+    finally:
+        client.close()
+
+
+# ── Source node sample preview ──────────────────────────────────────────────
+
+@router.get("/schema/sample-node")
+def get_sample_node(
+    node_label: str = Query(..., description="Node label to sample (e.g. EncounterCandidate)"),
+    graph: str = Query("patient", description="Which graph to query: 'patient' or 'knowledge'"),
+    text_property: str = Query("text", description="Property to highlight as the main text field"),
+):
+    """Return one sample node so users can verify field names in the source configurator.
+
+    Sanitises the result: sensitive fields are redacted, long text is truncated to
+    300 characters, and Neo4j datetime objects are converted to ISO strings.
+    The selected text_property is surfaced first in the response.
+    """
+    _REDACT = {"nhs_number", "date_of_birth", "dob", "birthdate", "birthDate", "postcode"}
+    _MAX_TEXT = 300
+
+    try:
+        client: Any = KnowledgeGraphClient() if graph == "knowledge" else PatientGraphClient()
+        try:
+            with client.session() as session:
+                rows = list(session.run(
+                    f"MATCH (n:{node_label}) RETURN properties(n) AS props LIMIT 1"
+                ))
+        finally:
+            client.close()
+
+        if not rows:
+            from fastapi.responses import JSONResponse as _JSONResponse
+            return _JSONResponse(
+                status_code=404,
+                content={"detail": f"No {node_label} nodes found in the {graph} graph."},
+            )
+
+        raw: dict = dict(rows[0]["props"])
+
+        def _sanitise(k: str, v: Any) -> Any:
+            if k.lower() in _REDACT:
+                return "***redacted***"
+            if isinstance(v, str) and len(v) > _MAX_TEXT:
+                return v[:_MAX_TEXT] + "…"
+            if hasattr(v, "iso_format"):
+                return v.iso_format()
+            return v
+
+        preview = {k: _sanitise(k, v) for k, v in raw.items()}
+        ordered: dict = {}
+        if text_property in preview:
+            ordered[text_property] = preview.pop(text_property)
+        ordered.update(preview)
+
+        return {"nodeLabel": node_label, "graph": graph, "textProperty": text_property, "properties": ordered}
+
+    except Exception as exc:
+        from fastapi.responses import JSONResponse as _JSONResponse
+        logger.warning("sample-node error for %s/%s: %s", graph, node_label, exc)
+        return _JSONResponse(status_code=500, content={"detail": str(exc)})

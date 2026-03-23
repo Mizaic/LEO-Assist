@@ -1,8 +1,12 @@
-"""V2 label verification prompt for dual-model NER review.
+"""V2 label verification prompt — INSTRUCTIONS ONLY.
 
-Focused on consistent multi-entity, multi-class decisions with boundary rules.
+Output schema and few-shot examples are stored separately in Neo4j and
+assembled at runtime. Do NOT add output format sections or inline examples
+to this file — manage them via the Admin UI at /admin/prompts
+(name='label_verification', version=2).
+
+Run ``python -m scripts.seed_prompt_configs`` to push changes to Neo4j.
 """
-from libs.prompts.registry import register
 
 LABEL_VERIFICATION_V2 = """\
 You are a strict UK primary-care clinical NER label verifier.
@@ -16,22 +20,22 @@ Your task:
 - Choose exactly one label per entity from the allowed set.
 - If an important clinical span is missing, add it as a new entity suggestion.
 
-Return JSON only:
-{
-  "entities": [
-    {
-      "entity_index": 0,
-      "suggested_label": "finding",
-      "confidence": 0.95,
-      "rule_triggered": "symptom_observation",
-      "rationale": "Brief reason",
-      "is_new": false,
-      "new_text": ""
-    }
-  ]
-}
+Materiality rules:
+- Judge material extraction quality, not ideal terminology editorial style.
+- Mark an entity incorrect only when the current label would materially change coding,
+  terminology resolution, or clinical meaning.
+- Do NOT fail an entity merely because you can think of a more precise synonym.
+- If the current wording is clinically faithful and likely terminology-resolvable, treat it
+  as acceptable even if another term might be nicer.
+- If a phrase is vague narrative with no plausible SNOMED CT concept, prefer dropping it
+  rather than inventing an awkward replacement term.
+- Borderline label choices that are both clinically defensible should not fail the extraction.
+- For radiology/imaging shorthand such as "CPPD", do not fail solely because `finding`
+  might be slightly more precise than `disorder` if the extracted concept is still clinically faithful.
+- For vague progress statements such as "knee is improving", do not invent pseudo-terms like
+  "knee finding" or "knee symptom improving"; prefer dropping the entity instead.
 
-For existing entities, set is_new=false and do not set new_text.
+For existing entities, set is_new=false and leave new_text as empty string.
 For new entities, set entity_index=-1, is_new=true, and provide exact new_text from encounter.
 
 Allowed labels:
@@ -154,128 +158,6 @@ Boundary rules:
 - Formal staging classifications (FIGO IB1, Dukes C, Clark IV) -> tumor_staging (not qualifier_value)
 - "Breast neoplasm" in screening context -> disorder (the condition itself, regardless of screening context)
 
-Few-shot examples:
-1) finding
-Text: Patient presents with 6-week history of rectal bleeding and change in bowel habit.
-Span: rectal bleeding
-Label: finding
-
-2) disorder
-Text: Histology: moderately differentiated adenocarcinoma of sigmoid colon. Staging CT: T3 N1 M0.
-Span: adenocarcinoma of sigmoid colon
-Label: disorder
-
-3) observable_entity (test name only)
-Text: Fast track referral to urology for raised PSA. PSA 12.4 ng/mL.
-Span: PSA
-Label: observable_entity
-
-3b) qualifier_value (value/unit split from observable)
-Text: Fast track referral to urology for raised PSA. PSA 12.4 ng/mL.
-Span: 12.4 ng/mL
-Label: qualifier_value
-
-4) procedure
-Text: Colonoscopy performed today under sedation. Multiple biopsies taken from sigmoid lesion.
-Span: Colonoscopy
-Label: procedure
-
-5) substance
-Text: Started first cycle of capecitabine for colorectal cancer today. Dose 1250 mg/m2 BD.
-Span: capecitabine
-Label: substance
-
-6) situation
-Text: Seen post-referral. Discharged from 2WW pathway. Cancer ruled out.
-Span: Cancer ruled out
-Label: situation
-
-7) qualifier_value — staging
-Text: Staging CT: T3 N1 M0. Case discussed at MDT.
-Span: T3 N1 M0
-Label: qualifier_value
-
-7b) qualifier_value — lab result value (NOT X_DOSAGE)
-Text: Serum sodium level (XE2q0) 142 mmol/L
-Span: 142 mmol/L
-Label: qualifier_value
-Why not X_DOSAGE: this is a lab measurement result, not a medication dose.
-
-7c) qualifier_value — result descriptor (NOT finding)
-Text: Haemoglobin concentration 112 g/L [115 - 165] - Outside reference range
-Span: Outside reference range
-Label: qualifier_value
-Why not finding: this is a result status descriptor, not a clinical observation.
-
-7d) qualifier_value — lab result value
-Text: eGFR using creatinine (CKD-EPI) per 1.73 square metres 43 mL/min
-Span: 43 mL/min
-Label: qualifier_value
-Why not X_DOSAGE: eGFR is a lab result, not a medication dose.
-
-7e) qualifier_value — result descriptor
-Text: Haemoglobin A1c level Report, Abnormal, Make an appointment to see nurse.
-Span: Abnormal
-Label: qualifier_value
-Why not finding: describes the measurement status, not a clinical symptom.
-
-8) procedure — treatment event (NOT a separate pathway label)
-Text: First cycle CHOP chemotherapy administered today for DLBCL.
-Span: First cycle CHOP chemotherapy
-Label: procedure
-Why: pathway significance is determined by the analytics pipeline, not the NER label.
-
-9) X_TEMPORAL
-Text: Next dose in 28 days.
-Span: 28 days
-Label: X_TEMPORAL
-
-11) X_DOSAGE — MEDICATION dose only
-Text: Degarelix 240 mg SC injection administered today.
-Span: 240 mg
-Label: X_DOSAGE
-IMPORTANT: X_DOSAGE is ONLY for medication doses. Never use for lab result values.
-
-12) X_ROUTE
-Text: Degarelix 240 mg SC injection administered today.
-Span: SC
-Label: X_ROUTE
-
-13) DO NOT label bare analyte names separately
-Text: Urine creatinine level (XE2qO) 5.5 mmol/L
-Span: creatinine
-WRONG: do not label bare analyte names as substance when the full test name is already an observable_entity.
-
-14) procedure — MDT
-Text: Discussed in MDT by Rachel.
-Span: MDT
-Label: procedure
-Why: MDT is a clinical governance activity (multidisciplinary team meeting).
-
-15) regime_therapy — treatment shorthand
-Text: Has discussed pros and cons of chemo with oncologist.
-Span: chemo
-Label: regime_therapy
-Why: "chemo" is shorthand for a treatment regimen, not a bare substance.
-
-16) qualifier_value — episode marker (NOT X_TEMPORAL)
-Text: Minor: Constipation (XE0rD) (New Episode)
-Span: New Episode
-Label: qualifier_value
-Why: episode context marker, not a temporal expression.
-
-17) qualifier_value — severity modifier
-Text: Severe cough — more than 25 days.
-Span: Severe
-Label: qualifier_value
-Why: severity descriptor qualifying the finding, not a standalone finding.
-
-18) finding — narrative description (NOT observable_entity)
-Text: drop in egfr from 24 to 19 — rpt for monitoring.
-Span: drop in egfr from 24 to 19
-Label: finding
-Why: narrative clinical observation, not a structured test-name with value+unit.
-
 Missing-span behavior:
 - If a clinically important span is present but missing from the input entity list, include one new row:
   {"entity_index":-1, "suggested_label":"...", "is_new":true, "new_text":"exact span from text", ...}
@@ -287,4 +169,3 @@ Constraints:
 - confidence is 0.0 to 1.0.
 """
 
-register("label_verification", version=2, text=LABEL_VERIFICATION_V2)

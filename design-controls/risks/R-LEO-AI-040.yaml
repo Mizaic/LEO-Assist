@@ -1,0 +1,56 @@
+# -- R-LEO-AI-040 -- Learning Loop Patient Linkage
+
+- id: "R-LEO-AI-040"
+  title: "TrainingCandidate or GoldLabel includes patient or encounter linkage"
+  hazard:
+    description: "Learning-loop data may contain identifiers enabling data-subject re-identification."
+    category: "data_corruption"
+  hazardous_situation: "TrainingCandidate or GoldLabel nodes stored in the Knowledge Graph retain patient_id, encounter_id, or org_id fields. A data export or researcher access to the KG enables re-identification of clinical text to individual patients."
+  harm:
+    description: "GDPR breach and regulatory non-compliance."
+    severity: "serious"
+  initial_risk_estimate:
+    severity: 3
+    probability: 2
+    detectability: 2
+    rpn: 12
+    risk_level: "medium"
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: "No patient_id, encounter_id, tenant_id, org_id fields in TrainingCandidate/GoldLabel."
+      implemented_by: ["DI-LEO-AI-055"]
+      verified_by: ["VT-LEO-AI-055"]
+    - control_type: "design_feature"
+      description: "Content-only IDs (SHA256(text), SHA256(text+entities))."
+      implemented_by: ["DI-LEO-AI-055"]
+      verified_by: ["VT-LEO-AI-055"]
+    - control_type: "design_feature"
+      description: "No graph relationships from learning-loop nodes to Patient/Encounter/Tenant."
+      implemented_by: ["DI-LEO-AI-055"]
+      verified_by: ["VT-LEO-AI-055"]
+    - control_type: "design_feature"
+      description: "DI-ID gate blocks persistence when residual PHI patterns are detected."
+      implemented_by: ["DI-LEO-AI-055"]
+      verified_by: ["VT-LEO-AI-055"]
+  residual_risk_estimate:
+    severity: 3
+    probability: 1
+    detectability: 1
+    rpn: 3
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: "Content-only hashing removes all patient, encounter, and organisational identifiers from learning-loop nodes. No graph relationships link TrainingCandidate or GoldLabel back to Patient, Encounter, or Tenant nodes, eliminating re-identification pathways."
+  monitoring:
+    - metric: "phi_leak_detection_rate"
+      description: "Count of learning-loop nodes blocked by DI-ID gate due to residual PHI patterns."
+      threshold: "== 0"
+      frequency: "monthly"
+    - metric: "training_node_field_audit"
+      description: "Automated scan confirming absence of patient_id, encounter_id, org_id fields on TrainingCandidate/GoldLabel nodes."
+      threshold: "100% compliant"
+      frequency: "quarterly"
+  metadata:
+    identified_by: "Design review -- GDPR training data"
+    identified_date: "2026-02-15"
+    status: "analyzed"
+    tags: ["privacy", "gdpr", "training-data", "de-identification"]

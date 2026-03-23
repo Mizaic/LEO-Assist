@@ -65,6 +65,74 @@ def _headers() -> dict[str, str]:
 # -- Send --------------------------------------------------------------------
 
 
+def send_onboarding_invite_email(
+    to_email: str,
+    to_name: str,
+    org_name: str,
+    org_type: str,
+) -> None:
+    """Send an onboarding invite to a newly provisioned org primary user.
+
+    Called during the POST /onboard saga. Directs the recipient to the
+    /onboarding/accept page to confirm their org and complete setup.
+    """
+    org_type_label = {
+        "alliance": "Cancer Alliance",
+        "icb": "Integrated Care Board",
+        "pcn": "Primary Care Network",
+        "gp": "GP Practice",
+    }.get(org_type, "Organisation")
+    subject = f"Your LEO account is ready — {org_name}"
+    accept_url = f"{_FRONTEND_URL}/onboarding/accept"
+    body_html = f"""
+<html><body style="font-family:Arial,sans-serif;font-size:15px;color:#222;max-width:600px">
+  <p>Hi {_escape(to_name or to_email)},</p>
+  <p>
+    Your <strong>LEO</strong> administrator account has been set up for
+    <strong>{_escape(org_name)}</strong> ({_escape(org_type_label)}).
+  </p>
+  <p>
+    As the primary user, you can manage sub-organisations, invite staff,
+    and configure your organisation&rsquo;s settings in the LEO portal.
+  </p>
+  <p>
+    To get started, please sign in with your Microsoft work account and
+    complete the short setup wizard:
+  </p>
+  <p style="margin:24px 0">
+    <a href="{accept_url}"
+       style="background:#1565C0;color:#fff;padding:12px 24px;text-decoration:none;border-radius:4px;font-weight:bold">
+      Set up my organisation in LEO
+    </a>
+  </p>
+  <p>
+    If you have any questions, contact us at
+    <a href="mailto:{_MAIL_FROM}">{_MAIL_FROM}</a>.
+  </p>
+  <p style="color:#777;font-size:13px">
+    You are receiving this because Mizaic has set up a LEO account for your organisation.
+    If this was a mistake, please reply to this email.
+  </p>
+</body></html>
+""".strip()
+
+    payload = {
+        "message": {
+            "subject": subject,
+            "body": {"contentType": "HTML", "content": body_html},
+            "toRecipients": [{"emailAddress": {"address": to_email, "name": to_name or to_email}}],
+        },
+        "saveToSentItems": True,
+    }
+    resp = httpx.post(
+        f"{_GRAPH_BASE}/users/{_MAIL_FROM}/sendMail",
+        json=payload,
+        headers=_headers(),
+        timeout=20,
+    )
+    resp.raise_for_status()
+
+
 def send_invite_email(to_email: str, to_name: str, invited_by: str) -> None:
     """Send a plain-English invite to a newly added user."""
     subject = "You have been added to LEO"

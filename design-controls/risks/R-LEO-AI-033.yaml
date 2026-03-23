@@ -35,7 +35,7 @@
       (d) The system crosses from retrospective coding tool into treatment
           recommendation territory, pushing the product into a higher-risk
           SaMD classification.
-    severity: "serious"
+    severity: "critical"
 
   initial_risk_estimate:
     severity: 4

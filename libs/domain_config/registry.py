@@ -11,7 +11,10 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from libs.neo4j_client.client import KnowledgeGraphClient
 
 logger = logging.getLogger(__name__)
 
@@ -89,6 +92,7 @@ class NCDAConcept:
     guideline_synonyms: List[str] = field(default_factory=list)
     cancer_category: Optional[str] = None
     category: Optional[str] = None
+    benchmark_key: Optional[str] = None
 
 
 @dataclass
@@ -189,12 +193,15 @@ class DomainRegistry:
                         concept_id = 0
 
                     synonyms: List[str] = []
+                    benchmark_key: Optional[str] = None
                     for desig in concept_entry.get("designation") or []:
                         use = desig.get("use") or {}
-                        if use.get("code") == "synonym":
-                            val = desig.get("value", "")
-                            if val:
-                                synonyms.append(val)
+                        use_code = use.get("code")
+                        val = desig.get("value", "")
+                        if use_code == "synonym" and val:
+                            synonyms.append(val)
+                        elif use_code == "benchmark_key" and val:
+                            benchmark_key = val
 
                     c = NCDAConcept(
                         term=display,
@@ -205,6 +212,7 @@ class DomainRegistry:
                         llm_disambiguated=False,
                         domain=domain_name,
                         guideline_synonyms=synonyms,
+                        benchmark_key=benchmark_key,
                     )
                     concepts.append(c)
                     registry._concept_by_id[concept_id] = c
@@ -301,3 +309,64 @@ class DomainRegistry:
             for name, cfg in self._domain_configs.items()
             if cfg.milestone_type
         }
+
+    def get_concept_id_groups(
+        self,
+        domain: str,
+        client: "KnowledgeGraphClient",
+        depth: int = 3,
+    ) -> Dict[str, List[int]]:
+        """Return {group_key: [top_id, child_id, ...]} for each concept in the domain.
+
+        The group key is the concept's ``benchmark_key`` when set, otherwise its
+        ``preferred_term``.  This lets audit queries group results by benchmark
+        category (e.g. ``comorbidity_hypertension_pct``) rather than free-text
+        display names.
+
+        Each top-level concept is expanded via IS_A*1..depth in the SNOMED
+        hierarchy so that queries can match all clinical variants while grouping
+        results back to the canonical top-level category for display.
+
+        Args:
+            domain: Domain name (e.g. "comorbidities").
+            client: Open KnowledgeGraphClient (caller manages lifecycle).
+            depth: Maximum IS_A traversal depth (default 3).
+
+        Returns:
+            Mapping of {group_key: [list of concept IDs including top + all descendants]}.
+            If the domain is not loaded or has no concepts, returns an empty dict.
+        """
+        from libs.cypher.terminology_queries import DESCENDANTS_TEMPLATE  # avoid circular at top
+
+        groups: Dict[str, List[int]] = {}
+        for concept in self.get_domain_concepts(domain):
+            # Prefer benchmark_key as the group identifier so that audit results
+            # align directly with ncda_2018_benchmarks.json keys.
+            group_key = concept.benchmark_key or concept.term
+            ids: List[int] = [concept.concept_id]
+            try:
+                rows = client.run(
+                    DESCENDANTS_TEMPLATE.format(depth=int(depth)),
+                    concept_id=str(concept.concept_id),
+                    semantic_tag=None,
+                    limit=500,
+                )
+                for r in (rows or []):
+                    try:
+                        ids.append(int(r["snomed_concept_id"]))
+                    except (ValueError, TypeError, KeyError):
+                        pass
+            except Exception:
+                logger.warning(
+                    "IS_A expansion failed for concept %s (%s)",
+                    concept.concept_id,
+                    concept.term,
+                )
+            if group_key in groups:
+                # Merge IDs if multiple concepts share the same benchmark_key
+                existing = groups[group_key]
+                existing_set = set(existing)
+                existing.extend(cid for cid in ids if cid not in existing_set)
+            else:
+                groups[group_key] = ids
+        return groups

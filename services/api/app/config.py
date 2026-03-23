@@ -24,11 +24,9 @@ class CodingMode(str, Enum):
 
 
 ROOT = Path(__file__).resolve().parents[3]
-# Load local .env files as fallback (no-op if files absent).
-# Config-only values (.env.config) first, then full secrets file for legacy local dev.
+# Load non-secret config (.env.config contains AZURE_KEYVAULT_URL and safe defaults).
+# Secrets come exclusively from Azure Key Vault -- no local secret files.
 load_dotenv(ROOT / "secrets" / ".env.config", override=True)
-load_dotenv(ROOT / "secrets" / ".env", override=False)
-# Key Vault values override .env when AZURE_KEYVAULT_URL is set.
 load_keyvault_secrets()
 
 

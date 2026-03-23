@@ -4,7 +4,7 @@
 
 - id: "DI-LEO-AI-047"
   type: "Safety"
-  derived_from: ["R-LEO-AI-030"]
+  derived_from: ["UN-LEO-AI-021"]
   requirement: >
     The dual-model consensus runner (libs/llm_client/consensus.py) SHALL emit
     a WARNING-level log message with the keyword

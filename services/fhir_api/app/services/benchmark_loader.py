@@ -43,12 +43,31 @@ def infer_structure(raw_json: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _build_entity_map(entities: List[Dict[str, Any]]) -> Dict[str, Dict[str, str]]:
-    """Map entity id -> {scope_type, scope_name}."""
-    return {
-        e["id"]: {"scope_type": e.get("type", "unknown"), "scope_name": e.get("name", e["id"])}
-        for e in entities
-        if e.get("id")
-    }
+    """Map entity id -> {scope_type, scope_name, scope_id, ods_code}.
+
+    For gp_practice entities the canonical scope_id is the ODS code when
+    present; otherwise the entity id is used.  This ensures benchmark values
+    can be matched against live Organization nodes (which are keyed by ODS).
+    """
+    result: Dict[str, Dict[str, str]] = {}
+    for e in entities:
+        eid = e.get("id")
+        if not eid:
+            continue
+        scope_type = e.get("type", "unknown")
+        ods_code = e.get("ods_code") or ""
+        # Use ODS as canonical scope_id for practices; keep entity id otherwise
+        if scope_type == "gp_practice" and ods_code:
+            canonical_scope_id = ods_code
+        else:
+            canonical_scope_id = eid
+        result[eid] = {
+            "scope_type": scope_type,
+            "scope_name": e.get("name", eid),
+            "scope_id": canonical_scope_id,
+            "ods_code": ods_code,
+        }
+    return result
 
 
 def _is_composite_sex(value: Any) -> bool:
@@ -79,53 +98,65 @@ def _flatten_simple_value(
     scope = entity_map.get(entity_id)
     if scope is None:
         return []
+    # Use canonical scope_id (ODS for practices; entity id for all others)
+    canonical_id = scope.get("scope_id", entity_id)
+    base: Dict[str, Any] = {
+        "audit_id": audit_id,
+        "scope_id": canonical_id,
+        "scope_type": scope["scope_type"],
+        "scope_name": scope["scope_name"],
+        "unit": unit,
+        "category": category,
+        "source": source,
+    }
     if isinstance(value, dict) and _is_composite_sex(value):
-        return [
-            {
-                "audit_id": audit_id,
-                "metric_id": metric_id,
-                "scope_id": entity_id,
-                "scope_type": scope["scope_type"],
-                "scope_name": scope["scope_name"],
-                "value": None,
-                "value_json": value,
-                "unit": unit,
-                "label": label,
-                "category": category,
-                "source": source,
-            }
-        ]
+        return [{**base, "metric_id": metric_id, "label": label, "value": None, "value_json": value}]
     if isinstance(value, dict):
         return [
-            {
-                "audit_id": audit_id,
-                "metric_id": f"{metric_id}.{sub_key}",
-                "scope_id": entity_id,
-                "scope_type": scope["scope_type"],
-                "scope_name": scope["scope_name"],
-                "value": sub_val,
-                "unit": unit,
-                "label": f"{label} ({sub_key})",
-                "category": category,
-                "source": source,
-            }
+            {**base, "metric_id": f"{metric_id}.{sub_key}", "label": f"{label} ({sub_key})", "value": sub_val}
             for sub_key, sub_val in value.items()
             if sub_val is not None and not isinstance(sub_val, dict)
         ]
-    return [
-        {
-            "audit_id": audit_id,
-            "metric_id": metric_id,
-            "scope_id": entity_id,
-            "scope_type": scope["scope_type"],
-            "scope_name": scope["scope_name"],
-            "value": value,
-            "unit": unit,
-            "label": label,
-            "category": category,
-            "source": source,
-        }
-    ]
+    return [{**base, "metric_id": metric_id, "label": label, "value": value}]
+
+
+def _flatten_by_cancer_type(
+    category: str,
+    by_cancer: Dict[str, Any],
+    entity_map: Dict[str, Dict[str, str]],
+    audit_id: str,
+    source: str,
+) -> List[Dict[str, Any]]:
+    """Flatten a by_cancer_type block into dotted metric_id records.
+
+    Structure: { cancer_type: { metric_key: { values: { entity_id: val } } } }
+    Produces metric_ids like: investigations.by_cancer_type.breast.blood_test_pct
+
+    The *category* stored is kept as the parent section (e.g. "investigations") so
+    that _fetch_benchmark_metrics(set_id, "investigations") returns both the
+    top-level metrics and the per-cancer-type breakdown in a single query.
+    """
+    nodes: List[Dict[str, Any]] = []
+    for cancer_type, metrics in by_cancer.items():
+        if not isinstance(metrics, dict):
+            continue
+        for metric_key, metric in metrics.items():
+            if not isinstance(metric, dict) or "values" not in metric:
+                continue
+            metric_id = f"{category}.by_cancer_type.{cancer_type}.{metric_key}"
+            label = metric.get("label", f"{cancer_type} {metric_key}")
+            unit = metric.get("unit", "%")
+            for entity_id, value in metric["values"].items():
+                nodes.extend(
+                    _flatten_simple_value(
+                        entity_id, value,
+                        category,      # store under parent category so audit API finds it
+                        metric_id,
+                        label, unit, entity_map,
+                        audit_id, source,
+                    )
+                )
+    return nodes
 
 
 def _flatten_simple_section(
@@ -135,10 +166,21 @@ def _flatten_simple_section(
     audit_id: str,
     source: str,
 ) -> List[Dict[str, Any]]:
-    """Flatten a section with {metric_key: {label, unit, values}} structure."""
+    """Flatten a section with {metric_key: {label, unit, values}} structure.
+
+    Also handles a nested ``by_cancer_type`` sub-object (e.g. under
+    ``investigations``) where each cancer type contains per-metric objects.
+    """
     nodes: List[Dict[str, Any]] = []
     for metric_key, metric in section.items():
-        if not isinstance(metric, dict) or "values" not in metric:
+        if not isinstance(metric, dict):
+            continue
+        if metric_key == "by_cancer_type":
+            nodes.extend(
+                _flatten_by_cancer_type(category, metric, entity_map, audit_id, source)
+            )
+            continue
+        if "values" not in metric:
             continue
         metric_id = f"{category}.{metric_key}"
         label = metric.get("label", metric_key)

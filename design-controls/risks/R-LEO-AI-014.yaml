@@ -25,18 +25,18 @@
   mitigation_measures:
     - control_type: "protective_measure"
       description: "De-identification strips patient names and identifiers from text before LLM processing"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-006", "DI-LEO-AI-045"]
+      verified_by: ["VT-LEO-AI-004", "VT-LEO-AI-038"]
       effectiveness: "effective"
     - control_type: "inherent_safety"
       description: "Structured JSON output format constrains LLM responses to expected schema"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-006", "DI-LEO-AI-045"]
+      verified_by: ["VT-LEO-AI-004", "VT-LEO-AI-038"]
       effectiveness: "highly_effective"
     - control_type: "protective_measure"
       description: "Output validation rejects LLM responses that do not conform to expected structure"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-006", "DI-LEO-AI-045"]
+      verified_by: ["VT-LEO-AI-004", "VT-LEO-AI-038"]
       effectiveness: "effective"
 
   residual_risk_estimate:

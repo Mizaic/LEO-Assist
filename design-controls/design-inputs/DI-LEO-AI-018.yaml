@@ -5,7 +5,7 @@
 - id: "DI-LEO-AI-018"
   type: "Functional"
   derived_from: ["UN-LEO-AI-012"]
-  requirement: "The system SHALL execute pipelines defined as directed workflow graphs, dispatching each step to the appropriate worker service via message bus, supporting branching, conditional edges, fan-out/fan-in patterns, and cross-pipeline triggers"
+  requirement: "The system SHALL execute pipelines defined as directed workflow graphs using a LangGraph-based pipeline with FHIR PlanDefinition-driven subgraph dispatch, dispatching each step to the appropriate worker service via message bus, supporting branching, conditional edges, fan-out/fan-in patterns, and cross-pipeline triggers"
   rationale: "Composable pipelines enable different processing configurations for different use cases. The pipeline service orchestrates step execution, manages workflow state, and handles failure recovery."
 
   machine_spec:
@@ -68,7 +68,7 @@
     technical_details:
       language: "Python"
       framework: "FastAPI"
-      libraries: ["neo4j", "redis"]
+      libraries: ["neo4j", "redis", "langgraph>=0.4"]
       file_structure:
         - "services/api/app/services/pipeline_service.py"
         - "services/api/app/routers/pipeline.py"

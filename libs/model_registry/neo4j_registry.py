@@ -1,12 +1,14 @@
-"""Neo4j-backed model registry. Stores model manifests in the Patient Graph.
+"""Neo4j-backed model registry. Stores model manifests in the Knowledge Graph.
 
 Use when MODEL_REGISTRY_STORE=neo4j. The registry reads/writes (:ModelVersion)
 nodes and a (:ModelRegistryConfig {id: 'default'}) singleton for active_version.
 
 Environment variables
 ---------------------
-MODEL_REGISTRY_STORE   "neo4j" to use this backend; "json" or unset for file-based.
-NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD   Patient Graph credentials.
+MODEL_REGISTRY_STORE                    "neo4j" to use this backend; "json" or unset for file-based.
+KNOWLEDGE_GRAPH_NEO4J_URI               Knowledge Graph credentials (model registry lives here,
+KNOWLEDGE_GRAPH_NEO4J_USERNAME          not in the Patient Graph — model versions are AI system
+KNOWLEDGE_GRAPH_NEO4J_PASSWORD          config, not patient data).
 """
 
 from __future__ import annotations
@@ -79,9 +81,9 @@ class Neo4jModelRegistry:
     """Model registry backed by Neo4j Patient Graph."""
 
     def __init__(self) -> None:
-        from libs.neo4j_client.client import PatientGraphClient
+        from libs.neo4j_client.client import KnowledgeGraphClient
 
-        self._client = PatientGraphClient()
+        self._client = KnowledgeGraphClient()
         self._ensure_schema()
 
     def _ensure_schema(self) -> None:

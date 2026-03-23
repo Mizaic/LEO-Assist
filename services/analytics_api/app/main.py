@@ -14,7 +14,6 @@ from libs.keyvault.loader import load_keyvault_secrets
 
 _ROOT = Path(__file__).resolve().parents[3]
 load_dotenv(_ROOT / "secrets" / ".env.config", override=True)
-load_dotenv(_ROOT / "secrets" / ".env", override=False)
 load_keyvault_secrets()
 
 import logging
@@ -31,6 +30,7 @@ from services.analytics_api.app.routers.imd import router as imd_router
 from services.analytics_api.app.routers.cci import router as cci_router
 from services.analytics_api.app.routers.benchmarks import router as benchmark_router
 from services.analytics_api.app.routers.org_context import router as org_context_router
+from services.analytics_api.app.routers.audit import router as audit_router, _ensure_registry
 
 configure_logging(service_name="analytics-api")
 logger = logging.getLogger("analytics-api")
@@ -41,10 +41,21 @@ async def lifespan(_app: FastAPI):
     logger.info("Analytics API starting")
     try:
         n = seed_nhs_cohorts()
-        logger.info("NHS screening cohorts seeded: %d presets", n)
+        if n > 0:
+            logger.info("NHS screening cohorts seeded: %d presets", n)
     except Exception as exc:
-        # Non-fatal — graph may not be reachable at cold-start in some envs
         logger.warning("NHS cohort seeding skipped (graph unavailable?): %s", exc)
+    try:
+        from libs.neo4j_client.client import KnowledgeGraphClient
+        kg = KnowledgeGraphClient()
+        try:
+            registry = _ensure_registry(kg)
+            domain_count = len(registry.get_all_domains())
+            logger.info("DomainRegistry loaded at startup: %d domains", domain_count)
+        finally:
+            kg.close()
+    except Exception as exc:
+        logger.warning("DomainRegistry startup load skipped (graph unavailable?): %s", exc)
     yield
     logger.info("Analytics API shutting down")
 
@@ -71,6 +82,7 @@ app.include_router(domain_router, prefix="/analytics", tags=["domains"])
 app.include_router(imd_router, prefix="/analytics", tags=["imd"])
 app.include_router(cci_router, prefix="/analytics", tags=["cci"])
 app.include_router(benchmark_router, prefix="/analytics", tags=["benchmarks"])
+app.include_router(audit_router, prefix="/analytics", tags=["audit"])
 
 
 @app.get("/health")

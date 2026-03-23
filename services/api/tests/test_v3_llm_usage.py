@@ -33,6 +33,17 @@ class TestLLMUsage:
         u = LLMUsage.from_bedrock_response(resp)
         assert u.cached_input_tokens == 200
 
+    def test_from_bedrock_response_with_cache_tokens_key(self) -> None:
+        resp = {
+            "usage": {
+                "inputTokens": 500,
+                "outputTokens": 100,
+                "cacheReadInputTokens": 220,
+            }
+        }
+        u = LLMUsage.from_bedrock_response(resp)
+        assert u.cached_input_tokens == 220
+
     def test_add(self) -> None:
         a = LLMUsage(input_tokens=100, output_tokens=50, llm_calls=1)
         b = LLMUsage(input_tokens=200, output_tokens=80, llm_calls=1)

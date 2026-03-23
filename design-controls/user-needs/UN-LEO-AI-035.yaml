@@ -1,0 +1,98 @@
+# -- UN-LEO-AI-035 -- Rejection Rate Analytics
+
+- id: "UN-LEO-AI-035"
+  title: "Clinical directors and referral management leads need structured analytics on referral rejection rates -- broken down by specialty, rejection reason, referring practice, and time period -- so they can identify systemic problems and intervene before they cause patient harm."
+  description: |
+    Referral rejection data currently exists only as individual rejection notes
+    sent back to referring clinicians. There is no aggregate view, no
+    categorisation by reason, no trend analysis, and no way to identify whether
+    a high rejection rate in a given specialty is a recent change or a long-
+    standing pattern. Clinical directors cannot identify systemic referral
+    quality problems without manual case-by-case review.
+
+    The system must categorise every rejection with a structured reason code,
+    aggregate rejection data by specialty, reason, referring practice, and
+    time period, and surface this through an analytics dashboard accessible
+    to clinical directors and referral management leads.
+
+  stakeholder:
+    type: "nhs_user"
+    role: "Clinical Director / Referral Management Lead"
+    organization: "NHS Acute Trust"
+
+  priority: "SHOULD"
+
+  rationale: |
+    Rejection analytics are the prerequisite for targeted intervention.
+    Without knowing why referrals are being rejected, clinical directors
+    cannot direct improvement activity to the right places. A 30% rejection
+    rate driven predominantly by a single missing investigation type is a
+    very different problem from one driven by genuinely insufficient clinical
+    information, and each requires a different response. Aggregate data also
+    enables identification of practices that may benefit from targeted support.
+
+  benefit: |
+    Clinical directors can direct improvement activity to the highest-impact
+    areas. ICBs can use rejection analytics in provider development conversations.
+    Systemic quality problems are identified early rather than through incident
+    investigation. Trending data shows whether interventions are having effect.
+
+  use_case: |
+    1. Clinical director opens rejection analytics dashboard.
+    2. They see a summary: total referrals, total rejections, overall rejection
+       rate, and top five rejection reasons for the selected period.
+    3. They can drill down by specialty to see which pathways have the highest
+       rejection rates.
+    4. They can drill down by reason to see which practices are most commonly
+       missing a specific information type.
+    5. Trend charts show rejection rate over time for each specialty and reason.
+    6. They can export the data for inclusion in board reports or commissioner
+       submissions.
+
+  current_solution: |
+    None. Rejection data exists only as individual free-text notes. No aggregate
+    view, categorisation, or trending is available.
+
+  pain_points:
+    - "No aggregate view of rejection rates -- data is locked in individual rejection notes"
+    - "Cannot identify which specialties or pathways have the highest rejection rates"
+    - "Cannot identify which practices are most commonly missing specific information"
+    - "No trend data to assess whether quality is improving or degrading"
+    - "Clinical directors discover systemic problems only through complaints or incidents"
+
+  acceptance_criteria:
+    - "Every rejection is categorised with a structured reason code at time of rejection"
+    - "Rejection analytics show rate, volume, and reason breakdown by specialty, practice, and period"
+    - "Trend charts show rejection rate over selectable time periods"
+    - "Data is exportable in CSV and PDF formats"
+    - "Dashboard is accessible to clinical director and referral management lead roles"
+    - "Reason codes cover at minimum: missing investigation, missing clinical finding, wrong specialty, insufficient history, duplicate referral"
+
+  success_metrics:
+    - metric: "Time for clinical director to identify the top rejection reason in a specialty"
+      target: "Under 2 minutes from opening dashboard"
+      baseline: "Not currently possible without manual case review"
+    - metric: "Rejection rate trend"
+      target: "Downward trend within 6 months of targeted intervention identified through analytics"
+      baseline: "Not currently measured"
+
+  regulatory_impact: "low"
+  safety_impact: "medium"
+  safety_class: "A"
+
+  derived_from:
+    - "Intended Use Statement DC-IU-001"
+    - "IEC 62304:2006/AMD1:2015 Class A software lifecycle"
+
+  related_standards:
+    - "IEC 62304:2006/AMD1:2015"
+
+  metadata:
+    created_by: "Engineering Team"
+    created_date: "2026-03-11"
+    status: "draft"
+    evidence_source: "User interviews P05 -- UR-LEO-AI-001"
+
+  design_inputs: []
+  validation_tests: []
+  tags: ["referral-triage", "rejection-analytics", "quality-improvement", "clinical-director", "reporting"]

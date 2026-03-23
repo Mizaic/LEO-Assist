@@ -38,6 +38,9 @@ ALL_PERMISSIONS = [
     "export_data",
     "view_gold_dataset",
     "configure_auth",
+    "manage_users",
+    "manage_groups",
+    "manage_sub_orgs",
 ]
 
 DEFAULT_ROLES = [
@@ -45,6 +48,16 @@ DEFAULT_ROLES = [
         "name": "platform_admin",
         "permissions": ALL_PERMISSIONS,
         "description": "Full platform access",
+    },
+    {
+        "name": "org_admin",
+        "permissions": [
+            "manage_users",
+            "manage_groups",
+            "manage_sub_orgs",
+            "view_reports",
+        ],
+        "description": "Organisation administrator — manages users, groups, and sub-organisations within their org hierarchy",
     },
     {
         "name": "auditor",
@@ -55,6 +68,16 @@ DEFAULT_ROLES = [
             "view_gold_dataset",
         ],
         "description": "View patients, review coding, reports and gold dataset",
+    },
+    {
+        "name": "clinical_coder",
+        "permissions": ["view_patients", "review_coding"],
+        "description": "GP Practice clinical coder — full access to unredacted patient data and coding review",
+    },
+    {
+        "name": "clinical_viewer",
+        "permissions": ["view_patients", "view_reports"],
+        "description": "GP Practice clinical viewer — patient data access with redaction applied (set redacted=true on HAS_ROLE)",
     },
     {
         "name": "pipeline_operator",
@@ -125,6 +148,8 @@ def seed_tenant_defaults(client: PatientGraphClient) -> None:
     _seed_system_config(client)
     _seed_mizaic_org_and_group(client)
     _seed_platform_admins(client)
+    _seed_prompt_configs(client)
+    _seed_reference_ranges(client)
 
 
 # ------------------------------------------------------------------
@@ -133,12 +158,14 @@ def seed_tenant_defaults(client: PatientGraphClient) -> None:
 
 
 def _seed_roles(client: PatientGraphClient) -> None:
-    existing = client.run("MATCH (r:Role) RETURN count(r) AS n")
-    if existing and existing[0]["n"] > 0:
-        logger.info("[Tenant] Roles already present; skipping role seed")
+    existing_rows = client.run("MATCH (r:Role) RETURN r.name AS name")
+    existing_names = {row["name"] for row in (existing_rows or [])}
+    new_roles = [r for r in DEFAULT_ROLES if r["name"] not in existing_names]
+    if not new_roles:
+        logger.debug("[Tenant] All roles already present; skipping role seed")
         return
-    logger.info("[Tenant] Seeding %d default roles", len(DEFAULT_ROLES))
-    for role in DEFAULT_ROLES:
+    logger.info("[Tenant] Seeding %d new roles: %s", len(new_roles), [r["name"] for r in new_roles])
+    for role in new_roles:
         client.run(
             "MERGE (r:Role {name: $name})"
             " SET r.permissions = $perms, r.description = $desc",
@@ -194,6 +221,11 @@ def _seed_mizaic_org_and_group(client: PatientGraphClient) -> None:
 
 def _seed_platform_admins(client: PatientGraphClient) -> None:
     """MERGE seed admin Practitioners, assign platform_admin role, add to Mizaic group."""
+    rows = client.run("MATCH (pr:Practitioner) RETURN count(pr) AS cnt")
+    existing = rows[0]["cnt"] if rows else 0
+    if existing > 0:
+        logger.debug("[Tenant] %d Practitioner(s) already present; skipping platform admin seed", existing)
+        return
     admins = _parse_seed_admins()
     for email, name in admins:
         client.run(
@@ -222,3 +254,45 @@ def _seed_platform_admins(client: PatientGraphClient) -> None:
             gid=MIZAIC_GROUP_ID,
         )
         logger.info("[Tenant] Platform admin seeded: %s", email)
+
+
+def _seed_prompt_configs(client: PatientGraphClient) -> None:
+    """Seed all hardcoded Python prompts into Neo4j as PromptConfig nodes."""
+    try:
+        rows = client.run("MATCH (p:PromptConfig) RETURN count(p) AS cnt")
+        existing = rows[0]["cnt"] if rows else 0
+        if existing > 0:
+            logger.debug("[Tenant] %d PromptConfig(s) already present; skipping prompt seed", existing)
+            return
+        from libs.cypher.prompt_config_queries import UPSERT_SEED_PROMPT
+        from libs.prompts.registry import list_prompts, _REGISTRY
+
+        for name, version in list_prompts():
+            text = _REGISTRY.get((name, version), "")
+            if not text:
+                continue
+            client.run(
+                UPSERT_SEED_PROMPT,
+                id=str(uuid.uuid4()),
+                name=name,
+                version=version,
+                description="",
+                system_prompt=text,
+                output_schema="{}",
+                verification=False,
+                few_shot_examples="[]",
+                max_few_shot=10,
+            )
+        logger.info("[Tenant] PromptConfig nodes seeded (%d prompts)", len(list_prompts()))
+    except Exception as exc:
+        logger.warning("[Tenant] PromptConfig seed failed (non-fatal): %s", exc)
+
+
+def _seed_reference_ranges(client: PatientGraphClient) -> None:
+    """Seed default reference ranges (idempotent)."""
+    try:
+        from scripts.seed_reference_ranges import seed_if_missing
+
+        seed_if_missing(client)
+    except Exception as exc:
+        logger.warning("[Tenant] ReferenceRange seed failed (non-fatal): %s", exc)
