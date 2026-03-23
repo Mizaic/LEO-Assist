@@ -89,6 +89,7 @@ from libs.cypher.gold_label_queries import (
     GET_GOLD_LABEL_BY_ID,
     GET_GOLD_LABEL_STATS,
     GET_GOLD_LABELS_PAGE,
+    UPDATE_GOLD_LABEL_ENTITIES,
 )
 from libs.cypher.surface_form_task_queries import (
     COUNT_SURFACE_FORM_TASKS,
@@ -2919,6 +2920,62 @@ def delete_gold_label_and_reset_candidate(
         if not row:
             raise HTTPException(status_code=404, detail=f"GoldLabel {label_id!r} not found")
         return dict(row)
+    finally:
+        client.close()
+
+
+@router.patch("/gold-labels/{label_id}/entities")
+def update_gold_label_entities(
+    label_id: str,
+    body: UpdateEntitiesRequest,
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    """Replace the entities_json of a GoldLabel node.
+
+    Each entity must carry at minimum ``text`` and ``label``.
+    ``label`` must be one of the canonical NER label types.
+    """
+    import json
+
+    validated: list[dict[str, Any]] = []
+    for i, ent in enumerate(body.entities):
+        label_val = ent.get("label", "")
+        if label_val not in _VALID_ENTITY_LABELS:
+            raise HTTPException(
+                status_code=422,
+                detail=(
+                    f"Entity #{i}: label {label_val!r} is not valid. "
+                    f"Allowed: {sorted(_VALID_ENTITY_LABELS)}"
+                ),
+            )
+        if not ent.get("text", "").strip():
+            raise HTTPException(status_code=422, detail=f"Entity #{i}: text must be non-empty")
+        validated.append({
+            "text": ent["text"].strip(),
+            "label": label_val,
+            **({"start": ent["start"]} if "start" in ent else {}),
+            **({"end": ent["end"]} if "end" in ent else {}),
+            **({"assertion": ent["assertion"]} if "assertion" in ent else {}),
+            **({"confidence": ent["confidence"]} if "confidence" in ent else {}),
+            **({"snomed_concept_id": ent["snomed_concept_id"]} if "snomed_concept_id" in ent else {}),
+            **({"semantic_tag": ent["semantic_tag"]} if "semantic_tag" in ent else {}),
+        })
+
+    entities_json = json.dumps(validated)
+    client = KnowledgeGraphClient()
+    try:
+        with client.session() as session:
+            row = session.run(
+                UPDATE_GOLD_LABEL_ENTITIES,
+                label_id=label_id,
+                entities_json=entities_json,
+            ).single()
+            if not row:
+                raise HTTPException(status_code=404, detail=f"GoldLabel {label_id!r} not found")
+        logger.info(
+            "GoldLabel entities updated: %s count=%d", label_id[:8], len(validated)
+        )
+        return {"label_id": label_id, "entities": validated}
     finally:
         client.close()
 

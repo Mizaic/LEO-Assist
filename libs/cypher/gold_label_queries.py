@@ -102,6 +102,13 @@ RETURN
 ORDER BY g.created_at ASC
 """
 
+UPDATE_GOLD_LABEL_ENTITIES = """
+MATCH (g:GoldLabel {label_id: $label_id})
+SET g.entities_json = $entities_json,
+    g.updated_at    = datetime()
+RETURN g.label_id AS label_id, g.entities_json AS entities_json
+"""
+
 DELETE_GOLD_LABEL_AND_RESET_CANDIDATE = """
 MATCH (g:GoldLabel {label_id: $label_id})
 OPTIONAL MATCH (c:TrainingCandidate {candidate_id: g.candidate_id})
