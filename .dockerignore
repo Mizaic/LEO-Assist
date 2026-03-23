@@ -1,0 +1,58 @@
+# Root context for infra/dockerfiles/* (docker build -f ... .)
+# Keeps uploads small: omit git, deps, build output, and paths not COPY'd into images.
+
+# Git / IDE
+.git
+.gitattributes
+.github
+.cursor
+.vscode
+.idea
+
+# Node / Next.js (installed or built inside the image)
+**/node_modules
+**/.next
+**/out
+**/.turbo
+**/coverage
+**/playwright-report
+**/test-results
+
+# Python noise
+**/__pycache__
+**/*.py[cod]
+**/*$py.class
+**/.pytest_cache
+**/.mypy_cache
+.venv
+venv
+ENV
+**/.venv
+.python-version
+
+# Repo areas not copied into service images
+tests/
+e2e/
+design-controls/
+infra/
+scripts/
+exports/
+training/
+*.md
+LICENSE
+
+# Local secrets (images use Key Vault / runtime env)
+secrets/
+.env
+.env.local
+.env.secrets
+.env.config
+
+# Large or optional data not used by Dockerfiles
+data/
+docs/
+
+# OS / misc
+Thumbs.db
+.DS_Store
+*.log
