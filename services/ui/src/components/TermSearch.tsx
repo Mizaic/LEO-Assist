@@ -464,6 +464,15 @@ interface Props {
   entityText?: string;
   /** NLP entity label / semantic category, passed to Ask LEO for context. */
   entityLabel?: string;
+  /** Override the dialog title. Defaults to "Search SNOMED terms". */
+  title?: string;
+  /** Optional subtitle shown below the title (e.g. the clinical term being fixed). */
+  contextLabel?: string;
+  /**
+   * When true, selecting a result calls onSelect but does NOT call onClose.
+   * Use this when the caller needs to show a follow-up step before closing.
+   */
+  preventAutoClose?: boolean;
 }
 
 // -- Main component ----------------------------------------------------------
@@ -480,6 +489,9 @@ export default function TermSearch({
   hintTags,
   entityText,
   entityLabel = "",
+  title = "Search SNOMED terms",
+  contextLabel,
+  preventAutoClose = false,
 }: Props) {
   const [query, setQuery] = useState(initialQuery);
   const [results, setResults] = useState<TermSearchResult[]>([]);
@@ -592,7 +604,7 @@ export default function TermSearch({
       detail: `Reassigned to SNOMED ${r.snomed_concept_id}`,
       time: new Date().toISOString(),
     });
-    onClose();
+    if (!preventAutoClose) onClose();
   }
 
   function handleConfirm() {
@@ -616,7 +628,19 @@ export default function TermSearch({
 
   return (
     <Dialog open onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>Search SNOMED terms</DialogTitle>
+      <DialogTitle sx={{ pb: contextLabel ? 0.5 : undefined }}>
+        {title}
+        {contextLabel && (
+          <Typography
+            component="div"
+            variant="body2"
+            color="text.secondary"
+            sx={{ fontWeight: 400, mt: 0.25, fontSize: "0.85rem" }}
+          >
+            {contextLabel}
+          </Typography>
+        )}
+      </DialogTitle>
 
       <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 1.5, p: 2 }}>
         <TextField
