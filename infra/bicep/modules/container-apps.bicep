@@ -253,8 +253,11 @@ resource coreApi 'Microsoft.App/containerApps@2024-03-01' = {
         env: union(sharedEnv, [
           { name: 'NEO4J_USER', value: neo4jUser }
           { name: 'TERMINOLOGY_API_URL', value: termApiUrl }
+          // proxy.py / auth.py read *_API_BASE; audit_emitter uses FHIR_API_URL
           { name: 'FHIR_API_URL', value: fhirApiUrl }
+          { name: 'FHIR_API_BASE', value: fhirApiUrl }
           { name: 'ANALYTICS_API_URL', value: analyticsApiUrl }
+          { name: 'ANALYTICS_API_BASE', value: analyticsApiUrl }
           { name: 'CODING_MODEL_ENDPOINT', value: modelInferenceUrl }
           { name: 'PIPELINE_WORKER_URL', value: pipelineWorkerUrl }
           { name: 'SB_MAX_LOCK_RENEWAL_SECONDS', value: sbMaxLockRenewalSeconds }
