@@ -14,22 +14,24 @@ MERGE (cr:CodingReview {review_id: $review_id})
 ON CREATE SET
     cr.created_at = datetime(),
     cr.resolved   = false
-SET cr.label_id          = $label_id,
-    cr.entity_index      = $entity_index,
-    cr.entity_text       = $entity_text,
-    cr.entity_label      = $entity_label,
-    cr.coded             = $coded,
-    cr.snomed_concept_id = $snomed_concept_id,
-    cr.snomed_term       = $snomed_term,
-    cr.score             = $score,
-    cr.semantic_tag      = $semantic_tag,
-    cr.assertion         = CASE WHEN coalesce(cr.assertion_override, false) = true
-                                THEN cr.assertion
-                                ELSE $assertion END,
-    cr.decision_tier     = $decision_tier,
-    cr.tier_reason       = $tier_reason,
-    cr.tier_decision     = $tier_decision,
-    cr.updated_at        = datetime()
+SET cr.label_id              = $label_id,
+    cr.entity_index          = $entity_index,
+    cr.entity_text           = $entity_text,
+    cr.entity_label          = $entity_label,
+    cr.coded                 = $coded,
+    cr.snomed_concept_id     = $snomed_concept_id,
+    cr.snomed_term           = $snomed_term,
+    cr.score                 = $score,
+    cr.semantic_tag          = $semantic_tag,
+    cr.assertion             = CASE WHEN coalesce(cr.assertion_override, false) = true
+                                    THEN cr.assertion
+                                    ELSE $assertion END,
+    cr.decision_tier         = $decision_tier,
+    cr.tier_reason           = $tier_reason,
+    cr.tier_decision         = $tier_decision,
+    cr.suggested_label       = $suggested_label,
+    cr.tag_mismatch_delta    = $tag_mismatch_delta,
+    cr.updated_at            = datetime()
 MERGE (cr)-[:REVIEWS_CODING]->(t)
 RETURN cr.review_id AS review_id
 """
@@ -83,6 +85,8 @@ RETURN
     cr.decision_tier      AS decision_tier,
     cr.tier_reason        AS tier_reason,
     cr.tier_decision      AS tier_decision,
+    cr.suggested_label    AS suggested_label,
+    cr.tag_mismatch_delta AS tag_mismatch_delta,
     toString(cr.created_at) AS created_at,
     t.text                AS encounter_text,
     t.source              AS source
@@ -118,6 +122,17 @@ RETURN total, coded, uncoded, resolved, pending, low_confidence, assertion_flagg
 DELETE_ALL_CODING_REVIEWS = """
 MATCH (cr:CodingReview)-[:REVIEWS_CODING]->(t:TrainingLabel)
 WHERE t.include = true
+DETACH DELETE cr
+"""
+
+DELETE_RESOLVED_CODING_REVIEWS = """
+MATCH (cr:CodingReview)
+WHERE cr.resolved = true
+DETACH DELETE cr
+"""
+
+DELETE_ALL_CODING_REVIEWS_UNCONDITIONAL = """
+MATCH (cr:CodingReview)
 DETACH DELETE cr
 """
 
@@ -267,7 +282,9 @@ WITH cr.entity_text AS entity_text,
      collect(DISTINCT coalesce(cr.assertion, 'present'))[0] AS assertion,
      min(coalesce(cr.decision_tier, 2)) AS decision_tier,
      collect(cr.tier_reason)[0] AS tier_reason,
-     collect(cr.tier_decision)[0] AS tier_decision
+     collect(cr.tier_decision)[0] AS tier_decision,
+     collect(cr.suggested_label)[0] AS suggested_label,
+     collect(cr.tag_mismatch_delta)[0] AS tag_mismatch_delta
 RETURN entity_text,
        entity_label,
        review_count,
@@ -279,7 +296,9 @@ RETURN entity_text,
        assertion,
        decision_tier,
        tier_reason,
-       tier_decision
+       tier_decision,
+       suggested_label,
+       tag_mismatch_delta
 ORDER BY decision_tier ASC, review_count DESC, best_score ASC
 SKIP $skip
 LIMIT $limit
@@ -291,16 +310,18 @@ WHERE cr.resolved = false
   AND t.include = true
   AND cr.entity_text = $entity_text
 RETURN
-    cr.review_id          AS review_id,
-    cr.label_id           AS label_id,
-    cr.entity_text        AS entity_text,
-    cr.entity_label       AS entity_label,
-    cr.snomed_concept_id  AS snomed_concept_id,
-    cr.snomed_term        AS snomed_term,
-    cr.score              AS score,
+    cr.review_id            AS review_id,
+    cr.label_id             AS label_id,
+    cr.entity_text          AS entity_text,
+    cr.entity_label         AS entity_label,
+    cr.snomed_concept_id    AS snomed_concept_id,
+    cr.snomed_term          AS snomed_term,
+    cr.score                AS score,
     coalesce(cr.assertion, 'present') AS assertion,
-    t.text                AS encounter_text,
-    t.source              AS source
+    cr.suggested_label      AS suggested_label,
+    cr.tag_mismatch_delta   AS tag_mismatch_delta,
+    t.text                  AS encounter_text,
+    t.source                AS source
 ORDER BY cr.coded ASC, cr.score ASC
 """
 

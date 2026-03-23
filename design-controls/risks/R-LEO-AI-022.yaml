@@ -25,18 +25,18 @@
   mitigation_measures:
     - control_type: "protective_measure"
       description: "Safety-net rules validated against known cases with false negative rate <= 2%"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-025"]
+      verified_by: ["VT-LEO-AI-006"]
       effectiveness: "highly_effective"
     - control_type: "protective_measure"
       description: "Rule coverage testing ensures all configured symptom-action pairs are covered"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-025"]
+      verified_by: ["VT-LEO-AI-006"]
       effectiveness: "effective"
     - control_type: "procedural_control"
       description: "Periodic manual review of a sample of non-flagged patients to verify safety-net completeness"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-025"]
+      verified_by: ["VT-LEO-AI-006"]
       effectiveness: "effective"
 
   residual_risk_estimate:

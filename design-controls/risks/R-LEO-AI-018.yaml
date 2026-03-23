@@ -25,18 +25,18 @@
   mitigation_measures:
     - control_type: "protective_measure"
       description: "Model version documented and tracked in SOUP list"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-001"]
+      verified_by: ["VT-LEO-AI-001"]
       effectiveness: "effective"
     - control_type: "procedural_control"
       description: "Re-indexing procedure required on model change"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-001"]
+      verified_by: ["VT-LEO-AI-001"]
       effectiveness: "effective"
     - control_type: "protective_measure"
       description: "Regression testing of shortlisting recall on model update"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-001"]
+      verified_by: ["VT-LEO-AI-001"]
       effectiveness: "highly_effective"
 
   residual_risk_estimate:

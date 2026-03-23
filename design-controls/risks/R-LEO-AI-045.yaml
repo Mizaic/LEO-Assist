@@ -1,0 +1,83 @@
+# -- R-LEO-AI-045 -- Unauthorized Disclosure of Commercial Pricing and Margin Data
+
+- id: "R-LEO-AI-045"
+  title: "Unauthorized access to per-tenant AI costs, margin configuration, and discount rates"
+  hazard:
+    description: >
+      The billing and pricing subsystem stores commercially sensitive data:
+      the platform's target gross margin, per-tenant billable amounts, and
+      negotiated discount rates. If any of this data were accessible to
+      non-admin users (including tenant users who can see their own patient
+      pipeline costs), it would expose Mizaic's commercial model and the
+      preferential terms applied to individual tenants.
+    category: "security_breach"
+  hazardous_situation: >
+    A non-admin user or API consumer discovers pricing endpoint URLs and sends
+    direct requests. Without server-side access control, they could read target
+    gross margin, per-tenant discount rates, and billable amounts -- exposing
+    Mizaic's commercial model.
+  harm:
+    description: >
+      Disclosure of gross margin to a tenant user or competitor would reveal
+      Mizaic's cost structure. Disclosure of another tenant's discount rate
+      could lead to reputational harm or contractual disputes. This is a
+      business/commercial risk with no direct patient safety impact.
+    severity: "minor"
+    safety_impact: "none"
+  initial_risk_estimate:
+    severity: 2
+    probability: 2
+    detectability: 2
+    rpn: 8
+    risk_level: "low"
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        All six /pricing/* endpoints call _require_admin(scope) as their first
+        action, returning HTTP 403 immediately for any caller without the 'admin'
+        permission in their CallerScope. This is enforced in the FastAPI router
+        before any database access occurs.
+      implemented_by: ["DI-LEO-AI-068"]
+      verified_by: ["VT-LEO-AI-068"]
+    - control_type: "design_feature"
+      description: >
+        The 'Billing' navigation item in the AppShell is marked adminOnly:true,
+        preventing non-admin users from even discovering the page exists via the UI.
+      implemented_by: ["DI-LEO-AI-068"]
+      verified_by: ["VT-LEO-AI-068"]
+    - control_type: "design_feature"
+      description: >
+        The Dashboard LLMSpendPanel only shows the 'View all tenants' admin link
+        when the authenticated user has the 'admin' permission (checked via useAuth()).
+        Non-admin users see only their own organisation's aggregate spend with no
+        cost-per-unit or margin information.
+      implemented_by: ["DI-LEO-AI-068"]
+      verified_by: ["VT-LEO-AI-068"]
+    - control_type: "test_coverage"
+      description: >
+        VT-LEO-AI-068 test cases VT-068-001, VT-068-005, and VT-068-014 explicitly
+        verify that GET /pricing/config, GET /pricing/orgs, and GET /pricing/platform-spend
+        each return HTTP 403 for non-admin callers.
+      implemented_by: []
+      verified_by: ["VT-LEO-AI-068"]
+  residual_risk_estimate:
+    severity: 2
+    probability: 1
+    detectability: 1
+    rpn: 2
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      Triple-layer access control (API 403, nav hiding, dashboard link gating) makes
+      unauthorized access highly unlikely. The primary residual risk is misconfigured
+      permissions, mitigated by existing role management controls.
+  monitoring:
+    - metric: "pricing_endpoint_403_rate"
+      description: "Monitor 403 responses on pricing endpoints to detect unauthorized access attempts."
+      threshold: "Monitor trend"
+      frequency: "quarterly"
+  metadata:
+    identified_by: "Design review -- billing subsystem"
+    identified_date: "2026-03-08"
+    status: "analyzed"
+    tags: ["security", "access-control", "billing", "commercial"]

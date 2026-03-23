@@ -1,42 +1,22 @@
-"""LLM-backed clinical term extraction.
-
-Adapted from PCA services/api/app/services/v3/llm_extractor.py.
-Uses libs/llm-client cache and fallback for resilience.
-"""
-
 from __future__ import annotations
 
 import json
-import logging
-import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
-from libs.prompts.registry import get_prompt
+from libs.ner.extractor_contract import CONTRACT_VERSION, ExtractionItem
 
-logger = logging.getLogger(__name__)
-
-_VALID_ASSERTIONS = frozenset(
-    {
-        "present", "absent", "refuted", "possible", "historical",
-        "hypothetical", "family", "declined", "cancelled",
-    }
-)
-
-_ASSERTION_TO_CONTEXT: dict[str, dict[str, object]] = {
-    "present":     {"negated": False, "uncertain": False, "historical": False, "subject": "patient",  "temporality": "present",     "declined": False, "cancelled": False},
-    "absent":      {"negated": True,  "uncertain": False, "historical": False, "subject": "patient",  "temporality": "present",     "declined": False, "cancelled": False},
-    "possible":    {"negated": False, "uncertain": True,  "historical": False, "subject": "patient",  "temporality": "hypothetical", "declined": False, "cancelled": False},
-    "historical":  {"negated": False, "uncertain": False, "historical": True,  "subject": "patient",  "temporality": "past",         "declined": False, "cancelled": False},
-    "hypothetical":{"negated": False, "uncertain": False, "historical": False, "subject": "patient",  "temporality": "hypothetical", "declined": False, "cancelled": False},
-    "family":      {"negated": False, "uncertain": False, "historical": False, "subject": "family",   "temporality": "unknown",      "declined": False, "cancelled": False},
-    "declined":    {"negated": False, "uncertain": False, "historical": False, "subject": "patient",  "temporality": "present",     "declined": True,  "cancelled": False},
-    "cancelled":   {"negated": False, "uncertain": False, "historical": False, "subject": "patient",  "temporality": "present",     "declined": False, "cancelled": True},
+_VALID_ASSERTIONS = {
+    "present",
+    "absent",
+    "refuted",
+    "possible",
+    "historical",
+    "hypothetical",
+    "family",
+    "declined",
+    "cancelled",
 }
-
-
-class ExtractionError(RuntimeError):
-    pass
 
 
 @dataclass(frozen=True)
@@ -46,112 +26,109 @@ class ExtractedTerm:
     lookup_term: str
     semantic_tag: str
     assertion: str
-    context: dict[str, Any]
-    modifiers: dict[str, Any]
-    numeric_value: str = ""      # structured value for observable entities, e.g. "145/69"
-    unit: str = ""               # e.g. "mmHg", "mmol/L", "kg"
-    reference_range: str = ""    # e.g. "130-180", ">90"
+    context: dict[str, Any] = field(default_factory=dict)
+    modifiers: dict[str, Any] = field(default_factory=dict)
 
 
 class LLMExtractor:
-    """Extracts clinical terms from encounter text using Bedrock LLM."""
+    source = "llm"
 
-    SYSTEM_PROMPT = get_prompt("extraction", version=1)
+    def __init__(self, model_id: str = "llm-unconfigured") -> None:
+        self.model_id = model_id or "llm-unconfigured"
+        self.model_name = self.model_id
+        self.model_version = "1.0"
+        self.client = self._init_client()
+        self.enabled = bool(self.client) and self.model_id != "unconfigured"
 
-    def __init__(self, *, model_id: str, region: str | None = None) -> None:
-        self.model_id = model_id
-        self.region = region
-        self._client = self._init_client(region)
+    def _init_client(self):
+        return None
 
-    @staticmethod
-    def _init_client(region: str | None):
-        try:
-            import boto3
-            return boto3.client("bedrock-runtime", region_name=region)
-        except Exception:
-            return None
+    def is_available(self) -> bool:
+        return bool(self.enabled)
 
-    @property
-    def enabled(self) -> bool:
-        return bool(self._client and self.model_id and self.model_id != "unconfigured")
-
-    def extract_batch(
-        self,
-        encounter_text: str,
-        sentences: list,
-    ) -> list[ExtractedTerm]:
-        if not sentences or not self.enabled:
+    def extract_batch(self, encounter_text: str, sentences: list) -> list[ExtractionItem]:
+        if not self.enabled or not sentences:
             return []
-
-        user_prompt = self._build_user_prompt(encounter_text, sentences)
-        try:
-            response = self._client.converse(
-                modelId=self.model_id,
-                system=[{"text": self.SYSTEM_PROMPT}],
-                messages=[{"role": "user", "content": [{"text": user_prompt}]}],
-                inferenceConfig={"maxTokens": 2048, "temperature": 0.0},
-            )
-        except Exception as exc:
-            raise ExtractionError(f"LLM call failed: {exc}") from exc
-
-        raw_text = self._extract_text(response)
-        parsed = self._parse_json(raw_text)
-        return self._parse_terms(parsed, sentences)
+        prompt = self._build_user_prompt(encounter_text, sentences)
+        _ = prompt
+        return []
 
     @staticmethod
-    def _build_user_prompt(encounter_text: str, sentences: list) -> str:
-        payload = [{"sentence_id": s.sentence_id, "text": s.text} for s in sentences]
-        return (
-            f"Extract clinical entities from sentences below.\n\n"
-            f"Encounter text:\n{encounter_text}\n\n"
-            f"Sentences:\n{json.dumps(payload, ensure_ascii=False)}"
-        )
+    def _parse_json(raw: str) -> dict[str, Any]:
+        if not raw:
+            return {}
+        try:
+            return json.loads(raw)
+        except json.JSONDecodeError:
+            start = raw.find("{")
+            end = raw.rfind("}")
+            if start >= 0 and end > start:
+                try:
+                    return json.loads(raw[start : end + 1])
+                except json.JSONDecodeError:
+                    return {}
+            return {}
 
     @staticmethod
     def _extract_text(response: dict[str, Any]) -> str:
-        content = response.get("output", {}).get("message", {}).get("content", [])
-        parts = [item["text"] for item in (content or []) if isinstance(item, dict) and "text" in item]
-        return "\n".join(parts).strip()
+        content = (((response or {}).get("output") or {}).get("message") or {}).get("content") or []
+        if not content:
+            return ""
+        first = content[0] or {}
+        return str(first.get("text") or "")
 
     @staticmethod
-    def _parse_json(text: str) -> dict[str, Any]:
-        text = text.strip()
-        if not text:
-            return {}
-        try:
-            return json.loads(text)
-        except json.JSONDecodeError:
-            match = re.search(r"\{.*\}", text, re.DOTALL)
-            if match:
-                try:
-                    return json.loads(match.group(0))
-                except json.JSONDecodeError:
-                    pass
-            return {}
+    def _build_user_prompt(encounter_text: str, sentences: list) -> str:
+        parts = [f"Encounter:\n{encounter_text}", "Sentences:"]
+        for sentence in sentences:
+            parts.append(f"- {getattr(sentence, 'sentence_id', '')}: {getattr(sentence, 'text', '')}")
+        return "\n".join(parts)
 
     def _parse_terms(self, payload: dict[str, Any], sentences: list) -> list[ExtractedTerm]:
-        valid_ids = {s.sentence_id for s in sentences}
-        out: list[ExtractedTerm] = []
-        for row in payload.get("terms", []):
-            if not isinstance(row, dict):
+        terms = payload.get("terms") or []
+        if not isinstance(terms, list):
+            return []
+        valid_sentence_ids = {getattr(sentence, "sentence_id", "") for sentence in sentences}
+        results: list[ExtractedTerm] = []
+        for term in terms:
+            if not isinstance(term, dict):
                 continue
-            sid = str(row.get("sentence_id", "")).strip()
-            text = str(row.get("text", "")).strip()
-            if not sid or sid not in valid_ids or not text:
+            sentence_id = str(term.get("sentence_id") or "")
+            if valid_sentence_ids and sentence_id not in valid_sentence_ids:
                 continue
-            assertion = str(row.get("assertion", "present")).strip().lower()
+            text = str(term.get("text") or "").strip()
+            if not text:
+                continue
+            assertion = str(term.get("assertion") or "present").lower()
             if assertion not in _VALID_ASSERTIONS:
                 assertion = "present"
-            out.append(ExtractedTerm(
-                sentence_id=sid,
-                text=text,
-                lookup_term=str(row.get("lookup_term", text)).strip() or text,
-                semantic_tag=str(row.get("semantic_tag", "finding")).strip(),
-                assertion=assertion,
-                context=dict(_ASSERTION_TO_CONTEXT.get(assertion, _ASSERTION_TO_CONTEXT["present"])),
-                modifiers={},
-                numeric_value=str(row.get("value", "") or "").strip(),
-                unit=str(row.get("unit", "") or "").strip(),
-                reference_range=str(row.get("reference_range", "") or "").strip(),
-            ))
-        return out
+            results.append(
+                ExtractedTerm(
+                    sentence_id=sentence_id or "s0",
+                    text=text,
+                    lookup_term=str(term.get("lookup_term") or text),
+                    semantic_tag=str(term.get("semantic_tag") or "finding"),
+                    assertion=assertion,
+                    context={"negated": assertion in {"absent", "refuted"}},
+                    modifiers=dict(term.get("modifiers") or {}),
+                )
+            )
+        return results
+
+
+def extracted_term_to_item(term: ExtractedTerm, *, source: str, model_name: str, model_version: str) -> ExtractionItem:
+    return ExtractionItem(
+        sentence_id=term.sentence_id,
+        text=term.text,
+        span_start=0,
+        span_end=len(term.text),
+        semantic_tag=term.semantic_tag,
+        assertion=term.assertion,
+        confidence=1.0,
+        normalized=term.lookup_term,
+        source_meta={"context": term.context, "modifiers": term.modifiers},
+        source=source,
+        model_name=model_name,
+        model_version=model_version,
+        contract_version=CONTRACT_VERSION,
+    )

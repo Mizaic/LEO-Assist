@@ -1,0 +1,82 @@
+# -- R-LEO-AI-043 -- Stale Bitmap After Guideline Updates in Neo4j
+
+- id: "R-LEO-AI-043"
+  title: "Bitmap may become stale after approved rules are added or changed in Neo4j"
+  hazard:
+    description: >
+      After an administrator approves new or edited AppropriatenessRules, the Redis
+      bitmap is not automatically recompiled. If a new guideline is loaded and its
+      rules are approved but the bitmap is not recompiled and activated, the inference
+      pipeline continues to use the old ruleset and new rules have no clinical effect.
+    category: "clinical-safety"
+  hazardous_situation: >
+    An administrator approves new AppropriatenessRules but does not recompile and
+    activate the bitmap. The inference pipeline continues using the previous ruleset.
+    Newly approved rules have no effect on patient pathway evaluations.
+  harm:
+    description: >
+      Patients are not matched against newly approved guideline rules. This is a
+      missed-guidance failure mode (false negatives in rule matching) that could
+      delay appropriate referrals.
+    severity: "minor"
+  initial_risk_estimate:
+    severity: 2
+    probability: 3
+    detectability: 2
+    rpn: 12
+    risk_level: "medium"
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        The Bitmap Lifecycle section of the admin UI prominently displays a
+        plain-English status message: "You have N approved rules that are not yet live"
+        whenever the active bitmap version predates the most recent rule approval.
+        The compile button is highlighted in this state.
+      implemented_by: ["DI-LEO-AI-065", "DI-LEO-AI-066"]
+      verified_by: ["VT-LEO-AI-065"]
+    - control_type: "design_feature"
+      description: >
+        Bitmap versions are immutable and numbered. The active version pointer
+        (ruleset:current in Redis) is updated only by an explicit admin action
+        ("Make this live") with a confirmation dialog. Older versions are retained
+        in Redis and can be re-activated if a newly compiled version is found to be
+        incorrect.
+      implemented_by: ["DI-LEO-AI-065", "DI-LEO-AI-066"]
+      verified_by: ["VT-LEO-AI-065"]
+    - control_type: "design_feature"
+      description: >
+        The GET /terminology/guidelines/bitmap/status endpoint exposes the active
+        version compile timestamp and rule count. Monitoring can alert when the
+        gap between the most recent rule approval and the active bitmap compile
+        date exceeds a configurable threshold.
+      implemented_by: ["DI-LEO-AI-065", "DI-LEO-AI-066"]
+      verified_by: ["VT-LEO-AI-065"]
+    - control_type: "procedural_control"
+      description: >
+        The guideline management runbook requires administrators to trigger a
+        bitmap recompile and activation as the final step of any guideline
+        loading workflow. The HITL approval UI includes a prompt to proceed
+        to the Compile step after approving rules.
+      implemented_by: []
+      verified_by: []
+  residual_risk_estimate:
+    severity: 2
+    probability: 1
+    detectability: 1
+    rpn: 2
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      The prominent UI notification and bitmap lifecycle panel make stale bitmaps
+      clearly visible to administrators. The existing vector-search fallback ensures
+      patient matching continues even when no bitmap rules are active.
+  monitoring:
+    - metric: "bitmap_staleness_duration_hours"
+      description: "Track time between rule approval and bitmap activation."
+      threshold: "Monitor trend"
+      frequency: "monthly"
+  metadata:
+    identified_by: "Design review -- NICE guideline ingestion"
+    identified_date: "2026-03-07"
+    status: "analyzed"
+    tags: ["clinical-safety", "bitmap", "staleness", "guidelines"]

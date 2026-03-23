@@ -59,7 +59,7 @@
       (c) NHS DSPT non-compliance: failure to document and assess the new
           processing activity could cause LEO AI to fail the annual DSPT
           submission.
-    severity: "serious"
+    severity: "critical"
 
   initial_risk_estimate:
     severity: 4

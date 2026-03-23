@@ -1,0 +1,47 @@
+# -- DO-LEO-AI-069 -- ModelConfig Create and Delete Implementation
+# IEC 62304 / ISO 13485 Design Output
+
+- id: "DO-LEO-AI-069"
+  title: "ModelConfig Create and Delete API and UI"
+  derived_from: "DI-LEO-AI-069"
+  safety_class: "A"
+  status: "implemented"
+
+  components:
+    - id: "DO-LEO-AI-069-A"
+      name: "CREATE_MODEL_CONFIG and DELETE_MODEL_CONFIG Cypher Queries"
+      file: "libs/cypher/model_config_queries.py"
+      description: >
+        CREATE_MODEL_CONFIG: CREATE (m:ModelConfig) with all fields, source='user'.
+        DELETE_MODEL_CONFIG: MATCH (m:ModelConfig {key: $key}) DELETE m RETURN count(*).
+
+    - id: "DO-LEO-AI-069-B"
+      name: "POST and DELETE endpoints in model_configs router"
+      file: "services/api/app/routers/model_configs.py"
+      description: >
+        POST /model-configs (status 201): validates no existing node with same key
+        (returns 409 if found), then runs CREATE_MODEL_CONFIG.
+        DELETE /model-configs/{key:path} (status 200): runs DELETE_MODEL_CONFIG,
+        returns 404 if deleted count is 0.
+        ModelConfigCreate Pydantic model added with fields: key, provider, tier,
+        displayName, modelId, cost rates, isActive.
+
+    - id: "DO-LEO-AI-069-C"
+      name: "ModelCostRates UI with Add and Delete"
+      file: "services/ui/src/app/admin/models/page.tsx"
+      description: >
+        ModelCostRates component refactored with:
+          - 'Add model' button → Dialog with key/provider/tier/displayName/modelId/cost fields
+          - Delete button (ErrorOutlineIcon) on each model card → DELETE /model-configs/{key}
+          - Rows grouped by provider (aws, azure, other) via ProviderSection and ModelRow components
+          - Rate values displayed to 3 decimal places (was 2) for sub-cent accuracy
+
+    - id: "DO-LEO-AI-069-D"
+      name: "Proxy Routes for /api/model-configs"
+      file: "services/ui/src/proxy.ts"
+      description: >
+        Added /api/model-configs/ and /api/model-configs prefix rules and matcher
+        entries. Also added /api/analytics/:path* for LLMSpendPanel.
+
+  verification_tests:
+    - "VT-LEO-AI-069"

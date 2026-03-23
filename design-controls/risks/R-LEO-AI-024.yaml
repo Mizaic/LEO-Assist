@@ -25,23 +25,23 @@
   mitigation_measures:
     - control_type: "inherent_safety"
       description: "Organisation-scoped data partitioning in Neo4j with mandatory org_id filter on all queries"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-020"]
+      verified_by: ["VT-LEO-AI-012"]
       effectiveness: "highly_effective"
     - control_type: "protective_measure"
       description: "API middleware enforces organisation scope from authenticated session"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-020"]
+      verified_by: ["VT-LEO-AI-012"]
       effectiveness: "highly_effective"
     - control_type: "protective_measure"
       description: "Integration tests verify cross-tenant isolation"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-020"]
+      verified_by: ["VT-LEO-AI-012"]
       effectiveness: "effective"
     - control_type: "procedural_control"
       description: "Periodic penetration testing of tenant isolation"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-020"]
+      verified_by: ["VT-LEO-AI-012"]
       effectiveness: "effective"
 
   residual_risk_estimate:

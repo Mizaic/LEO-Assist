@@ -73,7 +73,6 @@ def _extract_surface_form_rows(
                     "normalized": normalized,
                     "concept_id": concept_id,
                     "confidence": float(coding.get("score", 0.9)),
-                    "approved_by": "hitl_approved",
                     "source": "hitl_approved",
                     "status": "pending",
                     "provenance": "hitl_gold_sync",

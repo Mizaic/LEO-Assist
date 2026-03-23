@@ -1,0 +1,85 @@
+# -- DO-LEO-AI-068 -- Per-Tenant Billing, Margin Configuration, and Discount Management Implementation
+# IEC 62304 / ISO 13485 Design Output
+# Schema: design-controls/templates/design_outputs_schema.yaml
+
+- id: "DO-LEO-AI-068"
+  title: "Per-Tenant Billing and Discount Management Implementation"
+  derived_from: "DI-LEO-AI-068"
+  safety_class: "A"
+  status: "implemented"
+
+  description: >
+    Implements the per-tenant billing subsystem comprising: Cypher queries for
+    PricingConfig and OrgDiscount nodes; a FastAPI pricing router with six
+    admin-only endpoints; a Next.js admin billing page with margin slider, tenant
+    spend table, discount management dialogs, and platform cost section; and
+    LLMSpendPanel enhancements for admin navigation.
+
+  components:
+    - id: "DO-LEO-AI-068-A"
+      name: "Pricing Cypher Query Module"
+      file: "libs/cypher/pricing_queries.py"
+      description: >
+        Defines Cypher queries for: UPSERT_PRICING_CONFIG (PricingConfig singleton),
+        GET_PRICING_CONFIG, CREATE_ORG_DISCOUNT, LIST_ORG_DISCOUNTS,
+        DEACTIVATE_ORG_DISCOUNT, DELETE_ORG_DISCOUNT, GET_ACTIVE_DISCOUNT_RATE
+        (with validity date filter), ORG_SPEND_SUMMARY (joins Patient→AuditEvent→org),
+        and PLATFORM_SPEND_SUMMARY (patient_id IS NULL events).
+
+    - id: "DO-LEO-AI-068-B"
+      name: "Pricing FastAPI Router"
+      file: "services/api/app/routers/pricing.py"
+      description: >
+        Six endpoints prefixed /pricing/:
+          GET  /config         — returns margin, updated_by, updated_at
+          PUT  /config         — updates PricingConfig singleton
+          GET  /orgs           — per-tenant spend with pricing formula applied
+          GET  /orgs/{id}/discounts — list discounts for a tenant
+          POST /orgs/{id}/discounts — create OrgDiscount node
+          DELETE /discounts/{id}  — deactivate (is_active=false) or hard-delete
+          GET  /platform-spend — non-patient AuditEvents aggregated by type
+        All endpoints call _require_admin(scope) which raises HTTP 403 for
+        non-admin callers. Registered in services/api/app/main.py.
+
+    - id: "DO-LEO-AI-068-C"
+      name: "Admin Billing UI Page"
+      file: "services/ui/src/app/admin/billing/page.tsx"
+      description: >
+        React page at /admin/billing. Components:
+          MarginCard — slider + quick-pick presets; PUT /pricing/config on save
+          OrgRow — expandable table row per tenant; shows token breakdown and
+                   discount list; calls POST/DELETE /pricing/orgs/*/discounts
+          AddDiscountDialog — promo/contract type selector, rate slider, date pickers,
+                              perpetual toggle, preview text
+          PlatformSpendCard — event-type breakdown of non-tenant-billable costs
+        Colour-coded margin column: green ≥ target−2pp, amber ≥ target−10pp, red below.
+
+    - id: "DO-LEO-AI-068-D"
+      name: "Proxy Routes for /pricing/*"
+      file: "services/ui/src/proxy.ts"
+      description: >
+        Added prefix rules: /api/pricing/ → coreApi()/pricing/ and
+        /api/pricing → coreApi()/pricing. Added /api/pricing and
+        /api/pricing/:path* to the middleware matcher array.
+
+    - id: "DO-LEO-AI-068-E"
+      name: "LLMSpendPanel Admin Link"
+      file: "services/ui/src/components/dashboard/LLMSpendPanel.tsx"
+      description: >
+        Reads user permissions via useAuth(). If isAdmin, renders a
+        'View all tenants →' link navigating to /admin/billing alongside the
+        period selector. Panel title appended with '(this organisation)' to
+        clarify scope for all users.
+
+    - id: "DO-LEO-AI-068-F"
+      name: "Billing Nav Item in AppShell"
+      file: "services/ui/src/components/AppShell.tsx"
+      description: >
+        Added PaidOutlinedIcon import and a 'Billing' entry at /admin/billing
+        with adminOnly: true to ADMIN_NAV_ITEMS, between Models and Guidance.
+
+  verification_tests:
+    - "VT-LEO-AI-068"
+
+  risks_mitigated:
+    - "R-LEO-AI-045"

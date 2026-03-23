@@ -1,0 +1,162 @@
+# -- VT-LEO-AI-046 -- Semantic Tag Cross-Validation Verification
+- id: "VT-LEO-AI-046"
+  title: "Semantic Tag Cross-Validation — Verification Test Protocol"
+  version: "1.0"
+  status: "passed"
+  date: "2026-03-03"
+  verifies: ["DI-LEO-AI-053"]
+  test_files:
+    - "tests/test_semantic_tag_cross_validation.py"
+    - "tests/test_hitl_tier_integration.py"
+  test_runner: "pytest"
+  result: "All 61 tests pass (23 cross-validation + 38 tier integration)."
+
+  test_cases:
+    # --- _cross_check_semantic_tag unit tests ---
+    - id: "VT-046-001"
+      name: "TestCrossCheckSemanticTag::test_agreement_returns_none"
+      requirement: "DI-053: cross-check returns None when tags agree"
+      method: "Unit — entity label matches top candidate semantic tag; returns (None, None)"
+      result: "PASS"
+
+    - id: "VT-046-002"
+      name: "TestCrossCheckSemanticTag::test_mismatch_detected"
+      requirement: "DI-053: mismatch detection with significant delta"
+      method: "Unit — entity label disagrees with top candidate; returns (suggested_label, delta)"
+      result: "PASS"
+
+    - id: "VT-046-003"
+      name: "TestCrossCheckSemanticTag::test_small_delta_ignored"
+      requirement: "DI-053: small delta below threshold is ignored"
+      method: "Unit — delta < 0.10 returns (None, None)"
+      result: "PASS"
+
+    - id: "VT-046-004"
+      name: "TestCrossCheckSemanticTag::test_empty_candidates"
+      requirement: "DI-053: empty candidate list handled gracefully"
+      method: "Unit — empty list returns (None, None)"
+      result: "PASS"
+
+    - id: "VT-046-005"
+      name: "TestCrossCheckSemanticTag::test_single_candidate_matching"
+      requirement: "DI-053: single matching candidate returns no mismatch"
+      method: "Unit — one candidate with matching tag"
+      result: "PASS"
+
+    - id: "VT-046-006"
+      name: "TestCrossCheckSemanticTag::test_single_candidate_mismatching"
+      requirement: "DI-053: single mismatching candidate detected"
+      method: "Unit — one candidate with non-matching tag"
+      result: "PASS"
+
+    - id: "VT-046-007"
+      name: "TestCrossCheckSemanticTag::test_unknown_semantic_tag_skipped"
+      requirement: "DI-053: candidates with unmappable tags are skipped"
+      method: "Unit — unknown semantic tag treated as non-matching, not errored"
+      result: "PASS"
+
+    - id: "VT-046-008"
+      name: "TestCrossCheckSemanticTag::test_none_semantic_tag_handled"
+      requirement: "DI-053: None semantic tag handled without error"
+      method: "Unit — candidate with None tag skipped gracefully"
+      result: "PASS"
+
+    - id: "VT-046-009"
+      name: "TestCrossCheckSemanticTag::test_only_considers_top_3"
+      requirement: "DI-053: only top 3 candidates inspected"
+      method: "Unit — 4th candidate with differing tag is ignored"
+      result: "PASS"
+
+    # --- _check_terminology_coding integration tests ---
+    - id: "VT-046-010"
+      name: "TestCheckTerminologyCodingCrossValidation::test_unbiased_resolve_no_expected_tags"
+      requirement: "DI-053: resolve call has no expected_tags"
+      method: "Integration — mock _resolve_terms_via_api; assert call has no expected_tags kwarg"
+      result: "PASS"
+
+    - id: "VT-046-011"
+      name: "TestCheckTerminologyCodingCrossValidation::test_tag_mismatch_queued_for_review"
+      requirement: "DI-053: mismatch queued with tier=2 and suggested_label"
+      method: "Integration — entity label differs from candidate tag; review item has suggested_label, decision_tier=2"
+      result: "PASS"
+
+    - id: "VT-046-012"
+      name: "TestCheckTerminologyCodingCrossValidation::test_auto_reclassification_high_confidence"
+      requirement: "DI-053: high-confidence mismatch auto-reclassifies entity"
+      method: "Integration — score=0.95, delta=0.50; entity label changed in-place, no review item"
+      result: "PASS"
+
+    - id: "VT-046-013"
+      name: "TestCheckTerminologyCodingCrossValidation::test_no_mismatch_passes_through"
+      requirement: "DI-053: matching tags pass through normal tier logic"
+      method: "Integration — matching entity/tag; classify_tier called normally"
+      result: "PASS"
+
+    # --- _build_review_item tests ---
+    - id: "VT-046-014"
+      name: "TestBuildReviewItemTagMismatch::test_includes_suggested_label_when_provided"
+      requirement: "DI-053: review item includes suggested_label and tag_mismatch_delta"
+      method: "Unit — pass suggested_label and delta; verify keys present in output dict"
+      result: "PASS"
+
+    - id: "VT-046-015"
+      name: "TestBuildReviewItemTagMismatch::test_omits_suggested_label_when_none"
+      requirement: "DI-053: review item omits fields when None"
+      method: "Unit — pass None for both; verify keys absent from output dict"
+      result: "PASS"
+
+    # --- Cypher query structural tests ---
+    - id: "VT-046-016"
+      name: "TestCypherQueriesTagMismatchFields::test_upsert_includes_suggested_label"
+      requirement: "DI-053: UPSERT query references $suggested_label"
+      method: "Structural — assert '$suggested_label' in UPSERT_CODING_REVIEW"
+      result: "PASS"
+
+    - id: "VT-046-017"
+      name: "TestCypherQueriesTagMismatchFields::test_upsert_includes_tag_mismatch_delta"
+      requirement: "DI-053: UPSERT query references $tag_mismatch_delta"
+      method: "Structural — assert '$tag_mismatch_delta' in UPSERT_CODING_REVIEW"
+      result: "PASS"
+
+    - id: "VT-046-018"
+      name: "TestCypherQueriesTagMismatchFields::test_group_query_returns_suggested_label"
+      requirement: "DI-053: GROUP query returns suggested_label"
+      method: "Structural — assert 'suggested_label' in GROUP_CODING_REVIEWS_BY_ENTITY"
+      result: "PASS"
+
+    - id: "VT-046-019"
+      name: "TestCypherQueriesTagMismatchFields::test_group_query_returns_tag_mismatch_delta"
+      requirement: "DI-053: GROUP query returns tag_mismatch_delta"
+      method: "Structural — assert 'tag_mismatch_delta' in GROUP_CODING_REVIEWS_BY_ENTITY"
+      result: "PASS"
+
+    - id: "VT-046-020"
+      name: "TestCypherQueriesTagMismatchFields::test_queue_query_returns_suggested_label"
+      requirement: "DI-053: QUEUE query returns suggested_label"
+      method: "Structural — assert 'suggested_label' in GET_CODING_REVIEW_QUEUE"
+      result: "PASS"
+
+    - id: "VT-046-021"
+      name: "TestCypherQueriesTagMismatchFields::test_queue_query_returns_tag_mismatch_delta"
+      requirement: "DI-053: QUEUE query returns tag_mismatch_delta"
+      method: "Structural — assert 'tag_mismatch_delta' in GET_CODING_REVIEW_QUEUE"
+      result: "PASS"
+
+    - id: "VT-046-022"
+      name: "TestCypherQueriesTagMismatchFields::test_entity_query_returns_suggested_label"
+      requirement: "DI-053: ENTITY query returns suggested_label"
+      method: "Structural — assert 'suggested_label' in GET_CODING_REVIEW_FOR_ENTITY"
+      result: "PASS"
+
+    - id: "VT-046-023"
+      name: "TestCypherQueriesTagMismatchFields::test_entity_query_returns_tag_mismatch_delta"
+      requirement: "DI-053: ENTITY query returns tag_mismatch_delta"
+      method: "Structural — assert 'tag_mismatch_delta' in GET_CODING_REVIEW_FOR_ENTITY"
+      result: "PASS"
+
+    # --- Regression: existing HITL tier tests still pass ---
+    - id: "VT-046-024"
+      name: "test_hitl_tier_integration.py (38 tests)"
+      requirement: "DI-053: no regression in existing tier classification"
+      method: "Regression — all 38 existing tests pass with cross-validation active"
+      result: "PASS"

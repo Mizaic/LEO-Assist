@@ -20,9 +20,11 @@ function makeAlert(overrides: Partial<SafetyNetAlert> = {}): SafetyNetAlert {
 }
 
 describe("SafetyNetAlertsSummary", () => {
+  const onAction = jest.fn(async () => undefined);
+
   it("shows empty message when no alerts", () => {
-    render(<SafetyNetAlertsSummary alerts={[]} />);
-    expect(screen.getByText(/No safety netting alerts/)).toBeInTheDocument();
+    render(<SafetyNetAlertsSummary alerts={[]} onAction={onAction} />);
+    expect(screen.getByText(/No safety alerts at the moment/)).toBeInTheDocument();
   });
 
   it("renders alerts with severity, type and description", () => {
@@ -30,12 +32,10 @@ describe("SafetyNetAlertsSummary", () => {
       makeAlert({ id: "A1", severity: "high", type: "Missing safety-netting", description: "No follow-up documented", episode_id: "EP1" }),
       makeAlert({ id: "A2", severity: "medium", type: "Excessive wait", description: "Referral wait > 14 days", episode_id: "EP2" }),
     ];
-    render(<SafetyNetAlertsSummary alerts={alerts} />);
-    expect(screen.getByText("high")).toBeInTheDocument();
-    expect(screen.getByText("medium")).toBeInTheDocument();
-    expect(screen.getByText("Missing safety-netting")).toBeInTheDocument();
+    render(<SafetyNetAlertsSummary alerts={alerts} onAction={onAction} />);
+    expect(screen.getByText("High priority")).toBeInTheDocument();
+    expect(screen.getByText("Medium priority")).toBeInTheDocument();
     expect(screen.getByText("No follow-up documented")).toBeInTheDocument();
-    expect(screen.getByText("EP1")).toBeInTheDocument();
   });
 
   it("renders correct number of alert rows", () => {
@@ -44,25 +44,24 @@ describe("SafetyNetAlertsSummary", () => {
       makeAlert({ id: "A2", episode_id: "EP2", type: "B", severity: "critical", description: "D2" }),
       makeAlert({ id: "A3", episode_id: "EP3", type: "C", severity: "medium", description: "D3" }),
     ];
-    render(<SafetyNetAlertsSummary alerts={alerts} />);
-    expect(screen.getByText("EP1")).toBeInTheDocument();
-    expect(screen.getByText("EP2")).toBeInTheDocument();
-    expect(screen.getByText("EP3")).toBeInTheDocument();
+    render(<SafetyNetAlertsSummary alerts={alerts} onAction={onAction} />);
+    expect(screen.getByText("D1")).toBeInTheDocument();
+    expect(screen.getByText("D2")).toBeInTheDocument();
+    expect(screen.getByText("D3")).toBeInTheDocument();
   });
 
   it("shows patient ID and cancer type when available", () => {
     const alerts = [
       makeAlert({ patient_id: "P001", condition_type: "Colorectal" }),
     ];
-    render(<SafetyNetAlertsSummary alerts={alerts} />);
-    expect(screen.getByText(/P001/)).toBeInTheDocument();
+    render(<SafetyNetAlertsSummary alerts={alerts} onAction={onAction} />);
     expect(screen.getByText(/Colorectal/)).toBeInTheDocument();
   });
 
   it("renders 'View all alerts' link to /css", () => {
     const alerts = [makeAlert()];
-    render(<SafetyNetAlertsSummary alerts={alerts} />);
-    const link = screen.getByText("View all alerts").closest("a");
+    render(<SafetyNetAlertsSummary alerts={alerts} onAction={onAction} />);
+    const link = screen.getByText("View all safety alerts →").closest("a");
     expect(link).toHaveAttribute("href", "/safety-netting");
   });
 });

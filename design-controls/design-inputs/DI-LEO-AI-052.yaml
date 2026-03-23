@@ -4,7 +4,7 @@
   version: "1.0"
   status: "approved"
   date: "2026-03-03"
-  derived_from: ["R-LEO-AI-030", "R-LEO-AI-031"]
+  derived_from: ["UN-LEO-AI-021"]
   risk_references:
     - "GAP-001: Identity accepted from unauthenticated X-User-Email header (Critical)"
     - "GAP-003: Unauthenticated model registry endpoints (Critical)"
@@ -142,3 +142,6 @@
         - "_fail_verdict_for_mode('autonomous') returns DisorderVerdict.UNCERTAIN"
         - "LLM response capped at 1000 chars to prevent response-stuffing"
         - "Autonomous mode does not code entities without confirmation on failure"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-030", "R-LEO-AI-031"]

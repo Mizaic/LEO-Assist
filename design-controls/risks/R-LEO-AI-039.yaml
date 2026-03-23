@@ -1,0 +1,48 @@
+# -- R-LEO-AI-039 -- Surface Form Auto-correction Misclassification
+
+- id: "R-LEO-AI-039"
+  title: "Surface-form auto-correction applies incorrect SNOMED code"
+  hazard:
+    description: "Automated correction may pick the wrong concept when terminology candidates are close."
+    category: "software_defect"
+  hazardous_situation: "The auto-correction engine selects a near-match SNOMED concept for a SurfaceForm entry, silently replacing the correct code. Downstream GoldLabel records inherit the wrong concept, degrading NER model training data quality without operator awareness."
+  harm:
+    description: "Incorrect coding in gold labels reduces NER training quality."
+    severity: "minor"
+  initial_risk_estimate:
+    severity: 2
+    probability: 2
+    detectability: 2
+    rpn: 8
+    risk_level: "low"
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: "Auto-correct only when confidence >= 0.9."
+      implemented_by: ["DI-LEO-AI-055"]
+      verified_by: ["VT-LEO-AI-055"]
+    - control_type: "design_feature"
+      description: "Create SurfaceFormTask for human review when confidence < 0.9."
+      implemented_by: ["DI-LEO-AI-055"]
+      verified_by: ["VT-LEO-AI-055"]
+  residual_risk_estimate:
+    severity: 2
+    probability: 1
+    detectability: 1
+    rpn: 2
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: "High-confidence threshold ensures auto-correction only fires on unambiguous matches; all borderline cases route to human review via SurfaceFormTask, preventing silent misclassification."
+  monitoring:
+    - metric: "auto_correction_override_rate"
+      description: "Percentage of auto-corrections subsequently overridden by human reviewers."
+      threshold: "<= 2%"
+      frequency: "monthly"
+    - metric: "surface_form_task_volume"
+      description: "Count of SurfaceFormTasks created for sub-threshold confidence scores."
+      threshold: "trend-monitored"
+      frequency: "monthly"
+  metadata:
+    identified_by: "Design review -- training data pipeline"
+    identified_date: "2026-02-15"
+    status: "analyzed"
+    tags: ["training-data", "surface-forms", "integrity"]

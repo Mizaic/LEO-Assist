@@ -73,5 +73,5 @@
     test_protocol: "VT-LEO-AI-026"
 
   safety_class: "B"
-  risks: []
+  risks: ["R-LEO-AI-023"]
   tags: ["screening", "population-health", "des-paragraph-28", "prevention"]

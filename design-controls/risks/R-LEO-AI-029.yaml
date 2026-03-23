@@ -13,7 +13,7 @@
 
   harm:
     description: "A false diagnosis is attributed to the patient. In HITL mode this wastes reviewer time and erodes trust. In autonomous mode the false diagnosis enters the clinical record and could influence care decisions, audit outcomes, and quality measures"
-    severity: "serious"
+    severity: "critical"
 
   initial_risk_estimate:
     severity: 4
@@ -53,6 +53,11 @@
       description: "Unified post-processing pipeline: the lab-value guard, scope guard, and all 9 post-processing layers are applied identically to training data and runtime data via a single shared module (libs/pipeline/post_processing.py), preventing train/serve skew where mitigations might differ between environments"
       implemented_by: ["DI-LEO-AI-050"]
       verified_by: ["VT-LEO-AI-050"]
+      effectiveness: "effective"
+    - control_type: "protective_measure"
+      description: "Semantic tag cross-validation: after unbiased terminology resolution, the top 3 candidates' semantic tags are compared against the LLM-extracted entity label. Mismatches are either auto-reclassified (high confidence) or flagged for HITL review with suggested_label and tag_mismatch_delta, catching cases where a lab observable is miscoded as a disorder concept"
+      implemented_by: ["DI-LEO-AI-053"]
+      verified_by: ["VT-LEO-AI-046"]
       effectiveness: "effective"
 
   residual_risk_estimate:

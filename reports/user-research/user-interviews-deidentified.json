@@ -1,0 +1,921 @@
+{
+  "metadata": {
+    "document_id": "UR-LEO-AI-001",
+    "title": "User Research Interviews - Referral Triage and Clinical AI Pipeline",
+    "date_conducted": "2026-03",
+    "method": "Semi-structured qualitative interview",
+    "focus": "Day-to-day problems in referral triage, clinical coding, pathway management, and platform operations",
+    "total_interviews": 20,
+    "deidentification_note": "All participant names, trust names, ICB names, and location identifiers have been removed. Participants are identified by role code only.",
+    "role_codes": {
+      "P01": "Consultant Dermatologist / Triage Lead",
+      "P02": "Referral Management Centre Team Leader",
+      "P03": "GP Partner",
+      "P04": "Cancer Pathway Coordinator",
+      "P05": "Clinical Director, Surgical Division",
+      "P06": "Practice Manager",
+      "P07": "Clinical Coder, Acute Trust",
+      "P08": "A&E Consultant",
+      "P09": "Information Analyst, ICB",
+      "P10": "Patient Safety and Governance Lead",
+      "P11": "MDT Coordinator, Cancer Services",
+      "P12": "Registrar (SpR), covering triage",
+      "P13": "Digital Transformation Lead, ICB",
+      "P14": "Clinical Safety Officer",
+      "P15": "Medical Secretary, Surgical Department",
+      "P16": "NLP / AI Engineer (internal)",
+      "P17": "Platform Administrator (internal)",
+      "P18": "Consultant / Clinical Lead for Cancer Services",
+      "P19": "Data Protection Officer, NHS Trust",
+      "P20": "Commercial Director (internal)"
+    }
+  },
+  "interviews": [
+    {
+      "participant_id": "P01",
+      "role": "Consultant Dermatologist / Triage Lead",
+      "setting": "Clinical office, between clinics",
+      "approximate_duration_minutes": 25,
+      "exchanges": [
+        {
+          "q": "Can you walk me through what your morning looked like today?",
+          "a": "I got in at half seven. I had 43 referrals in the queue from the weekend. That's on top of the 20 or so that come in every weekday. I need to get through them before my clinic starts at nine, so I've got about 90 minutes."
+        },
+        {
+          "q": "What does getting through them actually involve?",
+          "a": "I open each one. It's a letter — usually a paragraph, sometimes two pages. I read it. I decide: is this a two-week-wait? Is it routine? Does it need to go to a different specialty? Is there enough information to triage at all, or do I need to send it back? Then I type my decision into e-RS. Next one. Next one. Next one."
+        },
+        {
+          "q": "How long does each one take?",
+          "a": "If it's straightforward — 56-year-old, changing mole, photo attached — maybe a minute. But a lot of them aren't straightforward. Someone sends a referral about a rash and buries in the third paragraph that the patient's on immunosuppressants and has a history of melanoma. That changes everything. But I have to read the whole thing to find it. The ones that really slow me down are the ones where I can't tell what they want. 'Please see this patient regarding their skin.' Regarding what? Where? How long has it been there? I have to go back to the GP and ask. That referral is now dead in the water for a week."
+        },
+        {
+          "q": "How many of the 43 this morning were incomplete or unclear?",
+          "a": "At least ten. Maybe twelve. That's normal. Some weeks it's worse."
+        },
+        {
+          "q": "What happens to those?",
+          "a": "I reject them back to the GP with a note asking for more information. The GP has to re-refer. The patient doesn't know any of this is happening. If it was actually urgent, we've just lost a week."
+        },
+        {
+          "q": "Does that worry you?",
+          "a": "Yes. It keeps me up at night sometimes. What if the one I bounced back was a melanoma and the GP doesn't re-refer quickly? I've never had a serious incident from it, as far as I know. But I also have no way of knowing. There's no tracking once I reject it. It just disappears from my queue."
+        },
+        {
+          "q": "When you're reading a referral, what are you actually looking for?",
+          "a": "Pattern recognition, really. Age. Duration. Change. Risk factors — immunosuppression, personal or family history of skin cancer, transplant patients. Red flags. I've been doing this for fifteen years so I can scan quickly, but a new registrar doing triage would take three times as long. And they might miss something I wouldn't."
+        },
+        {
+          "q": "Is there any structure to what the referring clinicians send you?",
+          "a": "Some use the proformas on e-RS. Those are better — they prompt for the right information. But a lot of referrals come as free-text letters. Different clinicians write completely differently. Some give you everything. Some give you nothing."
+        },
+        {
+          "q": "If you could change one thing about your morning, what would it be?",
+          "a": "I want to open a referral and already know: here are the clinical facts, here's what's there, here's what's missing, and here's whether this looks urgent. I don't want to read two pages of social history to find the one line that matters. Give me the clinical substance in ten seconds and let me make the decision. That's what I'm good at — the decision. Not the reading."
+        },
+        {
+          "q": "What about consistency? Does it bother you that another consultant might triage the same referral differently?",
+          "a": "Hugely. When I'm on leave, my colleague does triage. We don't always agree. I've seen referrals come back that I would have accepted, and vice versa. There's no shared standard, really. We each have our own threshold. The patients don't know that their referral outcome depends on who happens to be triaging that Tuesday."
+        }
+      ],
+      "key_themes": [
+        "referral_volume_pressure",
+        "incomplete_referrals",
+        "free_text_burden",
+        "triage_inconsistency",
+        "no_audit_trail_post_rejection",
+        "clinical_pattern_recognition"
+      ]
+    },
+    {
+      "participant_id": "P02",
+      "role": "Referral Management Centre Team Leader",
+      "setting": "Open-plan office, ICB",
+      "approximate_duration_minutes": 25,
+      "exchanges": [
+        {
+          "q": "What does your team actually do?",
+          "a": "We're the front door. Every referral that comes into the trust goes through us first. We log it, check the basics, make sure it's going to the right specialty, and put it in the right queue for the consultant to triage."
+        },
+        {
+          "q": "How many referrals a day?",
+          "a": "About 350 across all specialties. Some days over 400."
+        },
+        {
+          "q": "What are the basics you check?",
+          "a": "Has the referring clinician filled in the right form? Is the patient registered? Is it the right specialty — you'd be surprised how many referrals are sent to the wrong specialty. Is there a recent blood test result if the pathway needs one? Is the NHS number there?"
+        },
+        {
+          "q": "How much of that is manual?",
+          "a": "All of it. We open each referral, read enough to understand what it's about, check the fields, and route it. My team are administrators, not clinicians. So if a referral says 'urgent suspected cancer' but the referring clinician hasn't ticked the two-week-wait box, we have to flag it. But we can't always tell from the free text whether it's genuinely urgent. That's not our job. Our job is routing."
+        },
+        {
+          "q": "What's the biggest problem you deal with?",
+          "a": "Mis-routing and rejections. If we put a referral in the wrong specialty queue, it sits there for days before someone notices and sends it back. Then it goes in the right queue and the clock has already been ticking. For two-week-wait referrals, that's a breach waiting to happen. Rejections are worse. The consultant reads it, says 'incomplete, need more info,' and it comes back to us. We have to contact the referring clinician, wait for them to resend, log the new version, put it back in the queue. Sometimes this goes round two or three times. The patient has no idea."
+        },
+        {
+          "q": "Do you have visibility of how long referrals are sitting in triage queues?",
+          "a": "Sort of. I have a spreadsheet. I update it manually from e-RS. It's not real-time. If a consultant is on leave and nobody's triaging their queue for three days, I might not spot it until someone complains. We've had two-week-wait referrals sit untriaged for five days because of annual leave. That's not acceptable, but I don't have the tools to prevent it."
+        },
+        {
+          "q": "What information do you wish you had that you don't?",
+          "a": "I want to know, for every referral in the building: when it arrived, where it is now, who's responsible for triaging it, and how long it's been waiting. Right now I have to piece that together from three different systems. And I want to know before the consultant sees it whether the referral is complete. If I could catch the missing blood test or the missing history before it gets to triage, we'd save a week on every rejected referral."
+        },
+        {
+          "q": "Is there anything about the referrals themselves that makes your job harder?",
+          "a": "The free text. My team can't interpret it clinically. But they can see when a referral is two lines long and the one next to it is two pages. They know the short one is probably going to get bounced. But they can't do anything about it. They just pass it on and wait for it to come back."
+        }
+      ],
+      "key_themes": [
+        "referral_volume_pressure",
+        "mis_routing",
+        "incomplete_referrals",
+        "no_queue_visibility",
+        "manual_tracking",
+        "triage_backlog_risk"
+      ]
+    },
+    {
+      "participant_id": "P03",
+      "role": "GP Partner",
+      "setting": "Consulting room, after evening surgery",
+      "approximate_duration_minutes": 20,
+      "exchanges": [
+        {
+          "q": "How often do you make referrals?",
+          "a": "Every day. Four or five a day, some days more. It's a big part of the job, honestly. People don't realise how much time we spend on referrals."
+        },
+        {
+          "q": "Walk me through making one.",
+          "a": "I've seen the patient. I've decided they need to see a specialist. Now I have to write the referral. I open e-RS, find the right service — which is a nightmare in itself, there are hundreds of services and the names don't always make sense — and write the letter. For a two-week-wait cancer referral, there's usually a proforma. I fill in the boxes. That's relatively quick, maybe ten minutes. For a routine referral, I write a letter. That takes longer because I'm deciding what to include. Too little and it gets bounced. Too much and nobody reads it."
+        },
+        {
+          "q": "Do referrals get bounced back to you often?",
+          "a": "All the time. 'Insufficient information.' 'Please include recent bloods.' 'Please clarify laterality.' I get these back and think — I told you everything that matters. But the triage consultant wants a specific thing I didn't include, so I have to go back into the record, find it, rewrite the referral, and resend. The patient calls in two weeks asking what happened. The receptionist checks — it's been rejected and re-referred. The patient doesn't understand. Honestly, neither do I sometimes."
+        },
+        {
+          "q": "Does that create any risk?",
+          "a": "Yes, absolutely. The delay is the risk. If I refer someone with suspected cancer and the referral gets bounced for a technicality, that's days lost. I always worry about the ones that fall through the cracks — the rejection comes back, it goes in my workflow, but I've got 30 other things to do that day. What if I don't re-refer for three days? What if the task gets missed?"
+        },
+        {
+          "q": "What would help you the most?",
+          "a": "I want to know what the triage consultant needs before I send it. Every specialty has different requirements. Some want bloods. Some want photos. Some want a specific examination finding documented. But there's no single source of truth. I have to learn each specialty's unwritten rules by trial and error — by getting referrals bounced. If something could look at my referral before I send it and say 'this pathway requires a recent FBC and you haven't mentioned one' — that would save me and the patient a week."
+        },
+        {
+          "q": "Do you ever get feedback on your referrals?",
+          "a": "Never. I have no idea if my referrals are good or bad. I don't know my rejection rate. I don't know how my referrals compare to other GPs. If I'm consistently missing something, nobody tells me. I find out by getting things bounced."
+        }
+      ],
+      "key_themes": [
+        "referral_writing_burden",
+        "rejection_round_trips",
+        "no_referrer_feedback",
+        "pathway_completeness_requirements_opaque",
+        "patient_safety_risk_from_delays",
+        "task_management_risk"
+      ]
+    },
+    {
+      "participant_id": "P04",
+      "role": "Cancer Pathway Coordinator",
+      "setting": "Cancer services office",
+      "approximate_duration_minutes": 25,
+      "exchanges": [
+        {
+          "q": "What's your role day to day?",
+          "a": "I track every patient on a cancer pathway in this trust. From the moment a two-week-wait referral arrives, the clock is ticking. 14 days to first seen. 28 days to diagnosis or ruling out cancer. 31 days to treatment from decision to treat. 62 days from referral to first treatment. Those are the national targets. My job is to make sure we hit them, and to escalate when we're about to breach."
+        },
+        {
+          "q": "How many patients are you tracking?",
+          "a": "About 180 active pathways. It changes every day."
+        },
+        {
+          "q": "Where does the data come from?",
+          "a": "That's the problem. It comes from everywhere and nowhere. The referral arrives on e-RS. The first outpatient appointment is in the PAS system. The diagnostic test might be in a different system — radiology has its own, pathology has its own. Treatment is in the oncology system. None of these talk to each other properly. I spend most of my day logging in to four different systems, finding the same patient, and manually updating my tracking spreadsheet."
+        },
+        {
+          "q": "What happens when a referral is delayed at triage?",
+          "a": "That's my worst scenario. The referral arrives on a Friday. The consultant is away. Nobody triages it until Wednesday. That's five of my fourteen days gone before the patient even has an appointment. I don't always know it's happened until I look at the pathway and realise the maths doesn't work."
+        },
+        {
+          "q": "How do you find out about new referrals?",
+          "a": "I get a list from the referral management team. But it's not always complete, and it's not always timely. Sometimes I find out about a two-week-wait referral three days after it arrived because it was mis-categorised or routed to the wrong specialty first."
+        },
+        {
+          "q": "What would make the biggest difference to you?",
+          "a": "I want to know the moment a cancer referral arrives. I want to know instantly whether it's been triaged. I want to see the clock ticking in real time, not reconstruct it from five systems three weeks later. And I want the referral itself to be structured — so I can see at a glance: suspected cancer type, red flag symptoms present, relevant history — without reading a two-page letter."
+        },
+        {
+          "q": "Do you ever have pathways breach because of triage delays specifically?",
+          "a": "Yes. Last quarter we had seven breaches where the root cause was a delay between referral receipt and first triage. Seven patients who waited longer than they should have because nobody read the letter quickly enough. That's not acceptable. But nobody in the triage process knows I'm tracking this. They don't see the downstream impact."
+        }
+      ],
+      "key_themes": [
+        "pathway_tracking_manual",
+        "data_fragmentation",
+        "triage_delay_causes_breach",
+        "no_real_time_visibility",
+        "referral_structure_needed",
+        "downstream_impact_invisible_to_triage_team"
+      ]
+    },
+    {
+      "participant_id": "P05",
+      "role": "Clinical Director, Surgical Division",
+      "setting": "Meeting room",
+      "approximate_duration_minutes": 20,
+      "exchanges": [
+        {
+          "q": "From your perspective, what's the problem with how referrals work?",
+          "a": "I'll tell you the problem. I can't see what's happening. I'm responsible for five specialties, each with their own triage process, their own consultants doing triage in their own way, their own backlogs. And I have no reliable data on any of it. I can tell you how many operations we did last month. I can't tell you how many referrals were rejected and why. I can't tell you the average time from referral to triage decision. I can't tell you whether one consultant is triaging twice as fast as another, or whether they're making different decisions on similar referrals. I'm blind."
+        },
+        {
+          "q": "Why does that matter?",
+          "a": "Because when something goes wrong — and it does — I can't find the root cause. A patient waits too long. The referring clinician complains. The medical director asks me what happened. I have to go and manually trace that patient's referral through three systems. That takes me half a day for one patient. I can't do that for the 350 referrals that come through every day. So I only find out about problems when they become incidents."
+        },
+        {
+          "q": "What would you want to see?",
+          "a": "A dashboard. How many referrals are in each specialty queue right now? How many are overdue for triage? What's the rejection rate by specialty, by reason? Are we catching urgent referrals within 24 hours? Where are the bottlenecks? I'd also want to know about quality. Are our triage decisions consistent? If the same referral went to two different consultants, would they make the same call? I suspect not, but I have no data to prove it or to drive improvement."
+        },
+        {
+          "q": "Do you think the triage process itself is the problem, or is it the information coming in?",
+          "a": "Both. The information coming in is inconsistent — some referring clinicians send beautiful referrals, some send barely anything. But the triage process is also inconsistent — we don't have standardised criteria for most pathways. Each consultant uses their own judgment."
+        },
+        {
+          "q": "If you could fix one thing first, what would it be?",
+          "a": "Give me visibility. I can't improve what I can't see. If I knew the rejection rate was 30% in one specialty and the top reason was a missing investigation result, I could work with the referral management team to check for that before it goes to the consultant. But right now I don't know that. Nobody does. The data is locked inside free-text letters and individual consultants' heads."
+        },
+        {
+          "q": "Has this ever become a patient safety issue?",
+          "a": "Honestly? Probably. But I can't prove it. That's the terrifying part. I don't have the data to know whether we've missed something. We find out about the ones that become formal complaints or serious incidents. But for every one of those, I suspect there are ten where the patient waited longer than they should have and we never knew."
+        }
+      ],
+      "key_themes": [
+        "management_visibility",
+        "triage_inconsistency",
+        "rejection_analytics_missing",
+        "no_structured_audit_trail",
+        "unknown_patient_safety_risk",
+        "reactive_not_proactive"
+      ]
+    },
+    {
+      "participant_id": "P06",
+      "role": "Practice Manager, urban GP practice",
+      "setting": "Practice manager office",
+      "approximate_duration_minutes": 25,
+      "exchanges": [
+        {
+          "q": "What's your involvement with referrals?",
+          "a": "I don't make them — that's the clinicians. But I deal with everything around them. The admin, the tracking, the complaints when they go wrong. And increasingly the data returns. QOF, DES, IIF — there's always something the ICB wants from us, and half of it depends on coding that hasn't been done."
+        },
+        {
+          "q": "What do you mean by coding that hasn't been done?",
+          "a": "Our clinicians write their consultations in free text. Some of them code as they go. Some of them don't. They write beautiful notes but don't code anything. Which means when I need to run a search for how many patients had a two-week-wait referral last quarter, the data isn't there. The consultation happened. The referral was made. But the record doesn't show it in a way I can search."
+        },
+        {
+          "q": "How does that affect you practically?",
+          "a": "DES paragraph 28 — the cancer audit. We have to report on our referral activity, safety-netting, significant events. I can pull some of it from EMIS searches, but only if the clinician coded the encounter correctly. If they wrote about an urgent referral but didn't add a two-week-wait code, my search misses it. I end up going through records manually. For our patient population size, that's not feasible."
+        },
+        {
+          "q": "How long does that take?",
+          "a": "The cancer audit alone is about three days of admin time. I usually end up doing it over evenings and weekends because there's no protected time for it during the working day. And I'm never confident the numbers are right."
+        },
+        {
+          "q": "What would actually help?",
+          "a": "If the clinical notes were coded automatically — or even semi-automatically — so that when a clinician writes about a referral or a diagnosis, the system captures it as structured data without them having to stop and code manually. The clinicians would love it too. They hate coding. They became doctors to see patients, not to pick SNOMED codes from a dropdown."
+        },
+        {
+          "q": "Do your clinicians get feedback on their coding quality?",
+          "a": "No. Nobody tells them. I can see practice-level gaps when I run QOF searches, but I can't easily tell which clinician is under-coding. And I wouldn't want to name and shame — I just want the problem fixed."
+        }
+      ],
+      "key_themes": [
+        "coding_gaps_affect_qof_des",
+        "manual_audit_burden",
+        "free_text_not_searchable",
+        "no_coding_feedback_to_clinicians",
+        "data_quality_confidence"
+      ]
+    },
+    {
+      "participant_id": "P07",
+      "role": "Clinical Coder, Acute Trust",
+      "setting": "Health records department",
+      "approximate_duration_minutes": 25,
+      "exchanges": [
+        {
+          "q": "What do you do day to day?",
+          "a": "I code inpatient episodes. A patient is admitted, they're treated, they're discharged. I get the discharge summary and the clinical notes, and I translate everything into ICD-10 and OPCS-4 codes for the national dataset. Every episode has to be coded within 5 working days of discharge."
+        },
+        {
+          "q": "How long does it take to code one episode?",
+          "a": "Simple ones — elective, straightforward — maybe 10 minutes. Complex ones — a cancer patient admitted through A&E with three comorbidities and a complication — 30 to 45 minutes. I do about 25 episodes a day. We're always behind."
+        },
+        {
+          "q": "What makes it take so long?",
+          "a": "Reading. The discharge summary is sometimes three pages. The clinical notes can be ten pages. I have to read everything to find what's codeable. The main diagnosis, secondary diagnoses, procedures, complications. Then I have to interpret what the clinician meant — they don't write in ICD-10. Context matters. What investigations were done? What was the treatment? That tells me the specificity of the code."
+        },
+        {
+          "q": "What's the biggest quality issue?",
+          "a": "Depth of coding. The pressure is to code quickly, so coders take the obvious primary diagnosis and move on. But the secondary diagnoses — comorbidities, complications — are where the money is for the trust and where the data quality matters for national audits. If I miss a comorbidity, the trust is underpaid and the national data is wrong."
+        },
+        {
+          "q": "Is there any AI or automation in your workflow today?",
+          "a": "No. We've looked at some tools but nothing that works with our EPR. I'd be cautious anyway — if a tool suggested codes, I'd still need to verify every one. But if it could highlight the relevant sentences in the notes and suggest candidates, I'd code twice as fast. The reading is what kills me, not the coding itself."
+        },
+        {
+          "q": "What would you need to trust it?",
+          "a": "Show me where in the text the code came from. Don't just give me the code. Show me the phrase it mapped from and let me confirm or change it. And don't miss things. I'd rather have too many suggestions to filter than too few."
+        }
+      ],
+      "key_themes": [
+        "free_text_reading_burden",
+        "coding_depth_quality",
+        "provenance_required_for_trust",
+        "financial_impact_of_coding_errors",
+        "ai_assistance_wanted_not_autonomy"
+      ]
+    },
+    {
+      "participant_id": "P08",
+      "role": "A&E Consultant",
+      "setting": "Relatives room, borrowed between patients",
+      "approximate_duration_minutes": 20,
+      "exchanges": [
+        {
+          "q": "How do referrals affect you in A&E?",
+          "a": "I'm the receiving end of the problem. When the referral pathway fails — the GP can't get an appointment, the two-week-wait is delayed, the patient's symptoms get worse — they end up here. I see patients every week who say 'I've been waiting for my appointment.' They haven't heard anything, so they come to A&E."
+        },
+        {
+          "q": "Can you give me an example?",
+          "a": "A patient came in with abdominal pain and weight loss. The referring clinician had sent a two-week-wait referral six weeks earlier. The referral had been rejected — 'insufficient information' — and the re-referral was still in the queue. The patient didn't know any of this. They just knew they were getting worse and nobody had called."
+        },
+        {
+          "q": "What did you do?",
+          "a": "I admitted them. CT scan, blood work, the lot. The imaging found a significant finding. That should have been picked up on the two-week-wait pathway weeks ago. Instead they came through our front door as an emergency."
+        },
+        {
+          "q": "Does this happen often?",
+          "a": "More than it should. I don't have exact numbers because we don't routinely track presentations that should have been seen on an outpatient pathway. But I'd estimate two or three a week in my department alone."
+        },
+        {
+          "q": "When you see a patient like that, what information do you need?",
+          "a": "I need their history — what's been happening in primary care. What did the referring clinician find? What referrals are outstanding? What investigations have been done? I can look in the GP record if we have shared access, but it's free text. I'm scrolling through months of consultations trying to piece together the story while the patient is in front of me. If the relevant encounters were already coded and summarised, I'd have the picture in seconds instead of minutes."
+        },
+        {
+          "q": "What about the referrals you make from A&E?",
+          "a": "That's another problem. When I refer from A&E — say I want an urgent outpatient follow-up — I write a letter. It goes into the same triage queue as everything else. There's no way for me to flag 'I've seen this patient, I've done the workup, this is genuinely urgent' in a way that's different from a routine referral. My letter just joins the pile."
+        }
+      ],
+      "key_themes": [
+        "pathway_failure_presents_to_ae",
+        "incomplete_referral_downstream_harm",
+        "context_needed_at_point_of_care",
+        "ae_referrals_not_differentiated",
+        "pre_coded_history_would_help"
+      ]
+    },
+    {
+      "participant_id": "P09",
+      "role": "Information Analyst, ICB",
+      "setting": "Virtual call",
+      "approximate_duration_minutes": 25,
+      "exchanges": [
+        {
+          "q": "What does your team do?",
+          "a": "We provide the intelligence for the ICB. Waiting lists, referral volumes, pathway performance, cancer standards, elective recovery. We produce the reports that go to the board and to NHS England. And we answer ad hoc questions — how many patients in our patch are waiting more than 62 days for cancer treatment."
+        },
+        {
+          "q": "Where does your data come from?",
+          "a": "Everywhere. Hospital PAS systems, e-RS for referrals, national cancer waiting time data, EPR systems for primary care. None of it is in the same format. None of it links easily. We spend 80% of our time cleaning and linking data, and 20% actually analysing it."
+        },
+        {
+          "q": "What's the biggest data gap?",
+          "a": "Primary care. We can see what happens once a patient reaches secondary care — referral date, appointment date, treatment date. But what happened before the referral? When did the patient first present with symptoms? Were there missed opportunities? Was safety-netting adequate? That data exists in the GP record, but it's free-text notes. We can't access it at scale, and even if we could, we couldn't analyse it without coding it first. The national standard measures from referral to diagnosis. But the clinically important question is: how long from first symptom to referral? We have no systematic way to measure that."
+        },
+        {
+          "q": "How does this affect your work?",
+          "a": "I can tell you a trust is breaching on 62-day cancer waits. I can't tell you why. Is it a diagnostic bottleneck? A triage delay? A late referral from primary care? I'm reporting the number without understanding the cause. The board asks 'what are we doing about it?' and I can't give them a useful answer because I don't have the upstream data."
+        },
+        {
+          "q": "What would you need?",
+          "a": "Coded primary care encounter data — specifically, the encounters that led to a referral. If I could see first presentation with relevant symptom on date X, referral made on date Y, triaged on date Z, I could calculate the full pathway duration and identify where the delays actually are. Right now I'm measuring half the journey."
+        }
+      ],
+      "key_themes": [
+        "data_fragmentation",
+        "primary_care_data_gap",
+        "symptom_to_referral_unmeasurable",
+        "cannot_decompose_pathway_delays",
+        "reporting_without_causation"
+      ]
+    },
+    {
+      "participant_id": "P10",
+      "role": "Patient Safety and Governance Lead",
+      "setting": "Governance office",
+      "approximate_duration_minutes": 25,
+      "exchanges": [
+        {
+          "q": "How do referral problems show up in your world?",
+          "a": "As serious incidents. Or near-misses, if we're lucky enough to catch them. A patient with suspected cancer — referral delayed by several weeks due to triage delay, rejection, mis-routing, or a lost referral. I investigate these. I pull the timeline apart. I work out what went wrong and write recommendations."
+        },
+        {
+          "q": "How many referral-related incidents do you see?",
+          "a": "Formally reported? Maybe one a month. But I know that's the tip of the iceberg. Incidents only get reported when someone notices — usually the patient complains, or a clinician spots it. The ones where the patient waited three extra weeks but was ultimately fine? Those are never reported. They're invisible harm."
+        },
+        {
+          "q": "What does an investigation look like?",
+          "a": "I trace the referral. When was it sent? When was it received? When was it triaged? Was it rejected? When was it re-referred? Who made each decision? What information did they have at the time? This takes me days. Because there is no single system that holds the full story. I'm pulling data from multiple systems, email inboxes, and sometimes I have to interview the clinicians involved. For one patient. One referral."
+        },
+        {
+          "q": "What do you typically recommend?",
+          "a": "The same things, over and over. Implement a process to track referrals from receipt to triage. Ensure two-week-wait referrals are triaged within 24 hours. Develop a checklist for referral completeness. These are the right recommendations, but they're manual processes. They depend on people remembering to do them. And they keep failing because the workload is too high for the process to be reliable."
+        },
+        {
+          "q": "If you could see the data differently, what would change?",
+          "a": "I want proactive detection, not reactive investigation. Show me every referral that's been sitting untriaged for more than 48 hours — right now, in real time. Show me every two-week-wait that was rejected and not re-referred within 3 working days. Don't wait for the patient to come to harm and then report it. Catch it before it becomes an incident. The structured audit trail is the other thing. If every triage decision was recorded — who made it, when, what information was present, what the recommendation was — my investigations would take hours instead of days. And more importantly, we'd have the data to spot patterns across incidents rather than treating each one as a one-off."
+        }
+      ],
+      "key_themes": [
+        "reactive_not_proactive",
+        "invisible_harm",
+        "investigation_burden",
+        "same_recommendations_repeatedly",
+        "structured_audit_trail_missing",
+        "proactive_alerting_needed"
+      ]
+    },
+    {
+      "participant_id": "P11",
+      "role": "MDT Coordinator, Cancer Services",
+      "setting": "Cancer services office, pre-MDT",
+      "approximate_duration_minutes": 20,
+      "exchanges": [
+        {
+          "q": "What's your role in the MDT?",
+          "a": "I prepare the list. Every patient being discussed at the multidisciplinary team meeting needs a summary — demographics, presenting complaint, investigation results, referral history, staging if we have it. The consultants need this in front of them to make a treatment decision."
+        },
+        {
+          "q": "Where does that information come from?",
+          "a": "Everywhere. The referral letter is on e-RS. Imaging is on PACS. Pathology is on its own system. The clinic letter is on the EPR. The GP history might be on a shared care record if we're lucky. I'm logging into five systems for every patient, copying and pasting into a Word template."
+        },
+        {
+          "q": "How many patients per MDT?",
+          "a": "Between 15 and 30. It takes me most of the day before each meeting to prepare the list. If there are 30 patients and I'm chasing missing results for five of them, I'm on the phone to other departments at 4pm trying to get them before tomorrow morning."
+        },
+        {
+          "q": "What goes wrong?",
+          "a": "Information is missing or wrong. I copy a date from the referral letter, but the letter says 'referred two weeks ago' not an actual date. I have to work it out. Or the pathology result is in the system but under a different hospital number because the patient was registered twice. Or the referring clinician's letter doesn't mention the key symptom that triggered the referral, so the MDT doesn't have the full picture."
+        },
+        {
+          "q": "If the referral had been coded and structured at the point it arrived, would that help?",
+          "a": "Enormously. Half my job is reading free-text documents and extracting the same facts that someone has already read. The triage consultant read the referral and decided it was urgent. The pathway coordinator logged the dates. I'm reading it again to extract the clinical summary. Three people reading the same letter. If the clinical content was already structured, I'd just pull it."
+        }
+      ],
+      "key_themes": [
+        "mdt_preparation_manual",
+        "data_fragmentation",
+        "same_letter_read_multiple_times",
+        "structured_data_would_eliminate_rework",
+        "date_accuracy_issues"
+      ]
+    },
+    {
+      "participant_id": "P12",
+      "role": "Registrar (SpR), covering consultant triage",
+      "setting": "Consultant triage desk, covering annual leave",
+      "approximate_duration_minutes": 20,
+      "exchanges": [
+        {
+          "q": "How often do you do triage?",
+          "a": "Whenever my consultant is away. Maybe one week in four. I dread it, honestly."
+        },
+        {
+          "q": "Why?",
+          "a": "Because I'm not as fast as they are. They've been doing this for fifteen years. They read a referral and know in thirty seconds whether it's urgent. I have to read the whole thing carefully, sometimes twice. I second-guess myself. If I get it wrong, the consequences are serious."
+        },
+        {
+          "q": "How long does it take you?",
+          "a": "Twice as long as the consultant, at least. And I've still got my clinic in the afternoon. So either triage is late or my clinic prep suffers."
+        },
+        {
+          "q": "What would help you specifically?",
+          "a": "A checklist. For each referral, show me: are the red-flag features present? Based on the criteria, does this meet the threshold for two-week-wait? What's missing? I'd still make the decision — but I'd feel much more confident if something had already highlighted the key facts and checked them against the criteria. Right now I'm applying the criteria from memory and I'm not always sure I've remembered them all."
+        },
+        {
+          "q": "Do you have access to the criteria?",
+          "a": "I know where the guidelines are. But I'm not going to open the full guideline and cross-reference it for every referral. There are dozens of criteria across different cancer sites. Nobody memorises all of them. My consultant doesn't need to — they've internalised them over years. I haven't."
+        },
+        {
+          "q": "Have you ever made a mistake?",
+          "a": "I don't know. That's the scary part. I might have downgraded something that should have been urgent. I'd never know unless it came back as an incident months later. There's no feedback loop. I triage it, it goes into the system, and I never hear about it again."
+        }
+      ],
+      "key_themes": [
+        "junior_clinician_triage_risk",
+        "guideline_criteria_not_accessible_at_point_of_triage",
+        "no_feedback_loop",
+        "decision_support_needed",
+        "inconsistency_between_experience_levels"
+      ]
+    },
+    {
+      "participant_id": "P13",
+      "role": "Digital Transformation Lead, ICB",
+      "setting": "Hot desk, ICB headquarters",
+      "approximate_duration_minutes": 25,
+      "exchanges": [
+        {
+          "q": "What's your remit?",
+          "a": "I'm responsible for digital strategy across multiple GP practices and several acute trusts. I'm supposed to be driving digital transformation, but most of my time goes on keeping the lights on — EPR upgrades, system integrations, cyber security. Transformation is what I do with whatever's left."
+        },
+        {
+          "q": "Where does referral triage fit?",
+          "a": "It's one of the most obvious opportunities. We know the problem: referrals are free text, triage is manual, there's no standardisation, and we lose weeks to rejections and re-referrals. Every trust in our patch runs the same broken process slightly differently. But every time I try to fix it, I hit the same walls."
+        },
+        {
+          "q": "What walls?",
+          "a": "Interoperability. Our systems don't talk to each other. e-RS is national but the data comes out as PDFs and free text. Each trust has a different PAS, a different EPR. Primary care is on different clinical systems. Getting data out of any of these in a structured format is a project in itself. And clinical buy-in. Consultants don't want to change how they triage. They're fast at it — or they think they are — and they see any tool as extra work, not less work. I have to show them it saves time on day one."
+        },
+        {
+          "q": "What would you need from a product?",
+          "a": "Works with what we've got. I can't rip out e-RS or the EPR. Whatever you build has to sit alongside them — read the referral from where it already lives, add value, and put the result back where people expect to find it. If clinicians have to log into a separate system, they won't. And give me data I can use for commissioning. If you're coding referrals, I want aggregated data: referral volumes by practice, by specialty, by urgency. Rejection rates. Triage times. I need this to make the case for investment and to hold providers to account."
+        },
+        {
+          "q": "What about AI specifically — any concerns?",
+          "a": "Clinical governance. The MHRA, DCB0129, clinical safety case. Any AI that touches patient data in an NHS setting needs a clinical safety officer sign-off. I need to see the risk assessment, the intended use, the human-in-the-loop controls. Without that I can't even start the procurement conversation, regardless of how good the product is."
+        }
+      ],
+      "key_themes": [
+        "interoperability_barrier",
+        "must_integrate_with_existing_systems",
+        "clinical_buyin_challenge",
+        "commissioning_data_needed",
+        "clinical_governance_prerequisite_for_procurement"
+      ]
+    },
+    {
+      "participant_id": "P14",
+      "role": "Clinical Safety Officer",
+      "setting": "Virtual call",
+      "approximate_duration_minutes": 25,
+      "exchanges": [
+        {
+          "q": "What would you be looking for if an AI triage tool came across your desk?",
+          "a": "DCB0129 — the clinical risk management standard for health IT. I need a clinical safety case file. Hazard log. Risk assessment. Evidence that the manufacturer has identified what can go wrong and has controls in place."
+        },
+        {
+          "q": "What are the main hazards you'd be worried about?",
+          "a": "Three things. First: the AI misses an urgent referral. A cancer is triaged as routine. The patient waits weeks instead of days. That's the catastrophic scenario. Second: the AI over-triages. Everything is flagged as urgent. The two-week-wait pathway is overwhelmed, genuine urgent cases are diluted, and the whole system slows down. Third: automation bias. The clinician trusts the AI recommendation and stops reading the referral themselves. They become a rubber stamp. That's the hardest one to control."
+        },
+        {
+          "q": "How would you want those risks mitigated?",
+          "a": "For missed urgency: show me the sensitivity. On a validated dataset of referrals with known outcomes, what proportion of genuinely urgent cases did the system flag? I want to see that number above 95%, ideally above 98%. And I want to see what happens with the ones it misses — is there a safety net? A secondary check? For over-triage: show me the specificity. For automation bias: the design matters. Don't give the clinician a single 'accept' button. Make them confirm the key facts. Show the reasoning, not just the recommendation. Force them to engage with the content, not just the label."
+        },
+        {
+          "q": "What about the human review gate?",
+          "a": "That's necessary but not sufficient. A human review gate only works if the human actually reviews. If the AI is right 95% of the time, the human will stop reading after a month. That's human nature. So the design needs to actively prevent that — maybe require the reviewer to confirm specific clinical facts, not just tick a box."
+        },
+        {
+          "q": "Anything else?",
+          "a": "Post-deployment monitoring. I want to see override rates, false negative rates, time-to-triage before and after. And a process for updating the risk assessment when the data changes. This isn't a one-time assessment — it's ongoing surveillance."
+        }
+      ],
+      "key_themes": [
+        "dcb0129_requirement",
+        "missed_urgency_catastrophic_risk",
+        "automation_bias_risk",
+        "sensitivity_specificity_evidence_needed",
+        "active_engagement_design_not_rubber_stamp",
+        "post_deployment_monitoring"
+      ]
+    },
+    {
+      "participant_id": "P15",
+      "role": "Medical Secretary, Surgical Department",
+      "setting": "Shared secretarial office",
+      "approximate_duration_minutes": 20,
+      "exchanges": [
+        {
+          "q": "What's your involvement with referrals?",
+          "a": "I deal with the incoming referrals administratively. I process them, put them in the consultant's queue, chase them if they haven't been triaged, and process the outcome — book the appointment if it's accepted, send the rejection back if it's not. I also type outgoing referral letters that consultants dictate."
+        },
+        {
+          "q": "What problems do you see?",
+          "a": "The queue. Referrals go in, and they sit there until the consultant gets to them. If they're in theatre all week, they sit all week. I can see them piling up but I can't triage them. That's not my role. I chase them — 'you've got 30 referrals waiting' — and they say 'I'll do them Friday.' Some of those have been there since Monday."
+        },
+        {
+          "q": "Do referrals ever get lost?",
+          "a": "Not lost exactly, but misplaced. A referral comes in by email instead of e-RS. It sits in the generic inbox. Nobody picks it up for three days because everyone assumed someone else would. Or a faxed referral gets put in the wrong pile."
+        },
+        {
+          "q": "What would help?",
+          "a": "A single place where every referral lands, regardless of how it arrived. And a way to see at a glance which ones are urgent and which ones have been waiting too long. I don't need to understand the clinical content — I just need to know 'this one is overdue' so I can chase the right person."
+        }
+      ],
+      "key_themes": [
+        "multi_channel_referral_ingestion",
+        "queue_visibility_for_admin",
+        "referrals_misplaced_across_channels",
+        "chase_process_manual",
+        "urgency_visibility_without_clinical_interpretation"
+      ]
+    },
+    {
+      "participant_id": "P16",
+      "role": "NLP / AI Engineer (internal team)",
+      "setting": "Development workstation",
+      "approximate_duration_minutes": 25,
+      "exchanges": [
+        {
+          "q": "What takes up most of your time?",
+          "a": "Training data quality. The NER model is only as good as the labels it's trained on. I spend a huge amount of time reviewing training annotations, finding inconsistencies, and fixing them. One annotator labels a concept as a finding. Another labels it as a symptom. Both are technically correct in SNOMED, but the model gets confused if the labels are inconsistent."
+        },
+        {
+          "q": "How does the model handle referral text specifically?",
+          "a": "Referral letters are different from consultation notes. Consultations are short — a paragraph, maybe two. Referral letters can be long, semi-structured, and they contain a lot of contextual information that's important for triage but doesn't map neatly to a single SNOMED code. 'I am concerned this may be cancer' — that's a clinical suspicion, not a diagnosis. The model needs to capture that nuance."
+        },
+        {
+          "q": "What's hard about referral text?",
+          "a": "Negation and context. 'No family history of cancer' — the model needs to know 'cancer' is negated. 'Previously had a lesion removed, no recurrence' — 'removed' is historical, 'recurrence' is negated. Referral letters are full of this kind of qualified, contextual language. Our negation detection is good for simple cases but struggles with complex sentence structures. The other thing is implicit urgency. A clinician doesn't always say 'urgent.' They write 'I am worried about this patient' or 'I would be grateful for an early appointment.' That's a signal, but it's not a structured field."
+        },
+        {
+          "q": "What would make your job easier?",
+          "a": "A feedback loop from triage decisions. If the triage consultant overrides the AI recommendation, I want to know why. Was it a missed entity? A wrong assertion? An incorrect urgency classification? Right now, the override is recorded but the reason isn't structured. I need structured error categories so I can improve the model systematically, not one anecdote at a time."
+        }
+      ],
+      "key_themes": [
+        "training_data_quality",
+        "negation_context_complexity_in_referral_text",
+        "implicit_urgency_detection",
+        "structured_override_feedback_needed",
+        "model_improvement_loop"
+      ]
+    },
+    {
+      "participant_id": "P17",
+      "role": "Platform Administrator (internal team)",
+      "setting": "Remote working",
+      "approximate_duration_minutes": 20,
+      "exchanges": [
+        {
+          "q": "What does platform admin involve for you?",
+          "a": "Configuration. Setting up new tenants — a new GP practice or trust that's onboarding. That means creating their organisation in the system, configuring their pipeline — which steps to run, in what order, with what thresholds. Setting up their terminology — which SNOMED value sets apply to their pathways. And making sure the data flows work."
+        },
+        {
+          "q": "How long does onboarding a new organisation take?",
+          "a": "Too long. A couple of days if everything goes smoothly. Longer if they have non-standard requirements. Each organisation wants slightly different things — different specialties, different triage criteria, different reporting. Our pipeline is configurable, but the configuration itself is complex. I'm editing YAML files and database queries, not clicking buttons in a UI."
+        },
+        {
+          "q": "What goes wrong?",
+          "a": "Misconfiguration. I set a threshold wrong, or I point a pipeline step at the wrong value set, and the first batch of referrals gets processed with the wrong criteria. We catch it in review — nothing goes live without human approval — but it wastes time and erodes trust. The clinical team sees wrong results and loses confidence, even if we fix it immediately."
+        },
+        {
+          "q": "What would improve things?",
+          "a": "A proper configuration UI with validation. Instead of editing YAML, I want to pick a pathway template, select the specialties, set the thresholds via dropdowns and sliders, and have the system validate the configuration before I deploy it. And a test mode — let me run a sample referral through the pipeline and see the output before I turn it on for real."
+        },
+        {
+          "q": "What about monitoring?",
+          "a": "I watch the queues and pipeline job status. If something fails — a model timeout, a database connection drop — I need to know immediately. Our monitoring is basic right now. I'd like smarter alerts: 'pipeline throughput dropped 50% in the last hour' or 'rejection rate for this organisation is 3x the average — check the configuration.'"
+        }
+      ],
+      "key_themes": [
+        "onboarding_complexity",
+        "configuration_ui_needed",
+        "misconfiguration_risk",
+        "test_mode_needed",
+        "smarter_operational_alerting"
+      ]
+    },
+    {
+      "participant_id": "P18",
+      "role": "Consultant and Clinical Lead for Cancer Services",
+      "setting": "Clinical office",
+      "approximate_duration_minutes": 20,
+      "exchanges": [
+        {
+          "q": "What's your perspective on referral triage?",
+          "a": "The national cancer waiting time standards exist for a reason. Early diagnosis saves lives. The 28-day Faster Diagnosis Standard, the 62-day referral-to-treatment target — these are evidence-based. Every day of unnecessary delay reduces survival probability for certain cancers. Triage is the first gate. If triage is slow, inconsistent, or wrong, the entire pathway is compromised before it even starts. And we know it's inconsistent. The same referral sent to multiple consultants produces different triage outcomes."
+        },
+        {
+          "q": "Is that a problem at your trust?",
+          "a": "I suspect so, but I can't prove it. I don't have the data. I can tell you our pathway performance numbers. But I can't tell you what proportion of the delay is at triage versus diagnostics versus treatment. The pathway data is too fragmented to decompose."
+        },
+        {
+          "q": "What would you need to see?",
+          "a": "Pathway decomposition. For every patient, break the journey into segments: referral to triage, triage to first appointment, first appointment to investigation, investigation to MDT, MDT to treatment. Show me where the delays concentrate. And I want to know about the ones we're missing. Not the patients on the pathway — the patients who should be on the pathway but aren't. The clinician who saw the red-flag symptoms but didn't refer. The referral that was downgraded from two-week-wait to routine. Those are the patients who present late with advanced disease."
+        },
+        {
+          "q": "Does AI concern you in this context?",
+          "a": "Only if it's unsupervised. If the AI is surfacing information for a clinician to act on — here are the red flags, here's what the guidelines say, here's what's missing — that's a clinical support tool. I'm in favour of that. If the AI is making the triage decision autonomously, without a clinician confirming it, that's a medical device and it needs to be regulated as such. The human review is non-negotiable. But the human review should be of a structured, complete summary — not a cold read of a two-page letter. That's where the value is."
+        }
+      ],
+      "key_themes": [
+        "pathway_decomposition_needed",
+        "missing_patients_invisible",
+        "triage_inconsistency_suspected",
+        "human_review_non_negotiable",
+        "ai_as_support_not_replacement",
+        "clinical_lead_needs_causation_data"
+      ]
+    },
+    {
+      "participant_id": "P19",
+      "role": "Data Protection Officer, NHS Trust",
+      "setting": "Meeting room",
+      "approximate_duration_minutes": 25,
+      "exchanges": [
+        {
+          "q": "What are your concerns about AI processing referral data?",
+          "a": "Lawful basis, data minimisation, and transparency. In that order."
+        },
+        {
+          "q": "Walk me through each one.",
+          "a": "Lawful basis: referral data is special category data — health data. Processing it requires Article 9 conditions. For direct care, we rely on the appropriate GDPR articles — public task and health or social care purposes. An AI tool processing referrals for triage fits within that, provided it's supporting direct care and not doing something the patient wouldn't reasonably expect. Data minimisation: the AI should only see what it needs. If it's coding the clinical content of a referral, does it need the patient's name? Address? NHS number? Ideally, you pseudonymise or strip identifiers before the AI processes the text. If the AI is cloud-hosted, the data leaving the trust boundary is a bigger concern. Transparency: patients have a right to know their data is being processed by AI. That doesn't mean individual consent for each referral — it means clear privacy notices, fair processing information, and a mechanism for patients to ask questions or object."
+        },
+        {
+          "q": "What about LLMs specifically?",
+          "a": "If the data goes to an external LLM API, that's a data processor relationship. I need a Data Processing Agreement. I need to know where the data is processed — UK data residency is strongly preferred. I need assurance that the data isn't used for model training. And I need the DPIA to cover the specific risks of LLM processing — prompt injection, data leakage, hallucination leading to incorrect clinical output. If the NLP pipeline runs locally — on-premise or on UK cloud infrastructure — that's much cleaner from a data protection perspective."
+        },
+        {
+          "q": "What documentation would you need before approving deployment?",
+          "a": "A DPIA covering the full data flow. A clinical safety case. The processing agreement with any cloud providers. Evidence that the system's access controls meet NHS DSPT requirements. And clarity on data retention — how long are the AI outputs stored, and what happens when a patient exercises their right to erasure?"
+        }
+      ],
+      "key_themes": [
+        "lawful_basis_health_data",
+        "data_minimisation_pseudonymisation",
+        "dpia_required",
+        "uk_data_residency",
+        "llm_data_processor_agreement",
+        "patient_transparency",
+        "dspt_compliance"
+      ]
+    },
+    {
+      "participant_id": "P20",
+      "role": "Commercial Director (internal team)",
+      "setting": "Commercial office",
+      "approximate_duration_minutes": 20,
+      "exchanges": [
+        {
+          "q": "Who's the buyer for this?",
+          "a": "It depends on how we position it. If it's a referral triage tool, the buyer is the acute trust — probably the Chief Operating Officer or the Medical Director. They're the ones who own the waiting list problem. The ICB might commission it across their patch, but procurement would still go through individual trusts. If it's a primary care coding and audit tool, the buyer is the GP practice or the PCN. Different procurement route entirely."
+        },
+        {
+          "q": "What's the commercial challenge?",
+          "a": "Proving ROI in a way the NHS understands. Time saving alone isn't enough — NHS organisations don't directly monetise clinician time. I need to show: reduced pathway breaches which have financial penalties, reduced coding errors which affect income through national tariff, and reduced serious incidents which have direct costs in investigation and litigation."
+        },
+        {
+          "q": "What do they ask about first?",
+          "a": "Clinical safety. Every single time. 'Has it got a clinical safety case?' 'Is it registered as a medical device?' 'Who's the clinical safety officer?' If I can't answer those questions in the first meeting, there is no second meeting. The product can be brilliant, but without the regulatory framework, it's dead on arrival in the NHS. After that: integration. 'Does it work with e-RS?' 'Does it work with our EPR?' 'Do we have to change our workflow?' The answer to the last question has to be no."
+        },
+        {
+          "q": "What pricing model works?",
+          "a": "Per-referral or per-patient-pathway. Volume-based, predictable. Trusts hate per-seat licensing because they can't control how many people use it. They like per-transaction because they can budget against referral volumes they already know. And they want to see the unit economics — each referral costs a certain amount to process, and you're currently spending significantly more in clinician time."
+        }
+      ],
+      "key_themes": [
+        "buyer_identification",
+        "roi_in_nhs_terms",
+        "clinical_safety_case_prerequisite",
+        "integration_without_workflow_change",
+        "per_transaction_pricing_model",
+        "procurement_timeline_challenge"
+      ]
+    }
+  ],
+  "cross_cutting_themes": [
+    {
+      "theme": "free_text_is_the_bottleneck",
+      "description": "Clinical content buried in unstructured free text prevents automation, analytics, and consistent triage",
+      "participants": ["P01", "P02", "P03", "P07", "P08", "P09", "P11", "P12", "P16", "P18"],
+      "count": 10
+    },
+    {
+      "theme": "incomplete_referrals_cause_delay",
+      "description": "Missing information triggers rejection and re-referral round-trips that delay patient pathways",
+      "participants": ["P01", "P02", "P03", "P04", "P15"],
+      "count": 5
+    },
+    {
+      "theme": "no_queue_or_status_visibility",
+      "description": "No real-time view of referral location, responsible owner, or time waiting",
+      "participants": ["P02", "P04", "P05", "P10", "P15", "P17"],
+      "count": 6
+    },
+    {
+      "theme": "triage_inconsistency",
+      "description": "Same referral triaged differently depending on clinician and day",
+      "participants": ["P01", "P05", "P12", "P18"],
+      "count": 4
+    },
+    {
+      "theme": "no_structured_audit_trail",
+      "description": "No record of what information was present at time of triage decision and what reasoning was applied",
+      "participants": ["P05", "P10", "P12"],
+      "count": 3
+    },
+    {
+      "theme": "same_letter_read_multiple_times_by_different_roles",
+      "description": "Triage clinician, pathway coordinator, and MDT coordinator all re-read the same referral independently",
+      "participants": ["P01", "P02", "P04", "P07", "P11"],
+      "count": 5
+    },
+    {
+      "theme": "coding_gaps_affect_qof_des_and_income",
+      "description": "Clinicians writing free text without coding causes downstream data gaps in national returns and income",
+      "participants": ["P06", "P09"],
+      "count": 2
+    },
+    {
+      "theme": "no_feedback_to_referrers",
+      "description": "Referring clinicians receive no information on rejection rates or quality of their referrals",
+      "participants": ["P03", "P06"],
+      "count": 2
+    },
+    {
+      "theme": "pathway_delays_detected_retrospectively",
+      "description": "Problems are found through complaints or incidents rather than proactive monitoring",
+      "participants": ["P04", "P05", "P10", "P08", "P18"],
+      "count": 5
+    },
+    {
+      "theme": "data_fragmentation_across_systems",
+      "description": "Referral, investigation, appointment, and treatment data spread across 4-5 unconnected systems",
+      "participants": ["P04", "P09", "P11", "P13"],
+      "count": 4
+    },
+    {
+      "theme": "must_integrate_with_existing_systems",
+      "description": "Any solution must work alongside e-RS and EPR without requiring workflow change",
+      "participants": ["P13", "P15", "P20"],
+      "count": 3
+    },
+    {
+      "theme": "clinical_safety_case_prerequisite",
+      "description": "DCB0129 clinical safety case is required before any NHS procurement conversation",
+      "participants": ["P13", "P14", "P19", "P20"],
+      "count": 4
+    },
+    {
+      "theme": "ai_must_show_reasoning",
+      "description": "Clinicians need to see where codes came from and why a recommendation was made",
+      "participants": ["P07", "P14", "P18"],
+      "count": 3
+    },
+    {
+      "theme": "automation_bias_risk",
+      "description": "Human review gate is necessary but not sufficient if the clinician becomes a rubber stamp",
+      "participants": ["P14", "P18"],
+      "count": 2
+    },
+    {
+      "theme": "data_protection_and_residency",
+      "description": "Health data requires DPIA, DPA with cloud providers, UK residency preference, and DSPT compliance",
+      "participants": ["P19", "P13"],
+      "count": 2
+    },
+    {
+      "theme": "model_improvement_needs_structured_feedback",
+      "description": "Override reasons need to be structured categories, not free text, to enable systematic model improvement",
+      "participants": ["P12", "P16"],
+      "count": 2
+    },
+    {
+      "theme": "junior_clinician_triage_risk",
+      "description": "Less experienced clinicians covering triage are slower, less confident, and more likely to err",
+      "participants": ["P01", "P12"],
+      "count": 2
+    },
+    {
+      "theme": "pathway_decomposition_missing",
+      "description": "Cannot identify which segment of the pathway is causing breaches without structured data at each step",
+      "participants": ["P09", "P18"],
+      "count": 2
+    }
+  ],
+  "user_needs_not_yet_documented": [
+    "Referral completeness checking before or at triage — flag missing mandatory information automatically",
+    "Triage consistency measurement — compare decisions across clinicians on equivalent referrals",
+    "Real-time referral queue management — status, owner, and age of every referral in one view",
+    "Referrer quality feedback — rejection rate, common reasons, and improvement suggestions per clinician or practice",
+    "Specialty mis-routing detection — classify referral to correct specialty before consultant review",
+    "Rejection rate analytics — by specialty, reason, referring practice, and time period",
+    "Triage queue backlog alerting — alert when queue untouched beyond configurable threshold",
+    "Provenance linking — every extracted code linked back to the exact phrase in source text",
+    "Structured MDT preparation from coded referral and encounter data",
+    "Junior clinician triage support — guideline criteria applied automatically at point of triage",
+    "Detection of patients who should be on a pathway but are not — missed referrals and downgraded urgency",
+    "Pathway segment decomposition — measure delay at each stage not just end-to-end",
+    "Symptom-to-referral interval measurement from primary care encounter data",
+    "Pseudonymisation before LLM processing — strip or replace identifiers in text before external processing",
+    "Structured override error categories for model retraining feedback loop",
+    "Configuration validation UI with test mode for new tenant onboarding",
+    "Multi-channel referral ingestion — single queue regardless of source (e-RS, email, letter, fax)",
+    "Proactive alerting on stale referrals and queue backlogs",
+    "Active engagement design to prevent automation bias — require confirmation of specific clinical facts"
+  ]
+}

@@ -25,23 +25,23 @@
   mitigation_measures:
     - control_type: "protective_measure"
       description: "Configuration validation rules check for completeness and consistency before activation"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-002", "DI-LEO-AI-008", "DI-LEO-AI-017"]
+      verified_by: ["VT-LEO-AI-001", "VT-LEO-AI-006", "VT-LEO-AI-017"]
       effectiveness: "effective"
     - control_type: "protective_measure"
       description: "Dry-run mode allows testing configuration against sample data before production use"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-002", "DI-LEO-AI-008", "DI-LEO-AI-017"]
+      verified_by: ["VT-LEO-AI-001", "VT-LEO-AI-006", "VT-LEO-AI-017"]
       effectiveness: "highly_effective"
     - control_type: "procedural_control"
       description: "Programme configuration requires QA review and approval before activation"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-002", "DI-LEO-AI-008", "DI-LEO-AI-017"]
+      verified_by: ["VT-LEO-AI-001", "VT-LEO-AI-006", "VT-LEO-AI-017"]
       effectiveness: "effective"
     - control_type: "information_for_safety"
       description: "Configuration change audit trail records who changed what and when"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-002", "DI-LEO-AI-008", "DI-LEO-AI-017"]
+      verified_by: ["VT-LEO-AI-001", "VT-LEO-AI-006", "VT-LEO-AI-017"]
       effectiveness: "effective"
 
   residual_risk_estimate:

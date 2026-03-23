@@ -1,0 +1,197 @@
+# -- DI-LEO-AI-066 -- Admin Guidance UI (Plain Language, Reading Age 11)
+
+- id: "DI-LEO-AI-066"
+  type: "Functional"
+  derived_from: ["UN-LEO-AI-028"]
+  requirement: >
+    The system SHALL provide a new /admin/guidance page accessible from the admin
+    sidebar, containing three sections: (1) a guideline finder using MUI Autocomplete
+    backed by GET /nice/catalogue with load + SSE progress; (2) a plain-English rule
+    review queue where administrators approve, edit, or reject LLM-generated rules
+    without needing clinical coding knowledge; (3) a bitmap lifecycle panel for
+    compiling and activating guideline rulesets, following the same pattern as the
+    NER model lifecycle in /admin/models. All UI copy SHALL target a reading age of
+    11. Destructive or irreversible actions SHALL use ConfirmDialog. All fetch errors
+    SHALL surface via Alert, not be silently swallowed.
+  rationale: >
+    The guidance management workflow must be usable by a clinical administrator
+    who is not a software engineer. Plain language and a clearly sequenced UI
+    (load -> review -> compile -> go live) minimises the chance of errors. Health
+    literacy requirements (health-literacy.mdc) and UI safety requirements
+    (ui-safety.mdc) are mandatory for all clinical-facing admin pages.
+
+  machine_spec:
+    agent_prompt: |
+      Implement admin guidance UI (~600 LOC across 4 files).
+      Follow health-literacy.mdc: short sentences, active voice, no unexplained acronyms.
+      Follow ui-safety.mdc: ConfirmDialog for destructive actions, Alert for errors,
+      one <h1>, labelled inputs, no return null on empty states.
+      Follow mui-ui.mdc: MUI only, sx prop, specific-path imports, theme tokens.
+      Follow code-quality.mdc: each file under 300 LOC target (500 hard limit).
+
+      FILES:
+      - services/ui/src/app/admin/guidance/page.tsx
+        - Thin orchestrator. Renders page <h1> ("Manage NICE guidelines"),
+          subtitle, and three SectionCard zones.
+        - Imports NiceLoaderSection, RuleReviewSection, BitmapLifecycleSection.
+        - Top-level loading/error gate.
+
+      - services/ui/src/app/admin/guidance/NiceLoaderSection.tsx
+        - SectionCard: "Find and load a guideline"
+        - MUI Autocomplete backed by GET /nice/catalogue?q= (debounced 300ms)
+        - Options display: "{code} -- {title}" with topic chip
+        - "Load this guideline" Button -> POST /nice/ingest -> SSE stream
+        - LinearProgress bar + scrollable log Box during ingest
+        - Job list table with status Chips (GET /nice/jobs)
+        - All errors: Alert severity="error"
+        - Plain copy: "Type a condition name to search" not "Enter NICE code"
+        - "Browse by area" Button (AccountTreeOutlinedIcon) -> opens TaxonomyBrowserDrawer
+        - When user selects a guideline from the drawer, code is pre-filled in search box
+
+      - services/ui/src/app/admin/guidance/TaxonomyBrowserDrawer.tsx
+        - MUI Drawer (anchor=right, width 500px) for browsing NICE guidelines by clinical area
+        - Self-contained: no catalogue prop needed -- titles come from GET /nice/taxonomy
+        - Auto-sync flow on open:
+            1. GET /nice/taxonomy
+            2a. available=true -> render MUI Accordion hierarchy immediately
+            2b. available=false -> auto-trigger POST /nice/catalogue/sync + poll for completion
+                -> LinearProgress with plain-English step messages
+                -> On completion: re-fetch taxonomy and render hierarchy
+        - Polling resilience:
+            - Checks r.ok before parsing -- 404 means server restarted and job was lost
+            - On 404: immediately re-checks GET /nice/taxonomy (data may be in Neo4j already)
+            - Hard ceiling MAX_POLLS=60 (3 min) prevents infinite loops
+            - On expiry: surfaces plain-English error Alert with "Try again" Button
+        - Hierarchy display: MUI Accordion (category) -> SubcategoryPanel (collapsible)
+            Each SubcategoryPanel shows: guideline count Chip, loaded count Chip (green)
+            Expanded: List of {code Chip, title, Load/Reload Button}
+            Loaded guidelines show "Reload" in success colour; unloaded show "Load"
+        - onSelectGuideline(code) callback closes drawer and pre-fills parent search box
+        - No silent error swallowing -- all failures set phase="error" and show Alert
+
+      - services/ui/src/app/admin/guidance/RuleReviewSection.tsx
+        - SectionCard: "Check and approve AI-generated rules"
+        - Fetches GET /guidance/rules/review?status=pending_review on mount
+        - Each rule: Card with quoted recommendation text, plain-English criteria
+          ("Triggers when patient HAS [term]", "Must NOT have [term]"),
+          urgency/strength Chip, three Buttons: "Looks right", "Edit", "Reject"
+        - After a rule is approved (status becomes active): show "Add to domain" Button
+          (only if promote-to-domain has not yet been called for this rule)
+          Clicking opens ConfirmDialog ("Add these medical codes to the [guideline] domain?")
+          On confirm: POST /guidance/rules/review/{rule_id}/promote-to-domain
+          On success: inline Alert ("Added to [domain_name]. View in Domains.") with link
+        - "Approve all" Button at top -> ConfirmDialog -> POST /guidance/rules/review/approve-all
+        - Edit opens inline TextField for criteria term, save calls decision endpoint
+        - refreshKey pattern: bump integer to trigger re-fetch after any decision
+        - Empty state: Typography explaining no pending rules (not return null)
+
+      - services/ui/src/app/admin/guidance/BitmapLifecycleSection.tsx
+        - SectionCard: "Compile and go live"
+        - Current active version Chip (green="live", grey="no active version")
+        - Plain status: "Your rules are up to date" or "You have N new rules to compile"
+        - "Compile rules" Button -> POST /terminology/guidelines/bitmap/compile
+        - LinearProgress during compile + polling GET /terminology/guidelines/bitmap/status
+        - Version accordion list: MUI Stepper (compiled -> checked -> live)
+        - "Make this live" Button -> ConfirmDialog ("This updates how the system
+          matches patients. Are you sure?") -> PUT /terminology/guidelines/bitmap/versions/{v}/activate
+
+      Update services/ui/src/components/AppShell.tsx:
+        Add to ADMIN_NAV_ITEMS between Terminology and Surface Forms:
+        { label: "Guidance", path: "/admin/guidance", icon: <MenuBookOutlinedIcon /> }
+        Import: import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
+
+      Update services/ui/src/app/settings/domains/page.tsx (shared by /admin/domains):
+        - Add source filter Tabs: All | NICE | Platform | Tenant
+        - Domain cards show source Badge:
+            NICE: blue Chip + MenuBookOutlinedIcon ("From NICE guidelines")
+            Platform: grey Chip ("Built in")
+            Tenant: no badge
+        - "Create domain" Button hidden on NICE tab; only shown on All and Tenant tabs
+        - NICE domain cards: no Delete button; show "Manage codes" instead of "Edit"
+        - Add plain-English note on NICE tab:
+            "These areas came from official NICE guidelines.
+             You can add more codes to them, but you cannot delete them."
+        - Pass ?source= query param to GET /analytics/domains to filter in backend
+
+      Update services/analytics_api/app/routers/domains.py:
+        - All AuditDomain CREATE/MERGE/RETURN Cypher to include `source` property
+        - Default source = "tenant" for user-created domains
+        - Platform bootstrap domains created with source = "platform"
+        - NICE domains created by taxonomy sync with source = "nice"
+        - GET /domains?source=nice|platform|tenant filter parameter
+        - DELETE /domains/{id}: return 403 if source == "nice" or source == "platform"
+
+    acceptance_criteria:
+      - type: "test"
+        spec: "Page renders three section cards without errors"
+      - type: "test"
+        spec: "Typing in the Autocomplete triggers GET /nice/catalogue?q= fetch"
+      - type: "test"
+        spec: "A fetch error in any section renders an Alert severity=error, not a blank state"
+      - type: "test"
+        spec: "Approve all button opens ConfirmDialog before any API call fires"
+      - type: "test"
+        spec: "Make this live button opens ConfirmDialog before activate endpoint is called"
+      - type: "test"
+        spec: "Rule card displays plain-English criterion text, not raw SNOMED concept IDs as primary label"
+      - type: "test"
+        spec: "Add to domain button appears on approved rules and opens ConfirmDialog"
+      - type: "test"
+        spec: "Domains page shows source filter tabs; NICE tab hides Create domain button"
+      - type: "test"
+        spec: "NICE domain cards show blue NICE Chip and no Delete button"
+      - type: "test"
+        spec: "Domains page passes ?source= query param to backend when filter tab is selected"
+      - type: "test"
+        spec: "Browse by area button opens TaxonomyBrowserDrawer"
+      - type: "test"
+        spec: "TaxonomyBrowserDrawer shows LinearProgress and sync step message when GET /nice/taxonomy returns available=false"
+      - type: "test"
+        spec: "TaxonomyBrowserDrawer re-checks GET /nice/taxonomy directly on 404 job status (server restart resilience)"
+      - type: "test"
+        spec: "TaxonomyBrowserDrawer surfaces Alert with Try again button on error; does not loop silently"
+      - type: "test"
+        spec: "Selecting a guideline in the drawer pre-fills the search box and closes the drawer"
+      - type: "test"
+        spec: "Loaded guidelines show green 'Reload' button; unloaded show 'Load'"
+      - type: "review"
+        spec: "All button labels and section headings use plain language (reading age 11 check)"
+
+    constraints:
+      - type: "safety"
+        spec: "ConfirmDialog required for: approve-all, make-this-live (ui-safety.mdc)"
+      - type: "accessibility"
+        spec: "Autocomplete input has aria-label. All IconButtons have aria-label. One h1 per page."
+      - type: "style"
+        spec: "No hardcoded hex colours -- use theme tokens (primary.main, success.main, etc.)"
+      - type: "readability"
+        spec: "UI copy targets reading age 11. Clinical jargon must be explained or avoided."
+
+    dependencies: ["DI-LEO-AI-063", "DI-LEO-AI-064", "DI-LEO-AI-065"]
+    downstream_impacts: []
+
+    technical_details:
+      language: "TypeScript"
+      framework: "Next.js, React, MUI"
+      libraries: ["@mui/material", "@mui/icons-material"]
+      file_structure:
+        - "services/ui/src/app/admin/guidance/page.tsx"
+        - "services/ui/src/app/admin/guidance/NiceLoaderSection.tsx"
+        - "services/ui/src/app/admin/guidance/TaxonomyBrowserDrawer.tsx"
+        - "services/ui/src/app/admin/guidance/RuleReviewSection.tsx"
+        - "services/ui/src/app/admin/guidance/BitmapLifecycleSection.tsx"
+        - "services/ui/src/app/admin/guidance/__tests__/GuidancePage.test.tsx"
+        - "services/ui/src/components/AppShell.tsx"
+        - "services/ui/src/app/settings/domains/page.tsx"
+        - "services/analytics_api/app/routers/domains.py"
+      estimated_loc: 1050
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: "All acceptance criteria pass; Jest tests mock fetch and verify UI behaviour"
+    test_protocol: "VT-LEO-AI-066"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-044", "R-LEO-AI-046"]
+  tags: ["admin-ui", "nice", "hitl", "bitmap", "plain-language", "health-literacy", "ux", "domains", "taxonomy", "taxonomy-browser"]

@@ -84,3 +84,9 @@ SET t.status       = $status,
     t.updated_at   = datetime()
 RETURN t.task_id AS task_id, t.status AS status
 """
+
+# Delete all HITL tasks (e.g. queue reset from old pipeline)
+DELETE_ALL_HITL_TASKS = """
+MATCH (t:HITLTask)
+DETACH DELETE t
+"""

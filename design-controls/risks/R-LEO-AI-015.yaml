@@ -25,13 +25,13 @@
   mitigation_measures:
     - control_type: "inherent_safety"
       description: "Sync is per-encounter with delete-then-create pattern making re-run idempotent"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-018", "DI-LEO-AI-019"]
+      verified_by: ["VT-LEO-AI-011"]
       effectiveness: "highly_effective"
     - control_type: "protective_measure"
       description: "Pipeline execution state tracking enables restart from failed step"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-018", "DI-LEO-AI-019"]
+      verified_by: ["VT-LEO-AI-011"]
       effectiveness: "effective"
 
   residual_risk_estimate:

@@ -52,6 +52,8 @@ import PlayCircleOutlineIcon from "@mui/icons-material/PlayCircleOutline";
 import TabFlowDiagram, { type TabStage } from "@/components/operations/TabFlowDiagram";
 import AssertionChip from "@/components/AssertionChip";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import RecordMindMap from "@/components/operations/RecordMindMap";
+import AccountTreeIcon from "@mui/icons-material/AccountTree";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -118,6 +120,27 @@ interface VerificationStatus {
   last_error: string | null;
 }
 
+interface AuditStatus {
+  status: "idle" | "running" | "stopping" | "done" | "failed" | "cancelled";
+  mode?: "all" | "hitl_only";
+  apply?: boolean;
+  no_agentic?: boolean;
+  started_at: number | null;
+  finished_at: number | null;
+  total?: number;
+  done?: number;
+  passed?: number;
+  has_issues?: number;
+  errors?: number;
+  auto_fixed?: number;
+  proposals?: number;
+  needs_review?: number;
+  second_opinions?: number;
+  total_tokens?: number;
+  estimated_cost_usd?: number;
+  last_error: string | null;
+}
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -150,6 +173,21 @@ interface LabelEntity {
   end: number;
   assertion?: string;
   confidence?: number;
+  /** Qualifiers for observable entities */
+  numeric_value?: string | number | null;
+  unit?: string | null;
+  reference_range?: string | null;
+  value?: string | number | null;
+  [k: string]: unknown;
+}
+
+interface ResolvedCandidate {
+  snomed_concept_id: string | null;
+  snomed_term: string | null;
+  semantic_tag: string | null;
+  read_code: string | null;
+  score: number;
+  source: string;
 }
 
 const VALID_ENTITY_LABELS = [
@@ -212,6 +250,37 @@ const ENTITY_LABEL_DISPLAY: Record<string, string> = {
   X_ROUTE: "How given",
 };
 
+/** Semantic tag colours for entity chips — distinct, accessible palette */
+const ENTITY_LABEL_COLORS: Record<string, { bg: string; border: string }> = {
+  disorder: { bg: "#FEE2E2", border: "#DC2626" },
+  finding: { bg: "#DBEAFE", border: "#2563EB" },
+  procedure: { bg: "#D1FAE5", border: "#059669" },
+  observable_entity: { bg: "#E0E7FF", border: "#4F46E5" },
+  qualifier_value: { bg: "#FEF3C7", border: "#D97706" },
+  substance: { bg: "#FCE7F3", border: "#DB2777" },
+  medicinal_product: { bg: "#ECFCCB", border: "#65A30D" },
+  clinical_drug: { bg: "#D9F99D", border: "#4D7C0F" },
+  situation: { bg: "#E0F2FE", border: "#0284C7" },
+  event: { bg: "#F3E8FF", border: "#7C3AED" },
+  body_structure: { bg: "#FFEDD5", border: "#EA580C" },
+  tumor_staging: { bg: "#FECACA", border: "#B91C1C" },
+  assessment_scale: { bg: "#BFDBFE", border: "#1D4ED8" },
+  staging_scale: { bg: "#C4B5FD", border: "#6D28D9" },
+  regime_therapy: { bg: "#BBF7D0", border: "#15803D" },
+  record_artifact: { bg: "#E5E7EB", border: "#4B5563" },
+  physical_object: { bg: "#FDE68A", border: "#B45309" },
+  organism: { bg: "#A7F3D0", border: "#047857" },
+  morphologic_abnormality: { bg: "#FBCFE8", border: "#BE185D" },
+  occupation: { bg: "#DDD6FE", border: "#5B21B6" },
+  attribute: { bg: "#FECDD3", border: "#E11D48" },
+  environment: { bg: "#CCFBF1", border: "#0D9488" },
+  product: { bg: "#D9F99D", border: "#3F6212" },
+  X_TEMPORAL: { bg: "#E0F2FE", border: "#0369A1" },
+  X_DOSAGE: { bg: "#FEF9C3", border: "#CA8A04" },
+  X_FREQUENCY: { bg: "#FEF3C7", border: "#B45309" },
+  X_ROUTE: { bg: "#FDE68A", border: "#D97706" },
+};
+
 const SOURCE_LABELS: Record<string, string> = {
   hitl_approval: "Reviewed",
   coding_correction: "Corrected",
@@ -234,6 +303,8 @@ function fmtElapsed(s: number | null) {
   return `${Math.floor(s / 60)}m ${Math.round(s % 60)}s`;
 }
 
+const DEFAULT_ENTITY_COLOR = { bg: "#F3F4F6", border: "#9CA3AF" };
+
 function EntityPills({ entitiesJson, showAll = false }: { entitiesJson: string; showAll?: boolean }) {
   let entities: { text: string; label: string; assertion?: string }[] = [];
   try { entities = JSON.parse(entitiesJson); } catch { /* ignore */ }
@@ -241,22 +312,150 @@ function EntityPills({ entitiesJson, showAll = false }: { entitiesJson: string; 
   const visible = showAll ? entities : entities.slice(0, 3);
   return (
     <Stack direction="row" flexWrap="wrap" gap={0.4} useFlexGap>
-      {visible.map((e, i) => (
-        <Stack key={i} direction="row" spacing={0.3} alignItems="center">
-          <Tooltip title={ENTITY_LABEL_DISPLAY[e.label] ?? e.label} arrow>
-            <Chip
-              label={e.text}
-              size="small"
-              variant="outlined"
-              sx={{ fontSize: 11, maxWidth: 180 }}
-            />
-          </Tooltip>
-          {e.assertion && e.assertion !== "present" && (
-            <AssertionChip assertion={e.assertion} />
-          )}
-        </Stack>
-      ))}
+      {visible.map((e, i) => {
+        const colors = ENTITY_LABEL_COLORS[e.label] ?? DEFAULT_ENTITY_COLOR;
+        return (
+          <Stack key={i} direction="row" spacing={0.3} alignItems="center">
+            <Tooltip title={ENTITY_LABEL_DISPLAY[e.label] ?? e.label} arrow>
+              <Chip
+                label={e.text}
+                size="small"
+                variant="outlined"
+                sx={{
+                  fontSize: 11,
+                  maxWidth: 180,
+                  bgcolor: colors.bg,
+                  borderColor: colors.border,
+                  "& .MuiChip-label": { color: colors.border },
+                }}
+              />
+            </Tooltip>
+            {e.assertion && e.assertion !== "present" && (
+              <AssertionChip assertion={e.assertion} />
+            )}
+          </Stack>
+        );
+      })}
       {!showAll && entities.length > 3 && <Chip label={`+${entities.length - 3}`} size="small" sx={{ fontSize: 10 }} />}
+    </Stack>
+  );
+}
+
+function EntityDetailList({
+  entitiesJson,
+  resolvedData,
+  resolving,
+}: {
+  entitiesJson: string;
+  resolvedData: Record<string, ResolvedCandidate[]>;
+  resolving: boolean;
+}) {
+  let entities: LabelEntity[] = [];
+  try { entities = JSON.parse(entitiesJson); } catch { /* ignore */ }
+  if (!entities.length) return <Typography variant="caption" color="text.disabled">--</Typography>;
+  return (
+    <Stack spacing={1.5}>
+      {resolving && (
+        <Stack direction="row" spacing={0.5} alignItems="center">
+          <CircularProgress size={14} />
+          <Typography variant="caption" color="text.secondary">Resolving to SNOMED…</Typography>
+        </Stack>
+      )}
+      {entities.map((ent, i) => {
+        const colors = ENTITY_LABEL_COLORS[ent.label] ?? DEFAULT_ENTITY_COLOR;
+        const candidates = resolvedData[ent.text?.trim() ?? ""];
+        const top = candidates?.[0];
+        const hasQualifiers =
+          (ent.numeric_value != null && String(ent.numeric_value).trim() !== "") ||
+          (ent.value != null && String(ent.value).trim() !== "") ||
+          (ent.unit != null && String(ent.unit).trim() !== "") ||
+          (ent.reference_range != null && String(ent.reference_range).trim() !== "");
+        return (
+          <Paper
+            key={i}
+            variant="outlined"
+            sx={{
+              p: 1.25,
+              borderRadius: 1,
+              borderLeft: "3px solid",
+              borderLeftColor: colors.border,
+            }}
+          >
+            <Stack spacing={0.75}>
+              <Stack direction="row" spacing={0.5} alignItems="center" flexWrap="wrap">
+                <Chip
+                  label={ent.text}
+                  size="small"
+                  sx={{
+                    fontSize: 10.5,
+                    fontWeight: 600,
+                    bgcolor: colors.bg,
+                    borderColor: colors.border,
+                    "& .MuiChip-label": { color: colors.border },
+                  }}
+                  variant="outlined"
+                />
+                <Chip
+                  label={ENTITY_LABEL_DISPLAY[ent.label] ?? ent.label}
+                  size="small"
+                  sx={{
+                    height: 18,
+                    fontSize: 10,
+                    bgcolor: colors.bg,
+                    color: colors.border,
+                    border: `1px solid ${colors.border}35`,
+                    "& .MuiChip-label": { px: 0.75 },
+                  }}
+                />
+                {ent.assertion && ent.assertion !== "present" && (
+                  <AssertionChip assertion={ent.assertion} />
+                )}
+              </Stack>
+              {(top?.snomed_concept_id || top?.snomed_term) && (
+                <Stack spacing={0.25} sx={{ pl: 0.5 }}>
+                  {top.snomed_term && (
+                    <Stack direction="row" spacing={1}>
+                      <Typography variant="caption" color="text.secondary" sx={{ minWidth: 70 }}>PT</Typography>
+                      <Typography variant="caption" sx={{ fontFamily: "monospace" }}>{top.snomed_term}</Typography>
+                    </Stack>
+                  )}
+                  {top.snomed_concept_id && (
+                    <Stack direction="row" spacing={1}>
+                      <Typography variant="caption" color="text.secondary" sx={{ minWidth: 70 }}>SNOMED</Typography>
+                      <Typography variant="caption" sx={{ fontFamily: "monospace" }}>{top.snomed_concept_id}</Typography>
+                    </Stack>
+                  )}
+                </Stack>
+              )}
+              {hasQualifiers && (
+                <Stack spacing={0.25} sx={{ pl: 0.5 }}>
+                  {(ent.numeric_value != null && String(ent.numeric_value).trim() !== "") ||
+                  (ent.value != null && String(ent.value).trim() !== "") ? (
+                    <Stack direction="row" spacing={1}>
+                      <Typography variant="caption" color="text.secondary" sx={{ minWidth: 70 }}>Value</Typography>
+                      <Typography variant="caption" sx={{ fontFamily: "monospace" }}>
+                        {String(ent.numeric_value ?? ent.value ?? "")}
+                      </Typography>
+                    </Stack>
+                  ) : null}
+                  {ent.unit != null && String(ent.unit).trim() !== "" ? (
+                    <Stack direction="row" spacing={1}>
+                      <Typography variant="caption" color="text.secondary" sx={{ minWidth: 70 }}>Unit</Typography>
+                      <Typography variant="caption" sx={{ fontFamily: "monospace" }}>{ent.unit}</Typography>
+                    </Stack>
+                  ) : null}
+                  {ent.reference_range != null && String(ent.reference_range).trim() !== "" ? (
+                    <Stack direction="row" spacing={1}>
+                      <Typography variant="caption" color="text.secondary" sx={{ minWidth: 70 }}>Ref range</Typography>
+                      <Typography variant="caption" sx={{ fontFamily: "monospace" }}>{ent.reference_range}</Typography>
+                    </Stack>
+                  ) : null}
+                </Stack>
+              )}
+            </Stack>
+          </Paper>
+        );
+      })}
     </Stack>
   );
 }
@@ -342,9 +541,12 @@ export default function TrainingDataPanel() {
   const [loadingLabels, setLoadingLabels] = useState(false);
 
   const [selectedLabel, setSelectedLabel] = useState<TrainingLabel | null>(null);
+  const [showMap, setShowMap] = useState(false);
   const [editingEntities, setEditingEntities] = useState(false);
   const [draftEntities, setDraftEntities] = useState<LabelEntity[]>([]);
   const [savingEntities, setSavingEntities] = useState(false);
+  const [entityResolvedData, setEntityResolvedData] = useState<Record<string, ResolvedCandidate[]>>({});
+  const [resolvingEntities, setResolvingEntities] = useState(false);
 
   const [excludeTarget, setExcludeTarget] = useState<string | null>(null);
   const [excludeReason, setExcludeReason] = useState("");
@@ -360,6 +562,8 @@ export default function TrainingDataPanel() {
   const [verificationStatus, setVerificationStatus] = useState<VerificationStatus | null>(null);
   const [startingVerification, setStartingVerification] = useState(false);
   const [verifyMenuAnchor, setVerifyMenuAnchor] = useState<HTMLElement | null>(null);
+  const [auditStatus, setAuditStatus] = useState<AuditStatus | null>(null);
+  const [startingAudit, setStartingAudit] = useState(false);
   const [confirmExclude, setConfirmExclude] = useState(false);
 
   const PAGE_SIZE = 30;
@@ -424,8 +628,55 @@ export default function TrainingDataPanel() {
     } catch { /* silently swallow */ }
   }, []);
 
-  useEffect(() => { fetchStats(); fetchJobs(); fetchPreview(); fetchVerificationStatus(); }, [fetchStats, fetchJobs, fetchPreview, fetchVerificationStatus]);
+  const fetchAuditStatus = useCallback(async () => {
+    try {
+      const data = await jsonFetch<AuditStatus>("/api/training/labels/agentic-audit/status");
+      setAuditStatus(data);
+    } catch { /* silently swallow */ }
+  }, []);
+
+  useEffect(() => { fetchStats(); fetchJobs(); fetchPreview(); fetchVerificationStatus(); fetchAuditStatus(); }, [fetchStats, fetchJobs, fetchPreview, fetchVerificationStatus, fetchAuditStatus]);
   useEffect(() => { fetchLabels(); }, [fetchLabels]);
+
+  // Resolve entities to SNOMED when detail panel opens
+  useEffect(() => {
+    if (!selectedLabel || editingEntities) {
+      setEntityResolvedData({});
+      return;
+    }
+    let entities: LabelEntity[] = [];
+    try { entities = JSON.parse(selectedLabel.entities_json); } catch { /* ignore */ }
+    const terms = [...new Set(entities.map((e) => e.text?.trim()).filter(Boolean))];
+    if (terms.length === 0) {
+      setEntityResolvedData({});
+      return;
+    }
+    setResolvingEntities(true);
+    const labelToSnomedTag: Record<string, string> = {
+      disorder: "disorder", finding: "finding", procedure: "procedure",
+      observable_entity: "observable entity", qualifier_value: "qualifier value",
+      substance: "substance", medicinal_product: "medicinal product", clinical_drug: "clinical drug",
+      situation: "situation", event: "event", body_structure: "body structure",
+      tumor_staging: "tumor staging", assessment_scale: "assessment scale", staging_scale: "staging scale",
+      regime_therapy: "regime/therapy", record_artifact: "record artifact", physical_object: "physical object",
+      organism: "organism", morphologic_abnormality: "morphologic abnormality", occupation: "occupation",
+      attribute: "attribute", environment: "environment", product: "product",
+    };
+    jsonFetch<{ results: Record<string, ResolvedCandidate[]> }>("/api/terminology/resolve", {
+      method: "POST",
+      body: JSON.stringify({
+        terms,
+        expected_tags: Object.fromEntries(
+          entities
+            .map((e) => [e.text?.trim(), labelToSnomedTag[e.label] ?? e.label])
+            .filter(([t]) => t) as [string, string][]
+        ),
+      }),
+    })
+      .then((data) => setEntityResolvedData(data.results ?? {}))
+      .catch(() => setEntityResolvedData({}))
+      .finally(() => setResolvingEntities(false));
+  }, [selectedLabel?.label_id, selectedLabel?.entities_json, editingEntities]);
 
   // Keep verifier progress reactive without SSE: poll status while running/stopping.
   useEffect(() => {
@@ -438,6 +689,19 @@ export default function TrainingDataPanel() {
     }, 5000);
     return () => clearInterval(id);
   }, [verificationStatus?.status, fetchVerificationStatus]);
+
+  // Poll Agentic Auditor status while running/stopping.
+  useEffect(() => {
+    const isActive =
+      auditStatus?.status === "running" ||
+      auditStatus?.status === "stopping" ||
+      startingAudit;
+    if (!isActive) return;
+    const id = setInterval(() => {
+      fetchAuditStatus();
+    }, 5000);
+    return () => clearInterval(id);
+  }, [auditStatus?.status, startingAudit, fetchAuditStatus]);
 
   // Keep refs in sync so the polling interval can read them without being recreated
   useEffect(() => { jobsRef.current = jobs; }, [jobs]);
@@ -559,6 +823,36 @@ export default function TrainingDataPanel() {
     }
   };
 
+  const handleStartAudit = async (
+    mode: "all" | "hitl_only",
+    apply: boolean,
+    no_agentic: boolean,
+  ) => {
+    setStartingAudit(true);
+    try {
+      await jsonFetch<{ status: string; message: string }>("/api/training/labels/agentic-audit", {
+        method: "POST",
+        body: JSON.stringify({ mode, apply, no_agentic }),
+      });
+      fetchAuditStatus();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not start Agentic Auditor");
+    } finally {
+      setStartingAudit(false);
+    }
+  };
+
+  const handleStopAudit = async () => {
+    try {
+      await jsonFetch<{ status: string; message: string }>("/api/training/labels/agentic-audit/cancel", {
+        method: "POST",
+      });
+      fetchAuditStatus();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not stop Agentic Auditor");
+    }
+  };
+
   const totalPages = Math.max(1, Math.ceil(labelTotal / PAGE_SIZE));
   const activeJob = jobs.find((j) => ACTIVE_STATUSES.has(j.status));
   const lastJob = !activeJob ? jobs[0] : undefined;
@@ -569,6 +863,14 @@ export default function TrainingDataPanel() {
   const verificationFinishedAt = verificationStatus?.finished_at
     ? new Date(verificationStatus.finished_at * 1000).toLocaleString([], { dateStyle: "short", timeStyle: "short" })
     : null;
+  const auditRunning =
+    auditStatus?.status === "running" ||
+    auditStatus?.status === "stopping" ||
+    startingAudit;
+  const auditDone   = auditStatus?.status === "done" || auditStatus?.status === "cancelled";
+  const auditPct    = auditStatus?.total && auditStatus.total > 0
+    ? Math.round(((auditStatus.done ?? 0) / auditStatus.total) * 100)
+    : 0;
 
   // ---------- render ----------
 
@@ -838,6 +1140,25 @@ export default function TrainingDataPanel() {
             ) : verificationFinishedAt ? (
               <Chip label={`Last checked ${verificationFinishedAt}`} size="small" variant="outlined" />
             ) : null}
+            {auditRunning ? (
+              <Chip label="Agentic audit running…" size="small" color="secondary" />
+            ) : null}
+            {!auditRunning && (auditStatus?.auto_fixed ?? 0) > 0 ? (
+              <Chip
+                label={`${auditStatus!.auto_fixed} Opus-fixed`}
+                size="small"
+                color="success"
+                variant="outlined"
+              />
+            ) : null}
+            {!auditRunning && (auditStatus?.proposals ?? 0) > 0 ? (
+              <Chip
+                label={`${auditStatus!.proposals} proposals`}
+                size="small"
+                color="info"
+                variant="outlined"
+              />
+            ) : null}
           </Stack>
         </AccordionSummary>
         <AccordionDetails sx={{ p: 0 }}>
@@ -867,6 +1188,17 @@ export default function TrainingDataPanel() {
               <RefreshIcon fontSize="small" />
             </IconButton>
             <Box flex={1} />
+            {auditRunning && (
+              <Button
+                size="small"
+                variant="outlined"
+                color="secondary"
+                onClick={handleStopAudit}
+                sx={{ mr: 0.5 }}
+              >
+                Stop audit
+              </Button>
+            )}
             {verificationRunning ? (
               <Button
                 size="small"
@@ -915,6 +1247,31 @@ export default function TrainingDataPanel() {
                 onClick={() => { setVerifyMenuAnchor(null); handleVerifyLabels("resume", false); }}
               >
                 Resume checking
+              </MenuItem>
+              <Divider />
+              <MenuItem
+                disabled={auditRunning}
+                onClick={() => { setVerifyMenuAnchor(null); handleStartAudit("all", false, false); }}
+              >
+                Agentic audit — find &amp; flag issues
+              </MenuItem>
+              <MenuItem
+                disabled={auditRunning}
+                onClick={() => { setVerifyMenuAnchor(null); handleStartAudit("all", true, false); }}
+              >
+                Agentic audit — apply safe fixes
+              </MenuItem>
+              <MenuItem
+                disabled={auditRunning}
+                onClick={() => { setVerifyMenuAnchor(null); handleStartAudit("hitl_only", true, false); }}
+              >
+                Agentic audit — HITL queue only
+              </MenuItem>
+              <MenuItem
+                disabled={auditRunning}
+                onClick={() => { setVerifyMenuAnchor(null); handleStartAudit("all", false, true); }}
+              >
+                Agentic audit — quick (no terminology tools)
               </MenuItem>
             </Menu>
           </Stack>
@@ -973,6 +1330,84 @@ export default function TrainingDataPanel() {
               sx={{ mx: 1.5, mb: 1, borderRadius: 1 }}
             />
           ) : null}
+
+          {/* Agentic audit progress */}
+          {auditRunning && (
+            <Stack
+              direction="row"
+              spacing={0.75}
+              sx={{ px: 1.5, pb: 1, flexWrap: "wrap" }}
+              alignItems="center"
+              useFlexGap
+            >
+              <Chip
+                label={`Opus: ${auditStatus?.done ?? 0} of ${auditStatus?.total ?? "?"} audited${auditStatus?.total ? ` (${auditPct}%)` : ""}`}
+                size="small"
+                color="secondary"
+              />
+              {(auditStatus?.auto_fixed ?? 0) > 0 && (
+                <Chip label={`${auditStatus!.auto_fixed} fixed`} size="small" color="success" variant="outlined" />
+              )}
+              {(auditStatus?.proposals ?? 0) > 0 && (
+                <Chip label={`${auditStatus!.proposals} proposals`} size="small" color="info" variant="outlined" />
+              )}
+              {(auditStatus?.needs_review ?? 0) > 0 && (
+                <Chip label={`${auditStatus!.needs_review} needs review`} size="small" color="warning" variant="outlined" />
+              )}
+              {(auditStatus?.second_opinions ?? 0) > 0 && (
+                <Chip label={`${auditStatus!.second_opinions} 2nd opinions`} size="small" variant="outlined" />
+              )}
+              {typeof auditStatus?.estimated_cost_usd === "number" && (
+                <Chip
+                  label={`~$${auditStatus.estimated_cost_usd.toFixed(2)} est. cost`}
+                  size="small"
+                  variant="outlined"
+                />
+              )}
+            </Stack>
+          )}
+          {auditRunning && auditStatus?.total && auditStatus.total > 0 ? (
+            <LinearProgress
+              variant="determinate"
+              value={auditPct}
+              color="secondary"
+              sx={{ mx: 1.5, mb: 1, borderRadius: 1 }}
+            />
+          ) : null}
+
+          {/* Agentic audit completed summary */}
+          {auditDone && !auditRunning && (auditStatus?.done ?? 0) > 0 && (
+            <Stack
+              direction="row"
+              spacing={0.75}
+              sx={{ px: 1.5, pb: 1, flexWrap: "wrap" }}
+              alignItems="center"
+              useFlexGap
+            >
+              <Chip
+                label={`Agentic audited ${auditStatus!.done} records`}
+                size="small"
+                color="secondary"
+                variant="outlined"
+              />
+              {(auditStatus?.auto_fixed ?? 0) > 0 && (
+                <Chip label={`${auditStatus!.auto_fixed} auto-fixed`} size="small" color="success" variant="outlined" />
+              )}
+              {(auditStatus?.proposals ?? 0) > 0 && (
+                <Chip label={`${auditStatus!.proposals} proposals`} size="small" color="info" variant="outlined" />
+              )}
+              {typeof auditStatus?.estimated_cost_usd === "number" && (
+                <Chip
+                  label={`$${auditStatus.estimated_cost_usd.toFixed(2)} total cost`}
+                  size="small"
+                  variant="outlined"
+                />
+              )}
+              {(auditStatus?.second_opinions ?? 0) > 0 && (
+                <Chip label={`${auditStatus!.second_opinions} independent opinions`} size="small" variant="outlined" />
+              )}
+            </Stack>
+          )}
 
           {/* Table */}
           <TableContainer sx={{ borderTop: "1px solid", borderColor: "divider" }}>
@@ -1047,7 +1482,7 @@ export default function TrainingDataPanel() {
       <Drawer
         anchor="right"
         open={!!selectedLabel}
-        onClose={() => { setSelectedLabel(null); setEditingEntities(false); }}
+        onClose={() => { setSelectedLabel(null); setEditingEntities(false); setShowMap(false); }}
         PaperProps={{ sx: { width: { xs: "100%", sm: 440 }, display: "flex", flexDirection: "column" } }}
       >
         {selectedLabel && (
@@ -1065,6 +1500,16 @@ export default function TrainingDataPanel() {
                   {selectedLabel.label_id.slice(0, 20)}…
                 </Typography>
               </Box>
+              <Tooltip title="View as entity map">
+                <IconButton
+                  aria-label="View as entity map"
+                  size="small"
+                  onClick={() => setShowMap(true)}
+                  sx={{ mr: 0.25 }}
+                >
+                  <AccountTreeIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
               <IconButton aria-label="Close record detail" size="small" onClick={() => { setSelectedLabel(null); setEditingEntities(false); }} edge="end">
                 <CloseIcon fontSize="small" />
               </IconButton>
@@ -1189,7 +1634,11 @@ export default function TrainingDataPanel() {
                 </Stack>
 
                 {!editingEntities ? (
-                  <EntityPills entitiesJson={selectedLabel.entities_json} showAll />
+                  <EntityDetailList
+                    entitiesJson={selectedLabel.entities_json}
+                    resolvedData={entityResolvedData}
+                    resolving={resolvingEntities}
+                  />
                 ) : (
                   <Stack spacing={1}>
                     {draftEntities.map((ent, idx) => (
@@ -1310,6 +1759,36 @@ export default function TrainingDataPanel() {
           </>
         )}
       </Drawer>
+
+      {/* ── Entity mind-map modal ── */}
+      {selectedLabel && (
+        <RecordMindMap
+          open={showMap}
+          onClose={() => setShowMap(false)}
+          text={selectedLabel.text}
+          entitiesJson={selectedLabel.entities_json}
+          resolvedData={entityResolvedData}
+          resolving={resolvingEntities}
+          included={selectedLabel.include}
+          currentIndex={labels.findIndex((l) => l.label_id === selectedLabel.label_id)}
+          totalCount={labels.length}
+          onNext={() => {
+            const idx = labels.findIndex((l) => l.label_id === selectedLabel.label_id);
+            if (idx >= 0 && idx < labels.length - 1) setSelectedLabel(labels[idx + 1]);
+          }}
+          onPrev={() => {
+            const idx = labels.findIndex((l) => l.label_id === selectedLabel.label_id);
+            if (idx > 0) setSelectedLabel(labels[idx - 1]);
+          }}
+          onInclude={() => {
+            handleInclude(selectedLabel.label_id);
+            setSelectedLabel({ ...selectedLabel, include: true });
+          }}
+          onExclude={() => {
+            setExcludeTarget(selectedLabel.label_id);
+          }}
+        />
+      )}
 
       {/* ── Remove from teaching dialog ── */}
       {!!excludeTarget && (

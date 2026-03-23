@@ -35,6 +35,7 @@ This document traces software requirements (DC-SRS-001) to design elements, impl
 | FR-TP-010 | SSE progress events | 03-detail 2.1 | pipeline_service._emit() | -- | ST-TP-001 |
 | FR-TP-011 | Unified post-processing stack (9 layers) shared between training and runtime pipelines | DI-LEO-AI-050 | libs/pipeline/post_processing.py | test_post_processing_pipeline.py (13 tests), test_pipeline_parity.py (9 tests) | -- |
 | FR-TP-012 | Hardened post-processing: sentence-window scoping for lab-value guard and scope guard, narrowed scope guard regexes, removed "discussed" ConText rule, multi-pass ConText deduplication, refuted disorder verdict, narrowed situation normalisation, INJECTION_GUARD on _VERIFY_SYSTEM | DI-LEO-AI-044, DI-LEO-AI-048, DI-LEO-AI-005 | libs/pipeline/post_processing.py, libs/ner/lab_value_guard.py, libs/ner/scope_guard.py, libs/ner/context_engine.py, libs/ner/context_detector.py, libs/ner/observable_post_processor.py, libs/ner/post_processor_rules.py, libs/llm_client/disorder_verifier.py, libs/llm_client/escalation.py | test_lab_value_guard.py, test_scope_guard.py, test_context_detector.py, test_escalation.py, test_post_processing_pipeline.py, test_pipeline_parity.py | -- |
+| FR-TP-013 | Semantic tag cross-validation: unbiased terminology resolve, top-3 candidate tag comparison against entity label, auto-reclassification for high-confidence mismatches, HITL flagging with suggested_label and tag_mismatch_delta for medium-confidence mismatches | DI-LEO-AI-053 | label_verifier.py (_cross_check_semantic_tag, _check_terminology_coding), coding_review_queries.py, ReviewCard.tsx, ReviewSection.tsx, CodingReviewCasesModal.tsx | test_semantic_tag_cross_validation.py (23 tests), test_hitl_tier_integration.py (38 tests) | -- |
 
 ### 2.2 HITL Review
 
@@ -179,13 +180,61 @@ This document traces software requirements (DC-SRS-001) to design elements, impl
 | FR-MB-001 | Azure Service Bus adapter | Plan WS-A | libs/message-bus/azure_adapter.py | -- | ST-MB-001 |
 | FR-MB-002 | In-memory adapter for local dev | Plan WS-A | libs/message-bus/in_memory_adapter.py | test_shared_libs.py (2 tests) | -- |
 
+### 2.18 Agentic Training Label Auditor (New — DI-LEO-AI-054)
+
+| Req ID | Requirement | Design Doc | Implementation | Unit Test | System Test |
+|--------|-------------|-----------|----------------|-----------|-------------|
+| FR-AUD-001 | Two-pass audit: Opus pass 1 (no tools), Haiku+tools pass 2 for SNOMED needs_review | DI-LEO-AI-054, DO-LEO-AI-036 | scripts/opus_training_auditor.py | test_opus_training_auditor.py | VT-LEO-AI-047 |
+| FR-AUD-002 | Bedrock tool_config passthrough and toolUse response parsing in LLMClient.converse() | DI-LEO-AI-054, DO-LEO-AI-036 | libs/llm_client/factory.py | test_opus_training_auditor.py, test_llm_providers.py | VT-LEO-AI-047 |
+| FR-AUD-003 | ToolExecutor: resolve_term, get_related_concepts, get_descendants via Terminology API | DI-LEO-AI-054, DO-LEO-AI-036 | scripts/opus_training_auditor.py (ToolExecutor) | test_opus_training_auditor.py | VT-LEO-AI-047 |
+| FR-AUD-004 | CostGuardrail: per-run token budget and dollar cap with automatic halt | DI-LEO-AI-054, DO-LEO-AI-036 | scripts/opus_training_auditor.py (CostGuardrail) | test_opus_training_auditor.py | VT-LEO-AI-047 |
+| FR-AUD-005 | Hard cap of 5 tool-use iterations per record in agentic loop | DI-LEO-AI-054, DO-LEO-AI-036 | scripts/opus_training_auditor.py (_agentic_audit_record) | test_opus_training_auditor.py | VT-LEO-AI-047 |
+| FR-AUD-006 | SNOMED READONLY_FIELDS enforcement -- tool-informed fixes become proposals only | DI-LEO-AI-054, DO-LEO-AI-036 | scripts/opus_training_auditor.py (_classify_fixes) | test_opus_training_auditor.py | VT-LEO-AI-047 |
+| FR-AUD-007 | Audit trail JSONL records all tool calls with name, input, and result | DI-LEO-AI-054, DO-LEO-AI-036 | scripts/opus_training_auditor.py (_write_trail_entry) | test_opus_training_auditor.py | VT-LEO-AI-047 |
+| FR-AUD-008 | sanitise_for_prompt() applied to all terminology API responses before LLM re-submission | DI-LEO-AI-054, DO-LEO-AI-036 | scripts/opus_training_auditor.py (_agentic_audit_record) | test_opus_training_auditor.py | VT-LEO-AI-047 |
+
+### 2.19 NICE Guideline Ingest (DI-LEO-AI-063)
+
+| Req ID | Requirement | Design Doc | Implementation | Unit Test | System Test |
+|--------|-------------|-----------|----------------|-----------|-------------|
+| FR-NI-001 | Async NICE Syndication API client with retry and Redis-cached catalogue | DI-LEO-AI-063, DO-LEO-AI-063 | services/api/app/services/nice_api_client.py | services/api/tests/test_nice_api_client.py | VT-LEO-AI-063 |
+| FR-NI-002 | Idempotent Neo4j MERGE of Guideline, Recommendation, Section nodes from NICE JSON | DI-LEO-AI-063, DO-LEO-AI-063 | services/api/app/services/nice_graph_upserter.py | services/api/tests/test_nice_graph_upserter.py | VT-LEO-AI-063 |
+| FR-NI-003 | FastAPI router: catalogue search, fire-and-track ingest, SSE progress, job status | DI-LEO-AI-063, DO-LEO-AI-063 | services/api/app/routers/nice_guidance.py | services/api/tests/test_nice_api_client.py | VT-LEO-AI-063 |
+
+### 2.20 LLM Rule Authoring and HITL (DI-LEO-AI-064)
+
+| Req ID | Requirement | Design Doc | Implementation | Unit Test | System Test |
+|--------|-------------|-----------|----------------|-----------|-------------|
+| FR-RA-001 | GuidanceRuleGenerator uses run_consensus with INJECTION_GUARD and sanitise_for_prompt | DI-LEO-AI-064, DO-LEO-AI-064 | services/api/app/services/guidance_rule_generator.py | services/api/tests/test_guidance_rule_generator.py | VT-LEO-AI-064 |
+| FR-RA-002 | Conservative fail_verdict=None -- no rule written on LLM failure or parse error | DI-LEO-AI-064, DO-LEO-AI-064 | services/api/app/services/guidance_rule_generator.py | services/api/tests/test_guidance_rule_generator.py | VT-LEO-AI-064 |
+| FR-RA-003 | Generated rules stored with status: pending_review; only active rules visible to bitmap compiler | DI-LEO-AI-064, DO-LEO-AI-064 | services/api/app/services/guidance_rule_generator.py | services/api/tests/test_guidance_rule_generator.py | VT-LEO-AI-064 |
+| FR-RA-004 | HITL review queue: list, detail, decide (approve/edit/reject) with immutable audit event | DI-LEO-AI-064, DO-LEO-AI-064 | services/api/app/routers/guidance_rules.py | services/api/tests/test_guidance_rule_generator.py | VT-LEO-AI-064 |
+
+### 2.21 Bitmap Store, Compiler, and Evaluator (DI-LEO-AI-065)
+
+| Req ID | Requirement | Design Doc | Implementation | Unit Test | System Test |
+|--------|-------------|-----------|----------------|-----------|-------------|
+| FR-BM-001 | BitmapStore: pyroaring BitMap with Redis persistence and deterministic BLAKE2b key scheme | DI-LEO-AI-065, DO-LEO-AI-065 | services/terminology_api/app/services/bitmap_store.py | services/terminology_api/tests/test_bitmap_store.py | VT-LEO-AI-065 |
+| FR-BM-002 | GuidelineCompiler reads only active AppropriatenessRules from Neo4j and compiles bitmaps | DI-LEO-AI-065, DO-LEO-AI-065 | services/terminology_api/app/services/guideline_compiler.py | services/terminology_api/tests/test_guideline_compiler.py | VT-LEO-AI-065 |
+| FR-BM-003 | GuidelineEvaluator applies reqAll and forbid bitwise intersection against patient codes | DI-LEO-AI-065, DO-LEO-AI-065 | services/terminology_api/app/services/guideline_evaluator.py | services/terminology_api/tests/test_guideline_evaluator.py | VT-LEO-AI-065 |
+| FR-BM-004 | Versioned bitmaps with explicit admin activate; compile runs in asyncio.to_thread | DI-LEO-AI-065, DO-LEO-AI-065 | services/terminology_api/app/routers/guidelines.py | services/terminology_api/tests/test_guideline_compiler.py | VT-LEO-AI-065 |
+
+### 2.22 Admin Guidance UI (DI-LEO-AI-066)
+
+| Req ID | Requirement | Design Doc | Implementation | Unit Test | System Test |
+|--------|-------------|-----------|----------------|-----------|-------------|
+| FR-GU-001 | Guidance admin page with Autocomplete catalogue search, SSE ingest progress, job list | DI-LEO-AI-066, DO-LEO-AI-066 | services/ui/src/app/admin/guidance/NiceLoaderSection.tsx | services/ui/src/app/admin/guidance/__tests__/GuidancePage.test.tsx | VT-LEO-AI-066 |
+| FR-GU-002 | Plain-English HITL rule review with approve/edit/reject and ConfirmDialog for bulk approve | DI-LEO-AI-066, DO-LEO-AI-066 | services/ui/src/app/admin/guidance/RuleReviewSection.tsx | services/ui/src/app/admin/guidance/__tests__/GuidancePage.test.tsx | VT-LEO-AI-066 |
+| FR-GU-003 | Bitmap lifecycle with version accordion, Stepper, and ConfirmDialog for activate | DI-LEO-AI-066, DO-LEO-AI-066 | services/ui/src/app/admin/guidance/BitmapLifecycleSection.tsx | services/ui/src/app/admin/guidance/__tests__/GuidancePage.test.tsx | VT-LEO-AI-066 |
+| FR-GU-004 | All fetch errors surface via Alert; no silent swallowing; reading age 11 copy | DI-LEO-AI-066, DO-LEO-AI-066 | services/ui/src/app/admin/guidance/ | services/ui/src/app/admin/guidance/__tests__/GuidancePage.test.tsx | VT-LEO-AI-066 |
+
 ---
 
 ## 3. Coverage Summary
 
 | Category | Requirements | With Design | With Implementation | With Unit Test | With System Test |
 |----------|-------------|------------|-------------------|---------------|-----------------|
-| Training Pipeline | 12 | 12 | 12 | 7 | 4 |
+| Training Pipeline | 13 | 13 | 13 | 8 | 4 |
 | HITL Review | 5 | 5 | 5 | 0 | 4 |
 | Gold Sync | 3 | 3 | 3 | 3 | 2 |
 | Terminology Writeback | 4 | 4 | 4 | 3 | 3 |
@@ -202,9 +251,48 @@ This document traces software requirements (DC-SRS-001) to design elements, impl
 | Frontend UI | 5 | 5 | 5 | 0 | 5 |
 | Fix Analyzer | 1 | 1 | 1 | 0 | 1 |
 | Message Bus | 2 | 2 | 2 | 1 | 1 |
-| **Total** | **75** | **75** | **75** | **32** | **48** |
+| Agentic Training Auditor | 8 | 8 | 8 | 8 | 8 |
+| NICE Guideline Ingest | 3 | 3 | 3 | 3 | 3 |
+| LLM Rule Authoring + HITL | 4 | 4 | 4 | 4 | 4 |
+| Bitmap Store/Compiler/Evaluator | 4 | 4 | 4 | 4 | 4 |
+| Admin Guidance UI | 4 | 4 | 4 | 4 | 4 |
+| **Total** | **99** | **99** | **99** | **56** | **71** |
 
-All 73 requirements have design references, implementations, and at least one verification method (unit test, system test, or both).
+All requirements have design references, implementations, and at least one verification method (unit test, system test, or both).
+
+---
+
+## 5. User Needs Register -- Referral Triage Programme (UN-030 to UN-048)
+
+The following user needs were identified through structured user research
+(UR-LEO-AI-001, 20 interviews across NHS clinical, operational, information,
+and internal roles) conducted in March 2026. They represent unmet needs specific
+to the referral triage use case and are not yet covered by DIs or VTs.
+
+| UN ID | Title | Stakeholder Role | Safety Class | Priority | DIs | Status |
+|-------|-------|-----------------|-------------|----------|-----|--------|
+| UN-LEO-AI-030 | Referral Completeness Checking at Point of Triage | Triage Clinician / Referral Management Admin | B | MUST | -- | Draft |
+| UN-LEO-AI-031 | Triage Consistency Measurement Across Clinicians | Clinical Lead / Quality Improvement Lead | B | SHOULD | -- | Draft |
+| UN-LEO-AI-032 | Real-Time Referral Queue Management | Referral Management Team Leader / Pathway Coordinator | B | MUST | -- | Draft |
+| UN-LEO-AI-033 | Referrer Quality Feedback | GP Partner / Practice Manager | B | SHOULD | -- | Draft |
+| UN-LEO-AI-034 | Specialty Mis-Routing Detection | Referral Management Administrator | B | SHOULD | -- | Draft |
+| UN-LEO-AI-035 | Rejection Rate Analytics | Clinical Director / Referral Management Lead | A | SHOULD | -- | Draft |
+| UN-LEO-AI-036 | Triage Queue Backlog Alerting | Referral Management Team Leader / Patient Safety Lead | B | MUST | -- | Draft |
+| UN-LEO-AI-037 | Code-to-Source Provenance Linking | Triage Clinician / Clinical Coder / Auditor | B | MUST | -- | Draft |
+| UN-LEO-AI-038 | Structured MDT Preparation from Coded Referral Data | MDT Coordinator / Cancer Pathway Coordinator | B | SHOULD | -- | Draft |
+| UN-LEO-AI-039 | Junior Clinician Triage Decision Support | Registrar / Junior Doctor covering triage | B | MUST | -- | Draft |
+| UN-LEO-AI-040 | Detection of Patients Who Should Be on a Pathway but Are Not | Clinical Lead / Pathway Coordinator | C | SHOULD | -- | Draft |
+| UN-LEO-AI-041 | Pathway Segment Decomposition | Clinical Lead / Information Analyst | A | MUST | -- | Draft |
+| UN-LEO-AI-042 | Symptom-to-Referral Interval Measurement | Information Analyst / Clinical Lead | A | SHOULD | -- | Draft |
+| UN-LEO-AI-043 | Pseudonymisation Before LLM Processing | Data Protection Officer / IG Lead | B | MUST | -- | Draft |
+| UN-LEO-AI-044 | Structured Override Error Categories for Model Improvement | NLP Engineer / Clinical AI Quality Lead | B | SHOULD | -- | Draft |
+| UN-LEO-AI-045 | Configuration Validation UI with Test Mode | Platform Administrator | B | SHOULD | -- | Draft |
+| UN-LEO-AI-046 | Multi-Channel Referral Ingestion | Referral Management Administrator | B | MUST | -- | Draft |
+| UN-LEO-AI-047 | Active Engagement Design to Prevent Automation Bias | Clinical Safety Officer / Triage Clinician | B | MUST | -- | Draft |
+| UN-LEO-AI-048 | NHS-Specific ROI and Commercial Evidence Pack | Commercial Director | A | SHOULD | -- | Draft |
+
+**Evidence source:** UR-LEO-AI-001 (de-identified interview dataset,
+`reports/user-research/user-interviews-deidentified.json`)
 
 ---
 

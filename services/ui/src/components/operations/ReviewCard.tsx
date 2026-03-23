@@ -43,6 +43,10 @@ export interface ReviewItem {
   tierReason?: string | null;
   /** Tier classifier decision string. */
   tierDecision?: string | null;
+  /** When a semantic tag mismatch is detected, the NER label the SNOMED resolver suggests. */
+  suggestedLabel?: string;
+  /** Score delta between the top candidate's tag and the best same-tag candidate. */
+  tagMismatchDelta?: number;
 }
 
 type TypeLabel = { text: string; color: "warning" | "info" | "error" | "default" };
@@ -277,6 +281,15 @@ export default function ReviewCard({
                 variant="outlined"
                 color="primary"
               />
+            )}
+            {item.suggestedLabel && (
+              <Tooltip title={`SNOMED resolver suggests '${item.suggestedLabel.replace(/_/g, " ")}' (delta: ${((item.tagMismatchDelta ?? 0) * 100).toFixed(0)}%)`}>
+                <Chip
+                  label={`Tag mismatch → ${item.suggestedLabel.replace(/_/g, " ")}`}
+                  size="small"
+                  color="warning"
+                />
+              </Tooltip>
             )}
           </Stack>
 

@@ -1,0 +1,101 @@
+# -- R-LEO-AI-044 -- Domain Provenance Risk: NICE Domain Misclassification in Audit Pipelines
+
+- id: "R-LEO-AI-044"
+  title: "NICE-sourced AuditDomain misclassification could propagate incorrect SNOMED concepts to audit pipelines"
+  hazard:
+    description: >
+      When NICE taxonomy sync creates AuditDomain nodes (source=nice) and an administrator
+      subsequently promotes AppropriatenessRule SNOMED criteria to that domain, there is a
+      risk that the rule's SNOMED coding is incorrect (e.g. wrong concept selected by the
+      LLM) or that the guideline has been mapped to the wrong taxonomy subcategory. This
+      misclassification then propagates into the domain's ValueSet, affecting all audit
+      pipelines and pathway evaluations that consume that domain.
+    category: "clinical-safety"
+  hazardous_situation: >
+    NICE taxonomy sync creates AuditDomain nodes. An administrator promotes LLM-generated
+    SNOMED criteria to the wrong domain or the criteria contain incorrect concepts. The
+    corrupted ValueSet propagates to all audit pipelines consuming that domain, affecting
+    patient matching across multiple pathways.
+  harm:
+    description: >
+      Incorrect SNOMED concepts in an AuditDomain ValueSet could cause the audit pipeline
+      to flag patients incorrectly as meeting or not meeting a clinical criterion, leading
+      to inappropriate clinical alerts or missed flags. Because domains are reused across
+      multiple pathways, a single misclassification can affect a wide patient population.
+    severity: "serious"
+  initial_risk_estimate:
+    severity: 3
+    probability: 2
+    detectability: 2
+    rpn: 12
+    risk_level: "medium"
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        Domain promotion is an explicit, two-step gate. A rule must first be approved by
+        a human reviewer via the HITL review queue (status=active). Only then is the
+        "Add to domain" button visible in the UI. This means LLM-generated SNOMED coding
+        has passed human clinical review before reaching any domain.
+      implemented_by: ["DI-LEO-AI-064"]
+      verified_by: ["VT-LEO-AI-064"]
+    - control_type: "design_feature"
+      description: >
+        Source badges in the /admin/domains UI clearly distinguish NICE domains (blue chip,
+        MenuBook icon, "From NICE guidelines") from Platform and Tenant domains. This makes
+        provenance visible so administrators can easily identify NICE-derived content.
+      implemented_by: ["DI-LEO-AI-066"]
+      verified_by: ["VT-LEO-AI-066"]
+    - control_type: "design_feature"
+      description: >
+        Every promote-to-domain action writes an immutable AuditEvent node in Neo4j recording
+        the rule_id, domain_id, concept_ids added, reviewer email, and timestamp. This
+        provides a full audit trail for any misclassification investigation.
+      implemented_by: ["DI-LEO-AI-064"]
+      verified_by: ["VT-LEO-AI-064"]
+    - control_type: "design_feature"
+      description: >
+        NICE domain cards in the UI show "Manage codes" rather than "Edit", directing
+        administrators to the ValueSet concept list where they can inspect and remove
+        individual concepts. NICE domains cannot be deleted (backend returns 403), but
+        their ValueSet contents can be corrected.
+      implemented_by: ["DI-LEO-AI-066"]
+      verified_by: ["VT-LEO-AI-066"]
+    - control_type: "design_feature"
+      description: >
+        SNOMED concepts added to a domain ValueSet via promotion include the originating
+        rule_id as a provenance property, allowing the analytics API to trace any concept
+        back to the specific NICE guideline recommendation that generated it.
+      implemented_by: ["DI-LEO-AI-064"]
+      verified_by: ["VT-LEO-AI-064"]
+    - control_type: "procedural_control"
+      description: >
+        The clinical governance runbook requires that any SNOMED concept added to a domain
+        via the guidance pipeline is reviewed by a clinical informatics lead within 5 working
+        days of promotion. AuditEvent records provide the evidence trail for this review.
+      implemented_by: []
+      verified_by: []
+  residual_risk_estimate:
+    severity: 3
+    probability: 1
+    detectability: 1
+    rpn: 3
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      The two-step promote gate (HITL approval then explicit domain promotion) prevents
+      unreviewed content from reaching domains. Audit trail and provenance tracking enable
+      rapid rollback. No-delete protection prevents accidental domain removal.
+  monitoring:
+    - metric: "domain_promotion_count_per_month"
+      description: "Track domain promotion events to identify unusual activity."
+      threshold: "Monitor trend"
+      frequency: "quarterly"
+    - metric: "post_promotion_concept_correction_rate"
+      description: "Rate of concepts corrected or removed after promotion to a domain."
+      threshold: "Monitor trend"
+      frequency: "quarterly"
+  metadata:
+    identified_by: "Design review -- NICE guideline ingestion"
+    identified_date: "2026-03-07"
+    status: "analyzed"
+    tags: ["clinical-safety", "domains", "provenance", "nice", "taxonomy"]

@@ -1,0 +1,12 @@
+# -- VT-LEO-AI-059 -- Plain Language Accessibility
+
+- id: "VT-LEO-AI-059"
+  version: "1.0"
+  status: "draft"
+  traceability:
+    design_inputs: ["DI-LEO-AI-055"]
+  metadata:
+    title: "Operations language meets low reading-age labels"
+    test_level: "inspection"
+    automation_framework: "jest"
+    test_file_paths: ["services/ui/src/app/admin/operations/__tests__/OperationsDashboard.test.tsx"]

@@ -1,0 +1,145 @@
+"""Extraction subgraph wrapping sentence splitter and extractor registry.
+
+Prompt resolution order:
+1. ``prompt_config`` dict in state (populated from Neo4j by the parent graph)
+2. ``libs.prompts.registry.get_prompt("extraction", 1)`` (Neo4j → hardcoded)
+"""
+
+from __future__ import annotations
+
+import logging
+from dataclasses import asdict
+from typing import Any, TypedDict
+
+from langgraph.graph import END, START, StateGraph
+from langgraph.graph.state import CompiledStateGraph
+
+from libs.nlp.sentence_splitter import SentenceChunk, SentenceSplitter
+
+logger = logging.getLogger(__name__)
+
+
+class ExtractionState(TypedDict, total=False):
+    encounter_text: str
+    extraction_method: str
+    prompt_config: dict[str, Any]
+    sentences: list[dict[str, Any]]
+    entities: list[dict[str, Any]]
+    errors: list[str]
+
+
+def _items_to_dicts(items: list) -> list[dict[str, Any]]:
+    return [
+        {
+            "text": item.text,
+            "label": item.semantic_tag,
+            "start": item.span_start,
+            "end": item.span_end,
+            "assertion": item.assertion or "present",
+            "confidence": item.confidence,
+            "normalized": (
+                item.normalized
+                if item.normalized and item.normalized != item.text
+                else None
+            ),
+            "value": item.numeric_value or None,
+            "unit": item.unit or None,
+            "reference_range": item.reference_range or None,
+            "__sentence_id": item.sentence_id,
+            "__source": item.source,
+            "__model_name": item.model_name,
+            "__model_version": item.model_version,
+            "__contract_version": item.contract_version,
+            "__source_meta": item.source_meta,
+            "__relations": item.relations,
+        }
+        for item in items
+    ]
+
+
+def split_sentences(state: ExtractionState) -> dict[str, Any]:
+    text = state.get("encounter_text") or ""
+    splitter = SentenceSplitter()
+    chunks = splitter.split(text)
+    return {"sentences": [asdict(c) for c in chunks]}
+
+
+def _resolve_system_prompt(state: ExtractionState) -> str:
+    """Get the extraction system prompt from state config or the registry."""
+    cfg = state.get("prompt_config") or {}
+    if cfg.get("systemPrompt"):
+        return cfg["systemPrompt"]
+    from libs.prompts.registry import get_prompt
+    return get_prompt("extraction", version=1)
+
+
+def extract_entities(state: ExtractionState) -> dict[str, Any]:
+    encounter_text = state.get("encounter_text") or ""
+    raw_sentences = state.get("sentences") or []
+    try:
+        from libs.pipeline_graph.subgraphs._extractor import build_extractor
+
+        cfg = state.get("prompt_config") or {}
+        system_prompt = _resolve_system_prompt(state)
+
+        # Pass output schema + examples so the extractor can assemble the full prompt
+        output_schema_json: str | None = cfg.get("outputSchema") or None
+        try:
+            max_few_shot = int(cfg.get("maxFewShot") or 20)
+        except (TypeError, ValueError):
+            max_few_shot = 20
+        few_shot_raw = cfg.get("fewShotExamples")
+        few_shot_examples: list[dict] | None = None
+        if few_shot_raw:
+            import json as _json
+            try:
+                few_shot_examples = (
+                    _json.loads(few_shot_raw)
+                    if isinstance(few_shot_raw, str)
+                    else few_shot_raw
+                )
+            except Exception:
+                few_shot_examples = None
+
+        extractor = build_extractor(
+            system_prompt=system_prompt,
+            output_schema_json=output_schema_json,
+            few_shot_examples=few_shot_examples,
+            max_few_shot=max_few_shot,
+        )
+        chunks = [
+            SentenceChunk(
+                sentence_id=s.get("sentence_id", ""),
+                text=s.get("text", ""),
+                start=int(s.get("start", 0)),
+                end=int(s.get("end", 0)),
+            )
+            for s in raw_sentences
+        ]
+        items, llm_tokens = extractor.extract_batch_with_usage(encounter_text, chunks)
+        return {"entities": _items_to_dicts(items), "llm_tokens": llm_tokens}
+    except ImportError as e:
+        logger.warning("Extractor unavailable: %s", e)
+        return {"entities": [], "errors": [str(e)]}
+    except Exception as e:
+        logger.exception("Entity extraction failed")
+        return {"entities": [], "errors": [str(e)]}
+
+
+def merge_results(state: ExtractionState) -> dict[str, Any]:
+    return {
+        "entities": state.get("entities", []),
+        "errors": state.get("errors", []),
+    }
+
+
+def build_extraction_subgraph() -> CompiledStateGraph:
+    g = StateGraph(ExtractionState)
+    g.add_node("split_sentences", split_sentences)
+    g.add_node("extract_entities", extract_entities)
+    g.add_node("merge_results", merge_results)
+    g.add_edge(START, "split_sentences")
+    g.add_edge("split_sentences", "extract_entities")
+    g.add_edge("extract_entities", "merge_results")
+    g.add_edge("merge_results", END)
+    return g.compile()

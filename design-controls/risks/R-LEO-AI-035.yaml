@@ -1,0 +1,134 @@
+# -- R-LEO-AI-035 -- Entity Type Misclassification Accepted Without Cross-Validation
+# ISO 14971 / IEC 62304 Risk
+# Schema: design-controls/templates/risks_schema.yaml
+
+- id: "R-LEO-AI-035"
+  title: "Terminology resolver accepts entity with wrong semantic tag — silent miscoding"
+
+  hazard:
+    description: >
+      The LLM extraction step assigns an entity label (e.g. "finding",
+      "disorder", "procedure") to extracted clinical text.  The terminology
+      resolver then maps the text to a SNOMED concept.  If the resolver's
+      top candidate has a semantic tag that disagrees with the entity label
+      (e.g. text "pain" labelled "disorder" but matched to 22253000 |
+      Pain (finding)), the mismatch is accepted silently and the entity is
+      coded against a concept of the wrong clinical category.
+    category: "incorrect_output"
+
+  hazardous_situation: >
+    A clinical encounter containing the text "pain" is processed.  The LLM
+    labels it as "disorder".  The terminology resolver returns 22253000 |
+    Pain (finding) with high confidence.  Without cross-validation, the
+    system accepts the match, coding a finding concept as if it were a
+    disorder.  In autonomous mode this incorrect coding enters the patient
+    graph; in HITL mode it appears as a correctly-coded item and may be
+    accepted without scrutiny.
+
+  harm:
+    description: >
+      (a) Incorrect SNOMED coding: entities are mapped to concepts of the
+          wrong semantic category, distorting clinical coding accuracy.
+      (b) In autonomous mode, miscoded entities enter the patient record
+          and may affect quality measures, disease prevalence statistics,
+          and clinical decision support.
+      (c) In HITL mode, reviewers may not notice the type mismatch since
+          the text-to-concept match appears high-confidence, leading to
+          systematic miscoding in the gold training dataset.
+      (d) Gold training data corruption amplifies the problem: the NER
+          model trained on this data learns to reproduce the miscoding.
+    severity: "significant"
+
+  initial_risk_estimate:
+    severity: 3
+    probability: 4
+    detectability: 4
+    rpn: 48
+    risk_level: "high"
+
+  mitigation_measures:
+    - control_type: "protective_measure"
+      description: >
+        Semantic tag cross-validation: after resolving a term via the
+        terminology API (without expected_tags bias), the system inspects
+        the top 3 SNOMED candidates' semantic tags and maps them back to
+        NER labels.  If the best candidate's tag disagrees with the
+        entity label, the score delta is computed.  High-confidence
+        mismatches (score >= 0.90, delta >= 0.40) trigger automatic
+        entity label reclassification.  Medium-confidence mismatches
+        are flagged with suggested_label and tag_mismatch_delta and
+        routed to HITL review at tier 2.
+      implemented_by: ["DI-LEO-AI-053"]
+      verified_by: ["VT-LEO-AI-046"]
+      effectiveness: "highly_effective"
+
+    - control_type: "protective_measure"
+      description: >
+        UI warning: when a semantic tag mismatch is present, the
+        CodingReview queue and case modal display a visible warning
+        chip/alert informing the reviewer of the LLM's extracted label,
+        the resolver's suggested label, and the score delta, enabling
+        informed correction.
+      implemented_by: ["DI-LEO-AI-053"]
+      verified_by: ["VT-LEO-AI-046"]
+      effectiveness: "effective"
+
+    - control_type: "protective_measure"
+      description: >
+        Unbiased terminology search: the resolve call is made without
+        expected_tags so that the ranking reflects true semantic
+        similarity rather than being biased toward the (potentially
+        incorrect) extraction label.  This ensures the cross-validation
+        comparison is meaningful.
+      implemented_by: ["DI-LEO-AI-053"]
+      verified_by: ["VT-LEO-AI-046"]
+      effectiveness: "effective"
+
+  residual_risk_estimate:
+    severity: 3
+    probability: 1
+    detectability: 1
+    rpn: 3
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      The deterministic cross-validation step catches all semantic tag
+      mismatches in the top 3 candidates.  High-confidence mismatches
+      are corrected automatically; medium-confidence mismatches are
+      surfaced to the human reviewer with clear visual indicators.  For
+      a miscoded entity to reach the patient graph, both the
+      cross-validation and the HITL review (or tier-1 auto-accept with
+      matching tags) would need to fail simultaneously.
+
+  monitoring:
+    monitoring_plan: >
+      Track auto-reclassification events and tag_mismatch flagged items
+      in the CodingReview queue.  A high auto-reclassification rate may
+      indicate systematic extraction prompt issues requiring tuning.
+    metrics:
+      - "Auto-reclassification count per pipeline run"
+      - "Tag mismatch items flagged for HITL review per run"
+      - "Reviewer override rate for tag mismatch items"
+    review_frequency: "Weekly during initial deployment, then monthly"
+
+  metadata:
+    identified_by: "Design Review — coding accuracy"
+    identified_date: "2026-03-03"
+    status: "analyzed"
+
+  related_risks: ["R-LEO-AI-001", "R-LEO-AI-029"]
+  related_risk_rationale: >
+    R-LEO-AI-001 covers incorrect NER entity recognition generally.
+    R-LEO-AI-029 covers lab-value-to-disorder inference specifically.
+    This risk covers the broader case where any entity type can be
+    misclassified, and the terminology resolver silently accepts the
+    mismatch because no cross-validation is performed.
+
+  tags:
+    - "clinical-risk"
+    - "entity-classification"
+    - "semantic-tag"
+    - "miscoding"
+    - "cross-validation"
+    - "terminology-api"
+    - "defence-in-depth"

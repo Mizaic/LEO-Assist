@@ -25,18 +25,18 @@
   mitigation_measures:
     - control_type: "procedural_control"
       description: "SOUP monitoring per DC-SOUP-001 Section 7.2 with quarterly CVE review"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-030"]
+      verified_by: ["VT-LEO-AI-019"]
       effectiveness: "effective"
     - control_type: "protective_measure"
       description: "Automated dependency vulnerability scanning in CI/CD pipeline"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-030"]
+      verified_by: ["VT-LEO-AI-019"]
       effectiveness: "highly_effective"
     - control_type: "procedural_control"
       description: "Critical CVE patch SLA of 48 hours"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-030"]
+      verified_by: ["VT-LEO-AI-019"]
       effectiveness: "effective"
 
   residual_risk_estimate:

@@ -72,5 +72,5 @@
     test_protocol: "VT-LEO-AI-022"
 
   safety_class: "B"
-  risks: []
+  risks: ["R-LEO-AI-014"]
   tags: ["audit-trail", "compliance", "regulatory"]

@@ -167,6 +167,8 @@ def get_benchmark_values(
     audit_id: str,
     metric_id: Optional[str] = None,
     scope_type: Optional[str] = None,
+    scope_id: Optional[str] = None,
+    category: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
     """Get BenchmarkValues for a set, optionally filtered."""
     client = KnowledgeGraphClient()
@@ -179,12 +181,19 @@ def get_benchmark_values(
         if scope_type:
             where_parts.append("v.scope_type = $scope_type")
             params["scope_type"] = scope_type
+        if scope_id:
+            where_parts.append("v.scope_id = $scope_id")
+            params["scope_id"] = scope_id
+        if category:
+            where_parts.append("v.category = $category")
+            params["category"] = category
         where = " AND ".join(where_parts)
         rows = client.run(
             f"MATCH (v:BenchmarkValue) WHERE {where} "
-            "RETURN v.metric_id AS metric_id, v.scope_type AS scope_type, v.scope_id AS scope_id, "
-            "v.scope_name AS scope_name, v.value AS value, v.value_json AS value_json, "
-            "v.unit AS unit, v.label AS label, v.category AS category ORDER BY v.metric_id, v.scope_type",
+            "RETURN v.id AS id, v.metric_id AS metric_id, v.scope_type AS scope_type, "
+            "v.scope_id AS scope_id, v.scope_name AS scope_name, v.value AS value, "
+            "v.value_json AS value_json, v.unit AS unit, v.label AS label, "
+            "v.category AS category ORDER BY v.metric_id, v.scope_type",
             **params,
         )
         result = []
@@ -196,6 +205,7 @@ def get_benchmark_values(
                 except json.JSONDecodeError:
                     val_json = None
             result.append({
+                "id": r.get("id"),
                 "metric_id": r["metric_id"],
                 "scope_type": r["scope_type"],
                 "scope_id": r["scope_id"],
@@ -207,6 +217,82 @@ def get_benchmark_values(
                 "category": r["category"],
             })
         return result
+    finally:
+        client.close()
+
+
+def get_benchmark_categories(audit_id: str) -> List[str]:
+    """Return distinct categories present in a benchmark set."""
+    client = KnowledgeGraphClient()
+    try:
+        rows = client.run(
+            "MATCH (v:BenchmarkValue {audit_id: $audit_id}) "
+            "RETURN DISTINCT v.category AS category ORDER BY category",
+            audit_id=audit_id,
+        )
+        return [r["category"] for r in rows if r.get("category")]
+    finally:
+        client.close()
+
+
+def get_benchmark_scopes(audit_id: str) -> List[Dict[str, str]]:
+    """Return distinct scopes (scope_id, scope_type, scope_name) in a benchmark set."""
+    client = KnowledgeGraphClient()
+    try:
+        rows = client.run(
+            "MATCH (v:BenchmarkValue {audit_id: $audit_id}) "
+            "RETURN DISTINCT v.scope_id AS scope_id, v.scope_type AS scope_type, "
+            "v.scope_name AS scope_name ORDER BY v.scope_type, v.scope_name",
+            audit_id=audit_id,
+        )
+        return [
+            {"scope_id": r["scope_id"], "scope_type": r["scope_type"], "scope_name": r["scope_name"]}
+            for r in rows
+        ]
+    finally:
+        client.close()
+
+
+def update_benchmark_value(value_id: str, new_value: float) -> Optional[Dict[str, Any]]:
+    """Update the numeric value of a BenchmarkValue node by id."""
+    client = KnowledgeGraphClient()
+    try:
+        rows = client.run(
+            "MATCH (v:BenchmarkValue {id: $id}) SET v.value = $value, v.updated_at = datetime() "
+            "RETURN v.id AS id, v.metric_id AS metric_id, v.scope_type AS scope_type, "
+            "v.scope_id AS scope_id, v.scope_name AS scope_name, v.value AS value, "
+            "v.unit AS unit, v.label AS label, v.category AS category",
+            id=value_id,
+            value=new_value,
+        )
+        if not rows:
+            return None
+        r = rows[0]
+        return {
+            "id": r["id"],
+            "metric_id": r["metric_id"],
+            "scope_type": r["scope_type"],
+            "scope_id": r["scope_id"],
+            "scope_name": r["scope_name"],
+            "value": r["value"],
+            "unit": r["unit"],
+            "label": r["label"],
+            "category": r["category"],
+        }
+    finally:
+        client.close()
+
+
+def delete_benchmark_value(value_id: str) -> bool:
+    """Delete a single BenchmarkValue by id. Returns True if deleted."""
+    client = KnowledgeGraphClient()
+    try:
+        rows = client.run(
+            "MATCH (v:BenchmarkValue {id: $id}) "
+            "WITH v, v.id AS deleted_id DETACH DELETE v RETURN deleted_id",
+            id=value_id,
+        )
+        return bool(rows)
     finally:
         client.close()
 

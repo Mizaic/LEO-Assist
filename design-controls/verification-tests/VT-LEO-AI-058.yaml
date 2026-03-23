@@ -1,0 +1,12 @@
+# -- VT-LEO-AI-058 -- Operations Dashboard Cards
+
+- id: "VT-LEO-AI-058"
+  version: "1.0"
+  status: "draft"
+  traceability:
+    design_inputs: ["DI-LEO-AI-055"]
+  metadata:
+    title: "Operations dashboard renders summary cards and links"
+    test_level: "unit"
+    automation_framework: "jest"
+    test_file_paths: ["services/ui/src/app/admin/operations/__tests__/OperationsDashboard.test.tsx"]

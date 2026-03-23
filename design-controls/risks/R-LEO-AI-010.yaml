@@ -25,23 +25,23 @@
   mitigation_measures:
     - control_type: "protective_measure"
       description: "Azure AD / Entra ID authentication required for all API access"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-020", "DI-LEO-AI-021", "DI-LEO-AI-030"]
+      verified_by: ["VT-LEO-AI-012", "VT-LEO-AI-019"]
       effectiveness: "highly_effective"
     - control_type: "protective_measure"
       description: "Role-based access control with organisation-scoped tenancy"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-020", "DI-LEO-AI-021", "DI-LEO-AI-030"]
+      verified_by: ["VT-LEO-AI-012", "VT-LEO-AI-019"]
       effectiveness: "highly_effective"
     - control_type: "protective_measure"
       description: "Separate Neo4j databases with independent authentication"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-020", "DI-LEO-AI-021", "DI-LEO-AI-030"]
+      verified_by: ["VT-LEO-AI-012", "VT-LEO-AI-019"]
       effectiveness: "effective"
     - control_type: "procedural_control"
       description: "Access audit logging and periodic review"
-      implemented_by: []
-      verified_by: []
+      implemented_by: ["DI-LEO-AI-020", "DI-LEO-AI-021", "DI-LEO-AI-030"]
+      verified_by: ["VT-LEO-AI-012", "VT-LEO-AI-019"]
       effectiveness: "effective"
 
   residual_risk_estimate:

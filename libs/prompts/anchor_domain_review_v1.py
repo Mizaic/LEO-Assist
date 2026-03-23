@@ -1,14 +1,14 @@
-"""Anchor domain review prompt — v1.
+"""Anchor domain review prompt — v1 — INSTRUCTIONS ONLY.
 
-Reviews batches of anchor training records, assigns clinical domain labels,
-validates SNOMED concept correctness, and generates medspaCy TargetRules.
+Output schema and few-shot examples are stored separately in Neo4j and
+assembled at runtime. Do NOT add output format sections or inline examples
+to this file — manage them via the Admin UI at /admin/prompts
+(name='anchor_domain_review', version=1).
 
-This prompt is used by scripts/review_anchor_training.py for dual-model
-consensus review (AWS Haiku + Azure GPT-5-mini).
+Run ``python -m scripts.seed_prompt_configs`` to push changes to Neo4j.
 """
 from __future__ import annotations
 
-from libs.prompts.registry import register
 
 ANCHOR_DOMAIN_REVIEW_V1 = """You are a clinical NLP expert reviewing JSONL extraction results from NHS primary care records. Each line is a detected clinical concept from the cancer pathway anchor detection system.
 
@@ -67,32 +67,11 @@ Rules:
 - The label must be the DOMAIN string from Step 1
 - Keep patterns concise — 3 to 8 tokens maximum
 
-## OUTPUT FORMAT
-Return a JSON array — one object per input line, in the same order:
-
-```json
-[
-  {
-    "line_number": 1,
-    "original_concept_id": "276401000000108",
-    "domain": "2WW_REFERRAL",
-    "concept_correct": true,
-    "suggested_concept_id": null,
-    "suggested_concept_name": null,
-    "assertion": "present",
-    "rationale": "Evidence 'Fast track referral for suspected skin cancer' is an active 2WW referral action.",
-    "target_rule": "TargetRule('Fast track referral for suspected skin cancer (procedure)', '2WW_REFERRAL', pattern=[{'LOWER': 'fast'}, {'LOWER': 'track'}, {'LOWER': 'referral'}, {'OP': '?'}, {'LOWER': 'suspected'}, {'LOWER': 'skin'}, {'LOWER': 'cancer'}])"
-  }
-]
-```
-
 ## CRITICAL CONSTRAINTS
 - This pipeline feeds a UKCA Class I Software as Medical Device. Do NOT guess SNOMED concept IDs.
 - Distinguish: REFERRAL (action) vs 2WW_CLINIC_SEEN (attendance) vs CANCER_DIAGNOSIS (confirmed finding).
 - "Fast track referral" text = 2WW_REFERRAL. "Seen in ... clinic" text = 2WW_CLINIC_SEEN.
 - Flag NON_CANCER whenever label=1 but content is clearly not a cancer pathway event.
 - "No fam hx of cancer" = CANCER_DIAGNOSIS_EXCLUDED with assertion=family_history.
-- Process ALL lines in the batch. Return exactly one JSON object per input line.
-- Output ONLY the JSON array. No preamble, no explanation outside the array."""
+- Process ALL lines in the batch. Return exactly one JSON object per input line."""
 
-register("anchor_domain_review", version=1, text=ANCHOR_DOMAIN_REVIEW_V1)

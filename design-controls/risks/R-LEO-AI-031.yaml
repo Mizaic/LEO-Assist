@@ -49,7 +49,7 @@
           the rule is identified and removed.
       (c) Untraceability: if created_by is attacker-supplied, the audit trail
           cannot reliably identify who created a malicious rule.
-    severity: "serious"
+    severity: "critical"
 
   initial_risk_estimate:
     severity: 4

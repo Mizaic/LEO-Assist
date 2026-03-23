@@ -1,5 +1,12 @@
-"""Prompt for resolving label disagreements in NER verification."""
-from libs.prompts.registry import register
+"""Prompt for resolving label disagreements in NER verification — INSTRUCTIONS ONLY.
+
+Output schema and few-shot examples are stored separately in Neo4j and
+assembled at runtime. Do NOT add output format sections or inline examples
+to this file — manage them via the Admin UI at /admin/prompts
+(name='label_disambiguation', version=1).
+
+Run ``python -m scripts.seed_prompt_configs`` to push changes to Neo4j.
+"""
 
 LABEL_DISAMBIGUATION_V1 = """\
 You are resolving a clinical NER label disagreement.
@@ -50,13 +57,6 @@ Boundary reminders:
 - "drop in eGFR from 24 to 19" = finding (narrative, NOT observable_entity)
 - Formal staging (FIGO IB1, Dukes C, Clark IV) = tumor_staging
 
-Return strict JSON only:
-{
-  "resolved_label": "finding",
-  "confidence": 0.0,
-  "reason": "short reason"
-}
-
 Rules:
 - confidence in [0.0, 1.0]
 - reason <= 220 chars
@@ -64,4 +64,3 @@ Rules:
 - no markdown
 """
 
-register("label_disambiguation", version=1, text=LABEL_DISAMBIGUATION_V1)

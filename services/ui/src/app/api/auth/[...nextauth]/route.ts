@@ -1,15 +1,23 @@
 /**
  * Legacy NextAuth route - redirects to backend auth.
  * Kept for any existing links; new auth uses Python backend.
+ *
+ * Must redirect same-origin to /auth/login so the browser never follows
+ * INTERNAL_API_BASE (e.g. http://core-api), which is not reachable from clients.
  */
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
-const API_BASE = (process.env.INTERNAL_API_BASE ?? "http://localhost:8000").replace(/\/+$/, "");
-
-export async function GET() {
-  return NextResponse.redirect(`${API_BASE}/auth/login?next_url=/dashboard`);
+function loginRedirect(request: NextRequest) {
+  const u = request.nextUrl.clone();
+  u.pathname = "/auth/login";
+  u.search = "?next_url=/dashboard";
+  return NextResponse.redirect(u);
 }
 
-export async function POST() {
-  return NextResponse.redirect(`${API_BASE}/auth/login?next_url=/dashboard`);
+export async function GET(request: NextRequest) {
+  return loginRedirect(request);
+}
+
+export async function POST(request: NextRequest) {
+  return loginRedirect(request);
 }

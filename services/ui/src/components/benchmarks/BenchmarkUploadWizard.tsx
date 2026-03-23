@@ -2,24 +2,26 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import FormControl from '@mui/material/FormControl';
 import FormLabel from '@mui/material/FormLabel';
-import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
-import TextField from '@mui/material/TextField';
-import Typography from '@mui/material/Typography';
-import Stepper from '@mui/material/Stepper';
+import Select from '@mui/material/Select';
 import Step from '@mui/material/Step';
 import StepLabel from '@mui/material/StepLabel';
-import Alert from '@mui/material/Alert';
+import Stepper from '@mui/material/Stepper';
+import TextField from '@mui/material/TextField';
+import Typography from '@mui/material/Typography';
 import ArrowBackOutlined from '@mui/icons-material/ArrowBackOutlined';
+import CheckCircleOutlined from '@mui/icons-material/CheckCircleOutlined';
+import OpenInNewOutlined from '@mui/icons-material/OpenInNewOutlined';
 import { uploadBenchmarks, inferBenchmarkStructure } from '@/lib/api';
 
-const STEPS = ['Upload', 'Inspect', 'Map', 'Preview', 'Save'];
+const STEPS = ['Upload', 'Inspect', 'Map', 'Preview & Save'];
 const TEMPLATES = [
   { id: 'ncda', label: 'NCDA (National Cancer Diagnosis Audit)' },
 ];
@@ -34,14 +36,15 @@ export function BenchmarkUploadWizard() {
   const [auditId, setAuditId] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [uploadResult, setUploadResult] = useState<{ audit_id: string; count: number } | null>(null);
 
   const handleJsonInput = (text: string) => {
     setError(null);
     try {
       const parsed = JSON.parse(text) as Record<string, unknown>;
       setRawJson(parsed);
-    } catch (e) {
-      setError('Invalid JSON');
+    } catch {
+      setError('Invalid JSON – please check the pasted content.');
       setRawJson(null);
     }
   };
@@ -58,7 +61,8 @@ export function BenchmarkUploadWizard() {
     }
   };
 
-  const handleMapNext = () => {
+  const handleInspectToMap = () => {
+    // Pre-fill from JSON metadata before showing Map step
     if (rawJson) {
       const audit = rawJson.audit as Record<string, unknown> | undefined;
       const year = audit?.year as number | undefined;
@@ -66,7 +70,7 @@ export function BenchmarkUploadWizard() {
       setAuditId((prev) => prev || suggestedId);
       setName((prev) => prev || (audit?.name as string) || suggestedId);
     }
-    setActiveStep(3);
+    setActiveStep(2);
   };
 
   const handleSave = async () => {
@@ -80,13 +84,41 @@ export function BenchmarkUploadWizard() {
         auditId: auditId || undefined,
         name: name || undefined,
       });
-      router.push('/benchmarks');
+      setUploadResult({ audit_id: result.audit_id, count: result.count });
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to save');
+      setError(e instanceof Error ? e.message : 'Failed to save benchmarks. Check the JSON format and try again.');
     } finally {
       setSaving(false);
     }
   };
+
+  // Success screen shown after upload
+  if (uploadResult) {
+    return (
+      <Box sx={{ p: 3, maxWidth: 600 }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, py: 4 }}>
+          <CheckCircleOutlined sx={{ fontSize: 64, color: 'success.main' }} />
+          <Typography variant="h6" sx={{ fontWeight: 600 }}>Upload successful</Typography>
+          <Typography variant="body2" color="text.secondary" align="center">
+            Benchmark set <strong>{uploadResult.audit_id}</strong> was created with{' '}
+            <strong>{uploadResult.count}</strong> values.
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
+            <Button
+              variant="contained"
+              startIcon={<OpenInNewOutlined />}
+              onClick={() => router.push(`/benchmarks/sets/${uploadResult.audit_id}`)}
+            >
+              View set
+            </Button>
+            <Button variant="outlined" onClick={() => router.push('/benchmarks')}>
+              Back to Benchmarks
+            </Button>
+          </Box>
+        </Box>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ p: 3, maxWidth: 800 }}>
@@ -107,8 +139,9 @@ export function BenchmarkUploadWizard() {
         ))}
       </Stepper>
 
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
 
+      {/* Step 0: Paste / upload JSON */}
       {activeStep === 0 && (
         <Card>
           <CardContent>
@@ -129,6 +162,7 @@ export function BenchmarkUploadWizard() {
         </Card>
       )}
 
+      {/* Step 1: Inspect structure */}
       {activeStep === 1 && structure && (
         <Card>
           <CardContent>
@@ -144,17 +178,18 @@ export function BenchmarkUploadWizard() {
                     {k}
                   </Typography>
                 ))}
-                {structure.keys.length > 20 && <Typography variant="caption">...</Typography>}
+                {structure.keys.length > 20 && <Typography variant="caption">+{structure.keys.length - 20} more</Typography>}
               </Box>
             </Box>
             <Box sx={{ display: 'flex', gap: 1 }}>
               <Button variant="outlined" onClick={() => setActiveStep(0)}>Back</Button>
-              <Button variant="contained" onClick={handleMapNext}>Next: Map</Button>
+              <Button variant="contained" onClick={handleInspectToMap}>Next: Map</Button>
             </Box>
           </CardContent>
         </Card>
       )}
 
+      {/* Step 2: Map template + IDs */}
       {activeStep === 2 && (
         <Card>
           <CardContent>
@@ -170,10 +205,11 @@ export function BenchmarkUploadWizard() {
             <TextField
               fullWidth
               size="small"
-              label="Set ID"
+              label="Set ID (audit_id)"
               value={auditId}
               onChange={(e) => setAuditId(e.target.value)}
               placeholder="e.g. ncda-2018"
+              helperText="Unique identifier for this benchmark set. Auto-generated from the JSON if left blank."
               sx={{ mb: 2 }}
             />
             <TextField
@@ -182,27 +218,33 @@ export function BenchmarkUploadWizard() {
               label="Display Name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. NCDA 2018"
+              placeholder="e.g. NCDA 2018/19"
             />
             <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
               <Button variant="outlined" onClick={() => setActiveStep(1)}>Back</Button>
-              <Button variant="contained" onClick={handleMapNext}>Preview</Button>
+              <Button variant="contained" onClick={() => setActiveStep(3)}>Next: Preview</Button>
             </Box>
           </CardContent>
         </Card>
       )}
 
+      {/* Step 3: Preview & Save */}
       {activeStep === 3 && (
         <Card>
           <CardContent>
             <Typography sx={{ fontWeight: 600, mb: 2 }}>Preview & Save</Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Audit ID: <strong>{auditId || '(auto)'}</strong> | Name: <strong>{name || '(auto)'}</strong> | Template: <strong>{templateId}</strong>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+              Review the settings below before saving.
             </Typography>
-            <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
+            <Box sx={{ bgcolor: 'action.hover', borderRadius: 1, p: 2, mb: 2 }}>
+              <Typography variant="body2"><strong>Set ID:</strong> {auditId || '(auto from JSON)'}</Typography>
+              <Typography variant="body2"><strong>Display Name:</strong> {name || '(auto from JSON)'}</Typography>
+              <Typography variant="body2"><strong>Template:</strong> {templateId}</Typography>
+            </Box>
+            <Box sx={{ display: 'flex', gap: 1 }}>
               <Button variant="outlined" onClick={() => setActiveStep(2)}>Back</Button>
               <Button variant="contained" onClick={handleSave} disabled={saving}>
-                {saving ? 'Saving...' : 'Save'}
+                {saving ? 'Uploading…' : 'Save'}
               </Button>
             </Box>
           </CardContent>

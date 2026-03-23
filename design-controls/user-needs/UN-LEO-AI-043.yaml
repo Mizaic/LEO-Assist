@@ -1,0 +1,108 @@
+# -- UN-LEO-AI-043 -- Pseudonymisation Before LLM Processing
+
+- id: "UN-LEO-AI-043"
+  title: "Data protection officers and information governance leads need the system to automatically strip or replace direct patient identifiers from clinical free text before it is processed by any external LLM API, so that personal health data is not transmitted to a third-party processor beyond what is strictly necessary for the clinical purpose."
+  description: |
+    When the pipeline uses an external LLM (OpenAI, Anthropic) for tasks such
+    as disambiguation, interpretation, or SBAR generation, the full text of
+    the clinical note or referral letter is currently transmitted. This text
+    contains direct identifiers (patient name, date of birth, NHS number,
+    address) alongside the clinical content that the LLM actually needs.
+    Transmitting identifiers to a cloud API is a data minimisation failure
+    under UK GDPR Article 5(1)(c) and is a concern for NHS DPOs who must
+    approve the system's data protection impact assessment.
+
+    The system must apply a pre-processing step to every text fragment
+    destined for external LLM processing that identifies and replaces direct
+    identifiers with neutral placeholders before transmission. The original
+    identifiers must remain in the internal system and must never be
+    transmitted externally.
+
+  stakeholder:
+    type: "nhs_user"
+    role: "Data Protection Officer / Information Governance Lead"
+    organization: "NHS Trust"
+
+  priority: "MUST"
+
+  rationale: |
+    UK GDPR Article 5(1)(c) requires that personal data is adequate, relevant,
+    and limited to what is necessary for the purpose. An LLM asked to identify
+    clinical entities in a referral letter does not need the patient's name
+    or NHS number to perform that task. Transmitting identifiers unnecessarily
+    increases the risk of data breach, violates the data minimisation principle,
+    and is a significant barrier to DPIA approval and NHS DSPT compliance.
+    Pseudonymisation before external transmission is also consistent with the
+    NHS data security standard requirement to protect patient identity in all
+    external processing relationships.
+
+  benefit: |
+    DPIA approval is facilitated by demonstrable data minimisation. NHS DSPT
+    compliance is strengthened. Risk of patient identity exposure through LLM
+    API is eliminated. Data processing agreements with cloud LLM providers are
+    easier to execute when identifiers are not transmitted. Patient transparency
+    obligations are easier to meet.
+
+  use_case: |
+    1. Pipeline identifies a text fragment requiring external LLM processing.
+    2. Pre-processing step scans the text for direct identifiers: patient name,
+       date of birth, NHS number, address, GP name, practice name.
+    3. Identified values are replaced with neutral placeholders:
+       [PATIENT_NAME], [DOB], [NHS_NUMBER], [ADDRESS], [CLINICIAN_NAME].
+    4. Pseudonymised text is transmitted to the external LLM API.
+    5. LLM response is received and any placeholders in the response are
+       re-identified using the internal mapping before the result is stored.
+    6. The original text with real identifiers is never transmitted externally.
+    7. The pseudonymisation step and its outcome are logged in the audit trail.
+
+  current_solution: |
+    None. Full text including identifiers is transmitted to external LLM APIs.
+    This is noted as a risk in the DPO review process.
+
+  pain_points:
+    - "Direct patient identifiers are transmitted to external LLM APIs unnecessarily"
+    - "This is a data minimisation failure under UK GDPR Article 5(1)(c)"
+    - "DPOs identify this as a DPIA risk that must be resolved before deployment approval"
+    - "NHS DSPT standard expects patient identity to be protected in external processing"
+    - "Data processing agreements with cloud providers are harder to execute with identifiers transmitted"
+
+  acceptance_criteria:
+    - "All direct identifiers (name, DOB, NHS number, address, clinician name) are detected and replaced before external LLM transmission"
+    - "Identifier detection covers both structured fields and free-text occurrences within the clinical narrative"
+    - "Placeholder substitution is reversible -- internal mapping allows re-identification of LLM responses"
+    - "Pseudonymisation step is applied to every external LLM API call without exception"
+    - "Pseudonymisation outcome is logged: number of identifiers detected and replaced, text length before and after"
+    - "Residual identifier detection rate (identifiers missed) is validated below 2% on a test dataset"
+
+  success_metrics:
+    - metric: "Identifier transmission to external LLM APIs"
+      target: "Zero direct identifiers transmitted after deployment"
+      baseline: "All identifiers currently transmitted"
+    - metric: "Pseudonymisation detection rate"
+      target: "Above 98% of direct identifiers detected and replaced on validation dataset"
+      baseline: "Not currently implemented"
+
+  regulatory_impact: "high"
+  safety_impact: "low"
+  safety_class: "B"
+
+  derived_from:
+    - "Intended Use Statement DC-IU-001"
+    - "IEC 62304:2006/AMD1:2015 Class B software lifecycle"
+    - "UK GDPR Article 5(1)(c) -- data minimisation"
+
+  related_standards:
+    - "IEC 62304:2006/AMD1:2015"
+    - "UK GDPR"
+    - "NHS DSPT"
+    - "DCB0129"
+
+  metadata:
+    created_by: "Engineering Team"
+    created_date: "2026-03-11"
+    status: "draft"
+    evidence_source: "User interviews P19 -- UR-LEO-AI-001"
+
+  design_inputs: []
+  validation_tests: []
+  tags: ["data-protection", "pseudonymisation", "gdpr", "llm", "dspt", "information-governance"]

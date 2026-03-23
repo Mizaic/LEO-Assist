@@ -1,0 +1,17 @@
+# -- VT-LEO-AI-062 -- Smart Few-Shot + Prompt Caching
+
+- id: "VT-LEO-AI-062"
+  version: "1.0"
+  status: "draft"
+  traceability:
+    design_inputs: ["DI-LEO-AI-062"]
+    risks: ["R-LEO-AI-030", "R-LEO-AI-014"]
+  metadata:
+    title: "Prompt runtime applies cache marker, core/dynamic split, and maxFewShot controls"
+    test_level: "unit"
+    automation_framework: "pytest + jest"
+    test_file_paths:
+      - "tests/test_bedrock_prompt_cachepoint.py"
+      - "tests/test_few_shot_selector.py"
+      - "tests/test_extractor_rag_prompt_flow.py"
+      - "services/ui/src/__tests__/ui-safety-static.test.ts"
