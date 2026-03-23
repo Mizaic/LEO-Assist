@@ -1,7 +1,7 @@
 """Dual-model consensus runner with arbitration.
 
 Standard verification pattern:
-  1. Run Haiku (AWS small) and GPT-5 mini (Azure small) in parallel.
+  1. Run Haiku (AWS small) and GPT-5 mini (Azure small).
   2. If both agree, use that verdict.
   3. If they disagree, Sonnet (AWS big) arbitrates.
 
@@ -13,7 +13,6 @@ disorder verification, coding confidence checks, and any future gate.
 
 from __future__ import annotations
 
-import concurrent.futures
 import json as _json
 import logging
 from dataclasses import dataclass, field
@@ -211,45 +210,41 @@ def run_consensus(
     aws_parse_failed = False
     azure_parse_failed = False
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
-        fut_aws = pool.submit(
-            _call_provider, "aws", "small", system_prompt, user_msg, max_tokens, json_mode=json_mode,
+    try:
+        aws_resp = _call_provider(
+            "aws", "small", system_prompt, user_msg, max_tokens, json_mode=json_mode
         )
-        fut_azure = pool.submit(
-            _call_provider, "azure", "small", system_prompt, user_msg, max_tokens, json_mode=json_mode,
+        aws_verdict = parse_fn(aws_resp.text)
+        aws_model = aws_resp.model_id
+        aws_parse_failed = not bool(aws_verdict)
+        if aws_parse_failed:
+            logger.warning(
+                "Consensus AWS small call parse-failed (model=%s stop_reason=%r text_len=%d)",
+                aws_resp.model_id,
+                aws_resp.stop_reason,
+                len(aws_resp.text or ""),
+            )
+    except Exception:
+        aws_call_failed = True
+        logger.warning("Consensus AWS small call failed", exc_info=True)
+
+    try:
+        azure_resp = _call_provider(
+            "azure", "small", system_prompt, user_msg, max_tokens, json_mode=json_mode
         )
-
-        try:
-            aws_resp = fut_aws.result(timeout=60)
-            aws_verdict = parse_fn(aws_resp.text)
-            aws_model = aws_resp.model_id
-            aws_parse_failed = not bool(aws_verdict)
-            if aws_parse_failed:
-                logger.warning(
-                    "Consensus AWS small call parse-failed (model=%s stop_reason=%r text_len=%d)",
-                    aws_resp.model_id,
-                    aws_resp.stop_reason,
-                    len(aws_resp.text or ""),
-                )
-        except Exception:
-            aws_call_failed = True
-            logger.warning("Consensus AWS small call failed", exc_info=True)
-
-        try:
-            azure_resp = fut_azure.result(timeout=60)
-            azure_verdict = parse_fn(azure_resp.text)
-            azure_model = azure_resp.model_id
-            azure_parse_failed = not bool(azure_verdict)
-            if azure_parse_failed:
-                logger.warning(
-                    "Consensus Azure small call parse-failed (model=%s stop_reason=%r text_len=%d)",
-                    azure_resp.model_id,
-                    azure_resp.stop_reason,
-                    len(azure_resp.text or ""),
-                )
-        except Exception:
-            azure_call_failed = True
-            logger.warning("Consensus Azure small call failed", exc_info=True)
+        azure_verdict = parse_fn(azure_resp.text)
+        azure_model = azure_resp.model_id
+        azure_parse_failed = not bool(azure_verdict)
+        if azure_parse_failed:
+            logger.warning(
+                "Consensus Azure small call parse-failed (model=%s stop_reason=%r text_len=%d)",
+                azure_resp.model_id,
+                azure_resp.stop_reason,
+                len(azure_resp.text or ""),
+            )
+    except Exception:
+        azure_call_failed = True
+        logger.warning("Consensus Azure small call failed", exc_info=True)
 
     # One targeted parse-retry for JSON-mode prompts (most extraction/verifier calls).
     # This addresses empty/non-parseable provider output without conflating it with

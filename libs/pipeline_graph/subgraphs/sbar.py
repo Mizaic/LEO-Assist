@@ -21,6 +21,7 @@ class SBARState(TypedDict, total=False):
     referral_id: str
     patient_context: list[dict[str, Any]]
     prompt_configs: list[dict[str, Any]]
+    sbar_report: dict[str, Any]
     sbar_sections: dict[str, str]
     extracted: list[dict[str, Any]]
     entities: list[dict[str, Any]]

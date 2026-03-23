@@ -22,8 +22,7 @@ import threading
 from pathlib import Path
 from typing import Optional
 
-import spacy
-from spacy.language import Language
+from spacy.lang.en import English
 from spacy.matcher import PhraseMatcher
 from spacy.tokens import Doc
 
@@ -140,43 +139,47 @@ class EncounterTextcat:
         return doc
 
 
-# ── spaCy factory registration ────────────────────────────────────────────────
+# -- Lightweight runtime pipeline ---------------------------------------------
 
 
-def _encounter_textcat_factory(nlp, name: str, rules_path: str) -> EncounterTextcat:
-    return EncounterTextcat(nlp, name, rules_path)
+class _EncounterPipeline:
+    """Small callable pipeline for rule-based encounter classification.
 
+    Uses ``English.make_doc`` and applies ``EncounterTextcat`` directly.
+    This avoids spaCy config/factory initialisation paths that can break when
+    older spaCy builds run alongside newer Pydantic versions in CI images.
+    """
 
-if not Language.has_factory("encounter_textcat"):
-    Language.factory(
-        "encounter_textcat",
-        default_config={"rules_path": str(_RULES_PATH)},
-        func=_encounter_textcat_factory,
-    )
+    def __init__(self, rules_path: Optional[str] = None) -> None:
+        self._nlp = English()
+        self._component = EncounterTextcat(
+            self._nlp,
+            "encounter_textcat",
+            rules_path or str(_RULES_PATH),
+        )
+
+    def __call__(self, text: str) -> Doc:
+        doc = self._nlp.make_doc(text)
+        return self._component(doc)
 
 
 # ── Singleton pipeline ────────────────────────────────────────────────────────
 
 _nlp_lock = threading.Lock()
-_nlp_instance: Optional[Language] = None
+_nlp_instance: Optional[_EncounterPipeline] = None
 
 
-def _get_pipeline(rules_path: Optional[str] = None) -> Language:
-    """Return a cached blank ``en`` spaCy pipeline with the encounter_textcat component.
+def _get_pipeline(rules_path: Optional[str] = None) -> _EncounterPipeline:
+    """Return a cached pipeline that applies the encounter textcat component.
 
-    Thread-safe. The pipeline is created once and reused for the lifetime of
-    the process. The ``PhraseMatcher`` instances inside the component are
-    read-only after init, so concurrent calls are safe.
+    Thread-safe. The pipeline is created once and reused for the lifetime of the
+    process. The ``PhraseMatcher`` instances inside the component are read-only
+    after init, so concurrent calls are safe.
     """
     global _nlp_instance
     with _nlp_lock:
         if _nlp_instance is None:
-            nlp = spacy.blank("en")
-            cfg: dict = {}
-            if rules_path:
-                cfg["rules_path"] = rules_path
-            nlp.add_pipe("encounter_textcat", config=cfg)
-            _nlp_instance = nlp
+            _nlp_instance = _EncounterPipeline(rules_path=rules_path)
             logger.info("EncounterTextcat pipeline initialised (rules: %s)", rules_path or _RULES_PATH)
     return _nlp_instance
 
