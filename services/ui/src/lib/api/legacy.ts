@@ -468,6 +468,45 @@ export async function upsertSurfaceFormMapping(
   );
 }
 
+export interface LabelEntity {
+  text: string;
+  label: string;
+  start?: number;
+  end?: number;
+  assertion?: string;
+  confidence?: number;
+  snomed_concept_id?: string;
+  semantic_tag?: string;
+}
+
+export async function patchLabelEntities(
+  labelId: string,
+  entities: LabelEntity[],
+): Promise<{ label_id: string; entities: LabelEntity[] }> {
+  return fetchJson<{ label_id: string; entities: LabelEntity[] }>(
+    `${API_BASE}/api/training/labels/${encodeURIComponent(labelId)}/entities`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ entities }),
+    },
+  );
+}
+
+export async function patchGoldLabelEntities(
+  labelId: string,
+  entities: LabelEntity[],
+): Promise<{ label_id: string; entities: LabelEntity[] }> {
+  return fetchJson<{ label_id: string; entities: LabelEntity[] }>(
+    `${API_BASE}/api/training/gold-labels/${encodeURIComponent(labelId)}/entities`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ entities }),
+    },
+  );
+}
+
 export interface GroupedSurfaceForm {
   normalized: string;
   form: string;
