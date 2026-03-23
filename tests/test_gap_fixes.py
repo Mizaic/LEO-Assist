@@ -375,9 +375,8 @@ class TestJwtVerification(unittest.TestCase):
 
         mock_decode.assert_called_once()
         call_kwargs = mock_decode.call_args
-        # Verify audience and issuer are passed for proper validation
+        # Audience must match app registration; issuer is not fixed (multi-tenant /common/)
         self.assertIn("test-client-id", str(call_kwargs))
-        self.assertIn("test-tenant", str(call_kwargs))
         self.assertEqual(claims["preferred_username"], "user@test.com")
 
     def test_verify_id_token_raises_401_on_jwt_error(self):

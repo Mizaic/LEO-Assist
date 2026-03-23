@@ -20,14 +20,14 @@ except ImportError:
 
 import os
 
+from app import config  # noqa: F401 - Key Vault + env before routers read secrets
+
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 from libs.auth.org_scope import get_caller_scope
-
-from app import config  # noqa: F401 - loads secrets/.env
 from app.deps import get_caller_scope_from_request
 
 limiter = Limiter(key_func=get_remote_address)
