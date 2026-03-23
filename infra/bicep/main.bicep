@@ -144,5 +144,6 @@ module containerApps 'modules/container-apps.bicep' = {
 
 output coreApiFqdn string = containerApps.outputs.coreApiFqdn
 output uiFqdn string = containerApps.outputs.uiFqdn
+output acaDefaultDomain string = containerApps.outputs.acaDefaultDomain
 output kvUri string = keyvault.outputs.kvUri
 output sbNamespaceFqdn string = servicebus.outputs.sbNamespaceFqdn

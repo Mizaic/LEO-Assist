@@ -80,12 +80,18 @@ resource cae 'Microsoft.App/managedEnvironments@2024-03-01' = {
   }
 }
 
-// -- Internal service URLs (resolved by ACA DNS within the environment) ---
-var termApiUrl = 'http://terminology-api'
-var fhirApiUrl = 'http://fhir-api'
-var analyticsApiUrl = 'http://analytics-api'
-var modelInferenceUrl = 'http://model-inference'
-var pipelineWorkerUrl = 'http://pipeline-worker'
+// -- Internal service URLs (same Container Apps environment) ---------------
+// Microsoft documents http://<app-name> for in-mesh calls, but short names can
+// fail to resolve or flake under load; full hostnames using the environment
+// defaultDomain are reliable (see ACA "Communicate between container apps").
+var acaDefaultDomain = cae.properties.defaultDomain
+var termApiUrl = 'http://terminology-api.${acaDefaultDomain}'
+var fhirApiUrl = 'http://fhir-api.${acaDefaultDomain}'
+var analyticsApiUrl = 'http://analytics-api.${acaDefaultDomain}'
+var modelInferenceUrl = 'http://model-inference.${acaDefaultDomain}'
+var pipelineWorkerUrl = 'http://pipeline-worker.${acaDefaultDomain}'
+var trainingWorkerUrl = 'http://training-worker.${acaDefaultDomain}'
+var coreApiInternalUrl = 'http://core-api.${acaDefaultDomain}'
 
 // -- Shared env vars injected into every app -------------------------------
 var sharedEnv = [
@@ -300,9 +306,9 @@ resource ui 'Microsoft.App/containerApps@2024-03-01' = {
         image: usePlaceholder ? placeholderImage : '${acrLoginServer}/ui:${imageTag}'
         resources: { cpu: json('0.25'), memory: '0.5Gi' }
         env: union(sharedEnv, [
-          { name: 'INTERNAL_API_BASE', value: 'http://core-api' }
+          { name: 'INTERNAL_API_BASE', value: coreApiInternalUrl }
           { name: 'TERMINOLOGY_API_URL', value: termApiUrl }
-          { name: 'TRAINING_WORKER_URL', value: 'http://training-worker' }
+          { name: 'TRAINING_WORKER_URL', value: trainingWorkerUrl }
           { name: 'NODE_ENV', value: 'production' }
           // NextAuth needs the public base URL of this environment
           { name: 'AUTH_URL', value: frontendUrl }
@@ -520,3 +526,5 @@ resource pipelineWorker 'Microsoft.App/containerApps@2024-03-01' = {
 
 output coreApiFqdn string = coreApi.properties.configuration.ingress.fqdn
 output uiFqdn string = ui.properties.configuration.ingress.fqdn
+// Environment DNS suffix for in-mesh HTTP (e.g. proudriver-82c5b80a.uksouth.azurecontainerapps.io)
+output acaDefaultDomain string = cae.properties.defaultDomain

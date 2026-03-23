@@ -64,6 +64,23 @@ def _ingress_external_flag(block: str) -> bool | None:
     return m.group(1) == "true"
 
 
+class TestContainerAppsInternalUrlsUseDefaultDomain:
+    """Internal service base URLs must use the ACA environment defaultDomain.
+
+    Short names like http://terminology-api are documented but can fail in practice;
+    Bicep should build http://<app>.<defaultDomain> from cae.properties.defaultDomain.
+    """
+
+    def test_internal_urls_reference_default_domain(self):
+        source = CONTAINER_APPS.read_text()
+        assert "cae.properties.defaultDomain" in source, (
+            "container-apps.bicep must read cae.properties.defaultDomain for mesh URLs"
+        )
+        assert "http://terminology-api.${acaDefaultDomain}" in source, (
+            "terminology URL must be built from acaDefaultDomain (full in-mesh hostname)"
+        )
+
+
 class TestContainerAppsIngressPolicy:
     """ACA ingress: only core-api and ui may be external; all others internal."""
 
