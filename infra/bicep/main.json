@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.39.26.7824",
-      "templateHash": "9659580421003074176"
+      "templateHash": "13304568239905792598"
     }
   },
   "parameters": {
@@ -620,7 +620,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.39.26.7824",
-              "templateHash": "768471423121622280"
+              "templateHash": "15790543038743741238"
             }
           },
           "parameters": {
@@ -1260,7 +1260,7 @@
                         "cpu": "[json('0.5')]",
                         "memory": "1Gi"
                       },
-                      "env": "[union(variables('sharedEnv'), createArray(createObject('name', 'NEO4J_USER', 'value', parameters('neo4jUser')), createObject('name', 'TERMINOLOGY_API_URL', 'value', variables('termApiUrl')), createObject('name', 'FHIR_API_URL', 'value', variables('fhirApiUrl')), createObject('name', 'ANALYTICS_API_URL', 'value', variables('analyticsApiUrl')), createObject('name', 'CODING_MODEL_ENDPOINT', 'value', variables('modelInferenceUrl')), createObject('name', 'PIPELINE_WORKER_URL', 'value', variables('pipelineWorkerUrl')), createObject('name', 'SB_MAX_LOCK_RENEWAL_SECONDS', 'value', parameters('sbMaxLockRenewalSeconds')), createObject('name', 'FRONTEND_URL', 'value', parameters('frontendUrl')), createObject('name', 'AUTH_REDIRECT_URI', 'value', format('{0}/auth/callback', parameters('frontendUrl'))), createObject('name', 'MAIL_FROM_ADDRESS', 'value', 'leo.support@healthcarecopilot.ai')))]"
+                      "env": "[union(variables('sharedEnv'), createArray(createObject('name', 'NEO4J_USER', 'value', parameters('neo4jUser')), createObject('name', 'TERMINOLOGY_API_URL', 'value', variables('termApiUrl')), createObject('name', 'FHIR_API_URL', 'value', variables('fhirApiUrl')), createObject('name', 'FHIR_API_BASE', 'value', variables('fhirApiUrl')), createObject('name', 'ANALYTICS_API_URL', 'value', variables('analyticsApiUrl')), createObject('name', 'ANALYTICS_API_BASE', 'value', variables('analyticsApiUrl')), createObject('name', 'CODING_MODEL_ENDPOINT', 'value', variables('modelInferenceUrl')), createObject('name', 'PIPELINE_WORKER_URL', 'value', variables('pipelineWorkerUrl')), createObject('name', 'SB_MAX_LOCK_RENEWAL_SECONDS', 'value', parameters('sbMaxLockRenewalSeconds')), createObject('name', 'FRONTEND_URL', 'value', parameters('frontendUrl')), createObject('name', 'AUTH_REDIRECT_URI', 'value', format('{0}/auth/callback', parameters('frontendUrl'))), createObject('name', 'MAIL_FROM_ADDRESS', 'value', 'leo.support@healthcarecopilot.ai')))]"
                     }
                   ],
                   "scale": {
