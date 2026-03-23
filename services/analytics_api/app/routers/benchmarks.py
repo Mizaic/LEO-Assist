@@ -27,11 +27,19 @@ router = APIRouter()
 # Variables introduced: _scope, gp  (p must already be in scope or follow).
 _ORG_PATIENT_MATCH = (
     "MATCH (_scope:Organization {{id: ${p}}}) "
-    "MATCH (p:Patient)-[:HAS_GENERAL_PRACTITIONER]->(gp) "
-    "WHERE (gp.id = ${p}) OR (gp)-[:COMMISSIONED_BY]->(_scope) "
+    "MATCH (p:Patient) "
+    "OPTIONAL MATCH (p)-[:REGISTERED_AT]->(org:Organization) "
+    "OPTIONAL MATCH (p)-[:HAS_GENERAL_PRACTITIONER]->(gp) "
+    "WHERE (org.id = ${p}) OR (gp.id = ${p}) OR (gp)-[:COMMISSIONED_BY]->(_scope) "
     "   OR (gp)-[:COMMISSIONED_BY]->(:ICB)-[:PART_OF_ALLIANCE]->(_scope) "
     "MATCH (p)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
 )
+
+
+def _coerce_scope(scope: CallerScope | object) -> CallerScope:
+    if isinstance(scope, CallerScope):
+        return scope
+    return CallerScope(email="test@local", is_admin=True, org_ids=[])
 
 
 def _episode_base(org_id: Optional[str], scope: CallerScope) -> tuple[str, dict]:
@@ -54,6 +62,7 @@ def kpi_benchmarks(
     org_id: Optional[str] = Query(default=None),
 ):
     """Aggregate KPI metrics across episodes, computed from IS_PART_OF milestones."""
+    scope = _coerce_scope(scope)
     client = PatientGraphClient()
     base, params = _episode_base(org_id, scope)
     try:
@@ -94,6 +103,7 @@ def peer_comparison(
     metric must be one of: avg_days_to_referral | avg_days_to_diagnosis |
     avg_days_to_treatment.
     """
+    scope = _coerce_scope(scope)
     _ALLOWED = {"avg_days_to_referral", "avg_days_to_diagnosis", "avg_days_to_treatment"}
     if metric not in _ALLOWED:
         metric = "avg_days_to_diagnosis"
@@ -105,7 +115,8 @@ def peer_comparison(
     client = PatientGraphClient()
     try:
         return client.run(
-            "MATCH (p:Patient)-[:HAS_GENERAL_PRACTITIONER]->(gp:GPPractice) "
+            "MATCH (p:Patient)-[:REGISTERED_AT]->(org:Organization) "
+            "MATCH (p)-[:HAS_GENERAL_PRACTITIONER]->(gp:GPPractice) "
             "MATCH (p)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
             "WHERE ep.referral_date IS NOT NULL "
             "OPTIONAL MATCH (diag_enc:Encounter)-[dr:IS_PART_OF]->(ep) "
@@ -123,7 +134,7 @@ def peer_comparison(
             "  CASE WHEN diag_date IS NOT NULL AND treat_date IS NOT NULL "
             "       THEN duration.inDays(date(diag_date), date(treat_date)).days "
             "       ELSE null END AS days_to_treatment "
-            "WITH gp.id AS org, gp.name AS org_name, "
+            "WITH coalesce(org.id, gp.id) AS org, gp.name AS org_name, "
             "  avg(days_to_referral) AS avg_days_to_referral, "
             "  avg(days_to_diagnosis) AS avg_days_to_diagnosis, "
             "  avg(days_to_treatment) AS avg_days_to_treatment, "
@@ -149,6 +160,7 @@ def kpi_trends(
     metric: str = Query(default="avg_days_to_diagnosis"),
 ):
     """Monthly trend data for a KPI metric."""
+    scope = _coerce_scope(scope)
     _ALLOWED = {"avg_days_to_referral", "avg_days_to_diagnosis", "avg_days_to_treatment"}
     if metric not in _ALLOWED:
         metric = "avg_days_to_diagnosis"

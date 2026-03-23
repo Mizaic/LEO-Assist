@@ -66,7 +66,10 @@ class SentenceSplitter:
         if not text.strip():
             return []
         if self._pyrush:
-            return self._split_pyrush(text)
+            chunks = self._split_pyrush(text)
+            if len(chunks) <= 1 and _SENTENCE_SPLIT.search(text):
+                return self._split_regex(text)
+            return chunks
         return self._split_regex(text)
 
     def _split_pyrush(self, text: str) -> list[SentenceChunk]:

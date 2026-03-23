@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import os
 from unittest.mock import MagicMock, patch
 
@@ -21,6 +22,14 @@ def mock_env(monkeypatch):
     monkeypatch.setenv("AZURE_AD_TENANT_ID", "test-tenant")
     monkeypatch.setenv("AZURE_AD_CLIENT_ID", "test-client")
     monkeypatch.setenv("AZURE_AD_CLIENT_SECRET", "test-secret")
+
+
+@pytest.fixture(autouse=True)
+def ensure_default_event_loop():
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        asyncio.set_event_loop(asyncio.new_event_loop())
 
 
 @pytest.fixture

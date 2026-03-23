@@ -165,7 +165,7 @@ def _parse_related_concepts_row(row: dict[str, Any]) -> list[dict[str, str]]:
     return related
 
 
-@dataclass
+@dataclass(frozen=True)
 class CodingCandidate:
     snomed_concept_id: str | None
     snomed_term: str | None
