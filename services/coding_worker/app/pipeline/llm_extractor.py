@@ -18,6 +18,18 @@ _VALID_ASSERTIONS = {
     "cancelled",
 }
 
+_ASSERTION_TO_CONTEXT: dict[str, dict[str, bool]] = {
+    "present": {"negated": False, "declined": False, "cancelled": False},
+    "absent": {"negated": True, "declined": False, "cancelled": False},
+    "refuted": {"negated": True, "declined": False, "cancelled": False},
+    "possible": {"negated": False, "declined": False, "cancelled": False},
+    "historical": {"negated": False, "declined": False, "cancelled": False},
+    "hypothetical": {"negated": False, "declined": False, "cancelled": False},
+    "family": {"negated": False, "declined": False, "cancelled": False},
+    "declined": {"negated": False, "declined": True, "cancelled": False},
+    "cancelled": {"negated": False, "declined": False, "cancelled": True},
+}
+
 
 @dataclass(frozen=True)
 class ExtractedTerm:
@@ -102,6 +114,7 @@ class LLMExtractor:
             assertion = str(term.get("assertion") or "present").lower()
             if assertion not in _VALID_ASSERTIONS:
                 assertion = "present"
+            context = dict(_ASSERTION_TO_CONTEXT.get(assertion, _ASSERTION_TO_CONTEXT["present"]))
             results.append(
                 ExtractedTerm(
                     sentence_id=sentence_id or "s0",
@@ -109,7 +122,7 @@ class LLMExtractor:
                     lookup_term=str(term.get("lookup_term") or text),
                     semantic_tag=str(term.get("semantic_tag") or "finding"),
                     assertion=assertion,
-                    context={"negated": assertion in {"absent", "refuted"}},
+                    context=context,
                     modifiers=dict(term.get("modifiers") or {}),
                 )
             )

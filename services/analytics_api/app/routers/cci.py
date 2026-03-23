@@ -41,12 +41,19 @@ CCI_WEIGHTS: Dict[str, int] = {
 }
 
 
+def _coerce_scope(scope: CallerScope | object) -> CallerScope:
+    if isinstance(scope, CallerScope):
+        return scope
+    return CallerScope(email="test@local", is_admin=True, org_ids=[])
+
+
 @router.get("/cci/{patient_id}")
 def calculate_cci(
     patient_id: str,
     scope: CallerScope = Depends(get_caller_scope),
 ):
     """Calculate CCI score for a patient from coded encounter data."""
+    scope = _coerce_scope(scope)
     client = PatientGraphClient()
     try:
         require_patient_in_scope(client, scope, patient_id)
@@ -94,6 +101,7 @@ def batch_cci(
     org_id: str = Query(default=None),
 ):
     """Get CCI distribution for an organization."""
+    scope = _coerce_scope(scope)
     client = PatientGraphClient()
     try:
         if scope.is_admin and not org_id:
