@@ -15,7 +15,7 @@ async function triggerReauth(): Promise<void> {
   if (typeof window === 'undefined' || reauthInProgress) return;
   reauthInProgress = true;
   try {
-    const next = encodeURIComponent(window.location.pathname || '/dashboard');
+    const next = encodeURIComponent(window.location.pathname || "/care/dashboard");
     // Same-origin path so the nonce cookie is set on the UI origin.
     window.location.href = `/auth/login?next_url=${next}`;
   } finally {

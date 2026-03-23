@@ -10,7 +10,7 @@ import { useRouter } from "next/navigation";
 export default function TenantRedirect() {
   const router = useRouter();
   useEffect(() => {
-    router.replace("/portal");
+    router.replace("/care/portal");
   }, [router]);
   return null;
 }

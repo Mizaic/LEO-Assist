@@ -44,6 +44,28 @@ const nextConfig = {
   experimental: {
     proxyTimeout: 300_000, // 5 minutes – extraction pipelines can take 60s+
   },
+  // Legacy un-prefixed routes -> care/admin shell (see AppShell CARE_NAV / ADMIN_NAV).
+  async redirects() {
+    return [
+      { source: "/dashboard", destination: "/care/dashboard", permanent: true },
+      { source: "/audit", destination: "/care/audit", permanent: true },
+      { source: "/patients", destination: "/care/patients", permanent: true },
+      { source: "/patients/:path*", destination: "/care/patients/:path*", permanent: true },
+      { source: "/pathways", destination: "/care/pathways", permanent: true },
+      { source: "/safety-netting", destination: "/care/safety-netting", permanent: true },
+      { source: "/reports", destination: "/care/reports", permanent: true },
+      { source: "/reports/:path*", destination: "/care/reports/:path*", permanent: true },
+      { source: "/measures", destination: "/care/measures", permanent: true },
+      { source: "/measures/:path*", destination: "/care/measures/:path*", permanent: true },
+      { source: "/benchmarks", destination: "/care/benchmarks", permanent: true },
+      { source: "/benchmarks/:path*", destination: "/care/benchmarks/:path*", permanent: true },
+      { source: "/cohorts", destination: "/care/cohorts", permanent: true },
+      { source: "/operations", destination: "/admin/operations", permanent: true },
+      { source: "/games", destination: "/care/wellbeing", permanent: true },
+      { source: "/gold-dataset", destination: "/admin/gold-dataset", permanent: true },
+      { source: "/portal", destination: "/care/portal", permanent: true },
+    ];
+  },
   // Proxying is handled at runtime by src/middleware.ts so the same
   // Docker image works in any environment without rebuilding.
 };

@@ -128,7 +128,7 @@ export default function SafetyNetAlertsSummary({ alerts, onAction }: Props) {
         })}
 
         <Box sx={{ textAlign: "right", pt: 0.5 }}>
-          <Link href="/safety-netting" style={{ textDecoration: "none" }}>
+          <Link href="/care/safety-netting" style={{ textDecoration: "none" }}>
             <Typography
               variant="caption"
               sx={{

@@ -9,7 +9,7 @@ export const test = base.extend<{
   patientListPage: void;
 }>({
   patientListPage: async ({ page }, use) => {
-    await page.goto("/patients");
+    await page.goto("/care/patients");
     await page.waitForSelector("text=Patients");
     await use();
   },

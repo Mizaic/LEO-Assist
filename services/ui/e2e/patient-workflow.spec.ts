@@ -2,12 +2,12 @@ import { test, expect } from "@playwright/test";
 
 test.describe("Patient Workflow", () => {
   test("patient list page loads and shows heading", async ({ page }) => {
-    await page.goto("/patients");
+    await page.goto("/care/patients");
     await expect(page.getByRole("heading", { name: "Patients" })).toBeVisible();
   });
 
   test("patient list shows patient cards after API response", async ({ page }) => {
-    await page.goto("/patients");
+    await page.goto("/care/patients");
     await page.waitForResponse((res) =>
       res.url().includes("/patients") && res.status() === 200,
     );
@@ -16,7 +16,7 @@ test.describe("Patient Workflow", () => {
   });
 
   test("search filters patients by ID", async ({ page }) => {
-    await page.goto("/patients");
+    await page.goto("/care/patients");
     await page.waitForResponse((res) =>
       res.url().includes("/patients") && res.status() === 200,
     );
@@ -27,17 +27,17 @@ test.describe("Patient Workflow", () => {
   });
 
   test("clicking a patient navigates to encounters list", async ({ page }) => {
-    await page.goto("/patients");
+    await page.goto("/care/patients");
     await page.waitForResponse((res) =>
       res.url().includes("/patients") && res.status() === 200,
     );
     const firstCard = page.locator("[class*='MuiCardActionArea-root']").first();
     await firstCard.click();
-    await expect(page).toHaveURL(/\/patients\/[^/]+$/);
+    await expect(page).toHaveURL(/\/care/patients\/[^/]+$/);
   });
 
   test("encounter list shows encounter rows", async ({ page }) => {
-    await page.goto("/patients");
+    await page.goto("/care/patients");
     await page.waitForResponse((res) =>
       res.url().includes("/patients") && res.status() === 200,
     );

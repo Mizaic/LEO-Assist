@@ -82,10 +82,10 @@ export default function SafetyAlertModal({ alert, onClose, onAction }: Props) {
   // Build the deepest available link: encounter > patient > safety-netting
   const pathwayHref =
     alert.patient_id && alert.encounter_id
-      ? `/patients/${alert.patient_id}/encounters/${alert.encounter_id}`
+      ? `/care/patients/${alert.patient_id}/encounters/${alert.encounter_id}`
       : alert.patient_id
-        ? `/patients/${alert.patient_id}`
-        : "/safety-netting";
+        ? `/care/patients/${alert.patient_id}`
+        : "/care/safety-netting";
 
   return (
     <Dialog

@@ -111,7 +111,7 @@ export default function PatientList() {
             return (
               <Box sx={{ pb: 1 }}>
                 <Card variant="outlined">
-                  <CardActionArea onClick={() => router.push(`/patients/${p.patient_id}`)}>
+                  <CardActionArea onClick={() => router.push(`/care/patients/${p.patient_id}`)}>
                     <Box
                       sx={{
                         display: "flex",

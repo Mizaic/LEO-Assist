@@ -1,5 +1,8 @@
 fastapi>=0.115.0
 uvicorn>=0.30.0
+python-dotenv>=1.0.1
+azure-identity>=1.19.0
+azure-keyvault-secrets>=4.8.0
 neo4j>=5.20.0
 httpx>=0.28
 python-jose[cryptography]>=3.3

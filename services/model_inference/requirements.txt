@@ -1,5 +1,8 @@
 fastapi>=0.115.0
 uvicorn[standard]>=0.30.0
+python-dotenv>=1.0.1
+azure-identity>=1.19.0
+azure-keyvault-secrets>=4.8.0
 spacy>=3.7.0
 # Required to load transformer-backbone NER models (Bio_ClinicalBERT).
 # CPU-only torch is sufficient — inference does not need a GPU.

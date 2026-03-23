@@ -118,7 +118,7 @@ export default function PortalPage() {
     if (status === "unauthenticated") {
       router.replace("/sign-in");
     } else if (status === "authenticated" && !hasAccess) {
-      router.replace("/dashboard");
+      router.replace("/care/dashboard");
     }
   }, [status, hasAccess, router]);
 

@@ -207,7 +207,7 @@ export default function EncounterCodedView({ patientId, encounterId }: Props) {
                 variant="text"
                 size="small"
                 startIcon={<ArrowBackIcon />}
-                onClick={() => router.push(`/patients/${patientId}`)}
+                onClick={() => router.push(`/care/patients/${patientId}`)}
                 sx={{ mb: 0.5, textTransform: "none" }}
               >
                 Back to encounters
