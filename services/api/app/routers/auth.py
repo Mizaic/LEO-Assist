@@ -90,7 +90,7 @@ def _get_jwks() -> dict:
     """Return Azure AD JWKS from /common/, refreshing the cache if older than _JWKS_TTL."""
     global _JWKS_CACHE, _JWKS_FETCHED_AT
     now = time.monotonic()
-    if _JWKS_CACHE and (now - _JWKS_FETCHED_AT) < _JWKS_TTL:
+    if _JWKS_CACHE and _JWKS_FETCHED_AT > 0 and (now - _JWKS_FETCHED_AT) < _JWKS_TTL:
         return _JWKS_CACHE
     jwks_uri = "https://login.microsoftonline.com/common/discovery/v2.0/keys"
     try:

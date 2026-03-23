@@ -308,7 +308,7 @@ def episode_summary(
                 org=effective_org, **date_params,
             )
         return client.run(
-            "MATCH (p:Patient)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
+            "MATCH (ep:EpisodeOfCare) "
             f"WHERE ep.referral_date IS NOT NULL {scope_frag}{date_frag} "
             "RETURN ep.cancer_type AS condition_type, ep.status AS status, count(ep) AS count "
             "ORDER BY count DESC",

@@ -11,6 +11,7 @@ import json
 import logging
 import os
 import re
+from copy import deepcopy
 from typing import Any, TypedDict
 
 from langgraph.graph import END, START, StateGraph
@@ -322,7 +323,7 @@ def verify_entities(state: VerificationState) -> dict[str, Any]:
         for _ in range(_MAX_VERIFICATION_TOOL_ITERATIONS):
             resp = llm.converse(
                 system=system,
-                messages=messages,
+                messages=deepcopy(messages),
                 tool_config=_VERIFICATION_TOOL_CONFIG,
                 json_mode=True,
             )
