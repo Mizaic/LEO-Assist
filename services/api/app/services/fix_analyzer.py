@@ -16,6 +16,8 @@ import logging
 from typing import Any, Dict, Optional
 from uuid import uuid4
 
+from libs.llm_client.providers import invoke_with_fallback
+
 logger = logging.getLogger(__name__)
 
 FIX_ANALYZER_SYSTEM = """You are a clinical coding knowledge-base analyst.
@@ -68,8 +70,6 @@ def analyze_correction(
     domain_context: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Analyze a correction and return a FixProposal dict."""
-    from libs.llm_client.providers import invoke_with_fallback
-
     user_parts = [
         "## Correction",
         f"Type: {correction_type}",

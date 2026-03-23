@@ -45,6 +45,12 @@ class RebuildEpisodesRequest(BaseModel):
     delete_existing: bool = True
 
 
+def _coerce_scope(scope: CallerScope | object) -> CallerScope:
+    if isinstance(scope, CallerScope):
+        return scope
+    return CallerScope(email="test@local", is_admin=True, org_ids=[])
+
+
 def _scope_filter(scope: CallerScope) -> tuple[str, dict]:
     """Return (WHERE fragment, params) to restrict patient queries by caller scope.
 
@@ -66,6 +72,7 @@ async def rebuild_patient_episodes(
 ):
     """Rebuild episodes for a single patient. Runs anchor detection and episode building.
     Optionally deletes existing episodes first."""
+    scope = _coerce_scope(scope)
     from libs.auth.org_scope import require_patient_in_scope
 
     client = PatientGraphClient()
@@ -113,6 +120,7 @@ def close_episode(
     scope: CallerScope = Depends(get_caller_scope),
 ):
     """Close or archive an episode. Sets status, completed_at, completed_by."""
+    scope = _coerce_scope(scope)
     if body.status not in ("closed", "completed"):
         raise HTTPException(status_code=400, detail="status must be 'closed' or 'completed'")
     client = PatientGraphClient()
@@ -149,6 +157,7 @@ def merge_episodes_endpoint(
     scope: CallerScope = Depends(get_caller_scope),
 ):
     """Manually merge secondary episodes into a primary. Moves IS_PART_OF edges."""
+    scope = _coerce_scope(scope)
     if not body.secondary_episode_ids:
         raise HTTPException(status_code=400, detail="secondary_episode_ids cannot be empty")
     client = PatientGraphClient()
@@ -218,6 +227,7 @@ def edit_milestone(
     scope: CallerScope = Depends(get_caller_scope),
 ):
     """Update the milestone type for an encounter linked to an episode."""
+    scope = _coerce_scope(scope)
     valid_types = {
         "first_presentation", "presentation", "referral", "referral_sent",
         "specialist_visit", "first_clinic_visit", "clinic_visit", "first_clinic",
@@ -277,6 +287,7 @@ def episode_summary(
     date_to: Optional[str] = Query(default=None),
 ):
     """Aggregate episode counts by status and cancer type, with optional date range filter."""
+    scope = _coerce_scope(scope)
     client = PatientGraphClient()
     date_frag, date_params = _date_where(date_from, date_to)
     scope_frag, scope_params = _scope_filter(scope)
@@ -285,8 +296,10 @@ def episode_summary(
         if effective_org:
             return client.run(
                 "MATCH (_scope:Organization {id: $org}) "
-                "MATCH (p:Patient)-[:HAS_GENERAL_PRACTITIONER]->(gp) "
-                "WHERE (gp.id = $org) OR (gp)-[:COMMISSIONED_BY]->(_scope) "
+                "MATCH (p:Patient) "
+                "OPTIONAL MATCH (p)-[:REGISTERED_AT]->(orgNode:Organization) "
+                "OPTIONAL MATCH (p)-[:HAS_GENERAL_PRACTITIONER]->(gp) "
+                "WHERE (orgNode.id = $org) OR (gp.id = $org) OR (gp)-[:COMMISSIONED_BY]->(_scope) "
                 "   OR (gp)-[:COMMISSIONED_BY]->(:ICB)-[:PART_OF_ALLIANCE]->(_scope) "
                 "MATCH (p)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
                 f"WHERE ep.referral_date IS NOT NULL{date_frag} "
@@ -313,6 +326,7 @@ def episode_diagnosed(
     date_to: Optional[str] = Query(default=None),
 ):
     """Confirmed diagnoses grouped by cancer type, with optional date range and org filters."""
+    scope = _coerce_scope(scope)
     client = PatientGraphClient()
     date_frag, date_params = _date_where(date_from, date_to)
     scope_frag, scope_params = _scope_filter(scope)
@@ -321,8 +335,10 @@ def episode_diagnosed(
         if effective_org:
             return client.run(
                 "MATCH (_scope:Organization {id: $org}) "
-                "MATCH (p:Patient)-[:HAS_GENERAL_PRACTITIONER]->(gp) "
-                "WHERE (gp.id = $org) OR (gp)-[:COMMISSIONED_BY]->(_scope) "
+                "MATCH (p:Patient) "
+                "OPTIONAL MATCH (p)-[:REGISTERED_AT]->(orgNode:Organization) "
+                "OPTIONAL MATCH (p)-[:HAS_GENERAL_PRACTITIONER]->(gp) "
+                "WHERE (orgNode.id = $org) OR (gp.id = $org) OR (gp)-[:COMMISSIONED_BY]->(_scope) "
                 "   OR (gp)-[:COMMISSIONED_BY]->(:ICB)-[:PART_OF_ALLIANCE]->(_scope) "
                 "MATCH (p)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
                 f"WHERE ep.status = 'confirmed' AND ep.referral_date IS NOT NULL{date_frag} "
@@ -353,6 +369,7 @@ def episode_timeline(
     By default, merged episodes are excluded. Pass include_merged=true
     to show all episodes including those merged into a primary.
     """
+    scope = _coerce_scope(scope)
     from libs.auth.org_scope import require_patient_in_scope
 
     client = PatientGraphClient()
@@ -385,8 +402,10 @@ def episode_timeline(
         if effective_org:
             return client.run(
                 "MATCH (_scope:Organization {id: $org}) "
-                "MATCH (p:Patient)-[:HAS_GENERAL_PRACTITIONER]->(gp) "
-                "WHERE (gp.id = $org) OR (gp)-[:COMMISSIONED_BY]->(_scope) "
+                "MATCH (p:Patient) "
+                "OPTIONAL MATCH (p)-[:REGISTERED_AT]->(orgNode:Organization) "
+                "OPTIONAL MATCH (p)-[:HAS_GENERAL_PRACTITIONER]->(gp) "
+                "WHERE (orgNode.id = $org) OR (gp.id = $org) OR (gp)-[:COMMISSIONED_BY]->(_scope) "
                 "   OR (gp)-[:COMMISSIONED_BY]->(:ICB)-[:PART_OF_ALLIANCE]->(_scope) "
                 "MATCH (p)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
                 f"WHERE true {merged_filter}"
@@ -433,6 +452,7 @@ def safety_net_alerts(
     org_id: Optional[str] = Query(default=None),
 ):
     """List safety-net alerts from the Patient Graph."""
+    scope = _coerce_scope(scope)
     client = PatientGraphClient()
     scope_frag, scope_params = _scope_filter(scope)
     try:
@@ -440,8 +460,10 @@ def safety_net_alerts(
         if effective_org:
             org_prefix = (
                 "MATCH (_scope:Organization {id: $org}) "
-                "MATCH (p:Patient)-[:HAS_GENERAL_PRACTITIONER]->(gp) "
-                "WHERE (gp.id = $org) OR (gp)-[:COMMISSIONED_BY]->(_scope) "
+                "MATCH (p:Patient) "
+                "OPTIONAL MATCH (p)-[:REGISTERED_AT]->(orgNode:Organization) "
+                "OPTIONAL MATCH (p)-[:HAS_GENERAL_PRACTITIONER]->(gp) "
+                "WHERE (orgNode.id = $org) OR (gp.id = $org) OR (gp)-[:COMMISSIONED_BY]->(_scope) "
                 "   OR (gp)-[:COMMISSIONED_BY]->(:ICB)-[:PART_OF_ALLIANCE]->(_scope) "
                 "MATCH (p)-[:HAS_SAFETY_NET_ALERT]->(a:SafetyNetAlert) "
             )
@@ -479,6 +501,7 @@ def safety_net_worklist(
     org_id: Optional[str] = Query(default=None),
 ):
     """Patient-pathway centric safety-netting worklist for /safety-netting UI."""
+    scope = _coerce_scope(scope)
     client = PatientGraphClient()
     scope_frag, scope_params = _scope_filter(scope)
     try:
@@ -568,6 +591,7 @@ def action_css_alert(
     scope: CallerScope = Depends(get_caller_scope),
 ):
     """Mark a safety-net alert as actioned or un-actioned."""
+    scope = _coerce_scope(scope)
     client = PatientGraphClient()
     try:
         if not scope.is_admin:

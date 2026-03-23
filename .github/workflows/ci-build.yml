@@ -58,8 +58,6 @@ jobs:
             dockerfile: infra/dockerfiles/Dockerfile.model-inference
           - service: training-worker
             dockerfile: infra/dockerfiles/Dockerfile.training-worker
-          - service: ui
-            dockerfile: infra/dockerfiles/Dockerfile.ui
 
     steps:
       - name: Checkout
@@ -106,3 +104,53 @@ jobs:
 
       - name: Output image digest
         run: docker inspect --format='{{index .RepoDigests 0}}' ${{ env.ACR_LOGIN_SERVER }}/${{ matrix.service }}:sha-${{ github.sha }}
+
+  build-push-ui:
+    name: Build ui
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Debug OIDC subject
+        run: |
+          TOKEN=$(curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=api://AzureADTokenExchange" | jq -r '.value')
+          echo "$TOKEN" | python3 -c "
+          import base64, json, sys
+          t = sys.stdin.read().strip()
+          if t:
+            p = t.split('.')[1]
+            p += '=' * (4 - len(p) % 4)
+            d = json.loads(base64.urlsafe_b64decode(p))
+            print('OIDC subject (must match federated credential):', d.get('sub'))
+            print('OIDC issuer:', d.get('iss'))
+          "
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          audience: api://AzureADTokenExchange
+
+      - name: Log in to ACR
+        run: az acr login --name ${{ env.ACR_NAME }}
+
+      - name: Build and push
+        run: |
+          IMAGE=${{ env.ACR_LOGIN_SERVER }}/ui
+          TAG=sha-${{ github.sha }}
+          docker build \
+            --file infra/dockerfiles/Dockerfile.ui \
+            --tag $IMAGE:$TAG \
+            --tag $IMAGE:latest \
+            --cache-from $IMAGE:latest \
+            .
+          docker push $IMAGE:$TAG
+          docker push $IMAGE:latest
+
+      - name: Output image digest
+        run: docker inspect --format='{{index .RepoDigests 0}}' ${{ env.ACR_LOGIN_SERVER }}/ui:sha-${{ github.sha }}

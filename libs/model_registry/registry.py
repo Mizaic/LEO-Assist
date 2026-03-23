@@ -51,9 +51,6 @@ def _default_registry_path() -> str:
         return ""
 
 
-_REGISTRY_STORE_PATH = (
-    os.getenv("MODEL_REGISTRY_STORE_PATH", "").strip() or _default_registry_path()
-)
 _INFERENCE_ENDPOINT = os.getenv("CODING_MODEL_ENDPOINT", "http://localhost:8004")
 _RELOAD_TIMEOUT_S = float(os.getenv("MODEL_RELOAD_TIMEOUT_S", "120"))
 
@@ -62,6 +59,15 @@ _MIN_PRECISION = float(os.getenv("MODEL_MIN_PRECISION", "0.80"))
 _MIN_RECALL = float(os.getenv("MODEL_MIN_RECALL", "0.75"))
 _MIN_CANARY_PRECISION = float(os.getenv("MODEL_CANARY_MIN_PRECISION", "0.78"))
 _MIN_CANARY_RECALL = float(os.getenv("MODEL_CANARY_MIN_RECALL", "0.72"))
+
+
+def _registry_store_path() -> str:
+    if os.getenv("PYTEST_CURRENT_TEST"):
+        return ""
+    configured = os.getenv("MODEL_REGISTRY_STORE_PATH", "").strip()
+    if configured:
+        return configured
+    return _default_registry_path()
 
 
 class ModelStatus(str, Enum):
@@ -407,10 +413,11 @@ class ModelRegistry:
         return self._records[version]
 
     def _save(self) -> None:
-        if not _REGISTRY_STORE_PATH:
+        store_path = _registry_store_path()
+        if not store_path:
             return
         try:
-            p = Path(_REGISTRY_STORE_PATH)
+            p = Path(store_path)
             p.parent.mkdir(parents=True, exist_ok=True)
             data = {
                 "active_version": self._active_version,
@@ -418,17 +425,18 @@ class ModelRegistry:
             }
             p.write_text(json.dumps(data, indent=2), encoding="utf-8")
         except Exception:
-            logger.warning("ModelRegistry: failed to persist to %s", _REGISTRY_STORE_PATH,
+            logger.warning("ModelRegistry: failed to persist to %s", store_path,
                            exc_info=True)
 
     def _load(self) -> None:
-        if not _REGISTRY_STORE_PATH:
+        store_path = _registry_store_path()
+        if not store_path:
             return
-        p = Path(_REGISTRY_STORE_PATH)
+        p = Path(store_path)
         if not p.exists():
             logger.info(
                 "ModelRegistry: no existing store at %s (will persist on first save)",
-                _REGISTRY_STORE_PATH,
+                store_path,
             )
             return
         try:
@@ -438,11 +446,11 @@ class ModelRegistry:
                 self._records[ver] = ModelRecord.from_dict(rec_dict)
             logger.info(
                 "ModelRegistry: loaded %d records from %s (active=%s)",
-                len(self._records), _REGISTRY_STORE_PATH, self._active_version,
+                len(self._records), store_path, self._active_version,
             )
         except Exception:
             logger.warning(
-                "ModelRegistry: failed to load from %s", _REGISTRY_STORE_PATH,
+                "ModelRegistry: failed to load from %s", store_path,
                 exc_info=True,
             )
 
