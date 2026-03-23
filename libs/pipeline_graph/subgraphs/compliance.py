@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 class ComplianceState(TypedDict, total=False):
     patient_id: str
     checklist: dict[str, Any]
+    compliance_result: dict[str, Any]
     compliance_report: dict[str, Any]
     errors: list[str]
 
