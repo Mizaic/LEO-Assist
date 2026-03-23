@@ -35,7 +35,7 @@ from neo4j.exceptions import (
 logger = logging.getLogger("libs.neo4j_client")
 
 _RETRYABLE_EXCEPTIONS = (ServiceUnavailable, SessionExpired, TransientError, OSError)
-_MAX_RETRIES = 6
+_MAX_RETRIES = 4
 _BASE_DELAY = 1.0
 _MAX_DELAY = 30.0
 
@@ -133,9 +133,9 @@ class PatientGraphClient(_BaseClient):
 
     def __init__(self) -> None:
         super().__init__(
-            os.getenv("NEO4J_URI", ""),
-            os.getenv("NEO4J_USER", ""),
-            os.getenv("NEO4J_PASSWORD", ""),
+            os.getenv("NEO4J_URI", "") or os.getenv("NEO4J_PATIENT_URI", ""),
+            os.getenv("NEO4J_USER", "") or os.getenv("NEO4J_PATIENT_USER", ""),
+            os.getenv("NEO4J_PASSWORD", "") or os.getenv("NEO4J_PATIENT_PASSWORD", ""),
         )
 
 
@@ -153,9 +153,9 @@ class KnowledgeGraphClient(_BaseClient):
 
     def __init__(self) -> None:
         super().__init__(
-            os.getenv("KNOWLEDGE_GRAPH_NEO4J_URI", ""),
-            os.getenv("KNOWLEDGE_GRAPH_NEO4J_USERNAME", ""),
-            os.getenv("KNOWLEDGE_GRAPH_NEO4J_PASSWORD", ""),
+            os.getenv("KNOWLEDGE_GRAPH_NEO4J_URI", "") or os.getenv("NEO4J_KNOWLEDGE_URI", ""),
+            os.getenv("KNOWLEDGE_GRAPH_NEO4J_USERNAME", "") or os.getenv("NEO4J_KNOWLEDGE_USER", ""),
+            os.getenv("KNOWLEDGE_GRAPH_NEO4J_PASSWORD", "") or os.getenv("NEO4J_KNOWLEDGE_PASSWORD", ""),
         )
 
 

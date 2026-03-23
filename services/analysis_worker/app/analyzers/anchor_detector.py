@@ -24,6 +24,16 @@ class AnchorResult:
     expanded_end: str | None = None
     errors: list[str] = field(default_factory=list)
 
+    @property
+    def has_referral(self) -> bool:
+        return bool(self.referral_anchors)
+
+    @property
+    def earliest_date(self) -> str | None:
+        if not self.referral_anchors:
+            return None
+        return str(self.referral_anchors[0].get("encounter_date") or "")
+
 
 def _dedupe_by_encounter(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     seen: set[str] = set()
