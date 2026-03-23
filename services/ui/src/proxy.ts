@@ -134,6 +134,20 @@ function termApiRewrite(request: NextRequest, dest: string): NextResponse {
 
 export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
+  const method = request.method.toUpperCase();
+  const isMutation = method !== "GET" && method !== "HEAD" && method !== "OPTIONS";
+
+  // Surface-form curation writes are routed via core-api so admin session
+  // auth can be enforced server-side (instead of service-token-only auth).
+  const isSurfaceFormsMutation =
+    pathname === "/api/terminology/surface-forms/upsert-mapping" ||
+    pathname === "/api/terminology/surface-forms/deduplicate" ||
+    pathname.startsWith("/api/terminology/surface-forms/");
+  const isSuggestAliasesMutation = /^\/api\/terminology\/concepts\/[^/]+\/suggest-aliases$/.test(pathname);
+  if (isMutation && (isSurfaceFormsMutation || isSuggestAliasesMutation)) {
+    const corePath = pathname.slice("/api/".length);
+    return proxyRewrite(request, `${coreApi()}/${corePath}${search}`);
+  }
 
   const exactDest = EXACT_ROUTES[pathname];
   if (exactDest) {
