@@ -20,6 +20,8 @@ COPY --from=build-venv /venv /venv
 COPY libs/ /app/libs/
 COPY services/api/ /app/services/api/
 COPY services/coding_worker/ /app/services/coding_worker/
+# Shared with terminology API: queries + writeback helpers (routers import these)
+COPY services/terminology_api/ /app/services/terminology_api/
 WORKDIR /app
 ENV PYTHONPATH=/app:/app/services/api
 USER appuser
