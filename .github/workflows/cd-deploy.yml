@@ -54,6 +54,8 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
+      # Applies infra/bicep/main.bicep: Container App env vars (internal URLs, secrets refs,
+      # FRONTEND_URL, etc.). Image tags below only update container images.
       - name: Deploy Bicep stack
         run: |
           az deployment group create \
@@ -120,6 +122,7 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
+      # Full stack Bicep (env vars + ingress). Prod path is the same pattern.
       - name: Deploy to validation
         run: |
           TAG="${{ github.event.inputs.image_tag || format('sha-{0}', github.sha) }}"
@@ -148,6 +151,7 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
+      # Full stack Bicep (env vars + ingress).
       - name: Deploy to production
         run: |
           TAG="${{ github.event.inputs.image_tag || format('sha-{0}', github.sha) }}"

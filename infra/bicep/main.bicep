@@ -36,6 +36,11 @@ param snomedTerminologyServer string = ''
 // Controls OAuth post-login redirects, the auth callback URI sent to Entra,
 // and the sign-in link in invite emails. Must match an Entra redirect URI.
 param frontendUrl string
+// Optional: bind UI custom domain in Bicep so CD redeploys do not clear portal bindings.
+// Set both, or leave both empty (hostname only, no scheme). Certificate = managed cert
+// resource ID under the Container Apps environment.
+param uiCustomHostname string = ''
+param uiManagedCertificateId string = ''
 
 // Shared resources live in the leo-ai platform RG
 param acrResourceGroup string = 'leo-ai'
@@ -139,6 +144,8 @@ module containerApps 'modules/container-apps.bicep' = {
     sessionTtlHours: sessionTtlHours
     snomedTerminologyServer: snomedTerminologyServer
     frontendUrl: frontendUrl
+    uiCustomHostname: uiCustomHostname
+    uiManagedCertificateId: uiManagedCertificateId
   }
 }
 
