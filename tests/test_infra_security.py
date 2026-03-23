@@ -53,15 +53,26 @@ def _container_app_blocks(source: str) -> list[tuple[str, str]]:
 
 
 def _ingress_external_flag(block: str) -> bool | None:
-    """Return True/False for ingress.external, or None if ingress block missing."""
-    m = re.search(
-        r"ingress:\s*\{[^}]*external:\s*(true|false)",
-        block,
-        re.DOTALL,
-    )
-    if not m:
+    """Return True/False for ingress.external, or None if ingress block missing.
+
+    Supports both `ingress: { external: ... }` and ternary `ingress: cond ? {...} : {...}`
+    (UI optional customDomains). All branches must agree on external.
+    """
+    if "ingress:" not in block:
         return None
-    return m.group(1) == "true"
+    cfg_end = block.find("template:")
+    head = block[:cfg_end] if cfg_end != -1 else block
+    if "ingress:" not in head:
+        return None
+    ing_part = head.split("ingress:", 1)[1]
+    matches = re.findall(r"external:\s*(true|false)", ing_part)
+    if not matches:
+        return None
+    if all(m == "true" for m in matches):
+        return True
+    if all(m == "false" for m in matches):
+        return False
+    return None
 
 
 class TestContainerAppsInternalUrlsUseDefaultDomain:

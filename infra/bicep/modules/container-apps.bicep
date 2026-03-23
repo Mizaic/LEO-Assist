@@ -42,6 +42,13 @@ param allowedOrigins string
 param cookieSecure string
 param sessionTtlHours string
 param frontendUrl string
+// Optional UI ingress custom domain (same hostname users open in the browser).
+// If set with uiManagedCertificateId, Bicep declares customDomains on each deploy so
+// GitHub Actions / az deployment group create does not drop a portal-only binding.
+param uiCustomHostname string = ''
+// ARM resource ID of the managed certificate in this Container Apps environment, e.g.
+// /subscriptions/.../managedEnvironments/leoai-dev-cae/managedCertificates/<name>
+param uiManagedCertificateId string = ''
 param snomedTerminologyServer string = ''
 
 var prefix = 'leoai-${environment}'
@@ -294,11 +301,24 @@ resource ui 'Microsoft.App/containerApps@2024-03-01' = {
     configuration: {
       secrets: sharedSecrets
       registries: registryConfig
-      ingress: {
-        external: true
-        targetPort: 3000
-        transport: 'http'
-      }
+      ingress: (uiCustomHostname != '' && uiManagedCertificateId != '')
+        ? {
+            external: true
+            targetPort: 3000
+            transport: 'http'
+            customDomains: [
+              {
+                name: uiCustomHostname
+                bindingType: 'SniEnabled'
+                certificateId: uiManagedCertificateId
+              }
+            ]
+          }
+        : {
+            external: true
+            targetPort: 3000
+            transport: 'http'
+          }
     }
     template: {
       containers: [{

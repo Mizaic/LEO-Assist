@@ -45,3 +45,7 @@ param snomedTerminologyServer = ''
 // Public URL of the UI for this environment.
 // Update this when the ACA custom domain for validation is confirmed.
 param frontendUrl = 'https://atlas-val.healthcarecopilot.ai'
+
+// Optional: bind UI custom domain in Bicep (hostname only + managed cert resource ID).
+param uiCustomHostname = ''
+param uiManagedCertificateId = ''

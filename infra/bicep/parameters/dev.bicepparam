@@ -47,3 +47,10 @@ param snomedTerminologyServer = ''
 // - Controls OAuth post-login redirects, the auth callback sent to Entra,
 //   and the sign-in link in invite emails.
 param frontendUrl = 'https://leo-ai-audit.healthcarecopilot.ai'
+
+// Optional: keep UI custom domain binding when GitHub Actions runs Bicep (see cd-deploy.yml).
+// Hostname only (no https). Certificate ID from Portal (Container Apps env -> Certificates)
+// or: az containerapp show -g leo-ai-dev -n ui --query properties.configuration.ingress.customDomains
+// Leave empty until the managed certificate resource ID is filled in.
+param uiCustomHostname = ''
+param uiManagedCertificateId = ''
