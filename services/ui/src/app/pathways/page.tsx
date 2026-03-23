@@ -193,7 +193,7 @@ function PathwaysPageContent() {
         {!loading && alertCount > 0 && (
           <Chip
             component={Link}
-            href="/safety-netting"
+            href="/care/safety-netting"
             icon={<OpenInNewIcon sx={{ fontSize: 14 }} />}
             label={`${alertCount} pathway${alertCount === 1 ? "" : "s"} need attention — view in Safety Netting`}
             color="warning"

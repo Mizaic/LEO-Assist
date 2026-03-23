@@ -508,13 +508,13 @@ export default function EncounterList({ patientId }: Props) {
       <Breadcrumbs sx={{ mb: 2 }}>
         {searchParams.get("from") === "pathways"
           ? [
-              <Link key="pathways" component="button" underline="hover" onClick={() => router.push("/pathways")} sx={{ fontSize: 14 }}>
+              <Link key="pathways" component="button" underline="hover" onClick={() => router.push("/care/pathways")} sx={{ fontSize: 14 }}>
                 Referral Pathways
               </Link>,
               <Typography key="patient" sx={{ fontSize: 14 }} color="text.primary">Patient {patientId}</Typography>,
             ]
           : [
-              <Link key="patients" component="button" underline="hover" onClick={() => router.push("/patients")} sx={{ fontSize: 14 }}>
+              <Link key="patients" component="button" underline="hover" onClick={() => router.push("/care/patients")} sx={{ fontSize: 14 }}>
                 Patients
               </Link>,
               <Typography key="patient" sx={{ fontSize: 14 }} color="text.primary">Patient {patientId}</Typography>,
@@ -578,7 +578,7 @@ export default function EncounterList({ patientId }: Props) {
             <Button
               variant="outlined"
               size="small"
-              onClick={() => router.push(`/patients/${patientId}/timeline`)}
+              onClick={() => router.push(`/care/patients/${patientId}/timeline`)}
               sx={{
                 textTransform: "none",
                 fontWeight: 600,
@@ -1023,9 +1023,9 @@ export default function EncounterList({ patientId }: Props) {
                   startIcon={<OpenInNewIcon />}
                   onClick={() => {
                     if (sidebarEncounter.taskId) {
-                      router.push(`/patients/${patientId}/encounters/${sidebarEncounter.taskId}`);
+                      router.push(`/care/patients/${patientId}/encounters/${sidebarEncounter.taskId}`);
                     } else {
-                      router.push(`/patients/${patientId}/encounters/view/${sidebarEncounter.encounterId}`);
+                      router.push(`/care/patients/${patientId}/encounters/view/${sidebarEncounter.encounterId}`);
                     }
                   }}
                 >

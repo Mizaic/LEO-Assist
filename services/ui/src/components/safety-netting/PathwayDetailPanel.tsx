@@ -194,13 +194,13 @@ export default function PathwayDetailPanel({
         >
           Record Action Taken
         </Button>
-        <Button variant="outlined" color="warning" component={Link} href="/operations">
+        <Button variant="outlined" color="warning" component={Link} href="/admin/operations">
           Escalate to Lead
         </Button>
         <Button
           variant="outlined"
           component={Link}
-          href={`/patients/${row.patient_id}`}
+          href={`/care/patients/${row.patient_id}`}
         >
           Add Clinical Note
         </Button>

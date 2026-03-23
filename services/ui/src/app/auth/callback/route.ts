@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
   const origin = publicOrigin(request);
   const { searchParams } = request.nextUrl;
   const code = searchParams.get("code");
-  const state = searchParams.get("state") || "/dashboard";
+  const state = searchParams.get("state") || "/care/dashboard";
   const error = searchParams.get("error");
   const errorDescription = searchParams.get("error_description");
 
@@ -86,7 +86,7 @@ function _safeDestination(location: string | null, state: string, origin: string
     }
   }
   const dest = state.startsWith("/") ? state : `/${state}`;
-  return new URL(dest === "/sign-in" || dest === "/" ? "/dashboard" : dest, origin);
+  return new URL(dest === "/sign-in" || dest === "/" ? "/care/dashboard" : dest, origin);
 }
 
 function _parseSetCookieFallback(raw: string | null): string[] {

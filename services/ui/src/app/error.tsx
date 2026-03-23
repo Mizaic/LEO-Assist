@@ -24,7 +24,7 @@ export default function Error({
         <Button variant="contained" onClick={reset}>
           Try again
         </Button>
-        <Button variant="outlined" href="/dashboard">
+        <Button variant="outlined" href="/care/dashboard">
           Go to Dashboard
         </Button>
       </Box>

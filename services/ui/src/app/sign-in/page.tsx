@@ -29,7 +29,7 @@ function SignInContent() {
 
   useEffect(() => {
     if (session) {
-      router.replace("/dashboard");
+      router.replace("/care/dashboard");
     }
   }, [session, router]);
 

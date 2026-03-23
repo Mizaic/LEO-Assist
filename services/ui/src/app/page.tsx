@@ -49,7 +49,7 @@ export default function Home() {
 
   useEffect(() => {
     if (session) {
-      router.replace("/dashboard");
+      router.replace("/care/dashboard");
     }
   }, [session, router]);
 

@@ -11,7 +11,7 @@ export default function NotFound() {
       <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
         The page you are looking for does not exist or has been moved.
       </Typography>
-      <Button variant="contained" href="/dashboard">
+      <Button variant="contained" href="/care/dashboard">
         Go to Dashboard
       </Button>
     </Box>

@@ -81,7 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signIn = useCallback(() => {
     const currentPath = typeof window !== "undefined" ? window.location.pathname : "";
     const isPublicPath = currentPath === "/" || currentPath === "/sign-in" || currentPath.startsWith("/auth/callback");
-    const next = isPublicPath ? "/dashboard" : currentPath || "/dashboard";
+    const next = isPublicPath ? "/care/dashboard" : currentPath || "/care/dashboard";
     // Use same-origin path so the nonce cookie is set on localhost:3000.
     window.location.href = `/auth/login?next_url=${encodeURIComponent(next)}`;
   }, []);

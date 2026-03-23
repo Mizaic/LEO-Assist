@@ -62,6 +62,6 @@ describe("SafetyNetAlertsSummary", () => {
     const alerts = [makeAlert()];
     render(<SafetyNetAlertsSummary alerts={alerts} onAction={onAction} />);
     const link = screen.getByText("View all safety alerts →").closest("a");
-    expect(link).toHaveAttribute("href", "/safety-netting");
+    expect(link).toHaveAttribute("href", "/care/safety-netting");
   });
 });

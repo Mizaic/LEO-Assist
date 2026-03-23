@@ -6,7 +6,7 @@ import PatientList from "../PatientList";
 const mockPush = jest.fn();
 jest.mock("next/navigation", () => ({
   useRouter: () => ({ push: mockPush, replace: jest.fn(), back: jest.fn(), prefetch: jest.fn() }),
-  usePathname: () => "/patients",
+  usePathname: () => "/care/patients",
   useParams: () => ({}),
 }));
 
@@ -72,7 +72,7 @@ describe("PatientList", () => {
       expect(screen.getByText("P001")).toBeInTheDocument();
     });
     await user.click(screen.getByText("P001"));
-    expect(mockPush).toHaveBeenCalledWith("/patients/P001");
+    expect(mockPush).toHaveBeenCalledWith("/care/patients/P001");
   });
 
   it("shows patient count", async () => {

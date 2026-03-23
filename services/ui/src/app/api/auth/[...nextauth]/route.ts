@@ -10,7 +10,7 @@ import { NextRequest, NextResponse } from "next/server";
 function loginRedirect(request: NextRequest) {
   const u = request.nextUrl.clone();
   u.pathname = "/auth/login";
-  u.search = "?next_url=/dashboard";
+  u.search = "?next_url=/care/dashboard";
   return NextResponse.redirect(u);
 }
 

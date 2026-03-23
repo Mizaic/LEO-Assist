@@ -300,7 +300,7 @@ export default function EpisodeTimelineView({
         {episode.patient_id && (
           <Button
             component={Link}
-            href={`/patients/${episode.patient_id}?from=pathways`}
+            href={`/care/patients/${episode.patient_id}?from=pathways`}
             variant="outlined"
             size="small"
             sx={{ textTransform: "none" }}
@@ -526,7 +526,7 @@ export default function EpisodeTimelineView({
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
                     {episode.patient_id ? (
                       <Link
-                        href={`/patients/${episode.patient_id}/encounters/view/${m.encounter_id}`}
+                        href={`/care/patients/${episode.patient_id}/encounters/view/${m.encounter_id}`}
                         style={{ textDecoration: "none" }}
                       >
                         <Typography

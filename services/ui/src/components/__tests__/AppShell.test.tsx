@@ -26,7 +26,7 @@ let mockSession: any = {
   organizations: ORGS,
 };
 
-let mockPathname = "/dashboard";
+let mockPathname = "/care/dashboard";
 
 jest.mock("@/lib/authContext", () => ({
   useAuth: () => ({
@@ -77,7 +77,7 @@ function renderShell(children: React.ReactNode = <div>child</div>) {
 describe("AppShell — Tenant Switcher", () => {
   beforeEach(() => {
     mockSwitchOrg.mockClear();
-    mockPathname = "/dashboard";
+    mockPathname = "/care/dashboard";
     mockOrgCtx = {
       currentOrg: null,
       organizations: ORGS,
@@ -141,7 +141,7 @@ describe("AppShell — Tenant Switcher", () => {
 
 describe("AppShell — Accessibility", () => {
   beforeEach(() => {
-    mockPathname = "/dashboard";
+    mockPathname = "/care/dashboard";
     mockOrgCtx = {
       currentOrg: null,
       organizations: ORGS,
@@ -163,7 +163,7 @@ describe("AppShell — Accessibility", () => {
   });
 
   it("active nav item has aria-current='page'", () => {
-    mockPathname = "/dashboard";
+    mockPathname = "/care/dashboard";
     renderShell();
     const overviewLink = screen.getByRole("link", { name: "Overview" });
     expect(overviewLink).toHaveAttribute("aria-current", "page");
