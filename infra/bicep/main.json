@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.39.26.7824",
-      "templateHash": "12878672519034464581"
+      "templateHash": "9659580421003074176"
     }
   },
   "parameters": {
@@ -58,6 +58,10 @@
     },
     "hitlPeerReviewRate": {
       "type": "string"
+    },
+    "codingMode": {
+      "type": "string",
+      "defaultValue": "hitl"
     },
     "modelMinPrecision": {
       "type": "string"
@@ -404,7 +408,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.39.26.7824",
-              "templateHash": "911416984245862545"
+              "templateHash": "10693523417238529008"
             }
           },
           "parameters": {
@@ -455,6 +459,19 @@
               "type": "Microsoft.ServiceBus/namespaces/queues",
               "apiVersion": "2022-10-01-preview",
               "name": "[format('{0}/{1}', variables('sbNamespaceName'), 'analysis-jobs')]",
+              "properties": {
+                "lockDuration": "PT5M",
+                "maxDeliveryCount": 10,
+                "defaultMessageTimeToLive": "P1D"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.ServiceBus/namespaces', variables('sbNamespaceName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.ServiceBus/namespaces/queues",
+              "apiVersion": "2022-10-01-preview",
+              "name": "[format('{0}/{1}', variables('sbNamespaceName'), 'pipeline-jobs')]",
               "properties": {
                 "lockDuration": "PT5M",
                 "maxDeliveryCount": 10,
@@ -568,6 +585,9 @@
           "hitlPeerReviewRate": {
             "value": "[parameters('hitlPeerReviewRate')]"
           },
+          "codingMode": {
+            "value": "[parameters('codingMode')]"
+          },
           "modelMinPrecision": {
             "value": "[parameters('modelMinPrecision')]"
           },
@@ -600,7 +620,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.39.26.7824",
-              "templateHash": "9554456972871650536"
+              "templateHash": "768471423121622280"
             }
           },
           "parameters": {
@@ -669,6 +689,10 @@
             "hitlPeerReviewRate": {
               "type": "string"
             },
+            "codingMode": {
+              "type": "string",
+              "defaultValue": "hitl"
+            },
             "modelMinPrecision": {
               "type": "string"
             },
@@ -707,6 +731,7 @@
             "fhirApiUrl": "http://fhir-api",
             "analyticsApiUrl": "http://analytics-api",
             "modelInferenceUrl": "http://model-inference",
+            "pipelineWorkerUrl": "http://pipeline-worker",
             "sharedEnv": [
               {
                 "name": "AZURE_KEYVAULT_URL",
@@ -789,6 +814,10 @@
                 "value": "neo4j"
               },
               {
+                "name": "MODEL_REGISTRY_STORE_PATH",
+                "value": "/var/model_cache/model_registry.json"
+              },
+              {
                 "name": "MODEL_MIN_PRECISION",
                 "value": "[parameters('modelMinPrecision')]"
               },
@@ -823,6 +852,10 @@
               {
                 "name": "HITL_PEER_REVIEW_RATE",
                 "value": "[parameters('hitlPeerReviewRate')]"
+              },
+              {
+                "name": "CODING_MODE",
+                "value": "[parameters('codingMode')]"
               },
               {
                 "name": "LABEL_VERIFY_WORKERS",
@@ -891,6 +924,10 @@
               {
                 "name": "NCDA_CONFIG_DIR",
                 "value": "configs/snomed"
+              },
+              {
+                "name": "TERMINOLOGY_API_URLS",
+                "value": "[variables('termApiUrl')]"
               },
               {
                 "name": "COOKIE_SECURE",
@@ -1223,7 +1260,7 @@
                         "cpu": "[json('0.5')]",
                         "memory": "1Gi"
                       },
-                      "env": "[union(variables('sharedEnv'), createArray(createObject('name', 'NEO4J_USER', 'value', parameters('neo4jUser')), createObject('name', 'TERMINOLOGY_API_URL', 'value', variables('termApiUrl')), createObject('name', 'FHIR_API_URL', 'value', variables('fhirApiUrl')), createObject('name', 'ANALYTICS_API_URL', 'value', variables('analyticsApiUrl')), createObject('name', 'CODING_MODEL_ENDPOINT', 'value', variables('modelInferenceUrl')), createObject('name', 'SB_MAX_LOCK_RENEWAL_SECONDS', 'value', parameters('sbMaxLockRenewalSeconds')), createObject('name', 'FRONTEND_URL', 'value', parameters('frontendUrl')), createObject('name', 'AUTH_REDIRECT_URI', 'value', format('{0}/auth/callback', parameters('frontendUrl'))), createObject('name', 'MAIL_FROM_ADDRESS', 'value', 'leo.support@healthcarecopilot.ai')))]"
+                      "env": "[union(variables('sharedEnv'), createArray(createObject('name', 'NEO4J_USER', 'value', parameters('neo4jUser')), createObject('name', 'TERMINOLOGY_API_URL', 'value', variables('termApiUrl')), createObject('name', 'FHIR_API_URL', 'value', variables('fhirApiUrl')), createObject('name', 'ANALYTICS_API_URL', 'value', variables('analyticsApiUrl')), createObject('name', 'CODING_MODEL_ENDPOINT', 'value', variables('modelInferenceUrl')), createObject('name', 'PIPELINE_WORKER_URL', 'value', variables('pipelineWorkerUrl')), createObject('name', 'SB_MAX_LOCK_RENEWAL_SECONDS', 'value', parameters('sbMaxLockRenewalSeconds')), createObject('name', 'FRONTEND_URL', 'value', parameters('frontendUrl')), createObject('name', 'AUTH_REDIRECT_URI', 'value', format('{0}/auth/callback', parameters('frontendUrl'))), createObject('name', 'MAIL_FROM_ADDRESS', 'value', 'leo.support@healthcarecopilot.ai')))]"
                     }
                   ],
                   "scale": {
@@ -1473,78 +1510,30 @@
             {
               "type": "Microsoft.App/containerApps",
               "apiVersion": "2024-03-01",
-              "name": "coding-worker",
+              "name": "pipeline-worker",
               "location": "[parameters('location')]",
               "identity": "[variables('identityConfig')]",
               "properties": {
                 "environmentId": "[resourceId('Microsoft.App/managedEnvironments', variables('caeName'))]",
                 "configuration": {
                   "secrets": "[variables('sharedSecrets')]",
-                  "registries": "[variables('registryConfig')]"
-                },
-                "template": {
-                  "containers": [
-                    {
-                      "name": "coding-worker",
-                      "image": "[if(variables('usePlaceholder'), variables('placeholderImage'), format('{0}/coding-worker:{1}', parameters('acrLoginServer'), parameters('imageTag')))]",
-                      "resources": {
-                        "cpu": "[json('0.5')]",
-                        "memory": "1Gi"
-                      },
-                      "env": "[union(variables('sharedEnv'), createArray(createObject('name', 'NEO4J_USER', 'value', parameters('neo4jUser')), createObject('name', 'TERMINOLOGY_API_URL', 'value', variables('termApiUrl')), createObject('name', 'CODING_MODEL_ENDPOINT', 'value', variables('modelInferenceUrl')), createObject('name', 'SB_MAX_LOCK_RENEWAL_SECONDS', 'value', parameters('sbMaxLockRenewalSeconds'))))]"
-                    }
-                  ],
-                  "scale": {
-                    "minReplicas": 0,
-                    "maxReplicas": 5,
-                    "rules": [
-                      {
-                        "name": "coding-jobs-keda",
-                        "custom": {
-                          "type": "azure-servicebus",
-                          "metadata": {
-                            "queueName": "coding-jobs",
-                            "namespace": "[parameters('sbNamespaceFqdn')]",
-                            "messageCount": "5"
-                          },
-                          "auth": [
-                            {
-                              "secretRef": "service-auth-secret",
-                              "triggerParameter": "connection"
-                            }
-                          ]
-                        }
-                      }
-                    ]
+                  "registries": "[variables('registryConfig')]",
+                  "ingress": {
+                    "external": false,
+                    "targetPort": 8006,
+                    "transport": "http"
                   }
-                }
-              },
-              "dependsOn": [
-                "[resourceId('Microsoft.App/managedEnvironments', variables('caeName'))]"
-              ]
-            },
-            {
-              "type": "Microsoft.App/containerApps",
-              "apiVersion": "2024-03-01",
-              "name": "analysis-worker",
-              "location": "[parameters('location')]",
-              "identity": "[variables('identityConfig')]",
-              "properties": {
-                "environmentId": "[resourceId('Microsoft.App/managedEnvironments', variables('caeName'))]",
-                "configuration": {
-                  "secrets": "[variables('sharedSecrets')]",
-                  "registries": "[variables('registryConfig')]"
                 },
                 "template": {
                   "containers": [
                     {
-                      "name": "analysis-worker",
-                      "image": "[if(variables('usePlaceholder'), variables('placeholderImage'), format('{0}/analysis-worker:{1}', parameters('acrLoginServer'), parameters('imageTag')))]",
+                      "name": "pipeline-worker",
+                      "image": "[if(variables('usePlaceholder'), variables('placeholderImage'), format('{0}/pipeline-worker:{1}', parameters('acrLoginServer'), parameters('imageTag')))]",
                       "resources": {
-                        "cpu": "[json('0.5')]",
-                        "memory": "1Gi"
+                        "cpu": "[json('1.0')]",
+                        "memory": "2Gi"
                       },
-                      "env": "[union(variables('sharedEnv'), createArray(createObject('name', 'NEO4J_USER', 'value', parameters('neo4jUser')), createObject('name', 'SB_MAX_LOCK_RENEWAL_SECONDS', 'value', parameters('sbMaxLockRenewalSeconds')), createObject('name', 'ANALYTICS_API_URL', 'value', variables('analyticsApiUrl'))))]"
+                      "env": "[union(variables('sharedEnv'), createArray(createObject('name', 'NEO4J_USER', 'value', parameters('neo4jUser')), createObject('name', 'TERMINOLOGY_API_URL', 'value', variables('termApiUrl')), createObject('name', 'CODING_MODEL_ENDPOINT', 'value', variables('modelInferenceUrl')), createObject('name', 'ANALYTICS_API_URL', 'value', variables('analyticsApiUrl')), createObject('name', 'PIPELINE_WORKER_PORT', 'value', '8006'), createObject('name', 'PIPELINE_QUEUE_NAME', 'value', 'pipeline-jobs'), createObject('name', 'SB_MAX_LOCK_RENEWAL_SECONDS', 'value', parameters('sbMaxLockRenewalSeconds'))))]"
                     }
                   ],
                   "scale": {
@@ -1552,11 +1541,11 @@
                     "maxReplicas": 5,
                     "rules": [
                       {
-                        "name": "analysis-jobs-keda",
+                        "name": "pipeline-jobs-keda",
                         "custom": {
                           "type": "azure-servicebus",
                           "metadata": {
-                            "queueName": "analysis-jobs",
+                            "queueName": "pipeline-jobs",
                             "namespace": "[parameters('sbNamespaceFqdn')]",
                             "messageCount": "5"
                           },

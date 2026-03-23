@@ -65,7 +65,9 @@ jobs:
 
       - name: Update Container App image tags
         run: |
-          SERVICES="core-api terminology-api fhir-api analytics-api model-inference training-worker coding-worker analysis-worker ui"
+          # Must match images built in ci-build.yml and apps in infra/bicep/modules/container-apps.bicep
+          # Parity with scripts/start_leo-ai-core.ps1 (-Services names: api, terminology_api, ...)
+          SERVICES="core-api terminology-api fhir-api analytics-api model-inference training-worker pipeline-worker ui"
           TAG=${{ steps.tag.outputs.tag }}
           for SERVICE in $SERVICES; do
             az containerapp update \

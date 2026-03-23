@@ -79,6 +79,7 @@ var termApiUrl = 'http://terminology-api'
 var fhirApiUrl = 'http://fhir-api'
 var analyticsApiUrl = 'http://analytics-api'
 var modelInferenceUrl = 'http://model-inference'
+var pipelineWorkerUrl = 'http://pipeline-worker'
 
 // -- Shared env vars injected into every app -------------------------------
 var sharedEnv = [
@@ -255,6 +256,7 @@ resource coreApi 'Microsoft.App/containerApps@2024-03-01' = {
           { name: 'FHIR_API_URL', value: fhirApiUrl }
           { name: 'ANALYTICS_API_URL', value: analyticsApiUrl }
           { name: 'CODING_MODEL_ENDPOINT', value: modelInferenceUrl }
+          { name: 'PIPELINE_WORKER_URL', value: pipelineWorkerUrl }
           { name: 'SB_MAX_LOCK_RENEWAL_SECONDS', value: sbMaxLockRenewalSeconds }
           // URL of the UI -- controls OAuth redirects and invite email links.
           { name: 'FRONTEND_URL', value: frontendUrl }
@@ -452,9 +454,10 @@ resource trainingWorker 'Microsoft.App/containerApps@2024-03-01' = {
   }
 }
 
-// -- coding-worker (no ingress, KEDA Service Bus scaler) ------------------
-resource codingWorker 'Microsoft.App/containerApps@2024-03-01' = {
-  name: 'coding-worker'
+// -- pipeline-worker (services/pipeline_worker: HTTP + Service Bus consumer)
+// Matches local dev: scripts/start_leo-ai-core.ps1 -Services pipeline_worker
+resource pipelineWorker 'Microsoft.App/containerApps@2024-03-01' = {
+  name: 'pipeline-worker'
   location: location
   identity: identityConfig
   properties: {
@@ -462,73 +465,36 @@ resource codingWorker 'Microsoft.App/containerApps@2024-03-01' = {
     configuration: {
       secrets: sharedSecrets
       registries: registryConfig
+      ingress: {
+        external: false
+        targetPort: 8006
+        transport: 'http'
+      }
     }
     template: {
       containers: [{
-        name: 'coding-worker'
-        image: usePlaceholder ? placeholderImage : '${acrLoginServer}/coding-worker:${imageTag}'
-        resources: { cpu: json('0.5'), memory: '1Gi' }
+        name: 'pipeline-worker'
+        image: usePlaceholder ? placeholderImage : '${acrLoginServer}/pipeline-worker:${imageTag}'
+        resources: { cpu: json('1.0'), memory: '2Gi' }
         env: union(sharedEnv, [
           { name: 'NEO4J_USER', value: neo4jUser }
           { name: 'TERMINOLOGY_API_URL', value: termApiUrl }
           { name: 'CODING_MODEL_ENDPOINT', value: modelInferenceUrl }
-          { name: 'SB_MAX_LOCK_RENEWAL_SECONDS', value: sbMaxLockRenewalSeconds }
-        ])
-      }]
-      scale: {
-        minReplicas: 0
-        maxReplicas: 5
-        rules: [{
-          name: 'coding-jobs-keda'
-          custom: {
-            type: 'azure-servicebus'
-            metadata: {
-              queueName: 'coding-jobs'
-              namespace: sbNamespaceFqdn
-              messageCount: '5'
-            }
-            auth: [{
-              secretRef: 'service-auth-secret'
-              triggerParameter: 'connection'
-            }]
-          }
-        }]
-      }
-    }
-  }
-}
-
-// -- analysis-worker (no ingress, KEDA Service Bus scaler) ----------------
-resource analysisWorker 'Microsoft.App/containerApps@2024-03-01' = {
-  name: 'analysis-worker'
-  location: location
-  identity: identityConfig
-  properties: {
-    environmentId: cae.id
-    configuration: {
-      secrets: sharedSecrets
-      registries: registryConfig
-    }
-    template: {
-      containers: [{
-        name: 'analysis-worker'
-        image: usePlaceholder ? placeholderImage : '${acrLoginServer}/analysis-worker:${imageTag}'
-        resources: { cpu: json('0.5'), memory: '1Gi' }
-        env: union(sharedEnv, [
-          { name: 'NEO4J_USER', value: neo4jUser }
-          { name: 'SB_MAX_LOCK_RENEWAL_SECONDS', value: sbMaxLockRenewalSeconds }
           { name: 'ANALYTICS_API_URL', value: analyticsApiUrl }
+          { name: 'PIPELINE_WORKER_PORT', value: '8006' }
+          { name: 'PIPELINE_QUEUE_NAME', value: 'pipeline-jobs' }
+          { name: 'SB_MAX_LOCK_RENEWAL_SECONDS', value: sbMaxLockRenewalSeconds }
         ])
       }]
       scale: {
         minReplicas: 0
         maxReplicas: 5
         rules: [{
-          name: 'analysis-jobs-keda'
+          name: 'pipeline-jobs-keda'
           custom: {
             type: 'azure-servicebus'
             metadata: {
-              queueName: 'analysis-jobs'
+              queueName: 'pipeline-jobs'
               namespace: sbNamespaceFqdn
               messageCount: '5'
             }
