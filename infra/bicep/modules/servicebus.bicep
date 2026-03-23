@@ -38,6 +38,17 @@ resource analysisJobsQueue 'Microsoft.ServiceBus/namespaces/queues@2022-10-01-pr
   }
 }
 
+// Primary queue for services/pipeline_worker (see PIPELINE_QUEUE_NAME, default pipeline-jobs)
+resource pipelineJobsQueue 'Microsoft.ServiceBus/namespaces/queues@2022-10-01-preview' = {
+  name: 'pipeline-jobs'
+  parent: sbNamespace
+  properties: {
+    lockDuration: 'PT5M'
+    maxDeliveryCount: 10
+    defaultMessageTimeToLive: 'P1D'
+  }
+}
+
 // Azure Service Bus Data Owner role (built-in)
 var sbDataOwnerRoleId = '090c5cfd-751d-490a-894a-3ce6f1109419'
 

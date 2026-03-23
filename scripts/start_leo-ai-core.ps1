@@ -11,6 +11,17 @@
 #   .\scripts\start_leo-ai-core.ps1 -PipelineWorkers 3         # 3 pipeline workers (scale up for bulk runs)
 #   .\scripts\start_leo-ai-core.ps1 -TermWorkers 3             # 3 terminology API instances (8001, 8011, 8021)
 #
+# -- Azure Container Apps (dev) parity ---------------------------------------
+# Local -Services name      ACA app name           ACR image (ci-build.yml)
+#   api                     core-api               core-api
+#   terminology_api         terminology-api        terminology-api
+#   fhir_api                fhir-api               fhir-api
+#   analytics_api           analytics-api          analytics-api
+#   model_inference         model-inference        model-inference
+#   training_worker         training-worker        training-worker
+#   pipeline_worker         pipeline-worker        pipeline-worker
+#   ui                      ui                     ui
+#
 # Model inference service:
 #   Starts by default. Downloads the active NER model from Azure Blob at startup.
 #   Exposes /extract, /health, /reload, /versions on -ModelInferencePort (default 8004).
