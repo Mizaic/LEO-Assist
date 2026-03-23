@@ -44,8 +44,8 @@ def _resolve_sbar_prompts(state: SBARState) -> dict[str, str]:
         try:
             from libs.prompts.registry import get_prompt
             result["episode_builder_system"] = get_prompt("episode_builder_system", 1)
-        except (KeyError, ImportError):
-            pass
+        except (KeyError, ImportError, RuntimeError):
+            logger.warning("Falling back to default SBAR prompts: registry unavailable")
     return result
 
 
