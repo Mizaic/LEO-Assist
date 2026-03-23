@@ -6,8 +6,10 @@ from typing import Any
 
 from typing import Optional
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
+from libs.auth.org_scope import CallerScope
+from app.deps import require_admin
 
 try:
     from app.db.neo4j_client import CodingGraphClient, PatientGraphClient
@@ -149,7 +151,10 @@ class UpsertMappingRequest(BaseModel):
 
 
 @router.post("/surface-forms/upsert-mapping")
-def upsert_surface_form_mapping(body: UpsertMappingRequest):
+def upsert_surface_form_mapping(
+    body: UpsertMappingRequest,
+    _scope: CallerScope = Depends(require_admin),
+):
     """Add or correct a MAPS_TO relationship. Creates the SurfaceForm node if it doesn't exist."""
     client = CodingGraphClient()
     try:
@@ -193,6 +198,7 @@ def delete_surface_form(
     normalized: str,
     concept_id: Optional[str] = Query(default=None),
     keep_concept_id: Optional[str] = Query(default=None),
+    _scope: CallerScope = Depends(require_admin),
 ):
     """Delete a surface form or one of its mappings.
 
@@ -227,7 +233,9 @@ def audit_surface_form_duplicates():
 
 
 @router.post("/surface-forms/deduplicate")
-def deduplicate_surface_forms():
+def deduplicate_surface_forms(
+    _scope: CallerScope = Depends(require_admin),
+):
     """Remove duplicate MAPS_TO relationships, keeping the highest-confidence mapping per surface form."""
     client = CodingGraphClient()
     try:
@@ -255,7 +263,10 @@ def get_descendants(
 
 
 @router.post("/concepts/{concept_id}/suggest-aliases")
-def suggest_aliases_for_concept(concept_id: str):
+def suggest_aliases_for_concept(
+    concept_id: str,
+    _scope: CallerScope = Depends(require_admin),
+):
     """Use a small LLM (Claude Haiku via Bedrock) to suggest additional surface form aliases."""
     import json
     import re
