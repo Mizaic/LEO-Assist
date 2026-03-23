@@ -168,6 +168,52 @@ Node configuration opens in a Dialog wizard with proper pickers (no raw ID field
 
 ---
 
+## Referral Triage Programme -- User Needs (UN-030 to UN-048)
+
+Identified through 20 structured user interviews (UR-LEO-AI-001, March 2026)
+covering triage clinicians, referral management teams, pathway coordinators,
+clinical directors, information analysts, patient safety leads, MDT coordinators,
+junior doctors, digital transformation leads, clinical safety officers, data
+protection officers, medical secretaries, clinical coders, A&E consultants,
+NLP engineers, platform administrators, and commercial leads.
+
+### Clinical and Operational User Needs
+
+| ID | Title | Safety Class | Priority |
+|----|-------|-------------|----------|
+| UN-LEO-AI-030 | Referral Completeness Checking at Point of Triage | B | MUST |
+| UN-LEO-AI-031 | Triage Consistency Measurement Across Clinicians | B | SHOULD |
+| UN-LEO-AI-032 | Real-Time Referral Queue Management | B | MUST |
+| UN-LEO-AI-033 | Referrer Quality Feedback | B | SHOULD |
+| UN-LEO-AI-034 | Specialty Mis-Routing Detection | B | SHOULD |
+| UN-LEO-AI-035 | Rejection Rate Analytics | A | SHOULD |
+| UN-LEO-AI-036 | Triage Queue Backlog Alerting | B | MUST |
+| UN-LEO-AI-037 | Code-to-Source Provenance Linking | B | MUST |
+| UN-LEO-AI-038 | Structured MDT Preparation from Coded Referral Data | B | SHOULD |
+| UN-LEO-AI-039 | Junior Clinician Triage Decision Support | B | MUST |
+| UN-LEO-AI-040 | Detection of Patients Who Should Be on a Pathway but Are Not | C | SHOULD |
+| UN-LEO-AI-041 | Pathway Segment Decomposition | A | MUST |
+| UN-LEO-AI-042 | Symptom-to-Referral Interval Measurement | A | SHOULD |
+
+### Regulatory, Technical, and Commercial User Needs
+
+| ID | Title | Safety Class | Priority |
+|----|-------|-------------|----------|
+| UN-LEO-AI-043 | Pseudonymisation Before LLM Processing | B | MUST |
+| UN-LEO-AI-044 | Structured Override Error Categories for Model Improvement | B | SHOULD |
+| UN-LEO-AI-045 | Configuration Validation UI with Test Mode | B | SHOULD |
+| UN-LEO-AI-046 | Multi-Channel Referral Ingestion | B | MUST |
+| UN-LEO-AI-047 | Active Engagement Design to Prevent Automation Bias | B | MUST |
+| UN-LEO-AI-048 | NHS-Specific ROI and Commercial Evidence Pack | A | SHOULD |
+
+**Evidence source:** `reports/user-research/user-interviews-deidentified.json`
+(UR-LEO-AI-001 -- 20 de-identified interviews, March 2026)
+
+None of UN-030 to UN-048 have DIs, DOs, or VTs yet. They represent the next
+prioritised development backlog for the referral triage programme.
+
+---
+
 ## Related Documentation
 
 | Location | Contents |

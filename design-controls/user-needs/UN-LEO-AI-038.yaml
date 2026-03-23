@@ -1,0 +1,102 @@
+# -- UN-LEO-AI-038 -- Structured MDT Preparation from Coded Referral Data
+
+- id: "UN-LEO-AI-038"
+  title: "MDT coordinators need the system to automatically generate a structured MDT patient summary from already-coded referral and encounter data, eliminating the need to manually extract the same clinical facts from multiple systems for every patient presented at a multidisciplinary team meeting."
+  description: |
+    MDT coordinators currently spend most of the day before each meeting
+    logging into four or five clinical systems, reading the same free-text
+    referral letter that the triage clinician and pathway coordinator have
+    already read, and copying clinical facts into a Word template. This is
+    redundant work -- the clinical content has already been extracted and
+    coded by the pipeline at the point of triage.
+
+    The system must generate a structured MDT patient summary automatically
+    from the coded referral data, investigation results, and pathway milestones
+    already held in the system. The summary must be in a format suitable for
+    direct presentation at the MDT without further manual editing in the
+    majority of cases.
+
+  stakeholder:
+    type: "nhs_user"
+    role: "MDT Coordinator / Cancer Pathway Coordinator"
+    organization: "NHS Cancer Services"
+
+  priority: "SHOULD"
+
+  rationale: |
+    MDT preparation is a high-volume, time-consuming, error-prone task that
+    duplicates work already done by the pipeline. The information required for
+    MDT -- presenting complaint, coded findings, investigation results, referral
+    date, pathway milestones -- is already structured in the system. Generating
+    the MDT summary automatically eliminates redundant reading and manual
+    transcription, reduces transcription errors, and frees coordinator time for
+    exception handling. It also ensures the MDT has access to the most complete
+    and up-to-date data rather than a snapshot captured during preparation.
+
+  benefit: |
+    MDT coordinators spend less time on document preparation and more time
+    on exception handling and patient liaison. Transcription errors are reduced.
+    MDT clinicians have richer, more complete patient summaries. Preparation
+    time for large MDTs is reduced substantially.
+
+  use_case: |
+    1. MDT coordinator opens the MDT preparation view and selects the meeting
+       date and specialty.
+    2. The system generates a draft MDT list automatically from patients on
+       active pathways scheduled for discussion.
+    3. Each patient entry shows: demographics, presenting complaint, coded
+       clinical findings with assertion context, investigation results,
+       referral date, pathway milestones, and current pathway status.
+    4. The coordinator reviews each entry, adds any information not yet in
+       the system, and marks entries as ready.
+    5. Incomplete entries (where expected investigations are missing) are
+       flagged automatically for the coordinator to chase.
+    6. The final MDT list can be exported in the trust's preferred format.
+
+  current_solution: |
+    Fully manual. Coordinator logs into 4-5 systems per patient, copies data
+    into a Word template. Preparation for a 30-patient MDT takes a full day.
+
+  pain_points:
+    - "The same referral letter is read by triage clinician, pathway coordinator, and MDT coordinator independently"
+    - "Manual transcription from multiple systems introduces errors"
+    - "Missing investigation results are discovered during preparation rather than in advance"
+    - "Full-day preparation time for large MDTs"
+    - "Summary quality depends on coordinator clinical knowledge and time available"
+
+  acceptance_criteria:
+    - "MDT summary is generated automatically from coded referral, encounter, and pathway data already in the system"
+    - "Summary includes: demographics, presenting complaint, coded findings (with assertion context), investigation results, referral date, and pathway milestones"
+    - "Entries with missing expected investigations are flagged automatically"
+    - "Coordinator can add or amend any field and the amendment is logged"
+    - "Final list is exportable in configurable formats"
+    - "System generates draft in under 30 seconds per patient"
+
+  success_metrics:
+    - metric: "MDT preparation time per patient"
+      target: "Reduction from estimated 15 minutes manual to under 3 minutes review-only"
+      baseline: "Estimated 15 minutes per patient manual preparation"
+    - metric: "Transcription errors in MDT summaries"
+      target: "Near-zero for data sourced from coded pipeline output"
+      baseline: "Not currently measured"
+
+  regulatory_impact: "low"
+  safety_impact: "medium"
+  safety_class: "B"
+
+  derived_from:
+    - "Intended Use Statement DC-IU-001"
+    - "IEC 62304:2006/AMD1:2015 Class B software lifecycle"
+
+  related_standards:
+    - "IEC 62304:2006/AMD1:2015"
+
+  metadata:
+    created_by: "Engineering Team"
+    created_date: "2026-03-11"
+    status: "draft"
+    evidence_source: "User interviews P11 -- UR-LEO-AI-001"
+
+  design_inputs: []
+  validation_tests: []
+  tags: ["mdt", "cancer-pathway", "structured-summary", "coordinator", "preparation"]

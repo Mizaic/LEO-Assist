@@ -27,8 +27,6 @@ export async function POST(request: NextRequest) {
         Cookie: cookie,
       },
       body,
-      // @ts-expect-error — disable fetch abort timeout for long pipeline runs
-      signal: null,
     });
   } catch (err) {
     return NextResponse.json(

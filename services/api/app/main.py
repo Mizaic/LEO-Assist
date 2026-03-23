@@ -56,6 +56,7 @@ from app.routers.model_configs import router as model_configs_router
 from app.routers.nice_guidance import router as nice_guidance_router
 from app.routers.guidance_rules import router as guidance_rules_router
 from app.routers.pricing import router as pricing_router
+from app.routers.reference_ranges import router as reference_ranges_router
 
 
 def _validate_startup_deps():
@@ -260,6 +261,7 @@ app.include_router(model_configs_router)
 app.include_router(nice_guidance_router)
 app.include_router(guidance_rules_router)
 app.include_router(pricing_router)
+app.include_router(reference_ranges_router)
 
 
 @app.get("/health")

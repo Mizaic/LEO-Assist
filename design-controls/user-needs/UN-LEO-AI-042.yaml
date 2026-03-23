@@ -1,0 +1,106 @@
+# -- UN-LEO-AI-042 -- Symptom-to-Referral Interval Measurement
+
+- id: "UN-LEO-AI-042"
+  title: "Information analysts and clinical leads need the system to measure the interval from a patient's first coded encounter with a pathway-relevant symptom to the date of referral onto the relevant pathway, so that pre-referral delay in primary care can be quantified and addressed alongside post-referral pathway performance."
+  description: |
+    National pathway standards measure from the date of referral. They do not
+    measure what happened before the referral. A patient may have presented
+    to their GP with a pathway-relevant symptom months before a referral was
+    made. This pre-referral interval -- from first coded symptom to referral --
+    is currently impossible to calculate at scale because it requires
+    cross-referencing coded encounter data in primary care with referral dates
+    in secondary care, and coded encounter data is locked in free-text notes.
+
+    The system must identify the first encounter in the patient's coded primary
+    care record that contains a pathway-relevant SNOMED concept, calculate the
+    interval from that encounter to the referral date, and make this pre-referral
+    interval available in analytics alongside the standard post-referral pathway
+    metrics.
+
+  stakeholder:
+    type: "nhs_user"
+    role: "Information Analyst / Clinical Lead"
+    organization: "NHS ICB / Acute Trust"
+
+  priority: "SHOULD"
+
+  rationale: |
+    The clinically meaningful measure of diagnostic delay starts from first
+    symptom presentation, not from referral. A national standard that shows
+    compliance on 62-day referral-to-treatment may coexist with systematic
+    delays of six months or more between first presentation and referral that
+    are entirely invisible to current measurement. Without the pre-referral
+    interval, commissioners and clinical leads cannot assess the full patient
+    experience or identify where the greatest improvement opportunity lies.
+    The NCDA programme specifically calls for this data, and it is the key
+    metric for evaluating whether cancer diagnosis is being achieved early
+    or late.
+
+  benefit: |
+    Commissioners and clinical leads can see the complete diagnostic journey,
+    not just the secondary care portion. Practices with systematically long
+    pre-referral intervals can be identified for targeted support. Population-
+    level data on primary care diagnostic delay becomes available for the
+    first time. Research and audit programmes can calculate more clinically
+    meaningful measures of diagnostic performance.
+
+  use_case: |
+    1. Information analyst opens pathway analytics.
+    2. They select a pathway, time period, and whether to include pre-referral
+       interval in the analysis.
+    3. Analytics show: median pre-referral interval (first coded symptom to
+       referral), distribution of pre-referral intervals, and percentage of
+       referrals made within 14 days of first coded symptom.
+    4. Drill-down by referring practice shows which practices have the longest
+       median pre-referral intervals.
+    5. Individual patient timelines show the sequence: first coded symptom,
+       subsequent relevant encounters, referral date, and post-referral pathway.
+    6. Data can be exported for NCDA or other national programme submissions.
+
+  current_solution: |
+    None. Pre-referral interval cannot be calculated because first symptom
+    presentation is in free-text GP notes that are not coded at scale.
+
+  pain_points:
+    - "Pathway measurement starts at referral, missing the primary care diagnostic period"
+    - "Cannot identify practices with systematically long pre-referral intervals"
+    - "NCDA and national programmes request this data but it cannot be produced"
+    - "Patients with long pre-referral delays are invisible to secondary care performance monitoring"
+    - "Research evidence base for primary care diagnostic delay is limited by absence of this data"
+
+  acceptance_criteria:
+    - "System identifies the first encounter containing a pathway-relevant SNOMED concept in the patient record"
+    - "Pre-referral interval is calculated as the difference between this encounter date and the referral date"
+    - "Interval is available in analytics alongside standard post-referral pathway metrics"
+    - "Distribution statistics are calculated per pathway, per referring practice, and per time period"
+    - "Data is exportable for NCDA and national programme submissions"
+    - "Cases where no pre-referral encounter is found are flagged with a reason code"
+
+  success_metrics:
+    - metric: "Percentage of referrals for which pre-referral interval can be calculated"
+      target: "Above 70% of referrals where primary care records are available"
+      baseline: "0% -- not currently calculable"
+    - metric: "Availability of pre-referral interval data for NCDA submission"
+      target: "Full population coverage within connected practice footprint"
+      baseline: "Not currently available"
+
+  regulatory_impact: "low"
+  safety_impact: "medium"
+  safety_class: "A"
+
+  derived_from:
+    - "Intended Use Statement DC-IU-001"
+    - "IEC 62304:2006/AMD1:2015 Class A software lifecycle"
+
+  related_standards:
+    - "IEC 62304:2006/AMD1:2015"
+
+  metadata:
+    created_by: "Engineering Team"
+    created_date: "2026-03-11"
+    status: "draft"
+    evidence_source: "User interviews P09 -- UR-LEO-AI-001"
+
+  design_inputs: []
+  validation_tests: []
+  tags: ["pathway-analytics", "pre-referral-interval", "diagnostic-delay", "ncda", "primary-care", "population-health"]

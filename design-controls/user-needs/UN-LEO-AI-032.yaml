@@ -1,0 +1,103 @@
+# -- UN-LEO-AI-032 -- Real-Time Referral Queue Management
+
+- id: "UN-LEO-AI-032"
+  title: "Referral management teams and pathway coordinators need a single real-time view of every referral in the system -- its current status, responsible owner, urgency, and time waiting -- regardless of which channel it arrived through or which specialty it is assigned to."
+  description: |
+    Referrals currently arrive through multiple channels (e-RS, email, post,
+    fax) and are tracked through a combination of spreadsheets, e-RS queries,
+    and verbal communication. No single view exists of all referrals, their
+    current state, and how long they have been waiting. Referral management
+    teams must log into multiple systems and manually reconcile data to
+    answer basic questions such as "how many referrals are waiting for triage
+    in dermatology right now?"
+
+    The system must provide a unified, real-time queue view covering all
+    referrals from the point of receipt through triage, appointment booking,
+    and pathway entry. Each referral must show its current status, assigned
+    owner, urgency classification, and elapsed waiting time with visual
+    indicators when thresholds are exceeded.
+
+  stakeholder:
+    type: "nhs_user"
+    role: "Referral Management Team Leader / Cancer Pathway Coordinator"
+    organization: "NHS Acute Trust / Cancer Services"
+
+  priority: "MUST"
+
+  rationale: |
+    Lack of queue visibility is the root cause of avoidable triage delays.
+    When a consultant is on leave and their queue is not covered, referrals
+    sit untriaged for days without anyone being aware. For two-week-wait
+    cancer referrals, five days lost to an untriaged queue is a serious
+    patient safety issue. A real-time unified view is the prerequisite for
+    all proactive management and alerting capabilities.
+
+  benefit: |
+    Referral management teams can identify and escalate backlogs before they
+    become patient safety issues. Pathway coordinators can see the moment a
+    cancer referral arrives and track it in real time. Clinical directors can
+    see queue depth across all specialties without manual reporting.
+
+  use_case: |
+    1. Referral manager opens the queue dashboard.
+    2. They see a filterable table of all referrals: specialty, status,
+       urgency, referrer, patient (pseudonymised), received time, and
+       elapsed waiting time colour-coded by threshold.
+    3. Red rows indicate referrals that have exceeded the urgency threshold
+       for triage (e.g. two-week-wait untriaged for more than 24 hours).
+    4. They can filter by specialty, urgency, status, or responsible clinician.
+    5. Clicking a row shows the referral detail including completeness status
+       and clinical summary.
+    6. They can reassign a referral to a different triage clinician or
+       escalate it directly from the queue view.
+    7. The view updates in real time without page refresh.
+
+  current_solution: |
+    Manual spreadsheet updated from e-RS queries. Not real-time. Does not
+    cover referrals arriving outside e-RS. No threshold alerting.
+
+  pain_points:
+    - "No single view of all referrals regardless of arrival channel"
+    - "Spreadsheet-based tracking is not real-time and cannot alert"
+    - "Referrals arriving outside e-RS are invisible until someone notices"
+    - "Cannot identify which specialty queues are backing up without manual checks"
+    - "Two-week-wait referrals can sit untriaged for days during annual leave periods"
+
+  acceptance_criteria:
+    - "All referrals ingested through any channel appear in the unified queue within 60 seconds of receipt"
+    - "Queue shows: specialty, urgency, received time, elapsed time, status, and responsible owner"
+    - "Elapsed time is colour-coded against configurable thresholds per urgency band"
+    - "Queue is filterable by specialty, status, urgency, and date range"
+    - "Referral reassignment is possible directly from the queue view"
+    - "View reflects current state without manual refresh"
+
+  success_metrics:
+    - metric: "Time to identify a backlog in a given specialty queue"
+      target: "Under 30 seconds from opening dashboard"
+      baseline: "Not currently possible without manual multi-system query"
+    - metric: "Two-week-wait referrals sitting untriaged beyond 24 hours"
+      target: "Zero -- detected and alerted before threshold is reached"
+      baseline: "Not currently tracked"
+
+  regulatory_impact: "medium"
+  safety_impact: "high"
+  safety_class: "B"
+
+  derived_from:
+    - "Intended Use Statement DC-IU-001"
+    - "IEC 62304:2006/AMD1:2015 Class B software lifecycle"
+    - "ISO 14971:2019 risk management"
+
+  related_standards:
+    - "IEC 62304:2006/AMD1:2015"
+    - "ISO 14971:2019"
+
+  metadata:
+    created_by: "Engineering Team"
+    created_date: "2026-03-11"
+    status: "draft"
+    evidence_source: "User interviews P02, P04, P05, P10, P15 -- UR-LEO-AI-001"
+
+  design_inputs: []
+  validation_tests: []
+  tags: ["referral-triage", "queue-management", "real-time", "dashboard", "pathway-coordination"]

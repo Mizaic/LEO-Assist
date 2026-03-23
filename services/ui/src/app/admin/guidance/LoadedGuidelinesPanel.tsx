@@ -285,7 +285,7 @@ export default function LoadedGuidelinesPanel({ refreshKey, onRulesGenerated }: 
           body={`This will delete all draft rules for ${confirmCode} and ask the AI to write new ones. Rules you have already approved will also be deleted. Are you sure?`}
           confirmLabel="Yes, re-generate"
           cancelLabel="Cancel"
-          variant="warning"
+          variant="danger"
           onConfirm={() => handleGenerate(confirmCode)}
           onCancel={() => setConfirmCode(null)}
         />

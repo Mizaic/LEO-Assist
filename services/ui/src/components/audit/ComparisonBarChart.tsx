@@ -28,12 +28,12 @@ interface ComparisonBarChartProps {
   unit?: "percent" | "days" | "count" | "median";
   layout?: "grouped" | "horizontal";
   height?: number;
-  visibleKeys?: Array<keyof Omit<ComparisonDataRow, "category">>;
+  visibleKeys?: ReadonlyArray<keyof Omit<ComparisonDataRow, "category">>;
   ariaLabel?: string;
   orgSelected?: boolean;
 }
 
-const DEFAULT_KEYS: Array<keyof Omit<ComparisonDataRow, "category">> = [
+const DEFAULT_KEYS: ReadonlyArray<keyof Omit<ComparisonDataRow, "category">> = [
   "practice",
   "national",
   "similar",
@@ -163,10 +163,13 @@ export default function ComparisonBarChart({
             domain={unit === "percent" ? [0, 100] : ["auto", "auto"]}
           />
           <Tooltip
-            formatter={(v: any, name: string) => [
-              `${v}${unitSuffix}`,
-              BENCHMARK_LABELS[name as keyof typeof BENCHMARK_LABELS] ?? name,
-            ]}
+            formatter={(v: any, name?: string) => {
+              const series = name ?? "";
+              return [
+                `${v}${unitSuffix}`,
+                BENCHMARK_LABELS[series as keyof typeof BENCHMARK_LABELS] ?? series,
+              ];
+            }}
           />
           {visibleKeys.map((key) => (
             <Bar

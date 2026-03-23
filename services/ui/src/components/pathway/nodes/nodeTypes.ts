@@ -8,6 +8,7 @@ import { MergeNode } from "./MergeNode";
 import { TransformNode } from "./TransformNode";
 import { SourceNode } from "./SourceNode";
 import { OutputNode } from "./OutputNode";
+import { MiniHitlNode } from "./MiniHitlNode";
 
 export const nodeTypes: NodeTypes = {
   action: ActionNode,
@@ -20,5 +21,6 @@ export const nodeTypes: NodeTypes = {
   transform: TransformNode,
   source: SourceNode,
   output: OutputNode,
+  viewer: MiniHitlNode,
 };
 

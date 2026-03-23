@@ -200,6 +200,16 @@ def _register_defaults(registry: SubgraphRegistry) -> None:
         logger.error("Failed to register subgraph 'queue_publish': %s", exc)
 
     try:
+        from libs.pipeline_graph.subgraphs.human_review_gate import build_human_review_gate_subgraph
+        registry.register(
+            "human_review_gate",
+            build_human_review_gate_subgraph,
+            description="Workflow pause gate for human clinical review",
+        )
+    except Exception as exc:
+        logger.error("Failed to register subgraph 'human_review_gate': %s", exc)
+
+    try:
         from libs.pipeline_graph.subgraphs.guidance_rule_extraction import (
             build_guidance_rule_extraction_subgraph,
         )

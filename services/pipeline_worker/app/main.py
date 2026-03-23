@@ -65,6 +65,63 @@ QUEUE_NAME = os.getenv("PIPELINE_QUEUE_NAME", "pipeline-jobs")
 PORT = int(os.getenv("PIPELINE_WORKER_PORT", "8006"))
 _guidance_generate_jobs: dict[str, dict[str, Any]] = {}
 
+_batch_trace_runs: dict[str, dict[str, Any]] = {}
+_batch_trace_lock = threading.Lock()
+_BATCH_TRACE_TTL_SECONDS = max(300, int(os.getenv("BATCH_TRACE_TTL_SECONDS", "3600")))
+_BATCH_TRACE_MAX_RUNS = max(10, int(os.getenv("BATCH_TRACE_MAX_RUNS", "200")))
+_BATCH_TRACE_PASS_SAMPLE_RATE = float(os.getenv("BATCH_TRACE_PASS_SAMPLE_RATE", "0"))
+
+
+def _cleanup_batch_traces(now: float | None = None) -> None:
+    ts = now or time.time()
+    expired = [
+        run_id for run_id, run in _batch_trace_runs.items()
+        if float(run.get("expires_at", 0)) <= ts
+    ]
+    for run_id in expired:
+        _batch_trace_runs.pop(run_id, None)
+
+    if len(_batch_trace_runs) <= _BATCH_TRACE_MAX_RUNS:
+        return
+    # Keep newest runs when the in-memory cache grows too large.
+    ordered = sorted(
+        _batch_trace_runs.items(),
+        key=lambda item: float(item[1].get("created_at", 0)),
+    )
+    overflow = len(_batch_trace_runs) - _BATCH_TRACE_MAX_RUNS
+    for run_id, _ in ordered[:overflow]:
+        _batch_trace_runs.pop(run_id, None)
+
+
+def _store_batch_candidate_trace(batch_run_id: str, candidate_id: str, payload: dict[str, Any]) -> None:
+    now = time.time()
+    with _batch_trace_lock:
+        _cleanup_batch_traces(now)
+        run = _batch_trace_runs.setdefault(
+            batch_run_id,
+            {
+                "created_at": now,
+                "expires_at": now + _BATCH_TRACE_TTL_SECONDS,
+                "candidates": {},
+            },
+        )
+        run["expires_at"] = max(float(run.get("expires_at", 0)), now + _BATCH_TRACE_TTL_SECONDS)
+        candidates = run.setdefault("candidates", {})
+        candidates[candidate_id] = payload
+
+
+def _get_batch_candidate_trace(batch_run_id: str, candidate_id: str) -> dict[str, Any] | None:
+    now = time.time()
+    with _batch_trace_lock:
+        _cleanup_batch_traces(now)
+        run = _batch_trace_runs.get(batch_run_id)
+        if not run:
+            return None
+        payload = (run.get("candidates") or {}).get(candidate_id)
+        if not payload:
+            return None
+        return dict(payload)
+
 
 # ── Lifespan: start/stop message bus consumer in background ──────────────────
 
@@ -369,6 +426,7 @@ async def batch_test_run(body: BatchTestRequest) -> StreamingResponse:
     actions, _ = _build_actions(body.actions, body.edges)
 
     total = len(candidates)
+    batch_run_id = str(uuid.uuid4())
 
     async def event_stream() -> AsyncGenerator[str, None]:  # noqa: C901
         passed = 0
@@ -390,6 +448,7 @@ async def batch_test_run(body: BatchTestRequest) -> StreamingResponse:
 
                 put("candidate_start", {
                     "type": "candidate_start",
+                    "batch_run_id": batch_run_id,
                     "candidate_id": candidate_id,
                     "text_preview": text_preview,
                     "index": idx + 1,
@@ -415,12 +474,15 @@ async def batch_test_run(body: BatchTestRequest) -> StreamingResponse:
                 verification_threshold: float | None = None
                 verification_issues: list[str] | None = None
                 error_msg: str | None = None
+                step_traces: list[dict[str, Any]] = []
 
                 try:
                     engine = WorkflowEngine()
                     async for ev in engine.trace_run_stream(actions, initial):
                         if ev["type"] == "step_done":
                             trace = ev.get("step_trace", {})
+                            if isinstance(trace, dict):
+                                step_traces.append(dict(trace))
                             sg = trace.get("subgraph_id") or "unknown"
                             lbl = trace.get("label") or sg
                             st = trace.get("status")
@@ -490,10 +552,53 @@ async def batch_test_run(body: BatchTestRequest) -> StreamingResponse:
                 else:
                     errored += 1
 
+                confidence_below_threshold = (
+                    isinstance(verification_confidence, float)
+                    and isinstance(verification_threshold, float)
+                    and verification_confidence < verification_threshold
+                )
+                should_save_trace = (
+                    final_status in ("halted", "error")
+                    or verification_is_accurate is False
+                    or confidence_below_threshold
+                )
+                if (
+                    not should_save_trace
+                    and final_status == "completed"
+                    and _BATCH_TRACE_PASS_SAMPLE_RATE > 0
+                ):
+                    should_save_trace = ((idx + 1) % max(1, int(1 / _BATCH_TRACE_PASS_SAMPLE_RATE))) == 0
+
+                if should_save_trace and step_traces:
+                    _store_batch_candidate_trace(
+                        batch_run_id,
+                        candidate_id,
+                        {
+                            "batch_run_id": batch_run_id,
+                            "candidate_id": candidate_id,
+                            "status": final_status,
+                            "text_preview": text_preview,
+                            "duration_ms": duration_ms,
+                            "halted_at": halted_at,
+                            "halted_at_subgraph": halted_at_subgraph,
+                            "halt_reason": halt_reason,
+                            "verification_is_accurate": verification_is_accurate,
+                            "verification_confidence": verification_confidence,
+                            "verification_threshold": verification_threshold,
+                            "verification_issues": verification_issues,
+                            "error": error_msg,
+                            "trace_saved": True,
+                            "saved_at": datetime.now(timezone.utc).isoformat(),
+                            "step_traces": step_traces,
+                        },
+                    )
+
                 put("candidate_done", {
                     "type": "candidate_done",
+                    "batch_run_id": batch_run_id,
                     "candidate_id": candidate_id,
                     "text_preview": text_preview,
+                    "encounter_text": text[:8000],
                     "status": final_status,
                     "halted_at": halted_at,
                     "halted_at_subgraph": halted_at_subgraph,
@@ -506,6 +611,7 @@ async def batch_test_run(body: BatchTestRequest) -> StreamingResponse:
                     "duration_ms": duration_ms,
                     "index": idx + 1,
                     "total": total,
+                    "trace_saved": should_save_trace and bool(step_traces),
                 })
 
         sem = asyncio.Semaphore(concurrency)
@@ -530,6 +636,7 @@ async def batch_test_run(body: BatchTestRequest) -> StreamingResponse:
             f"event: batch_done\ndata: "
             + json.dumps({
                 "type": "batch_done",
+                "batch_run_id": batch_run_id,
                 "total": total,
                 "passed": passed,
                 "halted": halted,
@@ -548,6 +655,17 @@ async def batch_test_run(body: BatchTestRequest) -> StreamingResponse:
             "Connection": "keep-alive",
         },
     )
+
+
+@app.get("/test-run/batch/trace")
+async def get_batch_candidate_trace(batch_run_id: str, candidate_id: str) -> dict[str, Any]:
+    payload = _get_batch_candidate_trace(batch_run_id=batch_run_id, candidate_id=candidate_id)
+    if not payload:
+        raise HTTPException(
+            status_code=404,
+            detail="Trace not found for this candidate/run (it may not have been persisted or has expired).",
+        )
+    return payload
 
 
 @app.post("/label-verify/start")

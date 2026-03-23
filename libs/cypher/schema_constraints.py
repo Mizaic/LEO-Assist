@@ -49,6 +49,10 @@ PATIENT_SCHEMA_CONSTRAINTS = [
     # PromptConfig — LLM prompt management
     "CREATE CONSTRAINT prompt_config_id IF NOT EXISTS FOR (p:PromptConfig) REQUIRE p.id IS UNIQUE",
     "CREATE INDEX prompt_config_name IF NOT EXISTS FOR (p:PromptConfig) ON (p.name, p.version)",
+    # Reference ranges for abnormal lab result classification
+    "CREATE CONSTRAINT reference_range_id IF NOT EXISTS FOR (r:ReferenceRange) REQUIRE r.range_id IS UNIQUE",
+    "CREATE INDEX reference_range_concept IF NOT EXISTS FOR (r:ReferenceRange) ON (r.conceptId)",
+    "CREATE INDEX reference_range_org IF NOT EXISTS FOR (r:ReferenceRange) ON (r.org_id)",
 ]
 
 CODING_SCHEMA_CONSTRAINTS: list[str] = [

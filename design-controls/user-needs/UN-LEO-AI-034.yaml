@@ -1,0 +1,100 @@
+# -- UN-LEO-AI-034 -- Specialty Mis-Routing Detection
+
+- id: "UN-LEO-AI-034"
+  title: "Referral management administrators need the system to automatically detect when an incoming referral has been directed to the wrong specialty, so that it can be corrected before it wastes a triage clinician's time and before the clock runs on the wrong pathway."
+  description: |
+    A significant proportion of incoming referrals are directed to the wrong
+    specialty by the referring clinician -- either through unfamiliarity with
+    local service structures, ambiguous specialty names in e-RS, or genuine
+    diagnostic uncertainty. These mis-routed referrals sit in the wrong triage
+    queue for days, consuming clock time against the wrong pathway, before a
+    consultant spots the error and redirects them.
+
+    The system must classify the clinical content of each incoming referral
+    against the available specialty services, flag probable mis-routing where
+    the content does not match the declared destination, and surface this as
+    an alert in the referral management queue before triage begins.
+
+  stakeholder:
+    type: "nhs_user"
+    role: "Referral Management Administrator"
+    organization: "NHS Acute Trust / Referral Management Centre"
+
+  priority: "SHOULD"
+
+  rationale: |
+    Mis-routed referrals waste triage clinician time, consume pathway clock time
+    against the wrong service, and delay the patient reaching the correct pathway.
+    Referral management administrators who are non-clinical cannot identify
+    mis-routing from free text, but a trained classifier operating on coded
+    content can flag probable errors for administrator review before the referral
+    is placed in a triage queue. Early detection prevents the full delay cycle
+    of triage, rejection, re-routing, and re-triage.
+
+  benefit: |
+    Reduction in referrals that spend time in the wrong triage queue. Faster
+    routing to the correct specialty and pathway. Reduced wasted triage clinician
+    time on referrals that will be redirected. Earlier start of the correct
+    pathway clock for the patient.
+
+  use_case: |
+    1. A referral arrives addressed to specialty A.
+    2. The pipeline codes the clinical content and classifies the most likely
+       intended specialty based on the SNOMED concepts present.
+    3. If the classified specialty does not match the declared destination,
+       a routing flag is raised: "Clinical content suggests [specialty B]
+       -- please confirm routing before placing in triage queue."
+    4. The referral management administrator reviews the flag.
+    5. They confirm the current routing, or redirect to the suggested specialty,
+       directly from the queue view.
+    6. The redirection is logged with the original routing and the reason
+       for change.
+
+  current_solution: |
+    None. Mis-routing is identified only when a triage clinician reads the
+    referral and notices it belongs to a different specialty. The referral
+    has already consumed queue time and clinician reading time.
+
+  pain_points:
+    - "Referral management administrators cannot identify mis-routing from free text"
+    - "Mis-routed referrals sit in wrong queue for days before identification"
+    - "Pathway clock runs against the wrong service during mis-routing period"
+    - "Triage clinician time is wasted reading referrals that will be redirected"
+    - "No logging of mis-routing events for quality improvement purposes"
+
+  acceptance_criteria:
+    - "System classifies the most probable target specialty from coded referral content"
+    - "Routing discrepancy flag is raised when classified specialty does not match declared destination"
+    - "Flag appears in referral management queue before the referral enters a triage queue"
+    - "Administrator can confirm or override routing from the flag"
+    - "All routing decisions and overrides are logged with timestamp and actor"
+    - "False positive rate for routing flags is below 15% (validated on representative sample)"
+
+  success_metrics:
+    - metric: "Mis-routed referrals identified before triage"
+      target: "Detection rate above 80% of confirmed mis-routing events"
+      baseline: "0% -- no automated detection currently"
+    - metric: "Time lost to mis-routing per referral"
+      target: "Reduction from multi-day to same-day correction for flagged referrals"
+      baseline: "Average 3-5 days lost to mis-routing before identification"
+
+  regulatory_impact: "low"
+  safety_impact: "medium"
+  safety_class: "B"
+
+  derived_from:
+    - "Intended Use Statement DC-IU-001"
+    - "IEC 62304:2006/AMD1:2015 Class B software lifecycle"
+
+  related_standards:
+    - "IEC 62304:2006/AMD1:2015"
+
+  metadata:
+    created_by: "Engineering Team"
+    created_date: "2026-03-11"
+    status: "draft"
+    evidence_source: "User interviews P02 -- UR-LEO-AI-001"
+
+  design_inputs: []
+  validation_tests: []
+  tags: ["referral-triage", "routing", "classification", "referral-management", "mis-routing"]

@@ -331,7 +331,8 @@ def apply_plan_definition(plan_id: str, body: Dict[str, Any]):
 
         action_rows = client.run(
             "MATCH (pd:PlanDefinition {id: $pid})-[:HAS_ACTION]->(a:Action) "
-            "WHERE a.trigger_type = 'data-changed' AND a.trigger_name = $evt "
+            "WHERE a.trigger_name = $evt "
+            "  AND coalesce(a.trigger_type, 'data-changed') IN ['data-changed', 'admin-action'] "
             "OPTIONAL MATCH (a)-[:USES_DEFINITION]->(ad:ActivityDefinition) "
             "RETURN a.id AS actionId, a.trigger_type AS triggerType, "
             "       a.trigger_name AS triggerName, a.condition AS condition, "

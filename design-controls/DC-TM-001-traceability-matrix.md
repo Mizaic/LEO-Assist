@@ -262,6 +262,40 @@ All requirements have design references, implementations, and at least one verif
 
 ---
 
+## 5. User Needs Register -- Referral Triage Programme (UN-030 to UN-048)
+
+The following user needs were identified through structured user research
+(UR-LEO-AI-001, 20 interviews across NHS clinical, operational, information,
+and internal roles) conducted in March 2026. They represent unmet needs specific
+to the referral triage use case and are not yet covered by DIs or VTs.
+
+| UN ID | Title | Stakeholder Role | Safety Class | Priority | DIs | Status |
+|-------|-------|-----------------|-------------|----------|-----|--------|
+| UN-LEO-AI-030 | Referral Completeness Checking at Point of Triage | Triage Clinician / Referral Management Admin | B | MUST | -- | Draft |
+| UN-LEO-AI-031 | Triage Consistency Measurement Across Clinicians | Clinical Lead / Quality Improvement Lead | B | SHOULD | -- | Draft |
+| UN-LEO-AI-032 | Real-Time Referral Queue Management | Referral Management Team Leader / Pathway Coordinator | B | MUST | -- | Draft |
+| UN-LEO-AI-033 | Referrer Quality Feedback | GP Partner / Practice Manager | B | SHOULD | -- | Draft |
+| UN-LEO-AI-034 | Specialty Mis-Routing Detection | Referral Management Administrator | B | SHOULD | -- | Draft |
+| UN-LEO-AI-035 | Rejection Rate Analytics | Clinical Director / Referral Management Lead | A | SHOULD | -- | Draft |
+| UN-LEO-AI-036 | Triage Queue Backlog Alerting | Referral Management Team Leader / Patient Safety Lead | B | MUST | -- | Draft |
+| UN-LEO-AI-037 | Code-to-Source Provenance Linking | Triage Clinician / Clinical Coder / Auditor | B | MUST | -- | Draft |
+| UN-LEO-AI-038 | Structured MDT Preparation from Coded Referral Data | MDT Coordinator / Cancer Pathway Coordinator | B | SHOULD | -- | Draft |
+| UN-LEO-AI-039 | Junior Clinician Triage Decision Support | Registrar / Junior Doctor covering triage | B | MUST | -- | Draft |
+| UN-LEO-AI-040 | Detection of Patients Who Should Be on a Pathway but Are Not | Clinical Lead / Pathway Coordinator | C | SHOULD | -- | Draft |
+| UN-LEO-AI-041 | Pathway Segment Decomposition | Clinical Lead / Information Analyst | A | MUST | -- | Draft |
+| UN-LEO-AI-042 | Symptom-to-Referral Interval Measurement | Information Analyst / Clinical Lead | A | SHOULD | -- | Draft |
+| UN-LEO-AI-043 | Pseudonymisation Before LLM Processing | Data Protection Officer / IG Lead | B | MUST | -- | Draft |
+| UN-LEO-AI-044 | Structured Override Error Categories for Model Improvement | NLP Engineer / Clinical AI Quality Lead | B | SHOULD | -- | Draft |
+| UN-LEO-AI-045 | Configuration Validation UI with Test Mode | Platform Administrator | B | SHOULD | -- | Draft |
+| UN-LEO-AI-046 | Multi-Channel Referral Ingestion | Referral Management Administrator | B | MUST | -- | Draft |
+| UN-LEO-AI-047 | Active Engagement Design to Prevent Automation Bias | Clinical Safety Officer / Triage Clinician | B | MUST | -- | Draft |
+| UN-LEO-AI-048 | NHS-Specific ROI and Commercial Evidence Pack | Commercial Director | A | SHOULD | -- | Draft |
+
+**Evidence source:** UR-LEO-AI-001 (de-identified interview dataset,
+`reports/user-research/user-interviews-deidentified.json`)
+
+---
+
 ## 4. Approval
 
 | Role | Name | Date | Signature |

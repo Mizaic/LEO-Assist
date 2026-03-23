@@ -206,8 +206,8 @@ export default function OrgGraph({ onNodeClick }: OrgGraphProps) {
   const [direction, setDirection] = useState<"TB" | "LR">("TB");
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const [nodes, setNodes, onNodesChange] = useNodesState([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
 
   const load = useCallback(async () => {
     setLoading(true);

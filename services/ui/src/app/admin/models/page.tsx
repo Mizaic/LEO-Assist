@@ -600,7 +600,7 @@ function deriveExtractor(primaryIsNer: boolean, hasBackup: boolean): string {
 // =============================================================================
 
 function ModelPicker({
-  value, onChange, options = MODEL_OPTIONS, label,
+  value, onChange, options = [], label,
 }: {
   value: ModelKey;
   onChange: (k: ModelKey) => void;

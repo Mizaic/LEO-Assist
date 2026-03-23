@@ -563,6 +563,7 @@ export async function fetchPatientCodingTimeline(patientId: string): Promise<Tim
 
 /** Benchmark values for a single metric, keyed by comparison level. */
 export interface BenchmarkMetricValues {
+  practice?: number | null;
   national: number | null;
   alliance: number | null;
 }
