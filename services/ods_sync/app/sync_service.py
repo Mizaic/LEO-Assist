@@ -220,23 +220,9 @@ class SyncService:
         if ods_org.name and ods_org.name.upper() != leo_name.upper():
             discrepancy["name"] = {"ods": ods_org.name, "leo": leo_name}
 
-        # Type check — if ODS confirms a specific type and our label doesn't match, auto-correct.
+        # Type check — mismatch is recorded for review; do not auto-relabel.
         if ods_org.org_type != "unknown" and ods_org.org_type != leo_type:
-            relabel_query = _RELABEL_QUERY.get(ods_org.org_type)
-            if relabel_query:
-                try:
-                    self._neo.run(relabel_query, org_id=org_id)
-                    logger.info(
-                        "[ODS Sync] Relabelled org %s: %s → %s",
-                        org_id, leo_type, ods_org.org_type,
-                    )
-                    self._relabel_count += 1
-                    # Label is now correct — don't flag as a discrepancy
-                except Exception as exc:
-                    logger.warning("[ODS Sync] Relabel failed for %s: %s", org_id, exc)
-                    discrepancy["type"] = {"ods": ods_org.org_type, "leo": leo_type}
-            else:
-                discrepancy["type"] = {"ods": ods_org.org_type, "leo": leo_type}
+            discrepancy["type"] = {"ods": ods_org.org_type, "leo": leo_type}
 
         # Hierarchy check: does ODS parent match what we have in Neo4j?
         current_parent_ods = leo_org.get("current_parent_ods_code")
@@ -332,7 +318,7 @@ class SyncService:
             org_id=org_id,
             checked_at=datetime.now(timezone.utc).isoformat(),
             status="mismatch",
-            discrepancy=_to_json(discrepancy),
+            discrepancy=discrepancy,
             run_id=run_id,
             ods_parent_ods_code=ods_parent_ods_code,
             ods_address=_to_json(ods_address),

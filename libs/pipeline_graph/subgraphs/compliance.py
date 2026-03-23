@@ -42,14 +42,16 @@ def evaluate_compliance(state: ComplianceState) -> dict[str, Any]:
             }
         )
     passed_count = sum(1 for result in results if result["passed"])
+    summary = {
+        "patient_id": patient_id,
+        "items": results,
+        "passed_count": passed_count,
+        "failed_count": len(results) - passed_count,
+        "is_compliant": passed_count == len(results) if results else True,
+    }
     return {
-        "compliance_result": {
-            "patient_id": patient_id,
-            "items": results,
-            "passed_count": passed_count,
-            "failed_count": len(results) - passed_count,
-            "is_compliant": passed_count == len(results) if results else True,
-        },
+        "compliance_result": summary,
+        "compliance_report": summary,
         "errors": errors,
     }
 

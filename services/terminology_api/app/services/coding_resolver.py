@@ -34,7 +34,7 @@ import logging
 import os
 import re
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any, Sequence
 
 from services.terminology_api.app.queries.terminology import (
@@ -364,7 +364,7 @@ class CodingResolver:
                     if top.snomed_concept_id and top.snomed_concept_id in related_by_id:
                         related = related_by_id[top.snomed_concept_id]
                         if related:
-                            top.related_concepts = related
+                            candidates[0] = replace(top, related_concepts=related)
                             enriched += 1
                 logger.info(
                     "[resolver] enrichment  lab_terms=%d  enriched=%d  elapsed=%.3fs",
