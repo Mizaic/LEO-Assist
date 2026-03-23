@@ -9,6 +9,7 @@ Threat coverage (DC-TM-SEC-002):
 """
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import pytest
@@ -17,6 +18,69 @@ INFRA_DIR = Path(__file__).parent.parent / "infra" / "bicep"
 PARAM_DIR = INFRA_DIR / "parameters"
 CONTAINER_APPS = INFRA_DIR / "modules" / "container-apps.bicep"
 ENVIRONMENTS = ["dev", "val", "prod"]
+
+# Must match container-apps.bicep: only these two apps get a public FQDN.
+_EXPECTED_EXTERNAL_APPS = frozenset({"core-api", "ui"})
+_EXPECTED_INTERNAL_APPS = frozenset(
+    {
+        "terminology-api",
+        "fhir-api",
+        "analytics-api",
+        "model-inference",
+        "training-worker",
+        "pipeline-worker",
+    }
+)
+
+
+def _container_app_blocks(source: str) -> list[tuple[str, str]]:
+    """Return [(logical_name, block_text), ...] for each Container App resource."""
+    pattern = re.compile(
+        r"^resource \w+ 'Microsoft\.App/containerApps@[^']+' = \{",
+        re.MULTILINE,
+    )
+    matches = list(pattern.finditer(source))
+    out: list[tuple[str, str]] = []
+    for i, m in enumerate(matches):
+        start = m.start()
+        end = matches[i + 1].start() if i + 1 < len(matches) else len(source)
+        block = source[start:end]
+        name_m = re.search(r"^\s*name:\s*'([^']+)'\s*$", block, re.MULTILINE)
+        if not name_m:
+            continue
+        out.append((name_m.group(1), block))
+    return out
+
+
+def _ingress_external_flag(block: str) -> bool | None:
+    """Return True/False for ingress.external, or None if ingress block missing."""
+    m = re.search(
+        r"ingress:\s*\{[^}]*external:\s*(true|false)",
+        block,
+        re.DOTALL,
+    )
+    if not m:
+        return None
+    return m.group(1) == "true"
+
+
+class TestContainerAppsIngressPolicy:
+    """ACA ingress: only core-api and ui may be external; all others internal."""
+
+    def test_each_container_app_has_expected_external_setting(self):
+        source = CONTAINER_APPS.read_text()
+        apps = dict(_container_app_blocks(source))
+        assert set(apps.keys()) == _EXPECTED_EXTERNAL_APPS | _EXPECTED_INTERNAL_APPS, (
+            "container-apps.bicep Container App set changed -- update "
+            "_EXPECTED_EXTERNAL_APPS / _EXPECTED_INTERNAL_APPS in this test."
+        )
+        for name, block in apps.items():
+            external = _ingress_external_flag(block)
+            assert external is not None, f"{name}: ingress.external not found"
+            if name in _EXPECTED_EXTERNAL_APPS:
+                assert external is True, f"{name}: must use external: true (public entry)"
+            else:
+                assert external is False, f"{name}: must use external: false (internal only)"
 
 
 class TestServiceAuthSecretDeployment:

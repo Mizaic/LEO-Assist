@@ -1,4 +1,10 @@
 // -- Container Apps Environment + all 9 apps ------------------------------
+//
+// Ingress policy (do not change without security review):
+//   Only core-api and ui use external ingress (public FQDN).
+//   All other Container Apps must stay internal (ACA env DNS only).
+//   CI enforces this in tests/test_infra_security.py (TestContainerAppsIngressPolicy).
+//
 param location string = resourceGroup().location
 param environment string
 param managedIdentityId string
