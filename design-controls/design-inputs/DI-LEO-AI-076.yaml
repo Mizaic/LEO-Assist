@@ -1,0 +1,65 @@
+# -- DI-LEO-AI-076 -- Loop 2: Surface Form Revocation and Cascade
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-076"
+  type: "Functional"
+  derived_from: ["UN-LEO-AI-049"]
+  requirement: >
+    The system SHALL provide a surface form revocation endpoint that removes
+    a MAPS_TO relationship, marks the SurfaceFormTask as revoked, and creates
+    CodingReview nodes for every encounter coded after the surface form's
+    first_used_at date where a DOCUMENTS relationship uses the revoked concept
+    with source="provisional", so that affected records can be corrected or
+    confirmed by a reviewer.
+  rationale: >
+    An incorrect surface form mapping that was approved and has been in use
+    affects every encounter processed since it was activated. Simply removing
+    the mapping does not fix the historical records -- they remain coded with
+    the wrong concept. The cascade creates a review task for each affected
+    encounter, giving reviewers visibility and a workflow to correct or
+    confirm each one. Without this, incorrect mappings leave a permanent trail
+    of wrong codes in patient records.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: "DELETE /training/surface-forms/{normalized}/revoke removes MAPS_TO, sets SurfaceFormTask.status='revoked', logs revocation with timestamp and revoker identity"
+      - type: "safety"
+        spec: "On revocation, query all encounters where DOCUMENTS.source='provisional' and the coded concept matches the revoked surface form, created after SurfaceForm.first_used_at"
+      - type: "functional"
+        spec: "A CodingReview node with review_type='revocation_cascade' is created for each affected encounter"
+      - type: "functional"
+        spec: "Recently approved terms view shows: term, approved_by, approved_date, use_count, and a Revoke button"
+      - type: "functional"
+        spec: "SurfaceForm and MAPS_TO nodes track first_used_at and use_count"
+    constraints:
+      - type: "safety"
+        spec: "Revocation cascade must be atomic: either all cascade CodingReview nodes are created or none (transaction)"
+      - type: "safety"
+        spec: "Revocation does not delete historical DOCUMENTS relationships -- it creates review tasks for human decision"
+    dependencies: ["DI-LEO-AI-075"]
+    downstream_impacts:
+      - "Review queue (revocation_cascade items added)"
+      - "Recently approved terms view"
+      - "SurfaceForm use_count and first_used_at tracking"
+    technical_details:
+      language: "Python / TypeScript"
+      framework: "FastAPI / Next.js"
+      file_structure:
+        - "services/api/app/routers/training.py"
+        - "libs/cypher/coding_review_queries.py"
+        - "services/ui/src/components/operations/ReviewSection.tsx"
+      estimated_loc: 150
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      All VT-076 test cases pass: revoke endpoint removes MAPS_TO, cascade
+      creates CodingReview for each affected encounter, transaction is atomic,
+      recently approved terms view shows use_count and revoke button.
+    test_protocol: "VT-LEO-AI-076"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-051"]
+  tags: ["loop2", "surface-forms", "revocation", "cascade", "coding-review", "patient-safety"]

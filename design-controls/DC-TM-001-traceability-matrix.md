@@ -296,6 +296,95 @@ to the referral triage use case and are not yet covered by DIs or VTs.
 
 ---
 
+## 6. Three Learning Loops -- Continuous Improvement (UN-049 to UN-050)
+
+Design controls for the Three Learning Loops feature (coding quality audit,
+surface form vocabulary growth, and NER training data collection). Created
+2026-04-03 as Pre-Sprint artefacts per the Three Learning Loops Production
+Plan v3.0 (QA-001).
+
+### 6.1 User Needs
+
+| UN ID | Title | Stakeholder Role | Safety Class | Priority | DIs | Status |
+|-------|-------|-----------------|-------------|----------|-----|--------|
+| UN-LEO-AI-049 | Coding Quality Monitoring and Continuous Improvement (Loops 1 + 2) | Clinical Operations Lead / CSO | B | MUST | DI-072, DI-073, DI-074, DI-075, DI-076 | Draft |
+| UN-LEO-AI-050 | NER Model Training Data Collection (Loop 3) | NLP Engineer / Clinical AI Quality Lead | B | MUST | DI-077, DI-078, DI-079 | Draft |
+
+### 6.2 Design Input -> Design Output -> Risk -> Verification Traceability
+
+| DI ID | Title | DO ID | Risks | VT ID | Safety Class | Status |
+|-------|-------|-------|-------|-------|-------------|--------|
+| DI-LEO-AI-072 | Loop 1: Automated Audit Execution | DO-LEO-AI-070 | R-LEO-AI-047 | VT-LEO-AI-072 | B | Draft |
+| DI-LEO-AI-073 | Loop 1: Drift Detection and Alerting | DO-LEO-AI-071 | R-LEO-AI-047; R-LEO-AI-048 | VT-LEO-AI-073 | B | Draft |
+| DI-LEO-AI-074 | Loop 1: Overcoded Item Remediation | DO-LEO-AI-072 | R-LEO-AI-049 | VT-LEO-AI-074 | B | Draft |
+| DI-LEO-AI-075 | Loop 2: Surface Form Task Creation (Streams A/B/C) | DO-LEO-AI-073 | R-LEO-AI-050 | VT-LEO-AI-075 | B | Draft |
+| DI-LEO-AI-076 | Loop 2: Surface Form Revocation and Cascade | DO-LEO-AI-074 | R-LEO-AI-051 | VT-LEO-AI-076 | B | Draft |
+| DI-LEO-AI-077 | Loop 3: De-identified Evidence Collection | DO-LEO-AI-075 | R-LEO-AI-052 | VT-LEO-AI-077 | B | Draft |
+| DI-LEO-AI-078 | Loop 3: Holdout Set Integrity | DO-LEO-AI-076 | R-LEO-AI-053 | VT-LEO-AI-078 | B | Draft |
+| DI-LEO-AI-079 | Loop 3: Training Data Export and PII Gate | DO-LEO-AI-077 | R-LEO-AI-052 | VT-LEO-AI-079 | B | Draft |
+
+### 6.3 Risk Register (Three Learning Loops)
+
+| Risk ID | Title | Category | Initial RPN | Residual RPN | Acceptability | DI Controls |
+|---------|-------|----------|-------------|-------------|--------------|-------------|
+| R-LEO-AI-047 | Coding quality regression goes undetected | clinical_safety | 18 | 6 | acceptable | DI-072, DI-073 |
+| R-LEO-AI-048 | Alert fatigue causes regression to be ignored | use_error | 12 | 3 | acceptable | DI-073 |
+| R-LEO-AI-049 | False clinical record persists (overcoded diagnosis) | clinical_safety | 18 | 3 | acceptable | DI-074 |
+| R-LEO-AI-050 | Incorrect surface form propagates to future encounters | clinical_safety | 27 | 6 | acceptable | DI-075, DI-076 |
+| R-LEO-AI-051 | Revoked mapping leaves historical records incorrect | data_integrity | 18 | 4 | acceptable | DI-076 |
+| R-LEO-AI-052 | PII leaks into training corpus | security_breach | 16 | 4 | conditionally_acceptable | DI-077, DI-079 |
+| R-LEO-AI-053 | Training/test contamination inflates evaluation metrics | data_integrity | 18 | 6 | acceptable | DI-078, DI-079 |
+
+### 6.4 Pre-existing DI stubs (VT files created to close gaps)
+
+| DI ID | Title | VT ID | Status |
+|-------|-------|-------|--------|
+| DI-LEO-AI-070 | NCDA Report Template Generation | VT-LEO-AI-070 | Draft (stub) |
+| DI-LEO-AI-071 | Avoidable Delay Assessment | VT-LEO-AI-071 | Draft (stub) |
+
+### 6.5 Pipeline Precision Improvements (April 2026 Audit)
+
+| DI ID | Title | DO ID | Risks | VT ID | Safety Class | Status |
+|-------|-------|-------|-------|-------|-------------|--------|
+| DI-LEO-AI-080 | Appointment and Admin Header Filtering in NLP Pipeline | DO-LEO-AI-078 | R-LEO-AI-054 | VT-LEO-AI-080 | B | Passed |
+| DI-LEO-AI-081 | Ambiguous Abbreviation Disambiguation in Extraction and Resolution | DO-LEO-AI-079 | R-LEO-AI-055 | VT-LEO-AI-081 | B | Passed (rev 2) |
+
+Note: Resolver input normalisation (lab-value stripping, EMIS code stripping)
+is a bug fix to DI-LEO-AI-004. VT-LEO-AI-003 covers this via the existing
+test file (tests/test_coding_resolver.py); new tests added to
+tests/test_terminology_normalise.py (VT-LEO-AI-080 also covers these).
+
+DI-LEO-AI-081 revised April 2026: NAD policy changed from "always resolve to
+281900007" to "always suppress -- leave for manual review". NAD is ambiguous
+between "No abnormality detected" and "No apparent distress" (no SNOMED code);
+cannot be auto-coded. Revision captured in VT-081-RUN-002 (33 tests, all pass).
+
+### 6.6 Risk Register (Pipeline Precision)
+
+| Risk ID | Title | Category | Initial RPN | Residual RPN | Acceptability | DI Controls |
+|---------|-------|----------|-------------|-------------|--------------|-------------|
+| R-LEO-AI-054 | Administrative header lines coded as clinical SNOMED findings | clinical_safety | 24 | 4 | acceptable | DI-080 |
+| R-LEO-AI-055 | Ambiguous abbreviation miscoding (CA, MSK, NAD) | clinical_safety | 18 | 4 | acceptable | DI-081 |
+
+### 6.7 Terminology Coverage Expansion (April 2026)
+
+118 synonym and structured result surface forms added to terminology server.
+No new DI/DO required (surface form maintenance is within scope of DI-LEO-AI-004
+and DI-LEO-AI-081 for the lab interpretation pattern prompt additions).
+
+Key additions:
+- 93 clinical synonyms: fatigue variants, appetite, back pain, breathlessness,
+  weight, GI symptoms, urinary symptoms, systemic findings, pain, mental health
+- 3 lymphadenopathy surface forms (swollen glands etc.)
+- 22 structured lab result phrases: dipstick urinalysis (glucose+, protein+,
+  leucocytes+), abnormal lab summary phrases (PSA raised, Hb low, raised
+  creatinine, neutrophilia, eosinophilia, glycosuria, proteinuria)
+- Option B extraction prompt additions: lab interpretation pattern rules added
+  to EXTRACTION_SYSTEM_V1 so the LLM recognises structured result phrases
+- NAD: removed from lookup table and moved to _ALWAYS_IGNORE_TERMS (see 6.5)
+
+---
+
 ## 4. Approval
 
 | Role | Name | Date | Signature |

@@ -1,0 +1,80 @@
+# -- DO-LEO-AI-077 -- Loop 3: Training Data Export and PII Gate Implementation
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-077"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-079"]
+    user_needs: ["UN-LEO-AI-050"]
+    risks_addressed: ["R-LEO-AI-052"]
+    verification_tests: ["VT-LEO-AI-079"]
+
+  specification:
+    title: "NER Training Export Script with PII Gate, Stratification Report, and Safety Block"
+    description: |
+      Implements export_ner_training.py: queries confirmed/reviewed DOCUMENTS
+      relationships excluding holdout and sentinel records, groups by encounter
+      and sentence, strips all patient-linkable identifiers, runs detect_phi()
+      on every evidence_sentence (abort on detection), outputs ner_training_gold.jsonl,
+      ner_training_silver.jsonl, ner_stratification_report.txt, ner_export_manifest.json.
+      Training is blocked if any safety-critical category has fewer than 20 examples.
+    acceptance_criteria:
+      - criterion: "No patient identifiers in output"
+        type: "safety"
+        measurement: "Test"
+        target: "Zero encounter_id, patient_id, or NHS number found in any output file after export"
+      - criterion: "PII gate abort"
+        type: "safety"
+        measurement: "Test"
+        target: "Export aborts with non-zero exit code and logs offending records if detect_phi() finds any token"
+      - criterion: "Safety-critical training block"
+        type: "safety"
+        measurement: "Test"
+        target: "Export aborts if any safety-critical entity category has fewer than 20 examples"
+      - criterion: "Gold/silver separation"
+        type: "functional"
+        measurement: "Test"
+        target: "Gold JSONL contains only source='confirmed'; silver JSONL contains only source='reviewed'"
+      - criterion: "Negative examples"
+        type: "functional"
+        measurement: "Test"
+        target: "Each encounter's non-coded sentences included with empty spans list"
+      - criterion: "Manifest accuracy"
+        type: "functional"
+        measurement: "Test"
+        target: "Manifest reports correct entity_count, holdout_exclusion_count, pii_check_result; no IDs"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "scripts/export_ner_training.py"
+        description: "Full export pipeline: query, group, strip IDs, PII gate, output files, stratification"
+      - artifact_type: "source_code"
+        location: "libs/utils/deidentify.py"
+        description: "detect_phi() used by PII gate during export verification"
+    storage_location: "git"
+    technical_details:
+      language: "Python"
+      loc: 200
+      key_functions:
+        - "run_export"
+        - "_pii_gate"
+        - "_check_safety_critical_minimums"
+        - "_write_jsonl"
+        - "_generate_stratification_report"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "PII gate is the final barrier preventing patient data from entering the training corpus"
+      - "Safety-critical training block prevents training a model that cannot detect cancer or safeguarding"
+    risk_control_measures:
+      - "encounter_id used only for grouping in memory; never written to output"
+      - "Two independent PII checks (at collection and at export) provide defence in depth"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false

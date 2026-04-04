@@ -1,0 +1,119 @@
+========================================================================
+PATIENT:        4992507875
+EPISODE:        3a27b7264328ec60
+CONDITION TYPE: unknown
+DIAGNOSIS DATE: 2024-10-15
+FLAGS:          NO_REFERRAL
+TOTAL ENCOUNTERS: 500
+========================================================================
+
+--- 2016-10-04  04261013-ffdd-4783-8e26-e357caa18c8e ---
+TEXT: 11:45 - Surgery: TAYLOR, Andrew (Dr)   | Problem: Mole of skin (New) | History: Small mole developed L cheek last few months | Examination: Small 2mm slightly raised mole L cheek | Examination: Uniform in colour, border and symmetry. | Comment: Reassured benign | Comment: Review if changes. | Naevus (X75uF) - Mole of skin (New Episode) | Naevus (X75uF) - Mole of skin
+CODED SIGNALS:
+  [EXCL] No evidence of cancer found (situation) [Situation] cid=395100000
+
+--- 2017-03-03  1ed96a9c-b2b6-488b-b4d3-b16614d1ba8d ---
+TEXT: 09:22 - Surgery: TAYLOR, Andrew (Dr)   | Medication: Sertraline 50mg tablets Once Daily 28 tablet | Problem: [X]Moderate depressive episode (Review) | Document: eMED3 (2010) new statement issued, not fit for work Fit Note Document (Diagnosis: [X]Moderate depressive episode; Duration 03-Mar-2017 - 17-Mar-2017) | History: Still anxious, tired, poor motivation. | History: Worried about organic cause for fatigu
+ALL CODES (no direct signal):
+  - White blood cell count in blood (observable entity) [Observable_entity]
+  - Blood potassium level (observable entity) [Observable_entity]
+  - Concentration of hemoglobin in erythrocyte (observable entity) [Observable_entity]
+  - Estimated glomerular filtration rate by laboratory calculation (observable entity) [Observable_entity]
+  - Blood sodium level (observable entity) [Observable_entity]
+  - Blood urea (observable entity) [Observable_entity]
+  - Fatigue - symptom (finding) [Clinical_finding]
+  - Serum creatinine level (observable entity) [Observable_entity]
+
+--- 2017-03-03  37a967d5-9272-47f1-88c6-86370a0f3975 ---
+TEXT: USER, System  , Authorised By: TAYLOR, Andrew (Dr) | Battery: Hb A1c LTG, (APT8510) - Normal - No action, Please note international dual reporting of HbA1c from 01/06/2009. | Serum sodium level (XE2q0) 138 mmol/L [133 - 146] | Serum potassium level (XE2pz) 4.6 mmol/L [3.5 - 5.3] | Serum urea level (XM0lt) 7.2 mmol/L [2.5 - 7.8] - Converted from 7.2 mmol/L | Serum creatinine level (XE2q5) 59 umol/L [60 - 120
+ALL CODES (no direct signal):
+  - White blood cell count in blood (observable entity) [Observable_entity]
+  - Platelet count (observable entity) [Observable_entity]
+  - Blood potassium level (observable entity) [Observable_entity]
+  - Concentration of hemoglobin in erythrocyte (observable entity) [Observable_entity]
+  - Estimated glomerular filtration rate by laboratory calculation (observable entity) [Observable_entity]
+  - Blood sodium level (observable entity) [Observable_entity]
+  - Blood urea (observable entity) [Observable_entity]
+  - Haemoglobin A1c level (observable entity) [Observable_entity]
+
+--- 2017-03-03  42080bdb-bd8a-4db6-abd0-ae1738dbfc88 ---
+TEXT: 22:50 - Externally Entered: USER, System  , Authorised By: TAYLOR, Andrew (Dr) | Lab Results: Urea and electrolytes Urea and electrolytes, Full blood count - FBC, Thyroid function test, Hb A1c LTG, Serum ferritin (03 Mar 2017 09:38) Clinical Details:     Not on Thyroid Tx, Reasons for Request:,      Fatigue ?cause.
+ALL CODES (no direct signal):
+  - White blood cell count in blood (observable entity) [Observable_entity]
+  - Blood potassium level (observable entity) [Observable_entity]
+  - Concentration of hemoglobin in erythrocyte (observable entity) [Observable_entity]
+  - Estimated glomerular filtration rate by laboratory calculation (observable entity) [Observable_entity]
+  - Blood sodium level (observable entity) [Observable_entity]
+  - Blood urea (observable entity) [Observable_entity]
+  - Fatigue - symptom (finding) [Clinical_finding]
+  - Serum creatinine level (observable entity) [Observable_entity]
+
+--- 2017-03-03  f47772ef-f9d8-46ca-8cd6-e345fa24c2b9 ---
+TEXT: 09:38 - Externally Entered: USER, System  , Authorised By: TAYLOR, Andrew (Dr) | Urea and electrolytes, Full blood count - FBC, Thyroid function test, Hb A1c LTG, Serum ferritin Report,ï¿½Unknown,ï¿½Other (for follow up action see filing comments): Urea and electrolytes, Clinical Details:     Not on Thyroid Tx, Reasons for Request:,      Fatigue ?cause. | The 'Patient informed' status was set to 'Pati
+ALL CODES (no direct signal):
+  - White blood cell count in blood (observable entity) [Observable_entity]
+  - Blood potassium level (observable entity) [Observable_entity]
+  - Concentration of hemoglobin in erythrocyte (observable entity) [Observable_entity]
+  - Estimated glomerular filtration rate by laboratory calculation (observable entity) [Observable_entity]
+  - Blood sodium level (observable entity) [Observable_entity]
+  - Blood urea (observable entity) [Observable_entity]
+  - Fatigue - symptom (finding) [Clinical_finding]
+  - Serum creatinine level (observable entity) [Observable_entity]
+
+--- 2024-10-15  34ac50b3-8a13-44ef-b2fe-1e9afff46b7d ---
+TEXT: 08:20 - Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role)  | Email - Amendment via PDSPreviously unset
+CODED SIGNALS:
+  [HIST] History of malignant neoplasm (situation) [Situation] cid=266987004
+
+--- 2024-10-15  6f4597a1-cd81-4e68-ae24-cfa40e893aa2 ---
+TEXT: Surgery: NOBLE, Ben (Dr) (Clinical Practitioner Access Role)  | Pigmented dermatofibrosarcoma protuberans (X77oW)
+CODED SIGNALS:
+  [DIAG] Malignant neoplasm of skin (disorder) [Disease] cid=372130007
+
+--- 2024-10-15  8b65013a-937e-433d-8333-cf9a2705845b ---
+TEXT: 17:11 - Surgery: KETHEESWARAN, Arthika (Dr) (Clinical Practitioner Access Role)  | History: xray request - seen by BN and xray advised- as above, but request hadnt been sent.  | Plan: xray requested and pt informed | Pathology Request (Request Sent): | XR Knee Lt (Requested)
+CODED SIGNALS:
+  [HIST] History of malignant neoplasm (situation) [Situation] cid=266987004
+
+--- 2024-10-15  a9a92dba-e484-4d5e-8025-42b7cf61ec36 ---
+TEXT: 10:40 - Surgery: NOBLE, Ben (Dr) (Clinical Practitioner Access Role)  | History: Lump L thigh, noticed 4/52 ago, has increased in size since.  | Asymptomatic.  | Has been getting pain back of knee over similar period. | Enjoys running regularly. | No pain on weight-bearing, worse with movement after prolonged resting, wakes her at night when she moves in bed.   | Examination: 2.5mm, soft, pink lesion central,
+ALL CODES (no direct signal):
+  - Plan X-ray (procedure) [Procedure]
+
+--- 2024-10-15  f4c1356b-bf62-4bbc-bd3e-e9a5c8818fd3 ---
+TEXT: 10:35 - Surgery: EDWARDES, Paula (Ms) (Receptionist Access Role)  | Online Services password was reset | Identity Verification | Driving licence | Recorded during online services registration
+CODED SIGNALS:
+  [HIST] History of malignant neoplasm (situation) [Situation] cid=266987004
+
+--- 2024-10-17  470fa180-4260-4035-97c1-f2abe88d9d9b ---
+TEXT: 15:39 - Surgery: Auto-filed   | XR Knee Lt:  Report Summary  | . | Clinical History : | ongoing pain in knee , worse on movement and wakes pt up at | night when she moves in bed -r/o ?underlying pathology | CDS Indication: Arthropathy, Knee (EMRAD), CDS | Clarifications: Situation=Initial Investigation | CDS Score: Indicated | . | Is Pregnancy Possible? : No | Cross Infection status? : No Known Risk | . | LILIAN  MAPOMBI R
+ALL CODES (no direct signal):
+  - Normal appearance (finding) [Clinical_finding]
+  - Bone pain (finding) [Clinical_finding]
+
+--- 2024-10-24  3e55dad0-e503-4e38-836c-24a6d3507951 ---
+TEXT: 12:44 - Surgery: Auto-filed   | Acute Kidney Injury Staging: 0; No AKI | Acute Kidney Injury Staging Report,ï¿½Normal,ï¿½No Further Action (Patient Informed). Review done by KETHEESWARAN, Arthika (Dr) - 25 Oct 2024 18:12
+ALL CODES (no direct signal):
+  - Platelet count (observable entity) [Observable_entity]
+  - Serum albumin level (observable entity) [Observable_entity]
+  - Serum alkaline phosphatase level (observable entity) [Observable_entity]
+  - Blood potassium level (observable entity) [Observable_entity]
+  - Concentration of hemoglobin in erythrocyte (observable entity) [Observable_entity]
+  - Estimated glomerular filtration rate by laboratory calculation (observable entity) [Observable_entity]
+  - Blood sodium level (observable entity) [Observable_entity]
+  - Blood urea (observable entity) [Observable_entity]
+
+--- 2024-10-24  df497cb0-30f4-4a69-8f7e-95d8f1e1fc94 ---
+TEXT: 12:44 - Surgery: Auto-filed   | Red blood cell count (426..) 4.47 10^12/L [3.9 - 5.6] | Haemoglobin concentration (Xa96v) 129 g/L [115 - 165] | Haematocrit (X76tb) 0.38  [0.37 - 0.47] | Mean cell volume (42A..) 85 fL [80 - 99] | Mean cell haemoglobin level (XE2pb) 28.8 pg [27 - 32] | Platelet count - observation (42P..) 220 10^9/L [140 - 400] | Neutrophil count (42J..) 4.58 10^9/L [1.5 - 7.5] | Monocyte count - o
+ALL CODES (no direct signal):
+  - White blood cell count in blood (observable entity) [Observable_entity]
+  - Platelet count (observable entity) [Observable_entity]
+  - Serum albumin level (observable entity) [Observable_entity]
+  - Serum alkaline phosphatase level (observable entity) [Observable_entity]
+  - Blood potassium level (observable entity) [Observable_entity]
+  - Concentration of hemoglobin in erythrocyte (observable entity) [Observable_entity]
+  - Estimated glomerular filtration rate by laboratory calculation (observable entity) [Observable_entity]
+  - Blood sodium level (observable entity) [Observable_entity]
+
+Signal encounters shown: 13 / 500 total
+========================================================================

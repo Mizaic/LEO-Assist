@@ -1,0 +1,67 @@
+# -- DI-LEO-AI-073 -- Loop 1: Drift Detection and Alerting
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-073"
+  type: "Functional"
+  derived_from: ["UN-LEO-AI-049"]
+  requirement: >
+    The system SHALL create deduplicated SafetyNetAlert nodes when coding
+    quality drift exceeds defined thresholds, escalate unacknowledged alerts
+    on a time-based schedule (48 hours, 7 days, 14 days), and expose alert
+    acknowledgement and escalation status via the audit quality API and
+    operations UI.
+  rationale: >
+    An alert that no one sees is equivalent to no alert. Deduplication prevents
+    alert fatigue from repeated false alarms. Time-based escalation ensures
+    that genuine regressions are not ignored indefinitely: at 14 days, Loop 1
+    is paused automatically to force investigation. These controls are required
+    by DCB0129 clinical risk management and ISO 14971 post-market monitoring
+    obligations.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "safety"
+        spec: "SafetyNetAlert created only when encounter_count >= 100 AND (critical_count > 0 with new terms NOT in previous week's top_missing_terms) OR pct_clean drops >3 points week-on-week"
+      - type: "functional"
+        spec: "Each alert has: alert_type, acknowledged_by (null), acknowledged_at, escalation_level (0 initially)"
+      - type: "functional"
+        spec: "Escalation at 48h: escalation_level set to 1; at 7d: email to clinical safety lead; at 14d: LoopConfig.enabled=false for loop1_audit, new SafetyNetAlert with alert_type='escalation_auto_pause'"
+      - type: "functional"
+        spec: "Audit quality API exposes: GET /operations/quality/alerts, PATCH /operations/quality/alerts/{id}/acknowledge"
+      - type: "functional"
+        spec: "UI shows red notification badge on Quality tab when unacknowledged alerts exist"
+      - type: "functional"
+        spec: "When auditor_model_version changes, set model_version_changed=true on DriftMetric; if golden test set exists, auto-revalidate"
+      - type: "functional"
+        spec: "LoopConfig nodes stored in Neo4j with loop_id, enabled, updated_by, updated_at; kill switch takes effect without redeployment"
+    constraints:
+      - type: "safety"
+        spec: "Alert dedup: do not create duplicate alerts for the same regression within a single run cycle"
+      - type: "safety"
+        spec: "Auto-pause after 14 days of no acknowledgement must fire even if the operations UI is not open"
+    dependencies: ["DI-LEO-AI-072"]
+    downstream_impacts:
+      - "Operations UI Quality tab notification badge"
+      - "Alert escalation email to clinical safety lead"
+      - "LoopConfig kill switch state"
+    technical_details:
+      language: "Python / TypeScript"
+      framework: "FastAPI / Next.js"
+      file_structure:
+        - "scripts/investigations/audit_encounter_coding.py"
+        - "services/api/app/routers/audit_quality.py"
+        - "services/ui/src/components/operations/QualitySection.tsx"
+      estimated_loc: 250
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      All VT-073 test cases pass: alert deduplication fires correctly,
+      minimum sample size guard enforced, escalation levels increment on
+      schedule, auto-pause fires at 14d, model_version_changed flag set.
+    test_protocol: "VT-LEO-AI-073"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-047", "R-LEO-AI-048"]
+  tags: ["loop1", "drift-detection", "alerting", "escalation", "loop-config", "post-market-surveillance"]

@@ -1,0 +1,103 @@
+# -- VT-LEO-AI-078 -- Holdout Set Integrity Verification
+# IEC 62304 Verification Test Protocol
+
+- id: "VT-LEO-AI-078"
+  version: "1.0"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-078"]
+    risks: ["R-LEO-AI-053"]
+
+  metadata:
+    title: "Loop 3 Holdout Set Integrity and Export Exclusion Verification"
+    description: >
+      Verifies that holdout encounters are never included in training export
+      JSONL, that category minimums (20 per safety-critical category) are
+      enforced, and that the export manifest correctly reports holdout
+      exclusion count. Safety-critical: training/test contamination renders
+      model evaluation meaningless (R-LEO-AI-053).
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    test_file_paths:
+      - "tests/test_holdout_integrity.py"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites:
+      - "Mock Neo4j client with holdout encounters marked"
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-078-TC-001"
+      case_name: "Holdout encounters do not appear in training export JSONL"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Mark 10 synthetic encounters as holdout=true; run export query"
+          expected_result: "Zero holdout encounters in export result set"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "No encounter with holdout=true appears in export JSONL"
+
+    - case_id: "VT-078-TC-002"
+      case_name: "Export manifest reports correct holdout_exclusion_count"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Mark 10 encounters holdout=true; run export; check manifest"
+          expected_result: "manifest.holdout_exclusion_count = 10"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "holdout_exclusion_count matches number of holdout DOCUMENTS relationships"
+
+    - case_id: "VT-078-TC-003"
+      case_name: "Holdout selection enforces minimum 20 per safety-critical category"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Run select_holdout_set.py with pool having only 15 cancer encounters"
+          expected_result: "Script raises error: minimum 20 cancer encounters required"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Selection fails with descriptive error when any safety-critical category has fewer than 20"
+
+    - case_id: "VT-078-TC-004"
+      case_name: "Holdout manifest lists stratification breakdown"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Run select_holdout_set.py with sufficient pool; check manifest JSON"
+          expected_result: "Manifest contains: encounter count by domain, category_minimums_met=true"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Manifest contains domain breakdown dict"
+        - "category_minimums_met=true when all safety-critical categories have >= 20"
+
+    - case_id: "VT-078-TC-005"
+      case_name: "holdout=false encounters are included in export"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Mark 5 encounters holdout=false; run export query"
+          expected_result: "All 5 encounters appear in export result set"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Non-holdout confirmed/reviewed encounters included in export"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-078/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history: []

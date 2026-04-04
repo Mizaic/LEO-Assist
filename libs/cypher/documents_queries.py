@@ -13,6 +13,9 @@ import json
 import logging
 from typing import Any
 
+from libs.utils.deidentify import deidentify_with_span
+from libs.cypher.surface_form_task_queries import INCREMENT_SURFACE_FORM_USE
+
 logger = logging.getLogger(__name__)
 
 # Maps normalised semantic tag → Neo4j node label (mirrors patient_graph_writer.py)
@@ -85,7 +88,12 @@ SET r.coded_at         = datetime(),
     r.contract_version = $contract_version,
     r.run_id           = $run_id,
     r.audit_flag       = $audit_flag,
-    r.decision_tier    = $decision_tier
+    r.decision_tier    = $decision_tier,
+    r.evidence_sentence = $evidence_sentence,
+    r.evidence_start   = $evidence_start,
+    r.evidence_end     = $evidence_end,
+    r.sentence_index   = $sentence_index,
+    r.holdout          = $holdout
 FOREACH (_ IN CASE WHEN $assertion IN ['present', 'historical'] THEN [1] ELSE [] END |
   MERGE (p)-[:{rel_type}]->(s)
 )
@@ -96,6 +104,23 @@ _NON_PRESENT = {
     "absent", "refuted", "possible", "historical", "hypothetical",
     "family", "declined", "cancelled",
 }
+
+
+def _increment_surface_form_use(session, span_text: str) -> None:
+    """Increment use_count and set first_used_at on the matching SurfaceForm node.
+
+    Called whenever a DOCUMENTS link is written from a terminology_api source,
+    indicating the surface form lookup was used in the pipeline.
+    Non-blocking: failures are silently swallowed.
+    """
+    normalized = " ".join(span_text.strip().lower().split())
+    try:
+        session.run(INCREMENT_SURFACE_FORM_USE, normalized=normalized)
+    except Exception:
+        logger.debug(
+            "_increment_surface_form_use: no SurfaceForm for %r (expected)",
+            normalized,
+        )
 
 
 def _assertion_context(assertion: str | None) -> dict:
@@ -148,7 +173,8 @@ def write_documents_from_sentences_payload(
     Returns the number of DOCUMENTS links written.
     """
     written = 0
-    for sentence in sentences_payload:
+    for sentence_index, sentence in enumerate(sentences_payload):
+        sentence_text = sentence.get("text") or ""
         for term in sentence.get("terms", []):
             coding = term.get("coding") or {}
             concept_id = coding.get("snomed_concept_id")
@@ -161,35 +187,62 @@ def write_documents_from_sentences_payload(
             query = _build_upsert_query(label, rel_type)
 
             modifiers = term.get("modifiers") or {}
+            span_text = term.get("text") or ""
 
-            try:
-                term_assertion = term.get("assertion") or "present"
-                session.run(
-                    query,
-                    encounter_id=encounter_id,
-                    concept_id=str(concept_id),
-                    semantic_tag=semantic_tag,
-                    name=coding.get("snomed_term") or term.get("text", ""),
-                    read_code=coding.get("read_code"),
-                    evidence=term.get("text", ""),
-                    confidence=float(coding.get("score") or 0.0),
-                    domain=term.get("domain") or "clinical",
-                    context=json.dumps(_assertion_context(term_assertion)),
-                    modifiers=json.dumps(modifiers),
-                    numeric_value=term.get("numeric_value") or None,
-                    unit=term.get("unit") or None,
-                    reference_range=term.get("reference_range") or None,
-                    source=source,
-                    model_name=model_name or term.get("extraction_model_name", ""),
-                    model_version=model_version or term.get("extraction_model_version", ""),
-                    contract_version=contract_version or term.get("contract_version", ""),
-                    run_id=run_id,
-                    audit_flag=bool(term.get("audit_flag", False)),
-                    decision_tier=term.get("decision_tier"),
-                    assertion=term_assertion,
+            evidence_sentence: str | None = None
+            evidence_start: int | None = None
+            evidence_end: int | None = None
+            if sentence_text and span_text:
+                deident, ev_start, ev_end = deidentify_with_span(
+                    sentence_text, span_text
                 )
-                written += 1
-            except Exception:
+                evidence_sentence = deident
+                if ev_start == -1:
+                    logger.debug(
+                        "deidentify_with_span: span not found after deident "
+                        "encounter=%s span=%r -- skipping offsets",
+                        encounter_id, span_text,
+                    )
+                else:
+                    evidence_start = ev_start
+                    evidence_end = ev_end
+
+                try:
+                    term_assertion = term.get("assertion") or "present"
+                    term_source = coding.get("source") or source
+                    session.run(
+                        query,
+                        encounter_id=encounter_id,
+                        concept_id=str(concept_id),
+                        semantic_tag=semantic_tag,
+                        name=coding.get("snomed_term") or span_text,
+                        read_code=coding.get("read_code"),
+                        evidence=span_text,
+                        confidence=float(coding.get("score") or 0.0),
+                        domain=term.get("domain") or "clinical",
+                        context=json.dumps(_assertion_context(term_assertion)),
+                        modifiers=json.dumps(modifiers),
+                        numeric_value=term.get("numeric_value") or None,
+                        unit=term.get("unit") or None,
+                        reference_range=term.get("reference_range") or None,
+                        source=source,
+                        model_name=model_name or term.get("extraction_model_name", ""),
+                        model_version=model_version or term.get("extraction_model_version", ""),
+                        contract_version=contract_version or term.get("contract_version", ""),
+                        run_id=run_id,
+                        audit_flag=bool(term.get("audit_flag", False)),
+                        decision_tier=term.get("decision_tier"),
+                        assertion=term_assertion,
+                        evidence_sentence=evidence_sentence,
+                        evidence_start=evidence_start,
+                        evidence_end=evidence_end,
+                        sentence_index=sentence_index,
+                        holdout=False,
+                    )
+                    if term_source == "terminology_api" and span_text:
+                        _increment_surface_form_use(session, span_text)
+                    written += 1
+                except Exception:
                 logger.warning(
                     "write_documents_from_sentences_payload: failed for "
                     "encounter=%s concept=%s",

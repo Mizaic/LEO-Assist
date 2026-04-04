@@ -22,9 +22,19 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/proxy", tags=["proxy"])
 
-FHIR_BASE = os.getenv("FHIR_API_BASE", "http://localhost:8002")
-ANALYTICS_BASE = os.getenv("ANALYTICS_API_BASE", "http://localhost:8003")
-CORE_API_BASE = os.getenv("CORE_API_BASE", "http://localhost:8000")
+
+def _service_base(base_key: str, url_key: str, default: str) -> str:
+    """Resolve service base URL from *_BASE first, then *_URL, then default."""
+    return (os.getenv(base_key) or os.getenv(url_key) or default).rstrip("/")
+
+
+FHIR_BASE = _service_base("FHIR_API_BASE", "FHIR_API_URL", "http://localhost:8002")
+ANALYTICS_BASE = _service_base(
+    "ANALYTICS_API_BASE",
+    "ANALYTICS_API_URL",
+    "http://localhost:8003",
+)
+CORE_API_BASE = _service_base("CORE_API_BASE", "CORE_API_URL", "http://localhost:8000")
 
 
 async def _proxy_request(
@@ -39,9 +49,9 @@ async def _proxy_request(
     GAP-001: X-User-Email removed. X-Leo-Session forwarded so downstream
     services can resolve org scope from the shared Redis session store.
     """
-    url = f"{base.rstrip('/')}{path}"
+    url = f"{base}{path}"
     headers = dict(request.headers)
-    is_core_target = base.rstrip("/").lower() == CORE_API_BASE.rstrip("/").lower()
+    is_core_target = base.lower() == CORE_API_BASE.lower()
     blocked_headers = ("host", "content-length", "transfer-encoding", "connection")
     # Core API proxy calls rely on the browser session cookie for
     # get_caller_scope_from_request. Keep cookie only for same-core proxying.

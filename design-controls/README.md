@@ -467,3 +467,71 @@ to human reviewers, with override tracking for real-world calibration.
 | ID | Test File | Covers |
 |----|-----------|--------|
 | VT-LEO-AI-027 | `tests/test_hitl_tier_integration.py` | `_build_review_item` tier fields; `_check_terminology_coding` calls `classify_tier`; all Cypher queries include tier params; `reviewer_tier_override` logic; `GET_TIER_OVERRIDE_STATS` structure; calibration endpoint wiring |
+
+---
+
+## Three Learning Loops (Pre-Sprint) -- Design Control Summary
+
+Coding quality audit (Loop 1), surface form vocabulary growth (Loop 2),
+and NER training data collection (Loop 3). Created 2026-04-03 as Pre-Sprint
+artefacts per the Three Learning Loops Production Plan v3.0.
+
+### User Needs
+
+| ID | Title | Safety Class | Priority |
+|----|-------|-------------|----------|
+| UN-LEO-AI-049 | Operations team coding quality monitoring and continuous improvement | B | MUST |
+| UN-LEO-AI-050 | NER team labelled training data with protected holdout set | B | MUST |
+
+### Design Inputs
+
+| ID | Title | UN | Safety Class | Risk | VT |
+|----|-------|----|-------------|------|----|
+| DI-LEO-AI-072 | Loop 1: Automated Audit Execution | UN-049 | B | R-047 | VT-072 |
+| DI-LEO-AI-073 | Loop 1: Drift Detection and Alerting | UN-049 | B | R-047, R-048 | VT-073 |
+| DI-LEO-AI-074 | Loop 1: Overcoded Item Remediation | UN-049 | B | R-049 | VT-074 |
+| DI-LEO-AI-075 | Loop 2: Surface Form Task Creation (Streams A/B/C) | UN-049 | B | R-050 | VT-075 |
+| DI-LEO-AI-076 | Loop 2: Surface Form Revocation and Cascade | UN-049 | B | R-051 | VT-076 |
+| DI-LEO-AI-077 | Loop 3: De-identified Evidence Collection | UN-050 | B | R-052 | VT-077 |
+| DI-LEO-AI-078 | Loop 3: Holdout Set Integrity | UN-050 | B | R-053 | VT-078 |
+| DI-LEO-AI-079 | Loop 3: Training Data Export and PII Gate | UN-050 | B | R-052 | VT-079 |
+
+### Design Outputs
+
+| ID | Title | DI | Key Files |
+|----|-------|----|-----------|
+| DO-LEO-AI-070 | Automated Audit Execution Implementation | DI-072 | audit_encounter_coding.py, schema_constraints.py |
+| DO-LEO-AI-071 | Drift Detection and Alerting Implementation | DI-073 | audit_quality.py router, QualitySection.tsx |
+| DO-LEO-AI-072 | Overcoded Item Remediation Implementation | DI-074 | coding_review_queries.py, ReviewSection.tsx |
+| DO-LEO-AI-073 | Surface Form Task Creation Implementation | DI-075 | training.py, llm_extractor.py, ReviewCard.tsx |
+| DO-LEO-AI-074 | Surface Form Revocation and Cascade Implementation | DI-076 | training.py, coding_review_queries.py |
+| DO-LEO-AI-075 | De-identified Evidence Collection Implementation | DI-077 | deidentify.py, documents_queries.py |
+| DO-LEO-AI-076 | Holdout Set Integrity Implementation | DI-078 | select_holdout_set.py, documents_queries.py |
+| DO-LEO-AI-077 | Training Data Export and PII Gate Implementation | DI-079 | export_ner_training.py |
+
+### Risks (ISO 14971)
+
+| ID | Title | Category | Initial RPN | Residual | Acceptability |
+|----|-------|----------|-------------|----------|--------------|
+| R-LEO-AI-047 | Coding quality regression goes undetected | clinical_safety | 18 | 6 | acceptable |
+| R-LEO-AI-048 | Alert fatigue causes regression to be ignored | use_error | 12 | 3 | acceptable |
+| R-LEO-AI-049 | False clinical record persists (overcoded) | clinical_safety | 18 | 3 | acceptable |
+| R-LEO-AI-050 | Incorrect surface form propagates to future encounters | clinical_safety | 27 | 6 | acceptable |
+| R-LEO-AI-051 | Revoked mapping leaves historical records incorrect | data_integrity | 18 | 4 | acceptable |
+| R-LEO-AI-052 | PII leaks into training corpus | security_breach | 16 | 4 | conditionally_acceptable |
+| R-LEO-AI-053 | Training/test contamination inflates evaluation metrics | data_integrity | 18 | 6 | acceptable |
+
+### Verification Tests
+
+| ID | Title | Test File | Safety Class | Status |
+|----|-------|-----------|-------------|--------|
+| VT-LEO-AI-070 | NCDA Report Template Generation (stub for DI-070) | services/api/tests/test_ncda_report_generator.py | A | Draft |
+| VT-LEO-AI-071 | Avoidable Delay Assessment (stub for DI-071) | services/api/tests/test_delay_assessor.py | B | Draft |
+| VT-LEO-AI-072 | Loop 1 Automated Audit Execution | tests/test_audit_execution.py | B | Draft |
+| VT-LEO-AI-073 | Loop 1 Drift Detection, Alert Dedup, and Escalation | tests/test_drift_detection.py | B | Draft |
+| VT-LEO-AI-074 | Loop 1 Overcoded Item Remediation and 48h SLA | tests/test_overcoded_remediation.py | B | Draft |
+| VT-LEO-AI-075 | Loop 2 Surface Form Task Creation and Two-Reviewer Gate | tests/test_surface_form_tasks.py | B | Draft |
+| VT-LEO-AI-076 | Loop 2 Surface Form Revocation and Cascade | tests/test_surface_form_revocation.py | B | Draft |
+| VT-LEO-AI-077 | Loop 3 De-identified Evidence Collection and Zero-PII | tests/test_deidentify_evidence.py | B | Draft |
+| VT-LEO-AI-078 | Loop 3 Holdout Set Integrity and Export Exclusion | tests/test_holdout_integrity.py | B | Draft |
+| VT-LEO-AI-079 | Loop 3 Training Export PII Gate and Safety Block | tests/test_ner_training_export.py | B | Draft |

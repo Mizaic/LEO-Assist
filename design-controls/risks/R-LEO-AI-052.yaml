@@ -1,0 +1,109 @@
+# -- R-LEO-AI-052 -- PII Leaks Into Training Corpus
+# ISO 14971 Risk
+
+- id: "R-LEO-AI-052"
+  title: "Patient-identifiable information leaks into the NER training corpus via evidence_sentence storage or training export, creating a UK GDPR data breach."
+
+  hazard:
+    description: >
+      The de-identification pipeline (deidentify_with_span) fails to remove all
+      patient-identifiable information from an encounter sentence before it is
+      stored as evidence_sentence on a DOCUMENTS relationship, or before it is
+      written to a training export JSONL file. The resulting training artefact
+      contains patient data that was processed under a different lawful basis
+      (direct care) than the one documented in the DPIA for AI training.
+    category: "security_breach"
+
+  hazardous_situation: >
+    A patient's name, NHS number, date of birth, or address appears within
+    an encounter sentence. The de-identification pipeline misses this token
+    (failure mode: entity type not in the PII recogniser vocabulary, or
+    sentence structure confuses the recogniser). The raw identifier is stored
+    in evidence_sentence. During training export, detect_phi() also misses it
+    (same failure mode). The identifier appears in the training JSONL file,
+    which is accessible to NLP engineers and potentially stored outside the
+    clinical data boundary.
+
+  harm:
+    description: >
+      Patient-identifiable information disclosed to NLP engineers without a
+      valid lawful basis under UK GDPR Articles 6 and 9. Constitutes a
+      notifiable data breach under Section 67 of the Data Protection Act 2018.
+      Potential harm: patient privacy violated, ICO regulatory action, loss
+      of patient and commissioner trust.
+    severity: "critical"
+
+  initial_risk_estimate:
+    severity: 4
+    probability: 2
+    detectability: 2
+    rpn: 16
+    risk_level: "high"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        deidentify_with_span() applies the de-identification pipeline to the
+        full sentence BEFORE storing evidence_sentence on the DOCUMENTS
+        relationship. PII is removed at the point of collection, not deferred
+        to export time.
+      implemented_by: ["DI-LEO-AI-077"]
+      verified_by: ["VT-LEO-AI-077"]
+    - control_type: "design_feature"
+      description: >
+        PII gate in the training export script: detect_phi() is run on every
+        evidence_sentence in the export batch before any file is written.
+        If any PII is detected, the export aborts immediately, logs the
+        offending records for investigation, and returns a non-zero exit code.
+        This is a second, independent PII check.
+      implemented_by: ["DI-LEO-AI-079"]
+      verified_by: ["VT-LEO-AI-079"]
+    - control_type: "design_feature"
+      description: >
+        Monthly scheduled check: detect_phi() run against a random 500-record
+        sample of stored evidence_sentence values. Result logged. If any PII
+        detected, Loop 3 kill switch is activated and affected records are
+        purged and re-processed.
+      implemented_by: ["DI-LEO-AI-077"]
+      verified_by: ["VT-LEO-AI-077"]
+    - control_type: "protective_measure"
+      description: >
+        Encounter IDs and patient IDs are stripped from all export output
+        files. Even if PII gate fails, the primary patient linkage fields
+        are absent, limiting re-identification risk.
+      implemented_by: ["DI-LEO-AI-079"]
+      verified_by: ["VT-LEO-AI-079"]
+
+  residual_risk_estimate:
+    severity: 4
+    probability: 1
+    detectability: 1
+    rpn: 4
+    risk_level: "low"
+    acceptability: "conditionally_acceptable"
+    justification: >
+      Two independent PII detection checks (at collection and at export) plus
+      monthly sampling reduce the probability of a PII leak to near-zero.
+      Encounter/patient ID stripping limits re-identification even if a clinical
+      term coincidentally matches a patient identifier. Conditional acceptability:
+      residual risk accepted only once the DPIA is complete, the lawful basis
+      is documented, and the de-identification validation test (500 records,
+      zero PII) has passed. DPIA must be reviewed annually.
+
+  monitoring:
+    monitoring_plan: >
+      Monthly detect_phi() sweep of 500 random evidence_sentence values.
+      Track evidence.phi_detected metric in Application Insights (must be 0).
+      PII detection at export must be 0; any detection triggers incident response.
+      DPIA reviewed annually or when de-identification pipeline changes.
+    metrics:
+      - "evidence.phi_detected: Application Insights metric; must remain 0"
+      - "monthly_phi_sweep_result: 0 = pass; > 0 = immediate incident"
+      - "export_pii_gate_abort_count: target 0; each event is a near-miss"
+    review_frequency: "Monthly"
+
+  metadata:
+    identified_by: "Three Learning Loops Production Plan v3.0 (DPO-001, DPO-002)"
+    identified_date: "2026-04-03"
+    status: "analyzed"
+    tags: ["loop3", "pii", "gdpr", "de-identification", "training-data", "data-breach", "security"]

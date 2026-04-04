@@ -93,10 +93,15 @@ from libs.cypher.gold_label_queries import (
 )
 from libs.cypher.surface_form_task_queries import (
     COUNT_SURFACE_FORM_TASKS,
+    CREATE_REVOCATION_CASCADE_REVIEW,
     DELETE_ALL_SURFACE_FORM_TASKS,
+    GET_ENCOUNTERS_FOR_REVOKED_CONCEPT,
     GET_SURFACE_FORM_TASK_BY_ID,
     LIST_PENDING_SURFACE_FORM_TASKS,
     RESOLVE_SURFACE_FORM_TASK,
+    REVOKE_SURFACE_FORM,
+    UPSERT_SURFACE_FORM_TASK,
+    make_surface_form_task_id,
 )
 from services.terminology_api.app.queries.terminology import (
     APPROVE_SURFACE_FORM,
@@ -1287,8 +1292,14 @@ def resolve_coding_review(
 ) -> dict[str, Any]:
     """Manually assign a SNOMED concept to an uncoded entity.
 
-    Also upserts a SurfaceForm mapping in the knowledge graph so the
-    terminology API can resolve this surface form in future.
+    CSO-001 two-reviewer gate:
+    - When the reviewer picks a DIFFERENT concept, we fix this one record
+      immediately but do NOT create a live MAPS_TO mapping. Instead we
+      create a SurfaceFormTask so a second reviewer can confirm before the
+      mapping goes live.
+    - When the reviewer CONFIRMS the original concept (same ID), we upsert
+      the SurfaceForm mapping directly because the mapping already exists
+      and is simply being validated.
     """
     from services.api.app.db.neo4j_client import CodingGraphClient
     from services.api.app.models.neo4j_schema import UPSERT_SURFACE_FORM_MAPPING
@@ -1296,13 +1307,14 @@ def resolve_coding_review(
     client = PatientGraphClient()
     try:
         with client.session() as session:
-            # Fetch the entity text before resolving so we can create the surface form.
             cr_row = session.run(
                 "MATCH (cr:CodingReview {review_id: $review_id}) "
-                "RETURN cr.entity_text AS entity_text",
+                "RETURN cr.entity_text AS entity_text, "
+                "cr.snomed_concept_id AS original_concept_id",
                 review_id=review_id,
             ).single()
             entity_text = str(cr_row["entity_text"]) if cr_row else ""
+            original_concept_id = str(cr_row["original_concept_id"] or "") if cr_row else ""
             resolved_entity_text = (body.resolved_entity_text or "").strip()
             if resolved_entity_text:
                 entity_text = resolved_entity_text
@@ -1320,30 +1332,42 @@ def resolve_coding_review(
     finally:
         client.close()
 
+    concept_changed = body.resolved_concept_id != original_concept_id
+    surface_form_task_created = False
+
     if entity_text:
-        normalized = re.sub(r"\s+", " ", entity_text.strip().lower())
-        try:
-            coding_client = CodingGraphClient()
-            coding_client.run(
-                UPSERT_SURFACE_FORM_MAPPING,
-                normalized=normalized,
-                form=entity_text.strip(),
-                concept_id=body.resolved_concept_id,
-                confidence=1.0,
-                source="coding_review",
-                provenance="coding_review_resolution",
-                created_by="coding_review",
+        if concept_changed:
+            surface_form_task_created = _create_surface_form_task_for_correction(
+                entity_text=entity_text,
+                original_concept_id=original_concept_id,
+                resolved_concept_id=body.resolved_concept_id,
+                resolved_term=body.resolved_term,
+                reviewer=body.reviewer,
             )
-            coding_client.close()
-            logger.info(
-                "Created surface form mapping: %r -> %s (%s)",
-                entity_text, body.resolved_concept_id, body.resolved_term,
-            )
-        except Exception:
-            logger.warning(
-                "Failed to create surface form mapping for %r", entity_text,
-                exc_info=True,
-            )
+        else:
+            normalized = re.sub(r"\s+", " ", entity_text.strip().lower())
+            try:
+                coding_client = CodingGraphClient()
+                coding_client.run(
+                    UPSERT_SURFACE_FORM_MAPPING,
+                    normalized=normalized,
+                    form=entity_text.strip(),
+                    concept_id=body.resolved_concept_id,
+                    confidence=1.0,
+                    source="coding_review",
+                    provenance="coding_review_resolution",
+                    created_by="coding_review",
+                )
+                coding_client.close()
+                logger.info(
+                    "Confirmed surface form mapping: %r -> %s (%s)",
+                    entity_text, body.resolved_concept_id, body.resolved_term,
+                )
+            except Exception:
+                logger.warning(
+                    "Failed to upsert surface form mapping for %r", entity_text,
+                    exc_info=True,
+                )
 
     cascade_count = 0
     if entity_text:
@@ -1374,9 +1398,59 @@ def resolve_coding_review(
     return {
         "review_id": result["review_id"],
         "status": "resolved",
-        "surface_form_created": bool(entity_text),
+        "concept_changed": concept_changed,
+        "surface_form_task_created": surface_form_task_created,
+        "surface_form_created": not concept_changed and bool(entity_text),
         "cascade_resolved": cascade_count,
     }
+
+
+def _create_surface_form_task_for_correction(
+    entity_text: str,
+    original_concept_id: str,
+    resolved_concept_id: str,
+    resolved_term: str,
+    reviewer: str,
+) -> bool:
+    """Queue a SurfaceFormTask for second-reviewer approval (CSO-001).
+
+    Returns True if the task was created successfully.
+    """
+    normalized = re.sub(r"\s+", " ", entity_text.strip().lower())
+    task_id = make_surface_form_task_id(
+        candidate_id=reviewer or "unknown",
+        entity_text=normalized,
+        current_concept=original_concept_id,
+    )
+    try:
+        client = PatientGraphClient()
+        with client.session() as session:
+            session.run(
+                UPSERT_SURFACE_FORM_TASK,
+                task_id=task_id,
+                entity_text=entity_text.strip(),
+                current_concept=original_concept_id,
+                current_term="",
+                suggested_concept=resolved_concept_id,
+                suggested_term=resolved_term or "",
+                candidates_json="[]",
+                context_text="",
+                candidate_id="",
+                confidence=0.9,
+                source="reviewer_correction",
+            )
+        client.close()
+        logger.info(
+            "SurfaceFormTask queued for second review: %r -> %s (task=%s)",
+            entity_text, resolved_concept_id, task_id,
+        )
+        return True
+    except Exception:
+        logger.warning(
+            "Failed to create SurfaceFormTask for %r", entity_text,
+            exc_info=True,
+        )
+        return False
 
 
 class BatchResolveCodingReviewRequest(BaseModel):
@@ -2703,6 +2777,71 @@ def deactivate_context_rule(
 # -- Surface form approval --------------------------------------------------
 
 
+@router.delete("/surface-forms/{normalized}/revoke")
+def revoke_surface_form(
+    normalized: str,
+    scope: CallerScope = Depends(require_admin),
+) -> dict[str, Any]:
+    """Revoke a surface form mapping and cascade to affected encounters.
+
+    Steps:
+    1. Remove the MAPS_TO relationship and mark SurfaceForm / SurfaceFormTask
+       as 'revoked'.
+    2. Query DOCUMENTS relationships coded via this concept after first use.
+    3. Create a CodingReview node (type=revocation_cascade, priority=urgent)
+       for each affected encounter so reviewers are alerted.
+
+    Returns the count of affected encounters.
+    """
+    kg_client = KnowledgeGraphClient()
+    pg_client = PatientGraphClient()
+    try:
+        with kg_client.session() as session:
+            row = session.run(REVOKE_SURFACE_FORM, normalized=normalized).single()
+        if not row:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No surface form found for {normalized!r}",
+            )
+        concept_id = ""
+        first_used_at = row.get("first_used_at")
+
+        with pg_client.session() as pg_session:
+            enc_rows = pg_session.run(
+                GET_ENCOUNTERS_FOR_REVOKED_CONCEPT,
+                concept_id=concept_id,
+                first_used_at=first_used_at,
+            )
+            encounter_ids = [r["encounter_id"] for r in enc_rows]
+
+            for enc_id in encounter_ids:
+                review_id = str(
+                    uuid.uuid5(
+                        uuid.NAMESPACE_URL,
+                        f"revoke:{normalized}:{enc_id}",
+                    )
+                )
+                pg_session.run(
+                    CREATE_REVOCATION_CASCADE_REVIEW,
+                    review_id=review_id,
+                    encounter_id=enc_id,
+                    concept_id=concept_id,
+                )
+
+        logger.info(
+            "SurfaceForm revoked: %r  cascade_encounters=%d  by=%s",
+            normalized, len(encounter_ids), scope.email,
+        )
+        return {
+            "normalized": normalized,
+            "status": "revoked",
+            "affected_encounters": len(encounter_ids),
+        }
+    finally:
+        kg_client.close()
+        pg_client.close()
+
+
 @router.patch("/surface-forms/{normalized}/approve")
 def approve_surface_form(
     normalized: str,
@@ -3077,6 +3216,126 @@ def resolve_surface_form_task(
         return {"task_id": row["task_id"], "status": row["status"]}
     finally:
         client.close()
+
+
+# ---------------------------------------------------------------------------
+# Corpus statistics endpoint (Sprint 4)
+# ---------------------------------------------------------------------------
+
+_Q_CORPUS_STATS_BY_SOURCE = """
+MATCH (e:Encounter)-[r:DOCUMENTS]->(s)
+WHERE r.evidence_sentence IS NOT NULL
+RETURN
+    r.source                                    AS source,
+    r.holdout                                   AS holdout,
+    coalesce(toString(s.semanticTag), 'other')  AS semantic_tag,
+    coalesce(r.context, '{}')                   AS context_json,
+    count(r)                                    AS cnt
+"""
+
+_Q_NEGATIVE_SENTENCES = """
+MATCH (e:Encounter)
+WHERE e.text IS NOT NULL AND trim(e.text) <> ''
+AND NOT EXISTS {
+    MATCH (e)-[r:DOCUMENTS]->()
+    WHERE r.evidence_sentence IS NOT NULL
+}
+RETURN count(e) AS negative_count
+"""
+
+_Q_CORPUS_LAST_UPDATED = """
+MATCH (e:Encounter)-[r:DOCUMENTS]->()
+WHERE r.evidence_sentence IS NOT NULL
+RETURN toString(max(r.coded_at)) AS last_updated
+"""
+
+_GOLD_SOURCES = {"reviewer_correction", "approved", "gold"}
+_SILVER_SOURCES = {"provisional", "terminology_api", "llm_auto_detected"}
+_SAFETY_TAGS = {"cancer", "oncology", "safeguarding", "mental_health", "suicide"}
+_SAFETY_MIN = 20
+_IMBALANCE_MIN = 50
+_GOLD_MINIMUM = 5000
+
+
+@router.get("/corpus/stats")
+def get_corpus_stats(
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    """Return NER corpus statistics grouped by source, semantic tag and assertion.
+
+    Used by CorpusCard in the Train section to show progress toward the
+    5,000 gold label minimum and flag imbalance or safety-critical gaps.
+    """
+    import json as _json
+    from collections import Counter, defaultdict
+
+    client = PatientGraphClient()
+    try:
+        with client.session() as session:
+            rows = [dict(r) for r in session.run(_Q_CORPUS_STATS_BY_SOURCE)]
+            neg_row = session.run(_Q_NEGATIVE_SENTENCES).single()
+            updated_row = session.run(_Q_CORPUS_LAST_UPDATED).single()
+    finally:
+        client.close()
+
+    gold_count = 0
+    silver_count = 0
+    holdout_count = 0
+    entity_type_breakdown: Counter = Counter()
+    assertion_breakdown: Counter = Counter()
+    safety_counts: Counter = Counter()
+
+    for row in rows:
+        source = str(row.get("source") or "")
+        holdout = bool(row.get("holdout"))
+        tag = str(row.get("semantic_tag") or "other").lower()
+        cnt = int(row.get("cnt") or 0)
+
+        try:
+            ctx = _json.loads(str(row.get("context_json") or "{}"))
+            assertion = str(ctx.get("assertion") or "present")
+        except Exception:
+            assertion = "present"
+
+        entity_type_breakdown[tag] += cnt
+        assertion_breakdown[assertion] += cnt
+
+        for kw in _SAFETY_TAGS:
+            if kw in tag and assertion in ("present", "historical"):
+                safety_counts[tag] += cnt
+
+        if holdout:
+            holdout_count += cnt
+        elif source in _GOLD_SOURCES:
+            gold_count += cnt
+        else:
+            silver_count += cnt
+
+    negative_sentence_count = int(neg_row["negative_count"]) if neg_row else 0
+    last_updated = str(updated_row["last_updated"]) if updated_row else None
+
+    imbalance_warnings: list[str] = [
+        f"Low examples for '{tag}': {cnt} (need {_IMBALANCE_MIN})"
+        for tag, cnt in entity_type_breakdown.items()
+        if cnt < _IMBALANCE_MIN
+    ]
+    safety_critical_blocked = any(
+        cnt < _SAFETY_MIN for cnt in safety_counts.values()
+    )
+
+    return {
+        "gold_count": gold_count,
+        "silver_count": silver_count,
+        "holdout_count": holdout_count,
+        "negative_sentence_count": negative_sentence_count,
+        "entity_type_breakdown": dict(entity_type_breakdown),
+        "assertion_breakdown": dict(assertion_breakdown),
+        "imbalance_warnings": imbalance_warnings,
+        "safety_critical_blocked": safety_critical_blocked,
+        "training_ready": gold_count >= _GOLD_MINIMUM and not safety_critical_blocked,
+        "minimum_gold_met": gold_count >= _GOLD_MINIMUM,
+        "last_updated": last_updated,
+    }
 
 
 # ── Source node sample preview ──────────────────────────────────────────────

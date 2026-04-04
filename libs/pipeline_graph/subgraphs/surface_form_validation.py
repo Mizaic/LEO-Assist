@@ -140,6 +140,7 @@ def _apply_or_queue(state: SurfaceFormValidationState) -> dict[str, Any]:
                         context_text=encounter_text,
                         candidate_id=candidate_id,
                         confidence=confidence,
+                        source="pipeline_validation",
                     )
                     ent["surface_form_task_id"] = task_id
                     ent["surface_form_validated"] = False

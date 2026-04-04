@@ -1,0 +1,381 @@
+[
+  {
+    "normalized": "biopsy",
+    "form": "Biopsy",
+    "rel_count": 3,
+    "mappings": [
+      {
+        "concept_fsn": "Biopsy (procedure)",
+        "concept_id": "86273004",
+        "confidence": 1.0,
+        "provenance": "coding_review_resolution"
+      },
+      {
+        "concept_fsn": "Biopsy result normal (finding)",
+        "concept_id": "165324008",
+        "confidence": 1.0,
+        "provenance": "guideline_config_loader"
+      },
+      {
+        "concept_fsn": "Excision biopsy of skin lesion (procedure)",
+        "concept_id": "312968005",
+        "confidence": 1.0,
+        "provenance": "coding_review_resolution"
+      }
+    ],
+    "action": "remove",
+    "reason": "MANUAL REVIEW: 86273004 (coding_review_resolution) vs 312968005 (coding_review_resolution); superseded by coding_review_resolution: 165324008 (guideline_config_loader) < 86273004 (coding_review_resolution)",
+    "remove_concept_ids": [
+      "165324008"
+    ]
+  },
+  {
+    "normalized": "neutrophil count",
+    "form": "Neutrophil count",
+    "rel_count": 3,
+    "mappings": [
+      {
+        "concept_fsn": "Neutrophil count outside reference range (finding)",
+        "concept_id": "165519006",
+        "confidence": 1.0,
+        "provenance": "coding_review_resolution"
+      },
+      {
+        "concept_fsn": "Neutrophil percent count in blood (observable entity)",
+        "concept_id": "1108061000000108",
+        "confidence": 1.0,
+        "provenance": "guideline_config_loader"
+      },
+      {
+        "concept_fsn": "Neutrophil count (observable entity)",
+        "concept_id": "1022551000000104",
+        "confidence": 1.0,
+        "provenance": "coding_review_resolution"
+      }
+    ],
+    "action": "remove",
+    "reason": "MANUAL REVIEW: 165519006 (coding_review_resolution) vs 1022551000000104 (coding_review_resolution); superseded by coding_review_resolution: 1108061000000108 (guideline_config_loader) < 165519006 (coding_review_resolution)",
+    "remove_concept_ids": [
+      "1108061000000108"
+    ]
+  },
+  {
+    "normalized": "psa",
+    "form": "PSA",
+    "rel_count": 3,
+    "mappings": [
+      {
+        "concept_fsn": "Prostate specific antigen measurement (procedure)",
+        "concept_id": "63476009",
+        "confidence": 1.0,
+        "provenance": "manual_correction"
+      },
+      {
+        "concept_fsn": "Malignant neoplasm of prostate (disorder)",
+        "concept_id": "399068003",
+        "confidence": 1.0,
+        "provenance": "guideline_config_loader"
+      },
+      {
+        "concept_fsn": "Prostate specific antigen level (observable entity)",
+        "concept_id": "1030791000000100",
+        "confidence": 1.0,
+        "provenance": "abbreviation_audit_april_2026"
+      }
+    ],
+    "action": "remove",
+    "reason": "superseded by abbreviation_audit_april_2026: 63476009 (manual_correction) < 1030791000000100 (abbreviation_audit_april_2026); superseded by abbreviation_audit_april_2026: 399068003 (guideline_config_loader) < 1030791000000100 (abbreviation_audit_april_2026)",
+    "remove_concept_ids": [
+      "63476009",
+      "399068003"
+    ]
+  },
+  {
+    "normalized": "malignancy",
+    "form": "?Malignancy",
+    "rel_count": 2,
+    "mappings": [
+      {
+        "concept_fsn": "Malignant neoplastic disease suspected (situation)",
+        "concept_id": "162572001",
+        "confidence": 1.0,
+        "provenance": "guideline_config_loader"
+      },
+      {
+        "concept_fsn": "Malignant neoplasm (morphologic abnormality)",
+        "concept_id": "1240414004",
+        "confidence": 1.0,
+        "provenance": "manual_correction"
+      }
+    ],
+    "action": "remove",
+    "reason": "superseded by manual_correction: 162572001 (guideline_config_loader) < 1240414004 (manual_correction)",
+    "remove_concept_ids": [
+      "162572001"
+    ]
+  },
+  {
+    "normalized": "anorexia",
+    "form": "Anorexia",
+    "rel_count": 2,
+    "mappings": [
+      {
+        "concept_fsn": "Mental disorder (disorder)",
+        "concept_id": "74732009",
+        "confidence": 1.0,
+        "provenance": "guideline_config_loader"
+      },
+      {
+        "concept_fsn": "Loss of appetite (finding)",
+        "concept_id": "79890006",
+        "confidence": 1.0,
+        "provenance": "synonym_audit_april_2026"
+      }
+    ],
+    "action": "remove",
+    "reason": "superseded by synonym_audit_april_2026: 74732009 (guideline_config_loader) < 79890006 (synonym_audit_april_2026)",
+    "remove_concept_ids": [
+      "74732009"
+    ]
+  },
+  {
+    "normalized": "anxiety",
+    "form": "Anxiety",
+    "rel_count": 2,
+    "mappings": [
+      {
+        "concept_fsn": "Anxiety (finding)",
+        "concept_id": "48694002",
+        "confidence": 1.0,
+        "provenance": "synonym_audit_april_2026"
+      },
+      {
+        "concept_fsn": "Mental disorder (disorder)",
+        "concept_id": "74732009",
+        "confidence": 1.0,
+        "provenance": "guideline_config_loader"
+      }
+    ],
+    "action": "remove",
+    "reason": "superseded by synonym_audit_april_2026: 74732009 (guideline_config_loader) < 48694002 (synonym_audit_april_2026)",
+    "remove_concept_ids": [
+      "74732009"
+    ]
+  },
+  {
+    "normalized": "backache",
+    "form": "Backache",
+    "rel_count": 2,
+    "mappings": [
+      {
+        "concept_fsn": "Backache (finding)",
+        "concept_id": "161891005",
+        "confidence": 1.0,
+        "provenance": "synonym_audit_april_2026"
+      },
+      {
+        "concept_fsn": "Back pain (finding)",
+        "concept_id": "399079008",
+        "confidence": 1.0,
+        "provenance": "guideline_config_loader"
+      }
+    ],
+    "action": "remove",
+    "reason": "superseded by synonym_audit_april_2026: 399079008 (guideline_config_loader) < 161891005 (synonym_audit_april_2026)",
+    "remove_concept_ids": [
+      "399079008"
+    ]
+  },
+  {
+    "normalized": "constipation",
+    "form": "Constipation",
+    "rel_count": 2,
+    "mappings": [
+      {
+        "concept_fsn": "Constipation (finding)",
+        "concept_id": "14760008",
+        "confidence": 1.0,
+        "provenance": "synonym_audit_april_2026"
+      },
+      {
+        "concept_fsn": "Constipation (finding)",
+        "concept_id": "363693003",
+        "confidence": 1.0,
+        "provenance": "guideline_config_loader"
+      }
+    ],
+    "action": "remove",
+    "reason": "superseded by synonym_audit_april_2026: 363693003 (guideline_config_loader) < 14760008 (synonym_audit_april_2026)",
+    "remove_concept_ids": [
+      "363693003"
+    ]
+  },
+  {
+    "normalized": "depression",
+    "form": "Depression",
+    "rel_count": 2,
+    "mappings": [
+      {
+        "concept_fsn": "Depressive disorder (disorder)",
+        "concept_id": "35489007",
+        "confidence": 1.0,
+        "provenance": "synonym_audit_april_2026"
+      },
+      {
+        "concept_fsn": "Mental disorder (disorder)",
+        "concept_id": "74732009",
+        "confidence": 1.0,
+        "provenance": "guideline_config_loader"
+      }
+    ],
+    "action": "remove",
+    "reason": "superseded by synonym_audit_april_2026: 74732009 (guideline_config_loader) < 35489007 (synonym_audit_april_2026)",
+    "remove_concept_ids": [
+      "74732009"
+    ]
+  },
+  {
+    "normalized": "fit",
+    "form": "FIT",
+    "rel_count": 2,
+    "mappings": [
+      {
+        "concept_fsn": "Provision of faecal immunochemical test kit (procedure)",
+        "concept_id": "149421000000109",
+        "confidence": 1.0,
+        "provenance": "abbreviation_audit_april_2026"
+      },
+      {
+        "concept_fsn": "Quantitative faecal immunochemical test (observable entity)",
+        "concept_id": "1049361000000101",
+        "confidence": 1.0,
+        "provenance": "batch_coding_review_resolution"
+      }
+    ],
+    "action": "remove",
+    "reason": "superseded by abbreviation_audit_april_2026: 1049361000000101 (batch_coding_review_resolution) < 149421000000109 (abbreviation_audit_april_2026)",
+    "remove_concept_ids": [
+      "1049361000000101"
+    ]
+  },
+  {
+    "normalized": "memory problems",
+    "form": "Memory problems",
+    "rel_count": 2,
+    "mappings": [
+      {
+        "concept_fsn": "Mental disorder (disorder)",
+        "concept_id": "74732009",
+        "confidence": 1.0,
+        "provenance": "guideline_config_loader"
+      },
+      {
+        "concept_fsn": "Memory impairment (finding)",
+        "concept_id": "386807006",
+        "confidence": 1.0,
+        "provenance": "synonym_audit_april_2026"
+      }
+    ],
+    "action": "remove",
+    "reason": "superseded by synonym_audit_april_2026: 74732009 (guideline_config_loader) < 386807006 (synonym_audit_april_2026)",
+    "remove_concept_ids": [
+      "74732009"
+    ]
+  },
+  {
+    "normalized": "nausea and vomiting",
+    "form": "Nausea and vomiting",
+    "rel_count": 2,
+    "mappings": [
+      {
+        "concept_fsn": "Nausea and vomiting (disorder)",
+        "concept_id": "16932000",
+        "confidence": 1.0,
+        "provenance": "guideline_config_loader"
+      },
+      {
+        "concept_fsn": "Tendency to nausea and vomiting (finding)",
+        "concept_id": "415709002",
+        "confidence": 1.0,
+        "provenance": "synonym_audit_april_2026"
+      }
+    ],
+    "action": "remove",
+    "reason": "superseded by synonym_audit_april_2026: 16932000 (guideline_config_loader) < 415709002 (synonym_audit_april_2026)",
+    "remove_concept_ids": [
+      "16932000"
+    ]
+  },
+  {
+    "normalized": "radiotherapy",
+    "form": "Radiotherapy",
+    "rel_count": 2,
+    "mappings": [
+      {
+        "concept_fsn": "Radiation oncology AND/OR radiotherapy (procedure)",
+        "concept_id": "108290001",
+        "confidence": 1.0,
+        "provenance": "guideline_config_loader"
+      },
+      {
+        "concept_fsn": "Radiotherapy (procedure)",
+        "concept_id": "1287742003",
+        "confidence": 1.0,
+        "provenance": "manual_correction"
+      }
+    ],
+    "action": "remove",
+    "reason": "superseded by manual_correction: 108290001 (guideline_config_loader) < 1287742003 (manual_correction)",
+    "remove_concept_ids": [
+      "108290001"
+    ]
+  },
+  {
+    "normalized": "egfr",
+    "form": "eGFR",
+    "rel_count": 2,
+    "mappings": [
+      {
+        "concept_fsn": "Glomerular filtration rate (observable entity)",
+        "concept_id": "80274001",
+        "confidence": 1.0,
+        "provenance": "abbreviation_audit_april_2026"
+      },
+      {
+        "concept_fsn": "Estimated glomerular filtration rate by laboratory calculation (observable entity)",
+        "concept_id": "1107411000000104",
+        "confidence": 1.0,
+        "provenance": "batch_coding_review_resolution"
+      }
+    ],
+    "action": "remove",
+    "reason": "superseded by abbreviation_audit_april_2026: 1107411000000104 (batch_coding_review_resolution) < 80274001 (abbreviation_audit_april_2026)",
+    "remove_concept_ids": [
+      "1107411000000104"
+    ]
+  },
+  {
+    "normalized": "itching",
+    "form": "itching",
+    "rel_count": 2,
+    "mappings": [
+      {
+        "concept_fsn": "Itching (finding)",
+        "concept_id": "418290006",
+        "confidence": 1.0,
+        "provenance": "coding_review_resolution"
+      },
+      {
+        "concept_fsn": "Itching of skin (finding)",
+        "concept_id": "418363000",
+        "confidence": 1.0,
+        "provenance": "synonym_audit_april_2026"
+      }
+    ],
+    "action": "remove",
+    "reason": "superseded by synonym_audit_april_2026: 418290006 (coding_review_resolution) < 418363000 (synonym_audit_april_2026)",
+    "remove_concept_ids": [
+      "418290006"
+    ]
+  }
+]

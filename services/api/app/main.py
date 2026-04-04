@@ -57,6 +57,7 @@ from app.routers.nice_guidance import router as nice_guidance_router
 from app.routers.guidance_rules import router as guidance_rules_router
 from app.routers.pricing import router as pricing_router
 from app.routers.reference_ranges import router as reference_ranges_router
+from app.routers.audit_quality import router as audit_quality_router
 
 
 def _validate_startup_deps():
@@ -147,6 +148,19 @@ async def lifespan(app: object):
                 "[PromptSeed] Seed failed (non-fatal): %s", exc
             )
 
+    def _loop_config_seed():
+        try:
+            from app.db.neo4j_client import PatientGraphClient
+            from app.services.loop_config_seed import seed_loop_configs
+            client = PatientGraphClient()
+            seed_loop_configs(client)
+            client.close()
+        except Exception as exc:
+            import logging
+            logging.getLogger(__name__).warning(
+                "[LoopConfig] Seed failed (non-fatal): %s", exc
+            )
+
     t1 = threading.Thread(target=_tenant_seed, daemon=True)
     t1.start()
     t2 = threading.Thread(target=_model_config_seed, daemon=True)
@@ -155,6 +169,8 @@ async def lifespan(app: object):
     t3.start()
     t4 = threading.Thread(target=_prompt_seed, daemon=True)
     t4.start()
+    t5 = threading.Thread(target=_loop_config_seed, daemon=True)
+    t5.start()
     yield
 
 
@@ -262,6 +278,7 @@ app.include_router(nice_guidance_router)
 app.include_router(guidance_rules_router)
 app.include_router(pricing_router)
 app.include_router(reference_ranges_router)
+app.include_router(audit_quality_router)
 
 
 @app.get("/health")

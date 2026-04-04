@@ -14,6 +14,7 @@ import ReviewSection from "./ReviewSection";
 import RunSection from "./RunSection";
 import TrainSection from "./TrainSection";
 import DeploySection from "./DeploySection";
+import QualitySection from "./QualitySection";
 
 // -- Types -------------------------------------------------------------------
 
@@ -22,16 +23,18 @@ interface QuickStats {
   resolvedToday: number;
   modelVersion: string;
   modelHealth: "ok" | "warn" | "error" | "neutral";
+  unacknowledgedAlerts: number;
 }
 
-type TabKey = "run" | "review" | "train" | "deploy";
+type TabKey = "run" | "review" | "train" | "quality" | "deploy";
 
-const TAB_ORDER: TabKey[] = ["run", "review", "train", "deploy"];
+const TAB_ORDER: TabKey[] = ["run", "review", "train", "quality", "deploy"];
 
 const TAB_LABELS: Record<TabKey, string> = {
   run: "Run pipeline",
   review: "Review",
   train: "Train",
+  quality: "Quality",
   deploy: "Deploy",
 };
 
@@ -44,13 +47,14 @@ async function fetchJson<T>(url: string): Promise<T> {
 }
 
 async function loadQuickStats(): Promise<QuickStats> {
-  const [metrics, model] = await Promise.allSettled([
+  const [metrics, model, alertCount] = await Promise.allSettled([
     fetchJson<{ metrics_by_stage: Record<string, Record<string, number>> }>(
       "/api/operations/metrics",
     ),
     fetchJson<{
       active_model: { model_version: string; status: string } | null;
     }>("/api/model-registry/status"),
+    fetchJson<{ unacknowledged: number }>("/api/operations/quality/alerts/count"),
   ]);
 
   let pending = 0;
@@ -70,11 +74,15 @@ async function loadQuickStats(): Promise<QuickStats> {
     health = s === "active" ? "ok" : s === "canary" ? "warn" : "neutral";
   }
 
+  const unacknowledgedAlerts =
+    alertCount.status === "fulfilled" ? alertCount.value.unacknowledged : 0;
+
   return {
     pendingReview: pending,
     resolvedToday: resolved,
     modelVersion: version,
     modelHealth: health,
+    unacknowledgedAlerts,
   };
 }
 
@@ -203,11 +211,20 @@ export default function OperationsWorkspace({ initialTab = "review" }: Props) {
               key={key}
               value={key}
               label={
-                key === "review" && stats ? (
+                key === "review" && stats && stats.pendingReview > 0 ? (
                   <Badge
                     badgeContent={stats.pendingReview}
                     color="warning"
                     max={999}
+                    sx={{ "& .MuiBadge-badge": { fontSize: 11 } }}
+                  >
+                    {TAB_LABELS[key]}
+                  </Badge>
+                ) : key === "quality" && stats && stats.unacknowledgedAlerts > 0 ? (
+                  <Badge
+                    badgeContent={stats.unacknowledgedAlerts}
+                    color="error"
+                    max={99}
                     sx={{ "& .MuiBadge-badge": { fontSize: 11 } }}
                   >
                     {TAB_LABELS[key]}
@@ -244,6 +261,7 @@ export default function OperationsWorkspace({ initialTab = "review" }: Props) {
           {tab === "run" && <RunSection />}
           {tab === "review" && <ReviewSection onStatsChange={refresh} />}
           {tab === "train" && <TrainSection />}
+          {tab === "quality" && <QualitySection />}
           {tab === "deploy" && <DeploySection />}
         </Box>
       </Box>

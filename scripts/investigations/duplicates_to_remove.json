@@ -1,0 +1,82 @@
+[
+  {
+    "normalized": "biopsy",
+    "concept_id": "165324008",
+    "reason": "MANUAL REVIEW: 86273004 (coding_review_resolution) vs 312968005 (coding_review_resolution); superseded by coding_review_resolution: 165324008 (guideline_config_loader) < 86273004 (coding_review_resolution)"
+  },
+  {
+    "normalized": "neutrophil count",
+    "concept_id": "1108061000000108",
+    "reason": "MANUAL REVIEW: 165519006 (coding_review_resolution) vs 1022551000000104 (coding_review_resolution); superseded by coding_review_resolution: 1108061000000108 (guideline_config_loader) < 165519006 (coding_review_resolution)"
+  },
+  {
+    "normalized": "psa",
+    "concept_id": "63476009",
+    "reason": "superseded by abbreviation_audit_april_2026: 63476009 (manual_correction) < 1030791000000100 (abbreviation_audit_april_2026); superseded by abbreviation_audit_april_2026: 399068003 (guideline_config_loader) < 1030791000000100 (abbreviation_audit_april_2026)"
+  },
+  {
+    "normalized": "psa",
+    "concept_id": "399068003",
+    "reason": "superseded by abbreviation_audit_april_2026: 63476009 (manual_correction) < 1030791000000100 (abbreviation_audit_april_2026); superseded by abbreviation_audit_april_2026: 399068003 (guideline_config_loader) < 1030791000000100 (abbreviation_audit_april_2026)"
+  },
+  {
+    "normalized": "malignancy",
+    "concept_id": "162572001",
+    "reason": "superseded by manual_correction: 162572001 (guideline_config_loader) < 1240414004 (manual_correction)"
+  },
+  {
+    "normalized": "anorexia",
+    "concept_id": "74732009",
+    "reason": "superseded by synonym_audit_april_2026: 74732009 (guideline_config_loader) < 79890006 (synonym_audit_april_2026)"
+  },
+  {
+    "normalized": "anxiety",
+    "concept_id": "74732009",
+    "reason": "superseded by synonym_audit_april_2026: 74732009 (guideline_config_loader) < 48694002 (synonym_audit_april_2026)"
+  },
+  {
+    "normalized": "backache",
+    "concept_id": "399079008",
+    "reason": "superseded by synonym_audit_april_2026: 399079008 (guideline_config_loader) < 161891005 (synonym_audit_april_2026)"
+  },
+  {
+    "normalized": "constipation",
+    "concept_id": "363693003",
+    "reason": "superseded by synonym_audit_april_2026: 363693003 (guideline_config_loader) < 14760008 (synonym_audit_april_2026)"
+  },
+  {
+    "normalized": "depression",
+    "concept_id": "74732009",
+    "reason": "superseded by synonym_audit_april_2026: 74732009 (guideline_config_loader) < 35489007 (synonym_audit_april_2026)"
+  },
+  {
+    "normalized": "fit",
+    "concept_id": "1049361000000101",
+    "reason": "superseded by abbreviation_audit_april_2026: 1049361000000101 (batch_coding_review_resolution) < 149421000000109 (abbreviation_audit_april_2026)"
+  },
+  {
+    "normalized": "memory problems",
+    "concept_id": "74732009",
+    "reason": "superseded by synonym_audit_april_2026: 74732009 (guideline_config_loader) < 386807006 (synonym_audit_april_2026)"
+  },
+  {
+    "normalized": "nausea and vomiting",
+    "concept_id": "16932000",
+    "reason": "superseded by synonym_audit_april_2026: 16932000 (guideline_config_loader) < 415709002 (synonym_audit_april_2026)"
+  },
+  {
+    "normalized": "radiotherapy",
+    "concept_id": "108290001",
+    "reason": "superseded by manual_correction: 108290001 (guideline_config_loader) < 1287742003 (manual_correction)"
+  },
+  {
+    "normalized": "egfr",
+    "concept_id": "1107411000000104",
+    "reason": "superseded by abbreviation_audit_april_2026: 1107411000000104 (batch_coding_review_resolution) < 80274001 (abbreviation_audit_april_2026)"
+  },
+  {
+    "normalized": "itching",
+    "concept_id": "418290006",
+    "reason": "superseded by synonym_audit_april_2026: 418290006 (coding_review_resolution) < 418363000 (synonym_audit_april_2026)"
+  }
+]

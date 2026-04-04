@@ -1,0 +1,114 @@
+# -- VT-LEO-AI-073 -- Drift Detection and Alerting Verification
+# IEC 62304 Verification Test Protocol
+
+- id: "VT-LEO-AI-073"
+  version: "1.0"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-073"]
+    risks: ["R-LEO-AI-047", "R-LEO-AI-048"]
+
+  metadata:
+    title: "Loop 1 Drift Detection, Alert Dedup, and Escalation Verification"
+    description: >
+      Verifies alert deduplication (minimum sample size, new-term guard),
+      escalation level progression (48h/7d/14d), auto-pause at 14d,
+      model_version_changed flag on DriftMetric, and LoopConfig kill switch.
+      Safety-critical: incorrect escalation could leave regressions undetected
+      indefinitely (R-LEO-AI-048).
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    test_file_paths:
+      - "tests/test_drift_detection.py"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites:
+      - "Mock Neo4j client with prior DriftMetric data"
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-073-TC-001"
+      case_name: "No alert when encounter_count < 100"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Run dedup guard with encounter_count=99 and pct_clean drop of 5 points"
+          expected_result: "No SafetyNetAlert created"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Alert creation suppressed when encounter_count below minimum"
+
+    - case_id: "VT-073-TC-002"
+      case_name: "No alert when critical terms are same as prior week"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Prior DriftMetric.top_missing_terms = ['asthma']; current critical_terms = ['asthma']"
+          expected_result: "No alert created (same terms, not new)"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Alert not created for repeated known gaps"
+
+    - case_id: "VT-073-TC-003"
+      case_name: "Alert created when pct_clean drops >3 points with sufficient sample"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Prior pct_clean=88.0; current pct_clean=84.5; encounter_count=150"
+          expected_result: "SafetyNetAlert created; escalation_level=0"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "SafetyNetAlert created with escalation_level=0 and acknowledged_by=null"
+
+    - case_id: "VT-073-TC-004"
+      case_name: "Escalation level increments at 48h"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Create unacknowledged alert with created_at = now - 49h"
+          expected_result: "escalation_level set to 1"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "escalation_level = 1 after 48h without acknowledgement"
+
+    - case_id: "VT-073-TC-005"
+      case_name: "Auto-pause fires at 14d: LoopConfig.enabled set to false"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Create unacknowledged alert with created_at = now - 15d"
+          expected_result: "LoopConfig loop1_audit.enabled=false; new SafetyNetAlert with alert_type='escalation_auto_pause'"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "LoopConfig.enabled set to false for loop1_audit"
+        - "New escalation_auto_pause alert created"
+
+    - case_id: "VT-073-TC-006"
+      case_name: "model_version_changed set to true when auditor version differs"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Prior AuditRun.auditor_model_version='v1'; current='v2'"
+          expected_result: "DriftMetric.model_version_changed=true"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "model_version_changed=true when versions differ; false when same"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-073/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history: []

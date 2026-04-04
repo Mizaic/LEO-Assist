@@ -1,0 +1,76 @@
+# -- DO-LEO-AI-073 -- Loop 2: Surface Form Task Creation Implementation
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-073"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-075"]
+    user_needs: ["UN-LEO-AI-049"]
+    risks_addressed: ["R-LEO-AI-050"]
+    verification_tests: ["VT-LEO-AI-075"]
+
+  specification:
+    title: "Three-Stream SurfaceFormTask Creation with Two-Reviewer Gate"
+    description: |
+      Implements three input streams feeding SurfaceFormTask nodes. Stream A
+      reads audit gaps. Stream B defers MAPS_TO creation from resolve_coding_review
+      to a SurfaceFormTask pending second approval. Stream C creates tasks from
+      LLM high-confidence terms, capped at 20/day with auto-pause at queue depth 50.
+      Source badge displayed in ReviewCard.
+    acceptance_criteria:
+      - criterion: "Two-reviewer gate (Stream B)"
+        type: "safety"
+        measurement: "Test"
+        target: "resolve_coding_review with different concept creates SurfaceFormTask; MAPS_TO NOT created until second approval"
+      - criterion: "Stream C rate limiting"
+        type: "functional"
+        measurement: "Test"
+        target: "Stream C blocked at 20 tasks/day; auto-pauses when total queue depth > 50"
+      - criterion: "Source badge"
+        type: "functional"
+        measurement: "Test"
+        target: "ReviewCard shows source badge: 'audit gap', 'reviewer correction', or 'auto-detected'"
+      - criterion: "Stream A ingestion"
+        type: "functional"
+        measurement: "Test"
+        target: "Audit surface_form_gaps.json entries with score > 0.75 create pending SurfaceFormTask"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "scripts/feed_audit_gaps_to_surface_forms.py"
+        description: "Stream A: reads surface_form_gaps.json, creates SurfaceFormTask with source='audit_gap'"
+      - artifact_type: "source_code"
+        location: "services/api/app/routers/training.py"
+        description: "Stream B: resolve_coding_review modified to defer MAPS_TO; two-reviewer gate"
+      - artifact_type: "source_code"
+        location: "services/coding_worker/app/pipeline/llm_extractor.py"
+        description: "Stream C: post-extraction SurfaceFormTask creation with daily cap check"
+      - artifact_type: "source_code"
+        location: "services/ui/src/components/operations/ReviewCard.tsx"
+        description: "Source badge rendering on SurfaceFormTask items"
+    storage_location: "git"
+    technical_details:
+      language: "Python / TypeScript"
+      loc: 250
+      key_functions:
+        - "_create_surface_form_task"
+        - "_check_stream_c_daily_cap"
+        - "_check_queue_depth_auto_pause"
+        - "resolve_coding_review"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Two-reviewer gate prevents single-reviewer errors from propagating to reusable mappings"
+      - "Stream C auto-pause prevents queue overflow that would cause reviewers to deprioritise safety items"
+    risk_control_measures:
+      - "MAPS_TO creation is conditional on second approval; Stream B cannot bypass this gate"
+      - "Daily cap on Stream C prevents automated suggestions from overwhelming human capacity"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false

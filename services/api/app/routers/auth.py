@@ -76,7 +76,18 @@ def _oauth_scope() -> str:
 # is already AzureADMultipleOrgs. Issuer validation is done by tid-allowlist (see below).
 AUTH_URL = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize"
 TOKEN_URL = "https://login.microsoftonline.com/common/oauth2/v2.0/token"
-ANALYTICS_BASE = os.getenv("ANALYTICS_API_BASE", "http://localhost:8003")
+
+
+def _service_base(base_key: str, url_key: str, default: str) -> str:
+    """Resolve service base URL from *_BASE first, then *_URL, then default."""
+    return (os.getenv(base_key) or os.getenv(url_key) or default).rstrip("/")
+
+
+ANALYTICS_BASE = _service_base(
+    "ANALYTICS_API_BASE",
+    "ANALYTICS_API_URL",
+    "http://localhost:8003",
+)
 
 # JWKS cache — fetched once per process, refreshed when keys change.
 # /common/ JWKS returns all current Microsoft signing keys (valid across all tenants).

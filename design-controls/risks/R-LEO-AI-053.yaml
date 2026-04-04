@@ -1,0 +1,98 @@
+# -- R-LEO-AI-053 -- Training/Test Contamination Inflates Evaluation Metrics
+# ISO 14971 Risk
+
+- id: "R-LEO-AI-053"
+  title: "Holdout encounters leak into training data, inflating evaluation metrics and concealing true model performance on unseen encounters."
+
+  hazard:
+    description: >
+      Encounters designated as holdout (marked holdout=true on DOCUMENTS
+      relationships) are included in a training export, either because the
+      export query does not correctly filter on the holdout flag, or because
+      a holdout encounter was added to the set after training data had already
+      been collected from it. The trained NER model has effectively seen its
+      own test data, making the evaluation metrics meaningless.
+    category: "data_integrity"
+
+  hazardous_situation: >
+    The training export query omits the holdout filter (e.g. due to a code
+    change that drops the WHERE clause). Holdout encounters are included in
+    ner_training_gold.jsonl. The model trains on these examples. At evaluation,
+    the model scores well on the holdout set because it has already seen the
+    data. The NER team concludes the model is production-ready. In production,
+    the model performs worse than the metrics indicated, including on
+    safety-critical categories (cancer, safeguarding).
+
+  harm:
+    description: >
+      An NER model is deployed believing it meets quality thresholds, but
+      the real-world performance is unknown and potentially worse. Safety-
+      critical entity detection (cancer, safeguarding, mental health) may
+      be below threshold, leading to missed codes in patient records with
+      no warning.
+    severity: "serious"
+
+  initial_risk_estimate:
+    severity: 3
+    probability: 2
+    detectability: 3
+    rpn: 18
+    risk_level: "medium"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        Holdout flag (holdout=true) is set on DOCUMENTS relationships for
+        all 500 holdout encounters. The training export Cypher query always
+        includes WHERE r.holdout IS NULL OR r.holdout = false.
+        This is a hard filter enforced at the database query level.
+      implemented_by: ["DI-LEO-AI-078"]
+      verified_by: ["VT-LEO-AI-078"]
+    - control_type: "design_feature"
+      description: >
+        Holdout set selection script (select_holdout_set.py) is run BEFORE
+        any training data collection. It enforces minimum 20 encounters per
+        safety-critical category and outputs a manifest listing holdout
+        encounter IDs for audit purposes.
+      implemented_by: ["DI-LEO-AI-078"]
+      verified_by: ["VT-LEO-AI-078"]
+    - control_type: "protective_measure"
+      description: >
+        Export manifest records holdout_exclusion_count: the number of
+        DOCUMENTS relationships excluded because holdout=true. A count of 0
+        when the holdout set is known to be populated is a signal that
+        the holdout filter may have been dropped.
+      implemented_by: ["DI-LEO-AI-079"]
+      verified_by: ["VT-LEO-AI-079"]
+
+  residual_risk_estimate:
+    severity: 3
+    probability: 1
+    detectability: 2
+    rpn: 6
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      Database-level holdout filter is enforced in the Cypher query; it cannot
+      be accidentally omitted without a code change. Export manifest provides
+      an observable signal (holdout_exclusion_count) that the filter is active.
+      Holdout set is defined before training data collection begins, preventing
+      contamination from the outset.
+
+  monitoring:
+    monitoring_plan: >
+      Check holdout_exclusion_count in export manifest against expected holdout
+      set size (should be >= 500) before each training run. Review holdout
+      set composition annually. Verify no holdout encounter appears in any
+      released training JSONL file after each export.
+    metrics:
+      - "holdout_exclusion_count: must be >= 500 on every export run"
+      - "holdout_category_minimums_met: flag in manifest; must be true"
+      - "training_eval_metric_type: DriftMetric entries with training_eval type reviewed per NER release"
+    review_frequency: "Per training run"
+
+  metadata:
+    identified_by: "Three Learning Loops Production Plan v3.0 (AI-001, AI-002)"
+    identified_date: "2026-04-03"
+    status: "analyzed"
+    tags: ["loop3", "holdout-set", "contamination", "evaluation", "ner-training", "data-integrity"]

@@ -10,9 +10,17 @@ import httpx
 
 from libs.coding_engine.tier_classifier import classify_tier
 from libs.ner.extractor_contract import CONTRACT_VERSION, ExtractionItem
-from libs.nlp.sentence_splitter import SentenceChunk, SentenceSplitter
+from libs.nlp.sentence_splitter import (
+    SentenceChunk,
+    SentenceSplitter,
+    filter_header_sentences,
+)
 from services.coding_worker.app.pipeline.extractor_registry import build_extractor
-from services.coding_worker.app.pipeline.llm_extractor import ExtractedTerm, LLMExtractor
+from services.coding_worker.app.pipeline.llm_extractor import (
+    ExtractedTerm,
+    LLMExtractor,
+    maybe_create_surface_form_tasks,
+)
 
 
 def _items_to_dicts(items: list[ExtractionItem]) -> list[dict[str, Any]]:
@@ -222,7 +230,9 @@ class CodingPipeline:
         encounter = (rows or [{}])[0]
         encounter_text = str(encounter.get("text") or "")
         self._emit(progress_hook, {"type": "fetched", "patient_id": patient_id, "encounter_id": encounter_id, "run_id": run_id})
-        sentences = self.sentence_splitter.split(encounter_text)
+        sentences = filter_header_sentences(
+            self.sentence_splitter.split(encounter_text)
+        )
         extractor = build_extractor(progress_hook=progress_hook)
         try:
             items = extractor.extract_batch(encounter_text, sentences)
@@ -235,6 +245,7 @@ class CodingPipeline:
             extracted_by_sentence.setdefault(item.sentence_id, []).append(item)
         resolved = await self._resolve_via_api([item.normalized or item.text for item in items])
         self._emit(progress_hook, {"type": "resolved", "encounter_id": encounter_id, "run_id": run_id})
+        maybe_create_surface_form_tasks(items, resolved)
         payload = self._build_sentences_payload(sentences, extracted_by_sentence, resolved, extractor)
         if not dry_run:
             self._persist_documents(encounter_id, payload, extractor, run_id=run_id)

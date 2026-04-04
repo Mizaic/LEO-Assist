@@ -67,7 +67,15 @@ interface SurfaceFormTask {
   suggested_concept: string;
   suggested_term: string;
   confidence: number;
+  source?: string;
+  review_type?: string;
 }
+
+const SOURCE_LABELS: Record<string, string> = {
+  audit_gap: "Audit gap",
+  reviewer_correction: "Reviewer correction",
+  llm_auto_detected: "Auto-detected",
+};
 
 function codingGroupToItem(g: CodingGroup): ReviewItem {
   const base: ReviewItem = {
@@ -131,7 +139,16 @@ function assertionGroupToItem(g: AssertionGroup): ReviewItem {
   return base;
 }
 
+function _surfaceFormPriority(t: SurfaceFormTask): number {
+  if (t.review_type === "revocation_cascade") return 0;
+  if (t.review_type === "overcoded") return 1;
+  if (t.source === "audit_gap") return 2;
+  if (t.source === "reviewer_correction") return 3;
+  return 4; // llm_auto_detected or unknown
+}
+
 function surfaceFormTaskToItem(t: SurfaceFormTask): ReviewItem {
+  const sourceLabel = SOURCE_LABELS[t.source ?? ""] ?? t.source ?? "";
   const base: ReviewItem = {
     id: `surface_form:${t.task_id}`,
     kind: "coding",
@@ -142,6 +159,8 @@ function surfaceFormTaskToItem(t: SurfaceFormTask): ReviewItem {
     uncoded: false,
     question: "",
     explanation: "",
+    reason: sourceLabel,
+    surfaceFormPriority: _surfaceFormPriority(t),
   };
   base.question = `Check this code mapping for "${t.entity_text}"`;
   base.explanation = `Current ${t.current_concept || "none"} -> suggested ${t.suggested_concept || "none"}`;
@@ -201,6 +220,15 @@ export default function ReviewSection({ onStatsChange, refreshKey }: Props) {
       }
 
       items.sort((a, b) => {
+        // Surface form revocation cascades first, then by source priority
+        const sfA = a.surfaceFormPriority ?? 99;
+        const sfB = b.surfaceFormPriority ?? 99;
+        if (a.id.startsWith("surface_form:") && b.id.startsWith("surface_form:")) {
+          return sfA - sfB;
+        }
+        // Surface form revocation cascades beat all other item types
+        if (sfA === 0) return -1;
+        if (sfB === 0) return 1;
         const tierA = a.decisionTier ?? 2;
         const tierB = b.decisionTier ?? 2;
         if (tierA !== tierB) return tierA - tierB;

@@ -1,0 +1,418 @@
+[
+  {
+    "encounter_id": "126b9bf2-0141-494d-8a06-0bea33404e0a",
+    "patient_id": "6269036151",
+    "date": "2024-05-09",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "missing": [
+        {
+          "term": "Menopause",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The encounter is explicitly a menopause/HRT review and the patient is on Evorel Sequi patches for menopausal symptoms including hot flushes, sweating, mood swings, brain fog and fatigue.",
+          "snomed_search": "menopause"
+        },
+        {
+          "term": "Hot flushes and sweating",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Patient reports reduced but ongoing hot flushes and sweating through the day, which are active menopausal symptoms driving HRT management.",
+          "snomed_search": "hot flush menopause"
+        },
+        {
+          "term": "Cognitive impairment / brain fog",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Patient reports persistent brain fog and memory difficulties (forgetting things, using post-it notes), noted as still poor and driving a planned dose increase.",
+          "snomed_search": "cognitive impairment"
+        },
+        {
+          "term": "Fatigue",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Patient reports worsening fatigue documented in the clinical note as an active symptom influencing the HRT management plan.",
+          "snomed_search": "fatigue"
+        },
+        {
+          "term": "Irregular menstrual cycle with heavy bleeding and clots",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note documents irregular periods varying from 27th to 3rd of month, recently 3 weeks late, followed by 2 days of heavy bleeding with clots the size of a 5p piece \u2014 this is a clinically significant gynaecological finding requiring coding.",
+          "snomed_search": "irregular menstruation heavy bleeding"
+        },
+        {
+          "term": "Family history of ovarian cancer",
+          "severity": "high",
+          "suggested_assertion": "family",
+          "reason": "The note states 'Her mum had ovarian Ca in her 40s', which is a clinically significant family history relevant to HRT risk assessment and cancer surveillance.",
+          "snomed_search": "family history ovarian cancer"
+        },
+        {
+          "term": "Did not attend breast screening",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The encounter records a DNA for the NHS Breast Screening Programme, which should be coded to flag non-attendance for follow-up.",
+          "snomed_search": "did not attend breast screening"
+        },
+        {
+          "term": "Hormone replacement therapy",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Patient is actively prescribed Evorel Sequi (combined oestrogen/progestogen HRT patch) and this is the subject of the pharmacist review; HRT use should be coded.",
+          "snomed_search": "hormone replacement therapy"
+        },
+        {
+          "term": "Depression / use of citalopram (SSRI)",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Citalopram 30mg daily (10mg + 20mg tablets) is being repeatedly prescribed as an SSRI; the underlying indication (depression or anxiety) should be coded.",
+          "snomed_search": "depression disorder"
+        },
+        {
+          "term": "NSAID use (implied by omeprazole indication)",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Omeprazole is prescribed explicitly 'whilst on NSAID and SSRI', indicating concurrent NSAID use which carries GI risk and should be coded.",
+          "snomed_search": "long term use of non-steroidal anti-inflammatory drug"
+        },
+        {
+          "term": "Obesity / BMI 32.9",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "BMI is recorded as 32.9 (weight 95kg, height 1.7m), which meets the threshold for obesity and is clinically relevant to HRT risk assessment.",
+          "snomed_search": "obesity BMI 30-34"
+        },
+        {
+          "term": "Ex-smoker (10-19 cigarettes/day for 20 years)",
+          "severity": "medium",
+          "suggested_assertion": "historical",
+          "reason": "Patient is documented as an ex-moderate cigarette smoker (10-19/day for 20 years), a clinically relevant cardiovascular and cancer risk factor.",
+          "snomed_search": "ex-moderate cigarette smoker 10-19 per day"
+        },
+        {
+          "term": "Vaping / e-cigarette use",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly states the patient 'does vape', which is a current nicotine/inhalation exposure relevant to respiratory and cardiovascular risk.",
+          "snomed_search": "e-cigarette use vaping"
+        },
+        {
+          "term": "Alcohol consumption 12 units per week",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Alcohol intake is recorded as 12 units/week, which is within but approaching the upper limit of low-risk drinking and is clinically relevant to HRT and general health.",
+          "snomed_search": "alcohol units per week"
+        },
+        {
+          "term": "Blood pressure 137/82 mmHg",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Blood pressure is recorded as 137/82 mmHg as part of the HRT risk assessment and should be coded as an observable finding.",
+          "snomed_search": "blood pressure reading"
+        },
+        {
+          "term": "Body weight 95 kg",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "Patient's weight is recorded as 95kg and should be coded as an observable entity to support BMI and clinical monitoring.",
+          "snomed_search": "body weight"
+        },
+        {
+          "term": "Body mass index 32.9",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "BMI is explicitly calculated as 32.9 in the questionnaire and should be coded as an observable entity.",
+          "snomed_search": "body mass index"
+        },
+        {
+          "term": "Telephone consultation",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "The encounter was conducted by telephone (coded in template as XaIge) and the consultation modality should be recorded.",
+          "snomed_search": "telephone consultation"
+        },
+        {
+          "term": "Eligible for SELF FRAX clinical trial (female 50-64)",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Patient has been identified as eligible and added to the SELF FRAX CPMS trial group, indicating she is in the 50-64 age range and has been enrolled \u2014 clinically relevant for fracture risk context.",
+          "snomed_search": "eligible for clinical trial"
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "This is a complex multi-event encounter record with zero concepts coded, representing a significant coding gap across multiple clinical domains including menopause management, gynaecological symptoms, mental health, medications, lifestyle factors and family history. The most clinically urgent gaps are the family history of ovarian cancer, irregular heavy menstrual bleeding with clots (which may warrant further investigation), and the active SSRI/HRT/NSAID combination.",
+      "_meta": {
+        "patient_id": "6269036151",
+        "encounter_id": "126b9bf2-0141-494d-8a06-0bea33404e0a",
+        "date": "2024-05-09",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "8f0edde6-d3b2-4123-8bfb-4cea118db07b",
+    "patient_id": "6269036151",
+    "date": "2025-05-09",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "missing": [
+        {
+          "term": "Weight loss medication Mounjaro",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Tirzepatide (Mounjaro) is being prescribed for weight loss and should be coded as an active finding/situation to support clinical decision-making, drug interaction checks, and QOF/audit purposes.",
+          "snomed_search": "tirzepatide"
+        },
+        {
+          "term": "obesity or overweight",
+          "severity": "high",
+          "suggested_assertion": "possible",
+          "reason": "Mounjaro is indicated for weight management, implying an underlying diagnosis of obesity or overweight which should be coded to justify the prescription and support clinical audit.",
+          "snomed_search": "obesity body mass index"
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.72,
+      "notes": "The encounter captures medication reconciliation of a privately prescribed GLP-1/GIP agonist (tirzepatide/Mounjaro) but no clinical diagnoses have been coded; at minimum the indication (obesity/overweight) and the medication administration situation should be recorded. The underlying indication is inferred rather than explicitly stated, hence moderate confidence.",
+      "_meta": {
+        "patient_id": "6269036151",
+        "encounter_id": "8f0edde6-d3b2-4123-8bfb-4cea118db07b",
+        "date": "2025-05-09",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "957162c8-6701-4bf7-8a6d-6ace5de5c40d",
+    "patient_id": "6269036151",
+    "date": "2025-05-12",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter contains only an administrative invitation for a medication review questionnaire with no clinical findings, diagnoses, procedures, or assertions documented. There is nothing clinically codeable within the defined SNOMED semantic tag scope.",
+      "_meta": {
+        "patient_id": "6269036151",
+        "encounter_id": "957162c8-6701-4bf7-8a6d-6ace5de5c40d",
+        "date": "2025-05-12",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "ecc77c3b-406d-4469-8b30-5f5bff2e8ba9",
+    "patient_id": "6269036151",
+    "date": "2025-05-12",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter contains only an administrative medication review invitation entry made by a receptionist; there is no clinical content requiring SNOMED CT coding.",
+      "_meta": {
+        "patient_id": "6269036151",
+        "encounter_id": "ecc77c3b-406d-4469-8b30-5f5bff2e8ba9",
+        "date": "2025-05-12",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "9d9ce8ca-2128-4c39-8f17-768c3762d3a7",
+    "patient_id": "6269036151",
+    "date": "2025-05-13",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter consists entirely of administrative medication review questionnaire responses with no clinical diagnoses, findings, procedures, or symptoms documented; there are no codeable SNOMED clinical concepts within scope to add.",
+      "_meta": {
+        "patient_id": "6269036151",
+        "encounter_id": "9d9ce8ca-2128-4c39-8f17-768c3762d3a7",
+        "date": "2025-05-13",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "06d35777-e9ba-4de8-b523-e52d5b4c42d3",
+    "patient_id": "6269036151",
+    "date": "2025-05-14",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "missing": [
+        {
+          "term": "Seborrhoeic keratosis on back",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Confirmed clinical diagnosis of seborrhoeic keratosis on left upper back made at face-to-face review and should be coded as an active finding.",
+          "snomed_search": "seborrhoeic keratosis"
+        },
+        {
+          "term": "possible dermatofibroma on right thigh",
+          "severity": "high",
+          "suggested_assertion": "possible",
+          "reason": "A lesion on the right thigh is described as possibly a dermatofibroma but not confirmed; coded as possible pending dermatoscopy review.",
+          "snomed_search": "dermatofibroma"
+        },
+        {
+          "term": "skin lesion requiring dermatoscopy review",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Right thigh lesion requires dermatoscopy assessment to exclude malignancy and a plan was made to check guidelines and inform patient of way forward \u2014 this pending investigation should be coded.",
+          "snomed_search": "dermatoscopy skin lesion"
+        },
+        {
+          "term": "depression",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Patient is on citalopram 30mg daily with an active depression interim review documented; depression as an active diagnosis should be coded.",
+          "snomed_search": "depression"
+        },
+        {
+          "term": "hormone replacement therapy",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Patient is on Evorel 75 patches and micronised progesterone with a formal HRT review documented; HRT use should be coded as an active situation.",
+          "snomed_search": "hormone replacement therapy"
+        },
+        {
+          "term": "menopause",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "HRT is prescribed for menopausal indication (indication reviewed, 1 year on HRT); the underlying menopausal disorder should be coded.",
+          "snomed_search": "menopause"
+        },
+        {
+          "term": "BMI 32.18 kg/m\u00b2",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Recorded BMI of 32.18 indicates obesity and was formally measured at this encounter; this observable entity should be coded.",
+          "snomed_search": "body mass index"
+        },
+        {
+          "term": "obesity",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "BMI of 32.18 kg/m\u00b2 meets the threshold for obesity (BMI \u226530) and should be coded as an active disorder.",
+          "snomed_search": "obesity"
+        },
+        {
+          "term": "ex-smoker \u2014 vapes now",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Patient is documented as an ex-smoker who now vapes; current e-cigarette use is a clinically relevant finding that should be coded.",
+          "snomed_search": "electronic cigarette use vaping"
+        },
+        {
+          "term": "20 pack year smoking history",
+          "severity": "medium",
+          "suggested_assertion": "historical",
+          "reason": "A 20 pack year smoking history is documented and is clinically relevant to skin cancer risk assessment and general health.",
+          "snomed_search": "pack years smoked"
+        },
+        {
+          "term": "alcohol 10 units per week \u2014 lower risk drinking",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Alcohol consumption of 10 units/week was formally recorded at this medication review and should be coded.",
+          "snomed_search": "alcohol units per week"
+        },
+        {
+          "term": "fair skin",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Fair skin is documented as a risk factor in the context of skin lesion assessment and is a clinically relevant finding.",
+          "snomed_search": "fair skin complexion"
+        },
+        {
+          "term": "history of sunburn",
+          "severity": "medium",
+          "suggested_assertion": "historical",
+          "reason": "History of sunburns is documented as a risk factor for skin malignancy and should be coded.",
+          "snomed_search": "sunburn history"
+        },
+        {
+          "term": "no family history of skin cancer",
+          "severity": "medium",
+          "suggested_assertion": "absent",
+          "reason": "Explicitly documented absence of family history of skin cancer is clinically relevant in the context of suspicious skin lesion assessment.",
+          "snomed_search": "family history skin cancer"
+        },
+        {
+          "term": "omeprazole prescribed whilst on NSAID and SSRI",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Omeprazole is prescribed for gastroprotection in the context of concurrent NSAID and SSRI use; the indication (gastric protection) should be coded.",
+          "snomed_search": "prophylactic omeprazole NSAID SSRI gastroprotection"
+        },
+        {
+          "term": "weight 93 kg",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "Body weight was formally recorded at this encounter and should be coded as an observable entity.",
+          "snomed_search": "body weight observation"
+        },
+        {
+          "term": "no suicidal thoughts",
+          "severity": "medium",
+          "suggested_assertion": "absent",
+          "reason": "Suicidal ideation was explicitly assessed and found absent during the depression review; this safety-relevant finding should be coded.",
+          "snomed_search": "suicidal ideation"
+        },
+        {
+          "term": "no deliberate self-harm thoughts",
+          "severity": "medium",
+          "suggested_assertion": "absent",
+          "reason": "Thoughts of deliberate self-harm were explicitly assessed and found absent; this should be coded as an absent finding.",
+          "snomed_search": "deliberate self harm thoughts"
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "This encounter has zero coded concepts despite containing multiple clinically significant findings including confirmed seborrhoeic keratosis, a suspicious undiagnosed right thigh lesion requiring follow-up, active depression on citalopram, HRT use with formal review, obesity, and several risk factors for skin malignancy. Comprehensive coding is required across all clinical domains addressed in this encounter.",
+      "_meta": {
+        "patient_id": "6269036151",
+        "encounter_id": "06d35777-e9ba-4de8-b523-e52d5b4c42d3",
+        "date": "2025-05-14",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "aadd045b-ce66-4a55-a2be-34b69155786f",
+    "patient_id": "6269036151",
+    "date": "2025-05-14",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter contains only an administrative reception access entry with no clinical content; there are no clinical concepts to code and the empty coded list is appropriate.",
+      "_meta": {
+        "patient_id": "6269036151",
+        "encounter_id": "aadd045b-ce66-4a55-a2be-34b69155786f",
+        "date": "2025-05-14",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  }
+]

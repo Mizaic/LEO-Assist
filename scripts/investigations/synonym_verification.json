@@ -1,0 +1,884 @@
+[
+  {
+    "group": "Fatigue",
+    "surface_form": "tiredness",
+    "lookup_query": "fatigue",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "84229001",
+    "recommended_term": "Fatigue (finding)",
+    "score": 5.83
+  },
+  {
+    "group": "Fatigue",
+    "surface_form": "tired",
+    "lookup_query": "fatigue",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "84229001",
+    "recommended_term": "Fatigue (finding)",
+    "score": 5.83
+  },
+  {
+    "group": "Fatigue",
+    "surface_form": "exhaustion",
+    "lookup_query": "fatigue",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "84229001",
+    "recommended_term": "Fatigue (finding)",
+    "score": 5.83
+  },
+  {
+    "group": "Fatigue",
+    "surface_form": "lethargy",
+    "lookup_query": "lethargy",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "214264003",
+    "recommended_term": "Lethargy (finding)",
+    "score": 7.34
+  },
+  {
+    "group": "Fatigue",
+    "surface_form": "lethargic",
+    "lookup_query": "lethargy",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "214264003",
+    "recommended_term": "Lethargy (finding)",
+    "score": 7.34
+  },
+  {
+    "group": "Fatigue",
+    "surface_form": "no energy",
+    "lookup_query": "lack of energy",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "248274002",
+    "recommended_term": "Lack of energy (finding)",
+    "score": 9.24
+  },
+  {
+    "group": "Fatigue",
+    "surface_form": "lack of energy",
+    "lookup_query": "lack of energy",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "248274002",
+    "recommended_term": "Lack of energy (finding)",
+    "score": 9.24
+  },
+  {
+    "group": "Fatigue",
+    "surface_form": "chronically tired",
+    "lookup_query": "chronic fatigue",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "84229001",
+    "recommended_term": "Fatigue (finding)",
+    "score": 5.83
+  },
+  {
+    "group": "Fatigue",
+    "surface_form": "fatigue",
+    "lookup_query": "fatigue",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "84229001",
+    "recommended_term": "Fatigue (finding)",
+    "score": 5.83
+  },
+  {
+    "group": "Appetite",
+    "surface_form": "poor appetite",
+    "lookup_query": "poor appetite",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "64379006",
+    "recommended_term": "Decrease in appetite (finding)",
+    "score": 10.25
+  },
+  {
+    "group": "Appetite",
+    "surface_form": "loss of appetite",
+    "lookup_query": "loss of appetite",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "79890006",
+    "recommended_term": "Loss of appetite (finding)",
+    "score": 9.17
+  },
+  {
+    "group": "Appetite",
+    "surface_form": "reduced appetite",
+    "lookup_query": "reduced appetite",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "64379006",
+    "recommended_term": "Decrease in appetite (finding)",
+    "score": 10.19
+  },
+  {
+    "group": "Appetite",
+    "surface_form": "decreased appetite",
+    "lookup_query": "decreased appetite",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "102608004",
+    "recommended_term": "Excessive appetite (finding)",
+    "score": 5.57
+  },
+  {
+    "group": "Appetite",
+    "surface_form": "not eating",
+    "lookup_query": "decreased appetite",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "102608004",
+    "recommended_term": "Excessive appetite (finding)",
+    "score": 5.57
+  },
+  {
+    "group": "Appetite",
+    "surface_form": "appetite reduced",
+    "lookup_query": "reduced appetite",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "64379006",
+    "recommended_term": "Decrease in appetite (finding)",
+    "score": 10.19
+  },
+  {
+    "group": "Appetite",
+    "surface_form": "anorexia",
+    "lookup_query": "anorexia",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "79890006",
+    "recommended_term": "Loss of appetite (finding)",
+    "score": 6.45
+  },
+  {
+    "group": "Back pain",
+    "surface_form": "backache",
+    "lookup_query": "backache",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "161891005",
+    "recommended_term": "Backache (finding)",
+    "score": 6.84
+  },
+  {
+    "group": "Back pain",
+    "surface_form": "back ache",
+    "lookup_query": "back pain",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "161891005",
+    "recommended_term": "Backache (finding)",
+    "score": 7.73
+  },
+  {
+    "group": "Back pain",
+    "surface_form": "low back pain",
+    "lookup_query": "low back pain",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "279039007",
+    "recommended_term": "Low back pain (finding)",
+    "score": 10.5
+  },
+  {
+    "group": "Back pain",
+    "surface_form": "lower back pain",
+    "lookup_query": "lower back pain",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "161891005",
+    "recommended_term": "Backache (finding)",
+    "score": 7.73
+  },
+  {
+    "group": "Back pain",
+    "surface_form": "lumbar pain",
+    "lookup_query": "lumbar pain",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "279039007",
+    "recommended_term": "Low back pain (finding)",
+    "score": 7.19
+  },
+  {
+    "group": "Back pain",
+    "surface_form": "lumbago",
+    "lookup_query": "lumbago",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "279039007",
+    "recommended_term": "Low back pain (finding)",
+    "score": 7.98
+  },
+  {
+    "group": "Back pain",
+    "surface_form": "thoracic back pain",
+    "lookup_query": "thoracic back pain",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "279038004",
+    "recommended_term": "Thoracic back pain (finding)",
+    "score": 10.07
+  },
+  {
+    "group": "Breathlessness",
+    "surface_form": "breathlessness",
+    "lookup_query": "dyspnoea",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "267036007",
+    "recommended_term": "Dyspnea (finding)",
+    "score": 6.19
+  },
+  {
+    "group": "Breathlessness",
+    "surface_form": "short of breath",
+    "lookup_query": "dyspnoea",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "267036007",
+    "recommended_term": "Dyspnea (finding)",
+    "score": 6.19
+  },
+  {
+    "group": "Breathlessness",
+    "surface_form": "difficulty breathing",
+    "lookup_query": "difficulty breathing",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "230145002",
+    "recommended_term": "Difficulty breathing (finding)",
+    "score": 8.72
+  },
+  {
+    "group": "Breathlessness",
+    "surface_form": "breathing difficulty",
+    "lookup_query": "difficulty breathing",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "230145002",
+    "recommended_term": "Difficulty breathing (finding)",
+    "score": 8.72
+  },
+  {
+    "group": "Breathlessness",
+    "surface_form": "can't breathe",
+    "lookup_query": "dyspnoea",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "267036007",
+    "recommended_term": "Dyspnea (finding)",
+    "score": 6.19
+  },
+  {
+    "group": "Weight",
+    "surface_form": "weight loss",
+    "lookup_query": "weight loss",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "262285001",
+    "recommended_term": "Weight decreased (finding)",
+    "score": 7.88
+  },
+  {
+    "group": "Weight",
+    "surface_form": "losing weight",
+    "lookup_query": "weight loss",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "262285001",
+    "recommended_term": "Weight decreased (finding)",
+    "score": 7.88
+  },
+  {
+    "group": "Weight",
+    "surface_form": "unintentional weight loss",
+    "lookup_query": "unintentional weight loss",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "448765001",
+    "recommended_term": "Unintentional weight loss (finding)",
+    "score": 12.74
+  },
+  {
+    "group": "Weight",
+    "surface_form": "unexplained weight loss",
+    "lookup_query": "unexplained weight loss",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "422868009",
+    "recommended_term": "Unexplained weight loss (finding)",
+    "score": 12.84
+  },
+  {
+    "group": "Weight",
+    "surface_form": "weight gain",
+    "lookup_query": "weight gain",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "262286000",
+    "recommended_term": "Weight increased (finding)",
+    "score": 9.65
+  },
+  {
+    "group": "Abdominal pain",
+    "surface_form": "tummy pain",
+    "lookup_query": "abdominal pain",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "21522001",
+    "recommended_term": "Abdominal pain (finding)",
+    "score": 7.12
+  },
+  {
+    "group": "Abdominal pain",
+    "surface_form": "stomach pain",
+    "lookup_query": "abdominal pain",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "21522001",
+    "recommended_term": "Abdominal pain (finding)",
+    "score": 7.12
+  },
+  {
+    "group": "Abdominal pain",
+    "surface_form": "belly pain",
+    "lookup_query": "abdominal pain",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "21522001",
+    "recommended_term": "Abdominal pain (finding)",
+    "score": 7.12
+  },
+  {
+    "group": "Abdominal pain",
+    "surface_form": "abdo pain",
+    "lookup_query": "abdominal pain",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "21522001",
+    "recommended_term": "Abdominal pain (finding)",
+    "score": 7.12
+  },
+  {
+    "group": "Nausea/vomiting",
+    "surface_form": "nausea",
+    "lookup_query": "nausea",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "422587007",
+    "recommended_term": "Nausea (finding)",
+    "score": 6.28
+  },
+  {
+    "group": "Nausea/vomiting",
+    "surface_form": "vomiting",
+    "lookup_query": "vomiting",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "225586007",
+    "recommended_term": "Vomiting food (finding)",
+    "score": 4.99
+  },
+  {
+    "group": "Nausea/vomiting",
+    "surface_form": "nausea and vomiting",
+    "lookup_query": "nausea and vomiting",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "415709002",
+    "recommended_term": "Tendency to nausea and vomiting (finding)",
+    "score": 9.5
+  },
+  {
+    "group": "Bowel",
+    "surface_form": "diarrhoea",
+    "lookup_query": "diarrhoea",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "62315008",
+    "recommended_term": "Diarrhea (finding)",
+    "score": 5.75
+  },
+  {
+    "group": "Bowel",
+    "surface_form": "diarrhea",
+    "lookup_query": "diarrhoea",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "62315008",
+    "recommended_term": "Diarrhea (finding)",
+    "score": 5.75
+  },
+  {
+    "group": "Bowel",
+    "surface_form": "loose stools",
+    "lookup_query": "loose stools",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "398032003",
+    "recommended_term": "Loose stool (finding)",
+    "score": 11.7
+  },
+  {
+    "group": "Bowel",
+    "surface_form": "constipation",
+    "lookup_query": "constipation",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "14760008",
+    "recommended_term": "Constipation (finding)",
+    "score": 6.3
+  },
+  {
+    "group": "Bowel",
+    "surface_form": "bloating",
+    "lookup_query": "abdominal bloating",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "116289008",
+    "recommended_term": "Abdominal bloating (finding)",
+    "score": 10.35
+  },
+  {
+    "group": "Bowel",
+    "surface_form": "wind",
+    "lookup_query": "flatulence",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "249504006",
+    "recommended_term": "Passing flatus (finding)",
+    "score": 7.12
+  },
+  {
+    "group": "Bowel",
+    "surface_form": "indigestion",
+    "lookup_query": "indigestion",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "162031009",
+    "recommended_term": "Indigestion (finding)",
+    "score": 7.16
+  },
+  {
+    "group": "Bowel",
+    "surface_form": "heartburn",
+    "lookup_query": "heartburn",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "16331000",
+    "recommended_term": "Heartburn (finding)",
+    "score": 7.57
+  },
+  {
+    "group": "Bowel",
+    "surface_form": "reflux",
+    "lookup_query": "gastro-oesophageal reflux",
+    "semantic_tag": "disorder",
+    "recommended_concept_id": "235595009",
+    "recommended_term": "Gastroesophageal reflux disease (disorder)",
+    "score": 13.07
+  },
+  {
+    "group": "Bowel",
+    "surface_form": "dyspepsia",
+    "lookup_query": "dyspepsia",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "162031009",
+    "recommended_term": "Indigestion (finding)",
+    "score": 6.97
+  },
+  {
+    "group": "Bowel",
+    "surface_form": "rectal bleeding",
+    "lookup_query": "rectal haemorrhage",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "414991007",
+    "recommended_term": "Painful rectal bleeding (finding)",
+    "score": 7.45
+  },
+  {
+    "group": "Bowel",
+    "surface_form": "blood in stool",
+    "lookup_query": "blood in stool",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "405729008",
+    "recommended_term": "Hematochezia (finding)",
+    "score": 8.72
+  },
+  {
+    "group": "Urinary",
+    "surface_form": "blood in urine",
+    "lookup_query": "haematuria",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "34436003",
+    "recommended_term": "Blood in urine (finding)",
+    "score": 6.51
+  },
+  {
+    "group": "Urinary",
+    "surface_form": "haematuria",
+    "lookup_query": "haematuria",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "34436003",
+    "recommended_term": "Blood in urine (finding)",
+    "score": 6.51
+  },
+  {
+    "group": "Urinary",
+    "surface_form": "passing blood",
+    "lookup_query": "haematuria",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "34436003",
+    "recommended_term": "Blood in urine (finding)",
+    "score": 6.51
+  },
+  {
+    "group": "Urinary",
+    "surface_form": "urinary frequency",
+    "lookup_query": "urinary frequency",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "162116003",
+    "recommended_term": "Increased frequency of urination (finding)",
+    "score": 8.34
+  },
+  {
+    "group": "Urinary",
+    "surface_form": "frequency of urination",
+    "lookup_query": "urinary frequency",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "162116003",
+    "recommended_term": "Increased frequency of urination (finding)",
+    "score": 8.34
+  },
+  {
+    "group": "Urinary",
+    "surface_form": "nocturia",
+    "lookup_query": "nocturia",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "139394000",
+    "recommended_term": "Nocturia (finding)",
+    "score": 7.88
+  },
+  {
+    "group": "Urinary",
+    "surface_form": "dysuria",
+    "lookup_query": "dysuria",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "49650001",
+    "recommended_term": "Dysuria (finding)",
+    "score": 7.49
+  },
+  {
+    "group": "Urinary",
+    "surface_form": "burning urine",
+    "lookup_query": "dysuria",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "49650001",
+    "recommended_term": "Dysuria (finding)",
+    "score": 7.49
+  },
+  {
+    "group": "Urinary",
+    "surface_form": "urinary incontinence",
+    "lookup_query": "urinary incontinence",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "165232002",
+    "recommended_term": "Urinary incontinence (finding)",
+    "score": 8.29
+  },
+  {
+    "group": "Systemic",
+    "surface_form": "night sweats",
+    "lookup_query": "night sweats",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "42984000",
+    "recommended_term": "Night sweats (finding)",
+    "score": 12.12
+  },
+  {
+    "group": "Systemic",
+    "surface_form": "drenching sweats",
+    "lookup_query": "night sweats",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "42984000",
+    "recommended_term": "Night sweats (finding)",
+    "score": 12.12
+  },
+  {
+    "group": "Systemic",
+    "surface_form": "dizziness",
+    "lookup_query": "dizziness",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "404640003",
+    "recommended_term": "Dizziness (finding)",
+    "score": 6.6
+  },
+  {
+    "group": "Systemic",
+    "surface_form": "dizzy",
+    "lookup_query": "dizziness",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "404640003",
+    "recommended_term": "Dizziness (finding)",
+    "score": 6.6
+  },
+  {
+    "group": "Systemic",
+    "surface_form": "headache",
+    "lookup_query": "headache",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "25064002",
+    "recommended_term": "Headache (finding)",
+    "score": 5.49
+  },
+  {
+    "group": "Systemic",
+    "surface_form": "palpitations",
+    "lookup_query": "palpitations",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "80313002",
+    "recommended_term": "Palpitations (finding)",
+    "score": 6.96
+  },
+  {
+    "group": "Systemic",
+    "surface_form": "swollen glands",
+    "lookup_query": "lymphadenopathy",
+    "semantic_tag": "finding",
+    "recommended_concept_id": null,
+    "recommended_term": null,
+    "score": 0.0
+  },
+  {
+    "group": "Systemic",
+    "surface_form": "lymph node swelling",
+    "lookup_query": "lymphadenopathy",
+    "semantic_tag": "finding",
+    "recommended_concept_id": null,
+    "recommended_term": null,
+    "score": 0.0
+  },
+  {
+    "group": "Systemic",
+    "surface_form": "swollen lymph nodes",
+    "lookup_query": "lymphadenopathy",
+    "semantic_tag": "finding",
+    "recommended_concept_id": null,
+    "recommended_term": null,
+    "score": 0.0
+  },
+  {
+    "group": "Systemic",
+    "surface_form": "ankle swelling",
+    "lookup_query": "ankle oedema",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "26237000",
+    "recommended_term": "Ankle edema (finding)",
+    "score": 8.04
+  },
+  {
+    "group": "Systemic",
+    "surface_form": "oedema",
+    "lookup_query": "oedema",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "267038008",
+    "recommended_term": "Edema (finding)",
+    "score": 4.96
+  },
+  {
+    "group": "Systemic",
+    "surface_form": "jaundice",
+    "lookup_query": "jaundice",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "18165001",
+    "recommended_term": "Jaundice (finding)",
+    "score": 5.69
+  },
+  {
+    "group": "Systemic",
+    "surface_form": "itch",
+    "lookup_query": "pruritus",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "418363000",
+    "recommended_term": "Itching of skin (finding)",
+    "score": 6.13
+  },
+  {
+    "group": "Systemic",
+    "surface_form": "itching",
+    "lookup_query": "pruritus",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "418363000",
+    "recommended_term": "Itching of skin (finding)",
+    "score": 6.13
+  },
+  {
+    "group": "Systemic",
+    "surface_form": "pruritus",
+    "lookup_query": "pruritus",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "418363000",
+    "recommended_term": "Itching of skin (finding)",
+    "score": 6.13
+  },
+  {
+    "group": "Systemic",
+    "surface_form": "rash",
+    "lookup_query": "rash",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "398591002",
+    "recommended_term": "Centripetal rash (finding)",
+    "score": 5.24
+  },
+  {
+    "group": "Systemic",
+    "surface_form": "lump",
+    "lookup_query": "lump",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "237557003",
+    "recommended_term": "Mass of thyroid gland (finding)",
+    "score": 4.79
+  },
+  {
+    "group": "Systemic",
+    "surface_form": "mass",
+    "lookup_query": "mass",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "300848003",
+    "recommended_term": "Mass of body structure (finding)",
+    "score": 4.13
+  },
+  {
+    "group": "Systemic",
+    "surface_form": "bruising",
+    "lookup_query": "bruising",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "373600006",
+    "recommended_term": "Multiple bruising (finding)",
+    "score": 5.72
+  },
+  {
+    "group": "Systemic",
+    "surface_form": "easy bruising",
+    "lookup_query": "easy bruising",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "424131007",
+    "recommended_term": "Easy bruising (finding)",
+    "score": 11.72
+  },
+  {
+    "group": "Pain",
+    "surface_form": "chest tightness",
+    "lookup_query": "chest tightness",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "23924001",
+    "recommended_term": "Tight chest (finding)",
+    "score": 10.47
+  },
+  {
+    "group": "Pain",
+    "surface_form": "pleuritic pain",
+    "lookup_query": "pleuritic chest pain",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "2237002",
+    "recommended_term": "Pleuritic pain (finding)",
+    "score": 10.61
+  },
+  {
+    "group": "Pain",
+    "surface_form": "bone pain",
+    "lookup_query": "bone pain",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "12584003",
+    "recommended_term": "Bone pain (finding)",
+    "score": 6.43
+  },
+  {
+    "group": "Pain",
+    "surface_form": "joint pain",
+    "lookup_query": "joint pain",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "57676002",
+    "recommended_term": "Pain of joint (finding)",
+    "score": 6.16
+  },
+  {
+    "group": "Pain",
+    "surface_form": "arthralgia",
+    "lookup_query": "arthralgia",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "57676002",
+    "recommended_term": "Pain of joint (finding)",
+    "score": 6.66
+  },
+  {
+    "group": "Pain",
+    "surface_form": "myalgia",
+    "lookup_query": "myalgia",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "68962001",
+    "recommended_term": "Muscle pain (finding)",
+    "score": 6.54
+  },
+  {
+    "group": "Pain",
+    "surface_form": "muscle pain",
+    "lookup_query": "myalgia",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "68962001",
+    "recommended_term": "Muscle pain (finding)",
+    "score": 6.54
+  },
+  {
+    "group": "Pain",
+    "surface_form": "hip pain",
+    "lookup_query": "hip pain",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "49218002",
+    "recommended_term": "Pain of hip region (finding)",
+    "score": 7.1
+  },
+  {
+    "group": "Pain",
+    "surface_form": "knee pain",
+    "lookup_query": "knee pain",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "1003722009",
+    "recommended_term": "Pain of knee region (finding)",
+    "score": 7.07
+  },
+  {
+    "group": "Pain",
+    "surface_form": "shoulder pain",
+    "lookup_query": "shoulder pain",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "45326000",
+    "recommended_term": "Pain of shoulder region (finding)",
+    "score": 7.06
+  },
+  {
+    "group": "Pain",
+    "surface_form": "neck pain",
+    "lookup_query": "neck pain",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "81680005",
+    "recommended_term": "Neck pain (finding)",
+    "score": 7.03
+  },
+  {
+    "group": "Mental health",
+    "surface_form": "low mood",
+    "lookup_query": "low mood",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "225455004",
+    "recommended_term": "Sociable mood (finding)",
+    "score": 4.76
+  },
+  {
+    "group": "Mental health",
+    "surface_form": "depression",
+    "lookup_query": "depression",
+    "semantic_tag": "disorder",
+    "recommended_concept_id": "35489007",
+    "recommended_term": "Depressive disorder (disorder)",
+    "score": 4.76
+  },
+  {
+    "group": "Mental health",
+    "surface_form": "anxiety",
+    "lookup_query": "anxiety",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "48694002",
+    "recommended_term": "Anxiety (finding)",
+    "score": 5.01
+  },
+  {
+    "group": "Mental health",
+    "surface_form": "brain fog",
+    "lookup_query": "cognitive impairment",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "386806002",
+    "recommended_term": "Impaired cognition (finding)",
+    "score": 8.81
+  },
+  {
+    "group": "Mental health",
+    "surface_form": "memory problems",
+    "lookup_query": "memory impairment",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "386807006",
+    "recommended_term": "Memory impairment (finding)",
+    "score": 9.0
+  },
+  {
+    "group": "Mental health",
+    "surface_form": "confusion",
+    "lookup_query": "confusion",
+    "semantic_tag": "finding",
+    "recommended_concept_id": "40917007",
+    "recommended_term": "Clouded consciousness (finding)",
+    "score": 6.38
+  }
+]

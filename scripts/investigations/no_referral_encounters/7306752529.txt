@@ -1,0 +1,358 @@
+========================================================================
+PATIENT:        7306752529
+EPISODE:        cfd597d2606503ff
+CONDITION TYPE: unknown
+DIAGNOSIS DATE: 2025-03-11
+FLAGS:          NO_REFERRAL
+TOTAL ENCOUNTERS: 442
+========================================================================
+
+--- 2023-06-22  449600aa-759d-45fd-ae46-8ba34858fd41 ---
+TEXT: 11:53 - Surgery: PATEL, Krishan (Dr) (Clinical Practitioner Access Role)  | Problem: Allergic disorder (Xa1pQ) | History: f2f rv.  | booked online in tel slot, however came down f2f. new to the country, not sure on how to access different services. | PHD student, civil engineering.  from iran. moved in april. | 1) needing inhaler - uses sereflo TT BD, has been diagnosed with airway disease due to allergies 
+
+--- 2023-07-05  00700a6a-e4f8-4e9f-8f41-dcf3939bc71e ---
+TEXT: 08:02 - Surgery: PATEL, Krishan (Dr) (Clinical Practitioner Access Role)  | Serum lipid levels (XE2q7) | Serum cholesterol level (XE2eD) 4.6 mmol/L | Serum triglyceride levels (XE2q9) 0.71 mmol/L [< 2] | Serum HDL cholesterol level (44P5.) 1.2 mmol/L [0.9 - 2.2] | Serum LDL cholesterol level (44P6.) 3.1 mmol/L | Total cholesterol:HDL ratio (44PF.) 3.8  | Serum non high density lipoprotein cholesterol level (Xab
+
+--- 2023-07-05  064eec51-3fda-41b2-bda8-72d77fa0a64c ---
+TEXT: 08:02 - Surgery: PATEL, Krishan (Dr) (Clinical Practitioner Access Role)  | Thyroid function test (X77Wg) | Serum free T4 level (XaERr) 13.4 pmol/L [9 - 25] | Serum TSH level (XaELV) 6.5 miu/L [0.3 - 5] - Outside reference range | Clinical Information: Clinical Details:     Not on Thyroid Tx Reasons for Request:      low sex drive. | Thyroid function test Report, Borderline, Need to repeat test: repeat TFT 
+
+--- 2023-07-05  cdee3716-4abc-4a42-b922-f8fbcae48398 ---
+TEXT: 08:02 - Surgery: PATEL, Krishan (Dr) (Clinical Practitioner Access Role)  | Serum testosterone level (XE2dr) 23 nmol/L [9 - 34.7] | Haemoglobin A1c level (X772q) 5.5 % [4 - 5.9] | Haemoglobin A1c level - IFCC standardised (XaPbt) 36 mmol/mol [20 - 41] - Please note changes in HbA1c reporting from 27/09/21 | Clinical Information: Clinical Details:     Not on Thyroid Tx Reasons for Request:      low sex dri
+
+--- 2023-07-05  ed1ec628-79ff-4276-b605-a7a0591bb20b ---
+TEXT: 08:02 - Surgery: PATEL, Krishan (Dr) (Clinical Practitioner Access Role)  | Full blood count (424..) | Total white blood count (XaIdY) 5 10^9/L [4 - 11] | Red blood cell count (426..) 4.13 10^12/L [3.9 - 6.5] | Haemoglobin concentration (Xa96v) 135 g/L [130 - 180] | Haematocrit (X76tb) 0.392  [0.4 - 0.54] - Outside reference range | Mean cell volume (42A..) 95 fL [80 - 99] | Mean cell haemoglobin level (XE2pb) 
+
+--- 2024-01-01  6fda3b03-62c0-45b7-893c-a739776f9a62 ---
+TEXT: Surgery: PATEL, Krishan (Dr) (Clinical Practitioner Access Role)  | Acquired hypothyroidism (XE108) | Acquired hypothyroidism (XE108)
+
+--- 2024-01-30  caceda69-3b1d-4869-a6a4-3ff61e473314 ---
+TEXT: 10:42 - Surgery: JOHAL, Jaspreet (Dr) (Clinical Practitioner Access Role)  | History: F2F | Patient is confirming blod test date   | Keen to re-refer to podiatry - link sent over to patient   | Known to have fatty liver  - keen to be re-assessed, explain can monitor blood tests  | Keen to do | Pathology Request (Complete): | HbA1c (Requested), Bone Profile (Requested), Vitamin B12 (Requested), Full Blood Count 
+
+--- 2024-02-02  16fe6b6b-c1d2-4d46-9bb7-3dc8a1f8fc3b ---
+TEXT: 09:48 - Surgery: Auto-filed   | Bone profile (44Z2.) | Serum albumin level (XE2eA) 46 g/L [35 - 50] | Serum calcium level (XE2q3) 2.43 mmol/L | Serum adjusted calcium concentration (Xabpk) 2.31 mmol/L [2.12 - 2.51] | Reference range amended to account for calibration | difference in the SIEMENS assay.  Ann Clin Biochem | 2020 Sep 57(5):373-381 | Serum inorganic phosphate level (XE2q4) 1.36 mmol/L [0.8 - 1.5] | Seru
+
+--- 2024-02-02  253f3284-a920-46eb-b413-c510858aec75 ---
+TEXT: 09:48 - Surgery: Auto-filed   | Serum sodium level (XE2q0) 141 mmol/L [133 - 146] | Serum potassium level (XE2pz) 4.1 mmol/L [3.5 - 5.3] | Serum urea level (XM0lt) 8.9 mmol/L [2.5 - 7.8] - Outside reference range | Serum creatinine level (XE2q5) 106 umol/L [60 - 120] | eGFR using creatinine (CKD-EPI) per 1.73 square metres (XacUK) 78 mL/min | Urine ACR should be checked on at least an annual basis | for all ind
+
+--- 2024-02-02  3764e391-4f19-4c9f-8231-601c1564f6ad ---
+TEXT: 09:48 - Surgery: Auto-filed   | AST serum level (X771i) 35 iu/L [2 - 53] | Clinical Information: Clinical Details:     Not on Thyroid Tx Reasons for Request:      fatty liver. | AST serum level Report, Satisfactory, Need to repeat test (Patient Informed). Review done by JOHAL, Jaspreet (Dr) - 05 Feb 2024 08:48
+
+--- 2024-02-02  45fb7053-1d68-42b3-9b7e-7679cd04d342 ---
+TEXT: 09:48 - Surgery: Auto-filed   | Serum alanine aminotransferase level (XaLJx) 44 iu/L [10 - 49] | Please note change to method-specific reference range | from 19th January 2024 | Serum bilirubin level (44E..) 16 umol/L [< 21] | Liver function tests (X77WP) | Clinical Information: Clinical Details:     Not on Thyroid Tx Reasons for Request:      fatty liver. | Liver function tests Report, Satisfactory, Need to re
+
+--- 2024-02-02  4cafb4f7-d703-4289-9e81-0f7bc67992b4 ---
+TEXT: 09:48 - Surgery: Auto-filed   | Serum folate level (42U5.) 16.9 ng/ml | <3.0 ug/L is consistent with folate deficiency. | 3.0-4.5 ug/L is suggestive of folate deficiency | but not diagnostic. | Clinical Information: Clinical Details:     Not on Thyroid Tx Reasons for Request:      fatty liver. | Serum folate level Report, Satisfactory, Need to repeat test (Patient Informed). Review done by JOHAL, Jaspreet (Dr
+
+--- 2024-02-02  5a16a715-381a-44ed-8405-ed22a2bf4142 ---
+TEXT: 09:48 - Surgery: Auto-filed   | Serum vitamin B12 level (XE2pf) 944 ng/L [220 - 700] - Outside reference range | Clinical Information: Clinical Details:     Not on Thyroid Tx Reasons for Request:      fatty liver. | Serum vitamin B12 level Report, Satisfactory, Need to repeat test (Patient Informed). Review done by JOHAL, Jaspreet (Dr) - 05 Feb 2024 08:48
+
+--- 2024-02-02  6c412058-bce6-467d-8117-ad7332695344 ---
+TEXT: 09:48 - Surgery: Auto-filed   | Clinical Information: Clinical Details:     Not on Thyroid Tx Reasons for Request:      fatty liver. | FIB-4 Score for liver Fibrosis: 0.89; FIB-4 <1.3* low risk for advanced liver fibrosis. Treat | metabolic risk factors and if there is ongoing risk, | consider repeating FIB-4 in 3 years. | FIB-4 1.3 - 3.25 indeterminate risk. Patients should | undergo further testing with a s
+
+--- 2024-02-02  73bbe65a-b3d6-4d5b-968b-7bdb1b561474 ---
+TEXT: 09:48 - Surgery: Auto-filed   | Serum total protein level (XE2e9) 75 g/L [57 - 82] | Please note change to method-specific reference range | from 19th January 2024 | Clinical Information: Clinical Details:     Not on Thyroid Tx Reasons for Request:      fatty liver. | Serum total protein level Report, Satisfactory, Need to repeat test (Patient Informed). Review done by JOHAL, Jaspreet (Dr) - 05 Feb 2024 08:
+
+--- 2024-02-02  9f5f17fc-f85b-47f8-b891-bcffdaf1fdeb ---
+TEXT: 09:48 - Surgery: Auto-filed   | Serum lipid levels (XE2q7) | Serum cholesterol level (XE2eD) 4.8 mmol/L | Serum triglyceride levels (XE2q9) 0.73 mmol/L [< 2] | Serum HDL cholesterol level (44P5.) 1.41 mmol/L [0.9 - 2.2] | Serum LDL cholesterol level (44P6.) 3.1 mmol/L | Total cholesterol:HDL ratio (44PF.) 3.4  | Serum non high density lipoprotein cholesterol level (XabE1) 3.4 mmol/L | Clinical Information: Clinic
+
+--- 2024-02-02  a4810d56-5923-4b62-8818-b5278844d3d4 ---
+TEXT: 09:48 - Surgery: Auto-filed   | Clinical Information: Clinical Details:     Not on Thyroid Tx Reasons for Request:      fatty liver. | Acute Kidney Injury Staging: 0; No AKI | Acute Kidney Injury Staging Report, Satisfactory, Need to repeat test (Patient Informed). Review done by JOHAL, Jaspreet (Dr) - 05 Feb 2024 08:48
+
+--- 2024-02-02  ad50ce74-b923-4ff4-91ec-9513cbd69b33 ---
+TEXT: 09:48 - Surgery: Auto-filed   | Haemoglobin A1c level - IFCC standardised (XaPbt) 33 mmol/mol [20 - 41] - Please note changes in HbA1c reporting from 27/09/21 | Clinical Information: Clinical Details:     Not on Thyroid Tx Reasons for Request:      fatty liver. | Haemoglobin A1c level - IFCC standardised Report, Normal, No Further Action (Patient Informed). Review done by BASHIR, Eiman (Dr) - 08 Feb 202
+
+--- 2024-02-02  c90e6504-bd17-40cc-8934-a7454626c8bc ---
+TEXT: 09:48 - Surgery: Auto-filed   | Lymphocyte count (42M..) 0.94 10^9/L [1 - 4] - Outside reference range | Nucleated red blood cell count (4266.) < 0.2 10^9/L [0 - 0.2] | For further investigation of abnormal Full Blood Count | please see Haematology Referral Guidelines: | https://www.leicestershospitals.nhs.uk/aboutus/ | (click Departments & Services > Haematology > | Haematology Referral | Guidelines). | If clinica
+
+--- 2024-02-02  d02180f5-2c4a-46fd-ac66-c61f4290051d ---
+TEXT: 09:48 - Surgery: Auto-filed   | Thyroid function test (X77Wg) | Serum free T4 level (XaERr) 15.8 pmol/L [9 - 25] | Serum TSH level (XaELV) 5.5 miu/L [0.3 - 5] - Outside reference range | Clinical Information: Clinical Details:     Not on Thyroid Tx Reasons for Request:      fatty liver. | Thyroid function test Report, Abnormal, Need to speak to doctor (Patient Informed). Review done by JOHAL, Jaspreet (Dr) 
+
+--- 2024-02-02  d1460f0d-d0fa-4376-a42d-995f4fdd6f86 ---
+TEXT: 09:48 - Surgery: Auto-filed   | Serum ferritin level (XE24r) 106 ng/ml [23 - 540] | Clinical Information: Clinical Details:     Not on Thyroid Tx Reasons for Request:      fatty liver. | Serum ferritin level Report, Satisfactory, Need to repeat test (Patient Informed). Review done by JOHAL, Jaspreet (Dr) - 05 Feb 2024 08:48
+
+--- 2024-02-02  d2396718-00dc-4b26-ab0f-b926620958ae ---
+TEXT: 09:48 - Surgery: Auto-filed   | Haemoglobin A1c level (X772q) 5.2 % [4 - 5.9] | Clinical Information: Clinical Details:     Not on Thyroid Tx Reasons for Request:      fatty liver. | Haemoglobin A1c level Report, Normal, No Further Action (Patient Informed). Review done by BASHIR, Eiman (Dr) - 08 Feb 2024 16:36
+
+--- 2024-02-14  feeebd09-3a21-4d4c-9c48-9223a17669b9 ---
+TEXT: 08:17 - Surgery: Auto-filed   | Clinical Information: Reasons for Request:      Rpt. | Acute Kidney Injury Staging: 0; No AKI | Acute Kidney Injury Staging Report, Normal, No Further Action (Patient Informed). Review done by BASHIR, Eiman (Dr) - 15 Feb 2024 14:38
+
+--- 2024-02-24  fca088f4-3eea-45cc-b1ed-daefe267c1f3 ---
+TEXT: 11:16 - Primary Care Network (PCN): GOHIL, Nisha (Dr) (Clinical Practitioner Access Role) Entered at: Carillon PCN | History: pcn exta ccess.  | telephone enocunter to discuss blood reaults.  | no answer 10.54 | second attempt 11.17  |  | wcc 3.9 and 0.94 - repeat blood test in 6 weeks  | takes a lot vitamin supplements over the counter - note  | also takign iodine over the counter for 'his thyroid' | states has a 
+
+--- 2024-02-26  822a7dc0-9da9-4eab-af54-259e4d1b0491 ---
+TEXT: 10:34 - Surgery: MCDOWELL, Giselle (Receptionist Access Role)  | Pathology Request (Request Sent): | Thyroid peroxidase antibody (Requested) | Pathology Request (Request Sent): | Full Blood Count (Requested)
+
+--- 2024-03-05  615a17b1-5a92-4416-8830-a2b047728a97 ---
+TEXT: 17:51 - Surgery: KETHEESWARAN, Arthika (Dr) (Clinical Practitioner Access Role)  | History: tel cons - prebooked on 4th feb,  | ahs since spoken to PCN dr out of hours.  | has discussed bloods and having rpt TFT with TPO ab as well . blood test has been booked.  | says PCN dr also advised a f2f appt this week with a GP, thought he can combine but was too late when realised this was a tel appt.  | feels neck
+
+--- 2024-03-07  0c11a146-bf32-4fa8-a186-22c942803028 ---
+TEXT: 10:08 - GP Surgery: OKOYE, Clifford (Dr) (Clinical Practitioner Access Role)  | 110 / 80 | Problem: Goitre (X76FB) | History: F2F Review   | Anterior neck mass which he noticed 3-4 months ago    | has been increasing in size   | No associated symptoms  - no neck pain, no excessive sleeping    | Not gaining weight - lost 5 kg from last year but weight has stabilised over the past few months   | no lethargy no tire
+
+--- 2024-03-07  281ce94e-24e7-40e2-b66b-1f2e00b050a3 ---
+TEXT: 13:14 - Surgery: OKOYE, Clifford (Dr) (Clinical Practitioner Access Role)  | - PRISM 2WW Head and Neck -  questionnaire started - (finalised: 07 Mar 2024 13:14) | Fast track referral for suspected head and neck cancer (XaMkD) - (Added from Questionnaire) |  PRISM Pathway & Referral Impl SysteM V3 |    2WW |        - PRISM 2WW Head and Neck -  questionnaire started - (finalised: 07 Mar 2024 13:14)
+
+--- 2024-03-07  d74a9e27-335b-4091-877b-ded15b2ae329 ---
+TEXT: 13:26 - Surgery: OKOYE, Clifford (Dr) (Clinical Practitioner Access Role)  | Patient telephone number (9159.) - 07377 267752 | Short message service text message sent to patient (XaMiI) |  | Dear Mr Ershadi,  | Tried to contact you on phone | We have completed a 2 ww referral for the neck swelling you presented with. This is to rule out cancer as getting a scan may cause some delays.  | Thanks, Dr OKOYE | Woodbro
+
+--- 2024-03-07  f798c6d6-b0ac-456b-931a-b367cdb33c50 ---
+TEXT: 13:36 - Surgery: BAKER, Dawn (Mrs) (Medical Secretary Access Role)  | Fast track referral for suspected head and neck cancer (XaMkD) | Choice and booking enhanced services administration (XaMJa) |  2WW |    Patient awaiting OPD appt.: Yes H&N | Hospital Fast track referral for suspected head and neck cancer | 2WW Head and Neck PRISM to Unknown  | Hospital Fast track referral for suspected head and neck cancer u
+
+--- 2024-03-20  4e4d78f7-8f84-468e-a70a-13fd62beec02 ---
+TEXT: 11:42 - Surgery: RUMMING, Anita (Health Professional Access Role)  | Pathology Request (Request Sent): | Thyroid peroxidase antibody (Requested) | Pathology Request (Complete): | Full Blood Count (Requested), Thyroid Stimulating Hormone (Requested)
+
+--- 2024-04-02  3afda28a-038f-46f4-871a-0982967ea0c0 ---
+TEXT: 08:07 - Surgery: Auto-filed   | Thyroid function test (X77Wg) | Serum free T4 level (XaERr) 15.4 pmol/L [9 - 25] | Serum TSH level (XaELV) 9.9 miu/L [0.3 - 5] - Outside reference range | Clinical Information: Clinical Details:     Not on Thyroid Tx Reasons for Request:      Rpt. | Thyroid function test Report, Abnormal, Need to speak to doctor: ?fatigue sx.  consider starting levothyroxine. (Patient Informe
+
+--- 2024-04-02  3b3007d3-f834-47b1-8474-bbcba092b5b0 ---
+TEXT: 08:43 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role)  |  2WW |    Date of First outpatient appointment: 12 Mar 2024 Outcome:	Refer on, outside NHS e-Referral Service | Comments:	USS 12.03.2024 LRI
+
+--- 2024-04-02  7f917e84-2aa2-4f97-b444-e068a6825353 ---
+TEXT: 09:54 - Surgery: BAKER, Dawn (Mrs) (Medical Secretary Access Role)  |  2WW |    Date of First outpatient appointment: 03 Apr 2024 ent appt on ice 3.4.24
+
+--- 2024-04-02  ddc01e16-1831-40bc-9d9a-c6d7bd14166f ---
+TEXT: 08:07 - Surgery: Auto-filed   | Nucleated red blood cell count (4266.) < 0.2 10^9/L [0 - 0.2] | For further investigation of abnormal Full Blood Count | please see Haematology Referral Guidelines: | https://www.leicestershospitals.nhs.uk/aboutus/ | (click Departments & Services > Haematology > | Haematology Referral | Guidelines). | If clinically urgent contact the Haematologist On Call. | Total white blood count (
+
+--- 2024-04-02  f1d72c54-911e-4de2-9e50-7b01ef840ed3 ---
+TEXT: 08:07 - Surgery: Auto-filed   | Thyroid peroxidase antibody level (XaDvU) 176 iu/mL [< 25] | Outside reference range; For positive thyroid peroxidase antibodies: | If thyroid function abnormal - consistent with | autoimmune thyroid disease. | If thyroid function normal - future risk of autoimmune | thyroid disease. Suggest monitor the TFTs annually | or if symptomatic. | Note monitoring TPO is not clinically usef
+
+--- 2024-04-29  2e66024b-a772-450a-9cc5-3c77f90dfb17 ---
+TEXT: Surgery: REJAIE, Layla (Admin/Clinical Support Access Role)  | Diagnostic nasendoscopy (X00pE) (New Episode)
+
+--- 2024-05-08  5de15ac1-8d3c-420a-96a6-d1e6cb163344 ---
+TEXT: 15:13 - Surgery: JONES, Emma (Medical Secretary Access Role)  | Name: Ershadi, Farshid | DOB: 19-09-1989 | Postcode: LE11 3US | Phone number: 07377267752 | Briefly describe your admin query: The specialist visited me today, and he suggested that I have thyroid surgery. I was wondering if I could have my blood test results, sample results, and Ultrasound results sent to me so that I could ask for other speci
+
+--- 2024-05-08  f8f2f24a-c4c9-49f3-94ea-5ec1ef55f3c5 ---
+TEXT: 15:29 - Surgery: JONES, Emma (Medical Secretary Access Role)  | NHS number: 7306752529 | Name: Ershadi, Farshid | DOB: 19-09-1989 | Gender: Male | Postcode: LE11 3US | Phone number: 07377267752 | Registered at: WOODBROOK MEDICAL CENTRE (C82070) | Select test type: Other | Why was this test done?: My bloated Thyroid | When was this test done?: 2nd of April | Where test was done: Leicester Royal Infantry Hospital and Woo
+
+--- 2024-05-23  0cd8f4f6-9e06-453c-a98d-415ae669eb9f ---
+TEXT: 08:24 - Surgery: PATEL, Krishan (Dr) (Clinical Practitioner Access Role)  | Problem: Partial thyroidectomy (Xa8OS) | History: f2f rv.  | post op partial thyroidectomy at UHL. | came home on tuesday.  | finished co-amox today, the skin area is still red and having night sweats.  | the surgical site not particularly tender. | the pain bulk of the pain is in the neck, day by day the stiffness in the back of the ne
+
+--- 2024-05-23  db1d8ee7-aecc-468c-bd7e-c01ff45c8beb ---
+TEXT: 09:57 - Surgery: DAWSON, Claire (Nurse) (Nurse Access Role)  | Problem: Partial thyroidectomy (Xa8OS) | History: See notes above - seen by GP today.  | Attended for wound check and dressing change.  | Referred by secondary care (XaJOT) |  LLR Wound Care V2 |    Wound Care |       Wound site:  Partial Thyroidectomy - neck |       Wound type: Surgical wound (Xac50) |       Wound odour:  No wound odour |       Wound hea
+
+--- 2024-06-12  6b45513b-1b92-4cee-9668-beb64cd15cd1 ---
+TEXT: Surgery: MCLEAN, Aimee (Admin/Clinical Support Access Role) , Entered By: JOHAL, Jaspreet (Dr) | Major: Malignant tumour of thyroid gland (B53..) - Encapsulated poorly differentiated thyroid carcinoma (New Episode) | Diagnostic nasendoscopy (X00pE) (New Episode) | Computed tomography of head, neck, thorax, abdomen and pelvis with contrast (Y38d3) (New Episode) | Malignant tumour of thyroid gland (B53..) -
+
+--- 2024-07-03  df4b00f9-a09a-4154-9549-c2499f65e0f4 ---
+TEXT: 14:18 - Surgery: O'CONNELL, Charlotte (Ms) (Receptionist Access Role)  | Name: Ershadi, Farshid | DOB: 19-09-1989 | Postcode: LE11 3US | Phone number: 07377267752 | Have you previously had a note about this?: No | Briefly describe your illness or medical problem: I have been diagnosed with Thyroid Cancer, and I am to have a surgery on the 4th of July, most likely followed by Radiotherapy | When should the sick 
+
+--- 2024-07-07  365fd3cd-562f-4c01-aae6-37da2c488eb0 ---
+TEXT: Surgery: MCLEAN, Aimee (Admin/Clinical Support Access Role) , Entered By: SUTHAR, Jaiman (Mr) | Major: Hemithyroidectomy (71102) (New Episode) | Hemithyroidectomy (71102)
+
+--- 2024-07-16  dab92187-3916-4b18-9ee3-4daf61cc84d3 ---
+TEXT: 12:44 - Surgery: WRIGHT, Tracey (Mrs) (Receptionist Access Role)  | Name: Ershadi, Farshid | DOB: 19-09-1989 | Postcode: LE11 3US | Phone number: 07377267752 | What referral was for: Thyroidectomy | When was the referral made?: 07/07/2024 | What do you need help with?: I have had a full Thyroidectomy over two operations, which puts me on Thyroxine. Initially, I was given 150mg, yet the consultant suggested the 
+
+--- 2024-07-18  658a3dc1-8dc0-4bb6-a707-b0ae7bd13dc7 ---
+TEXT: 08:41 - Surgery: WRIGHT, Tracey (Mrs) (Receptionist Access Role)  | Name: Ershadi, Farshid | DOB: 19-09-1989 | Postcode: LE11 3US | Phone number: 07377267752 | What referral was for: Thyroidectomy | When was the referral made?: 07/07/2024 | What do you need help with?: I have contacted you before regarding the Thyroidectomy I had and adjusting Thyroxine dosage.  |  | I received the message and the link for booking 
+
+--- 2024-07-29  462d97fd-37dd-486a-848e-7fc308103bd3 ---
+TEXT: 14:39 - Surgery: SUTHAR, Jaiman (Mr) (Pharmacist)  | (R) Levothyroxine sodium 100microgram tablets - 28 tablet - take one daily | (R) Levothyroxine sodium 50microgram tablets - 28 tablet - take one daily |  Drug Review |    Entries from previous template version |       Medication reconciliation (XaXfG) |       Medication reconciliation (XaXfG) - Hospital discharge letter 07/07/24 |       Comment note (XaIg6) -
+
+--- 2024-07-30  11151fd4-c588-4df9-ae5b-2a0ffd8d700a ---
+TEXT: 10:02 - Surgery: DODDS, Portia (Admin/Clinical Support Access Role)  |  Cancer v49 2024/2025 |    Cancer codes |       Codes for provision of information about cancer support services available in primary care: Provision of information about cancer support services available in primary care (Y2c7e) | Letter to Patients to Mr Farshid Ershadi  | Summary Care Record Update - This patient's preference is for on
+
+--- 2024-07-31  01b72737-ff89-4b47-8083-1d50426dbc3d ---
+TEXT: Surgery: REJAIE, Layla (Admin/Clinical Support Access Role)  | Diagnostic nasendoscopy (X00pE) (New Episode)
+
+--- 2024-08-02  eb189eb7-86b8-46f7-ae73-bc07b328005c ---
+TEXT: 11:43 - Surgery: KETHEESWARAN, Arthika (Dr) (Clinical Practitioner Access Role)  | Problem - whole event: Malignant tumour of thyroid gland (B53..) - Encapsulated poorly differentiated thyroid carcinoma | Medical Prescription Charge Exemption Application signed,  | diagnosed with Thyroid ca - had surgery and awaiting Adjuvant therapy,  | had left hemi-thyroidectomy and now on thyroid replacement.
+
+--- 2024-08-19  f5fefdd8-68a6-499e-8e2b-f47a48ab2932 ---
+TEXT: Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role)  | Oncology to Dr Medical Woodbrook
+
+--- 2024-08-23  8b8d298b-a0e4-40cc-9267-4cd41c2cf358 ---
+TEXT: Surgery: BAILEY, Christopher (Receptionist Access Role)  | Diabetes & Endocrine to Woodbrook Medical Centre
+
+--- 2024-08-27  a832713c-796c-4581-819e-c7b4ced421e1 ---
+TEXT: 11:38 - Surgery: Auto-filed   | Thyroid function test (X77Wg) | Serum free T4 level (XaERr) 15 pmol/L [11.5 - 22.7] | Please note change to method-specific reference range | from 10th April 2024 | Serum TSH level (XaELV) 65 miu/L [0.55 - 4.78] | Outside reference range; Please note change to method-specific reference range | from 10th April 2024 | Clinical Information: Clinical Details:     On thyroxine. Reasons 
+
+--- 2024-08-27  cfa152b2-a3f0-4336-b4ce-0c2c5a4eddf8 ---
+TEXT: 10:11 - Surgery: RUMMING, Anita (Health Professional Access Role)  | Pathology Request (Complete): | Thyroid Stimulating Hormone (Requested) | Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+
+--- 2024-08-28  85bd9637-a446-4601-9dd2-ce5f1914605d ---
+TEXT: 10:54 - Surgery: PATEL, Krishan (Dr) (Clinical Practitioner Access Role)  | Problem - whole event: Hemithyroidectomy (71102) | Medication review done (XaF8d) | (R) Levothyroxine sodium 100microgram tablets - 56 tablet - take TWO daily |  Consultation |    General |       Encounter: Telephone consultation (XaIge) |       H:  duty list. | results called in by lab. | tsh high. t4 okay. | feeling fatigued and sleeping. | r
+
+--- 2024-09-05  1b378864-9695-40e8-b131-40daff98cc55 ---
+TEXT: 08:57 - Surgery: Auto-filed   | XR Knee Lt:  Report Summary  | . | Clinical History : | know thyroid malignancy, ongoing pain in left knee and | shoulder. request to r/o any sisniter pathology | CDS Indication: Shoulder Pain (UHL), CDS Clarifications: Red | Flags=Red Flags Present(Known Malignancy) | CDS Score: Indicated Only in Specific Circumstances | . | Cross Infection status? : No Known Risk | . | know thyroid malig
+CODED SIGNALS:
+  [HIST] History of malignant neoplasm (situation) [Situation] cid=266987004
+
+--- 2024-09-05  4bb48f20-9ba2-48e1-a461-65b04d1adff3 ---
+TEXT: 08:57 - Surgery: Auto-filed   | XR Shoulder Lt:  Report Summary  | . | Clinical History : | know thyroid malignancy, ongoing pain in left knee and | shoulder. request to r/o any sisniter pathology | CDS Indication: Shoulder Pain (UHL), CDS Clarifications: Red | Flags=Red Flags Present(Known Malignancy) | CDS Score: Indicated Only in Specific Circumstances | . | Cross Infection status? : No Known Risk | . | know thyroid m
+CODED SIGNALS:
+  [HIST] History of malignant neoplasm (situation) [Situation] cid=266987004
+
+--- 2024-09-05  ae383480-2dce-47b9-a26e-4e794757f1af ---
+TEXT: Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role)  | Radiology to Woodbrook Medical Centre
+CODED SIGNALS:
+  [HIST] History of malignant neoplasm (situation) [Situation] cid=266987004
+
+--- 2024-09-11  de347070-77df-4374-b9e6-c3328d0971ff ---
+TEXT: 11:28 - Surgery: PATEL, Krishan (Dr) (Clinical Practitioner Access Role)  | Problem - whole event: Acquired hypothyroidism (XE108) | Problem - whole event: Hemithyroidectomy (71102) |  Consultation |    General |       Encounter: Telephone consultation (XaIge) |       H:  levo dosing.  since increasing to 200mcg daily, has felt more tired. | has had some weight gain over recent weeks to months as well. | explaine
+ALL CODES (no direct signal):
+  - Fatigue - symptom (finding) [Clinical_finding]
+  - Telephone consultation (procedure) [Procedure]
+
+--- 2024-09-18  93245441-3522-4323-bef0-1482712799ad ---
+TEXT: 10:15 - Surgery: DODDS, Portia (Admin/Clinical Support Access Role)  |  Cancer v49 2024/2025 |    Cancer codes |       Invite for cancer care review codes: Cancer monitoring first letter (XaJuQ) | Cancer monitoring first letter (XaJuQ)
+CODED SIGNALS:
+  [HIST] History of malignant neoplasm (situation) [Situation] cid=266987004
+
+--- 2024-09-18  cb0a8b4a-f6d9-42a6-9aee-aaa99ec501a2 ---
+TEXT: 00:59 - Sent online by Mr Farshid Ershadi   | Request for 'Levothyroxine sodium 100microgram tablets' by patient
+CODED SIGNALS:
+  [HIST] History of malignant neoplasm (situation) [Situation] cid=266987004
+
+--- 2024-10-10  5be8ab97-be5d-4e29-a7c5-592f5b0d3bcf ---
+TEXT: 09:33 - Surgery: Auto-filed   | Thyroid function test (X77Wg) | Serum free T4 level (XaERr) 18 pmol/L [11.5 - 22.7] | Serum TSH level (XaELV) 14 miu/L [0.55 - 4.78] | Outside reference range; If on Thyroxine for more than 3 months | Results suggest inadequate Thyroxine replacement Rx | Clinical Information: Clinical Details:     On thyroxine. Reasons for Request:      levo dose adjustment. | Thyroid function te
+ALL CODES (no direct signal):
+  - Serum thyroid stimulating hormone level (observable entity) [Observable_entity]
+  - Serum free T4 level (observable entity) [Observable_entity]
+
+--- 2024-11-21  c3fac345-0df0-4ecf-8627-a6eb0d20be36 ---
+TEXT: Surgery: WILLIAMS, Joanne (Admin/Clinical Support Access Role)  | Radionuclide therapy (Ub0wo) - NM Thyroid I131 - 3580MBq of I-131 (New Episode)
+
+--- 2024-12-31  052a7a8e-9d1f-47d4-b937-ad5f3043ab1a ---
+TEXT: 11:42 - Surgery: DINSMORE, Emma (Mrs) (Health Professional Access Role)  |  Phlebotomy Service |    0214 006 Phlebotomy Service |       Informed consent given for treatment   (XaXHK): Yes |       Blood test type: Routine (X78uI) |       ^Referral source (CBS claim): Referral by GP (XaAZQ) |       ^Blood sample taken (CBS claim): Yes |       ^Seen by practice phlebotomist: Yes | Pathology Request (Request Sent): | T
+ALL CODES (no direct signal):
+  - Serum thyroid stimulating hormone level (observable entity) [Observable_entity]
+  - Serum free T4 level (observable entity) [Observable_entity]
+
+--- 2024-12-31  646c1da7-e98f-4d33-ad37-22f52c6766d4 ---
+TEXT: 11:43 - Surgery: Auto-filed   | Serum free T4 level (XaERr) 18.1 pmol/L [9.7 - 24.7] | 99% reference range was  applied for adults after | review with Endocrinology. | .. | Please note change to method-specific reference range | from 18th Novemeber 2024 | Serum TSH level (XaELV) 13 miu/L [0.55 - 4.78] | Outside reference range; Please note that the patient was previously under oncology care; | interpret in accordan
+CODED SIGNALS:
+  [HIST] History of malignant neoplasm (situation) [Situation] cid=266987004
+
+--- 2024-12-31  a2a43297-0d69-48c9-b972-696926aad2ee ---
+TEXT: 12:04 - EDWARDES, Paula (Ms)   |  N+S Encounter type |    *Reason for contact / Entering record: Administrative procedures (Xa22i) |    Type of encounter: Contact trigger: Patient request via walk in / front desk (Y3e8f) | Reminder/Alert: ****  PLEASE OFFER TO SANITZE  PATIENTS ARM BEFORE TAKING BLOODS  *** - Priority: High | Administrative procedures (Xa22i) | Contact trigger: Patient request via walk in / f
+CODED SIGNALS:
+  [HIST] History of malignant neoplasm (situation) [Situation] cid=266987004
+
+--- 2025-01-06  1c1836f5-7ff4-40e7-adb6-262d95d9f51e ---
+TEXT: Surgery: BEGUM, Senuara (Medical Secretary Access Role)  | Oncology to Woodbrook Medical Centre
+
+--- 2025-01-08  0360b0a8-42d8-48d6-b08d-f235e9f9b63e ---
+TEXT: 09:28 - Surgery: WRIGHT, Tracey (Mrs) (Receptionist Access Role)  | Name: Ershadi, Farshid | DOB: 19-09-1989 | Postcode: LE11 1GJ | Phone number: 07377267752 | Briefly describe your admin query: Hello, |  | Happy New Year. |  | I had an appointment with my oncologist on the 6th, and she wrote me a blood test to include thyroglobulin.  |  | By the time I got out of her office, the relevance section was already closed. I
+
+--- 2025-01-14  43a7ee3a-e3ff-4132-ad80-a769a8428709 ---
+TEXT: 16:02 - Surgery: WRIGHT, Tracey (Mrs) (Receptionist Access Role)  | Name: Ershadi, Farshid | DOB: 19-09-1989 | Postcode: LE11 1GJ | Phone number: 07377267752 | Briefly describe your admin query: Hello, |  | Today, I received the Oncology appointment for the 25th of February. |  | As my oncologist, Dr. Speed, told me, I need to take another blood test closer to our appointment: a Bone profile, Thyroid Function Test,
+
+--- 2025-02-13  1f0c4e16-3415-405c-b2b3-0738881e77ee ---
+TEXT: 10:44 - Surgery: MCDOWELL, Giselle (Receptionist Access Role)  | Name: Ershadi, Farshid | DOB: 19-09-1989 | Postcode: Le11 1gj | Phone number: 07377267752 | Briefly describe your admin query: Hello, |  | So my oncologist, Dr Speed, prescribed Levothyroxine 25 mg to take 225 mg a day. I collected my prescription a few days ago and there was only 100 mg tablets. |  | I would appreciate it if you can approve some 25 m
+
+--- 2025-02-14  2f530a70-8f6b-4eda-a627-2c48d09e9015 ---
+TEXT: 15:30 - Surgery: KHATRI, Anjli (Pharmacist)  |  Clinical Pharmacist |    Clinical Pharmacist |       Seen: Seen by clinical pharmacist (Y20a6) |       Reason 1: Medication requested (8B3H.) |       Plan:  Saw Oncologist in Jan 25, levothyroxine dose increased to 225mcg, requesting 25mcg tablets to make up dose (see pt accurx request above) | No comms yet received from oncology |    Entries from previous templat
+ALL CODES (no direct signal):
+  - Telephone consultation (procedure) [Procedure]
+
+--- 2025-02-18  3b7755aa-5de4-4440-8d4a-2ced150efb12 ---
+TEXT: 09:12 - Surgery: Auto-filed   | Thyroid function test (X77Wg) | Serum free T4 level (XaERr) 21 pmol/L [9.7 - 24.7] | 99% reference range was  applied for adults after | review with Endocrinology. | .. | Please note change to method-specific reference range | from 18th Novemeber 2024 | Serum TSH level (XaELV) 17 miu/L [0.55 - 4.78] - Outside reference range | Clinical Information: Clinical Details:     Not on Thyroi
+ALL CODES (no direct signal):
+  - Serum thyroid stimulating hormone level (observable entity) [Observable_entity]
+  - Serum free T4 level (observable entity) [Observable_entity]
+
+--- 2025-02-18  7dcf82ab-d6ac-405a-bf3d-cad09e66ddad ---
+TEXT: 09:12 - Surgery: DINSMORE, Emma (Mrs) (Health Professional Access Role)  |  Phlebotomy Service |    0214 006 Phlebotomy Service |       Informed consent given for treatment   (XaXHK): Yes |       Blood test type: Routine (X78uI) |       ^Referral source (CBS claim): Referral by GP (XaAZQ) |       ^Blood sample taken (CBS claim): Yes |       ^Seen by practice phlebotomist: Yes | Pathology Request (Complete): | Thyro
+ALL CODES (no direct signal):
+  - Serum thyroid stimulating hormone level (observable entity) [Observable_entity]
+  - Serum free T4 level (observable entity) [Observable_entity]
+
+--- 2025-02-24  91af1e9a-9201-404b-a11b-fd87f462c90b ---
+TEXT: Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role)  | Problem - whole event: Hemithyroidectomy (71102) | Oncology to Dr Medical Woodbrook
+
+--- 2025-02-25  1e1dd0b0-9469-4828-a340-0cb5cb93d4b8 ---
+TEXT: 08:44 - Surgery: KHATRI, Anjli (Pharmacist)  |  Clinical Pharmacist |    Clinical Pharmacist |       Seen: Seen by clinical pharmacist (Y20a6) |       Reason 1: Follow up (XaIjm) |       Plan:  Oncology confirmed levothyroxine dose should be 200mcg (not 225mcg as requested by pt 14/02/25) - text sent to pt |    Entries from previous template version |       Short message service text message sent to patient (Xa
+
+--- 2025-02-25  464e2973-0f78-41ef-ba91-32650e2b76cb ---
+TEXT: 08:48 - Surgery: KHATRI, Anjli (Pharmacist)  | Patient telephone number (9159.) - 07377 267752 | Short message service text message sent to patient (XaMiI) |  | Dear Mr Ershadi, | Following our telephone conversation on 14/02/25, we have since had communication from Dr Speed from the oncology team confirming that your dose of levothyroxine should be 200mcg daily. Therefore, we have not changed your repeat p
+
+--- 2025-02-25  5f79d405-256a-41d1-a49b-3967b7623575 ---
+TEXT: 08:26 - Surgery: WRIGHT, Tracey (Mrs) (Receptionist Access Role)  | Name: Ershadi, Farshid | DOB: 19-09-1989 | Postcode: Le111gj | Phone number: 07377267752 | Briefly describe your admin query: Hello, |  | I had an appointment with my Oncologist earlier today, the 24th of February, and she asked me to do a blood test. |  | Would you please send out a link through which I can book a blood test. |  | Best, | Farshid | Contac
+
+--- 2025-03-07  35177cb7-a137-4393-bd6f-5f59dd014fca ---
+TEXT: 10:36 - Surgery: INGLE, Kirsty (Receptionist Access Role)  | Name: Ershadi, Farshid | DOB: 19-09-1989 | Postcode: LE11 1GJ | Phone number: 07377267752 | Briefly describe your admin query: To whom it may concern, |  | I am writing this message to inquire about a Levothyroxine 25mg prescription. |  | I know I asked for it previously as well. But at my appointment with my oncologist on February 24th, we decided to hav
+
+--- 2025-03-11  7999e132-79c2-41a7-adfa-39dd094c559e ---
+TEXT: 10:50 - Surgery: VADHER, Kishan (Dr) (Clinical Practitioner Access Role)  | Problem - whole event: Acquired hypothyroidism (XE108) | Problem - whole event: Hemithyroidectomy (71102) | History: Duty list  GPST1 |  | Request for levothyroxine 25 mcg tablets  |  | Known thyroid carcinoma  | Currently under oncology team  | Letter dated 04/03/2025 states pt should be on levothyroxine 225 mcg daily | Currently only has 2
+CODED SIGNALS:
+  [HIST] History of malignant neoplasm (situation) [Situation] cid=266987004
+  [DIAG] Malignant neoplasm of endocrine gland (disorder) [Disease] cid=371982006
+
+--- 2025-03-14  35730d2a-d4df-4794-b806-8d92d0d6eada ---
+TEXT: 12:14 - Surgery: JONES, Emma (Medical Secretary Access Role)  | Email sent to Oncology to inform them of conflicting advise in email and letter. As per Dr Ketheeswaran.
+
+--- 2025-04-02  2e50970e-56a0-4583-a957-c8d9552fda33 ---
+TEXT: 08:42 - Surgery: WILCOCK, Kathryn (Mrs) (Nurse Access Role)  |  Consultation |    General |       Encounter: Consultation (Xa1qL) |       H:  Subjective: | - Skin problem: rashes on lower back | - Duration: has had for years, previously had a couple of rashes, now returning | - Symptoms: itchy at times, sometimes filled with pus/blood, sometimes hard painful lumps | - Previous episodes: had similar rashes before,
+CODED SIGNALS:
+  [HIST] History of malignant neoplasm (situation) [Situation] cid=266987004
+  [DIAG] Malignant neoplasm of endocrine gland (disorder) [Disease] cid=371982006
+
+--- 2025-04-02  979e2ce7-cda9-4499-9724-24ca81c4d8eb ---
+TEXT: 12:19 - Surgery: WILCOCK, Kathryn (Mrs) (Nurse Access Role)  | Pathology Request (Complete): | Bone Profile (Requested), Liver Function Test (Requested)
+CODED SIGNALS:
+  [HIST] History of malignant neoplasm (situation) [Situation] cid=266987004
+  [DIAG] Malignant neoplasm of endocrine gland (disorder) [Disease] cid=371982006
+
+--- 2025-04-28  1dc56ce6-1381-41b8-bda5-2b8e774c8f86 ---
+TEXT: Surgery: BEGUM, Senuara (Medical Secretary Access Role)  | Oncology to Woodbrook Medical Centre
+
+--- 2025-05-06  6c88971c-faff-4d9d-b09b-dfcb62cf6fcf ---
+TEXT: 08:29 - Surgery: WRIGHT, Tracey (Mrs) (Receptionist Access Role)  | Postcode: Le11 1gj | ----------- | Phone number: 07377267752 | ----------- | Briefly describe your admin query: Hello, |  | I've had an appointment with my Dr Speed, my oncologist, and she set me up for a blood test before we meet again, which is in 7th of July.  |  | Would you please send me a link to book a blood test. | ----------- | Name: Ershadi, 
+
+--- 2025-05-06  d0f9c518-a6f1-49be-8966-0153ab7623c6 ---
+TEXT: Repeat stopped - see entry on 11 Mar 2025 10:50 | Levothyroxine sodium 25microgram tablets - 28 tablet - Take ONE daily (total daily dose 225 mcg) |  Ended 06 May 2025 Change to medication treatment regime by AKHTAR, Mohammed (Mr)
+CODED SIGNALS:
+  [HIST] History of malignant neoplasm (situation) [Situation] cid=266987004
+
+--- 2025-07-07  34a655a2-397e-4b29-b596-c096bc6f1216 ---
+TEXT: Surgery: BEGUM, Senuara (Medical Secretary Access Role)  | Oncology to Woodbrook Medical Centre
+
+--- 2025-07-18  5f6e1f57-1951-4680-8a50-f90d76aa2572 ---
+TEXT: 15:32 - Surgery: INGLE, Kirsty (Receptionist Access Role)  | Name: Ershadi, Farshid | DOB: 19-09-1989 | Postcode: LE11 1GJ | Phone number: 07377267752 | Briefly describe your admin query: Hi, |  | I have been asked for another blood test before my appointment with the oncologist, which is around December time.  |  | I would appreciate it if you would send me a link to book a blood test around that time. |  | Regards, | F
+
+--- 2025-09-05  878df677-247b-422e-9406-9055ec61b95f ---
+TEXT: 10:52 - Surgery: AKHTAR, Mohammed (Mr) (Pharmacist)  | History: Indication for each drug checked (XaJJx) | Questionnaire reviewed | Feels the medication is working well and would like to continue on current dose | Under the Oncology Team for poorly differentiated Thyroid Carcinoma | Monitoring of all medication checked (XaJKU) - available on ICE - pathology completed in secondary care | TFTs are better with T
+CODED SIGNALS:
+  [DIAG] Malignant neoplasm of endocrine gland (disorder) [Disease] cid=371982006
+
+--- 2025-10-01  25b2b42d-c58b-49c5-9eba-30a41f9e1b26 ---
+TEXT: 17:37 - Surgery: BAILEY, Cleopatra (Receptionist Access Role)  | Name: Ershadi, Farshid | DOB: 19-09-1989 | Postcode: LE11 1GJ | Phone number: 07377267752 | Briefly describe your admin query: Hi there, |  | I wanted to book two blood tests, one regarding Thyrogen injection and the other for Thyroxine level before my appointment with oncologist. |  | I asked before to book these tests, but that was too early to book
+
+--- 2025-11-18  24775292-aab8-4ee0-b106-e7d5c7b8dda2 ---
+TEXT: 14:37 - Surgery: OKOYE, Clifford (Dr) (Clinical Practitioner Access Role)  | Patient telephone number (9159.) - +447377267752 | Short message service text message sent to patient (XaMiI) |  | Dear Mr Ershadi, |  | This is the self referral counselling link: | https://www.vitahealthgroup.co.uk/make-a-referral/self-referral/nhs-mental-health-self-referral/leicester-leicestershire-rutland-nhs-mental-health-self-re
+CODED SIGNALS:
+  [HIST] History of malignant neoplasm (situation) [Situation] cid=266987004
+
+--- 2025-11-18  48042390-5e0a-40e8-add8-51c61d60398b ---
+TEXT: 14:33 - GP Surgery: OKOYE, Clifford (Dr) (Clinical Practitioner Access Role)  | History: Long term issues with claustrophobia for may years   | seems to have worsened in the last few months   | struggled during scans in the hospital and also while flying   | not suicidal   | happy to try counselling however not keen on medications  | significant drugs and alcohol intake in the past and wants to stay off meds 
+CODED SIGNALS:
+  [DIAG] Malignant neoplasm of endocrine gland (disorder) [Disease] cid=371982006
+
+--- 2025-11-18  a1665c70-bab6-47db-9842-90215f73d6b7 ---
+TEXT: 17:37 - Surgery: OKOYE, Clifford (Dr) (Clinical Practitioner Access Role)
+CODED SIGNALS:
+  [HIST] History of malignant neoplasm (situation) [Situation] cid=266987004
+
+--- 2025-11-18  f7bbf693-9b33-4c41-8289-aa1c650d87ee ---
+TEXT: 17:27 - Surgery: JONES, Emma (Medical Secretary Access Role)  | Name: Ershadi, Farshid | DOB: 19-09-1989 | Postcode: LE11 1GJ | Phone number: 07377267752 | Briefly describe your admin query: Hi there, |  | Yesterday (the 23rd of October) I had an ultrasound scan, and there was a 1x3 cm lump in my neck, following Thyrogen injection. |  | As my appointment with my Oncologist is in 8th of Decemeber, would there be an 
+ALL CODES (no direct signal):
+  - Ultrasonography (procedure) [Procedure]
+  - Mental disorder (disorder) [Clinical_finding]
+
+--- 2025-12-16  3e0f15ca-a6a8-4c6e-8c75-1b643f9a68b3 ---
+TEXT: 11:19 - Surgery: HORNE, Jonathan (Dr) (Clinical Practitioner Access Role)  | Problem: Malignant tumour of thyroid gland (B53..) - Encapsulated poorly differentiated thyroid carcinoma | Problem: Hemithyroidectomy (71102) | History: Duty admin. | Codeine 30mg requested. | See DC letter 7/12/25. Admitted for neck dissection and discharged with codeine. | Codeine 30mg tablets - 56 tablet - take one or two tablets
+CODED SIGNALS:
+  [DIAG] Malignant neoplasm of endocrine gland (disorder) [Disease] cid=371982006
+
+--- 2025-12-16  3ed624b5-f935-40d7-b2fc-69c44ccbf30d ---
+TEXT: 18:11 - Surgery: MCDOWELL, Giselle (Receptionist Access Role)  | Name: Ershadi, Farshid | DOB: 19-09-1989 | Postcode: Le11 1GJ | Phone number: 07377267752 | Briefly describe your admin query: Hi, |  | May I please ask for some more painkillers, such as codeine. I had a surgery on the 4th, neck dissection, and it is still painful where my prescribed painkillers has run out. | Contact method preference: Text messag
+CODED SIGNALS:
+  [HIST] History of malignant neoplasm (situation) [Situation] cid=266987004
+
+--- 2025-12-16  5366c018-e239-4928-a7ce-78663d58e900 ---
+TEXT: 18:17 - Surgery: HORNE, Jonathan (Dr) (Clinical Practitioner Access Role)  | Codeine 30mg tablets - 56 tablet - take one or two tablets up to four times daily as required | ETP Medication Cancellation Sent | ETP2 FP10: Not Yet Printed - Signed | Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additi
+CODED SIGNALS:
+  [HIST] History of malignant neoplasm (situation) [Situation] cid=266987004
+
+Signal encounters shown: 96 / 442 total
+========================================================================

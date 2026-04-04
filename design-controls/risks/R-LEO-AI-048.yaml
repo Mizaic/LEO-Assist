@@ -1,0 +1,94 @@
+# -- R-LEO-AI-048 -- Alert Fatigue Causes Genuine Regression to be Ignored
+# ISO 14971 Risk
+
+- id: "R-LEO-AI-048"
+  title: "Repeated false-positive quality alerts cause the operations team to stop responding, allowing a genuine regression to be ignored indefinitely."
+
+  hazard:
+    description: >
+      If the auditor generates frequent false-positive alerts -- for example,
+      because the statistical threshold is too sensitive or because normal
+      week-to-week variation exceeds the trigger -- operations staff learn
+      to dismiss alerts without investigation. When a genuine coding regression
+      occurs, the alert is acknowledged without action or left unacknowledged
+      until the auto-escalation fires at 14 days.
+    category: "use_error"
+
+  hazardous_situation: >
+    Auditor generates repeated false-positive SafetyNetAlerts. Operations
+    staff develop alert fatigue and acknowledge alerts without reading them.
+    A genuine coding regression (e.g. cancer codes being missed) generates
+    an alert that is acknowledged reflexively within minutes with no
+    investigation. The regression persists for up to 14 days until the
+    auto-pause fires, or longer if the auto-pause is manually overridden.
+
+  harm:
+    description: >
+      Safety-critical coding gaps (cancer, safeguarding, mental health) persist
+      undetected for weeks. Patients whose encounters are affected do not
+      receive timely clinical follow-up triggered by the correct code.
+    severity: "serious"
+
+  initial_risk_estimate:
+    severity: 3
+    probability: 2
+    detectability: 2
+    rpn: 12
+    risk_level: "medium"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        Alert deduplication: SafetyNetAlert only created when encounter_count
+        >= 100 (statistical guard) AND the critical terms are new (not in
+        previous week's top_missing_terms) OR pct_clean drops more than 3
+        percentage points. Prevents alerts on small samples and repeated alerts
+        for the same known gap.
+      implemented_by: ["DI-LEO-AI-073"]
+      verified_by: ["VT-LEO-AI-073"]
+    - control_type: "design_feature"
+      description: >
+        Time-based escalation: unacknowledged alerts escalate at 48h
+        (escalation_level=1), 7d (email to clinical safety lead), and 14d
+        (LoopConfig.enabled=false, new escalation_auto_pause alert). This
+        prevents indefinite suppression even when the operations team is
+        not actively reviewing the UI.
+      implemented_by: ["DI-LEO-AI-073"]
+      verified_by: ["VT-LEO-AI-073"]
+    - control_type: "procedural_control"
+      description: >
+        Auditor validated against golden test set with precision >= 0.80
+        before deployment. Low precision auditor is not deployed, reducing
+        false-positive alert rate at source.
+      implemented_by: ["DI-LEO-AI-072"]
+      verified_by: ["VT-LEO-AI-072"]
+
+  residual_risk_estimate:
+    severity: 3
+    probability: 1
+    detectability: 1
+    rpn: 3
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      Statistical deduplication guard significantly reduces false-positive
+      alert volume. Auto-escalation at 14 days ensures Loop 1 is paused
+      automatically even if alerts are routinely dismissed, forcing investigation.
+      Auditor precision threshold at deployment reduces alert fatigue at source.
+
+  monitoring:
+    monitoring_plan: >
+      Track SafetyNetAlert acknowledgement time distribution. Review
+      alert_fatigue_indicator (alerts acknowledged within 5 minutes without
+      subsequent investigation) quarterly. Review escalation_auto_pause events.
+    metrics:
+      - "mean_alert_acknowledgement_time: target > 5 minutes (rapid dismissal = concern)"
+      - "escalation_auto_pause_count: should be zero in steady state"
+      - "auditor_precision: target >= 0.80 overall"
+    review_frequency: "Quarterly"
+
+  metadata:
+    identified_by: "Three Learning Loops Production Plan v3.0 (CSO-003)"
+    identified_date: "2026-04-03"
+    status: "analyzed"
+    tags: ["loop1", "alert-fatigue", "escalation", "use-error", "post-market-surveillance"]

@@ -58,6 +58,17 @@ is not a result)
 - Administrative and workflow entries: "appointment booked", "SMS sent", \
 "prescription issued"
 - Orders or requests not yet performed: "blood test requested", "referral made"
+- **"NAD"** — always omit. Ambiguous between "No abnormality detected" and "No apparent \
+distress". Cannot be auto-coded; leave for manual review.
+- **"CA" alone without an organ or body site** — the abbreviation "CA" (carcinoma/cancer) \
+MUST NOT be extracted unless the primary site is explicitly stated in the same sentence \
+(e.g. "prostate CA", "CA breast", "CA colon"). If only "CA" appears with no site, do \
+NOT extract it; leave the encounter uncoded so a reviewer can assess context.
+- **"MSK" alone as a specialty tag** — "MSK" indicates the musculoskeletal body system \
+or specialty (e.g. "MSK clinic", "referred to MSK"). Do NOT extract MSK itself as a \
+clinical entity. Extract the specific symptom or diagnosis instead: \
+"MSK back pain" → extract "back pain"; "attending MSK clinic" → extract nothing from \
+that phrase; "MSK pain in knee" → extract "knee pain".
 
 ## Semantic Tags
 
@@ -89,6 +100,35 @@ observation — extract as "observable entity" only.
 disease" from an eGFR of 69. Do NOT infer "diabetes mellitus" from HbA1c 48.
 - If the text explicitly states a diagnosis alongside the lab value (e.g. "eGFR 43 — \
 CKD stage 3b"), extract BOTH the observable entity AND the disorder.
+
+## Structured Lab Result Interpretation (Option B patterns)
+
+GP systems write structured results as short phrases. Extract these as findings:
+
+**Dipstick urinalysis** — phrases like "glucose +", "protein +", "blood +" in a \
+urinalysis context:
+- "glucose +" / "urine glucose positive" → lookup_term "glycosuria", tag "finding"
+- "protein +" / "urine protein positive" → lookup_term "proteinuria", tag "finding"
+- "blood +" / "urine blood positive" → lookup_term "blood in urine", tag "finding"
+- "leucocytes +" / "WBC +" in urine context → lookup_term "leukocytes in urine", tag "finding"
+- "nitrites +" / "nitrites positive" → lookup_term "nitrites in urine", tag "finding" \
+(no SNOMED code -- flag for review; do not omit)
+
+**Lab result summary phrases** — free-text lines summarising an abnormal result:
+- "CRP elevated" / "raised CRP" / "CRP raised" → lookup_term "C-reactive protein above reference range", tag "finding"
+- "CRP normal" / "CRP NAD" → lookup_term "C-reactive protein within reference range", tag "finding"
+- "PSA elevated" / "raised PSA" / "PSA raised" → lookup_term "prostate specific antigen above reference range", tag "finding"
+- "Hb low" / "low Hb" / "haemoglobin low" → lookup_term "haemoglobin below reference range", tag "finding"
+- "eGFR reduced" / "eGFR low" → lookup_term "glomerular filtration rate below reference range", tag "finding"
+- "HbA1c elevated" / "HbA1c raised" → lookup_term "haemoglobin A1c above reference range", tag "finding"
+- "raised creatinine" / "creatinine elevated" → lookup_term "serum creatinine above reference range", tag "finding"
+- "neutrophilia" → lookup_term "neutrophilia", tag "finding"
+- "eosinophilia" → lookup_term "eosinophilia", tag "finding"
+- "anaemia" (without qualifier) → lookup_term "anaemia", tag "disorder"
+
+For all lab patterns: do NOT infer a cause or underlying disorder. Extract the \
+result phrase only. The assertion is always "present" unless negated. \
+Do NOT extract the numeric value separately if the summary phrase already covers it.
 
 CRITICAL — Every drug must be tagged "substance" or "product" — NEVER "procedure" \
 or "regime/therapy". A procedure is an action performed ON the patient; a drug is a \
@@ -175,12 +215,32 @@ like "[130-180]".
 When the source uses a GP abbreviation, keep the abbreviation in "text" and expand \
 in "lookup_term":
   HTN → hypertension, DM → diabetes mellitus, T2DM → type 2 diabetes mellitus, \
+IDDM → type 1 diabetes mellitus, \
 AF → atrial fibrillation, OA → osteoarthritis, CKD → chronic kidney disease, \
 COPD (keep as-is), IHD → ischaemic heart disease, TIA → transient ischaemic attack, \
 UTI → urinary tract infection, LRTI → lower respiratory tract infection, \
-URTI → upper respiratory tract infection, SOB → shortness of breath, \
+URTI → upper respiratory tract infection, \
+SOB → shortness of breath, SOBOE → shortness of breath on exertion, \
 MI → myocardial infarction, PE → pulmonary embolism, DVT → deep vein thrombosis, \
-CCF → congestive cardiac failure, NAD → no abnormality detected, O/E → on examination, \
+CCF → congestive cardiac failure, HF → heart failure, IDA → iron deficiency anaemia, \
+GORD → gastro-oesophageal reflux disease, BPH → benign prostatic hyperplasia, \
+ILD → interstitial lung disease, IHD → ischaemic heart disease, \
+SLL → small lymphocytic lymphoma, CLL → chronic lymphocytic leukaemia, \
+BCC → basal cell carcinoma, SCC → squamous cell carcinoma, \
+FOBT → faecal occult blood test, FOB → faecal occult blood test, \
+FIT → faecal immunochemical test, 2WW → two week wait cancer referral, \
+ADT → androgen deprivation therapy, PSA → prostate specific antigen, \
+CA125 → cancer antigen 125, GOJ → gastro-oesophageal junction adenocarcinoma, \
+TWOC → trial without catheter, LUTS → lower urinary tract symptoms, \
+CBG → blood glucose, HbA1c → haemoglobin A1c, eGFR → glomerular filtration rate, \
+GFR → glomerular filtration rate, TSH → thyroid stimulating hormone, \
+HBPM → home blood pressure monitoring, ECHO → echocardiography, \
+XR → plain x-ray, US → ultrasonography, \
+TATT → fatigue (tired all the time), CIBH → change in bowel habit, \
+IMB → intermenstrual bleeding, PV → per vaginal bleeding, \
+PR → per rectum bleeding, CP → chest pain, \
+OOH → out of hours visit, \
+O/E → on examination, \
 Hx → history, Dx → diagnosis, Rx → prescription, PMH → past medical history, \
 FH → family history, SH → social history, FROMS → full range of movements, \
 FROM → full range of movement, ROM → range of movement, MSU → midstream urine, \
@@ -190,6 +250,19 @@ BP → blood pressure, SpO2 → oxygen saturation, BMI → body mass index, \
 GCS → Glasgow Coma Scale, NEWS → National Early Warning Score, \
 Wt → body weight, Ht → height, Nitro → nitrofurantoin (antibiotic context), \
 PS → performance status (oncology context → ECOG performance status).
+
+CRITICAL abbreviation disambiguation:
+- NAD must NOT be extracted or coded. "NAD" is ambiguous in UK primary care: it can \
+mean "No abnormality detected" (a finding with SNOMED code 281900007) OR "No apparent \
+distress" (a general observation with no SNOMED equivalent). Because the correct \
+meaning cannot be determined from the abbreviation alone, omit NAD entirely. A \
+reviewer will code it manually if needed.
+- CA without a stated body site means carcinoma/cancer in general but MUST NOT be \
+extracted (see DO NOT EXTRACT rules above). CA with a site: extract the full phrase \
+and use the site-specific cancer as lookup_term (e.g. "prostate CA" → \
+lookup_term "prostate carcinoma", tag "disorder").
+- MSK alone is a specialty/system tag, not a codable entity. Extract the specific \
+symptom or diagnosis stated in the same sentence instead.
 
 When the source uses a pharmaceutical brand name, put the brand in "text" and the \
 generic active ingredient in "lookup_term":

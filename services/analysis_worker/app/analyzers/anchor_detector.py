@@ -47,7 +47,15 @@ def _dedupe_by_encounter(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return out
 
 
-def _classify_anchor_rows(rows: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
+_AnchorBuckets = tuple[
+    list[dict[str, Any]],
+    list[dict[str, Any]],
+    list[dict[str, Any]],
+    list[dict[str, Any]],
+]
+
+
+def _classify_anchor_rows(rows: list[dict[str, Any]]) -> _AnchorBuckets:
     referrals: list[dict[str, Any]] = []
     diagnoses: list[dict[str, Any]] = []
     treatments: list[dict[str, Any]] = []
@@ -74,6 +82,24 @@ def _classify_anchor_rows(rows: list[dict[str, Any]]) -> tuple[list[dict[str, An
     )
 
 
+_ANCHOR_QUERY = """
+MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter)-[r:DOCUMENTS]->(c)
+WHERE toString(p.id) = $patient_id
+  AND toString(e.date) >= $start_date
+  AND toString(e.date) <= $end_date
+RETURN
+    toString(e.id)              AS encounter_id,
+    toString(e.date)            AS encounter_date,
+    c.conceptId                 AS concept_id,
+    c.name                      AS concept_name,
+    c.semanticTag               AS semantic_tag,
+    r.source                    AS source,
+    coalesce(r.confidence, 0.0) AS confidence,
+    r.evidence                  AS evidence
+ORDER BY encounter_date
+"""
+
+
 def detect_anchors(
     patient_id: str,
     start_date: str,
@@ -82,25 +108,30 @@ def detect_anchors(
     expand_months: int = 3,
 ) -> AnchorResult:
     rows = patient_client.run(
-        "MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter)-[:DOCUMENTS]->(c) RETURN e, c",
+        _ANCHOR_QUERY,
         patient_id=patient_id,
         start_date=start_date,
         end_date=end_date,
     )
-    referrals, diagnoses, treatments, specialists = _classify_anchor_rows(list(rows or []))
+    referrals, diagnoses, treatments, specialists = _classify_anchor_rows(
+        list(rows or [])
+    )
+    has_anchors = any((referrals, diagnoses, treatments, specialists))
     result = AnchorResult(
         patient_id=patient_id,
         referral_anchors=referrals,
         diagnosis_anchors=diagnoses,
         treatment_anchors=treatments,
         specialist_visit_anchors=specialists,
-        detection_method="concept" if any((referrals, diagnoses, treatments, specialists)) else "none",
+        detection_method="concept" if has_anchors else "none",
     )
     if referrals:
         try:
-            referral_date = datetime.fromisoformat(str(referrals[0].get("encounter_date")))
-            result.expanded_start = (referral_date - timedelta(days=30 * expand_months)).date().isoformat()
-            result.expanded_end = (referral_date + timedelta(days=30 * expand_months)).date().isoformat()
+            raw_date = str(referrals[0].get("encounter_date"))
+            referral_date = datetime.fromisoformat(raw_date)
+            delta = timedelta(days=30 * expand_months)
+            result.expanded_start = (referral_date - delta).date().isoformat()
+            result.expanded_end = (referral_date + delta).date().isoformat()
         except (TypeError, ValueError):
             result.errors.append("invalid_referral_date")
     return result

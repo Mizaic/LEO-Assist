@@ -1,0 +1,63 @@
+[
+  {
+    "abbreviation": "CA",
+    "expansion": "malignant neoplasm",
+    "recommended_concept_id": "363346000",
+    "recommended_term": "Malignant neoplastic disease (disorder)",
+    "semantic_tag": "disorder",
+    "score": 5.472,
+    "note": "'prostate CA', 'CA breast'",
+    "currently_resolves": false,
+    "source": "auto_verified",
+    "review_note": "CA as abbreviation is context-dependent: 'prostate CA', 'CA breast'. The generic malignant neoplasm concept is the correct parent, but site-specific surface forms (e.g. 'prostate CA' -> prostate cancer concept) would be more precise. CLINICAL REVIEW RECOMMENDED."
+  },
+  {
+    "abbreviation": "NAD",
+    "expansion": "no abnormality detected",
+    "recommended_concept_id": "281900007",
+    "recommended_term": "No abnormality detected (finding)",
+    "semantic_tag": "finding",
+    "score": 9.909,
+    "note": "Xray NAD, FOBT NAD",
+    "currently_resolves": false,
+    "source": "auto_verified",
+    "review_note": "NAD applies broadly (XR NAD, FOBT NAD). Context-specific NAD findings exist but the general concept is reasonable as a catch-all. REVIEW RECOMMENDED."
+  },
+  {
+    "abbreviation": "OOH",
+    "expansion": "out of hours",
+    "recommended_concept_id": "185511000000107",
+    "recommended_term": "Seen in out of hours centre (finding)",
+    "semantic_tag": "finding",
+    "score": 6.445,
+    "note": "OOH report",
+    "currently_resolves": false,
+    "source": "auto_verified",
+    "review_note": "OOH in encounter notes may be a source description rather than a clinical finding. Consider whether coding this is appropriate. REVIEW RECOMMENDED."
+  },
+  {
+    "abbreviation": "TWOC",
+    "expansion": "trial without catheter",
+    "recommended_concept_id": "110465008",
+    "recommended_term": "Clinical trial (procedure)",
+    "semantic_tag": "procedure",
+    "score": 4.965,
+    "note": "failed TWOC - urinary retention",
+    "currently_resolves": false,
+    "source": "auto_verified",
+    "review_note": "TWOC = Trial Without Catheter. No exact SNOMED match. Closest is catheter removal (43748006). CLINICAL REVIEW REQUIRED before writing."
+  },
+  {
+    "abbreviation": "MSK",
+    "expansion": "musculoskeletal",
+    "recommended_concept_id": "279069000",
+    "recommended_term": "Musculoskeletal pain (finding)",
+    "semantic_tag": "finding",
+    "score": 4.445,
+    "note": "MSK back pain",
+    "currently_resolves": false,
+    "correction_applied": "Auto-recommended 'Musculoskeletal hypomobility' (10379002). MSK in clinical notes typically means musculoskeletal pain/complaint. 279069000 is more accurate but flag for review.",
+    "source": "manual_correction",
+    "review_note": "MSK is used as a context qualifier as well as a standalone finding. CLINICAL REVIEW RECOMMENDED for intended mapping."
+  }
+]

@@ -1,0 +1,1847 @@
+[
+  {
+    "encounter_id": "45e2a192-8e8a-4f51-9661-e660028350af",
+    "patient_id": "7028414914",
+    "date": "2024-01-10",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "The encounter text contains only an administrative entry (staff access log) with no clinical content, diagnoses, findings, procedures, or patient-reported information to code. No SNOMED concepts are applicable.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "45e2a192-8e8a-4f51-9661-e660028350af",
+        "date": "2024-01-10",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "6d1b589f-949c-4e03-8d92-48da20dbe93f",
+    "patient_id": "7028414914",
+    "date": "2024-01-10",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.99,
+      "notes": "This encounter contains only an administrative SMS notification about appointment booking procedures; there is no clinical content requiring SNOMED CT coding.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "6d1b589f-949c-4e03-8d92-48da20dbe93f",
+        "date": "2024-01-10",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "36f01710-9e04-43bc-abad-6a5c403ab341",
+    "patient_id": "7028414914",
+    "date": "2024-03-25",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter contains only an administrative record-access review entry with no clinical content requiring SNOMED coding. No coding gaps or errors identified.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "36f01710-9e04-43bc-abad-6a5c403ab341",
+        "date": "2024-03-25",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "033d82c4-bdee-47e9-8bac-b010258029db",
+    "patient_id": "7028414914",
+    "date": "2024-03-25",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "The encounter record contains only an administrative entry (receptionist access role, timestamp, and patient name) with no clinical content, diagnoses, findings, procedures, or interventions documented. There is nothing to code clinically.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "033d82c4-bdee-47e9-8bac-b010258029db",
+        "date": "2024-03-25",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "a0da767a-9f0c-4ed4-b99e-4e3cd42eb49f",
+    "patient_id": "7028414914",
+    "date": "2024-04-05",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [
+        {
+          "term": "Vaccination",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "A vaccination was administered and should be coded as a procedure with the specific vaccine/immunisation recorded.",
+          "snomed_search": "vaccination procedure school age immunisation"
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.55,
+      "notes": "The encounter note is extremely sparse and does not specify which vaccine was administered, making precise coding impossible; at minimum a generic vaccination procedure should be coded, but the specific vaccine, dose, and route are absent from the note text provided.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "a0da767a-9f0c-4ed4-b99e-4e3cd42eb49f",
+        "date": "2024-04-05",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d628a457-25a8-418c-a5f1-d3c319efbf36",
+    "patient_id": "7028414914",
+    "date": "2024-04-16",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This is a purely administrative record-keeping entry confirming an MMR invitation was sent in error; the patient's existing MMR vaccination status is already recorded elsewhere in the record and no new clinical coding is required from this encounter.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "d628a457-25a8-418c-a5f1-d3c319efbf36",
+        "date": "2024-04-16",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "b8656cb9-c722-4ec9-bd8b-ef05ab095484",
+    "patient_id": "7028414914",
+    "date": "2024-04-18",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "missing": [
+        {
+          "term": "lip wound",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The primary presenting injury is a lip wound requiring cleaning and closure with tissue adhesive glue, which should be coded as a finding/disorder.",
+          "snomed_search": "wound lip"
+        },
+        {
+          "term": "hand wound",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "A second distinct wound to the hand was assessed and treated during this encounter and requires coding.",
+          "snomed_search": "wound hand"
+        },
+        {
+          "term": "debris/grit removed from lip wound",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Wound contamination with foreign body (debris/grit) was identified and successfully removed from the lip wound, representing a clinically significant finding.",
+          "snomed_search": "foreign body wound contamination"
+        },
+        {
+          "term": "wound cleaning with saline and gauze",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Wound irrigation and cleaning was performed on both wounds as a clinical procedure and should be coded.",
+          "snomed_search": "wound cleansing irrigation saline"
+        },
+        {
+          "term": "wound closure with tissue adhesive glue",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Lip wound was closed using Dermaflex tissue adhesive glue, which is a clinical procedure requiring coding.",
+          "snomed_search": "wound closure tissue adhesive glue"
+        },
+        {
+          "term": "grit in hand wound",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Grit was noted in the hand wound with advice given to bathe to assist removal, indicating a contaminated wound with retained foreign material.",
+          "snomed_search": "foreign body contamination wound hand"
+        },
+        {
+          "term": "patient information leaflet advice given",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "Written patient information (PILS) was provided as part of the care episode and represents an education/advice procedure.",
+          "snomed_search": "patient education advice given written information"
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The encounter has zero coded concepts despite documenting two distinct traumatic wounds with foreign body contamination, procedural interventions (wound cleaning and tissue adhesive closure), and discharge advice. All clinically significant findings and procedures from this UTC attendance require coding. The mechanism of injury (e.g. fall, road traffic incident) is not documented and cannot be inferred, but the wound sites and treatments are clearly described.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "b8656cb9-c722-4ec9-bd8b-ef05ab095484",
+        "date": "2024-04-18",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "232592d9-1280-4d97-a2f5-e9e3b96a173b",
+    "patient_id": "7028414914",
+    "date": "2024-04-18",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.4,
+      "notes": "The encounter text contains only an administrative location entry ('Seen in clinic (A&E:XaBKC)') with no clinical content, diagnoses, findings, procedures, or symptoms documented; there is nothing clinically codeable to assess. Confidence is low due to the near-total absence of clinical information rather than any coding quality issue.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "232592d9-1280-4d97-a2f5-e9e3b96a173b",
+        "date": "2024-04-18",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "3d2b8174-8628-4e0c-96f9-8f9dcfa75f99",
+    "patient_id": "7028414914",
+    "date": "2024-04-18",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "The encounter text contains only an administrative triage entry with no clinical findings, diagnoses, procedures, or observations documented; there is nothing clinically codeable within the defined SNOMED semantic tag scope.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "3d2b8174-8628-4e0c-96f9-8f9dcfa75f99",
+        "date": "2024-04-18",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "fad4a2b0-c8ef-4d05-9511-ad9ef0e81ab3",
+    "patient_id": "7028414914",
+    "date": "2024-04-18",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.55,
+      "notes": "The encounter text contains only administrative/triage metadata (clinician name, role, location, timestamp) with no clinical content, diagnoses, findings, procedures, or symptoms documented; there is nothing clinically codeable from this note. Confidence is moderate-low due to the possibility that clinical content exists elsewhere in the record but was not provided for review.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "fad4a2b0-c8ef-4d05-9511-ad9ef0e81ab3",
+        "date": "2024-04-18",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "4e39d1f6-b19d-4304-8dce-c8b1acda13e5",
+    "patient_id": "7028414914",
+    "date": "2024-04-18",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "missing": [
+        {
+          "term": "cut to lip",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Laceration of the lip is the primary presenting injury and the focus of treatment; it should be coded as an active finding.",
+          "snomed_search": "laceration lip"
+        },
+        {
+          "term": "grit all in hands",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Contaminated wound / foreign body (grit) in hands is a clinically relevant finding documented at presentation.",
+          "snomed_search": "foreign body in hand wound contamination"
+        },
+        {
+          "term": "running and fell over",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The mechanism of injury (fall while running) should be coded to support clinical context and injury coding.",
+          "snomed_search": "fall while running"
+        },
+        {
+          "term": "NO LOC",
+          "severity": "high",
+          "suggested_assertion": "absent",
+          "reason": "Loss of consciousness is explicitly excluded following a fall with facial injury; this is a safety-relevant negative finding that should be coded as absent.",
+          "snomed_search": "loss of consciousness"
+        },
+        {
+          "term": "wound closure with tissue adhesive glue to lip",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "A procedure (wound closure using tissue adhesive) was performed on the lip laceration and should be coded as a completed procedure.",
+          "snomed_search": "wound closure tissue adhesive glue"
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The encounter has zero coded concepts despite documenting a clear presenting injury, a performed procedure, and a clinically important negative finding (no LOC). All key clinical elements require coding.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "4e39d1f6-b19d-4304-8dce-c8b1acda13e5",
+        "date": "2024-04-18",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "802ec068-9f91-4389-b0fc-2afce04d42ee",
+    "patient_id": "7028414914",
+    "date": "2024-04-18",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.55,
+      "notes": "The encounter note contains no clinical content \u2014 only administrative metadata (staff member, timestamps, location, and encounter type). There are no diagnoses, findings, procedures, or clinical observations to code from this record.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "802ec068-9f91-4389-b0fc-2afce04d42ee",
+        "date": "2024-04-18",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "5a06c0be-1a38-48f5-9cc5-899daa4d94bb",
+    "patient_id": "7028414914",
+    "date": "2024-04-18",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.4,
+      "notes": "The encounter record contains only an administrative entry referencing an attached PDF document (4914.pdf); no clinical narrative, diagnoses, findings, or procedures are visible in the text provided. No coding gaps or errors can be identified without access to the document content.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "5a06c0be-1a38-48f5-9cc5-899daa4d94bb",
+        "date": "2024-04-18",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "581b87ff-9f16-43df-9158-40c9b0d54915",
+    "patient_id": "7028414914",
+    "date": "2024-04-18",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.3,
+      "notes": "The encounter note contains no clinical content whatsoever \u2014 only administrative metadata (staff member, location, timestamps, encounter type). There are no diagnoses, findings, procedures, or clinical observations to code, and no coding gaps can be identified. Confidence is low due to the absence of any clinical narrative.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "581b87ff-9f16-43df-9158-40c9b0d54915",
+        "date": "2024-04-18",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "0ad31005-dd8a-4eb9-97bf-a541d59340af",
+    "patient_id": "7028414914",
+    "date": "2024-04-18",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "The encounter text contains only administrative and triage categorisation information with no clinical findings, diagnoses, procedures, or symptoms documented. There is nothing clinically codeable within the defined SNOMED semantic tag scope.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "0ad31005-dd8a-4eb9-97bf-a541d59340af",
+        "date": "2024-04-18",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "6aec4180-893b-458a-8a32-786187ee81c5",
+    "patient_id": "7028414914",
+    "date": "2024-04-18",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter record contains only an administrative consent/record-sharing status change with no clinical content; there are no clinical findings, diagnoses, procedures, or observations to code.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "6aec4180-893b-458a-8a32-786187ee81c5",
+        "date": "2024-04-18",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "883ceefa-4d9e-4f4d-b625-f756679abf06",
+    "patient_id": "7028414914",
+    "date": "2024-04-18",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter record contains only administrative/organisational metadata (staff name, role, location, school address, and date) with no clinical content whatsoever. There are no diagnoses, findings, procedures, or clinical observations to code.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "883ceefa-4d9e-4f4d-b625-f756679abf06",
+        "date": "2024-04-18",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "8c4bfb2e-ef2d-4d59-958b-973c3b1362a1",
+    "patient_id": "7028414914",
+    "date": "2024-04-18",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "305351004",
+          "name": "Seen in accident and emergency department (finding)",
+          "severity": "medium",
+          "reason": "The note describes attendance at Loughborough Urgent Treatment Centre, not an A&E department; the A&E referral text refers to the referral source/type, not the setting where the patient was seen."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.72,
+      "notes": "This encounter record is almost entirely administrative \u2014 a referral status update with no clinical content \u2014 so there are no clinical coding gaps. The only concern is a possible overcoding of the A&E attendance concept when the actual care setting was an Urgent Treatment Centre.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "8c4bfb2e-ef2d-4d59-958b-973c3b1362a1",
+        "date": "2024-04-18",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "9715ab67-3344-4921-8173-6d99b1913e05",
+    "patient_id": "7028414914",
+    "date": "2024-04-18",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "The encounter text contains only administrative/organisational content describing a referral and discharge from an Urgent Treatment Centre with no clinical findings, diagnoses, procedures, or observations documented. There is nothing clinically codeable within the defined SNOMED semantic tag scope.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "9715ab67-3344-4921-8173-6d99b1913e05",
+        "date": "2024-04-18",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "b9c7f54c-178d-4098-a0f8-9f1e742c8c13",
+    "patient_id": "7028414914",
+    "date": "2024-04-18",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "The encounter text contains only administrative/contact information with no clinical content to code. No SNOMED concepts are applicable.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "b9c7f54c-178d-4098-a0f8-9f1e742c8c13",
+        "date": "2024-04-18",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "5217627f-6c37-4d80-9fcd-d13c71cbbe26",
+    "patient_id": "7028414914",
+    "date": "2024-05-23",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "The encounter text contains only an administrative care-ended notification from a School Aged Immunisation Service with no clinical content to code. No coding gaps or errors are identified.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "5217627f-6c37-4d80-9fcd-d13c71cbbe26",
+        "date": "2024-05-23",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "29fc1b57-c140-472e-97ad-853f6a954465",
+    "patient_id": "7028414914",
+    "date": "2024-06-13",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter is purely administrative record-keeping with no clinical content; there are no diagnoses, findings, procedures, or other clinically codeable concepts present in the note text.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "29fc1b57-c140-472e-97ad-853f6a954465",
+        "date": "2024-06-13",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "01ab87f4-e4e7-4cd0-adcf-80d2970a435a",
+    "patient_id": "7028414914",
+    "date": "2024-06-13",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.99,
+      "notes": "This encounter contains only an administrative record-sharing consent status change with no clinical content; there are no clinical concepts to code.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "01ab87f4-e4e7-4cd0-adcf-80d2970a435a",
+        "date": "2024-06-13",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "4a43eea5-f8c2-4cca-ac41-b27a56f064e9",
+    "patient_id": "7028414914",
+    "date": "2024-06-13",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter record contains only administrative and organisational text (clerical access role entry, address details) with no clinical content to code. No SNOMED concepts are warranted.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "4a43eea5-f8c2-4cca-ac41-b27a56f064e9",
+        "date": "2024-06-13",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "5eeda8d5-c82c-482c-aaae-63d0fc6d59be",
+    "patient_id": "7028414914",
+    "date": "2024-06-13",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.3,
+      "notes": "The encounter text contains only administrative/demographic information with no clinical content, diagnoses, findings, procedures, or symptoms documented. There is nothing to code from a SNOMED clinical perspective; if a full clinical note exists it has not been provided.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "5eeda8d5-c82c-482c-aaae-63d0fc6d59be",
+        "date": "2024-06-13",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "3cbd11fe-fafd-4dac-8d0a-01c386932d69",
+    "patient_id": "7028414914",
+    "date": "2024-06-13",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "The encounter text contains only an administrative header indicating care was delivered by the LLR School Aged Immunisation Service, with no clinical content, diagnoses, findings, or procedures documented in the GP record itself. As this appears to be a secondary/community service entry, no SNOMED coding gaps are identifiable from the text provided.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "3cbd11fe-fafd-4dac-8d0a-01c386932d69",
+        "date": "2024-06-13",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "bebb96e7-014f-48e7-93bb-b1a788a60ce9",
+    "patient_id": "7028414914",
+    "date": "2024-06-25",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter entry is purely administrative/organisational in nature \u2014 a clerical access role entry from the School Aged Immunisation Service with no clinical content, diagnoses, findings, procedures, or medications documented. There is nothing clinically codeable within the defined SNOMED semantic tag scope.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "bebb96e7-014f-48e7-93bb-b1a788a60ce9",
+        "date": "2024-06-25",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "46693424-eeb8-4035-8b22-522e46aaeae9",
+    "patient_id": "7028414914",
+    "date": "2024-08-16",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter note contains only an administrative entry recording a vaccination history check prior to a session, with no clinical findings, diagnoses, procedures, or interventions documented that would require SNOMED coding. No coding gaps or errors identified.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "46693424-eeb8-4035-8b22-522e46aaeae9",
+        "date": "2024-08-16",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d4576122-78a3-4566-801e-157e34215e4e",
+    "patient_id": "7028414914",
+    "date": "2024-08-22",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [
+        {
+          "term": "Gardasil9 (part 1) - Right Upper Deltoid",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Administration of first dose of Gardasil 9 (HPV 9-valent vaccine) should be coded as a procedure.",
+          "snomed_search": "administration of HPV vaccine Gardasil 9"
+        },
+        {
+          "term": "Second booster low dose diphtheria, tetanus and inactivated polio vaccination - Left Upper Deltoid",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Administration of Td/IPV second scheduled booster should be coded as a procedure to maintain an accurate immunisation record.",
+          "snomed_search": "administration of tetanus diphtheria inactivated polio booster vaccine"
+        },
+        {
+          "term": "First meningitis ACW & Y vaccination - Left Lower Deltoid",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Administration of first meningococcal ACWY conjugate vaccine should be coded as a procedure to maintain an accurate immunisation record.",
+          "snomed_search": "administration of meningococcal ACWY conjugate vaccine"
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "The encounter documents three school-age immunisations (HPV, Td/IPV booster, MenACWY) administered by a named vaccinator at a community immunisation session; none have been coded. All three vaccine administrations require SNOMED procedure codes to populate the child immunisation record correctly.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "d4576122-78a3-4566-801e-157e34215e4e",
+        "date": "2024-08-22",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "7be92ee1-7764-4be1-b1d9-0f24e9d64071",
+    "patient_id": "7028414914",
+    "date": "2024-11-07",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "The encounter text contains only an administrative triage entry with no clinical findings, diagnoses, procedures, or observations documented; there is nothing clinically codeable within the defined SNOMED semantic tag scope.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "7be92ee1-7764-4be1-b1d9-0f24e9d64071",
+        "date": "2024-11-07",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "af73e896-70fa-4284-9b38-f8c888b765e3",
+    "patient_id": "7028414914",
+    "date": "2024-11-07",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.4,
+      "notes": "The encounter text contains only an administrative location entry ('Seen in clinic (A&E:XaBKC)') with no clinical content, diagnoses, findings, procedures, or symptoms documented; there is nothing clinically codeable from this note. Confidence is low due to the near-total absence of clinical information.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "af73e896-70fa-4284-9b38-f8c888b765e3",
+        "date": "2024-11-07",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "8418703c-43eb-41d5-b242-1f4f67b8e3d0",
+    "patient_id": "7028414914",
+    "date": "2024-11-07",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.55,
+      "notes": "The encounter text contains only administrative/triage metadata (clinician name, role, timestamp, and location) with no clinical content, diagnoses, findings, procedures, or symptoms documented; there is nothing clinically codeable from this note. Confidence is reduced due to the absence of any clinical narrative that would allow meaningful coding assessment.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "8418703c-43eb-41d5-b242-1f4f67b8e3d0",
+        "date": "2024-11-07",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "931ce4cd-4524-4edb-991a-eb5ecf95e3b5",
+    "patient_id": "7028414914",
+    "date": "2024-11-07",
+    "result": {
+      "encounter_assessment": "incomplete",
+      "missing": [
+        {
+          "term": "sore throat",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Sore throat is the primary presenting complaint documented by the triage clinician and should be coded as an active finding.",
+          "snomed_search": "sore throat"
+        },
+        {
+          "term": "earache",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Earache is the second presenting complaint documented at triage and requires coding as an active finding.",
+          "snomed_search": "earache otalgia"
+        },
+        {
+          "term": "NEWS2 National Early Warning Score 1",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "A formal NEWS2 score of 1 was calculated and recorded and should be coded as an observable entity finding to support clinical audit and deterioration tracking.",
+          "snomed_search": "NEWS2 score"
+        },
+        {
+          "term": "Respiratory rate 18 breath/min",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "Respiratory rate was formally measured and recorded as part of the NEWS2 assessment and should be coded as an observable entity with its value.",
+          "snomed_search": "respiratory rate"
+        },
+        {
+          "term": "Oxygen saturation 98%",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "Peripheral oxygen saturation was formally measured and recorded as part of the NEWS2 assessment and should be coded with its value.",
+          "snomed_search": "oxygen saturation peripheral"
+        },
+        {
+          "term": "Pulse rate 93 bpm",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "Heart rate was formally measured and recorded as part of the NEWS2 assessment and should be coded with its value.",
+          "snomed_search": "pulse rate"
+        },
+        {
+          "term": "Temperature 37.1 C",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "Body temperature was formally measured and recorded as part of the NEWS2 assessment and should be coded with its value.",
+          "snomed_search": "body temperature"
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Coding is substantially incomplete for this UTC triage encounter: the two presenting complaints (sore throat and earache) are the most clinically significant gaps. The NEWS2 score and individual vital signs observations beyond blood pressure are also uncoded, though these are lower priority.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "931ce4cd-4524-4edb-991a-eb5ecf95e3b5",
+        "date": "2024-11-07",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "09920bad-0b07-4401-8b47-78d9554e5c29",
+    "patient_id": "7028414914",
+    "date": "2024-11-07",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.35,
+      "notes": "The encounter note contains no clinical content whatsoever \u2014 only administrative metadata (staff name, location, timestamps, and encounter type). There is nothing to code clinically, and no gaps can be identified from this record alone.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "09920bad-0b07-4401-8b47-78d9554e5c29",
+        "date": "2024-11-07",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "63e09751-4c65-443a-afd5-ea3018907508",
+    "patient_id": "7028414914",
+    "date": "2024-11-07",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.55,
+      "notes": "The encounter note contains only an administrative entry referencing an attached PDF document (702 841 4914.pdf) with no clinical content visible in the text; there is nothing to code from the encounter text itself, and any clinical concepts would be contained within the scanned/attached document which should be coded from that source separately.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "63e09751-4c65-443a-afd5-ea3018907508",
+        "date": "2024-11-07",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "3ccd48aa-2511-4a76-ba61-cc7067206ba3",
+    "patient_id": "7028414914",
+    "date": "2024-11-07",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "The encounter note contains no clinical content \u2014 only administrative metadata (staff name, location, timestamps, and encounter type). There are no diagnoses, findings, procedures, or other clinically codeable concepts to assess.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "3ccd48aa-2511-4a76-ba61-cc7067206ba3",
+        "date": "2024-11-07",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "60dbfaf3-de96-44a7-bff8-05cfd5842797",
+    "patient_id": "7028414914",
+    "date": "2024-11-07",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter record contains only administrative triage information (triage category assignment at an Urgent Treatment Centre) with no clinical findings, diagnoses, procedures, or symptoms documented. There is nothing clinically codeable within the defined SNOMED semantic tag scope.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "60dbfaf3-de96-44a7-bff8-05cfd5842797",
+        "date": "2024-11-07",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "82defaed-f899-4e3c-88f3-affca9cb38f8",
+    "patient_id": "7028414914",
+    "date": "2024-11-07",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.55,
+      "notes": "The encounter text contains only administrative/triage metadata (timestamp, clinic name, staff role, location) with no clinical content, diagnoses, findings, procedures, or symptoms documented. There is nothing clinically codeable from this note; however, the absence of any clinical documentation for an urgent treatment centre attendance may itself warrant review to ensure a full clinical record exists elsewhere.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "82defaed-f899-4e3c-88f3-affca9cb38f8",
+        "date": "2024-11-07",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e453fc99-022b-47f4-8a14-9a6182cda9c7",
+    "patient_id": "7028414914",
+    "date": "2024-11-07",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.99,
+      "notes": "This encounter record contains only an administrative consent/record-sharing entry with no clinical content; there are no diagnoses, findings, procedures, or other clinically codeable concepts present.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "e453fc99-022b-47f4-8a14-9a6182cda9c7",
+        "date": "2024-11-07",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "56905e56-7452-46b1-8e6d-4857cea2ec3c",
+    "patient_id": "7028414914",
+    "date": "2024-11-07",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter note contains only administrative metadata from a secondary care discharge summary (Loughborough UTC admission/discharge timestamps and consultation count) with no clinical content visible. Per scope rules, concepts from copy-pasted secondary care letters or discharge summaries are coded separately from the source document; there is nothing clinically codeable from the primary care encounter record itself.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "56905e56-7452-46b1-8e6d-4857cea2ec3c",
+        "date": "2024-11-07",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "12ea0dfc-4595-404e-8fdf-f3dca9c66605",
+    "patient_id": "7028414914",
+    "date": "2024-11-07",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.9,
+      "notes": "This encounter record is purely administrative \u2014 it documents a referral status update and attendance at an urgent treatment centre with no clinical findings, diagnoses, procedures, or symptoms documented. The single coded concept (Seen in walk in centre) is appropriate and sufficient for the available content.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "12ea0dfc-4595-404e-8fdf-f3dca9c66605",
+        "date": "2024-11-07",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "f3536ca2-0712-4d7c-b9b1-bcd9bbb81ffe",
+    "patient_id": "7028414914",
+    "date": "2024-11-07",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "The encounter text contains only administrative/contact information with no clinical content to code. No SNOMED concepts are applicable.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "f3536ca2-0712-4d7c-b9b1-bcd9bbb81ffe",
+        "date": "2024-11-07",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "ee1b533c-b35b-4c14-9cdd-6a5706f0f538",
+    "patient_id": "7028414914",
+    "date": "2024-11-08",
+    "result": {
+      "encounter_assessment": "incomplete",
+      "missing": [
+        {
+          "term": "Tonsillitis",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Tonsillitis is the primary diagnosis documented and coded within the encounter template but is absent from the coded concept list.",
+          "snomed_search": "tonsillitis"
+        },
+        {
+          "term": "Pus on tonsils",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Purulent tonsils are explicitly documented in the FeverPAIN assessment and are a clinically significant examination finding supporting the diagnosis.",
+          "snomed_search": "pus on tonsils"
+        },
+        {
+          "term": "Right ear pain",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Otalgia in the right ear is documented as a presenting complaint and is a separate symptom from the tonsillitis diagnosis warranting its own code.",
+          "snomed_search": "otalgia ear pain"
+        },
+        {
+          "term": "Impacted cerumen right ear",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Dark brown moist cerumen causing 0% tympanic membrane view in the right ear is a clinical finding documented on examination.",
+          "snomed_search": "impacted cerumen wax ear"
+        },
+        {
+          "term": "Phenoxymethylpenicillin",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Phenoxymethylpenicillin 500mg QDS was prescribed at this encounter and the medication/prescription should be coded.",
+          "snomed_search": "phenoxymethylpenicillin prescription"
+        },
+        {
+          "term": "Raised cervical lymph glands",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Cervical lymphadenopathy is explicitly documented on examination and should be coded with a more specific SNOMED concept rather than the generic neck swelling concept already applied.",
+          "snomed_search": "cervical lymphadenopathy"
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "274747003",
+          "name": "Localized swelling, mass and lump, neck (finding)",
+          "severity": "medium",
+          "reason": "The note documents raised cervical lymph glands, which is cervical lymphadenopathy \u2014 a more specific and accurate concept than a generic neck swelling/lump finding."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The primary diagnosis of tonsillitis is entirely absent from the coded list, which is a significant gap for this encounter. Several supporting clinical findings (otalgia, impacted cerumen, tonsillar exudate) and the antibiotic prescription are also uncoded; overall coding is substantially incomplete for a UTC attendance.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "ee1b533c-b35b-4c14-9cdd-6a5706f0f538",
+        "date": "2024-11-08",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d13e95ac-27f3-4c3b-83e7-98d9410c03b5",
+    "patient_id": "7028414914",
+    "date": "2025-03-19",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "The encounter is purely administrative, documenting a 2WW fast-track referral for suspected head and neck cancer. The single coded procedure is appropriate and well-evidenced; no clinical findings or diagnoses are documented in the note that would require additional coding.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "d13e95ac-27f3-4c3b-83e7-98d9410c03b5",
+        "date": "2025-03-19",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "f0ec795b-05ca-4726-9425-198030df32a6",
+    "patient_id": "7028414914",
+    "date": "2025-03-19",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.99,
+      "notes": "This encounter is purely administrative \u2014 identity verification and online services registration with no clinical content. No SNOMED clinical concepts are applicable.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "f0ec795b-05ca-4726-9425-198030df32a6",
+        "date": "2025-03-19",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "f6f8a693-4abd-4e01-ab12-4a8686975367",
+    "patient_id": "7028414914",
+    "date": "2025-03-19",
+    "result": {
+      "encounter_assessment": "incomplete",
+      "missing": [
+        {
+          "term": "ulcer of tongue",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The primary clinical finding driving the 2WW referral \u2014 a persistent tongue ulcer present for over 3 weeks \u2014 has not been coded, which is a significant gap given the cancer safety-netting context.",
+          "snomed_search": "ulcer tongue"
+        },
+        {
+          "term": "painless ulcer",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly documents that the ulcer is now painless, which is a clinically significant qualifier supporting the 2WW referral decision and should be captured.",
+          "snomed_search": "painless oral ulcer"
+        },
+        {
+          "term": "recurrent oral ulceration",
+          "severity": "medium",
+          "suggested_assertion": "historical",
+          "reason": "The patient has a documented history of recurrent ulcers on the lip and cheek mucosa over the past year, which is relevant background clinical history.",
+          "snomed_search": "recurrent oral ulceration"
+        },
+        {
+          "term": "cancer safety netting",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Cancer safety netting (Y281b) is documented in the plan and is clinically significant in the context of a 2WW referral but does not appear in the coded concept list.",
+          "snomed_search": "cancer safety netting"
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The 2WW referral procedure is correctly coded and smoking status is captured, but the primary clinical finding (persistent tongue ulcer >3 weeks, now painless) that directly justifies the fast-track referral is absent from the coded list \u2014 a notable gap in a cancer safety-netting encounter. Addition of the tongue ulcer finding and safety netting code would significantly improve the clinical record.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "f6f8a693-4abd-4e01-ab12-4a8686975367",
+        "date": "2025-03-19",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "6f3d65ea-3f5e-4202-8f23-fff0e8ca5dda",
+    "patient_id": "7028414914",
+    "date": "2025-03-19",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter contains no clinical content \u2014 it is a purely administrative telephone contact logged by a receptionist with no diagnoses, findings, procedures, or clinically meaningful information to code.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "6f3d65ea-3f5e-4202-8f23-fff0e8ca5dda",
+        "date": "2025-03-19",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "3ea0f438-ab6b-4739-954a-3b336fd8c320",
+    "patient_id": "7028414914",
+    "date": "2025-03-19",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "missing": [
+        {
+          "term": "recurrent ulcers on the tongue",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Recurrent oral ulceration is the primary presenting complaint and should be coded as an active finding to support clinical continuity and future review.",
+          "snomed_search": "recurrent oral ulceration"
+        },
+        {
+          "term": "blistering and then popping",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The description of blistering lesions that rupture on the tongue is a clinically distinct finding that may indicate herpetiform or vesicular pathology warranting separate coding.",
+          "snomed_search": "blister mouth tongue"
+        },
+        {
+          "term": "dad has mouth ulcers",
+          "severity": "medium",
+          "suggested_assertion": "family",
+          "reason": "Family history of mouth ulcers is clinically relevant as it may suggest a hereditary or familial predisposition (e.g. Beh\u00e7et's, aphthous tendency) and should be recorded.",
+          "snomed_search": "family history mouth ulcer"
+        },
+        {
+          "term": "telephone triage encounter",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "The encounter type (telephone triage) is documented in the note but no encounter-type procedure code has been applied to the coded list.",
+          "snomed_search": "telephone triage"
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "No SNOMED concepts have been coded for this encounter despite a clear primary presenting complaint of recurrent tongue ulceration with a relevant family history. At minimum the active oral ulceration finding and family history should be captured to support future clinical review and any onward referral for oral medicine.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "3ea0f438-ab6b-4739-954a-3b336fd8c320",
+        "date": "2025-03-19",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "6949d11e-05d2-4df8-bf6a-e551cf238efe",
+    "patient_id": "7028414914",
+    "date": "2025-03-19",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.99,
+      "notes": "This encounter contains only administrative/receptionist activity (telephone number recording and SMS dispatch requesting photos). There is no clinical content to code.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "6949d11e-05d2-4df8-bf6a-e551cf238efe",
+        "date": "2025-03-19",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "278aff4c-6bfe-422b-af2b-09e6d19a95ca",
+    "patient_id": "7028414914",
+    "date": "2025-03-19",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.99,
+      "notes": "This encounter is purely administrative (Summary Care Record preference update) with no clinical content to code. No SNOMED clinical concepts are applicable.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "278aff4c-6bfe-422b-af2b-09e6d19a95ca",
+        "date": "2025-03-19",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d02c0e91-8346-4a38-a296-6bd765f25c95",
+    "patient_id": "7028414914",
+    "date": "2025-03-20",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter contains only administrative messaging and photo upload infrastructure with no clinical content documented; there are no diagnoses, findings, procedures, or clinical observations to code from this record.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "d02c0e91-8346-4a38-a296-6bd765f25c95",
+        "date": "2025-03-20",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "451a8736-6d55-4fa6-a423-bc085f19cacc",
+    "patient_id": "7028414914",
+    "date": "2025-03-20",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter record contains only an administrative/receptionist access entry with no clinical content; there are no diagnoses, findings, procedures, or other codeable clinical concepts present.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "451a8736-6d55-4fa6-a423-bc085f19cacc",
+        "date": "2025-03-20",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "f2a3d274-441f-4a7c-952a-bf92adfcf989",
+    "patient_id": "7028414914",
+    "date": "2025-03-25",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [
+        {
+          "term": "Recurrent mouth ulcers - tongue and lip",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The primary presenting complaint of recurrent mouth ulcers affecting tongue and lip is the clinical reason for the encounter and should be coded as an active finding.",
+          "snomed_search": "recurrent oral ulceration"
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "No SNOMED concepts have been coded despite a clear clinical presentation of recurrent mouth ulcers; the encounter code Xa1sE (a Read/CTV3 code) appears in the template text but has not been translated into a SNOMED CT concept in the coded list. The recurrent mouth ulcer diagnosis should be captured as a present finding.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "f2a3d274-441f-4a7c-952a-bf92adfcf989",
+        "date": "2025-03-25",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "154873a0-01e0-4a5a-9972-7f1b913a2276",
+    "patient_id": "7028414914",
+    "date": "2025-03-25",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter note contains only administrative/organisational text describing a maxillofacial correspondence routed to the practice by a medical secretary; there is no clinical content to code. No coding gaps or errors identified.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "154873a0-01e0-4a5a-9972-7f1b913a2276",
+        "date": "2025-03-25",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "a8f84414-64df-44fd-b017-a43c62930c96",
+    "patient_id": "7028414914",
+    "date": "2025-04-08",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This is a purely administrative telephone encounter with no clinical content documented; there are no diagnoses, findings, procedures, or clinically meaningful observations to code. The encounter text contains only template/administrative entries with no substantive clinical information.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "a8f84414-64df-44fd-b017-a43c62930c96",
+        "date": "2025-04-08",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "5bde86d0-3aaf-44d4-bebf-8cb528939953",
+    "patient_id": "7028414914",
+    "date": "2025-04-08",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.99,
+      "notes": "This encounter is purely administrative \u2014 an online services password reset with identity verification. There are no clinical findings, diagnoses, procedures, or other SNOMED-codeable clinical concepts present in the note.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "5bde86d0-3aaf-44d4-bebf-8cb528939953",
+        "date": "2025-04-08",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d69682f8-f5da-48c5-b447-88ff7f218967",
+    "patient_id": "7028414914",
+    "date": "2025-04-08",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.99,
+      "notes": "This encounter is entirely administrative \u2014 online services registration, identity verification, and passphrase reset. There is no clinical content requiring SNOMED CT coding.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "d69682f8-f5da-48c5-b447-88ff7f218967",
+        "date": "2025-04-08",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "db676dc3-7721-47bd-ab79-c83fc111ceee",
+    "patient_id": "7028414914",
+    "date": "2025-04-08",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter note contains only administrative/organisational text (a receptionist-generated referral routing entry) with no clinical findings, diagnoses, procedures, or other codeable clinical content within scope. No coding gaps or errors can be identified.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "db676dc3-7721-47bd-ab79-c83fc111ceee",
+        "date": "2025-04-08",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "3334cfac-e854-4715-aa4e-282896528034",
+    "patient_id": "7028414914",
+    "date": "2025-05-06",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [
+        {
+          "term": "Child not brought to appointment",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "A child not brought to a scheduled appointment is a clinically significant safeguarding-relevant finding that should be coded to support follow-up and audit trails.",
+          "snomed_search": "child not brought to appointment"
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.9,
+      "notes": "The encounter text clearly documents a 'child not brought to appointment' event (with a Read code Xab0Q referenced), which carries safeguarding implications and should be coded as present; no other clinical concepts are documented in this encounter.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "3334cfac-e854-4715-aa4e-282896528034",
+        "date": "2025-05-06",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "770afd2d-b669-4e14-976a-f3130d185ed8",
+    "patient_id": "7028414914",
+    "date": "2025-05-06",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.5,
+      "notes": "The encounter note contains only administrative/practitioner identification text with no clinical content, diagnoses, findings, procedures, or observations to code. No coding gaps or errors can be identified from this record.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "770afd2d-b669-4e14-976a-f3130d185ed8",
+        "date": "2025-05-06",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d5558069-701e-428a-b75d-20ac8f3432cd",
+    "patient_id": "7028414914",
+    "date": "2025-05-06",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "The encounter note is minimal and administrative in nature, recording only the fast-track 2WW head and neck cancer clinic attendance, which is correctly coded. No clinical findings, diagnoses, or procedures are documented beyond the attendance itself.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "d5558069-701e-428a-b75d-20ac8f3432cd",
+        "date": "2025-05-06",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "8c36267c-6e3b-49e2-88d4-db86d57e01b1",
+    "patient_id": "7028414914",
+    "date": "2025-05-06",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter note contains only administrative/organisational text describing a maxillofacial letter being forwarded to the practice by a medical secretary; there is no clinical content to code.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "8c36267c-6e3b-49e2-88d4-db86d57e01b1",
+        "date": "2025-05-06",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "44a91b54-ae17-415e-b4e3-cf309fd15987",
+    "patient_id": "7028414914",
+    "date": "2025-05-22",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [
+        {
+          "term": "Ulcer of palate",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The encounter note documents a new episode of palatal ulcer which requires SNOMED coding as an active clinical finding.",
+          "snomed_search": "ulcer of palate"
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "The encounter has zero coded concepts despite a clearly documented new clinical diagnosis of palatal ulcer; the single required concept is missing from the coded list. No other coding issues identified.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "44a91b54-ae17-415e-b4e3-cf309fd15987",
+        "date": "2025-05-22",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "261a2e06-b2f7-4e1c-84a6-49506c007b17",
+    "patient_id": "7028414914",
+    "date": "2025-05-22",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter note contains only administrative/organisational text (a receptionist-generated referral routing entry) with no clinical findings, diagnoses, procedures, or other codeable clinical content within scope. No coding gaps or errors can be identified.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "261a2e06-b2f7-4e1c-84a6-49506c007b17",
+        "date": "2025-05-22",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "480580c6-a4b2-482e-8f38-942ffd46f627",
+    "patient_id": "7028414914",
+    "date": "2025-06-10",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.9,
+      "notes": "The encounter is a brief administrative 2WW tracking entry; the single coded finding accurately captures the clinically meaningful content. The SCR preference override is administrative and requires no clinical coding.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "480580c6-a4b2-482e-8f38-942ffd46f627",
+        "date": "2025-06-10",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "0ecd0542-c345-4612-a6f7-86791bd95aa0",
+    "patient_id": "7028414914",
+    "date": "2025-06-20",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.99,
+      "notes": "This encounter record contains only an administrative SMS notification about car park closure; there is no clinical content requiring SNOMED CT coding.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "0ecd0542-c345-4612-a6f7-86791bd95aa0",
+        "date": "2025-06-20",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "ec67d892-43b9-46cf-a0f8-74deba2ed101",
+    "patient_id": "7028414914",
+    "date": "2025-06-20",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "The encounter record contains only an administrative entry (receptionist access role timestamp) with no clinical content, diagnoses, findings, procedures, or observations to code. No coding gaps or errors identified.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "ec67d892-43b9-46cf-a0f8-74deba2ed101",
+        "date": "2025-06-20",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "80851257-0b06-468f-901d-9e6d3323be40",
+    "patient_id": "7028414914",
+    "date": "2025-06-30",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter entry is purely administrative \u2014 a status update recording discharge from a referral pathway at an Urgent Treatment Centre. There is no clinical content, diagnosis, finding, or procedure documented that requires SNOMED coding.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "80851257-0b06-468f-901d-9e6d3323be40",
+        "date": "2025-06-30",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "42bfab16-5c77-4343-b33c-c92bf378f155",
+    "patient_id": "7028414914",
+    "date": "2025-06-30",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter contains only an administrative status update (discharge from care notification entered by a systems support role at an urgent treatment centre) with no clinical content to code. No SNOMED concepts are warranted.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "42bfab16-5c77-4343-b33c-c92bf378f155",
+        "date": "2025-06-30",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "f4691579-8320-4f18-8996-83b96af58d31",
+    "patient_id": "7028414914",
+    "date": "2025-07-09",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter contains only an administrative status update (discharge from care notification entered by a systems support role at an urgent treatment centre) with no clinical content to code. No SNOMED concepts are applicable.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "f4691579-8320-4f18-8996-83b96af58d31",
+        "date": "2025-07-09",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "6dcc2faf-e6df-4a4b-90ff-87b96a916f62",
+    "patient_id": "7028414914",
+    "date": "2025-08-19",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "The encounter text contains only an administrative entry recording staff access; there is no clinical content, diagnoses, findings, procedures, or patient-facing information to code.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "6dcc2faf-e6df-4a4b-90ff-87b96a916f62",
+        "date": "2025-08-19",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e2b3a7a4-95a4-45de-b740-d41c5d09ae8e",
+    "patient_id": "7028414914",
+    "date": "2025-08-19",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter contains only administrative text recording a failed/did-not-attend hospital appointment with no clinical findings, diagnoses, procedures, or substances to code. No SNOMED clinical concepts are required.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "e2b3a7a4-95a4-45de-b740-d41c5d09ae8e",
+        "date": "2025-08-19",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "18c4bf62-ee34-4d13-a4de-a4eee3e7f497",
+    "patient_id": "7028414914",
+    "date": "2025-08-19",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter note contains only administrative/organisational text describing a maxillofacial correspondence routed to the practice by a medical secretary; there is no clinical content to code. No coding gaps or errors identified.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "18c4bf62-ee34-4d13-a4de-a4eee3e7f497",
+        "date": "2025-08-19",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "0b408553-455f-4629-a01f-b2f25ed48881",
+    "patient_id": "7028414914",
+    "date": "2025-09-15",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.99,
+      "notes": "This encounter contains only an administrative Summary Care Record preference update performed by a receptionist; there is no clinical content to code. No SNOMED concepts are required.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "0b408553-455f-4629-a01f-b2f25ed48881",
+        "date": "2025-09-15",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "8b03f555-bb61-4bc5-bfc6-e6066bad1733",
+    "patient_id": "7028414914",
+    "date": "2025-09-15",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.99,
+      "notes": "This encounter record contains only an administrative SMS notification regarding car park closure; there is no clinical content to code.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "8b03f555-bb61-4bc5-bfc6-e6066bad1733",
+        "date": "2025-09-15",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "0920b505-e8f0-4870-89ca-70062f836c42",
+    "patient_id": "7028414914",
+    "date": "2025-09-15",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "The encounter record contains only an administrative entry (receptionist access role timestamp) with no clinical content, diagnoses, findings, procedures, or observations to code. No coding gaps or errors identified.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "0920b505-e8f0-4870-89ca-70062f836c42",
+        "date": "2025-09-15",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "1cda78ee-4881-418d-9911-61918156c1b3",
+    "patient_id": "7028414914",
+    "date": "2025-12-07",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "The encounter text contains only an administrative access log entry (staff name, role, timestamp) with no clinical content whatsoever; there are no diagnoses, findings, procedures, or other codeable clinical concepts to assess.",
+      "_meta": {
+        "patient_id": "7028414914",
+        "encounter_id": "1cda78ee-4881-418d-9911-61918156c1b3",
+        "date": "2025-12-07",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  }
+]

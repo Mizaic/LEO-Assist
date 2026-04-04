@@ -47,6 +47,8 @@ export interface ReviewItem {
   suggestedLabel?: string;
   /** Score delta between the top candidate's tag and the best same-tag candidate. */
   tagMismatchDelta?: number;
+  /** Priority order for surface form tasks (lower = higher priority). */
+  surfaceFormPriority?: number;
 }
 
 type TypeLabel = { text: string; color: "warning" | "info" | "error" | "default" };

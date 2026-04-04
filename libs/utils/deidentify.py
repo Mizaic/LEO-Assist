@@ -260,6 +260,28 @@ def deidentify_text(text: str, *, ner: bool | None = None) -> str:
     return out
 
 
+def deidentify_with_span(
+    sentence: str,
+    span_text: str,
+) -> tuple[str, int, int]:
+    """Return (de-identified sentence, span start, span end).
+
+    De-identifies the sentence first, then re-finds the span by
+    case-insensitive string search. Safe because entity text (clinical
+    terms) is never PII.
+
+    When the span cannot be found after de-identification (e.g. the span
+    text overlapped with a PII token), returns (-1, -1) as sentinel
+    values. Callers MUST skip records with start == -1 to avoid
+    corrupting training data.
+    """
+    deident = deidentify_text(sentence, ner=True)
+    idx = deident.lower().find(span_text.lower())
+    if idx == -1:
+        return deident, -1, -1
+    return deident, idx, idx + len(span_text)
+
+
 def detect_phi(text: str) -> list[str]:
     """Return a list of PII type tags found in ``text`` (for audit / logging).
 

@@ -1,0 +1,119 @@
+# -- UN-LEO-AI-049 -- Coding Quality Monitoring and Continuous Improvement
+# User Need covering Loop 1 (automated audit/drift detection) and Loop 2 (surface form learning)
+
+- id: "UN-LEO-AI-049"
+  title: "Operations team needs to monitor coding quality over time and act on regressions before they affect patient care."
+  description: |
+    The clinical operations team must be able to see, week by week, whether
+    the NER coding pipeline is getting better or worse. When quality drops,
+    they need an alert so they can investigate and fix the problem before
+    patients are harmed by incorrect or missing codes.
+
+    The system must also learn from reviewers. When a reviewer fixes a wrong
+    code, the correct mapping should be proposed for reuse -- but only after a
+    second reviewer agrees. This prevents a single mistake from spreading to
+    every future encounter with the same phrasing.
+
+    Loop 1 (weekly audit) and Loop 2 (surface form learning) together deliver
+    this continuous improvement cycle.
+
+  stakeholder:
+    type: "internal_user"
+    role: "Clinical Operations Lead / Clinical Safety Officer"
+    organization: "LEO AI Engineering / Mizaic"
+
+  priority: "MUST"
+
+  rationale: |
+    SNOMED coding errors in patient records can affect clinical decisions,
+    quality reporting, and payment. Without automated monitoring, a systematic
+    drop in coding accuracy could go unnoticed for weeks. The operations team
+    needs a closed feedback loop: detect problems, alert the right person,
+    fix the root cause (often a missing surface form mapping), and confirm
+    the fix worked.
+
+    IEC 62304 requires post-market surveillance of safety-relevant software.
+    Loop 1 is the primary post-market surveillance mechanism for the NER
+    pipeline. ISO 14971 requires that risks are monitored and residual risk
+    remains acceptable over the product lifecycle.
+
+  benefit: |
+    Coding quality regressions are detected within one week instead of at the
+    next clinical audit (months later). Surface form gaps found by the auditor
+    are fed directly into the reviewer queue for targeted correction. Incorrect
+    reusable mappings are blocked by a two-reviewer gate before they propagate.
+
+  use_case: |
+    1. Every Monday at 02:00 UTC, the audit script runs against the last 7
+       days of new encounters.
+    2. If coding accuracy drops more than 3 percentage points, or new critical
+       missing codes are found, a SafetyNetAlert is created.
+    3. The operations lead sees a red badge on the Quality tab and acknowledges
+       the alert within 48 hours.
+    4. Reviewers see the surface form gaps in the review queue (priority sorted)
+       and approve or reject each suggested mapping.
+    5. Approved mappings go live and the NER pipeline uses them immediately.
+    6. The drift chart shows the accuracy trend over 12 weeks, with annotations
+       when the checker model version changed.
+
+  current_solution: |
+    No automated monitoring. Coding accuracy is checked only during manual
+    clinical audits, which are infrequent and retrospective.
+
+  pain_points:
+    - "Coding regressions are detected months late, after clinical harm may have occurred"
+    - "No mechanism to systematically grow the surface form dictionary from real errors"
+    - "Single reviewer can create a live reusable mapping without peer check"
+    - "No alert escalation -- unacknowledged alerts sit indefinitely"
+    - "Overcoded items are mixed into the general queue with no urgency signal"
+
+  acceptance_criteria:
+    - "Audit runs weekly on all encounters from the previous 7 days"
+    - "SafetyNetAlert created when pct_clean drops >3 points or new critical terms appear"
+    - "Alert appears in UI within one run; reviewer can acknowledge it"
+    - "Unacknowledged alerts escalate at 48h, 7d, and 14d (auto-pause)"
+    - "Reviewer corrections create a SurfaceFormTask; MAPS_TO only created on second approval"
+    - "Overcoded items appear in a separate urgent queue section with a 48-hour SLA"
+    - "Loop 1 and Loop 2 each have a kill switch that takes effect without redeployment"
+
+  success_metrics:
+    - metric: "Time from coding regression to alert raised"
+      target: "Under 7 days (one audit cycle)"
+      baseline: "Currently detected only at manual audit (months)"
+    - metric: "False positive rate of auditor alerts"
+      target: "Auditor precision >= 0.80 overall"
+      baseline: "Not currently measured"
+    - metric: "Safety-critical miss rate (cancer, safeguarding, mental health)"
+      target: "Auditor recall >= 0.90 for safety-critical categories"
+      baseline: "Not currently measured"
+
+  regulatory_impact: "post_market_surveillance"
+  safety_impact: "high"
+  safety_class: "B"
+
+  derived_from:
+    - "Intended Use Statement DC-IU-001"
+    - "ISO 13485:2016 clause 8.2.1 (feedback)"
+    - "IEC 62304:2006+A1:2015 clause 6.2 (software maintenance process)"
+
+  related_standards:
+    - "IEC 62304:2006+A1:2015"
+    - "ISO 13485:2016"
+    - "ISO 14971:2019"
+    - "DCB0129 Clinical Risk Management"
+
+  metadata:
+    created_by: "Quality Lead"
+    created_date: "2026-04-03"
+    status: "draft"
+    evidence_source: "Three Learning Loops Production Plan v3.0 (Pre-Sprint)"
+
+  design_inputs: [
+    "DI-LEO-AI-072",
+    "DI-LEO-AI-073",
+    "DI-LEO-AI-074",
+    "DI-LEO-AI-075",
+    "DI-LEO-AI-076"
+  ]
+  validation_tests: []
+  tags: ["coding-quality", "audit", "drift-detection", "surface-forms", "loop1", "loop2", "post-market-surveillance"]

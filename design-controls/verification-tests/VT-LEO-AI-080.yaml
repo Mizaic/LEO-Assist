@@ -1,0 +1,192 @@
+- id: "VT-LEO-AI-080"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-080", "DI-LEO-AI-004"]
+    risks: ["R-LEO-AI-054"]
+
+  metadata:
+    title: "Appointment Header Filter and Resolver Input Normalisation"
+    description: >
+      Verifies that (1) administrative appointment header sentences are
+      correctly detected and removed before extraction, (2) clinical
+      sentences are not falsely filtered, (3) the resolver input
+      normalisation strips lab value strings and EMIS code suffixes
+      before terminology lookup, and (4) resolver results are correctly
+      re-keyed to the original (unnormalised) term.
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    test_file_paths:
+      - "tests/test_terminology_normalise.py"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites:
+      - "Python 3.12 with project venv active"
+      - "No external services required (pure unit tests)"
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-080-TC-001"
+      case_name: "Timestamp-led header sentence detected and removed"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call is_header_sentence('07:35 - Surgery: INGLE, Kirsty (Receptionist Access Role)')"
+          expected_result: "Returns True"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "is_header_sentence returns True for HH:MM timestamp-led lines"
+
+    - case_id: "VT-080-TC-002"
+      case_name: "Entered-at header sentence detected"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call is_header_sentence('Entered at: LLR Community Therapy Service')"
+          expected_result: "Returns True"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "is_header_sentence returns True for 'Entered at:' lines"
+
+    - case_id: "VT-080-TC-003"
+      case_name: "Non-clinical team header detected"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call is_header_sentence('Presenting to non-clinical team with: To request repeat medication')"
+          expected_result: "Returns True"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "is_header_sentence returns True for non-clinical team lines"
+
+    - case_id: "VT-080-TC-004"
+      case_name: "Appointment booking confirmation detected"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Call is_header_sentence('Your appointment has been booked for 13 Nov 2024 at Woodbrook Medical Centre')"
+          expected_result: "Returns True"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "is_header_sentence returns True for appointment booking lines"
+
+    - case_id: "VT-080-TC-005"
+      case_name: "Clinical sentence NOT filtered (false positive prevention)"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call is_header_sentence('Patient reports chest pain on exertion for 3 weeks.')"
+          expected_result: "Returns False"
+          verification_method: "automated"
+        - step_number: 2
+          action: "Call is_header_sentence('Type 2 diabetes mellitus, well controlled on Metformin.')"
+          expected_result: "Returns False"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Clinical sentences are never classified as headers"
+
+    - case_id: "VT-080-TC-006"
+      case_name: "Empty encounter after header filtering returns empty list"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Create a SentenceChunk list containing only header sentences; call filter_header_sentences()"
+          expected_result: "Returns empty list without raising an exception"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "No exception raised when all sentences are headers"
+        - "Returns empty list"
+
+    - case_id: "VT-080-TC-007"
+      case_name: "Lab string normalisation strips numeric value and unit"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call _normalise_for_resolve('Serum triglyceride 1.05 mmol/L')"
+          expected_result: "Returns 'Serum triglyceride'"
+          verification_method: "automated"
+        - step_number: 2
+          action: "Call _normalise_for_resolve('Haemoglobin 160 g/L')"
+          expected_result: "Returns 'Haemoglobin'"
+          verification_method: "automated"
+        - step_number: 3
+          action: "Call _normalise_for_resolve('Serum TSH level 1.3 mIU/L')"
+          expected_result: "Returns 'Serum TSH level'"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Numeric value + SI unit suffix stripped correctly"
+
+    - case_id: "VT-080-TC-008"
+      case_name: "EMIS local code suffix stripped"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Call _normalise_for_resolve('Carcinoma of stomach (X78gA)')"
+          expected_result: "Returns 'Carcinoma of stomach'"
+          verification_method: "automated"
+        - step_number: 2
+          action: "Call _normalise_for_resolve('Chronic Symptoms (Y41c9)')"
+          expected_result: "Returns 'Chronic Symptoms'"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "EMIS (XNNNNN) suffix stripped correctly"
+
+    - case_id: "VT-080-TC-009"
+      case_name: "Non-lab clinical phrase not altered by normalisation"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call _normalise_for_resolve('Type 2 diabetes mellitus')"
+          expected_result: "Returns 'Type 2 diabetes mellitus' unchanged"
+          verification_method: "automated"
+        - step_number: 2
+          action: "Call _normalise_for_resolve('hypertension')"
+          expected_result: "Returns 'hypertension' unchanged"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Plain clinical terms are not altered"
+
+    - case_id: "VT-080-TC-010"
+      case_name: "Resolver results re-keyed to original (un-normalised) term"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            Mock TerminologyClient._resolve_batch to return results keyed by
+            normalised term; call resolve(['Serum triglyceride 1.05 mmol/L']);
+            verify returned dict is keyed by the original string.
+          expected_result: "Result dict contains key 'Serum triglyceride 1.05 mmol/L'"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Callers always receive results keyed by the string they passed in"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-080/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - run_id: "VT-080-RUN-001"
+      date: "2026-04-04"
+      executor: "AI Coding Agent"
+      environment: "local-dev / pytest 8.3.5 / Python 3.13.1"
+      result: "pass"
+      notes: >
+        52 tests collected and passed. All critical test cases (TC-001 through
+        TC-006, TC-007 through TC-010) passed. Zero false positives on clinical
+        sentence detection. Lab value stripping and EMIS code stripping verified
+        against 16 parametrized inputs. Result re-keying verified including
+        many-to-one normalisation case.
+      evidence_path: "tests/test_terminology_normalise.py"

@@ -1,0 +1,708 @@
+========================================================================
+PATIENT:        4742236882
+EPISODE:        fc03a767be192ea4
+CONDITION TYPE: unknown
+DIAGNOSIS DATE: 2025-02-27
+FLAGS:          NO_REFERRAL
+TOTAL ENCOUNTERS: 485
+========================================================================
+
+--- 2012-01-12  56215e5e-5f68-485a-a4bc-01659eaed455 ---
+TEXT: Externally Entered: ALLEN, Tina (Mrs)   | Additional: EMIS attachment reference code Disch from bowel cancer screen prog - failed to return FOBT kit - Eastern Hub |  to Unknown - "EMIS attachment reference code" EMIS attachment reference code EMIS attachment reference code Disch from bowel cancer screen prog - failed to return FOBT kit - Eastern Hub
+
+--- 2014-02-15  cd48c780-4dbd-4cd7-b10f-da88f85df886 ---
+TEXT: SMITH, Krissie (Miss)  , Authorised By: GHALY, Melvinder (Dr) | No response to bowel cancer screening programme invitation (XaPf6) - No response to BCSP invitation | Bowel cancer screening programme: faecal occult blood result (XaPVj) - BCS: FOB result BCS: FOB result, (klp8510) - Normal - No action, Non-Response. Sent when Discharged for non-response to initial Test, Kit
+ALL CODES (no direct signal):
+  - Normal appearance (finding) [Clinical_finding]
+  - No response to bowel cancer screening programme invitation (finding) [Clinical_finding]
+  - Bowel cancer screening programme faecal occult blood test normal (finding) [Clinical_finding]
+
+--- 2014-03-07  f00c4b43-e75c-4ed7-b175-e2c83bdad781 ---
+TEXT: 10:23 - Surgery: SMITH, Krissie (Miss)   | Additional: NHS Health Check invitation first letter | Test Request: Unknown specimen | Document: Letter sent to patient NHS Health Check invitation letter (07 Mar 2014) | Comment: NHS Hlth Chck rais awareness abt dementia and memory clinics | Comment: CVD CHECK | NHS Health Check invitation first letter (XaRBT) | NHS Hlth Chck rais awareness abt dementia and memory cl
+
+--- 2016-01-22  2f0289ad-c836-4c36-b3e9-78fe34d85d59 ---
+TEXT: SMITH, Krissie (Miss)  , Authorised By: GHALY, Melvinder (Dr) | No response to bowel cancer screening programme invitation (XaPf6) - No response to BCSP invitation | Bowel cancer screening programme: faecal occult blood result (XaPVj) - BCS: FOB result BCS: FOB result, (MSG8510) - Normal - No action, FOBT Non-Response. Sent when Discharged for non-response to initial, Test Kit
+ALL CODES (no direct signal):
+  - Normal appearance (finding) [Clinical_finding]
+  - No response to bowel cancer screening programme invitation (finding) [Clinical_finding]
+  - Bowel cancer screening programme faecal occult blood test normal (finding) [Clinical_finding]
+
+--- 2018-02-10  a63294ba-7902-4c63-8695-1a847556dbac ---
+TEXT: BREWIN, Jennifer J  , Authorised By: GHALY, Melvinder (Dr) | No response to bowel cancer screening programme invitation (XaPf6) - No response to BCSP invitation | Bowel cancer screening programme: faecal occult blood result (XaPVj) - BCS: FOB result BCS: FOB result, (KNB8510) - Non responder, FOBT Non-Response. Sent when Discharged for non-response to initial, Test Kit
+ALL CODES (no direct signal):
+  - No response to bowel cancer screening programme invitation (finding) [Clinical_finding]
+
+--- 2025-01-21  b472d929-faa9-4aea-bc2c-19e7a3a30a95 ---
+TEXT: 09:39 - GP Surgery: VADHER, Kishan (Dr) (Clinical Practitioner Access Role)  | Problem: Muscle sprain NOS (XA0Bg) | History: F2F appt. |  | 1/52 hx lower back pain  | Uses walking stick normally to mobilise   | Pain worse on walking around | No recent falls, injuries, trauma  | No night pain, fine if lies on back, no thoracic pain | No fevers, no urine freq, no haematuria, no urgency, no dysuria  | No shooting pains 
+ALL CODES (no direct signal):
+  - Back pain (finding) [Clinical_finding]
+  - Seen in general practitioner surgery (finding) [Clinical_finding]
+
+--- 2025-01-29  093465fa-26aa-4048-bbe0-f0f0b6ee7e96 ---
+TEXT: 14:23 - GP Surgery: VADHER, Kishan (Dr) (Clinical Practitioner Access Role)  | History: F2F appt. - with daughter  |  | 2/52 hx ongoing back pains still - r/v |   | Tried co-codamol 8/500 with topical ibuprofen  | No improvement with the above analgesia   |  | Would like to avoid co-codamol due to constipation   | Despite giving laxatives, as this then caused loose stool   |  | Right sided lumbar back pains  | Mobilising
+ALL CODES (no direct signal):
+  - Back pain (finding) [Clinical_finding]
+  - Seen in general practitioner surgery (finding) [Clinical_finding]
+  - Telephone consultation (procedure) [Procedure]
+
+--- 2025-02-05  6c342e65-bda7-4de0-9884-8c4c5d6f2895 ---
+TEXT: 09:17 - Surgery: Auto-filed   | Clinical Information: Reasons for Request:      As starting naproxen, not had any U | Acute Kidney Injury Staging: Not Applicable; AKI Stage NA - Flag High ?AKI ?CKD | Acute Kidney Injury Staging Report,ï¿½Abnormal,ï¿½Need to repeat test: Repeat in 6/52 time. Low eGFR. No baseline ?CKD. Review done by VADHER, Kishan (Dr) - 07 Feb 2025 17:32
+
+--- 2025-02-10  d39b6ebf-d2cf-4508-ba36-3cf04d776f54 ---
+TEXT: 10:10 - Clinic: SKILLING, Jack (Nurse Access Role) Entered at: Loughborough Urgent Treatment Centre | c/o: ID confirmed, consented, with daughter.  | PC: Back pain  | History: Gradual onset of right lower back pain since December. | Initially a mild ache, became troublesome in January  | Saw GP, initially Rx co-codamol but stopped due to SEs of nausea and constipation. | Changed to Naproxen with PPI, has a fe
+ALL CODES (no direct signal):
+  - Back pain (finding) [Clinical_finding]
+  - Lives alone (finding) [Clinical_finding]
+
+--- 2025-02-26  c032e5dd-47c5-4122-ae2c-6c248c232c65 ---
+TEXT: 15:33 - Surgery: SELVAMOGAN, Arrane (Dr) (Clinical Practitioner Access Role)  | Problem: [D]Acute abdomen (R090F) | History: 82F with 2 month hx of right flank pain radiating to RUQ.  |  | R. flank pain  | 10/10 severe pain | now constant sharp pain  | excerbated by walking   | leaning forward helps with pain   | sitting still helps with pain    | nausea but no vomiting     |  | Has not opened bowels in 3 days, not passe
+ALL CODES (no direct signal):
+  - Back pain (finding) [Clinical_finding]
+  - Estimated glomerular filtration rate by laboratory calculation (observable entity) [Observable_entity]
+  - Pharyngeal dysphagia (disorder) [Clinical_finding]
+  - Lives alone (finding) [Clinical_finding]
+  - Abdominal pain (finding) [Clinical_finding]
+  - Ex-cigarette smoker (finding) [Clinical_finding]
+  - Constipation (finding) [Clinical_finding]
+  - Nausea and vomiting (disorder) [Clinical_finding]
+
+--- 2025-02-27  75b881a5-1c20-4f5e-aba3-8cfa68974172 ---
+TEXT: Surgery: RAI, Enju (Miss) (Admin/Clinical Support Access Role) , Entered By: O'CONNELL, Charlotte (Ms) | Major: Metastasis to bone of unknown primary (Xa3AJ) (New Episode) | Magnetic resonance cholangiopancreatography (XaFC7) (New Episode) | Minor: Dilation of biliary tract (XaAzZ) - intra and extra hepatic (New Episode) | Major: Atrial fibrillation (G5730) (New Episode) | Minor: Hypercalcaemia (X40Qa) (New
+CODED SIGNALS:
+  [DIAG] Metastatic malignant neoplasm (disorder) [Disease] cid=128462008
+  [DIAG] Malignant neoplasm of bone (disorder) [Disease] cid=428281000
+  [DIAG] Malignant neoplasm of unknown origin (disorder) [Disease] cid=310504009
+
+--- 2025-03-14  f2351bf7-001f-4262-9d88-d0ff4aa68a55 ---
+TEXT: Surgery: SAYADIAN, Leanna (Miss) (Admin/Clinical Support Access Role) , Entered By: AMIN, Kunal (Dr) | Biopsy of breast (7135.) - left (New Episode) | Mammogram (537..) (New Episode) | US scan of breast (585C.) - and axilla - left (New Episode) | Biopsy of axillary lymph node (X20AR) - left (New Episode)
+ALL CODES (no direct signal):
+  - Ultrasonography (procedure) [Procedure]
+
+--- 2025-03-24  4d64bea6-d651-4838-a087-411313f0758e ---
+TEXT: Surgery: RAI, Enju (Miss) (Admin/Clinical Support Access Role) , Entered By: AMIN, Kunal (Dr) | Ultrasound scan (X70lf) - axilla - malignant looking LNs (New Episode) | Biopsy of breast (7135.) - core biopsy (New Episode) | Major: Infiltrating duct carcinoma (BB91.) (New Episode) | CT (computed tomography) of abdomen and pelvis (XaW9C) (New Episode) | Mammogram (537..) (New Episode) | Infiltrating duct carcin
+CODED SIGNALS:
+  [DIAG] Malignant tumor of breast (disorder) [Disease] cid=254837009
+
+--- 2025-03-24  a19d66b0-57dd-4929-9027-c62014dcf036 ---
+TEXT: Surgery: BEGUM, Senuara (Medical Secretary Access Role)  | Breast Surgeon to Woodbrook Medical Centre
+CODED SIGNALS:
+  [DIAG] Malignant tumor of breast (disorder) [Disease] cid=254837009
+
+--- 2025-03-24  e4df23eb-cd31-45d8-a68d-eaef43c07612 ---
+TEXT: Surgery: BEGUM, Senuara (Medical Secretary Access Role)  | Breast Surgeon to Woodbrook Medical Centre
+CODED SIGNALS:
+  [DIAG] Malignant tumor of breast (disorder) [Disease] cid=254837009
+
+--- 2025-03-24  ec95c6fe-2c11-44b5-a7c3-a03fea4a516f ---
+TEXT: Surgery: BROWN, Nicola (Admin/Clinical Support Access Role) , Entered By: KETHEESWARAN, Arthika (Dr) | Ultrasound scan (X70lf) - axillary (New Episode) | Major: Metastasis to lymph node (Xa980) (New Episode) | Metastasis to lymph node (Xa980)
+ALL CODES (no direct signal):
+  - Ultrasonography (procedure) [Procedure]
+  - Computed tomography (procedure) [Procedure]
+
+--- 2025-04-03  2d855c1f-f2eb-4781-86e3-9b981fb1602f ---
+TEXT: Surgery: RAI, Enju (Miss) (Admin/Clinical Support Access Role) , Entered By: AMIN, Kunal (Dr) | MRI of spine (X70pC) (New Episode) | Major: Metastatic spinal cord compression (Y2bfc) (New Episode) | Major: Palliative course of radiotherapy (5149.) (New Episode) | Metastatic spinal cord compression (Y2bfc) | Palliative course of radiotherapy (5149.)
+CODED SIGNALS:
+  [DIAG] Metastatic malignant neoplasm (disorder) [Disease] cid=128462008
+
+--- 2025-04-03  46afa0a6-5a93-4858-bcb8-f4bb319ce26e ---
+TEXT: Surgery: RAI, Enju (Miss) (Admin/Clinical Support Access Role)  | Biopsy of breast (7135.) (Ongoing Episode)
+CODED SIGNALS:
+  [DIAG] Metastatic malignant neoplasm (disorder) [Disease] cid=128462008
+
+--- 2025-04-03  9c41db87-f846-4a45-acec-531dc7273af6 ---
+TEXT: Surgery: RAI, Enju (Miss) (Admin/Clinical Support Access Role) , Entered By: AKHTAR, Mohammed (Mr) | MRI of spine (X70pC) (New Episode) | Major: Metastatic spinal cord compression (Y2bfc) (New Episode) | Major: Palliative course of radiotherapy (5149.) (New Episode)
+CODED SIGNALS:
+  [DIAG] Metastatic malignant neoplasm (disorder) [Disease] cid=128462008
+
+--- 2025-04-03  f1b5bd07-7aae-47eb-98c8-6b4205dcc503 ---
+TEXT: Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role)  | Oncology to Dr Medical Woodbrook
+
+--- 2025-04-18  492a6e5f-988d-492e-b1c3-d3305f8beb81 ---
+TEXT: 11:47 - Office Base: BELL, Zoe (Health Professional Access Role) Entered at: LLR Community Therapy Service |  Triage Template |    Medical Information |       Presenting complaint:  Call to Jane daughter, she reported that ASC, had visited and were installing a stair rail  | Has a walking aid (wzf and kitchen trolley), she has this for downstairs | Also been given 2 x combi frames | Is also awaiting a bed lev
+ALL CODES (no direct signal):
+  - Seen in primary care establishment (finding) [Clinical_finding]
+
+--- 2025-04-18  970aa447-b438-4eaa-913a-db345e61f52e ---
+TEXT: 13:40 - WIGNALL, Melanie (Admin/Clinical Support Access Role) Entered at: LLR Community Therapy Service | CHS - First Contact Review completed on 18 Apr 2025 |  | Scheduled Obs Performed: NEWS2 Community - Score: 0 | Falls Risk Assessment Tool (FRAT) -  questionnaire started - (finalised: 18 Apr 2025 13:40) | Falls risk assessment tool (XaZP6) 2  - (Added from Questionnaire) |  Waterlow Assessment Tool (LPT) 
+
+--- 2025-04-24  d0b91c05-b6e2-40ec-8e93-a88543762f9b ---
+TEXT: Surgery: BEGUM, Senuara (Medical Secretary Access Role)  | Oncology to Woodbrook Medical Centre
+
+--- 2025-04-29  e8e6a21b-72ae-41f4-a423-66b3a8e78029 ---
+TEXT: 15:31 - Surgery: SUTHAR, Jaiman (Mr) (Pharmacist)  |  Clinical Pharmacist |    Clinical Pharmacist |       Seen: Seen by clinical pharmacist (Y20a6) |       Shared decision making: Shared decision making (XaYjg) |    Entries from previous template version |       Patient identity verified (XaXmW) - spoke with pts daughter Jayne - pt present |       Telephone consultation (XaIge) |  Drug Review |    Reconciliation |  
+ALL CODES (no direct signal):
+  - Seen in primary care establishment (finding) [Clinical_finding]
+  - Telephone consultation (procedure) [Procedure]
+
+--- 2025-05-08  68cdcd34-73aa-43be-8e34-65b77e8ba5b7 ---
+TEXT: Surgery: BEGUM, Senuara (Medical Secretary Access Role)  | Oncology to Woodbrook Medical Centre
+CODED SIGNALS:
+  [HIST] History of malignant neoplasm (situation) [Situation] cid=266987004
+
+--- 2025-05-08  700d3a3a-cb9f-4b51-9734-f180f4598e37 ---
+TEXT: 15:42 - Surgery: BROCKHURST, Nikki (Dr) (Clinical Practitioner Access Role)  | History: cqc searches - possible CKD   | note Ca breast with spinal mets and spinal cord compression - under oncol ongoing   | ICE reviewed   | eGFR 5/2/25 = 35 and has remained below 60 (now 44 on 15/4/25) since | first bloods on ICE feb 25 - ideally needs 3/12 interval with eGFRs < 60, but given ongoing ca breast work up and on
+CODED SIGNALS:
+  [DIAG] Metastatic malignant neoplasm (disorder) [Disease] cid=128462008
+  [DIAG] Malignant tumor of breast (disorder) [Disease] cid=254837009
+
+--- 2025-05-10  6904f42b-5a10-4683-9cec-1f0f435af21b ---
+TEXT: 09:53 - Sent online by Mrs Jayne Louise Underwood   | Request for 'Adcal-D3 750mg/200unit caplets (Kyowa Kirin International UK NewCo Ltd)' by patient | Request for 'Letrozole 2.5mg tablets' by patient
+
+--- 2025-05-12  c519a172-25f0-4ecb-a57e-7ae8349a3354 ---
+TEXT: 08:37 - Surgery: INGLE, Kirsty (Receptionist Access Role)  | (R) Adcal-D3 750mg/200unit caplets (Kyowa Kirin International UK NewCo Ltd) - 56 tablet - take two tablets once a day | (R) Letrozole 2.5mg tablets - 28 tablet - take one once daily |  N+S Encounter type |    *Reason for contact / Entering record: Presenting to non-clinical team with: To request repeat medication (Y41ce) |    Type of encounter: Ad
+
+--- 2025-05-22  b1193449-07e7-4a26-b982-535893faa6b6 ---
+TEXT: Surgery: BEGUM, Senuara (Medical Secretary Access Role)  | Oncology to Woodbrook Medical Centre
+
+--- 2025-05-30  1c44a796-49e7-4a00-a25b-673d0c56b7f7 ---
+TEXT: 07:52 - Surgery: BROCKHURST, Nikki (Dr) (Clinical Practitioner Access Role)  | Problem: Chronic kidney disease stage 3 (XaLHI) | History: cqc CKD searches   | eGFR on ICE 38 | no recent acr available, but there is context re: background diagnosis | has been <60 for some months now   | note remains open to oncol  - c breast with spinal mets - palliative intent rx | has KA app 3/6 for cancer care review - KA pls,
+CODED SIGNALS:
+  [DIAG] Metastatic malignant neoplasm (disorder) [Disease] cid=128462008
+  [DIAG] Malignant tumor of breast (disorder) [Disease] cid=254837009
+
+--- 2025-06-03  19a0bc18-622a-47f0-942e-ca034303c880 ---
+TEXT: 15:58 - INGLE, Kirsty   |  N+S Encounter type |    *Reason for contact / Entering record: Presenting to non-clinical team with: To book tests requested by practice (Y41cc) |    Type of encounter: Contact trigger: Patient request via walk in / front desk (Y3e8f) | Presenting to non-clinical team with: To book tests requested by practice (Y41cc) | Contact trigger: Patient request via walk in / front desk (Y3e
+CODED SIGNALS:
+  [HIST] History of malignant neoplasm (situation) [Situation] cid=266987004
+
+--- 2025-06-03  4baf9d4b-4bc7-4edb-9b19-324cf873932e ---
+TEXT: 15:31 - Surgery: AMIN, Kunal (Dr) (Clinical Practitioner Access Role)  | History: Seen with daughter... | Events noted - admission February for gallstones. | Found on scans to have breast lesion with mets. Also new AF. | 8 May 2025 oncology letter noted - given furosemide 20mg for ankle oedema. | Had RT and on denosumab, tolerated well.  | Daughter provided share care form from hospital to me about this. | Next
+CODED SIGNALS:
+  [HIST] History of malignant neoplasm (situation) [Situation] cid=266987004
+  [DIAG] Metastatic malignant neoplasm (disorder) [Disease] cid=128462008
+  [DIAG] Malignant tumor of breast (disorder) [Disease] cid=254837009
+
+--- 2025-06-03  58d09dbc-5857-4df0-b3f4-7248e233d598 ---
+TEXT: 18:30 - Surgery: AMIN, Kunal (Dr) (Clinical Practitioner Access Role)
+CODED SIGNALS:
+  [HIST] History of malignant neoplasm (situation) [Situation] cid=266987004
+
+--- 2025-06-03  710150bb-d34c-4092-a95d-ef496879075c ---
+TEXT: 10:03 - Surgery: INGLE, Kirsty (Receptionist Access Role)  |  N+S Encounter type |    *Reason for contact / Entering record: Contact trigger: Practice: Activity generated in response to a task (Y41c4) |    Type of encounter: Administration (9....) | Contact trigger: Practice: Activity generated in response to a task (Y41c4) | Administration (9....)
+CODED SIGNALS:
+  [HIST] History of malignant neoplasm (situation) [Situation] cid=266987004
+
+--- 2025-06-03  7d3052b5-a28d-49a7-9dff-8ce81d617f15 ---
+TEXT: 16:41 - Surgery: FOX, Lauren (Mrs) (Systems Support Access Role) Entered at: Loughborough Urgent Treatment Centre | Status Update for  Referral In: Discharged From Care, Status changed: 03 Jun 2025 16:41
+CODED SIGNALS:
+  [HIST] History of malignant neoplasm (situation) [Situation] cid=266987004
+
+--- 2025-06-03  95282f7f-9294-4112-91aa-46d6de44e2df ---
+TEXT: 18:50 - Surgery: AMIN, Kunal (Dr) (Clinical Practitioner Access Role)  | Pathology Request (Request Sent): | Bone Profile (Requested), C reactive protein (Requested), Full Blood Count (Requested), Liver Function Test (Requested), Urea & electrolytes (Requested)
+CODED SIGNALS:
+  [HIST] History of malignant neoplasm (situation) [Situation] cid=266987004
+  [DIAG] Metastatic malignant neoplasm (disorder) [Disease] cid=128462008
+  [DIAG] Malignant tumor of breast (disorder) [Disease] cid=254837009
+
+--- 2025-06-04  d60fd61b-760e-46bd-a2e0-a9cbee928dd1 ---
+TEXT: 12:59 - Sent online by Mrs Jayne Louise Underwood   | Request for 'Adcal-D3 750mg/200unit caplets (Kyowa Kirin International UK NewCo Ltd)' by patient | Request for 'Letrozole 2.5mg tablets' by patient
+
+--- 2025-06-04  d85e4174-eb1c-4fdf-b7b4-39ffac157abc ---
+TEXT: 13:00 - Surgery: INGLE, Kirsty (Receptionist Access Role)  | (R) Adcal-D3 750mg/200unit caplets (Kyowa Kirin International UK NewCo Ltd) - 56 tablet - take two tablets once a day | (R) Letrozole 2.5mg tablets - 28 tablet - take one once daily |  N+S Encounter type |    *Reason for contact / Entering record: Presenting to non-clinical team with: To request repeat medication (Y41ce) |    Type of encounter: Ad
+
+--- 2025-06-10  5bb24a83-6252-44ec-9bd9-ba0050ae78a6 ---
+TEXT: 18:00 - Surgery: AMIN, Kunal (Dr) (Clinical Practitioner Access Role)  | History: SCA received for denosumab 120mg once a month. | Unable to prescribe as comes up orange with red cross next to it - no generic prescribing. | Checked with pharmacy - informed will need to prescribe as brand name Xgeva or Prolia. | Diagnosis: Infiltrating duct carcinoma (BB91.) | Plan: Denosumab added to repeats. | SCA signed. | Xg
+CODED SIGNALS:
+  [DIAG] Malignant tumor of breast (disorder) [Disease] cid=254837009
+
+--- 2025-06-10  f8bad273-d850-43b1-8083-f9a21072b968 ---
+TEXT: Surgery: BAILEY, Cleopatra (Receptionist Access Role)  | Shared Care Drug Treatment to Woodbrook Medical Centre
+CODED SIGNALS:
+  [HIST] History of malignant neoplasm (situation) [Situation] cid=266987004
+
+--- 2025-06-16  7c8de6e7-976e-41c9-b33e-3af811a2de0d ---
+TEXT: 15:41 - Surgery: BAILEY, Cleopatra (Receptionist Access Role)  | (R) Xgeva 120mg/1ml solution for injection pre-filled syringes (Amgen Ltd) - 1 pre-filled disposable injection - once a month - as per oncology |  N+S Encounter type |    *Reason for contact / Entering record: Presenting to non-clinical team with: To request repeat medication (Y41ce) |    Type of encounter: Administration (9....) | FP10: Print
+CODED SIGNALS:
+  [HIST] History of malignant neoplasm (situation) [Situation] cid=266987004
+
+--- 2025-06-16  b1f80e39-2c73-4f7c-920e-759182c24ae8 ---
+TEXT: 10:22 - Surgery: AMIN, Kunal (Dr) (Clinical Practitioner Access Role)  | Patient telephone number (9159.) - +447704304737 | Short message service text message sent to patient (XaMiI) |  | Dear Mrs Thorburn, |  | I have issued your denosumab injection and sent prescription to Allied Pharmacy next door - please liase with pharmacy. |  | You will need to collect this medication and bring it with you next week for yo
+CODED SIGNALS:
+  [HIST] History of malignant neoplasm (situation) [Situation] cid=266987004
+
+--- 2025-06-16  d7b5860f-1a22-4bfe-b32a-6a36e2a8e76d ---
+TEXT: 10:13 - Surgery: AMIN, Kunal (Dr) (Clinical Practitioner Access Role)  | (R) Xgeva 120mg/1ml solution for injection pre-filled syringes (Amgen Ltd) - 1 pre-filled disposable injection - once a month - as per oncology |  PSDs |    Biologicals |       Denosumab PSD:  I authorise XGEVA 120mg/1.7ml by SC injection to be administered to this patient once every 4 WEEKS for bone metastasis for 1 YEAR from today 
+CODED SIGNALS:
+  [HIST] History of malignant neoplasm (situation) [Situation] cid=266987004
+
+--- 2025-06-19  0ecf1ad0-f0d6-4a99-86b2-7d2c0548eeb7 ---
+TEXT: 09:43 - Surgery: DAWSON, Claire (Nurse) (Nurse Access Role)  | History: Attended with daughter for pre chemo b/t and bloods prior to Denosumab injection - bloods all included on hosp form. |  Phlebotomy Service |    0214 006 Phlebotomy Service |       ^Referral source (CBS claim): Phlebotomy generated from secondary care done by practice (XaK2I) |       ^Blood sample taken (CBS claim): Yes |       ^Seen by pr
+
+--- 2025-06-25  6c710e08-2c15-47d2-8887-3ea23cf9907e ---
+TEXT: 13:56 - Surgery: MCDOWELL, Giselle (Receptionist Access Role)  | (R) Xgeva 120mg/1ml solution for injection pre-filled syringes (Amgen Ltd) - 1 pre-filled disposable injection - once a month - as per oncology | (R) Adcal-D3 750mg/200unit caplets (Kyowa Kirin International UK NewCo Ltd) - 56 tablet - take two tablets once a day | (R) Letrozole 2.5mg tablets - 28 tablet - take one once daily |  N+S Encounte
+
+--- 2025-06-25  d54bb903-0770-4c34-be7c-d418834e6a30 ---
+TEXT: 13:56 - Sent online by Mrs Jayne Louise Underwood   | Request for 'Adcal-D3 750mg/200unit caplets (Kyowa Kirin International UK NewCo Ltd)' by patient | Request for 'Letrozole 2.5mg tablets' by patient | Request for 'Xgeva 120mg/1ml solution for injection pre-filled syringes (Amgen Ltd)' by patient
+
+--- 2025-06-26  b37e01f1-c914-4280-9bcf-6d457b63ca38 ---
+TEXT: 14:55 - Surgery: SUMNER, Emily (Miss) (Nurse Access Role)  | Problem: Metastasis to bone of unknown primary (Xa3AJ) | Examination: Attended for Denosumab injection with daughter | Has had the previous 2 injections administered at the hospital | PSD added by Dr Amin | Blood results on ICE within required range | Going on holiday so apt made for blood test on return 21.7.25 (will need to go urgently) and next i
+CODED SIGNALS:
+  [DIAG] Metastatic malignant neoplasm (disorder) [Disease] cid=128462008
+
+--- 2025-07-21  3015be77-1857-44ca-aa08-79ec1ef82a1d ---
+TEXT: 12:03 - Surgery: Auto-filed   | Serum total protein level (XE2e9) 63 g/L [57 - 82] | Clinical Information: Reasons for Request:      monitoring blood as per oncology for denosumab. | Serum total protein level Report,ï¿½Normal,ï¿½No Further Action. Review done by AMIN, Kunal (Dr) - 22 Jul 2025 08:23
+ALL CODES (no direct signal):
+  - White blood cell count in blood (observable entity) [Observable_entity]
+  - Platelet count (observable entity) [Observable_entity]
+  - Serum alanine aminotransferase level (observable entity) [Observable_entity]
+  - Serum bilirubin level (observable entity) [Observable_entity]
+  - Serum total protein (observable entity) [Observable_entity]
+  - Haematocrit (observable entity) [Observable_entity]
+  - Mean corpuscular volume (observable entity) [Observable_entity]
+  - Mean corpuscular haemoglobin (observable entity) [Observable_entity]
+
+--- 2025-07-21  44bd89bf-78a7-4e91-a933-959ab5b5305b ---
+TEXT: 12:03 - Surgery: Auto-filed   | Plasma C-reactive protein level (XE2dy) 31 mg/L [< 10] - Outside reference range | Clinical Information: Reasons for Request:      monitoring blood as per oncology for denosumab. | Plasma C-reactive protein level Report,ï¿½Abnormal,ï¿½Make an appointment to see doctor, Other (drop in hb, raised crp). Review done by AMIN, Kunal (Dr) - 22 Jul 2025 08:24
+ALL CODES (no direct signal):
+  - White blood cell count in blood (observable entity) [Observable_entity]
+  - Platelet count (observable entity) [Observable_entity]
+  - Serum alanine aminotransferase level (observable entity) [Observable_entity]
+  - Serum bilirubin level (observable entity) [Observable_entity]
+  - Haematocrit (observable entity) [Observable_entity]
+  - Mean corpuscular haemoglobin (observable entity) [Observable_entity]
+  - Serum C reactive protein level (observable entity) [Observable_entity]
+
+--- 2025-07-21  6aa4387a-b925-40be-b75f-34d5858e7dcf ---
+TEXT: 12:03 - Surgery: Auto-filed   | Clinical Information: Reasons for Request:      monitoring blood as per oncology for denosumab. | Acute Kidney Injury Staging: 0; No AKI | Acute Kidney Injury Staging Report,ï¿½Normal,ï¿½No Further Action. Review done by AMIN, Kunal (Dr) - 22 Jul 2025 08:23
+ALL CODES (no direct signal):
+  - White blood cell count in blood (observable entity) [Observable_entity]
+  - Platelet count (observable entity) [Observable_entity]
+  - Serum alanine aminotransferase level (observable entity) [Observable_entity]
+  - Serum bilirubin level (observable entity) [Observable_entity]
+  - Serum total protein (observable entity) [Observable_entity]
+  - Haematocrit (observable entity) [Observable_entity]
+  - Mean corpuscular volume (observable entity) [Observable_entity]
+  - Mean corpuscular haemoglobin (observable entity) [Observable_entity]
+
+--- 2025-07-21  6abf0aa5-1ecf-4ab1-8f26-7022e4940b36 ---
+TEXT: 12:03 - Surgery: Auto-filed   | Eosinophil count - observation (42K..) 0.16 10^9/L [0.04 - 0.4] | Basophil count (42L..) 0.03 10^9/L [0.02 - 0.1] | Lymphocyte count (42M..) 1.45 10^9/L [1 - 4] | Nucleated red blood cell count (4266.) < 0.2 10^9/L [0 - 0.2] | For further investigation of abnormal Full Blood Count | please see Haematology Referral Guidelines: | https://www.leicestershospitals.nhs.uk/aboutus/ | (cli
+ALL CODES (no direct signal):
+  - White blood cell count in blood (observable entity) [Observable_entity]
+  - Platelet count (observable entity) [Observable_entity]
+  - Serum alanine aminotransferase level (observable entity) [Observable_entity]
+  - Serum bilirubin level (observable entity) [Observable_entity]
+  - Serum total protein (observable entity) [Observable_entity]
+  - Concentration of hemoglobin in erythrocyte (observable entity) [Observable_entity]
+  - Mean corpuscular volume (observable entity) [Observable_entity]
+  - Mean corpuscular haemoglobin (observable entity) [Observable_entity]
+
+--- 2025-07-21  721ec2ae-bd6e-4bd7-bc96-5dab88799491 ---
+TEXT: 12:03 - Surgery: Auto-filed   | Liver function tests (X77WP) | Serum alanine aminotransferase level (XaLJx) 9 iu/L [10 - 49] - Outside reference range | Serum bilirubin level (44E..) 9 umol/L [< 21] | Clinical Information: Reasons for Request:      monitoring blood as per oncology for denosumab. | Liver function tests Report,ï¿½Satisfactory,ï¿½No Further Action. Review done by AMIN, Kunal (Dr) - 22 Jul 2025
+ALL CODES (no direct signal):
+  - White blood cell count in blood (observable entity) [Observable_entity]
+  - Platelet count (observable entity) [Observable_entity]
+  - Serum alanine aminotransferase level (observable entity) [Observable_entity]
+  - Serum bilirubin level (observable entity) [Observable_entity]
+  - Serum total protein (observable entity) [Observable_entity]
+  - Haematocrit (observable entity) [Observable_entity]
+  - Mean corpuscular volume (observable entity) [Observable_entity]
+  - Mean corpuscular haemoglobin (observable entity) [Observable_entity]
+
+--- 2025-07-21  a0be4bc9-c15a-4e90-b858-58d779093520 ---
+TEXT: 12:03 - Surgery: Auto-filed   | Serum urea level (XM0lt) 6.5 mmol/L [2.5 - 7.8] | Serum creatinine level (XE2q5) 109 umol/L [60 - 120] | eGFR using creatinine (CKD-EPI) per 1.73 square metres (XacUK) 41 mL/min | Urine ACR should be checked on at least an annual basis | for all individuals with CKD.  NICE recommends the | Kidney failure Risk Equation www.kfre.co.uk to | predict the risk of endstage kidney diseas
+ALL CODES (no direct signal):
+  - White blood cell count in blood (observable entity) [Observable_entity]
+  - Platelet count (observable entity) [Observable_entity]
+  - Serum total protein (observable entity) [Observable_entity]
+  - Blood potassium level (observable entity) [Observable_entity]
+  - Estimated glomerular filtration rate by laboratory calculation (observable entity) [Observable_entity]
+  - Blood sodium level (observable entity) [Observable_entity]
+  - Blood urea (observable entity) [Observable_entity]
+  - Serum creatinine level (observable entity) [Observable_entity]
+
+--- 2025-07-21  eb4701ad-95f6-4429-92a5-5a3a2d97d152 ---
+TEXT: 12:03 - Surgery: Auto-filed   | Serum alkaline phosphatase level (XE2px) 94 iu/L [30 - 130] | Bone profile (44Z2.) | Serum albumin level (XE2eA) 38 g/L [35 - 50] | Serum calcium level (XE2q3) 2.32 mmol/L | Serum adjusted calcium concentration (Xabpk) 2.36 mmol/L [2.12 - 2.51] | Reference range amended to account for calibration | difference in the SIEMENS assay.  Ann Clin Biochem | 2020 Sep 57(5):373-381 | Serum in
+ALL CODES (no direct signal):
+  - White blood cell count in blood (observable entity) [Observable_entity]
+  - Platelet count (observable entity) [Observable_entity]
+  - Serum albumin level (observable entity) [Observable_entity]
+  - Serum alkaline phosphatase level (observable entity) [Observable_entity]
+  - Serum total protein (observable entity) [Observable_entity]
+  - Serum inorganic phosphate level (observable entity) [Observable_entity]
+  - Serum adjusted calcium concentration (observable entity) [Observable_entity]
+  - Serum calcium level (observable entity) [Observable_entity]
+
+--- 2025-07-21  fc1764a6-c096-4ae1-a3bb-09c26157e8f3 ---
+TEXT: 12:03 - Surgery: DAWSON, Claire (Nurse) (Nurse Access Role)  | History: prior to Denosumab |  Phlebotomy Test |    Entries from previous template version |       Use of aseptic technique (Ua1Rc) |       Informed consent given (XaLQR) |       Infectious disease : prevention/control (XE1Sf) |  Phlebotomy Service |    0214 006 Phlebotomy Service |       Blood test type: Urgent (X78uK) |       ^Referral source (CBS claim
+ALL CODES (no direct signal):
+  - White blood cell count in blood (observable entity) [Observable_entity]
+  - Platelet count (observable entity) [Observable_entity]
+  - Serum total protein (observable entity) [Observable_entity]
+  - Haematocrit (observable entity) [Observable_entity]
+  - Mean corpuscular volume (observable entity) [Observable_entity]
+  - Mean corpuscular haemoglobin (observable entity) [Observable_entity]
+  - Serum C reactive protein level (observable entity) [Observable_entity]
+
+--- 2025-07-24  3debd78a-ce7c-4ad6-bd72-a0056beb1074 ---
+TEXT: 15:26 - Surgery: PATEL, Krishan (Dr) (Clinical Practitioner Access Role)  | Problem - whole event: Atrial fibrillation (G5730) | Problem - whole event: Metastasis to bone of unknown primary (Xa3AJ) | Problem - whole event: Infiltrating duct carcinoma (BB91.) | 135 / 93 | (R) Bisoprolol 5mg tablets - 28 tablet - take one tablet daily | Stopped 30 Jul 2025 Change to medication treatment regime by PATEL, Krishan
+CODED SIGNALS:
+  [DIAG] Metastatic malignant neoplasm (disorder) [Disease] cid=128462008
+  [DIAG] Malignant tumor of breast (disorder) [Disease] cid=254837009
+
+--- 2025-07-24  447e48be-9ed0-43df-84a9-a4a94bbb98ca ---
+TEXT: 15:21 - Surgery: SUMNER, Emily (Miss) (Nurse Access Role)  | Problem: Metastasis to bone of unknown primary (Xa3AJ) | Examination: Attended with daughter for Denosumab injection. | Recent bloods satisfactory for injection administration. | Plan: Apts made for next injection in 4 weeks and bt in 3 weeks. |  Drug Injections |    Denosumab |       ES admin: Yes |       Denosumab therapy: Yes |       Monitoring done: Y
+CODED SIGNALS:
+  [DIAG] Metastatic malignant neoplasm (disorder) [Disease] cid=128462008
+  [DIAG] Malignant tumor of breast (disorder) [Disease] cid=254837009
+
+--- 2025-07-24  aa337f9f-8f84-4c43-8ac6-869308a17d06 ---
+TEXT: 16:19 - Surgery: O'CONNELL, Charlotte (Ms) (Receptionist Access Role)  | (R) Xgeva 120mg/1ml solution for injection pre-filled syringes (Amgen Ltd) - 1 pre-filled disposable injection - once a month - as per oncology | (R) Adcal-D3 750mg/200unit caplets (Kyowa Kirin International UK NewCo Ltd) - 56 tablet - take two tablets once a day | (R) Edoxaban 30mg tablets - 28 tablet - Take ONE daily | (R) Letrozol
+CODED SIGNALS:
+  [HIST] History of malignant neoplasm (situation) [Situation] cid=266987004
+
+--- 2025-07-24  ad492089-5662-41ce-93da-313915af9af8 ---
+TEXT: 15:32 - Sent online by Mrs Jayne Louise Underwood   | Request for 'Bisoprolol 1.25mg tablets' by patient | Request for 'Adcal-D3 750mg/200unit caplets (Kyowa Kirin International UK NewCo Ltd)' by patient | Request for 'Edoxaban 30mg tablets' by patient | Request for 'Xgeva 120mg/1ml solution for injection pre-filled syringes (Amgen Ltd)' by patient | Request for 'Letrozole 2.5mg tablets' by patient
+ALL CODES (no direct signal):
+  - Blood pressure (observable entity) [Observable_entity]
+  - Concentration of hemoglobin in erythrocyte (observable entity) [Observable_entity]
+  - Computed tomography (procedure) [Procedure]
+
+--- 2025-08-04  c187e269-8929-4697-957f-65da1c5486af ---
+TEXT: 08:56 - Surgery: PATEL, Krishan (Dr) (Clinical Practitioner Access Role)  | Problem - whole event: Atrial fibrillation (G5730) | Naseptin nasal cream (Alliance Pharmaceuticals Ltd) - 15 gram - Apply four times daily for 10 days | (R) Epimax original cream (Aspire Pharma Ltd) - 500 gram - use 3-4 times daily |  Consultation. |    General |       Encounter: Consultation (Xa1qL) |       H:  rv of pulse.  still hig
+ALL CODES (no direct signal):
+  - Electrocardiogram (procedure) [Procedure]
+
+--- 2025-08-07  114b2d84-c44c-4339-87f4-57059772bf5b ---
+TEXT: Surgery: BEGUM, Senuara (Medical Secretary Access Role)  | Oncology to Woodbrook Medical Centre
+
+--- 2025-08-14  c6eb9a07-2bb5-4665-9461-19ea59245350 ---
+TEXT: 08:28 - Surgery: Auto-filed   | Acute Kidney Injury Staging: 0; No AKI | Clinical Information: Reasons for Request:      digoxin start. | Acute Kidney Injury Staging Report,ï¿½Normal,ï¿½No Further Action. Review done by PATEL, Krishan (Dr) - 18 Aug 2025 08:25
+ALL CODES (no direct signal):
+  - Serum albumin level (observable entity) [Observable_entity]
+  - Serum alkaline phosphatase level (observable entity) [Observable_entity]
+  - Blood potassium level (observable entity) [Observable_entity]
+  - Estimated glomerular filtration rate by laboratory calculation (observable entity) [Observable_entity]
+  - Blood sodium level (observable entity) [Observable_entity]
+  - Blood urea (observable entity) [Observable_entity]
+  - Serum inorganic phosphate level (observable entity) [Observable_entity]
+  - Serum adjusted calcium concentration (observable entity) [Observable_entity]
+
+--- 2025-08-15  a43d5a2f-c8ac-4181-9cae-9a3d5969eac3 ---
+TEXT: 05:44 - Sent online by Mrs Jayne Louise Underwood   | Request for 'Edoxaban 30mg tablets' by patient | Request for 'Adcal-D3 750mg/200unit caplets (Kyowa Kirin International UK NewCo Ltd)' by patient | Request for 'Xgeva 120mg/1ml solution for injection pre-filled syringes (Amgen Ltd)' by patient | Request for 'Letrozole 2.5mg tablets' by patient
+
+--- 2025-08-15  bb2a738d-bc84-445b-8179-17dd9dac88fa ---
+TEXT: 07:32 - Surgery: INGLE, Kirsty (Receptionist Access Role)  | (R) Xgeva 120mg/1ml solution for injection pre-filled syringes (Amgen Ltd) - 1 pre-filled disposable injection - once a month - as per oncology | (R) Adcal-D3 750mg/200unit caplets (Kyowa Kirin International UK NewCo Ltd) - 56 tablet - take two tablets once a day | (R) Edoxaban 30mg tablets - 28 tablet - Take ONE daily | (R) Letrozole 2.5mg tabl
+
+--- 2025-08-20  9ed41185-5ca3-4424-9baa-bb399f63df84 ---
+TEXT: 14:22 - Surgery: BAILEY, Cleopatra (Receptionist Access Role)  | (R) Xgeva 120mg/1ml solution for injection pre-filled syringes (Amgen Ltd) - 1 pre-filled disposable injection - once a month - as per oncology | (R) Bisoprolol 10mg tablets - 28 tablet - take one tablet daily |  N+S Encounter type |    *Reason for contact / Entering record: Presenting to non-clinical team with: To request repeat medication 
+
+--- 2025-08-21  462a5bc0-907f-43b9-90ed-f2a0ab775afe ---
+TEXT: 15:49 - Surgery: PATEL, Krishan (Dr) (Clinical Practitioner Access Role)  | Problem - whole event: Atrial fibrillation (G5730) | Problem - whole event: Atrial flutter (G5731) |  Consultation. |    General |       Encounter: Consultation (Xa1qL) |       H:   Reports a new onset of increased urinary frequency, particularly nocturia, waking up to four times per night to urinate. This symptom is being questioned 
+CODED SIGNALS:
+  [DIAG] Metastatic malignant neoplasm (disorder) [Disease] cid=128462008
+  [DIAG] Malignant neoplasm of unknown origin (disorder) [Disease] cid=310504009
+
+--- 2025-08-21  4811f997-c2bf-4a78-8ea4-e06bb4b763a2 ---
+TEXT: 15:35 - Surgery: SUMNER, Emily (Miss) (Nurse Access Role)  | Problem: Metastasis to bone of unknown primary (Xa3AJ) | Examination: Attended for XGEVA 120mg injection. | Recent bloods satisfactory. | Plan: Blood form on ice dated 24.7.25. | Appointment booked for bt in 3 weeks and next injection 4 in wks. |  Drug Injections |    Denosumab |       ES admin: Yes |       Denosumab therapy: Yes |       Monitoring done: Ye
+CODED SIGNALS:
+  [DIAG] Metastatic malignant neoplasm (disorder) [Disease] cid=128462008
+  [DIAG] Malignant neoplasm of unknown origin (disorder) [Disease] cid=310504009
+
+--- 2025-08-27  da475cad-90e9-482f-9bb3-fc2e19090347 ---
+TEXT: 07:34 - Surgery: MCDOWELL, Giselle (Receptionist Access Role)  | (R) Xgeva 120mg/1ml solution for injection pre-filled syringes (Amgen Ltd) - 1 pre-filled disposable injection - once a month - as per oncology |  N+S Encounter type |    *Reason for contact / Entering record: Presenting to non-clinical team with: To request repeat medication (Y41ce) |    Type of encounter: Administration (9....) | Uncollected
+
+--- 2025-09-10  5da8cbe0-188b-4759-aaf2-5da13f5fc839 ---
+TEXT: 14:23 - Surgery: INGLE, Kirsty (Receptionist Access Role)  | (R) Xgeva 120mg/1ml solution for injection pre-filled syringes (Amgen Ltd) - 1 pre-filled disposable injection - once a month - as per oncology | (R) Adcal-D3 750mg/200unit caplets (Kyowa Kirin International UK NewCo Ltd) - 56 tablet - take two tablets once a day | (R) Bisoprolol 10mg tablets - 28 tablet - take one tablet daily | (R) Edoxaban 30
+
+--- 2025-09-10  7ae0dd33-a3eb-4599-b121-1146fbe87830 ---
+TEXT: 13:07 - Sent online by Mrs Jayne Louise Underwood   | Request for 'Edoxaban 30mg tablets' by patient | Request for 'Bisoprolol 10mg tablets' by patient | Request for 'Adcal-D3 750mg/200unit caplets (Kyowa Kirin International UK NewCo Ltd)' by patient | Request for 'Xgeva 120mg/1ml solution for injection pre-filled syringes (Amgen Ltd)' by patient | Request for 'Letrozole 2.5mg tablets' by patient | Request fo
+
+--- 2025-09-11  2037655e-d83c-4700-93ec-2a6ec0fce6ce ---
+TEXT: 08:16 - Surgery: Auto-filed   | Serum inorganic phosphate level (XE2q4) 1.16 mmol/L [0.8 - 1.5] | Serum alkaline phosphatase level (XE2px) 100 iu/L [30 - 130] | Bone profile (44Z2.) | Serum albumin level (XE2eA) 40 g/L [35 - 50] | Serum calcium level (XE2q3) 2.36 mmol/L | Serum adjusted calcium concentration (Xabpk) 2.36 mmol/L [2.12 - 2.51] | Reference range amended to account for calibration | difference in the
+ALL CODES (no direct signal):
+  - Serum albumin level (observable entity) [Observable_entity]
+  - Serum alkaline phosphatase level (observable entity) [Observable_entity]
+  - Blood potassium level (observable entity) [Observable_entity]
+  - Estimated glomerular filtration rate by laboratory calculation (observable entity) [Observable_entity]
+  - Blood sodium level (observable entity) [Observable_entity]
+  - Blood urea (observable entity) [Observable_entity]
+  - Serum inorganic phosphate level (observable entity) [Observable_entity]
+  - Serum adjusted calcium concentration (observable entity) [Observable_entity]
+
+--- 2025-09-11  76f72698-69c4-43d6-a12c-978032e4a24e ---
+TEXT: 08:16 - Surgery: Auto-filed   | Acute Kidney Injury Staging: 0; No AKI | Clinical Information: Reasons for Request:      prior to denosumab inj. | Acute Kidney Injury Staging Report,ï¿½Satisfactory,ï¿½No Further Action. Review done by WILCOCK, Kathryn (Mrs) - 12 Sep 2025 12:10
+ALL CODES (no direct signal):
+  - Serum albumin level (observable entity) [Observable_entity]
+  - Serum alkaline phosphatase level (observable entity) [Observable_entity]
+  - Blood potassium level (observable entity) [Observable_entity]
+  - Estimated glomerular filtration rate by laboratory calculation (observable entity) [Observable_entity]
+  - Blood sodium level (observable entity) [Observable_entity]
+  - Blood urea (observable entity) [Observable_entity]
+  - Serum inorganic phosphate level (observable entity) [Observable_entity]
+  - Serum adjusted calcium concentration (observable entity) [Observable_entity]
+
+--- 2025-09-11  9cf53018-2f5a-4caf-831a-d1cdea8c294a ---
+TEXT: 08:16 - Surgery: Auto-filed   | Urea and electrolytes (X77Wi) | Serum sodium level (XE2q0) 141 mmol/L [133 - 146] | Serum potassium level (XE2pz) 4.4 mmol/L [3.5 - 5.3] | Serum urea level (XM0lt) 7.3 mmol/L [2.5 - 7.8] | Serum creatinine level (XE2q5) 113 umol/L [60 - 120] | eGFR using creatinine (CKD-EPI) per 1.73 square metres (XacUK) 39 mL/min | Urine ACR should be checked on at least an annual basis | for all
+ALL CODES (no direct signal):
+  - Serum albumin level (observable entity) [Observable_entity]
+  - Serum alkaline phosphatase level (observable entity) [Observable_entity]
+  - Blood potassium level (observable entity) [Observable_entity]
+  - Estimated glomerular filtration rate by laboratory calculation (observable entity) [Observable_entity]
+  - Blood sodium level (observable entity) [Observable_entity]
+  - Blood urea (observable entity) [Observable_entity]
+  - Serum inorganic phosphate level (observable entity) [Observable_entity]
+  - Serum adjusted calcium concentration (observable entity) [Observable_entity]
+
+--- 2025-09-18  a68cfc60-da61-4489-a742-beaae574bd4f ---
+TEXT: 15:28 - Surgery: SUMNER, Emily (Miss) (Nurse Access Role)  | Problem: Metastatic spinal cord compression (Y2bfc) | Plan: Blood form added. | Apts made for b/t in 3 weeks and inj in 4 wks. |  Drug Injections |    Denosumab |       ES admin: Yes |       Denosumab therapy: Yes |       Monitoring done: Yes |       Informed consent given: Yes |       Given under PSD: Yes |       Site checked, well inself + aseptic technique
+CODED SIGNALS:
+  [DIAG] Metastatic malignant neoplasm (disorder) [Disease] cid=128462008
+
+--- 2025-09-30  892cdd10-ae40-4029-8d8d-e96c97b83ac8 ---
+TEXT: 12:05 - Surgery: O'NEILL, Anna-Louise (Admin/Clinical Support Access Role)  | Problem Item Marked in Error: Merging Problem | 1 Letter(s) added to problem Metastatic spinal cord compression (Y2bfc),  - 03 Apr 2025 | Problem Item Marked in Error: Merging Problem | 6 Diagnosis(s) added to problem Metastatic spinal cord compression (Y2bfc),  - 16 Apr 2025 | Problem Item Marked in Error: Merging Problem | 6 Diagn
+CODED SIGNALS:
+  [HIST] History of malignant neoplasm (situation) [Situation] cid=266987004
+  [DIAG] Metastatic malignant neoplasm (disorder) [Disease] cid=128462008
+
+--- 2025-10-02  19e73f1f-70c4-412e-969f-bdea4f65f825 ---
+TEXT: 17:53 - Surgery: EDWARDES, Paula (Ms) (Receptionist Access Role)  | Note Marked in Error: Duplicate data | 29 Sep 2025 11:27, {Batch Number} {Pack Size} AMGEN LTD | Medication Marked in Error: Duplicate data | 29 Sep 2025 11:27, Xgeva 120mg/1ml solution for injection pre-filled syringes (Amgen Ltd), once a month - as per oncology, 1 pre-filled disposable injection, 0 | Prescription Marked in Error: Duplicat
+
+--- 2025-10-02  25b8fba4-35dc-4da1-b78e-20e5393c0eef ---
+TEXT: 12:13 - Sent online by Mrs Jayne Louise Underwood   | Request for 'Bisoprolol 10mg tablets' by patient | Request for 'Adcal-D3 750mg/200unit caplets (Kyowa Kirin International UK NewCo Ltd)' by patient | Request for 'Edoxaban 30mg tablets' by patient | Request for 'Xgeva 120mg/1ml solution for injection pre-filled syringes (Amgen Ltd)' by patient | Request for 'Letrozole 2.5mg tablets' by patient
+
+--- 2025-10-02  c40780ad-6052-48e9-a4f7-279ca02a6fdf ---
+TEXT: 13:13 - Surgery: O'CONNELL, Charlotte (Ms) (Receptionist Access Role)  | (R) Xgeva 120mg/1ml solution for injection pre-filled syringes (Amgen Ltd) - 1 pre-filled disposable injection - once a month - as per oncology | (R) Adcal-D3 750mg/200unit caplets (Kyowa Kirin International UK NewCo Ltd) - 56 tablet - take two tablets once a day | (R) Bisoprolol 10mg tablets - 28 tablet - take one tablet daily | (R)
+
+--- 2025-10-09  0166fcb7-6227-44ad-a846-f674498ae107 ---
+TEXT: 10:17 - Surgery: Auto-filed   | Serum creatinine level (XE2q5) 110 umol/L [60 - 120] | eGFR using creatinine (CKD-EPI) per 1.73 square metres (XacUK) 40 mL/min | Urine ACR should be checked on at least an annual basis | for all individuals with CKD. NICE recommends the | Kidney Failure Risk Equation: | www.kidneyfailurerisk.co.uk | to predict the risk of end stage kidney disease in | CKD stages 3a to 5. KFRE is n
+ALL CODES (no direct signal):
+  - Serum albumin level (observable entity) [Observable_entity]
+  - Serum alkaline phosphatase level (observable entity) [Observable_entity]
+  - Blood potassium level (observable entity) [Observable_entity]
+  - Estimated glomerular filtration rate by laboratory calculation (observable entity) [Observable_entity]
+  - Blood sodium level (observable entity) [Observable_entity]
+  - Blood urea (observable entity) [Observable_entity]
+  - Serum inorganic phosphate level (observable entity) [Observable_entity]
+  - Serum adjusted calcium concentration (observable entity) [Observable_entity]
+
+--- 2025-10-09  0168298a-5016-4c9b-b591-91423d42f545 ---
+TEXT: Surgery: BEGUM, Senuara (Medical Secretary Access Role)  | Oncology to Woodbrook Medical Centre
+ALL CODES (no direct signal):
+  - Serum albumin level (observable entity) [Observable_entity]
+  - Serum alkaline phosphatase level (observable entity) [Observable_entity]
+  - Blood potassium level (observable entity) [Observable_entity]
+  - Estimated glomerular filtration rate by laboratory calculation (observable entity) [Observable_entity]
+  - Blood sodium level (observable entity) [Observable_entity]
+  - Blood urea (observable entity) [Observable_entity]
+  - Serum inorganic phosphate level (observable entity) [Observable_entity]
+  - Serum adjusted calcium concentration (observable entity) [Observable_entity]
+
+--- 2025-10-09  55a37e64-8ee1-4a02-819a-1de6e1992704 ---
+TEXT: 10:17 - Surgery: Auto-filed   | Clinical Information: Reasons for Request:      prior to denosumab inj. | Acute Kidney Injury Staging: 0; No AKI | Acute Kidney Injury Staging Report,ï¿½Normal,ï¿½No Further Action. Review done by OKOYE, Clifford (Dr) - 10 Oct 2025 18:23
+ALL CODES (no direct signal):
+  - Serum albumin level (observable entity) [Observable_entity]
+  - Serum alkaline phosphatase level (observable entity) [Observable_entity]
+  - Blood potassium level (observable entity) [Observable_entity]
+  - Estimated glomerular filtration rate by laboratory calculation (observable entity) [Observable_entity]
+  - Blood sodium level (observable entity) [Observable_entity]
+  - Blood urea (observable entity) [Observable_entity]
+  - Serum inorganic phosphate level (observable entity) [Observable_entity]
+  - Serum adjusted calcium concentration (observable entity) [Observable_entity]
+
+--- 2025-10-09  f8c72553-f1d8-4047-890a-a78cdb45cef3 ---
+TEXT: 10:17 - Surgery: Auto-filed   | Bone profile (44Z2.) | Serum albumin level (XE2eA) 41 g/L [35 - 50] | Serum calcium level (XE2q3) 2.43 mmol/L | Serum adjusted calcium concentration (Xabpk) 2.41 mmol/L [2.12 - 2.51] | Reference range amended to account for calibration | difference in the SIEMENS assay.  Ann Clin Biochem | 2020 Sep 57(5):373-381 | Serum inorganic phosphate level (XE2q4) 1.29 mmol/L [0.8 - 1.5] | Seru
+ALL CODES (no direct signal):
+  - Serum albumin level (observable entity) [Observable_entity]
+  - Serum alkaline phosphatase level (observable entity) [Observable_entity]
+  - Blood potassium level (observable entity) [Observable_entity]
+  - Estimated glomerular filtration rate by laboratory calculation (observable entity) [Observable_entity]
+  - Blood sodium level (observable entity) [Observable_entity]
+  - Blood urea (observable entity) [Observable_entity]
+  - Serum inorganic phosphate level (observable entity) [Observable_entity]
+  - Serum adjusted calcium concentration (observable entity) [Observable_entity]
+
+--- 2025-10-16  240f5bc6-3705-43f5-a37a-f805f3b29aa3 ---
+TEXT: 07:25 - Surgery: INGLE, Kirsty (Receptionist Access Role)  | (R) Xgeva 120mg/1ml solution for injection pre-filled syringes (Amgen Ltd) - 1 pre-filled disposable injection - once a month - as per oncology |  N+S Encounter type |    *Reason for contact / Entering record: Presenting to non-clinical team with: To request repeat medication (Y41ce) |    Type of encounter: Administration (9....) | Uncollected FP1
+
+--- 2025-10-16  a0d2a2ef-8336-4c82-9d72-07e63c190470 ---
+TEXT: 11:40 - Surgery: RATHBONE, Suzanne (Mrs) (Nurse Access Role)  |  Drug Injections |    Denosumab |       Denosumab therapy: Yes |       Given under PSD: Yes |       Site checked, well inself + aseptic technique used: Yes |       Injection site:  right upper arm |       BN + Exp.:  XGEVA 120MG/ 1ML BN1181462A. EXP 11/2026 |       Next injection due:  4 WEEKS | Pathology Request (Complete): | Bone Profile (Requested), U
+
+--- 2025-10-23  67f86e9a-5fce-4224-985c-5c7e17883204 ---
+TEXT: 03:57 - Sent online by Mrs Jayne Louise Underwood   | Request for 'Digoxin 62.5microgram tablets' by patient | Request for 'Bisoprolol 10mg tablets' by patient | Request for 'Adcal-D3 750mg/200unit caplets (Kyowa Kirin International UK NewCo Ltd)' by patient | Request for 'Xgeva 120mg/1ml solution for injection pre-filled syringes (Amgen Ltd)' by patient | Request for 'Letrozole 2.5mg tablets' by patient | Re
+
+--- 2025-10-23  a242c032-23a1-4468-93b0-d1ddc8745870 ---
+TEXT: 07:30 - Surgery: INGLE, Kirsty (Receptionist Access Role)  | (R) Xgeva 120mg/1ml solution for injection pre-filled syringes (Amgen Ltd) - 1 pre-filled disposable injection - once a month - as per oncology | (R) Adcal-D3 750mg/200unit caplets (Kyowa Kirin International UK NewCo Ltd) - 56 tablet - take two tablets once a day | (R) Bisoprolol 10mg tablets - 28 tablet - take one tablet daily | (R) Digoxin 62.
+
+--- 2025-11-04  40ce946f-8ef5-474d-8c8a-15cabdaedfbc ---
+TEXT: 09:33 - Surgery: MILNER, Jordan (Miss) (Admin/Clinical Support Access Role)  | Recall: Injection (14 Nov 2025) denosumab inj 4 weekly with bloods 1 week prior - appt 14/11
+
+--- 2025-11-06  330c79c6-3fea-48ed-a039-42ba33afd545 ---
+TEXT: 09:32 - Surgery: DAWSON, Claire (Nurse) (Nurse Access Role)  | Problem: Metastasis to bone of unknown primary (Xa3AJ) |  Phlebotomy Service |    0214 006 Phlebotomy Service |       ^Referral source (CBS claim): Referral by GP (XaAZQ) |       ^Blood sample taken (CBS claim): Yes |       ^Seen by practice phlebotomist: Yes |  Phlebotomy Test |    Entries from previous template version |       Infectious disease : pre
+CODED SIGNALS:
+  [DIAG] Metastatic malignant neoplasm (disorder) [Disease] cid=128462008
+  [DIAG] Malignant neoplasm of bone (disorder) [Disease] cid=428281000
+  [DIAG] Malignant neoplasm of unknown origin (disorder) [Disease] cid=310504009
+
+--- 2025-11-06  7dae1bcb-e4fd-43bc-8eb8-f384428468c4 ---
+TEXT: 09:34 - Surgery: Auto-filed   | Acute Kidney Injury Staging: 0; No AKI | Clinical Information: Reasons for Request:      Medication monitoring. | Acute Kidney Injury Staging Report,ï¿½Normal,ï¿½No Further Action. Review done by OLADELE, Okikiola (Dr) - 10 Nov 2025 08:27
+ALL CODES (no direct signal):
+  - Serum albumin level (observable entity) [Observable_entity]
+  - Serum alkaline phosphatase level (observable entity) [Observable_entity]
+  - Blood potassium level (observable entity) [Observable_entity]
+  - Estimated glomerular filtration rate by laboratory calculation (observable entity) [Observable_entity]
+  - Blood sodium level (observable entity) [Observable_entity]
+  - Blood urea (observable entity) [Observable_entity]
+  - Serum inorganic phosphate level (observable entity) [Observable_entity]
+  - Serum adjusted calcium concentration (observable entity) [Observable_entity]
+
+--- 2025-11-06  d4d7eddb-082f-4f0e-84d5-e55c59b80099 ---
+TEXT: 09:40 - Surgery: O'CONNELL, Charlotte (Ms) (Receptionist Access Role)  | (R) Xgeva 120mg/1ml solution for injection pre-filled syringes (Amgen Ltd) - 1 pre-filled disposable injection - once a month - as per oncology |  N+S Encounter type |    *Reason for contact / Entering record: Presenting to non-clinical team with: To request repeat medication (Y41ce) |    Type of encounter: Administration (9....) | FP1
+CODED SIGNALS:
+  [HIST] History of malignant neoplasm (situation) [Situation] cid=266987004
+
+--- 2025-11-13  de81b75e-665c-43b6-9ea3-a5fdbeea1ec1 ---
+TEXT: 19:50 - Sent online by Mrs Jayne Louise Underwood   | Request for 'Digoxin 62.5microgram tablets' by patient | Request for 'Bisoprolol 10mg tablets' by patient | Request for 'Adcal-D3 750mg/200unit caplets (Kyowa Kirin International UK NewCo Ltd)' by patient | Request for 'Xgeva 120mg/1ml solution for injection pre-filled syringes (Amgen Ltd)' by patient | Request for 'Letrozole 2.5mg tablets' by patient | Re
+
+--- 2025-11-14  aa73590e-5f0e-451f-a7d8-fccafadfe192 ---
+TEXT: 07:38 - Surgery: O'CONNELL, Charlotte (Ms) (Receptionist Access Role)  | (R) Xgeva 120mg/1ml solution for injection pre-filled syringes (Amgen Ltd) - 1 pre-filled disposable injection - once a month - as per oncology | (R) Adcal-D3 750mg/200unit caplets (Kyowa Kirin International UK NewCo Ltd) - 56 tablet - take two tablets once a day | (R) Bisoprolol 10mg tablets - 28 tablet - take one tablet daily | (R)
+
+--- 2025-11-14  ced0e4d2-f6a4-46dd-b0e4-40ccce6f733d ---
+TEXT: 15:52 - Surgery: DAWSON, Claire (Nurse) (Nurse Access Role)  | Problem: Metastasis to bone of unknown primary (Xa3AJ) | History: Attended with daughter for Denosumab injection.  | Bloods checked and okay to proceed. | Near patient testing enhanced services administration (XaKA3) |  Drug Injections |    Denosumab |       Denosumab therapy: Yes |       Monitoring done: Yes |       Informed consent given: Yes |       Gi
+CODED SIGNALS:
+  [DIAG] Metastatic malignant neoplasm (disorder) [Disease] cid=128462008
+
+--- 2025-11-20  3a766abe-4bb4-4d2d-8422-c3235dce6600 ---
+TEXT: 08:00 - Surgery: EDWARDES, Paula (Ms) (Receptionist Access Role)  | Note Marked in Error: Duplicate data | 18 Nov 2025 10:27, {Batch Number} {Pack Size} AMGEN LTD | Medication Marked in Error: Duplicate data | 18 Nov 2025 10:27, Xgeva 120mg/1ml solution for injection pre-filled syringes (Amgen Ltd), once a month - as per oncology, 1 pre-filled disposable injection, 0 | Prescription Marked in Error: Duplicat
+
+--- 2025-12-02  49009e19-334e-46d7-b8d8-7e8d062b6a5f ---
+TEXT: 11:32 - Surgery: MILNER, Jordan (Miss) (Admin/Clinical Support Access Role)  | Recall: Injection (11 Dec 2025) denosumab inj 4 weekly with bloods 1 week prior - APPT 11/12
+
+--- 2025-12-03  af7ac71e-4efb-4575-bc90-bdfb699ed83e ---
+TEXT: 17:08 - Surgery: SUMNER, Emily (Miss) (Nurse Access Role)  | Pathology Request (Request Sent): | HbA1c (Requested), Bone Profile (Requested), Full Blood Count (Requested), Liver Function Test (Requested), Lipids (Requested), Thyroid Stimulating Hormone (Requested), Urea & electrolytes (Requested)
+
+--- 2025-12-04  1bd0cceb-d081-4c9c-b1ab-ac419a34a859 ---
+TEXT: 08:27 - Surgery: Auto-filed   | Serum total protein level (XE2e9) 66 g/L [57 - 82] | Clinical Information: Clinical Details:     Not on Thyroid Tx Reasons for Request:      prior to inj and abtrace. | Serum total protein level Report,ï¿½Normal,ï¿½No Further Action. Review done by AMIN, Kunal (Dr) - 08 Dec 2025 12:44
+ALL CODES (no direct signal):
+  - Serum alanine aminotransferase level (observable entity) [Observable_entity]
+  - Serum bilirubin level (observable entity) [Observable_entity]
+  - Serum total protein (observable entity) [Observable_entity]
+  - Blood potassium level (observable entity) [Observable_entity]
+  - Estimated glomerular filtration rate by laboratory calculation (observable entity) [Observable_entity]
+  - Blood sodium level (observable entity) [Observable_entity]
+  - Blood urea (observable entity) [Observable_entity]
+  - Haemoglobin A1c level (observable entity) [Observable_entity]
+
+--- 2025-12-04  2ab02cdb-ed12-40b1-836a-923947e69a1d ---
+TEXT: 08:27 - Surgery: Auto-filed   | Haemoglobin A1c level - IFCC standardised (XaPbt) 39 mmol/mol [20 - 41] | Clinical Information: Clinical Details:     Not on Thyroid Tx Reasons for Request:      prior to inj and abtrace. | Haemoglobin A1c level - IFCC standardised Report,ï¿½Normal,ï¿½No Further Action. Review done by AMIN, Kunal (Dr) - 08 Dec 2025 12:45
+ALL CODES (no direct signal):
+  - Serum alanine aminotransferase level (observable entity) [Observable_entity]
+  - Serum bilirubin level (observable entity) [Observable_entity]
+  - Serum total protein (observable entity) [Observable_entity]
+  - Blood potassium level (observable entity) [Observable_entity]
+  - Estimated glomerular filtration rate by laboratory calculation (observable entity) [Observable_entity]
+  - Blood sodium level (observable entity) [Observable_entity]
+  - Blood urea (observable entity) [Observable_entity]
+  - Haemoglobin A1c level (observable entity) [Observable_entity]
+
+--- 2025-12-04  44c1d5a2-c39d-4b02-acf7-56588eff32c7 ---
+TEXT: 08:27 - Surgery: Auto-filed   | Serum urea level (XM0lt) 8 mmol/L [2.5 - 7.8] - Outside reference range | Serum creatinine level (XE2q5) 120 umol/L [60 - 120] | eGFR using creatinine (CKD-EPI) per 1.73 square metres (XacUK) 36 mL/min | Urine ACR should be checked on at least an annual basis | for all individuals with CKD. NICE recommends the | Kidney Failure Risk Equation: | www.kidneyfailurerisk.co.uk | to predi
+ALL CODES (no direct signal):
+  - Serum alanine aminotransferase level (observable entity) [Observable_entity]
+  - Serum bilirubin level (observable entity) [Observable_entity]
+  - Blood potassium level (observable entity) [Observable_entity]
+  - Estimated glomerular filtration rate by laboratory calculation (observable entity) [Observable_entity]
+  - Blood sodium level (observable entity) [Observable_entity]
+  - Blood urea (observable entity) [Observable_entity]
+  - Haemoglobin A1c level (observable entity) [Observable_entity]
+  - Serum creatinine level (observable entity) [Observable_entity]
+
+--- 2025-12-04  4b7f769f-2388-43d2-ad57-cf6a5214ac13 ---
+TEXT: 08:27 - Surgery: Auto-filed   | Thyroid function test (X77Wg) | Serum free T4 level (XaERr) 15.8 pmol/L [9.7 - 24.7] | 99% reference range was  applied for adults after | review with Endocrinology. | Serum TSH level (XaELV) 0.87 miu/L [0.55 - 4.78] | Clinical Information: Clinical Details:     Not on Thyroid Tx Reasons for Request:      prior to inj and abtrace. | Thyroid function test Report,ï¿½Normal,ï¿½No Fu
+ALL CODES (no direct signal):
+  - Serum alanine aminotransferase level (observable entity) [Observable_entity]
+  - Serum bilirubin level (observable entity) [Observable_entity]
+  - Serum total protein (observable entity) [Observable_entity]
+  - Blood potassium level (observable entity) [Observable_entity]
+  - Estimated glomerular filtration rate by laboratory calculation (observable entity) [Observable_entity]
+  - Blood sodium level (observable entity) [Observable_entity]
+  - Blood urea (observable entity) [Observable_entity]
+  - Haemoglobin A1c level (observable entity) [Observable_entity]
+
+--- 2025-12-04  53459875-f3dd-46d2-b996-004d616534af ---
+TEXT: 08:27 - Surgery: Auto-filed   | Clinical Information: Clinical Details:     Not on Thyroid Tx Reasons for Request:      prior to inj and abtrace. | Acute Kidney Injury Staging: 0; No AKI | Acute Kidney Injury Staging Report,ï¿½Normal,ï¿½No Further Action. Review done by AMIN, Kunal (Dr) - 08 Dec 2025 12:44
+ALL CODES (no direct signal):
+  - Serum alanine aminotransferase level (observable entity) [Observable_entity]
+  - Serum bilirubin level (observable entity) [Observable_entity]
+  - Blood potassium level (observable entity) [Observable_entity]
+  - Estimated glomerular filtration rate by laboratory calculation (observable entity) [Observable_entity]
+  - Blood sodium level (observable entity) [Observable_entity]
+  - Blood urea (observable entity) [Observable_entity]
+  - Haemoglobin A1c level (observable entity) [Observable_entity]
+  - Serum creatinine level (observable entity) [Observable_entity]
+
+--- 2025-12-04  628d556e-b68c-4d71-8f11-9d9328253478 ---
+TEXT: 08:27 - Surgery: Auto-filed   | Liver function tests (X77WP) | Serum alanine aminotransferase level (XaLJx) 25 iu/L [10 - 49] | Serum bilirubin level (44E..) 11 umol/L [< 21] | Clinical Information: Clinical Details:     Not on Thyroid Tx Reasons for Request:      prior to inj and abtrace. | Liver function tests Report,ï¿½Normal,ï¿½No Further Action. Review done by AMIN, Kunal (Dr) - 08 Dec 2025 12:44
+ALL CODES (no direct signal):
+  - Serum alanine aminotransferase level (observable entity) [Observable_entity]
+  - Serum bilirubin level (observable entity) [Observable_entity]
+  - Blood potassium level (observable entity) [Observable_entity]
+  - Estimated glomerular filtration rate by laboratory calculation (observable entity) [Observable_entity]
+  - Blood sodium level (observable entity) [Observable_entity]
+  - Blood urea (observable entity) [Observable_entity]
+  - Haemoglobin A1c level (observable entity) [Observable_entity]
+  - Serum creatinine level (observable entity) [Observable_entity]
+
+--- 2025-12-04  6e461de7-4707-45f7-b79a-0f5e9cde3db0 ---
+TEXT: 08:27 - Surgery: Auto-filed   | Haemoglobin A1c level (X772q) 5.7 % [4 - 5.9] | Clinical Information: Clinical Details:     Not on Thyroid Tx Reasons for Request:      prior to inj and abtrace. | Haemoglobin A1c level Report,ï¿½Normal,ï¿½No Further Action. Review done by AMIN, Kunal (Dr) - 08 Dec 2025 12:45
+ALL CODES (no direct signal):
+  - Blood potassium level (observable entity) [Observable_entity]
+  - Estimated glomerular filtration rate by laboratory calculation (observable entity) [Observable_entity]
+  - Blood sodium level (observable entity) [Observable_entity]
+  - Blood urea (observable entity) [Observable_entity]
+  - Haemoglobin A1c level (observable entity) [Observable_entity]
+  - Serum creatinine level (observable entity) [Observable_entity]
+  - Serum thyroid stimulating hormone level (observable entity) [Observable_entity]
+  - Serum free T4 level (observable entity) [Observable_entity]
+
+--- 2025-12-04  8adc89c3-da27-4584-961d-871cab3f12d8 ---
+TEXT: 08:27 - Surgery: Auto-filed   | Serum adjusted calcium concentration (Xabpk) 2.31 mmol/L [2.12 - 2.51] | Serum inorganic phosphate level (XE2q4) 1.15 mmol/L [0.8 - 1.5] | Serum alkaline phosphatase level (XE2px) 91 iu/L [30 - 130] | Bone profile (44Z2.) | Serum albumin level (XE2eA) 42 g/L [35 - 50] | Serum calcium level (XE2q3) 2.35 mmol/L | Clinical Information: Clinical Details:     Not on Thyroid Tx Reasons
+ALL CODES (no direct signal):
+  - Serum albumin level (observable entity) [Observable_entity]
+  - Serum alkaline phosphatase level (observable entity) [Observable_entity]
+  - Blood potassium level (observable entity) [Observable_entity]
+  - Estimated glomerular filtration rate by laboratory calculation (observable entity) [Observable_entity]
+  - Blood sodium level (observable entity) [Observable_entity]
+  - Blood urea (observable entity) [Observable_entity]
+  - Serum inorganic phosphate level (observable entity) [Observable_entity]
+  - Serum adjusted calcium concentration (observable entity) [Observable_entity]
+
+--- 2025-12-04  cd4dfb0c-f175-4ea0-b03e-fa93df219b45 ---
+TEXT: 08:27 - Surgery: Auto-filed   | Nucleated red blood cell count (4266.) < 0.2 10^9/L [0 - 0.2] | For further investigation of abnormal Full Blood Count | please see Haematology Referral Guidelines: | https://www.shorturl.at/ZJ1XN | (click Departments & Services > Haematology > | Haematology Referral | Guidelines). | If clinically urgent contact the Haematologist On Call. | Haematocrit (X76tb) 0.423  [0.37 - 0.47] | Me
+ALL CODES (no direct signal):
+  - White blood cell count in blood (observable entity) [Observable_entity]
+  - Platelet count (observable entity) [Observable_entity]
+  - Blood potassium level (observable entity) [Observable_entity]
+  - Concentration of hemoglobin in erythrocyte (observable entity) [Observable_entity]
+  - Estimated glomerular filtration rate by laboratory calculation (observable entity) [Observable_entity]
+  - Blood sodium level (observable entity) [Observable_entity]
+  - Blood urea (observable entity) [Observable_entity]
+  - Haemoglobin A1c level (observable entity) [Observable_entity]
+
+--- 2025-12-04  d5aab5ca-74cd-431c-b307-b8637a9a4cdf ---
+TEXT: 08:27 - Surgery: Auto-filed   | Total cholesterol:HDL ratio (44PF.) 3.9  | Serum non high density lipoprotein cholesterol level (XabE1) 3.6 mmol/L | Serum lipid levels (XE2q7) | Serum cholesterol level (XE2eD) 4.9 mmol/L | Serum triglyceride levels (XE2q9) 1.51 mmol/L [0 - 1.7] | Serum HDL cholesterol level (44P5.) 1.27 mmol/L [0.9 - 2.2] | Serum LDL cholesterol level (44P6.) 2.9 mmol/L | Non-fasting LDL is accep
+ALL CODES (no direct signal):
+  - Normal appearance (finding) [Clinical_finding]
+  - Blood potassium level (observable entity) [Observable_entity]
+  - Estimated glomerular filtration rate by laboratory calculation (observable entity) [Observable_entity]
+  - Blood sodium level (observable entity) [Observable_entity]
+  - Blood urea (observable entity) [Observable_entity]
+  - Serum triglycerides level (observable entity) [Observable_entity]
+  - Cholesterol level (observable entity) [Observable_entity]
+  - Plasma high density lipoprotein cholesterol level (observable entity) [Observable_entity]
+
+--- 2025-12-06  ab2616d5-b28c-4011-9443-9b1e791f3b50 ---
+TEXT: 14:32 - Sent online by Mrs Jayne Louise Underwood   | Request for 'Digoxin 62.5microgram tablets' by patient | Request for 'Bisoprolol 10mg tablets' by patient | Request for 'Adcal-D3 750mg/200unit caplets (Kyowa Kirin International UK NewCo Ltd)' by patient | Request for 'Xgeva 120mg/1ml solution for injection pre-filled syringes (Amgen Ltd)' by patient | Request for 'Letrozole 2.5mg tablets' by patient | Re
+
+--- 2025-12-08  c1327511-7900-4ef4-ad13-a1e1983ed204 ---
+TEXT: 10:25 - Surgery: INGLE, Kirsty (Receptionist Access Role)  | (R) Xgeva 120mg/1ml solution for injection pre-filled syringes (Amgen Ltd) - 1 pre-filled disposable injection - once a month - as per oncology | (R) Adcal-D3 750mg/200unit caplets (Kyowa Kirin International UK NewCo Ltd) - 56 tablet - take two tablets once a day | (R) Bisoprolol 10mg tablets - 28 tablet - take one tablet daily | (R) Digoxin 62.
+
+--- 2025-12-11  f2ab2f8b-ad8b-4954-912d-f292ca8de247 ---
+TEXT: 08:22 - Surgery: SUMNER, Emily (Miss) (Nurse Access Role)  | Problem: Metastatic spinal cord compression (Y2bfc) |  Drug Injections |    Denosumab |       ES admin: Yes |       Denosumab therapy: Yes |       Monitoring done: Yes |       Informed consent given: Yes |       Given under PSD: Yes |       Site checked, well inself + aseptic technique used: Yes |       Injection into subcutaneous tissue: Yes |       Injectio
+CODED SIGNALS:
+  [DIAG] Metastatic malignant neoplasm (disorder) [Disease] cid=128462008
+
+--- 2025-12-22  fb75aa8c-7a16-422b-94b7-6ed130a34a4c ---
+TEXT: 13:43 - Surgery: INGLE, Kirsty (Receptionist Access Role)  | (R) Xgeva 120mg/1ml solution for injection pre-filled syringes (Amgen Ltd) - 1 pre-filled disposable injection - once a month - as per oncology |  N+S Encounter type (Nov 25) |    *Reason for contact / Entering record: Presenting to non-clinical team with: To request repeat medication (Y41ce) |    Type of encounter: Administration (9....) |    *Ot
+
+Signal encounters shown: 110 / 485 total
+========================================================================

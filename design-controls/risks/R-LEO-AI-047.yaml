@@ -1,0 +1,94 @@
+# -- R-LEO-AI-047 -- Coding Quality Regression Goes Undetected
+# ISO 14971 Risk
+
+- id: "R-LEO-AI-047"
+  title: "A systematic drop in NER coding accuracy goes undetected for multiple weeks, allowing incorrect patient records to accumulate."
+
+  hazard:
+    description: >
+      The NER coding pipeline introduces a systematic error -- for example,
+      after a model update, a surface form change, or a new encounter type --
+      that causes many encounters to be coded incorrectly. Because monitoring
+      is automated and weekly, a regression that begins mid-week may not be
+      detected until the next audit cycle. If the audit itself fails to run,
+      no alert is raised at all.
+    category: "clinical_safety"
+
+  hazardous_situation: >
+    A regression in coding quality occurs. The weekly audit fails to run
+    (infrastructure failure, timeout, or immutability guard blocking a retry)
+    or the auditor LLM misses the regression (false negative). No
+    SafetyNetAlert is raised. Clinical staff and operations team are unaware.
+    Patients accumulate incorrect or missing SNOMED codes in their records
+    for several weeks before the next manual clinical audit detects the problem.
+
+  harm:
+    description: >
+      Patients with incorrect or missing clinical codes may receive wrong
+      clinical decisions, incorrect triage classifications, or be missed by
+      QOF recall searches. Systematic under-coding of safety-critical
+      conditions (cancer, safeguarding, mental health) may delay referrals.
+    severity: "serious"
+
+  initial_risk_estimate:
+    severity: 3
+    probability: 2
+    detectability: 3
+    rpn: 18
+    risk_level: "medium"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        Automated weekly audit (Loop 1) runs every Monday at 02:00 UTC.
+        AuditRun node records outcome. SafetyNetAlert created if pct_clean
+        drops more than 3 points or new critical terms appear.
+      implemented_by: ["DI-LEO-AI-072"]
+      verified_by: ["VT-LEO-AI-072"]
+    - control_type: "design_feature"
+      description: >
+        Drift detection compares current audit results against the prior
+        week's DriftMetric. model_version_changed flag triggers automatic
+        revalidation against the golden test set when the auditor LLM version
+        changes, catching regressions introduced by model updates.
+      implemented_by: ["DI-LEO-AI-073"]
+      verified_by: ["VT-LEO-AI-073"]
+    - control_type: "procedural_control"
+      description: >
+        Auditor validated against 100-encounter golden test set before
+        production deployment. Safety-critical recall threshold >= 0.90.
+        Revalidation required when auditor model version changes.
+      implemented_by: ["DI-LEO-AI-072"]
+      verified_by: ["VT-LEO-AI-072"]
+
+  residual_risk_estimate:
+    severity: 3
+    probability: 1
+    detectability: 2
+    rpn: 6
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      Weekly automated audit with validated accuracy (recall >= 0.85 overall,
+      >= 0.90 safety-critical) detects systematic regressions within one cycle.
+      Golden test set revalidation on model version change catches auditor
+      regressions. Residual risk is limited to the detection latency of one
+      audit cycle (7 days maximum).
+
+  monitoring:
+    monitoring_plan: >
+      Track AuditRun completion rate (target: 100% weekly). Track
+      SafetyNetAlert false positive rate. Revalidate auditor against golden
+      test set on every auditor model version change. Review DriftMetric
+      trends quarterly.
+    metrics:
+      - "audit_run_completion_rate: percentage of scheduled runs completing successfully"
+      - "auditor_recall_by_domain: safety-critical categories must remain >= 0.90"
+      - "safety_net_alert_false_positive_rate: auditor precision over rolling 4-week window"
+    review_frequency: "Quarterly"
+
+  metadata:
+    identified_by: "Three Learning Loops Production Plan v3.0 (QA-001, CSO-002)"
+    identified_date: "2026-04-03"
+    status: "analyzed"
+    tags: ["loop1", "audit", "coding-quality", "post-market-surveillance", "clinical-safety"]

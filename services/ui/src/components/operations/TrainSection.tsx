@@ -5,11 +5,22 @@ import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
+import Chip from "@mui/material/Chip";
+import LinearProgress from "@mui/material/LinearProgress";
 import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 import Tab from "@mui/material/Tab";
 import Tabs from "@mui/material/Tabs";
 import Typography from "@mui/material/Typography";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip as ChartTooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import TrainingDataPanel from "./TrainingDataPanel";
 import LabelVerificationPanel from "./LabelVerificationPanel";
 
@@ -34,6 +45,22 @@ interface AllStats {
   labels: LabelStats;
   coding: CodingStats;
 }
+
+interface CorpusStats {
+  gold_count: number;
+  silver_count: number;
+  holdout_count: number;
+  negative_sentence_count: number;
+  entity_type_breakdown: Record<string, number>;
+  assertion_breakdown: Record<string, number>;
+  imbalance_warnings: string[];
+  safety_critical_blocked: boolean;
+  training_ready: boolean;
+  minimum_gold_met: boolean;
+  last_updated: string | null;
+}
+
+const GOLD_MINIMUM = 5000;
 
 // -- Fetch -------------------------------------------------------------------
 
@@ -63,6 +90,7 @@ async function loadStats(): Promise<AllStats> {
 
 export default function TrainSection() {
   const [stats, setStats] = useState<AllStats | null>(null);
+  const [corpus, setCorpus] = useState<CorpusStats | null>(null);
   const [tab, setTab] = useState(0);
   const [error, setError] = useState("");
 
@@ -70,6 +98,13 @@ export default function TrainSection() {
     loadStats()
       .then(setStats)
       .catch((e) => setError(e instanceof Error ? e.message : "Could not load training information. Please try again."));
+
+    fetch("/api/training/corpus/stats")
+      .then((r) => (r.ok ? r.json() : Promise.reject(r.statusText)))
+      .then(setCorpus)
+      .catch(() => {
+        // Non-blocking -- corpus stats are supplementary
+      });
   }, []);
 
   return (
@@ -110,6 +145,9 @@ export default function TrainSection() {
         />
       </Stack>
 
+      {/* Corpus card */}
+      <CorpusCard corpus={corpus} />
+
       {/* Sub-tabs */}
       <Tabs
         value={tab}
@@ -142,6 +180,96 @@ export default function TrainSection() {
     </Stack>
   );
 }
+
+// -- Corpus card -------------------------------------------------------------
+
+function CorpusCard({ corpus }: { corpus: CorpusStats | null }) {
+  if (!corpus) {
+    return (
+      <Card variant="outlined">
+        <CardContent>
+          <Skeleton height={8} />
+          <Skeleton variant="rectangular" height={100} sx={{ mt: 1 }} />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const pct = Math.min(100, Math.round((corpus.gold_count / GOLD_MINIMUM) * 100));
+
+  const chartData = Object.entries(corpus.entity_type_breakdown)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 12)
+    .map(([tag, count]) => ({ tag: tag.slice(0, 20), count }));
+
+  return (
+    <Card
+      variant="outlined"
+      sx={{ borderColor: corpus.safety_critical_blocked ? "error.light" : "divider" }}
+    >
+      <CardContent>
+        <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 1 }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+            Training corpus
+          </Typography>
+          <Stack direction="row" gap={0.5} flexWrap="wrap">
+            <Chip label={`${corpus.gold_count.toLocaleString()} confirmed`} size="small" color="primary" />
+            <Chip label={`${corpus.silver_count.toLocaleString()} unconfirmed`} size="small" />
+            <Chip label={`${corpus.holdout_count.toLocaleString()} held out`} size="small" variant="outlined" />
+          </Stack>
+        </Stack>
+
+        {corpus.safety_critical_blocked && (
+          <Alert severity="error" sx={{ mb: 1.5, py: 0.25 }}>
+            Training blocked: not enough examples for safety-critical conditions (cancer, safeguarding, mental health crisis).
+          </Alert>
+        )}
+
+        {corpus.imbalance_warnings.map((w) => (
+          <Alert key={w} severity="warning" sx={{ mb: 0.5, py: 0.25 }}>
+            {w}
+          </Alert>
+        ))}
+
+        <Box sx={{ mb: 1.5 }}>
+          <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.5 }}>
+            <Typography variant="caption" color="text.secondary">
+              Progress to {GOLD_MINIMUM.toLocaleString()} confirmed examples
+            </Typography>
+            <Typography variant="caption" color={pct >= 100 ? "success.main" : "text.secondary"}>
+              {corpus.gold_count.toLocaleString()} / {GOLD_MINIMUM.toLocaleString()}
+            </Typography>
+          </Stack>
+          <LinearProgress
+            variant="determinate"
+            value={pct}
+            color={pct >= 100 ? "success" : "primary"}
+            aria-label="Progress to training minimum"
+          />
+        </Box>
+
+        {chartData.length > 0 && (
+          <ResponsiveContainer width="100%" height={120}>
+            <BarChart data={chartData} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e0e0e0" />
+              <XAxis dataKey="tag" tick={{ fontSize: 9 }} interval={0} angle={-30} textAnchor="end" height={40} />
+              <YAxis tick={{ fontSize: 10 }} width={36} />
+              <ChartTooltip formatter={(v: number) => [v.toLocaleString(), "Examples"]} />
+              <Bar dataKey="count" name="Examples" fill="#1F3A8A" radius={[2, 2, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        )}
+
+        {corpus.last_updated && (
+          <Typography variant="caption" color="text.disabled" sx={{ display: "block", mt: 0.5 }}>
+            Last updated: {corpus.last_updated.slice(0, 10)}
+          </Typography>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 
 // -- Stat card ---------------------------------------------------------------
 

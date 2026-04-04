@@ -29,6 +29,9 @@ from azure.servicebus.management import ServiceBusAdministrationClient, QueuePro
 QUEUES = [
     "coding-jobs",
     "analysis-jobs",
+    # Dedicated queue for weekly audit jobs (CTO-002 fix: queue isolation).
+    # Audit runs are long-running and must never delay real-time pipeline jobs.
+    "audit-jobs",
 ]
 
 QUEUE_SETTINGS = dict(

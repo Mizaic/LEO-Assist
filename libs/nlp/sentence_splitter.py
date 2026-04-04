@@ -13,6 +13,43 @@ from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
 
+# ---------------------------------------------------------------------------
+# Administrative header detection
+# EMIS encounter exports prepend administrative metadata lines that must not
+# be treated as clinical text by extractors. Patterns are conservative --
+# when in doubt the sentence is preserved (err on the side of keeping content).
+# ---------------------------------------------------------------------------
+
+_HEADER_RE = re.compile(
+    r"^("
+    r"\d{2}:\d{2}"                              # HH:MM timestamp
+    r"|Entered\s+at\s*:"                        # EMIS entry location
+    r"|Presenting\s+to\s+non[- ]clinical"       # Reception note
+    r"|Your\s+appointment\s+has\s+been\s+booked"
+    r"|Confirmation\s+of\s+appointment"
+    r"|Sent\s+online\s+by"                      # Online consultation header
+    r"|Phlebotomy\s+Service\s*$"                # Phlebotomy service line
+    r"|Seen\s+by\s+practice\s+phlebotomist"
+    r")",
+    re.IGNORECASE,
+)
+
+
+def is_header_sentence(text: str) -> bool:
+    """Return True if the sentence is an administrative appointment header.
+
+    Conservative: only returns True when the pattern is unambiguous.
+    """
+    return bool(_HEADER_RE.match(text.strip()))
+
+
+def filter_header_sentences(chunks: list["SentenceChunk"]) -> list["SentenceChunk"]:
+    """Remove administrative header sentences from a sentence chunk list.
+
+    Returns an empty list (not an exception) if all sentences are headers.
+    """
+    return [c for c in chunks if not is_header_sentence(c.text)]
+
 
 @dataclass(frozen=True)
 class SentenceChunk:

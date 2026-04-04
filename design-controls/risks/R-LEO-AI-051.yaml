@@ -1,0 +1,88 @@
+# -- R-LEO-AI-051 -- Revoked Mapping Leaves Historical Records Incorrect
+# ISO 14971 Risk
+
+- id: "R-LEO-AI-051"
+  title: "Revoking an incorrect surface form mapping removes future use but leaves all previously coded encounters still carrying the wrong code."
+
+  hazard:
+    description: >
+      A surface form mapping is identified as incorrect and revoked. The MAPS_TO
+      relationship is deleted and future encounters will no longer use it.
+      However, all encounters that were coded using this mapping after
+      first_used_at still carry the incorrect SNOMED code, and there is no
+      mechanism to trace or correct them.
+    category: "data_integrity"
+
+  hazardous_situation: >
+    An incorrect MAPS_TO mapping has been in use for 3 weeks. 47 encounters
+    have been coded with the wrong concept. A reviewer notices and revokes
+    the mapping. The MAPS_TO is removed, but the 47 DOCUMENTS relationships
+    still carry the incorrect source='provisional' code. No CodingReview
+    nodes are created for them. Clinical staff reviewing those 47 records
+    continue to see the incorrect code.
+
+  harm:
+    description: >
+      Historical patient records carry incorrect SNOMED codes from a revoked
+      mapping. Depending on the clinical domain, this may affect triage
+      decisions, QOF register memberships, referral routing, or audit data
+      quality. The scope of harm is proportional to use_count and the
+      severity of the incorrect concept.
+    severity: "minor"
+
+  initial_risk_estimate:
+    severity: 2
+    probability: 3
+    detectability: 3
+    rpn: 18
+    risk_level: "medium"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        Revocation cascade: when a surface form is revoked, the system queries
+        all DOCUMENTS relationships with source='provisional' where the coded
+        concept matches the revoked mapping and created_at >= first_used_at.
+        A CodingReview node with review_type='revocation_cascade' is created
+        for each affected encounter in a single atomic transaction.
+      implemented_by: ["DI-LEO-AI-076"]
+      verified_by: ["VT-LEO-AI-076"]
+    - control_type: "design_feature"
+      description: >
+        SurfaceForm and MAPS_TO nodes track first_used_at and use_count.
+        The recently approved terms view shows these values before a reviewer
+        presses Revoke, giving them visibility of the scope before acting.
+      implemented_by: ["DI-LEO-AI-076"]
+      verified_by: ["VT-LEO-AI-076"]
+
+  residual_risk_estimate:
+    severity: 2
+    probability: 1
+    detectability: 2
+    rpn: 4
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      Revocation cascade creates a CodingReview for every affected encounter,
+      giving reviewers a systematic way to correct or confirm each one.
+      Historical records are not silently left with wrong codes; each one
+      requires an explicit reviewer decision. Severity is minor because the
+      incorrect codes are from provisional source and visible to reviewers.
+
+  monitoring:
+    monitoring_plan: >
+      Track revocation events and mean cascade size (use_count at revocation).
+      Review revocation_cascade CodingReview resolution time monthly.
+      Alert if any cascade creates more than 100 review items (indicates
+      a mapping was in use for a long time before error was detected).
+    metrics:
+      - "revocation_count: monthly count; each event reviewed"
+      - "mean_cascade_size: mean use_count at time of revocation"
+      - "revocation_cascade_resolution_days: mean days to resolve cascade reviews"
+    review_frequency: "Monthly"
+
+  metadata:
+    identified_by: "Three Learning Loops Production Plan v3.0 (CTO-003)"
+    identified_date: "2026-04-03"
+    status: "analyzed"
+    tags: ["loop2", "surface-forms", "revocation", "data-integrity", "historical-records"]

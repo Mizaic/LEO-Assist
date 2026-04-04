@@ -1,0 +1,70 @@
+# -- DI-LEO-AI-075 -- Loop 2: Surface Form Task Creation (Streams A/B/C)
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-075"
+  type: "Functional"
+  derived_from: ["UN-LEO-AI-049"]
+  requirement: >
+    The system SHALL create pending SurfaceFormTask nodes from three input
+    streams -- audit gaps (Stream A), reviewer corrections (Stream B), and
+    LLM high-confidence lookup terms (Stream C) -- enforce a two-reviewer gate
+    such that no MAPS_TO relationship is created until a second reviewer
+    approves the SurfaceFormTask, and apply a daily cap of 20 on Stream C
+    with automatic pause when total unresolved items exceed 50.
+  rationale: >
+    A single reviewer can fix one record but should not be able to create a
+    reusable surface form mapping that affects every future patient with the
+    same phrase. The two-reviewer gate prevents one person's mistake from
+    propagating system-wide. The daily cap and auto-pause on Stream C prevent
+    the review queue from growing faster than reviewers can process it, which
+    would cause alert fatigue and arbitrary prioritisation.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "safety"
+        spec: "When a reviewer resolves a CodingReview with a different concept, only a SurfaceFormTask is created; MAPS_TO is NOT created until a second reviewer approves"
+      - type: "functional"
+        spec: "SurfaceFormTask.source is set to 'audit_gap', 'reviewer_correction', or 'llm_auto_detected' depending on input stream"
+      - type: "functional"
+        spec: "Stream A: audit surface_form_gaps.json entries with resolver score > 0.75 create pending SurfaceFormTask nodes"
+      - type: "functional"
+        spec: "Stream B: resolve_coding_review with resolved_concept_id != original_concept_id creates SurfaceFormTask not MAPS_TO"
+      - type: "functional"
+        spec: "Stream C: LLM resolved terms with score >= 0.90 where MAPS_TO does not yet exist create SurfaceFormTask; capped at 20/day"
+      - type: "functional"
+        spec: "Stream C auto-pauses when total unresolved SurfaceFormTask count exceeds 50; resumes when count drops below 30"
+      - type: "functional"
+        spec: "Review queue shows source badge ('audit gap', 'reviewer correction', 'auto-detected') on each SurfaceFormTask item"
+    constraints:
+      - type: "safety"
+        spec: "No MAPS_TO relationship is created by Stream B without explicit second-reviewer approval via the resolve endpoint"
+      - type: "safety"
+        spec: "Stream A and Stream B are never paused; only Stream C is subject to rate limiting"
+    dependencies: ["DI-LEO-AI-072"]
+    downstream_impacts:
+      - "ReviewSection task list and source badge"
+      - "Terminology writeback (MAPS_TO creation on second approval)"
+      - "Surface form revocation (DI-LEO-AI-076)"
+    technical_details:
+      language: "Python / TypeScript"
+      framework: "FastAPI / Next.js"
+      file_structure:
+        - "scripts/feed_audit_gaps_to_surface_forms.py"
+        - "services/api/app/routers/training.py"
+        - "services/coding_worker/app/pipeline/llm_extractor.py"
+        - "services/ui/src/components/operations/ReviewSection.tsx"
+        - "services/ui/src/components/operations/ReviewCard.tsx"
+      estimated_loc: 250
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      All VT-075 test cases pass: Stream B creates SurfaceFormTask not MAPS_TO,
+      second-reviewer approval triggers MAPS_TO creation, Stream C daily cap
+      enforced, auto-pause fires at queue depth 50, source badge correct.
+    test_protocol: "VT-LEO-AI-075"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-050"]
+  tags: ["loop2", "surface-forms", "two-reviewer-gate", "stream-a", "stream-b", "stream-c", "terminology"]

@@ -1,0 +1,76 @@
+# -- DO-LEO-AI-070 -- Loop 1: Automated Audit Execution Implementation
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-070"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-072"]
+    user_needs: ["UN-LEO-AI-049"]
+    risks_addressed: ["R-LEO-AI-047"]
+    verification_tests: ["VT-LEO-AI-072"]
+
+  specification:
+    title: "Automated Weekly Audit Execution with Immutable AuditRun and DriftMetric"
+    description: |
+      Extends the audit script with --since-days flag, deterministic run_id,
+      immutability guard, Neo4j result writer, and per-domain breakdown.
+      Adds AuditRun and DriftMetric schema constraints. Schedules via Azure
+      Container Apps Job at 02:00 UTC Monday on a dedicated audit-jobs queue.
+    acceptance_criteria:
+      - criterion: "Deterministic run_id scheme"
+        type: "functional"
+        measurement: "Test"
+        target: "audit-YYYY-WNN for scheduled; UUID for manual; -retry-N suffix if completed node exists"
+      - criterion: "Immutability guard"
+        type: "safety"
+        measurement: "Test"
+        target: "Completed AuditRun node cannot be overwritten; retry creates new suffixed run_id"
+      - criterion: "Per-domain breakdown"
+        type: "functional"
+        measurement: "Test"
+        target: "DriftMetric.pct_clean_by_domain populated as JSON object keyed by clinical domain"
+      - criterion: "Cost cap enforcement"
+        type: "safety"
+        measurement: "Test"
+        target: "Run pauses and SafetyNetAlert created when estimated cost_usd exceeds $100"
+      - criterion: "Crash-resume"
+        type: "functional"
+        measurement: "Test"
+        target: "SQLite checkpoint on Azure Files volume; restart skips already-completed encounters"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "scripts/investigations/audit_encounter_coding.py"
+        description: "--since-days flag, deterministic run_id, _write_audit_results_to_neo4j(), cost cap"
+      - artifact_type: "source_code"
+        location: "libs/cypher/schema_constraints.py"
+        description: "AuditRun, DriftMetric, LoopConfig constraint Cypher statements"
+      - artifact_type: "infrastructure"
+        location: "infra/jobs/audit-quality-job.yaml"
+        description: "Azure Container Apps Job: weekly 02:00 UTC, 5 workers, audit-jobs queue, Azure Files mount"
+    storage_location: "git"
+    technical_details:
+      language: "Python"
+      loc: 300
+      key_functions:
+        - "_write_audit_results_to_neo4j"
+        - "_compute_run_id"
+        - "_immutability_guard"
+        - "_cost_cap_check"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Immutability guard prevents overwriting of completed audit evidence"
+      - "Per-run cost cap prevents runaway LLM spend that could disrupt post-market surveillance"
+    risk_control_measures:
+      - "Deterministic run_id enables idempotent crash recovery"
+      - "Completed status is write-protected; only running/failed nodes can be retried"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false

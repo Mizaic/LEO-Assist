@@ -1,0 +1,717 @@
+[
+  {
+    "encounter_id": "8e707c45-0c9c-484e-9d9d-a86766170934",
+    "patient_id": "4926885158",
+    "date": "2024-05-10",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "missing": [
+        {
+          "term": "Type 2 diabetes mellitus",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Patient is actively prescribed Metformin and NovoMix 30 insulin for T2DM, explicitly documented in background history and ReSPECT summary of needs.",
+          "snomed_search": "type 2 diabetes mellitus"
+        },
+        {
+          "term": "Hypertension",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Explicitly documented in background history and ReSPECT summary of needs, with elevated BP reading of 173/84 recorded and management plan discussed.",
+          "snomed_search": "essential hypertension"
+        },
+        {
+          "term": "Elevated blood pressure reading 173/84 mmHg",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Systolic BP 173 and diastolic 84 mmHg recorded on examination; patient safety-netted for severe headache/weakness and advised to monitor home BP readings, indicating clinically significant finding.",
+          "snomed_search": "blood pressure reading elevated"
+        },
+        {
+          "term": "Erythematous dry crusted skin lesions over forehead and scalp",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Active skin lesions documented on examination with Dermatology Advice and Guidance referral initiated; history of basal cell carcinoma and intraepidermal carcinoma noted in skin observation, making this clinically significant.",
+          "snomed_search": "erythematous skin lesion scalp"
+        },
+        {
+          "term": "History of basal cell carcinoma",
+          "severity": "high",
+          "suggested_assertion": "historical",
+          "reason": "Skin observation documents history of basal cell carcinoma, which is clinically relevant to the current skin lesion assessment and dermatology referral.",
+          "snomed_search": "basal cell carcinoma"
+        },
+        {
+          "term": "History of intraepidermal carcinoma",
+          "severity": "high",
+          "suggested_assertion": "historical",
+          "reason": "Skin observation documents history of intraepidermal carcinoma, clinically relevant to the current skin lesion assessment and dermatology referral.",
+          "snomed_search": "intraepidermal carcinoma"
+        },
+        {
+          "term": "Advice and guidance referral to dermatology",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "PRISM Advice and Guidance request submitted to dermatology for active skin lesions documented in the plan.",
+          "snomed_search": "referral to dermatology"
+        },
+        {
+          "term": "Not for cardiopulmonary resuscitation",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "DNACPR decision documented and agreed with patient with mental capacity confirmed, recorded in ReSPECT form; this is a critical clinical safety record.",
+          "snomed_search": "not for cardiopulmonary resuscitation"
+        },
+        {
+          "term": "ReSPECT form completed",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "ReSPECT form completed and documented during this encounter with full treatment escalation plan agreed.",
+          "snomed_search": "ReSPECT recommended summary plan emergency care treatment"
+        },
+        {
+          "term": "Treatment escalation plan",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Treatment escalation plan documented: agreed for hospital admission and invasive procedures for reversible causes, not for CPR.",
+          "snomed_search": "treatment escalation plan"
+        },
+        {
+          "term": "Mental capacity assessment",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Formal mental capacity assessment documented with all four criteria met under Mental Capacity Act 2005, relevant to DNACPR and ACP decisions.",
+          "snomed_search": "mental capacity assessment"
+        },
+        {
+          "term": "Oxygen saturation 95% on air",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Peripheral oxygen saturation of 95% recorded on examination; borderline low value documented as a clinical finding.",
+          "snomed_search": "oxygen saturation measurement"
+        },
+        {
+          "term": "Canadian Study of Health and Aging Clinical Frailty Scale level 3 - managing well",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Frailty scale score formally assessed and documented during this encounter as part of the care planning assessment.",
+          "snomed_search": "clinical frailty scale"
+        },
+        {
+          "term": "Personalised care and support plan agreed",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Personalised care and support plan formally agreed with patient during this home visit encounter.",
+          "snomed_search": "personalised care support plan"
+        },
+        {
+          "term": "Low risk of falls",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Falls risk assessment completed with score of 0 and low risk documented; no history of falls in previous year confirmed.",
+          "snomed_search": "low risk of falls"
+        },
+        {
+          "term": "Stopped driving",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Patient documented as having stopped driving two years ago, which is a clinically relevant social history finding particularly in the context of diabetes and insulin use.",
+          "snomed_search": "does not drive motor vehicle"
+        },
+        {
+          "term": "Lives alone",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Patient documented as living by himself, relevant to care planning, safeguarding and ACP context.",
+          "snomed_search": "lives alone"
+        },
+        {
+          "term": "Body mass index 22.77 kg/m\u00b2",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "BMI formally recorded during examination as part of clinical assessment.",
+          "snomed_search": "body mass index"
+        },
+        {
+          "term": "Influenza vaccination invitation sent",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "Influenza vaccination first invitation letter documented as sent during this encounter period.",
+          "snomed_search": "influenza vaccination invitation"
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "This encounter has zero coded concepts despite a clinically rich home visit including active diagnoses (T2DM on insulin, hypertension with elevated BP), a completed ReSPECT/DNACPR form, a dermatology A&G referral for lesions with a background of skin malignancy, and a full frailty/care planning assessment. Comprehensive coding is required across multiple high-severity clinical domains.",
+      "_meta": {
+        "patient_id": "4926885158",
+        "encounter_id": "8e707c45-0c9c-484e-9d9d-a86766170934",
+        "date": "2024-05-10",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "69b08f75-d91e-4852-ae71-6700d3a32d20",
+    "patient_id": "4926885158",
+    "date": "2025-05-01",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [
+        {
+          "term": "Comirnaty JN.1 COVID-19 mRNA Vaccine booster administration",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "A COVID-19 booster vaccination was administered and should be coded as a procedure to maintain an accurate immunisation record.",
+          "snomed_search": "COVID-19 mRNA vaccine booster immunisation"
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The encounter records a COVID-19 booster vaccination administered by a pharmacy but no SNOMED concepts have been coded; at minimum the vaccination procedure should be captured. No other clinical findings or disorders are documented in this encounter.",
+      "_meta": {
+        "patient_id": "4926885158",
+        "encounter_id": "69b08f75-d91e-4852-ae71-6700d3a32d20",
+        "date": "2025-05-01",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "edda45fa-0830-47b9-8843-00af1cb94452",
+    "patient_id": "4926885158",
+    "date": "2025-05-02",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter contains only an administrative Summary Care Record update performed by a receptionist; there is no clinical content requiring SNOMED CT coding.",
+      "_meta": {
+        "patient_id": "4926885158",
+        "encounter_id": "edda45fa-0830-47b9-8843-00af1cb94452",
+        "date": "2025-05-02",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e171b336-fbea-47d7-adfc-4d1143165e7c",
+    "patient_id": "4926885158",
+    "date": "2025-05-06",
+    "result": {
+      "encounter_assessment": "needs_review",
+      "missing": [
+        {
+          "term": "eGFR 50 mL/min/1.73m\u00b2",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "An eGFR of 50 mL/min/1.73m\u00b2 indicates CKD stage 3a (45\u201359 range), which is a clinically significant active diagnosis requiring coding for QOF, recall, and KFRE risk stratification as referenced in the lab commentary.",
+          "snomed_search": "chronic kidney disease stage 3a"
+        },
+        {
+          "term": "Serum urea level 8.6 mmol/L - Outside reference range",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Serum urea is flagged as outside the reference range and should be coded as an abnormal finding to support clinical monitoring and audit trail.",
+          "snomed_search": "serum urea raised"
+        },
+        {
+          "term": "eGFR using creatinine (CKD-EPI) 50 mL/min/1.73m\u00b2",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The eGFR observable entity result itself should be coded as a numeric finding to support longitudinal CKD monitoring and KFRE calculation.",
+          "snomed_search": "eGFR creatinine CKD-EPI"
+        },
+        {
+          "term": "Urine ACR should be checked on at least an annual basis",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The lab commentary explicitly recommends annual urine ACR monitoring for this patient with CKD; coding this as a due/outstanding procedure supports recall and QOF compliance.",
+          "snomed_search": "urine albumin creatinine ratio"
+        },
+        {
+          "term": "6m dm (diabetes mellitus - reason for request)",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The clinical information field states the request was made in the context of diabetes mellitus ('6m dm'), indicating an active diagnosis of diabetes that is not coded and is clinically significant for this encounter.",
+          "snomed_search": "diabetes mellitus"
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "No concepts have been coded from this encounter despite clinically significant findings including a likely CKD stage 3a (eGFR 50), raised urea, and an underlying diabetes mellitus context. The lab commentary explicitly recommends KFRE risk stratification and annual ACR monitoring, both of which require the CKD diagnosis to be formally coded. Coding quality for this encounter is poor and requires remediation.",
+      "_meta": {
+        "patient_id": "4926885158",
+        "encounter_id": "e171b336-fbea-47d7-adfc-4d1143165e7c",
+        "date": "2025-05-06",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "2e57d58b-5393-40d1-9b73-3a393dc754c1",
+    "patient_id": "4926885158",
+    "date": "2025-05-06",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.75,
+      "notes": "This encounter is an auto-filed AKI staging alert result (Stage 0 / No AKI) triggered by a 6-month diabetes mellitus review. No codeable clinical findings are present beyond the absence of AKI, which does not require a SNOMED code. The underlying diabetes and renal monitoring context should be captured in the patient's longitudinal record rather than from this administrative result filing.",
+      "_meta": {
+        "patient_id": "4926885158",
+        "encounter_id": "2e57d58b-5393-40d1-9b73-3a393dc754c1",
+        "date": "2025-05-06",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "295792bc-5f33-4e76-be97-9dfd961eb73c",
+    "patient_id": "4926885158",
+    "date": "2025-05-06",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "missing": [
+        {
+          "term": "Haemoglobin A1c level 8.6%",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "An HbA1c of 8.6% is significantly above the diabetic target range and indicates poorly controlled diabetes mellitus; this result should be coded as a finding to flag clinical risk and trigger appropriate management.",
+          "snomed_search": "HbA1c level"
+        },
+        {
+          "term": "Diabetes mellitus (6m dm / dm rv)",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The clinical information explicitly references a 6-month diabetes review, confirming active diabetes mellitus as the reason for the HbA1c request, and this diagnosis should be coded.",
+          "snomed_search": "diabetes mellitus"
+        },
+        {
+          "term": "Diabetes mellitus annual review",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The note documents a diabetes review (dm rv) which is a clinical procedure relevant to QOF and ongoing diabetes management and should be coded as a procedure.",
+          "snomed_search": "diabetes mellitus review"
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "This encounter has zero coded concepts despite containing a clinically significant HbA1c result of 8.6% and clear evidence of active diabetes mellitus under review; the most critical gap is the absence of the diabetes diagnosis and the out-of-range HbA1c finding, both of which carry safety and QOF implications.",
+      "_meta": {
+        "patient_id": "4926885158",
+        "encounter_id": "295792bc-5f33-4e76-be97-9dfd961eb73c",
+        "date": "2025-05-06",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "caf14a39-4191-4eec-a47e-f62fad70d29b",
+    "patient_id": "4926885158",
+    "date": "2025-05-06",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "missing": [
+        {
+          "term": "HbA1c 71 mmol/mol",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "An HbA1c of 71 mmol/mol is in the diabetic range (\u226548 mmol/mol) and should be coded as a finding to support diabetes management and QOF recording.",
+          "snomed_search": "Haemoglobin A1c level IFCC standardised"
+        },
+        {
+          "term": "6m dm / dm rv (diabetes mellitus under review)",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "The clinical context and HbA1c result strongly indicate active diabetes mellitus requiring a diagnosis code; absence of any diabetes coding is a significant clinical and QOF gap.",
+          "snomed_search": "type 2 diabetes mellitus"
+        },
+        {
+          "term": "fu with SR for dm rv (diabetes review)",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "A diabetes review or follow-up appointment has been arranged and should be coded to support care planning and QOF diabetes review indicators.",
+          "snomed_search": "diabetic monitoring"
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "No concepts have been coded from this encounter despite a clinically significant HbA1c result in the diabetic range and clear reference to ongoing diabetes management; at minimum a diabetes diagnosis and the HbA1c observable entity result should be coded. The exact diabetes type cannot be confirmed from this note alone, but type 2 is most probable in a primary care context.",
+      "_meta": {
+        "patient_id": "4926885158",
+        "encounter_id": "caf14a39-4191-4eec-a47e-f62fad70d29b",
+        "date": "2025-05-06",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "68720fb8-92f8-434a-91c3-cec00021b28a",
+    "patient_id": "4926885158",
+    "date": "2025-05-06",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This is a routine phlebotomy service encounter with no clinical diagnoses, findings, or procedures beyond the blood-taking itself. The coded list is appropriately empty as the encounter contains only administrative/procedural phlebotomy workflow entries; the underlying diabetic recall context is not documented as a clinical assertion within this note and would be coded from the relevant review encounter.",
+      "_meta": {
+        "patient_id": "4926885158",
+        "encounter_id": "68720fb8-92f8-434a-91c3-cec00021b28a",
+        "date": "2025-05-06",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "57fa80b0-ffb0-4455-8d00-72b52527d1ba",
+    "patient_id": "4926885158",
+    "date": "2025-05-07",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "This is a purely administrative repeat prescription request encounter handled by non-clinical staff with no clinical assessment, examination findings, or diagnoses documented; no SNOMED clinical concepts are expected or appropriate to code from this encounter. The underlying conditions implied by the medications (type 2 diabetes on insulin and metformin) should be coded from a clinical encounter rather than an administrative prescription request.",
+      "_meta": {
+        "patient_id": "4926885158",
+        "encounter_id": "57fa80b0-ffb0-4455-8d00-72b52527d1ba",
+        "date": "2025-05-07",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d8fef130-8413-4dd8-bc50-83ad60c37f3a",
+    "patient_id": "4926885158",
+    "date": "2025-05-07",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.5,
+      "notes": "The encounter note contains only administrative metadata (timestamp, location, and clinician name) with no clinical content to assess. There are no diagnoses, findings, procedures, or other codeable clinical concepts present in the text, so no coding gaps or errors can be identified.",
+      "_meta": {
+        "patient_id": "4926885158",
+        "encounter_id": "d8fef130-8413-4dd8-bc50-83ad60c37f3a",
+        "date": "2025-05-07",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "a81b8c5b-a1cc-4b54-b424-2d65d4ba8e1b",
+    "patient_id": "4926885158",
+    "date": "2025-05-07",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.5,
+      "notes": "The encounter record contains only administrative metadata (time, location, clinician name and role) with no clinical content whatsoever; there is nothing to code and no coding gaps can be identified. Confidence is low due to the absence of any clinical narrative.",
+      "_meta": {
+        "patient_id": "4926885158",
+        "encounter_id": "a81b8c5b-a1cc-4b54-b424-2d65d4ba8e1b",
+        "date": "2025-05-07",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "06c16887-5713-4027-8f56-29a107180c83",
+    "patient_id": "4926885158",
+    "date": "2025-05-12",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "missing": [
+        {
+          "term": "interdigital heloma durum (corn between toes / L/1st IPJ interdigital HD)",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The primary presenting complaint and treated condition is an interdigital hard corn (heloma durum) at the left 1st IPJ, which was enucleated during this encounter and should be coded as the active diagnosis.",
+          "snomed_search": "interdigital heloma durum"
+        },
+        {
+          "term": "enucleation of corn",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "A clinical procedure (enucleation of the interdigital HD) was performed during this face-to-face podiatry appointment and should be coded as a procedure.",
+          "snomed_search": "enucleation of corn podiatry"
+        },
+        {
+          "term": "orthotic wedge applied to foot",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "An orthotic (OT) wedge was fabricated and applied to reduce interdigital pressure, representing a clinical intervention that should be coded.",
+          "snomed_search": "orthotic device applied foot interdigital"
+        },
+        {
+          "term": "IDDM (insulin-dependent diabetes mellitus)",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Insulin-dependent diabetes mellitus is documented as relevant medical information and is clinically significant in a podiatry context, particularly for foot care and risk stratification.",
+          "snomed_search": "type 1 diabetes mellitus insulin dependent"
+        },
+        {
+          "term": "left hallux metatarsophalangeal joint rigidity (left MTPJ rigid)",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Rigidity of the left first MTPJ is documented as part of the presenting complaint and is a clinically relevant finding affecting foot biomechanics and ongoing management.",
+          "snomed_search": "hallux rigidus metatarsophalangeal joint"
+        },
+        {
+          "term": "no pain",
+          "severity": "low",
+          "suggested_assertion": "absent",
+          "reason": "The note explicitly records no pain, which is a clinically relevant finding in a diabetic foot assessment and should be coded as absent.",
+          "snomed_search": "pain absent foot"
+        },
+        {
+          "term": "right dorsalis pedis pulse palpable",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Vascular assessment findings are clinically significant in a diabetic patient and the right dorsalis pedis pulse being palpable should be coded.",
+          "snomed_search": "dorsalis pedis pulse palpable right"
+        },
+        {
+          "term": "left dorsalis pedis pulse palpable",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Vascular assessment findings are clinically significant in a diabetic patient and the left dorsalis pedis pulse being palpable should be coded.",
+          "snomed_search": "dorsalis pedis pulse palpable left"
+        },
+        {
+          "term": "right posterior tibial pulse palpable",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Vascular assessment findings are clinically significant in a diabetic patient and the right posterior tibial pulse being palpable should be coded.",
+          "snomed_search": "posterior tibial pulse palpable right"
+        },
+        {
+          "term": "left posterior tibial pulse palpable",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Vascular assessment findings are clinically significant in a diabetic patient and the left posterior tibial pulse being palpable should be coded.",
+          "snomed_search": "posterior tibial pulse palpable left"
+        },
+        {
+          "term": "appropriate footwear",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "Footwear was assessed and deemed suitable/appropriate, which is a relevant finding in diabetic foot care and should be coded.",
+          "snomed_search": "appropriate footwear observed"
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "This podiatry encounter has zero coded concepts despite containing multiple clinically significant findings including an active diagnosis (interdigital HD), a procedure (enucleation), relevant comorbidity (IDDM), vascular assessment results, and a biomechanical finding (MTPJ rigidity). Comprehensive coding is required, particularly given the diabetic context which elevates the clinical importance of all foot-related findings.",
+      "_meta": {
+        "patient_id": "4926885158",
+        "encounter_id": "06c16887-5713-4027-8f56-29a107180c83",
+        "date": "2025-05-12",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "52df1ba9-fd9b-4200-8124-07a9845f4ad1",
+    "patient_id": "4926885158",
+    "date": "2025-05-12",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "missing": [
+        {
+          "term": "Type 2 diabetes mellitus",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The encounter is a formal Type 2 diabetes review with HbA1c monitoring, medication management and care planning \u2014 this is the primary coded diagnosis driving the encounter.",
+          "snomed_search": "type 2 diabetes mellitus"
+        },
+        {
+          "term": "HbA1c 8.6% (70 mmol/mol)",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "A specific HbA1c result of 8.6% is documented and clinically acted upon (target relaxed, repeat planned), and should be recorded as an observable entity result.",
+          "snomed_search": "haemoglobin A1c level"
+        },
+        {
+          "term": "Hypoglycaemia",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "One hypoglycaemic episode in April is explicitly documented in a patient on insulin and should be coded as a clinical finding relevant to diabetes management.",
+          "snomed_search": "hypoglycaemia"
+        },
+        {
+          "term": "Erosive pustular dermatosis of scalp",
+          "severity": "high",
+          "suggested_assertion": "historical",
+          "reason": "The dermatology letter confirms erosive pustular dermatosis of the scalp is now completely resolved; it should be coded as a historical condition with resolution documented.",
+          "snomed_search": "erosive pustular dermatosis scalp"
+        },
+        {
+          "term": "Scarring of scalp",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Mild scarring of the scalp following resolved erosive pustular dermatosis is documented on dermoscopy examination and represents an active finding.",
+          "snomed_search": "scarring skin scalp"
+        },
+        {
+          "term": "Lower urinary tract symptoms",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "LUTS is the stated diagnosis in the GP encounter, with nocturia, urgency, urge incontinence, dysuria and failed voiding all documented.",
+          "snomed_search": "lower urinary tract symptoms"
+        },
+        {
+          "term": "Benign prostatic hyperplasia",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "BPH is explicitly coded in the GP plan (XE0e6) and supported by documented enlarged smooth prostate on examination in January 2025.",
+          "snomed_search": "benign prostatic hyperplasia"
+        },
+        {
+          "term": "Nocturia",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Nocturia three times per night is specifically documented as a symptom in the GP assessment and is clinically relevant to the LUTS/BPH management.",
+          "snomed_search": "nocturia"
+        },
+        {
+          "term": "Urge urinary incontinence",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Urge incontinence is explicitly documented in the GP history and is a distinct finding warranting coding alongside the broader LUTS.",
+          "snomed_search": "urge urinary incontinence"
+        },
+        {
+          "term": "Dysuria",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Burning dysuria is documented in the GP history and is the clinical basis for the antibiotic prescription and urine culture request.",
+          "snomed_search": "dysuria"
+        },
+        {
+          "term": "Urinary tract infection",
+          "severity": "high",
+          "suggested_assertion": "possible",
+          "reason": "Urine dipstick positive for leukocytes, nitrofurantoin prescribed for 7 days and urine culture requested \u2014 a UTI is being treated empirically pending culture confirmation.",
+          "snomed_search": "urinary tract infection"
+        },
+        {
+          "term": "Hypertension",
+          "severity": "high",
+          "suggested_assertion": "possible",
+          "reason": "BP recorded as 157/90 mmHg in a patient with no apparent antihypertensive therapy documented; this elevated reading warrants coding at minimum as a finding requiring follow-up.",
+          "snomed_search": "hypertension"
+        },
+        {
+          "term": "Blood pressure 157/90 mmHg",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "A specific blood pressure reading is documented during the GP encounter and should be recorded as an observable entity finding.",
+          "snomed_search": "blood pressure reading"
+        },
+        {
+          "term": "History of transurethral resection of prostate",
+          "severity": "medium",
+          "suggested_assertion": "historical",
+          "reason": "TURP in 2013 is documented in the GP history and is clinically relevant to the current LUTS presentation.",
+          "snomed_search": "transurethral resection of prostate"
+        },
+        {
+          "term": "Sigmoidoscopy",
+          "severity": "medium",
+          "suggested_assertion": "historical",
+          "reason": "Sigmoidoscopy in January 2025 is documented as the temporal trigger for the patient's urinary symptoms and should be coded as a historical procedure.",
+          "snomed_search": "sigmoidoscopy"
+        },
+        {
+          "term": "Urology referral",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "A urology referral is explicitly planned in the GP encounter for ongoing LUTS/BPH and should be coded as a procedure.",
+          "snomed_search": "referral to urology service"
+        },
+        {
+          "term": "PSA blood test",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "PSA measurement is planned one month post-antibiotics in the context of BPH and LUTS, and should be coded as a requested procedure.",
+          "snomed_search": "prostate specific antigen measurement"
+        },
+        {
+          "term": "Urine culture",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Urine culture is explicitly requested in the GP plan and should be coded as a procedure.",
+          "snomed_search": "urine culture"
+        },
+        {
+          "term": "Frailty",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The nurse documents that the HbA1c target has been relaxed due to age and frailty, indicating frailty is an active clinical consideration affecting management.",
+          "snomed_search": "frailty"
+        },
+        {
+          "term": "Self-monitoring of blood glucose",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "Daily capillary blood glucose monitoring is documented with specific readings, indicating this is an active self-management activity.",
+          "snomed_search": "self monitoring blood glucose"
+        },
+        {
+          "term": "No osmotic symptoms",
+          "severity": "low",
+          "suggested_assertion": "absent",
+          "reason": "Osmotic symptoms are explicitly stated as absent in the diabetes review and could be coded to support clinical completeness.",
+          "snomed_search": "osmotic symptoms diabetes"
+        },
+        {
+          "term": "No cervical lymphadenopathy",
+          "severity": "low",
+          "suggested_assertion": "absent",
+          "reason": "No significant cervical lymphadenopathy is explicitly documented on examination in the dermatology letter.",
+          "snomed_search": "cervical lymphadenopathy"
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "This is a complex multi-encounter record with zero concepts coded, representing a significant coding gap across three distinct clinical domains: diabetes management, dermatology follow-up and a new GP presentation with LUTS/BPH/possible UTI. The most clinically urgent omissions are the active diagnoses (T2DM, BPH, possible UTI), the urology referral, the elevated blood pressure, and the hypoglycaemic episode.",
+      "_meta": {
+        "patient_id": "4926885158",
+        "encounter_id": "52df1ba9-fd9b-4200-8124-07a9845f4ad1",
+        "date": "2025-05-12",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  }
+]

@@ -1,0 +1,447 @@
+[
+  {
+    "encounter_id": "fe85dd6d-77f2-440d-9d0f-7fe06f04e4a6",
+    "patient_id": "4200186896",
+    "date": "2025-05-09",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter record contains only administrative/organisational content (clinic entry, staff name, contact number) with no clinical findings, diagnoses, procedures, or symptoms to code. The single coded concept is appropriate for the administrative context.",
+      "_meta": {
+        "patient_id": "4200186896",
+        "encounter_id": "fe85dd6d-77f2-440d-9d0f-7fe06f04e4a6",
+        "date": "2025-05-09",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "3048b60f-cb93-4446-866b-2f45720fe673",
+    "patient_id": "4200186896",
+    "date": "2025-05-09",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter contains only administrative record-sharing consent text with no clinical content; the single coded concept (seen in hospital outpatient department) is a reasonable administrative finding. No clinical coding gaps or errors are identifiable.",
+      "_meta": {
+        "patient_id": "4200186896",
+        "encounter_id": "3048b60f-cb93-4446-866b-2f45720fe673",
+        "date": "2025-05-09",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "4e761887-a356-44ba-876e-09554209931c",
+    "patient_id": "4200186896",
+    "date": "2025-05-09",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.55,
+      "notes": "The encounter text contains only an administrative entry header from UHL Dermatology Service with no clinical content, diagnoses, findings, procedures, or observations documented; there is nothing clinically codeable from this note. Confidence is reduced due to the absence of any clinical narrative.",
+      "_meta": {
+        "patient_id": "4200186896",
+        "encounter_id": "4e761887-a356-44ba-876e-09554209931c",
+        "date": "2025-05-09",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e792a2f1-4ef3-4fec-9073-64c71c5a05c2",
+    "patient_id": "4200186896",
+    "date": "2025-05-09",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter contains only administrative/record-sharing consent text with no clinical content; the single coded concept is a reasonable administrative finding. No clinical coding gaps or errors identified.",
+      "_meta": {
+        "patient_id": "4200186896",
+        "encounter_id": "e792a2f1-4ef3-4fec-9073-64c71c5a05c2",
+        "date": "2025-05-09",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "3bbf014b-672f-42f8-843a-aab5861d6a39",
+    "patient_id": "4200186896",
+    "date": "2025-05-09",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "The encounter text contains only an administrative header indicating care origin from UHL Dermatology Service, with no clinical content, diagnoses, findings, procedures, or medications documented. Per scope rules, this administrative text carries no codeable clinical meaning and no concepts should be coded from it.",
+      "_meta": {
+        "patient_id": "4200186896",
+        "encounter_id": "3bbf014b-672f-42f8-843a-aab5861d6a39",
+        "date": "2025-05-09",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "20b111c2-8591-4aec-ad74-e491efda9088",
+    "patient_id": "4200186896",
+    "date": "2025-05-12",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "363495004",
+          "name": "Malignant tumour of lymphoid haemopoietic and related tissue (disorder)",
+          "severity": "medium",
+          "reason": "The note references previous B cell CLL treated with chemotherapy until April 2019, indicating a historical rather than currently active malignancy; this duplicates the intent of the History of malignant neoplasm concept already coded."
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "363495004",
+          "name": "Malignant tumour of lymphoid haemopoietic and related tissue (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "medium",
+          "reason": "Treatment ended April 2019 and the note describes this as 'previous' CLL, so the assertion should be historical rather than present to accurately reflect the patient's status."
+        },
+        {
+          "conceptId": "266987004",
+          "name": "History of malignant neoplasm (situation)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "low",
+          "reason": "A 'History of malignant neoplasm' situation concept is by definition a historical record and coding it as 'present' is semantically inconsistent; 'historical' better reflects the past nature of the CLL."
+        }
+      ],
+      "confidence": 0.78,
+      "notes": "Coding is broadly appropriate for a fast-track skin cancer clinic attendance. The main issue is the assertion and potential duplication around the historical CLL: concept 363495004 should be marked historical (or removed in favour of the History of malignant neoplasm concept), and the History concept itself should carry a historical assertion.",
+      "_meta": {
+        "patient_id": "4200186896",
+        "encounter_id": "20b111c2-8591-4aec-ad74-e491efda9088",
+        "date": "2025-05-12",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "bff06127-b56f-4f65-81ab-b546de35d06d",
+    "patient_id": "4200186896",
+    "date": "2025-05-12",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "missing": [
+        {
+          "term": "Malignant melanoma stage pT1b right upper back",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "Histologically confirmed malignant melanoma pT1b of the right upper back is the primary active diagnosis driving all subsequent management and must be coded as a confirmed present disorder.",
+          "snomed_search": "malignant melanoma skin"
+        },
+        {
+          "term": "Excision biopsy of skin lesion - right upper back",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "An excision biopsy of the skin lesion on the right upper back was performed and is explicitly documented as a new episode procedure.",
+          "snomed_search": "excision biopsy skin lesion"
+        },
+        {
+          "term": "Wide excision of skin lesion - MM scar right upper back",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "A wide local excision (1cm WLE) of the melanoma scar on the right upper back was carried out on 27 August 2025 and is documented as a new episode procedure.",
+          "snomed_search": "wide local excision skin lesion melanoma"
+        },
+        {
+          "term": "Referral to plastic surgery for wide local excision",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "A referral to plastic surgery for 1cm WLE was made and acted upon; this is a clinically significant onward referral that should be coded.",
+          "snomed_search": "referral to plastic surgery"
+        },
+        {
+          "term": "Breslow thickness 0.8mm",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Breslow thickness is a key prognostic observable entity for melanoma staging and is explicitly documented as 0.83mm (rounded to 0.8mm), informing the pT1b classification.",
+          "snomed_search": "Breslow thickness melanoma"
+        },
+        {
+          "term": "Surgical wound right upper back",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "A post-operative surgical wound on the right upper back is actively being managed at the wound check consultation on 05 September 2025.",
+          "snomed_search": "surgical wound"
+        },
+        {
+          "term": "Vitamin D level 45 nmol/L - may be inadequate",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Serum vitamin D result of 45 nmol/L falls in the 'may be inadequate' range (25\u201350 nmol/L) and was reviewed by the dermatologist; this finding has clinical relevance in an oncology context.",
+          "snomed_search": "vitamin D insufficiency finding"
+        },
+        {
+          "term": "Digital dermatoscopy of skin",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Digital dermatoscopy was performed at the skin cancer follow-up appointment and is documented as a coded procedure in the encounter.",
+          "snomed_search": "digital dermatoscopy skin"
+        },
+        {
+          "term": "Lymphovascular invasion absent",
+          "severity": "medium",
+          "suggested_assertion": "absent",
+          "reason": "Lymphovascular invasion is explicitly reported as absent in the histopathology summary and is a prognostically relevant finding for melanoma staging.",
+          "snomed_search": "lymphovascular invasion melanoma"
+        },
+        {
+          "term": "Ulceration absent (melanoma histology)",
+          "severity": "medium",
+          "suggested_assertion": "absent",
+          "reason": "Absence of ulceration is explicitly stated in the histology report and is a key TNM staging criterion for melanoma.",
+          "snomed_search": "ulceration melanoma histology"
+        },
+        {
+          "term": "Wound check - healing well, no infection",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "A formal wound check consultation was conducted by the practice nurse on 05 September 2025 confirming satisfactory healing; this clinical encounter finding should be coded.",
+          "snomed_search": "wound healing satisfactory"
+        },
+        {
+          "term": "Serum vitamin D level measurement",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "A serum vitamin D blood test was performed as part of the dermatology follow-up and the result was reviewed; the procedure and result should be coded.",
+          "snomed_search": "serum vitamin D measurement"
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "734936000",
+          "name": "Suspected malignant pigmented skin lesion (situation)",
+          "severity": "medium",
+          "reason": "The lesion is no longer 'suspected' \u2014 histology has confirmed malignant melanoma pT1b, so this situation concept is superseded by the confirmed diagnosis and should be retired or resolved."
+        },
+        {
+          "conceptId": "266987004",
+          "name": "History of malignant neoplasm (situation)",
+          "severity": "medium",
+          "reason": "The encounter note text provided does not contain any reference to previous B cell CLL or fludarabine treatment; this concept appears to have been coded from information outside the current encounter text and its evidence basis cannot be verified from this note."
+        },
+        {
+          "conceptId": "363495004",
+          "name": "Malignant tumour of lymphoid haemopoietic and related tissue (disorder)",
+          "severity": "medium",
+          "reason": "No mention of B cell CLL or haematological malignancy appears anywhere in the encounter text provided; this concept cannot be evidenced from this encounter and may have been miscoded to this encounter rather than a historical problem entry."
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "734936000",
+          "name": "Suspected malignant pigmented skin lesion (situation)",
+          "current_assertion": "present",
+          "suggested_assertion": "refuted",
+          "severity": "high",
+          "reason": "Histological confirmation of malignant melanoma pT1b means the 'suspected' situation has been resolved and should be refuted/closed, replaced by the confirmed melanoma diagnosis."
+        }
+      ],
+      "confidence": 0.82,
+      "notes": "The coding is significantly incomplete for what is a high-acuity oncology pathway: the confirmed malignant melanoma diagnosis, both surgical procedures (excision biopsy and wide local excision), and key histopathological findings are all absent from the coded list. The 'suspected' lesion concept should be retired now that diagnosis is confirmed, and two concepts (CLL-related) lack any evidential basis in this encounter text.",
+      "_meta": {
+        "patient_id": "4200186896",
+        "encounter_id": "bff06127-b56f-4f65-81ab-b546de35d06d",
+        "date": "2025-05-12",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d6186e46-b0cd-4150-b7fe-529d6c4f09cc",
+    "patient_id": "4200186896",
+    "date": "2025-05-12",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.55,
+      "notes": "This encounter record appears to be an administrative entry logging receipt of a dermatology outpatient letter via a medical secretary access role; the note text is minimal and contains no clinical content beyond the outpatient attendance already coded. The low confidence reflects the sparse encounter text \u2014 if the full dermatology letter contains clinical findings (e.g. diagnosis, biopsy results, management plan), those should be coded from the source document by the appropriate clinician rather than from this administrative entry.",
+      "_meta": {
+        "patient_id": "4200186896",
+        "encounter_id": "d6186e46-b0cd-4150-b7fe-529d6c4f09cc",
+        "date": "2025-05-12",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "967eeeac-a225-4329-a477-34209daa789c",
+    "patient_id": "4200186896",
+    "date": "2025-05-12",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.55,
+      "notes": "The encounter text is extremely sparse, containing only an administrative header and a single clinical phrase about a fast-track suspected skin cancer clinic attendance. The existing coding of 'Seen in hospital outpatient department' is reasonable but the phrase 'fast track suspected skin cancer clinic' could warrant a more specific finding such as a suspected skin cancer referral or 2WW referral concept; however, without further clinical detail in the note it is unclear whether this is a new referral being made or a report of a completed attendance, so no additional gaps are flagged with confidence. Overall coding quality is limited by the lack of encounter content.",
+      "_meta": {
+        "patient_id": "4200186896",
+        "encounter_id": "967eeeac-a225-4329-a477-34209daa789c",
+        "date": "2025-05-12",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "8c477ac6-5a1c-408c-8ba9-c6f34d2b7b2b",
+    "patient_id": "4200186896",
+    "date": "2025-05-12",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [
+        {
+          "term": "formal histo result pending",
+          "severity": "medium",
+          "suggested_assertion": "possible",
+          "reason": "The note indicates a histology result is awaited and has not yet been communicated, suggesting the skin lesion diagnosis remains under investigation at this point.",
+          "snomed_search": "awaiting histology result"
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "734936000",
+          "name": "Suspected malignant pigmented skin lesion (situation)",
+          "severity": "medium",
+          "reason": "The encounter note itself contains no reference to a suspected melanoma or pigmented skin lesion; this appears to have been inferred from context outside the visible encounter text, and the basis for this specific coding is not evidenced within the note provided."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.55,
+      "notes": "The encounter note is extremely brief and largely administrative in nature, referencing a haematology research nurse and a named consultant, with histology results still pending; meaningful clinical coding is very limited from this text alone. Confidence is low due to the sparse clinical content visible in the note.",
+      "_meta": {
+        "patient_id": "4200186896",
+        "encounter_id": "8c477ac6-5a1c-408c-8ba9-c6f34d2b7b2b",
+        "date": "2025-05-12",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "a841c9de-58b5-4449-847a-21e68f265382",
+    "patient_id": "4200186896",
+    "date": "2025-05-12",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "missing": [
+        {
+          "term": "Melanoma of skin of back",
+          "severity": "critical",
+          "suggested_assertion": "possible",
+          "reason": "The suspected diagnosis is specifically melanoma of the right upper back \u2014 a more precise suspected diagnosis concept should be coded beyond the generic 'suspected malignant pigmented skin lesion' already coded.",
+          "snomed_search": "suspected melanoma skin back"
+        },
+        {
+          "term": "B-cell chronic lymphocytic leukaemia",
+          "severity": "high",
+          "suggested_assertion": "historical",
+          "reason": "The note documents a specific prior diagnosis of B-cell CLL treated with fludarabine, cyclophosphamide and rituximab until April 2019; the current coding uses a broad 'malignant tumour of lymphoid haemopoietic tissue' concept rather than the specific disorder, and the historical assertion is not explicitly applied to the specific CLL concept.",
+          "snomed_search": "B-cell chronic lymphocytic leukaemia"
+        },
+        {
+          "term": "Fludarabine, cyclophosphamide and rituximab chemotherapy",
+          "severity": "medium",
+          "suggested_assertion": "historical",
+          "reason": "Previous treatment with FCR chemotherapy regimen is clinically relevant (immunosuppression history) and should be coded as a historical procedure.",
+          "snomed_search": "fludarabine cyclophosphamide rituximab chemotherapy regimen"
+        },
+        {
+          "term": "Family history of malignant neoplasm of skin",
+          "severity": "medium",
+          "suggested_assertion": "family",
+          "reason": "Mother had a lesion removed from her cheek, which is a clinically relevant family history of possible skin malignancy that should be coded.",
+          "snomed_search": "family history malignant neoplasm skin"
+        },
+        {
+          "term": "No lymphadenopathy",
+          "severity": "medium",
+          "suggested_assertion": "absent",
+          "reason": "The note explicitly records no lymphadenopathy on examination, which is a clinically significant absent finding in the context of suspected melanoma staging.",
+          "snomed_search": "lymphadenopathy absent"
+        },
+        {
+          "term": "Wide local excision of skin lesion",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "A large ellipse excision of the right upper back lesion has been booked/planned and should be coded as a procedure (the current coded concept 'wide excision of muscle tissue' appears to be an incorrect procedure code for a skin ellipse excision).",
+          "snomed_search": "wide local excision skin lesion"
+        },
+        {
+          "term": "Dermoscopy of skin lesion",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Digital dermoscopy was performed (S60.5 recorded as Yes) and should be coded as a procedure performed at this encounter.",
+          "snomed_search": "digital dermoscopy skin lesion"
+        },
+        {
+          "term": "Occupational exposure - builder / construction worker",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Patient's occupation as a builder is clinically relevant as an occupational UV/environmental exposure risk factor in the context of suspected melanoma.",
+          "snomed_search": "occupation builder construction worker"
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "363495004",
+          "name": "Malignant tumour of lymphoid haemopoietic and related tissue (disorder)",
+          "severity": "medium",
+          "reason": "The note describes B-cell CLL as a previous/historical condition treated until April 2019; coding this as 'present' assertion implies active current malignancy, whereas the encounter context and 266987004 (history of malignant neoplasm) suggest it is historical."
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "363495004",
+          "name": "Malignant tumour of lymphoid haemopoietic and related tissue (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "high",
+          "reason": "The CLL was treated with FCR until April 2019 and is described as a previous history; asserting it as 'present' implies active current haematological malignancy which is not supported by the note."
+        }
+      ],
+      "confidence": 0.82,
+      "notes": "The coding captures the high-level suspected skin cancer pathway and secondary care attendance adequately, but lacks specificity for the suspected melanoma site, misasserts the historical CLL as currently active, uses an incorrect procedure code for the planned skin excision, and omits several clinically important findings including absent lymphadenopathy, family history of skin lesion, FCR chemotherapy history, and occupational risk factor.",
+      "_meta": {
+        "patient_id": "4200186896",
+        "encounter_id": "a841c9de-58b5-4449-847a-21e68f265382",
+        "date": "2025-05-12",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  }
+]

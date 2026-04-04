@@ -1,0 +1,119 @@
+# -- VT-LEO-AI-079 -- Training Data Export and PII Gate Verification
+# IEC 62304 Verification Test Protocol
+
+- id: "VT-LEO-AI-079"
+  version: "1.0"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-079"]
+    risks: ["R-LEO-AI-052", "R-LEO-AI-053"]
+
+  metadata:
+    title: "Loop 3 Training Export PII Gate and Safety Block Verification"
+    description: >
+      Verifies that no patient identifier appears in export JSONL, that the
+      PII gate aborts on detection, that training is blocked when safety-critical
+      entity category has fewer than 20 examples, that gold/silver split is
+      correct, and that negative examples are included. Safety-critical:
+      PII gate is the second independent control for R-LEO-AI-052.
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    test_file_paths:
+      - "tests/test_ner_training_export.py"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites:
+      - "Mock Neo4j client returning synthetic DOCUMENTS relationships"
+      - "Mock detect_phi() function"
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-079-TC-001"
+      case_name: "No encounter_id or patient_id in exported JSONL"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Run export with mock data containing encounter_id in Neo4j query result; inspect output JSONL"
+          expected_result: "JSONL lines contain no encounter_id, patient_id, or NHS number fields"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Zero occurrences of 'encounter_id', 'patient_id', 'nhs_number' in all output files"
+
+    - case_id: "VT-079-TC-002"
+      case_name: "PII gate aborts export when detect_phi returns non-empty result"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Mock detect_phi() to return ['NHS:1234567890'] for one sentence; run export"
+          expected_result: "Export aborts; no JSONL file written; exit code non-zero; offending record logged"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "No output JSONL file created when PII detected"
+        - "Offending sentence logged with detection details"
+        - "Non-zero exit code returned"
+
+    - case_id: "VT-079-TC-003"
+      case_name: "Export aborts when safety-critical category has fewer than 20 examples"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Provide mock data with only 15 cancer entity examples"
+          expected_result: "Export aborts with descriptive error: 'cancer: 15 examples, minimum 20 required'"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Export does not write any JSONL when safety-critical category below minimum"
+        - "Error message identifies the category and current count"
+
+    - case_id: "VT-079-TC-004"
+      case_name: "Gold JSONL contains only source=confirmed records"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Provide mix of confirmed, reviewed, and provisional DOCUMENTS"
+          expected_result: "ner_training_gold.jsonl contains only confirmed records"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "All records in gold JSONL have source='confirmed'"
+        - "No reviewed or provisional records in gold JSONL"
+
+    - case_id: "VT-079-TC-005"
+      case_name: "Negative examples included as sentences with empty spans"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Provide encounter with 3 sentences: 2 with entities, 1 without"
+          expected_result: "Output includes {'text': '...', 'spans': []} for the sentence with no entities"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Sentences with no DOCUMENTS relationships exported with spans=[]"
+
+    - case_id: "VT-079-TC-006"
+      case_name: "Export manifest contains entity_count and pii_check_result, no patient IDs"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Run successful export; inspect manifest JSON"
+          expected_result: "Manifest has entity_count, holdout_exclusion_count, pii_check_result='pass'; no encounter_id or patient_id"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "manifest.pii_check_result = 'pass' on successful export"
+        - "manifest does not contain encounter_id or patient_id keys"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-079/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history: []

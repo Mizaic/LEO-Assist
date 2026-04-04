@@ -1,0 +1,93 @@
+# -- R-LEO-AI-055 -- Ambiguous abbreviation produces incorrect SNOMED code on patient record
+# ISO 14971 / IEC 62304 Risk
+
+- id: "R-LEO-AI-055"
+  title: "Ambiguous GP abbreviation resolved to clinically incorrect SNOMED concept"
+
+  hazard:
+    description: >
+      A GP abbreviation with multiple valid clinical meanings (e.g. CA =
+      carcinoma OR CA = calcium; NAD = no abnormality detected OR
+      nicotinamide adenine dinucleotide; MSK = musculoskeletal specialty OR
+      a clinical finding) is resolved to the wrong SNOMED concept by the NLP
+      pipeline without sufficient disambiguating context.
+    category: "clinical_safety"
+
+  hazardous_situation: >
+    The LLM extractor or NER model extracts a short abbreviation from encounter
+    text and passes it to the terminology resolver without the organ/site context
+    required to disambiguate the intended meaning. The resolver returns a
+    biochemistry concept, a generic concept, or a specialty tag concept instead
+    of the clinically correct one. The incorrect code is written to the patient
+    graph and displayed in the clinical review UI, potentially influencing coding
+    decisions, QOF reporting, or cancer pathway tracking.
+
+  harm:
+    description: >
+      Patient record contains an incorrect SNOMED code: either a false-positive
+      cancer/biochemistry code (overcoding) or a missing cancer/chronic-disease
+      code (undercoding, e.g. standalone CA not coded at all without site
+      context). Overcoding poses the greater immediate risk as it may trigger
+      unnecessary clinical actions or inflate QOF registers.
+    severity: "serious"
+
+  initial_risk_estimate:
+    severity: 3
+    probability: 2
+    detectability: 3
+    rpn: 18
+    risk_level: "medium"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        Extraction prompt (Layer 1): "CA" without organ site added to DO NOT
+        EXTRACT; "MSK" as specialty tag added to DO NOT EXTRACT; NAD
+        disambiguation note added. Escalation prompts (Layer 2): same rules
+        added to both escalate_coding() and _CANDIDATES_SYSTEM. Resolver
+        client (Layer 3): _filter_abbrev_noise() strips biochemistry NAD
+        concept IDs (104695007, 124316006, 131143000) from any result set
+        where the normalised evidence is "nad". Surface form writeback:
+        43 approved abbreviation surface forms written with confidence 1.0
+        to the terminology server so the resolver finds the correct concept.
+      implemented_by: ["DI-LEO-AI-081"]
+      verified_by: ["VT-LEO-AI-081"]
+      effectiveness: "pending"
+
+  residual_risk_estimate:
+    severity: 3
+    probability: 1
+    detectability: 2
+    rpn: 6
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      Three independent layers (prompt suppression, escalation rule, resolver
+      blocklist) provide defence in depth. Standalone CA encounters are left
+      uncoded and surfaced by the periodic quality audit (Loop 1) for human
+      review, preventing silent miscoding. Surface form writeback ensures the
+      resolver returns the correct concept at score 1.0 for the 40 approved
+      abbreviations. The residual risk is a novel abbreviation not yet in the
+      blocklist, which would be detected by the next weekly audit run.
+
+  monitoring:
+    monitoring_plan: >
+      Weekly coding quality audit (Loop 1) monitors for encounters where a
+      known ambiguous abbreviation appears in text but no SNOMED code was
+      assigned (CA without site) or where a low-confidence code was produced.
+      SafetyNetAlert raised if ambiguous-abbreviation miscoding rate exceeds
+      threshold. Monthly review of _ABBREV_BLOCKED_CONCEPTS for new cases.
+    metrics:
+      - "Count of encounters containing 'CA' with no cancer entity coded per week"
+      - "Count of NAD biochemistry concept IDs blocked by _filter_abbrev_noise per week"
+      - "Count of MSK entities rejected as specialty tags per week"
+    review_frequency: "Monthly"
+
+  metadata:
+    identified_by: "April 2026 coding quality audit surface_form_gaps.json analysis"
+    identified_date: "2026-04-04"
+    status: "analyzed"
+    tags:
+      - "abbreviation-disambiguation"
+      - "overcoding-prevention"
+      - "nlp-pipeline"

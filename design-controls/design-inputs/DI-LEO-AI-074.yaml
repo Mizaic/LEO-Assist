@@ -1,0 +1,61 @@
+# -- DI-LEO-AI-074 -- Loop 1: Overcoded Item Remediation
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-074"
+  type: "Functional"
+  derived_from: ["UN-LEO-AI-049"]
+  requirement: >
+    The system SHALL create CodingReview nodes for each overcoded item
+    identified during audit, assign them review_type="overcoded" and
+    priority="urgent", surface them in a dedicated urgent section at the top
+    of the review queue (separate from general queue items), and raise a
+    SafetyNetAlert if any overcoded item remains unreviewed after 48 hours.
+  rationale: >
+    An overcoded diagnosis (a condition coded that the patient does not have)
+    is clinically more dangerous than a missed code. It may cause a patient
+    to receive unnecessary treatment, be incorrectly triaged, or have their
+    record used to justify a clinical decision that does not apply to them.
+    Overcoded items must be prioritised above all other review work and
+    subject to a 48-hour SLA.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "safety"
+        spec: "Every overcoded item from audit Phase 3 creates a CodingReview node with review_type='overcoded' and priority='urgent'"
+      - type: "functional"
+        spec: "Overcoded CodingReview nodes appear in a separate 'Urgent' section above the general review queue in the operations UI"
+      - type: "safety"
+        spec: "If any overcoded item remains status='pending' after 48 hours, a SafetyNetAlert is created with alert_type='overcoded_overdue'"
+      - type: "functional"
+        spec: "Overcoded items are counted in DriftMetric.overcoded_count and DriftMetric.top_overcoded_terms"
+    constraints:
+      - type: "safety"
+        spec: "Overcoded items must never be silently closed; they require explicit human review and a recorded resolution"
+      - type: "safety"
+        spec: "Reviewer resolving an overcoded item must confirm or dispute; system records their decision with timestamp"
+    dependencies: ["DI-LEO-AI-072", "DI-LEO-AI-073"]
+    downstream_impacts:
+      - "Review queue priority ordering"
+      - "Operations UI urgent section"
+      - "DriftMetric overcoded_count"
+    technical_details:
+      language: "Python / TypeScript"
+      framework: "FastAPI / Next.js"
+      file_structure:
+        - "scripts/investigations/audit_encounter_coding.py"
+        - "libs/cypher/coding_review_queries.py"
+        - "services/ui/src/components/operations/ReviewSection.tsx"
+      estimated_loc: 150
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      All VT-074 test cases pass: overcoded CodingReview created with correct
+      priority, appears in urgent queue section, 48h SLA alert fires on
+      schedule, DriftMetric overcoded_count populated.
+    test_protocol: "VT-LEO-AI-074"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-049"]
+  tags: ["loop1", "overcoded", "remediation", "coding-review", "urgent-queue", "patient-safety"]

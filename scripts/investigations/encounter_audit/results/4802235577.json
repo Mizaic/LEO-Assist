@@ -1,0 +1,3759 @@
+[
+  {
+    "encounter_id": "b353bd65-23b1-4552-8530-5dd6f7c7e0f8",
+    "patient_id": "4802235577",
+    "date": "2024-01-10",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.99,
+      "notes": "This encounter contains only an administrative SMS notification about appointment booking changes; there is no clinical content requiring SNOMED CT coding.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "b353bd65-23b1-4552-8530-5dd6f7c7e0f8",
+        "date": "2024-01-10",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "ad099220-882a-4dce-9972-e1338d756152",
+    "patient_id": "4802235577",
+    "date": "2024-01-10",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "The encounter text contains only an administrative entry (staff access log) with no clinical content, diagnoses, findings, procedures, or patient-reported information to code. No SNOMED concepts are applicable.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "ad099220-882a-4dce-9972-e1338d756152",
+        "date": "2024-01-10",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "0750b5a2-2714-40e7-a41e-269e362abb2d",
+    "patient_id": "4802235577",
+    "date": "2024-01-31",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter contains only an administrative/organisational statement about health record access review; there are no clinical findings, diagnoses, procedures, or other SNOMED-codeable clinical concepts present in the note text.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "0750b5a2-2714-40e7-a41e-269e362abb2d",
+        "date": "2024-01-31",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "070f9b12-97b4-457a-8cb6-096785706fb8",
+    "patient_id": "4802235577",
+    "date": "2024-02-27",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "The encounter text contains only an administrative entry (staff access log) with no clinical content, diagnoses, findings, procedures, or patient-reported information to code. No SNOMED concepts are applicable.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "070f9b12-97b4-457a-8cb6-096785706fb8",
+        "date": "2024-02-27",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "74306be5-0789-4dc9-b312-f647ea3473aa",
+    "patient_id": "4802235577",
+    "date": "2024-02-27",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.99,
+      "notes": "This encounter record contains only an administrative SMS message inviting the patient to complete a GP patient experience survey. There is no clinical content to code.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "74306be5-0789-4dc9-b312-f647ea3473aa",
+        "date": "2024-02-27",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e5b829e9-88db-4cc1-96dc-7a4b1c4bd87e",
+    "patient_id": "4802235577",
+    "date": "2024-06-26",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.75,
+      "notes": "The encounter note is minimal \u2014 a single chest X-ray request \u2014 and the single coded concept accurately reflects the documented procedure. No clinical indication or findings are documented in this note, so no additional coding gaps can be identified; the low confidence reflects the sparse encounter text rather than any coding concern.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "e5b829e9-88db-4cc1-96dc-7a4b1c4bd87e",
+        "date": "2024-06-26",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "6323957b-db2a-4c3f-a6a6-1ddfdbe84339",
+    "patient_id": "4802235577",
+    "date": "2024-06-26",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "399208008",
+          "name": "Plain X-ray of chest (procedure)",
+          "severity": "medium",
+          "reason": "The encounter note contains no mention of a chest X-ray request, dyspnoea, or any respiratory symptoms; these concepts are not evidenced anywhere in the encounter text."
+        },
+        {
+          "conceptId": "267036007",
+          "name": "Dyspnea (Clinical_finding)",
+          "severity": "medium",
+          "reason": "There is no reference to breathlessness or any respiratory complaint in this encounter note; this finding appears to have been coded from a different encounter or document."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The encounter is a straightforward 2WW dermatology PRISM referral and the fast-track referral code is correctly applied. However, two additional concepts (chest X-ray and dyspnoea) appear to have been erroneously attached to this encounter \u2014 they are entirely unsupported by the encounter text and likely belong to a different consultation.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "6323957b-db2a-4c3f-a6a6-1ddfdbe84339",
+        "date": "2024-06-26",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e1f99831-002b-4719-a887-fce6b18d5752",
+    "patient_id": "4802235577",
+    "date": "2024-06-26",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "399208008",
+          "name": "Plain X-ray of chest (procedure)",
+          "severity": "medium",
+          "reason": "The encounter text contains only an SMS message asking a patient to attach photos; there is no mention of a chest X-ray request or any clinical content to support this coding."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.9,
+      "notes": "This encounter is purely administrative \u2014 an SMS sent to a patient requesting photo attachment. There is no clinical content to code; the existing chest X-ray procedure code appears to have been carried over from another encounter or applied in error.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "e1f99831-002b-4719-a887-fce6b18d5752",
+        "date": "2024-06-26",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e8d2be71-b0f6-49f8-80b1-9ad2074a5f29",
+    "patient_id": "4802235577",
+    "date": "2024-06-26",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "This encounter is purely administrative \u2014 a text message directing the patient to book a chest X-ray. The single coded procedure (Plain X-ray of chest) is appropriate and no clinical findings, diagnoses or additional procedures are documented in the encounter text itself.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "e8d2be71-b0f6-49f8-80b1-9ad2074a5f29",
+        "date": "2024-06-26",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "905dd37b-4217-4b2e-b854-8029731c40ee",
+    "patient_id": "4802235577",
+    "date": "2024-06-26",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "missing": [
+        {
+          "term": "keratoacanthoma R temple",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Solitary keratoacanthoma is documented as the primary problem with a lesion on the right temple and is the basis for a 2WW referral, but is not present in the coded concept list.",
+          "snomed_search": "solitary keratoacanthoma"
+        },
+        {
+          "term": "2WW SCC pathway referral",
+          "severity": "critical",
+          "suggested_assertion": "present",
+          "reason": "A two-week-wait urgent referral for suspected squamous cell carcinoma has been agreed and must be coded to support cancer tracking and safety-netting.",
+          "snomed_search": "urgent referral suspected skin cancer two week wait"
+        },
+        {
+          "term": "folliculitis back of head",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Folliculitis of the scalp is an active problem addressed in this encounter with topical treatment prescribed (fusidic acid cream and Capasal shampoo).",
+          "snomed_search": "folliculitis scalp"
+        },
+        {
+          "term": "no chest pain",
+          "severity": "medium",
+          "suggested_assertion": "absent",
+          "reason": "Chest pain is explicitly excluded in the history and coding its absence supports clinical decision-making in the context of the respiratory presentation.",
+          "snomed_search": "chest pain"
+        },
+        {
+          "term": "unilateral dyspnoea right side",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The dyspnoea is specifically lateralised to the right side, which is a clinically significant qualifier warranting more precise coding than generic dyspnoea.",
+          "snomed_search": "unilateral dyspnoea"
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The coding is significantly incomplete for this encounter: the primary problem (keratoacanthoma) and the safety-critical 2WW SCC referral are both absent from the coded list, as is the active folliculitis diagnosis that prompted prescribing. The respiratory presentation is partially coded but lacks lateralisation detail.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "905dd37b-4217-4b2e-b854-8029731c40ee",
+        "date": "2024-06-26",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "b1af23c1-d48b-4902-a7fe-b4b6faa0514b",
+    "patient_id": "4802235577",
+    "date": "2024-06-26",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter record contains only an administrative entry (receptionist access role, no clinical content). There are no clinical findings, diagnoses, procedures, or observations to code.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "b1af23c1-d48b-4902-a7fe-b4b6faa0514b",
+        "date": "2024-06-26",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "a31900f4-393f-40dc-b113-85c37cb412aa",
+    "patient_id": "4802235577",
+    "date": "2024-06-26",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.99,
+      "notes": "This encounter record contains only an administrative appointment confirmation with no clinical content. There are no diagnoses, findings, procedures, or other clinically codeable concepts present; no coding gaps or errors identified.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "a31900f4-393f-40dc-b113-85c37cb412aa",
+        "date": "2024-06-26",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "3706253e-741a-42d2-b630-f430132093a1",
+    "patient_id": "4802235577",
+    "date": "2024-06-27",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "267036007",
+          "name": "Dyspnea",
+          "severity": "medium",
+          "reason": "The encounter text contains no mention of dyspnoea, DIB, or chest symptoms; this concept appears to have been carried over from a different encounter or source document."
+        },
+        {
+          "conceptId": "399208008",
+          "name": "Plain X-ray of chest (procedure)",
+          "severity": "medium",
+          "reason": "The encounter text contains no reference to a chest X-ray; this concept is not evidenced by the administrative skin cancer referral note."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The 2WW skin cancer referral procedure is correctly coded. However, two concepts (dyspnoea and chest X-ray) appear to have been erroneously attached to this encounter \u2014 they are not mentioned anywhere in the encounter text and likely belong to a different consultation or have been miscoded against this administrative referral entry.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "3706253e-741a-42d2-b630-f430132093a1",
+        "date": "2024-06-27",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "cf6c4034-83be-4a97-bf29-96daf6a2fbd2",
+    "patient_id": "4802235577",
+    "date": "2024-06-27",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [
+        {
+          "term": "Normal chest X-ray",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The CXR result was explicitly reported as normal with no actionable findings; coding the normal result provides a useful clinical record of the investigation outcome.",
+          "snomed_search": "normal chest X-ray finding"
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "Coding is broadly appropriate for this auto-filed radiology result encounter. The only meaningful gap is the absence of a coded normal CXR result concept to document the investigation outcome; the underlying symptom (dyspnoea) and procedure are correctly captured.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "cf6c4034-83be-4a97-bf29-96daf6a2fbd2",
+        "date": "2024-06-27",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "9146509e-8bea-4052-8740-6750e97e30de",
+    "patient_id": "4802235577",
+    "date": "2024-06-27",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter contains only administrative/receptionist-logged content: an online questionnaire submission with attached photos and no clinical narrative, diagnoses, findings, or procedures documented. There is nothing clinically codeable within the defined SNOMED semantic tag scope.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "9146509e-8bea-4052-8740-6750e97e30de",
+        "date": "2024-06-27",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "f6b27c28-4c5f-4a15-a36d-c621066ee948",
+    "patient_id": "4802235577",
+    "date": "2024-06-27",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter record contains only an administrative/receptionist access entry with no clinical content; there are no clinical concepts to code and no coding gaps or errors to report.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "f6b27c28-4c5f-4a15-a36d-c621066ee948",
+        "date": "2024-06-27",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "1eaf1674-84ff-4a42-8206-4fe6d48760c1",
+    "patient_id": "4802235577",
+    "date": "2024-06-27",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.99,
+      "notes": "This encounter contains only administrative content (telephone number recording and SMS dispatch); there are no clinical findings, diagnoses, procedures, or other codeable clinical concepts present.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "1eaf1674-84ff-4a42-8206-4fe6d48760c1",
+        "date": "2024-06-27",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "6215e89b-7440-40d9-b278-48928a53293e",
+    "patient_id": "4802235577",
+    "date": "2024-06-27",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.99,
+      "notes": "This encounter contains only administrative content (an automated email notification sent to a patient by a receptionist). There is no clinical information present and no SNOMED coding is required or appropriate.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "6215e89b-7440-40d9-b278-48928a53293e",
+        "date": "2024-06-27",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e5ea97fa-0e6d-4cb7-adfb-9bf8d60da26e",
+    "patient_id": "4802235577",
+    "date": "2024-06-27",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.99,
+      "notes": "This encounter contains only administrative content (receptionist updating contact details and sending an SMS template); there are no clinical findings, diagnoses, procedures, or other codeable clinical concepts present.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "e5ea97fa-0e6d-4cb7-adfb-9bf8d60da26e",
+        "date": "2024-06-27",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "24c99d46-7c2f-4589-ba44-1f1aa976ef79",
+    "patient_id": "4802235577",
+    "date": "2024-06-27",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter record contains only an administrative entry (receptionist access at 13:30) with no clinical content, diagnoses, findings, procedures, or observations to code. No SNOMED CT concepts are applicable.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "24c99d46-7c2f-4589-ba44-1f1aa976ef79",
+        "date": "2024-06-27",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "c3f85a23-f503-468c-baf3-5ba441e3c3ef",
+    "patient_id": "4802235577",
+    "date": "2024-06-28",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.5,
+      "notes": "The encounter note contains only administrative metadata (clinician name, time, and role) with no clinical content to assess. There are no diagnoses, findings, procedures, or other codeable clinical concepts present in the text, so no coding gaps or errors can be identified.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "c3f85a23-f503-468c-baf3-5ba441e3c3ef",
+        "date": "2024-06-28",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "635fdf74-5cf4-4672-bb96-9ddd807f5509",
+    "patient_id": "4802235577",
+    "date": "2024-07-05",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "missing": [
+        {
+          "term": "2 week wait referral",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The note explicitly states the patient had a 2WW appointment yesterday, indicating a 2-week wait cancer referral has been made and should be coded for audit and safety-netting purposes.",
+          "snomed_search": "two week wait referral"
+        },
+        {
+          "term": "nasal congestion",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Patient reports longstanding nasal congestion which is being actively investigated as a contributing cause of symptoms and is driving the management plan.",
+          "snomed_search": "nasal congestion finding"
+        },
+        {
+          "term": "nasal steroid trial",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "A one-week trial of OTC nasal steroid spray was agreed as part of the management plan and should be coded as a procedure or recommendation.",
+          "snomed_search": "nasal corticosteroid administration"
+        },
+        {
+          "term": "chest wall injury following trauma",
+          "severity": "medium",
+          "suggested_assertion": "historical",
+          "reason": "Patient describes a prior injury to the back of the chest from falling off a stool onto a foot rail, thought to have caused a rib fracture, which is the likely origin of the ongoing chest symptom.",
+          "snomed_search": "chest wall injury trauma rib"
+        },
+        {
+          "term": "chest discomfort",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Patient reports ongoing sensation at the back of the chest ('feels something there still'), which is the primary presenting complaint driving this encounter.",
+          "snomed_search": "chest discomfort finding"
+        },
+        {
+          "term": "FeNO measurement",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "A fractional exhaled nitric oxide (FeNO) check is recommended in the plan to investigate possible asthma and should be coded as a planned procedure.",
+          "snomed_search": "fractional exhaled nitric oxide measurement"
+        },
+        {
+          "term": "no haemoptysis",
+          "severity": "medium",
+          "suggested_assertion": "absent",
+          "reason": "Haemoptysis is explicitly excluded in the history and is clinically relevant given the respiratory presentation and 2WW context.",
+          "snomed_search": "haemoptysis"
+        },
+        {
+          "term": "no unintentional weight loss",
+          "severity": "medium",
+          "suggested_assertion": "absent",
+          "reason": "Unintentional weight loss is explicitly excluded, which is a red-flag symptom relevant to the 2WW referral context.",
+          "snomed_search": "unintentional weight loss"
+        },
+        {
+          "term": "no dyspepsia",
+          "severity": "low",
+          "suggested_assertion": "absent",
+          "reason": "Dyspepsia is explicitly excluded in the history, likely to rule out gastro-oesophageal reflux as a cause of cough.",
+          "snomed_search": "dyspepsia"
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [
+        {
+          "conceptId": "281900007",
+          "name": "Normal appearance (finding)",
+          "current_assertion": "present",
+          "suggested_assertion": "present",
+          "severity": "low",
+          "reason": "The concept 'Normal appearance (finding)' is a generic finding; a more specific concept such as 'Chest X-ray normal' would better represent the clinical evidence, though the current coding is not incorrect."
+        }
+      ],
+      "confidence": 0.82,
+      "notes": "The coding captures basic findings but misses several clinically significant items including the 2WW referral (a safety and audit priority), the traumatic chest wall injury history, the active nasal congestion diagnosis driving management, and the planned FeNO investigation. The absent findings for haemoptysis and weight loss are also worth coding given the 2WW context.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "635fdf74-5cf4-4672-bb96-9ddd807f5509",
+        "date": "2024-07-05",
+        "coded_count": 4
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "3411243d-3cb3-4eb2-b9ed-477e1a278bc2",
+    "patient_id": "4802235577",
+    "date": "2024-07-23",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The encounter note is minimal \u2014 a single administrative entry recording attendance at a fast-track suspected skin cancer clinic, which is correctly coded. No clinical detail (diagnosis, procedure, findings) is documented in this note to warrant additional coding; any clinical content will be in the secondary care letter coded separately.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "3411243d-3cb3-4eb2-b9ed-477e1a278bc2",
+        "date": "2024-07-23",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "bbfdca35-2f71-408e-a1e5-1745c8962aac",
+    "patient_id": "4802235577",
+    "date": "2024-07-23",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter note contains only administrative/organisational text (a dermatology letter routed to the practice by a receptionist) with no clinical content to code. No SNOMED concepts are applicable under the defined scope.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "bbfdca35-2f71-408e-a1e5-1745c8962aac",
+        "date": "2024-07-23",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "47aa3d15-1044-4740-94ba-a5b5feb22757",
+    "patient_id": "4802235577",
+    "date": "2024-07-30",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.9,
+      "notes": "The encounter note is essentially administrative, recording attendance at a 2WW skin cancer clinic and a Summary Care Record preference override. The single coded concept accurately captures the clinically meaningful event. No additional clinical concepts are evidenced in the note text.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "47aa3d15-1044-4740-94ba-a5b5feb22757",
+        "date": "2024-07-30",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "11cf1036-d784-460a-bb4a-848b61199305",
+    "patient_id": "4802235577",
+    "date": "2024-08-06",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter note contains only administrative text relating to clinical trial eligibility screening (CPMS/SELF FRAX); there is no clinical assertion, diagnosis, finding, or procedure documented that warrants SNOMED coding under the specified semantic tag categories.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "11cf1036-d784-460a-bb4a-848b61199305",
+        "date": "2024-08-06",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "4721db00-f0a8-4861-9258-eac2ebf1ff96",
+    "patient_id": "4802235577",
+    "date": "2024-08-12",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "281900007",
+          "name": "Normal appearance (finding)",
+          "severity": "medium",
+          "reason": "The note describes a negative FOBT result, not a visual/morphological 'normal appearance'; this concept is not evidenced by the encounter text and is redundant given the specific BCSP FOBT normal finding already coded."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "The primary BCSP FOBT normal finding is correctly coded. The second concept (Normal appearance) appears to be an erroneous auto-coding artefact and should be removed as it does not reflect the clinical content of this screening result.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "4721db00-f0a8-4861-9258-eac2ebf1ff96",
+        "date": "2024-08-12",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "056f0773-1ea1-4eec-9e29-a0e4a517fe90",
+    "patient_id": "4802235577",
+    "date": "2024-08-13",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter record contains only an administrative entry (receptionist access role, no clinical content). There are no clinical concepts to code and the empty coded list is appropriate.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "056f0773-1ea1-4eec-9e29-a0e4a517fe90",
+        "date": "2024-08-13",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "05c641eb-09e5-4a0a-a644-957386815362",
+    "patient_id": "4802235577",
+    "date": "2024-08-13",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter record contains only an administrative bulk SMS invitation for influenza vaccination; there is no clinical content requiring SNOMED CT coding within the specified semantic tag categories.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "05c641eb-09e5-4a0a-a644-957386815362",
+        "date": "2024-08-13",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "fceb157f-ca02-4303-a596-7794b10b69e2",
+    "patient_id": "4802235577",
+    "date": "2024-08-13",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "1049361000000101",
+          "name": "Quantitative faecal immunochemical test (observable entity)",
+          "severity": "medium",
+          "reason": "The encounter text contains only a flu vaccination booking invitation with no mention of bowel cancer screening or a faecal immunochemical test; this concept is not evidenced by the note."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.9,
+      "notes": "The encounter is a simple administrative flu vaccination invitation message with no clinical findings or procedures documented. The single coded concept relating to bowel cancer screening appears to have been applied in error, likely from a different encounter or template.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "fceb157f-ca02-4303-a596-7794b10b69e2",
+        "date": "2024-08-13",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "9117a60e-ef5a-43e8-87fb-87240298290f",
+    "patient_id": "4802235577",
+    "date": "2024-08-13",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [
+        {
+          "term": "Bowel cancer screening programme",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The encounter explicitly documents participation in the bowel cancer screening programme, which is a clinically significant procedure/finding that should be coded for continuity of care and recall management.",
+          "snomed_search": "bowel cancer screening programme"
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.9,
+      "notes": "The encounter has zero coded concepts despite a clearly documented clinical event \u2014 enrolment or participation in the bowel cancer screening programme (SNOMED XaMza is a Read/CTV3 code mapped to a SNOMED concept). This single omission should be corrected to support screening recall and population health reporting.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "9117a60e-ef5a-43e8-87fb-87240298290f",
+        "date": "2024-08-13",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "680ef9dd-5f3e-4b4f-a868-c660d5f3bf58",
+    "patient_id": "4802235577",
+    "date": "2024-08-13",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "This is a straightforward administrative encounter recording a bowel cancer screening invitation letter. The single coded concept accurately captures the clinical content of the note; no gaps or errors identified.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "680ef9dd-5f3e-4b4f-a868-c660d5f3bf58",
+        "date": "2024-08-13",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "338ca5f8-dfa0-4690-9849-5dbfdd4b466b",
+    "patient_id": "4802235577",
+    "date": "2024-08-14",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "The encounter record contains only an administrative entry (receptionist access at 13:01) with no clinical content, diagnoses, findings, procedures, or observations to code. No coding gaps or errors are present.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "338ca5f8-dfa0-4690-9849-5dbfdd4b466b",
+        "date": "2024-08-14",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "ab1fd250-2e83-4a45-b1f1-3ee98525fde2",
+    "patient_id": "4802235577",
+    "date": "2024-08-27",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.4,
+      "notes": "The encounter note contains only administrative/practitioner identification information with no clinical content, symptoms, diagnoses, procedures, or findings documented; there is nothing to code clinically. Confidence is low due to the absence of any encounter narrative.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "ab1fd250-2e83-4a45-b1f1-3ee98525fde2",
+        "date": "2024-08-27",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "b12f1dc0-5169-489c-8d18-bbec63f815c6",
+    "patient_id": "4802235577",
+    "date": "2024-08-27",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter contains only administrative/organisational text (a receptionist-routed dermatology referral header) with no clinical content to code. No SNOMED concepts are applicable.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "b12f1dc0-5169-489c-8d18-bbec63f815c6",
+        "date": "2024-08-27",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "5cd7c472-3ef8-4aa2-9670-a33c73747db2",
+    "patient_id": "4802235577",
+    "date": "2024-08-29",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.99,
+      "notes": "This encounter contains only an administrative bulk SMS invitation for influenza vaccination; there is no clinical content requiring SNOMED CT coding. No gaps or errors identified.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "5cd7c472-3ef8-4aa2-9670-a33c73747db2",
+        "date": "2024-08-29",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "db867ddf-c482-4942-9fd2-3344da55e57f",
+    "patient_id": "4802235577",
+    "date": "2024-08-29",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter consists entirely of an administrative flu vaccination invitation message with no clinical findings, diagnoses, or procedures documented. No SNOMED coding is required or appropriate.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "db867ddf-c482-4942-9fd2-3344da55e57f",
+        "date": "2024-08-29",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "4862b431-014b-4b62-b9ab-f0717ca79d33",
+    "patient_id": "4802235577",
+    "date": "2024-09-03",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.4,
+      "notes": "The encounter text contains only administrative/practitioner identification information with no clinical content, symptoms, diagnoses, procedures, or findings documented; there is nothing to code clinically. Confidence is low due to the absence of any clinical narrative to assess.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "4862b431-014b-4b62-b9ab-f0717ca79d33",
+        "date": "2024-09-03",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "13c86108-e7ce-4fab-82fb-043bdeb26856",
+    "patient_id": "4802235577",
+    "date": "2024-09-03",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "missing": [
+        {
+          "term": "Excision of skin lesion - right temple under LA",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "A surgical procedure (excision of skin lesion under local anaesthetic) was performed and should be coded as a procedure in its own right.",
+          "snomed_search": "excision skin lesion"
+        },
+        {
+          "term": "Squamous cell carcinoma well differentiated right temple",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The existing code 372130007 is a generic 'malignant neoplasm of skin' and does not capture the specific histological type (squamous cell carcinoma) or anatomical site (right temple); a more specific SCC of skin concept should be coded.",
+          "snomed_search": "squamous cell carcinoma skin"
+        },
+        {
+          "term": "right temple",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The anatomical site (right temple) is clinically significant for a skin malignancy and should be captured either as a finding/qualifier or via a site-specific disorder code to support oncology tracking and follow-up.",
+          "snomed_search": "temporal region skin structure right"
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "372130007",
+          "name": "Malignant neoplasm of skin (disorder)",
+          "severity": "medium",
+          "reason": "This generic concept is insufficiently specific given the note clearly documents squamous cell carcinoma of skin; it should be replaced by a more precise SCC concept rather than retained alongside it."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "The encounter documents a new episode of well-differentiated squamous cell carcinoma of the right temple with same-day surgical excision under local anaesthetic; coding is significantly incomplete, missing the procedure entirely and using an overly generic neoplasm code instead of a site-specific SCC concept.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "13c86108-e7ce-4fab-82fb-043bdeb26856",
+        "date": "2024-09-03",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "325c56bd-47f7-4273-aeae-3d437420ec9f",
+    "patient_id": "4802235577",
+    "date": "2024-09-03",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "The encounter text contains only an administrative routing note (a dermatology letter directed to the practice via a receptionist access role) with no clinical content present to code. There are no diagnoses, findings, procedures, or other codeable clinical concepts in the text.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "325c56bd-47f7-4273-aeae-3d437420ec9f",
+        "date": "2024-09-03",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "560f32aa-0520-43d3-bb80-b96d293d6df6",
+    "patient_id": "4802235577",
+    "date": "2024-09-24",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter record contains only an administrative bulk SMS invitation for influenza vaccination; there is no clinical content requiring SNOMED coding. No gaps or errors identified.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "560f32aa-0520-43d3-bb80-b96d293d6df6",
+        "date": "2024-09-24",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "caac5b1a-5362-459c-a2f7-48a5b62a6385",
+    "patient_id": "4802235577",
+    "date": "2024-09-24",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.99,
+      "notes": "This encounter record contains only an administrative flu vaccination booking invitation with no clinical content; there are no diagnoses, findings, procedures, or other codeable clinical concepts present. No coding is required or appropriate.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "caac5b1a-5362-459c-a2f7-48a5b62a6385",
+        "date": "2024-09-24",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "eacea070-e032-473a-8007-efcb84833d49",
+    "patient_id": "4802235577",
+    "date": "2024-10-02",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter text is purely administrative \u2014 a receptionist-logged AAA screening referral/notification to a named practice. There is no clinical content, diagnosis, finding, procedure result, or patient-specific clinical information to code from this note.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "eacea070-e032-473a-8007-efcb84833d49",
+        "date": "2024-10-02",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "3b8a9845-3eaf-4bb1-9fc3-e3dfc0b6bc03",
+    "patient_id": "4802235577",
+    "date": "2024-10-11",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.99,
+      "notes": "This encounter contains only an administrative Summary Care Record preference update performed by a receptionist; there is no clinical content requiring SNOMED CT coding.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "3b8a9845-3eaf-4bb1-9fc3-e3dfc0b6bc03",
+        "date": "2024-10-11",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "c291cdaa-2e2c-4a5a-b3c5-e039235385fe",
+    "patient_id": "4802235577",
+    "date": "2024-10-11",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter record contains only an administrative/receptionist access entry with no clinical content; there are no clinical findings, diagnoses, procedures, or observations to code.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "c291cdaa-2e2c-4a5a-b3c5-e039235385fe",
+        "date": "2024-10-11",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "29126872-6d8e-4fb3-a349-aa9ef79752cf",
+    "patient_id": "4802235577",
+    "date": "2024-10-11",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.99,
+      "notes": "This encounter record contains only administrative/recruitment messaging with no clinical content; there are no diagnoses, findings, procedures, or observations to code.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "29126872-6d8e-4fb3-a349-aa9ef79752cf",
+        "date": "2024-10-11",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "315f1ad6-d5b6-4472-89d4-bdadea30c433",
+    "patient_id": "4802235577",
+    "date": "2024-10-18",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.99,
+      "notes": "This encounter record contains only an administrative flu vaccine invitation message with no clinical content, diagnoses, findings, or procedures to code. No SNOMED coding is required or appropriate.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "315f1ad6-d5b6-4472-89d4-bdadea30c433",
+        "date": "2024-10-18",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "b6d54eec-8969-46e6-ae36-67c56ddcedff",
+    "patient_id": "4802235577",
+    "date": "2024-11-12",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter contains only an administrative/template entry recording provision of information about cancer support services, with no clinical findings, diagnoses, or procedures requiring SNOMED CT coding within the specified semantic tag categories. No coding gaps or errors identified.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "b6d54eec-8969-46e6-ae36-67c56ddcedff",
+        "date": "2024-11-12",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "7d7bb030-c023-424d-8937-ed65dfe48d83",
+    "patient_id": "4802235577",
+    "date": "2024-11-12",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "The encounter text contains only an administrative entry recording access by a support staff member (WILLIAMS, Joanne) with no clinical content, diagnoses, findings, procedures, or observations documented. There is nothing clinically codeable within the defined SNOMED semantic tag scope.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "7d7bb030-c023-424d-8937-ed65dfe48d83",
+        "date": "2024-11-12",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "aaf299f8-a5e4-4dfa-82fa-d9837f9029a0",
+    "patient_id": "4802235577",
+    "date": "2024-11-12",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter note contains only administrative/organisational text (a dermatology letter routed to the practice by a receptionist) with no clinical content to code. No SNOMED concepts are applicable under the defined scope.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "aaf299f8-a5e4-4dfa-82fa-d9837f9029a0",
+        "date": "2024-11-12",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "ba507e6c-3418-4518-a7c5-08fa51180d59",
+    "patient_id": "4802235577",
+    "date": "2024-12-06",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter contains only an administrative NHS Health Check invitation letter entry with no clinical findings, diagnoses, procedures, or observations to code. No SNOMED clinical concepts are applicable.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "ba507e6c-3418-4518-a7c5-08fa51180d59",
+        "date": "2024-12-06",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "48198900-ef1f-4d71-b90b-ef5262c96d57",
+    "patient_id": "4802235577",
+    "date": "2024-12-06",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.99,
+      "notes": "This encounter consists entirely of an automated NHS Health Check invitation message with no clinical content, diagnoses, findings, or procedures to code. No SNOMED concepts are applicable.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "48198900-ef1f-4d71-b90b-ef5262c96d57",
+        "date": "2024-12-06",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "19035a81-5c21-4015-bd0a-5823aac0619c",
+    "patient_id": "4802235577",
+    "date": "2025-01-21",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.99,
+      "notes": "This encounter record contains only an automated administrative invitation message for an NHS Health Check with no clinical content, diagnoses, findings, or procedures documented. No SNOMED coding is appropriate or required.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "19035a81-5c21-4015-bd0a-5823aac0619c",
+        "date": "2025-01-21",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "fca621b8-1097-41a6-8616-582c2943530e",
+    "patient_id": "4802235577",
+    "date": "2025-01-21",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.99,
+      "notes": "This encounter contains only an administrative NHS Health Check invitation letter entry with no clinical content; there are no clinical concepts within scope to code.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "fca621b8-1097-41a6-8616-582c2943530e",
+        "date": "2025-01-21",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "af76c11e-ffaa-45c9-895c-585a94f1d260",
+    "patient_id": "4802235577",
+    "date": "2025-01-24",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The encounter text is a single auto-filed lab result (serum total protein) for an NHS Health Check, and the coded concept [1000811000000109] correctly captures it. The remaining 8 coded concepts appear to relate to other components of the same NHS Health Check visit that are not visible in this encounter text snippet but are plausibly sourced from the same session; no coding gaps or errors can be identified from the available text.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "af76c11e-ffaa-45c9-895c-585a94f1d260",
+        "date": "2025-01-24",
+        "coded_count": 9
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "ab2de7db-1349-456d-abeb-54d521e2ebc9",
+    "patient_id": "4802235577",
+    "date": "2025-01-24",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "The encounter text is a brief auto-filed NHS Health Check result note containing only the HbA1c result and its review outcome. All 13 coded concepts appear to relate to the broader NHS Health Check panel (bloods, observations) and are appropriately coded as observable entities with present assertions. No clinical gaps, errors, or overcoding are identified within the scope of this encounter note.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "ab2de7db-1349-456d-abeb-54d521e2ebc9",
+        "date": "2025-01-24",
+        "coded_count": 13
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d48ba48f-b5b4-40a8-a0ee-c68cf9d8d6f7",
+    "patient_id": "4802235577",
+    "date": "2025-01-24",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [
+        {
+          "term": "Total cholesterol:HDL ratio 2.9",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The total cholesterol:HDL ratio is recorded in the encounter text and is a clinically relevant cardiovascular risk marker used in NHS Health Check assessments, but it has not been coded.",
+          "snomed_search": "total cholesterol HDL ratio"
+        },
+        {
+          "term": "Serum non high density lipoprotein cholesterol level 2.8 mmol/L",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Non-HDL cholesterol is explicitly recorded with a value and is a distinct lipid parameter used in cardiovascular risk stratification, but it has not been coded.",
+          "snomed_search": "serum non high density lipoprotein cholesterol level"
+        },
+        {
+          "term": "NHS Health Check",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The clinical information explicitly states this blood test was requested as part of an NHS Health Check, which is a coded procedure relevant to population health monitoring and recall.",
+          "snomed_search": "NHS Health Check programme"
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "1010581000000101",
+          "name": "Plasma high density lipoprotein cholesterol level (observable entity)",
+          "severity": "low",
+          "reason": "The encounter records a serum HDL cholesterol level; the coded concept specifies plasma rather than serum, though clinically this is a minor distinction and unlikely to cause harm."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.88,
+      "notes": "Coding is generally thorough and accurate for this auto-filed lipid results encounter. The main gaps are the uncoded total cholesterol:HDL ratio and non-HDL cholesterol values, both present in the source text, and the NHS Health Check context which warrants a procedure code.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "d48ba48f-b5b4-40a8-a0ee-c68cf9d8d6f7",
+        "date": "2025-01-24",
+        "coded_count": 14
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "01c06466-9274-446f-b2c2-ec78923b8509",
+    "patient_id": "4802235577",
+    "date": "2025-01-24",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "This is an NHS Health Check encounter with auto-filed laboratory results. All observable entities from the LFT panel and associated investigations are appropriately coded with correct assertions and values. The globulin commentary is a boilerplate laboratory interpretive note and does not represent a clinical finding requiring coding in this patient (globulin 23 g/L is within normal range and no action is indicated).",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "01c06466-9274-446f-b2c2-ec78923b8509",
+        "date": "2025-01-24",
+        "coded_count": 14
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "1d67778f-45dd-499f-8323-7147a91f359e",
+    "patient_id": "4802235577",
+    "date": "2025-01-24",
+    "result": {
+      "encounter_assessment": "parse_error",
+      "parse_error": "Expecting value: line 1 column 1 (char 0) | raw=I need to carefully analyze this encounter note against the coded concepts.\n\nKey observations:\n1. The AUDIT-C score is 9, which is a significant finding - an AUDIT score of 9 indicates hazardous/harmful drinking. The patient drinks 10+ units on a typical drinking day and drinks 8+ units weekly. Desp",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "1d67778f-45dd-499f-8323-7147a91f359e",
+        "date": "2025-01-24",
+        "coded_count": 17
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "eb37cb94-69c2-453f-bae6-c9288ebcc6fb",
+    "patient_id": "4802235577",
+    "date": "2025-01-24",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "This is a straightforward NHS Health Check results auto-filing encounter. All observable entity results are appropriately coded with correct assertions and values. No clinical findings, diagnoses, or procedures are documented beyond the lab results and observations, so no additional coding is required.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "eb37cb94-69c2-453f-bae6-c9288ebcc6fb",
+        "date": "2025-01-24",
+        "coded_count": 14
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "f687afc5-6f0b-417a-ba95-bad829659362",
+    "patient_id": "4802235577",
+    "date": "2025-01-24",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "The encounter text contains only an administrative SCR preference override with no clinical content; all 12 coded concepts appear to represent results from a separate clinical session and are internally consistent. No clinical gaps, errors, or assertion issues are identifiable from the encounter text provided.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "f687afc5-6f0b-417a-ba95-bad829659362",
+        "date": "2025-01-24",
+        "coded_count": 12
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "7d80c40d-293d-4096-bf60-7383f298f24a",
+    "patient_id": "4802235577",
+    "date": "2025-01-27",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.5,
+      "notes": "The encounter record contains only administrative metadata (time, location, and clinician name) with no clinical content, symptoms, diagnoses, procedures, or findings documented; there is nothing to code and nothing to flag as missing. Confidence is reduced due to the absence of any clinical narrative.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "7d80c40d-293d-4096-bf60-7383f298f24a",
+        "date": "2025-01-27",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "cf0b3c56-36ad-440e-adb2-7810957ee97c",
+    "patient_id": "4802235577",
+    "date": "2025-01-29",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "The encounter note contains only administrative/scheduling metadata with no clinical content to code. The single coded concept (Seen in general practitioner surgery) is appropriate for the context. No clinical findings, diagnoses, procedures, or other codeable clinical information are present in the note text.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "cf0b3c56-36ad-440e-adb2-7810957ee97c",
+        "date": "2025-01-29",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "53e0a38a-1a00-4b3f-a33b-6db2570d2e56",
+    "patient_id": "4802235577",
+    "date": "2025-01-29",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [
+        {
+          "term": "QRISK2 cardiovascular disease 10 year risk score 11.12%",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "A QRISK2 score of 11.12% is a clinically significant finding that should be recorded as an observable entity/finding to support cardiovascular risk management and future recall.",
+          "snomed_search": "QRISK2 cardiovascular disease 10 year risk score"
+        },
+        {
+          "term": "NHS Health Check programme",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Attendance at an NHS Health Check should be coded as a procedure/finding to document programme participation and trigger appropriate follow-up.",
+          "snomed_search": "NHS Health Check programme"
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.8,
+      "notes": "The encounter represents an NHS Health Check with a QRISK2 result; no concepts have been coded despite two clinically meaningful items being documented. The note is brief and may represent an incomplete record \u2014 additional Health Check components (e.g. blood pressure, BMI, cholesterol, smoking status) may have been recorded elsewhere or may also be missing.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "53e0a38a-1a00-4b3f-a33b-6db2570d2e56",
+        "date": "2025-01-29",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "6bf29628-d470-4cfa-892e-3038f9e88dd6",
+    "patient_id": "4802235577",
+    "date": "2025-01-29",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter contains only administrative NHS Health Check claim and letter generation activity with no clinical findings, diagnoses, procedures, or observations documented in the note text. There is nothing clinically codeable within the defined SNOMED semantic tag scope.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "6bf29628-d470-4cfa-892e-3038f9e88dd6",
+        "date": "2025-01-29",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "826919d0-66a9-45ce-b3ab-e2d8d91ea4d3",
+    "patient_id": "4802235577",
+    "date": "2025-02-25",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "The encounter text contains only an administrative registration note with no clinical content; there are no diagnoses, findings, procedures, or other codeable clinical concepts present. No coding gaps or errors identified.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "826919d0-66a9-45ce-b3ab-e2d8d91ea4d3",
+        "date": "2025-02-25",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "72decef9-25f1-451f-94fa-91b55811eee8",
+    "patient_id": "4802235577",
+    "date": "2025-02-25",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter contains no clinical content \u2014 only administrative metadata (encounter type, contact trigger, timestamp). There are no clinical findings, diagnoses, procedures, or observations to code.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "72decef9-25f1-451f-94fa-91b55811eee8",
+        "date": "2025-02-25",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "ebd63ab6-e25f-4b25-aeb8-94e236bb2dd0",
+    "patient_id": "4802235577",
+    "date": "2025-02-25",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "The encounter text contains no clinical content \u2014 it is purely administrative (registration metadata, staff entry, and PCN/practice identifiers). There are no clinical findings, diagnoses, procedures, or observations to code.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "ebd63ab6-e25f-4b25-aeb8-94e236bb2dd0",
+        "date": "2025-02-25",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "4c2ac3a5-fc51-472b-a785-0d01ed4fe36c",
+    "patient_id": "4802235577",
+    "date": "2025-02-27",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter contains only an administrative record-sharing consent change with no clinical content; there are no diagnoses, findings, procedures, or other codeable clinical concepts present.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "4c2ac3a5-fc51-472b-a785-0d01ed4fe36c",
+        "date": "2025-02-27",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "58c639a5-e8ac-4995-be86-c1e33fad269e",
+    "patient_id": "4802235577",
+    "date": "2025-02-27",
+    "result": {
+      "encounter_assessment": "incomplete",
+      "missing": [
+        {
+          "term": "left inguinal hernia repair",
+          "severity": "medium",
+          "suggested_assertion": "historical",
+          "reason": "Patient reports a hernia operation 20 years ago for a left inguinal hernia, which is clinically relevant history given the current lower abdominal pain presentation.",
+          "snomed_search": "repair left inguinal hernia"
+        },
+        {
+          "term": "incomplete bowel emptying / tenesmus",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Patient specifically describes feeling of incomplete emptying after each bowel movement and needing to go again, which is tenesmus \u2014 a distinct red-flag symptom warranting its own code beyond the general 'change in bowel pattern' already coded.",
+          "snomed_search": "tenesmus"
+        },
+        {
+          "term": "rectal bleeding / blood on wiping",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Occasional blood on wiping after bowel opening is explicitly reported and is a red-flag symptom that prompted the urgent face-to-face referral; it should be coded as a finding.",
+          "snomed_search": "rectal bleeding blood on wiping"
+        },
+        {
+          "term": "flatulence",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Patient reports feeling more flatulent, which is a distinct gastrointestinal symptom contributing to the clinical picture.",
+          "snomed_search": "flatulence"
+        },
+        {
+          "term": "loose stools / diarrhoea",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Bowel movements are described as looser, which is a specific stool consistency change warranting its own code alongside the broader 'change in bowel pattern'.",
+          "snomed_search": "loose stools"
+        },
+        {
+          "term": "reduced urinary flow",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Reduced urinary flow is explicitly described as a symptom and is a specific finding within the LUTS cluster that warrants individual coding given its clinical significance in this male patient.",
+          "snomed_search": "reduced urinary flow poor stream"
+        },
+        {
+          "term": "incomplete bladder emptying",
+          "severity": "high",
+          "suggested_assertion": "possible",
+          "reason": "Incomplete voiding is queried by the clinician ('?incomplete voiding') and is a distinct urological finding relevant to the urgent referral for prostate examination.",
+          "snomed_search": "incomplete bladder emptying"
+        },
+        {
+          "term": "no family history of bowel cancer",
+          "severity": "medium",
+          "suggested_assertion": "absent",
+          "reason": "Clinician explicitly documents no family history of bowel or prostate issues, which is relevant to risk stratification in a patient with red-flag bowel symptoms.",
+          "snomed_search": "family history of colorectal cancer"
+        },
+        {
+          "term": "no weight loss",
+          "severity": "medium",
+          "suggested_assertion": "absent",
+          "reason": "Weight loss is explicitly excluded by the clinician as part of red-flag symptom assessment; documenting its absence supports the clinical reasoning.",
+          "snomed_search": "weight loss"
+        },
+        {
+          "term": "urgent referral for face-to-face assessment",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "An urgent face-to-face appointment has been arranged based on red-flag bowel and urinary symptoms; this clinical decision should be coded as a procedure/referral.",
+          "snomed_search": "urgent referral to general practitioner"
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The existing coding captures the core presenting symptoms but misses several clinically significant individual findings (rectal bleeding, tenesmus, reduced urinary flow, incomplete voiding) that drove the urgent referral decision and have independent red-flag significance. The historical left inguinal hernia repair is also absent from the record despite being potentially relevant to the abdominal pain differential.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "58c639a5-e8ac-4995-be86-c1e33fad269e",
+        "date": "2025-02-27",
+        "coded_count": 5
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "f27bcc55-3938-40f7-b317-ff03e0d01a27",
+    "patient_id": "4802235577",
+    "date": "2025-02-27",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter text is purely administrative \u2014 a telephone appointment reminder with no clinical content, diagnoses, findings, or procedures documented. No SNOMED coding is appropriate or required.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "f27bcc55-3938-40f7-b317-ff03e0d01a27",
+        "date": "2025-02-27",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "d8664758-658c-46f0-a4b2-0b75dfb9e785",
+    "patient_id": "4802235577",
+    "date": "2025-02-28",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.99,
+      "notes": "This is a purely administrative encounter with no clinical content; no SNOMED clinical concepts are expected or required.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "d8664758-658c-46f0-a4b2-0b75dfb9e785",
+        "date": "2025-02-28",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "abff9505-b3a9-473a-81f0-c0acfa2a72ee",
+    "patient_id": "4802235577",
+    "date": "2025-02-28",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter record contains only administrative content: a receptionist-generated SMS to the patient following an out-of-hours call, with no clinical findings, diagnoses, procedures, or observations documented. There is nothing clinically codeable within the defined SNOMED semantic tag scope.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "abff9505-b3a9-473a-81f0-c0acfa2a72ee",
+        "date": "2025-02-28",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "88f242a8-ee4a-48aa-839e-44ac2829a660",
+    "patient_id": "4802235577",
+    "date": "2025-02-28",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.99,
+      "notes": "This encounter contains no clinical content \u2014 it is a purely administrative telephone contact logged by a receptionist with no diagnoses, findings, procedures, or clinically meaningful information to code.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "88f242a8-ee4a-48aa-839e-44ac2829a660",
+        "date": "2025-02-28",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "fbde94cf-1c31-4a34-8d37-8ab7275b77b7",
+    "patient_id": "4802235577",
+    "date": "2025-02-28",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.99,
+      "notes": "This encounter text is purely an administrative appointment booking notification with no clinical content. No SNOMED CT coding is appropriate or required.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "fbde94cf-1c31-4a34-8d37-8ab7275b77b7",
+        "date": "2025-02-28",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "0567cf35-790b-43fa-9a7e-d9b12a86e4d1",
+    "patient_id": "4802235577",
+    "date": "2025-03-13",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.99,
+      "notes": "This is a purely administrative encounter (receptionist checking appointment time) with no clinical content; no SNOMED clinical coding is required or appropriate.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "0567cf35-790b-43fa-9a7e-d9b12a86e4d1",
+        "date": "2025-03-13",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "8deaa57c-d475-4eb5-8913-1efcb86cad39",
+    "patient_id": "4802235577",
+    "date": "2025-03-14",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "missing": [
+        {
+          "term": "rectal bleeding",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The clinical information states 'few eps PRB' (per rectal bleeding), which is a clinically significant symptom warranting its own code and is not captured in the existing coded list.",
+          "snomed_search": "rectal bleeding"
+        },
+        {
+          "term": "hypertension / elevated blood pressure",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "A blood pressure of 160/86 mmHg is recorded and coded as an observable entity value, but there is no corresponding disorder or finding code to indicate hypertension or raised blood pressure as a clinical problem requiring management.",
+          "snomed_search": "hypertension disorder"
+        },
+        {
+          "term": "benign prostatic enlargement",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The DRE finding of a smooth, symmetrical, enlarged prostate with preserved sulcus is consistent with benign prostatic enlargement and should be coded as a disorder rather than relying solely on the non-specific 'prostate mass' finding code.",
+          "snomed_search": "benign prostatic hyperplasia enlargement"
+        },
+        {
+          "term": "low risk of colorectal cancer",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The FIT result report explicitly states 'There is a low risk of CRC', which is a clinically relevant finding that should be coded to document the outcome of the cancer risk assessment.",
+          "snomed_search": "low risk colorectal cancer FIT"
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "409966000",
+          "name": "Acute diarrhea (disorder)",
+          "severity": "medium",
+          "reason": "The note records only a 'single episode of diarrhoea', which does not meet the clinical threshold for acute diarrhoea as a disorder; a finding-level code for a single loose stool episode would be more appropriate, and 'acute' implies a sustained presentation."
+        },
+        {
+          "conceptId": "309089006",
+          "name": "Prostate mass (finding)",
+          "severity": "medium",
+          "reason": "The DRE describes a smooth, symmetrical, enlarged prostate with preserved sulcus, which is not consistent with a 'mass'; this term implies a suspicious or neoplastic lesion and may cause unwarranted clinical concern or trigger inappropriate alerts."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The coding captures the main investigation and several symptoms but misses the clinically important symptom of rectal bleeding documented in the clinical information, and the 'prostate mass' code is misleading given the benign DRE findings. The blood pressure value is recorded as an observable entity but lacks an associated hypertension disorder code for a reading of 160/86 mmHg.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "8deaa57c-d475-4eb5-8913-1efcb86cad39",
+        "date": "2025-03-14",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "0c0b3fb5-e3b3-4166-b928-0af97c87e056",
+    "patient_id": "4802235577",
+    "date": "2025-03-14",
+    "result": {
+      "encounter_assessment": "has_issues",
+      "missing": [
+        {
+          "term": "fresh rectal bleeding",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Few episodes of fresh PR bleeding are documented and are clinically significant, prompting FIT testing and follow-up, but no rectal bleeding concept has been coded.",
+          "snomed_search": "rectal bleeding fresh blood"
+        },
+        {
+          "term": "elevated blood pressure reading",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "BP 160/86 is recorded and a home BP monitor has been arranged, suggesting a new or uncontrolled hypertension finding requiring coding beyond the observable entity already coded.",
+          "snomed_search": "hypertension elevated blood pressure"
+        },
+        {
+          "term": "chaperone declined",
+          "severity": "medium",
+          "suggested_assertion": "declined",
+          "reason": "The note explicitly states chaperone was declined by the patient during DRE, which is a medicolegally important finding that should be coded.",
+          "snomed_search": "chaperone declined"
+        },
+        {
+          "term": "no family history of bowel cancer",
+          "severity": "medium",
+          "suggested_assertion": "absent",
+          "reason": "The clinician explicitly documents no family history of bowel cancer, which is relevant to colorectal cancer risk stratification and should be coded.",
+          "snomed_search": "family history bowel cancer absent"
+        },
+        {
+          "term": "digital rectal examination",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "A DRE was performed and documented with findings; the procedure itself has not been coded.",
+          "snomed_search": "digital rectal examination"
+        },
+        {
+          "term": "benign prostatic enlargement",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The prostate is described as smooth, symmetrical, and enlarged with sulcus preserved, consistent with benign prostatic enlargement rather than a mass lesion; PSA has been requested in this context.",
+          "snomed_search": "benign prostatic hyperplasia enlargement"
+        },
+        {
+          "term": "previous left inguinal hernia repair",
+          "severity": "medium",
+          "suggested_assertion": "historical",
+          "reason": "A previous left inguinal hernia operation is documented in the history and is relevant to the differential diagnosis of the abdominal pain.",
+          "snomed_search": "left inguinal hernia repair operation"
+        },
+        {
+          "term": "reduced urinary stream",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "Mildly reduced stream and dribbling are specifically described and contribute to the LUTS picture; these could be coded more precisely alongside the existing LUTS code.",
+          "snomed_search": "reduced urinary stream poor flow"
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "309089006",
+          "name": "Prostate mass (finding)",
+          "severity": "high",
+          "reason": "The examination describes a smooth, symmetrical, enlarged prostate with preserved sulcus, which is consistent with benign prostatic enlargement, not a mass; coding 'prostate mass' implies a potentially sinister lesion not supported by the clinical description."
+        },
+        {
+          "conceptId": "409966000",
+          "name": "Acute diarrhea (disorder)",
+          "severity": "low",
+          "reason": "Only a single episode of diarrhoea is documented, which does not meet the clinical threshold for acute diarrhoea as a disorder; this is better captured as a symptom finding."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The coding captures the core presenting complaint and some examination findings but has a significant error in coding prostatic enlargement as a 'prostate mass', which carries unwarranted sinister connotations. Key gaps include fresh rectal bleeding (the primary safety-relevant symptom driving investigation), the DRE procedure, and the elevated BP finding requiring follow-up.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "0c0b3fb5-e3b3-4166-b928-0af97c87e056",
+        "date": "2025-03-14",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "695ac0b8-6b5b-4098-ae97-3f1f658d098d",
+    "patient_id": "4802235577",
+    "date": "2025-03-14",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "The encounter record contains only an administrative entry (receptionist access log with timestamp) and no clinical content whatsoever; there are no diagnoses, findings, procedures, or other codeable clinical concepts to assess.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "695ac0b8-6b5b-4098-ae97-3f1f658d098d",
+        "date": "2025-03-14",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "11d23b2b-c1c0-4830-be0f-565c784529e8",
+    "patient_id": "4802235577",
+    "date": "2025-03-14",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "1049361000000101",
+          "name": "Quantitative faecal immunochemical test (observable entity)",
+          "severity": "medium",
+          "reason": "The encounter text is solely an appointment booking notification with no clinical content; there is no evidence of a FIT result or any clinical assessment in this note."
+        },
+        {
+          "conceptId": "75367002",
+          "name": "Blood pressure (observable entity)",
+          "severity": "medium",
+          "reason": "The encounter text is solely an appointment booking notification with no clinical content; there is no blood pressure reading or any clinical data recorded in this note."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter text is purely an administrative appointment reminder with no clinical content whatsoever. Both coded concepts appear to have been applied to the wrong encounter or document; the clinical data (FIT result and BP reading) referenced in the evidence strings does not appear anywhere in the provided note text.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "11d23b2b-c1c0-4830-be0f-565c784529e8",
+        "date": "2025-03-14",
+        "coded_count": 2
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "40166d5c-d73a-4660-92a9-84def57ad54c",
+    "patient_id": "4802235577",
+    "date": "2025-03-18",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "281900007",
+          "name": "Normal appearance (finding)",
+          "severity": "medium",
+          "reason": "The encounter is a purely administrative receptionist-access entry with no clinical assessment documented; the urinalysis result referenced as evidence does not appear in this encounter text and cannot be verified from this record."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.75,
+      "notes": "This is an administrative-only encounter with no clinical content; the single coded concept lacks supporting evidence within the encounter text and should be reviewed for source accuracy. No genuine clinical coding gaps identified.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "40166d5c-d73a-4660-92a9-84def57ad54c",
+        "date": "2025-03-18",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "9fb9e777-d119-46ea-a3e6-2787363b8a5a",
+    "patient_id": "4802235577",
+    "date": "2025-03-18",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "The encounter records a normal urinalysis with urine dipstick test performed; both findings are captured inline within the template text and appear adequately represented. No SNOMED concepts have been formally coded, but the inline Read/SNOMED-mapped codes (4618. and 4613.) suggest the clinical system may have captured these natively outside the coded list provided \u2014 no genuine gaps are identifiable from the note text alone.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "9fb9e777-d119-46ea-a3e6-2787363b8a5a",
+        "date": "2025-03-18",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "f024a9ec-31e1-4589-99e2-e937b5e1c28a",
+    "patient_id": "4802235577",
+    "date": "2025-03-24",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.4,
+      "notes": "The encounter record contains only administrative metadata (timestamp, clinician name, role) with no clinical content, diagnoses, findings, procedures, or patient history documented; there is nothing to code and nothing to audit.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "f024a9ec-31e1-4589-99e2-e937b5e1c28a",
+        "date": "2025-03-24",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "9c455231-db68-4774-a0f0-52516b4cfbaf",
+    "patient_id": "4802235577",
+    "date": "2025-03-28",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [
+        {
+          "term": "Abdominal pain",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Abdominal pain is explicitly stated as a reason for the blood test request and should be coded as an active finding.",
+          "snomed_search": "abdominal pain"
+        },
+        {
+          "term": "Acute kidney injury - not applicable",
+          "severity": "medium",
+          "suggested_assertion": "absent",
+          "reason": "The AKI staging report explicitly states 'Not Applicable / No Further Action', indicating AKI has been assessed and excluded, which warrants an absent assertion for clinical safety documentation.",
+          "snomed_search": "acute kidney injury"
+        },
+        {
+          "term": "Not on thyroid treatment",
+          "severity": "low",
+          "suggested_assertion": "absent",
+          "reason": "The clinical note records that the patient is not on thyroid therapy, which may be relevant context if thyroid function was being assessed alongside these bloods.",
+          "snomed_search": "thyroid drug therapy"
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.72,
+      "notes": "The laboratory observable entities are well coded with values. However, the clinical reason for the request (abdominal pain) and the AKI assessment outcome are not captured. The note is sparse and likely represents an auto-filed lab result rather than a full GP consultation, which limits coding completeness.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "9c455231-db68-4774-a0f0-52516b4cfbaf",
+        "date": "2025-03-28",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "0adb2791-302c-4e6a-882f-64799fc3548f",
+    "patient_id": "4802235577",
+    "date": "2025-03-28",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.72,
+      "notes": "The coded list captures the laboratory observable entities reported in the auto-filed result. The encounter text references abdominal pain and 'few eps PRB' (per rectum bleeding) as the clinical indication, but these are stated only in the request header of a secondary-care/lab request form rather than as GP-asserted diagnoses in this encounter, so no additional coding is mandated here. The atypical lymphocyte result is explicitly reported as normal/no further action and is not coded, which is acceptable. Confidence is modestly reduced because the full blood count and thyroid-related context mentioned in the request are not visible in the result set.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "0adb2791-302c-4e6a-882f-64799fc3548f",
+        "date": "2025-03-28",
+        "coded_count": 8
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "1f5553a5-361c-45c5-8a36-fba088ad0d53",
+    "patient_id": "4802235577",
+    "date": "2025-03-28",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "This is a straightforward phlebotomy encounter with results coded as observable entities. The coded concepts accurately reflect the laboratory results documented; no clinical diagnoses, procedures beyond blood sampling, or findings requiring additional coding are evident in the encounter text itself.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "1f5553a5-361c-45c5-8a36-fba088ad0d53",
+        "date": "2025-03-28",
+        "coded_count": 8
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "53ee55ed-5303-4f13-b767-f25b83192998",
+    "patient_id": "4802235577",
+    "date": "2025-03-28",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "1012671000000103",
+          "name": "Blood potassium level (observable entity)",
+          "severity": "medium",
+          "reason": "The encounter text is an auto-filed myelocyte count result with clinical context of abdominal pain and rectal bleeding; there is no mention of potassium, sodium, urea, creatinine, eGFR or PSA in this encounter note \u2014 these coded results appear to belong to a different encounter or document."
+        },
+        {
+          "conceptId": "1107411000000104",
+          "name": "Estimated glomerular filtration rate by laboratory calculation (observable entity)",
+          "severity": "medium",
+          "reason": "No eGFR result is referenced anywhere in this encounter text; this concept is not evidenced by the note."
+        },
+        {
+          "conceptId": "1012681000000101",
+          "name": "Blood sodium level (observable entity)",
+          "severity": "medium",
+          "reason": "No sodium result is referenced anywhere in this encounter text; this concept is not evidenced by the note."
+        },
+        {
+          "conceptId": "1028281000000106",
+          "name": "Blood urea (observable entity)",
+          "severity": "medium",
+          "reason": "No urea result is referenced anywhere in this encounter text; this concept is not evidenced by the note."
+        },
+        {
+          "conceptId": "1000731000000107",
+          "name": "Serum creatinine level (observable entity)",
+          "severity": "medium",
+          "reason": "No creatinine result is referenced anywhere in this encounter text; this concept is not evidenced by the note."
+        },
+        {
+          "conceptId": "1030791000000100",
+          "name": "PSA (prostate-specific antigen) level (Observable_entity)",
+          "severity": "medium",
+          "reason": "No PSA result is referenced anywhere in this encounter text; this concept is not evidenced by the note."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.72,
+      "notes": "The encounter text contains only an auto-filed myelocyte count result (value 0 \u00d710\u2079/L, reported as normal, no further action) with a clinical context of abdominal pain and rectal bleeding; none of the six coded observable entities are evidenced by this note and likely belong to a different encounter. The clinically significant symptom of rectal bleeding ('few eps PRB') mentioned in the request details is not coded, though it originates from a requesting clinician's free-text field rather than a GP assessment, so its coding status should be verified against the originating encounter.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "53ee55ed-5303-4f13-b767-f25b83192998",
+        "date": "2025-03-28",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "98dc9d02-aeac-44db-bc2c-6efcd9e04b2e",
+    "patient_id": "4802235577",
+    "date": "2025-03-28",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [
+        {
+          "term": "Metamyelocyte count 0 10^9/L",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The metamyelocyte count result is the primary subject of this encounter filing and is not captured as a coded observable entity despite being explicitly reported.",
+          "snomed_search": "metamyelocyte count observable entity"
+        },
+        {
+          "term": "Abdominal pain",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Abdominal pain is stated as a clinical reason for the blood test request and represents an active symptom warranting coding.",
+          "snomed_search": "abdominal pain finding"
+        },
+        {
+          "term": "Rectal bleeding (few episodes PRB)",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Per rectum bleeding is explicitly cited as a reason for investigation and is a clinically significant symptom that should be coded, particularly given its potential to indicate serious pathology.",
+          "snomed_search": "rectal bleeding finding"
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "1030791000000100",
+          "name": "PSA (prostate-specific antigen) level",
+          "severity": "medium",
+          "reason": "There is no mention of a PSA result or prostate-specific antigen measurement anywhere in the encounter text provided; this concept appears unsupported by the note."
+        },
+        {
+          "conceptId": "1012671000000103",
+          "name": "Blood potassium level",
+          "severity": "medium",
+          "reason": "No potassium result is referenced in the encounter text; this observable entity appears to have been coded without supporting evidence in this note."
+        },
+        {
+          "conceptId": "1107411000000104",
+          "name": "Estimated glomerular filtration rate by laboratory calculation",
+          "severity": "medium",
+          "reason": "No eGFR result is referenced in the encounter text; this observable entity appears to have been coded without supporting evidence in this note."
+        },
+        {
+          "conceptId": "1012681000000101",
+          "name": "Blood sodium level",
+          "severity": "medium",
+          "reason": "No sodium result is referenced in the encounter text; this observable entity appears to have been coded without supporting evidence in this note."
+        },
+        {
+          "conceptId": "1028281000000106",
+          "name": "Blood urea",
+          "severity": "medium",
+          "reason": "No urea result is referenced in the encounter text; this observable entity appears to have been coded without supporting evidence in this note."
+        },
+        {
+          "conceptId": "1000731000000107",
+          "name": "Serum creatinine level",
+          "severity": "medium",
+          "reason": "No creatinine result is referenced in the encounter text; this observable entity appears to have been coded without supporting evidence in this note."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.62,
+      "notes": "The encounter text relates solely to a metamyelocyte count result filed with a clinical context of abdominal pain and rectal bleeding; the six already-coded renal/electrolyte/PSA observables have no evidential basis in this note and may belong to a different encounter or filing. Rectal bleeding in particular warrants clinical review given its potential significance.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "98dc9d02-aeac-44db-bc2c-6efcd9e04b2e",
+        "date": "2025-03-28",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "f07ea622-9a30-4e35-9ee0-d436f160f66e",
+    "patient_id": "4802235577",
+    "date": "2025-03-28",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "1012671000000103",
+          "name": "Blood potassium level (observable entity)",
+          "severity": "medium",
+          "reason": "The encounter text contains no mention of a potassium result; the coded evidence references 'Serum potassium 4.4 mmol/L' which does not appear in the provided encounter note."
+        },
+        {
+          "conceptId": "1107411000000104",
+          "name": "Estimated glomerular filtration rate by laboratory calculation (observable entity)",
+          "severity": "medium",
+          "reason": "The encounter text contains no mention of an eGFR result; the coded evidence references 'eGFR >90 mL/min/1.73m2' which does not appear in the provided encounter note."
+        },
+        {
+          "conceptId": "1012681000000101",
+          "name": "Blood sodium level (observable entity)",
+          "severity": "medium",
+          "reason": "The encounter text contains no mention of a sodium result; the coded evidence references 'Serum sodium 140 mmol/L' which does not appear in the provided encounter note."
+        },
+        {
+          "conceptId": "1028281000000106",
+          "name": "Blood urea (observable entity)",
+          "severity": "medium",
+          "reason": "The encounter text contains no mention of a urea result; the coded evidence references 'Serum urea 6.7 mmol/L' which does not appear in the provided encounter note."
+        },
+        {
+          "conceptId": "1000731000000107",
+          "name": "Serum creatinine level (observable entity)",
+          "severity": "medium",
+          "reason": "The encounter text contains no mention of a creatinine result; the coded evidence references 'Serum creatinine 72 umol/L' which does not appear in the provided encounter note."
+        },
+        {
+          "conceptId": "1030791000000100",
+          "name": "PSA (prostate-specific antigen) level (observable entity)",
+          "severity": "medium",
+          "reason": "The encounter text contains no mention of a PSA result; the coded evidence references 'Prostate-specific antigen 1.8 ng/mL' which does not appear in the provided encounter note."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.72,
+      "notes": "The encounter note documents only a promyelocyte count result (0 \u00d7 10\u2079/L, reported as normal) with a clinical context of abdominal pain and rectal bleeding; none of the six coded laboratory observables (U&Es, eGFR, creatinine, PSA) are evidenced in this encounter text and appear to have been filed against the wrong encounter. The promyelocyte count result itself is not coded, though as a normal auto-filed result with no further action this is low priority.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "f07ea622-9a30-4e35-9ee0-d436f160f66e",
+        "date": "2025-03-28",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "2e7e1a1a-3ce5-4352-8dae-9fecf2e8998c",
+    "patient_id": "4802235577",
+    "date": "2025-03-28",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "1012671000000103",
+          "name": "Blood potassium level (observable entity)",
+          "severity": "low",
+          "reason": "The encounter text is an auto-filed blast cell count result with clinical details referencing abdominal pain and thyroid status; there is no mention of potassium, sodium, urea, creatinine, eGFR or PSA in this encounter note, suggesting these coded results belong to a different request or document not evidenced in this encounter text."
+        },
+        {
+          "conceptId": "1107411000000104",
+          "name": "Estimated glomerular filtration rate by laboratory calculation (observable entity)",
+          "severity": "low",
+          "reason": "No eGFR result is referenced in this encounter text; this concept appears to have been filed against the wrong encounter."
+        },
+        {
+          "conceptId": "1012681000000101",
+          "name": "Blood sodium level (observable entity)",
+          "severity": "low",
+          "reason": "No serum sodium result is referenced in this encounter text; this concept appears to have been filed against the wrong encounter."
+        },
+        {
+          "conceptId": "1028281000000106",
+          "name": "Blood urea (observable entity)",
+          "severity": "low",
+          "reason": "No serum urea result is referenced in this encounter text; this concept appears to have been filed against the wrong encounter."
+        },
+        {
+          "conceptId": "1000731000000107",
+          "name": "Serum creatinine level (observable entity)",
+          "severity": "low",
+          "reason": "No serum creatinine result is referenced in this encounter text; this concept appears to have been filed against the wrong encounter."
+        },
+        {
+          "conceptId": "1030791000000100",
+          "name": "PSA (prostate-specific antigen) level (observable entity)",
+          "severity": "low",
+          "reason": "No PSA result is referenced in this encounter text; this concept appears to have been filed against the wrong encounter."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.72,
+      "notes": "The encounter text contains only an auto-filed blast cell count result (reported as normal, no further action). The six coded observable entities (U&Es, eGFR, PSA) have no evidential basis in this encounter note and appear to have been incorrectly associated with this encounter, possibly from a co-filed or adjacent request. The blast cell count result itself has not been coded, though as a normal/NFA result its clinical coding priority is low.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "2e7e1a1a-3ce5-4352-8dae-9fecf2e8998c",
+        "date": "2025-03-28",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "410ece61-2423-4f56-af6c-de4a542a167a",
+    "patient_id": "4802235577",
+    "date": "2025-03-28",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [
+        {
+          "term": "Neutrophil count",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The neutrophil count result of 4.55 10^9/L is explicitly documented and reviewed but not coded as an observable entity, unlike the other blood results already coded.",
+          "snomed_search": "neutrophil count observable entity"
+        },
+        {
+          "term": "Abdominal pain",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Abdominal pain is stated as a clinical reason for the blood test request and represents an active presenting symptom that should be coded.",
+          "snomed_search": "abdominal pain finding"
+        },
+        {
+          "term": "Rectal bleeding",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Per rectal bleeding ('few eps PRB') is documented as a clinical reason for investigation and is a clinically significant symptom requiring coding.",
+          "snomed_search": "rectal bleeding finding"
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.78,
+      "notes": "The coded list captures renal and PSA blood results well but omits the neutrophil result that is the primary subject of this auto-filed report, and two clinically significant presenting symptoms (abdominal pain and rectal bleeding) documented in the clinical details. Rectal bleeding in particular warrants attention given its potential significance.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "410ece61-2423-4f56-af6c-de4a542a167a",
+        "date": "2025-03-28",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "403a074b-90a5-49c1-8718-b7e7464de9c0",
+    "patient_id": "4802235577",
+    "date": "2025-03-28",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.75,
+      "notes": "The coded observable entities appear consistent with a blood results review encounter. The clinical note mentions abdominal pain and 'few eps PRB' (per rectum bleeding) as the reasons for the blood request, but these are clinical details from the requesting document rather than diagnoses established in this encounter, and the encounter itself is purely a results auto-filing/review with no new clinical assessment; no coding gaps are identified within scope. The PSA result is coded but no clinical context for it appears in this encounter note \u2014 it may originate from a separate request, though this cannot be confirmed from the text alone.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "403a074b-90a5-49c1-8718-b7e7464de9c0",
+        "date": "2025-03-28",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "fe527fed-1caa-4389-9ca9-aec5b6b06b6f",
+    "patient_id": "4802235577",
+    "date": "2025-03-28",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "1012671000000103",
+          "name": "Blood potassium level (observable entity)",
+          "severity": "low",
+          "reason": "No potassium result is mentioned anywhere in the encounter text; this result appears to have been auto-filed from a different request or document not evidenced in this note."
+        },
+        {
+          "conceptId": "1107411000000104",
+          "name": "Estimated glomerular filtration rate by laboratory calculation (observable entity)",
+          "severity": "low",
+          "reason": "No eGFR result is mentioned in the encounter text; this result is not evidenced by the note provided."
+        },
+        {
+          "conceptId": "1012681000000101",
+          "name": "Blood sodium level (observable entity)",
+          "severity": "low",
+          "reason": "No sodium result is mentioned in the encounter text; this result is not evidenced by the note provided."
+        },
+        {
+          "conceptId": "1028281000000106",
+          "name": "Blood urea (observable entity)",
+          "severity": "low",
+          "reason": "No urea result is mentioned in the encounter text; this result is not evidenced by the note provided."
+        },
+        {
+          "conceptId": "1000731000000107",
+          "name": "Serum creatinine level (observable entity)",
+          "severity": "low",
+          "reason": "No creatinine result is mentioned in the encounter text; this result is not evidenced by the note provided."
+        },
+        {
+          "conceptId": "1030791000000100",
+          "name": "PSA (prostate-specific antigen) level (observable entity)",
+          "severity": "low",
+          "reason": "No PSA result is mentioned in the encounter text; this result is not evidenced by the note provided."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.6,
+      "notes": "The encounter note documents only a serum ferritin result (normal, no further action); the ferritin concept is correctly coded. The remaining six coded observables have no supporting evidence in this note and may have been auto-filed from a separate laboratory batch \u2014 if they belong to a different encounter or document they should be attributed there rather than here. Confidence is reduced because the full laboratory report may not have been included in the text supplied for review.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "fe527fed-1caa-4389-9ca9-aec5b6b06b6f",
+        "date": "2025-03-28",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "87dcc9f6-f4f0-4bdc-a0d2-b7ac763260fa",
+    "patient_id": "4802235577",
+    "date": "2025-03-28",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [
+        {
+          "term": "Lymphocyte count",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The lymphocyte count result (1.76 10^9/L) is the primary subject of this encounter and should be coded as an observable entity with its value, consistent with how other blood results in this encounter have been coded.",
+          "snomed_search": "lymphocyte count observable entity"
+        },
+        {
+          "term": "Abdominal pain",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Abdominal pain is explicitly stated as a clinical reason for the blood test request and represents an active clinical finding warranting coding.",
+          "snomed_search": "abdominal pain finding"
+        },
+        {
+          "term": "Rectal bleeding",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "\"Few eps PRB\" (per rectal bleeding) is documented as a clinical reason for the request; rectal bleeding is a clinically significant symptom that may warrant further investigation including possible 2WW referral consideration.",
+          "snomed_search": "rectal bleeding finding"
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "1030791000000100",
+          "name": "PSA (prostate-specific antigen) level",
+          "severity": "medium",
+          "reason": "There is no mention of a PSA result or PSA test in the encounter text provided; this result does not appear to originate from this encounter document."
+        },
+        {
+          "conceptId": "1012671000000103",
+          "name": "Blood potassium level",
+          "severity": "medium",
+          "reason": "There is no mention of a potassium result in the encounter text provided; this result does not appear to originate from this encounter document."
+        },
+        {
+          "conceptId": "1107411000000104",
+          "name": "Estimated glomerular filtration rate by laboratory calculation",
+          "severity": "medium",
+          "reason": "There is no mention of an eGFR result in the encounter text provided; this result does not appear to originate from this encounter document."
+        },
+        {
+          "conceptId": "1012681000000101",
+          "name": "Blood sodium level",
+          "severity": "medium",
+          "reason": "There is no mention of a sodium result in the encounter text provided; this result does not appear to originate from this encounter document."
+        },
+        {
+          "conceptId": "1028281000000106",
+          "name": "Blood urea",
+          "severity": "medium",
+          "reason": "There is no mention of a urea result in the encounter text provided; this result does not appear to originate from this encounter document."
+        },
+        {
+          "conceptId": "1000731000000107",
+          "name": "Serum creatinine level",
+          "severity": "medium",
+          "reason": "There is no mention of a creatinine result in the encounter text provided; this result does not appear to originate from this encounter document."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.72,
+      "notes": "The encounter text relates solely to a lymphocyte count result with clinical context of abdominal pain and rectal bleeding; the lymphocyte count itself is not coded and the clinically important symptom of rectal bleeding is missing. The five U&E/eGFR and PSA results coded appear to belong to a different encounter or document and may represent a filing or coding error requiring investigation.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "87dcc9f6-f4f0-4bdc-a0d2-b7ac763260fa",
+        "date": "2025-03-28",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "70093c2b-805c-44e4-997d-fe840a85ef48",
+    "patient_id": "4802235577",
+    "date": "2025-03-28",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [
+        {
+          "term": "Monocyte count",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "The monocyte count result (0.2 x10^9/L, within normal range) is the primary subject of this auto-filed lab report and is not captured in the coded list.",
+          "snomed_search": "monocyte count observable entity"
+        },
+        {
+          "term": "Abdominal pain",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Abdominal pain is documented as a clinical indication for the blood test request and represents an active clinical finding warranting coding.",
+          "snomed_search": "abdominal pain finding"
+        },
+        {
+          "term": "Rectal bleeding",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Rectal bleeding ('few eps PRB') is documented as a clinical indication for the investigation and is a clinically significant symptom requiring coding, particularly given its potential to indicate serious pathology.",
+          "snomed_search": "rectal bleeding finding"
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "1030791000000100",
+          "name": "PSA (prostate-specific antigen) level",
+          "severity": "medium",
+          "reason": "The PSA result and its evidence are not present anywhere in this encounter note text; it appears to have been coded from a different encounter or document."
+        },
+        {
+          "conceptId": "1012671000000103",
+          "name": "Blood potassium level (observable entity)",
+          "severity": "medium",
+          "reason": "Serum potassium is not mentioned anywhere in this encounter note text and appears to have been coded from a different encounter or document."
+        },
+        {
+          "conceptId": "1107411000000104",
+          "name": "Estimated glomerular filtration rate by laboratory calculation (observable entity)",
+          "severity": "medium",
+          "reason": "eGFR is not mentioned anywhere in this encounter note text and appears to have been coded from a different encounter or document."
+        },
+        {
+          "conceptId": "1012681000000101",
+          "name": "Blood sodium level (observable entity)",
+          "severity": "medium",
+          "reason": "Serum sodium is not mentioned anywhere in this encounter note text and appears to have been coded from a different encounter or document."
+        },
+        {
+          "conceptId": "1028281000000106",
+          "name": "Blood urea (observable entity)",
+          "severity": "medium",
+          "reason": "Serum urea is not mentioned anywhere in this encounter note text and appears to have been coded from a different encounter or document."
+        },
+        {
+          "conceptId": "1000731000000107",
+          "name": "Serum creatinine level (observable entity)",
+          "severity": "medium",
+          "reason": "Serum creatinine is not mentioned anywhere in this encounter note text and appears to have been coded from a different encounter or document."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.78,
+      "notes": "This encounter note relates solely to an auto-filed monocyte count result with a normal outcome; the six already-coded concepts (U&Es, eGFR, PSA) do not appear in this note and likely belong to a different encounter or filing event. The clinically significant symptoms documented as the test indication \u2014 abdominal pain and rectal bleeding \u2014 are not coded, with rectal bleeding warranting particular attention given its potential significance.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "70093c2b-805c-44e4-997d-fe840a85ef48",
+        "date": "2025-03-28",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "796532df-292b-43fe-af9a-8ae365094360",
+    "patient_id": "4802235577",
+    "date": "2025-03-28",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [
+        {
+          "term": "Basophil count low",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "The basophil count of 0 x10^9/L is flagged as outside reference range and is the primary subject of this encounter note, yet no observable entity or finding for basophil count has been coded.",
+          "snomed_search": "basophil count"
+        },
+        {
+          "term": "Abdominal pain",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Abdominal pain is listed as a clinical reason for the blood test request and represents an active symptom warranting coding.",
+          "snomed_search": "abdominal pain"
+        },
+        {
+          "term": "Rectal bleeding",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The clinical details reference 'few eps PRB' (per rectal bleeding), which is a clinically significant symptom that should be coded and may warrant further investigation or 2WW consideration.",
+          "snomed_search": "rectal bleeding"
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "1012671000000103",
+          "name": "Blood potassium level (observable entity)",
+          "severity": "low",
+          "reason": "There is no mention of serum potassium, sodium, urea, creatinine, eGFR or PSA results in the encounter text provided; these appear to have been coded from a different document or encounter not visible in this note."
+        },
+        {
+          "conceptId": "1107411000000104",
+          "name": "Estimated glomerular filtration rate by laboratory calculation (observable entity)",
+          "severity": "low",
+          "reason": "No eGFR result is referenced in this encounter text; this concept appears to originate from a separate document not represented here."
+        },
+        {
+          "conceptId": "1012681000000101",
+          "name": "Blood sodium level (observable entity)",
+          "severity": "low",
+          "reason": "No serum sodium result is referenced in this encounter text; this concept appears to originate from a separate document not represented here."
+        },
+        {
+          "conceptId": "1028281000000106",
+          "name": "Blood urea (observable entity)",
+          "severity": "low",
+          "reason": "No serum urea result is referenced in this encounter text; this concept appears to originate from a separate document not represented here."
+        },
+        {
+          "conceptId": "1000731000000107",
+          "name": "Serum creatinine level (observable entity)",
+          "severity": "low",
+          "reason": "No serum creatinine result is referenced in this encounter text; this concept appears to originate from a separate document not represented here."
+        },
+        {
+          "conceptId": "1030791000000100",
+          "name": "PSA (prostate-specific antigen) level (Observable_entity)",
+          "severity": "low",
+          "reason": "No PSA result is referenced in this encounter text; this concept appears to originate from a separate document not represented here."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.62,
+      "notes": "The encounter note relates solely to a basophil count result review with clinical context of abdominal pain and rectal bleeding; the six already-coded concepts all appear to belong to a different encounter or document not shown in this text. The rectal bleeding symptom ('PRB') warrants particular attention given its potential clinical significance.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "796532df-292b-43fe-af9a-8ae365094360",
+        "date": "2025-03-28",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "03ddc567-33e6-47fa-b8b0-d0932bdd889c",
+    "patient_id": "4802235577",
+    "date": "2025-03-28",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [
+        {
+          "term": "Eosinophil count - observation 0 10^9/L [0.04 - 0.4] - Outside reference range",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The eosinophil count result is the primary subject of this encounter and is flagged as outside reference range (low/zero), yet no eosinophil count observable entity has been coded.",
+          "snomed_search": "eosinophil count observable entity"
+        },
+        {
+          "term": "Abdo pain",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Abdominal pain is explicitly stated as a clinical reason for the blood test request and represents an active clinical finding that should be coded.",
+          "snomed_search": "abdominal pain finding"
+        },
+        {
+          "term": "PRB (per rectum bleeding)",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Rectal bleeding (per rectum bleeding) is explicitly cited as a clinical reason for the investigation request and is a clinically significant symptom warranting coding, with potential 2WW implications.",
+          "snomed_search": "rectal bleeding finding"
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.78,
+      "notes": "The coded list captures the biochemistry and PSA results well but omits the eosinophil count (the primary result of this encounter), and two clinically significant presenting symptoms \u2014 abdominal pain and rectal bleeding \u2014 that were documented as the reasons for the blood request. Rectal bleeding in particular warrants attention given its potential 2WW significance.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "03ddc567-33e6-47fa-b8b0-d0932bdd889c",
+        "date": "2025-03-28",
+        "coded_count": 8
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "3481a276-165e-4796-bac6-678164c8bcb4",
+    "patient_id": "4802235577",
+    "date": "2025-03-28",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [
+        {
+          "term": "Red blood cell count 5.14 10^12/L",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "Red blood cell count result is documented in the encounter text but has not been coded.",
+          "snomed_search": "red blood cell count observable entity"
+        },
+        {
+          "term": "Abdominal pain",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The clinical information field explicitly states 'Abdo pain' as the reason for the blood test request, indicating an active presenting complaint that should be coded.",
+          "snomed_search": "abdominal pain finding"
+        },
+        {
+          "term": "Per rectal bleeding (few episodes PRB)",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The clinical information field documents 'few eps PRB' (per rectal bleeding) as a reason for investigation; rectal bleeding is a clinically significant symptom requiring coding and potential 2WW consideration.",
+          "snomed_search": "rectal bleeding finding"
+        },
+        {
+          "term": "Full blood count normal",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "The report conclusion explicitly states 'Full blood count - Normal' with no further action, which could be coded as a finding to document the overall result interpretation.",
+          "snomed_search": "full blood count normal finding"
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "1012671000000103",
+          "name": "Blood potassium level (observable entity)",
+          "severity": "medium",
+          "reason": "There is no potassium result documented anywhere in this encounter text; this appears to have been coded from a different encounter or document."
+        },
+        {
+          "conceptId": "1107411000000104",
+          "name": "Estimated glomerular filtration rate by laboratory calculation (observable entity)",
+          "severity": "medium",
+          "reason": "No eGFR result is present in this encounter text; this appears to have been coded from a different encounter or document."
+        },
+        {
+          "conceptId": "1012681000000101",
+          "name": "Blood sodium level (observable entity)",
+          "severity": "medium",
+          "reason": "No serum sodium result is documented in this encounter text; this appears to have been coded from a different encounter or document."
+        },
+        {
+          "conceptId": "1028281000000106",
+          "name": "Blood urea (observable entity)",
+          "severity": "medium",
+          "reason": "No serum urea result is documented in this encounter text; this appears to have been coded from a different encounter or document."
+        },
+        {
+          "conceptId": "1000731000000107",
+          "name": "Serum creatinine level (observable entity)",
+          "severity": "medium",
+          "reason": "No serum creatinine result is documented in this encounter text; this appears to have been coded from a different encounter or document."
+        },
+        {
+          "conceptId": "1030791000000100",
+          "name": "PSA (prostate-specific antigen) level (Observable_entity)",
+          "severity": "medium",
+          "reason": "No PSA result is documented in this encounter text; this appears to have been coded from a different encounter or document."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.78,
+      "notes": "The FBC results themselves are reasonably coded, but several concepts (U&Es, eGFR, PSA) appear to have been auto-filed against this encounter despite not being present in the encounter text, suggesting a filing or batch-coding error. Importantly, the clinical indication of per rectal bleeding documented in the request details has not been coded and warrants attention given its potential 2WW significance.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "3481a276-165e-4796-bac6-678164c8bcb4",
+        "date": "2025-03-28",
+        "coded_count": 12
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "99d5065e-9212-46b8-8328-8edda02eba03",
+    "patient_id": "4802235577",
+    "date": "2025-03-28",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [
+        {
+          "term": "Serum total protein level",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The encounter text explicitly documents a serum total protein result of 72 g/L which is the primary test being reviewed but has not been coded.",
+          "snomed_search": "serum total protein level"
+        },
+        {
+          "term": "Abdominal pain",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Abdominal pain is stated as a clinical reason for the blood test request and represents an active symptom warranting coding.",
+          "snomed_search": "abdominal pain"
+        },
+        {
+          "term": "Rectal bleeding",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Few episodes of PR bleeding (PRB) are documented as a clinical reason for the request; rectal bleeding is a clinically significant symptom that may warrant further investigation and should be coded.",
+          "snomed_search": "rectal bleeding"
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "1012671000000103",
+          "name": "Blood potassium level (observable entity)",
+          "severity": "medium",
+          "reason": "No potassium result is present in the encounter text provided; the coded evidence references a serum potassium value not visible in this note, suggesting it may belong to a different encounter or document."
+        },
+        {
+          "conceptId": "1107411000000104",
+          "name": "Estimated glomerular filtration rate by laboratory calculation (observable entity)",
+          "severity": "medium",
+          "reason": "No eGFR result is present in the encounter text provided; the coded evidence references a value not visible in this note."
+        },
+        {
+          "conceptId": "1012681000000101",
+          "name": "Blood sodium level (observable entity)",
+          "severity": "medium",
+          "reason": "No sodium result is present in the encounter text provided; the coded evidence references a value not visible in this note."
+        },
+        {
+          "conceptId": "1028281000000106",
+          "name": "Blood urea (observable entity)",
+          "severity": "medium",
+          "reason": "No urea result is present in the encounter text provided; the coded evidence references a value not visible in this note."
+        },
+        {
+          "conceptId": "1000731000000107",
+          "name": "Serum creatinine level (observable entity)",
+          "severity": "medium",
+          "reason": "No creatinine result is present in the encounter text provided; the coded evidence references a value not visible in this note."
+        },
+        {
+          "conceptId": "1030791000000100",
+          "name": "PSA (prostate-specific antigen) level (Observable_entity)",
+          "severity": "medium",
+          "reason": "No PSA result is present in the encounter text provided; the coded evidence references a value not visible in this note."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.62,
+      "notes": "The encounter text appears to be a partial auto-filed lab result note covering only the serum total protein; the six already-coded observables reference values not visible in this text snippet, suggesting either truncated note display or miscoded concepts from a different encounter. The clinically significant symptoms of abdominal pain and rectal bleeding documented in the clinical details field are not coded. Confidence is reduced due to likely incomplete encounter text.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "99d5065e-9212-46b8-8328-8edda02eba03",
+        "date": "2025-03-28",
+        "coded_count": 6
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "051615f7-dc38-48f5-8516-13fd738b572e",
+    "patient_id": "4802235577",
+    "date": "2025-03-28",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [
+        {
+          "term": "Abdominal pain",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The clinical information field explicitly states 'Abdo pain' as a reason for the request, which is a clinically relevant symptom that should be coded.",
+          "snomed_search": "abdominal pain"
+        },
+        {
+          "term": "Per rectal bleeding",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The clinical information states 'few eps PRB' (per rectal bleeding episodes), which is a clinically significant symptom requiring coding and may have implications for further investigation.",
+          "snomed_search": "rectal bleeding"
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "1018251000000107",
+          "name": "Serum alanine aminotransferase level (observable entity)",
+          "severity": "medium",
+          "reason": "There is no mention of ALT, liver function tests, or serum alanine aminotransferase in the encounter text; this result does not appear to originate from this encounter."
+        },
+        {
+          "conceptId": "999691000000104",
+          "name": "Serum bilirubin level (observable entity)",
+          "severity": "medium",
+          "reason": "Serum bilirubin is not referenced anywhere in the encounter text and appears to have been coded from a different encounter or document."
+        },
+        {
+          "conceptId": "1012671000000103",
+          "name": "Blood potassium level (observable entity)",
+          "severity": "medium",
+          "reason": "Serum potassium is not mentioned in the encounter text and appears to belong to a different set of results not documented here."
+        },
+        {
+          "conceptId": "1107411000000104",
+          "name": "Estimated glomerular filtration rate by laboratory calculation (observable entity)",
+          "severity": "medium",
+          "reason": "eGFR is not referenced in the encounter text and appears to have been filed against this encounter in error."
+        },
+        {
+          "conceptId": "1012681000000101",
+          "name": "Blood sodium level (observable entity)",
+          "severity": "medium",
+          "reason": "Serum sodium is not mentioned in the encounter text and appears to belong to a different set of results not documented here."
+        },
+        {
+          "conceptId": "1028281000000106",
+          "name": "Blood urea (observable entity)",
+          "severity": "medium",
+          "reason": "Serum urea is not referenced in the encounter text and appears to have been filed against this encounter in error."
+        },
+        {
+          "conceptId": "1000731000000107",
+          "name": "Serum creatinine level (observable entity)",
+          "severity": "medium",
+          "reason": "Serum creatinine is not mentioned in the encounter text and appears to belong to a different set of results not documented here."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.72,
+      "notes": "The PSA result is correctly coded and within normal range with no further action required. However, seven of the eight coded observables (renal and liver panel) have no supporting evidence in the encounter text and appear to have been incorrectly filed to this encounter. Two clinically relevant symptoms documented in the clinical information field \u2014 abdominal pain and per rectal bleeding \u2014 are absent from the coded list and should be added.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "051615f7-dc38-48f5-8516-13fd738b572e",
+        "date": "2025-03-28",
+        "coded_count": 8
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "81b2fd3a-ca71-4a04-8f59-b0bb57408efc",
+    "patient_id": "4802235577",
+    "date": "2025-03-28",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "1012671000000103",
+          "name": "Blood potassium level (observable entity)",
+          "severity": "low",
+          "reason": "The encounter text for this auto-filed result only references TSH; potassium, sodium, urea, creatinine, eGFR and PSA values are not mentioned in the encounter note provided and appear to have been coded from a different result or document not visible in this encounter text."
+        },
+        {
+          "conceptId": "1107411000000104",
+          "name": "Estimated glomerular filtration rate by laboratory calculation (observable entity)",
+          "severity": "low",
+          "reason": "No eGFR result is referenced in the encounter text provided; this observable appears to originate from a separate result not included in this note."
+        },
+        {
+          "conceptId": "1012681000000101",
+          "name": "Blood sodium level (observable entity)",
+          "severity": "low",
+          "reason": "No serum sodium result is referenced in the encounter text provided; this observable appears to originate from a separate result not included in this note."
+        },
+        {
+          "conceptId": "1028281000000106",
+          "name": "Blood urea (observable entity)",
+          "severity": "low",
+          "reason": "No serum urea result is referenced in the encounter text provided; this observable appears to originate from a separate result not included in this note."
+        },
+        {
+          "conceptId": "1000731000000107",
+          "name": "Serum creatinine level (observable entity)",
+          "severity": "low",
+          "reason": "No serum creatinine result is referenced in the encounter text provided; this observable appears to originate from a separate result not included in this note."
+        },
+        {
+          "conceptId": "1030791000000100",
+          "name": "PSA (prostate-specific antigen) level (Observable_entity)",
+          "severity": "low",
+          "reason": "No PSA result is referenced in the encounter text provided; this observable appears to originate from a separate result not included in this note."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.55,
+      "notes": "The encounter text contains only a TSH result (correctly coded) with a normal report and no further action; the remaining six observables are not evidenced by this note and may have been auto-filed from a concurrent U&E/PSA batch result that is not visible here \u2014 if those results are part of the same filing event they should be linked to their own source document rather than this TSH-only note. Confidence is reduced because the full set of results that generated the already-coded concepts is not visible in the provided encounter text.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "81b2fd3a-ca71-4a04-8f59-b0bb57408efc",
+        "date": "2025-03-28",
+        "coded_count": 7
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "2b072f35-ed5f-4a12-ab14-bdadff8d61c5",
+    "patient_id": "4802235577",
+    "date": "2025-03-28",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [
+        {
+          "term": "abdominal pain",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "The clinical information on the request form explicitly states 'Abdo pain' as a reason for the investigation, indicating an active symptom warranting coding.",
+          "snomed_search": "abdominal pain"
+        },
+        {
+          "term": "rectal bleeding (few episodes PRB)",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "The clinical information states 'few eps PRB' (per rectum bleeding), which is a clinically significant symptom that should be coded and may warrant further investigation or 2WW consideration.",
+          "snomed_search": "rectal bleeding"
+        },
+        {
+          "term": "liver function tests normal",
+          "severity": "low",
+          "suggested_assertion": "present",
+          "reason": "The report explicitly states 'Normal, No Further Action' for liver function tests; coding the overall normal result provides a useful clinical summary alongside the individual component values.",
+          "snomed_search": "liver function tests normal"
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "1012671000000103",
+          "name": "Blood potassium level (observable entity)",
+          "severity": "medium",
+          "reason": "No potassium result is present in the encounter text; this value (4.4 mmol/L) is not evidenced by any data in the auto-filed LFT report shown."
+        },
+        {
+          "conceptId": "1107411000000104",
+          "name": "Estimated glomerular filtration rate by laboratory calculation (observable entity)",
+          "severity": "medium",
+          "reason": "No eGFR result appears in the encounter text; this value (>90 mL/min/1.73m2) is not evidenced by any data in the auto-filed LFT report shown."
+        },
+        {
+          "conceptId": "1012681000000101",
+          "name": "Blood sodium level (observable entity)",
+          "severity": "medium",
+          "reason": "No sodium result appears in the encounter text; this value (140 mmol/L) is not evidenced by any data in the auto-filed LFT report shown."
+        },
+        {
+          "conceptId": "1028281000000106",
+          "name": "Blood urea (observable entity)",
+          "severity": "medium",
+          "reason": "No urea result appears in the encounter text; this value (6.7 mmol/L) is not evidenced by any data in the auto-filed LFT report shown."
+        },
+        {
+          "conceptId": "1000731000000107",
+          "name": "Serum creatinine level (observable entity)",
+          "severity": "medium",
+          "reason": "No creatinine result appears in the encounter text; this value (72 umol/L) is not evidenced by any data in the auto-filed LFT report shown."
+        },
+        {
+          "conceptId": "1030791000000100",
+          "name": "PSA (prostate-specific antigen) level (Observable_entity)",
+          "severity": "medium",
+          "reason": "No PSA result appears in the encounter text; this value (1.8 ng/ml) is not evidenced by any data in the auto-filed LFT report shown."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.78,
+      "notes": "The two coded LFT components (ALT and bilirubin) are correctly captured from the auto-filed report, but five additional coded results (U&Es, eGFR, PSA) have no supporting evidence in this encounter text and appear to have been incorrectly attributed to this encounter. Critically, the clinical indication of rectal bleeding (PRB) documented on the request form has not been coded and warrants prompt clinical review.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "2b072f35-ed5f-4a12-ab14-bdadff8d61c5",
+        "date": "2025-03-28",
+        "coded_count": 8
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "95cc9582-2568-4b09-ba66-dd82c32b3bfa",
+    "patient_id": "4802235577",
+    "date": "2025-03-28",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "1012671000000103",
+          "name": "Blood potassium level (observable entity)",
+          "severity": "low",
+          "reason": "Serum potassium is not mentioned anywhere in the encounter text; this result does not appear in the auto-filed bone profile report."
+        },
+        {
+          "conceptId": "1107411000000104",
+          "name": "Estimated glomerular filtration rate by laboratory calculation (observable entity)",
+          "severity": "low",
+          "reason": "eGFR is not present in the encounter text; this result does not appear in the auto-filed bone profile report."
+        },
+        {
+          "conceptId": "1012681000000101",
+          "name": "Blood sodium level (observable entity)",
+          "severity": "low",
+          "reason": "Serum sodium is not mentioned in the encounter text; this result does not appear in the auto-filed bone profile report."
+        },
+        {
+          "conceptId": "1028281000000106",
+          "name": "Blood urea (observable entity)",
+          "severity": "low",
+          "reason": "Serum urea is not mentioned in the encounter text; this result does not appear in the auto-filed bone profile report."
+        },
+        {
+          "conceptId": "1000731000000107",
+          "name": "Serum creatinine level (observable entity)",
+          "severity": "low",
+          "reason": "Serum creatinine is not mentioned in the encounter text; this result does not appear in the auto-filed bone profile report."
+        },
+        {
+          "conceptId": "1030791000000100",
+          "name": "PSA (prostate-specific antigen) level",
+          "severity": "low",
+          "reason": "PSA is not mentioned anywhere in the encounter text; this result does not appear in the auto-filed bone profile report."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The bone profile results (adjusted calcium, phosphate, ALP, albumin, unadjusted calcium, globulin) and the presenting complaint of abdominal pain are appropriately coded. However, six observable entities (potassium, sodium, urea, creatinine, eGFR, PSA) have been coded against this encounter but have no evidential basis in the encounter text, suggesting they may have been auto-populated from a different request or encounter and should be removed or re-attributed.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "95cc9582-2568-4b09-ba66-dd82c32b3bfa",
+        "date": "2025-03-28",
+        "coded_count": 13
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "1b43d1dd-2385-4973-8881-66f2cba3b363",
+    "patient_id": "4802235577",
+    "date": "2025-03-28",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [
+        {
+          "conceptId": "999691000000104",
+          "name": "Serum bilirubin level (observable entity)",
+          "severity": "medium",
+          "reason": "No serum bilirubin result appears anywhere in this encounter text; the evidence cited does not exist in the note."
+        },
+        {
+          "conceptId": "1030791000000100",
+          "name": "PSA (prostate-specific antigen) level",
+          "severity": "medium",
+          "reason": "No PSA result appears in this encounter text; the evidence cited does not exist in the note."
+        },
+        {
+          "conceptId": "1018251000000107",
+          "name": "Serum alanine aminotransferase level (observable entity)",
+          "severity": "medium",
+          "reason": "No ALT result appears in this encounter text; the evidence cited does not exist in the note."
+        }
+      ],
+      "wrong_assertion": [],
+      "confidence": 0.82,
+      "notes": "The five U&E observable entities are correctly coded from the auto-filed result. However, three coded concepts (serum bilirubin, PSA, ALT) have no supporting evidence in this encounter text and appear to have been filed against the wrong encounter or are phantom entries; these should be reviewed and removed or re-attributed.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "1b43d1dd-2385-4973-8881-66f2cba3b363",
+        "date": "2025-03-28",
+        "coded_count": 8
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "495163ee-08da-4f63-9af9-bf676187fc0f",
+    "patient_id": "4802235577",
+    "date": "2025-03-31",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.5,
+      "notes": "The encounter record contains only administrative metadata (time, location, clinician name and role) with no clinical content, symptoms, diagnoses, procedures, or findings documented. There is nothing to code and no coding gaps can be identified from this entry alone.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "495163ee-08da-4f63-9af9-bf676187fc0f",
+        "date": "2025-03-31",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "0b82d0d7-16a4-44d9-994c-211533a86e6b",
+    "patient_id": "4802235577",
+    "date": "2025-03-31",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.5,
+      "notes": "The encounter note contains only administrative metadata (timestamp, clinician name, role) with no clinical content, symptoms, diagnoses, procedures, or findings documented; there is nothing to code and no coding gaps can be identified.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "0b82d0d7-16a4-44d9-994c-211533a86e6b",
+        "date": "2025-03-31",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "12747ecb-277f-4827-940a-6a18acb6abea",
+    "patient_id": "4802235577",
+    "date": "2025-04-01",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.99,
+      "notes": "This is a purely administrative encounter with no clinical content; there are no diagnoses, findings, procedures, or other codeable clinical concepts present. No coding gaps or errors identified.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "12747ecb-277f-4827-940a-6a18acb6abea",
+        "date": "2025-04-01",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "e607fdab-cea8-4b60-9b28-f6e120231e13",
+    "patient_id": "4802235577",
+    "date": "2025-04-01",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter record is purely administrative \u2014 a receptionist-generated SMS to the patient arranging loan of a blood pressure monitor. There is no clinical assertion, diagnosis, finding, or procedure documented that falls within the codeable SNOMED semantic tag categories; no coding gaps or errors are present.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "e607fdab-cea8-4b60-9b28-f6e120231e13",
+        "date": "2025-04-01",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "f2f299c0-e41f-4d23-812d-5cadfe93e8ce",
+    "patient_id": "4802235577",
+    "date": "2025-04-08",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "The encounter text contains only an administrative deregistration notice with no clinical content; there are no diagnoses, findings, procedures, or other codeable clinical concepts present. No coding gaps or errors identified.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "f2f299c0-e41f-4d23-812d-5cadfe93e8ce",
+        "date": "2025-04-08",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "2070381d-2053-4b9d-80d6-0006090c869a",
+    "patient_id": "4802235577",
+    "date": "2025-04-11",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "This encounter contains only an administrative message from a receptionist logging home blood pressure readings submission \u2014 there is no clinical content, diagnosis, finding, or procedure documented that warrants SNOMED coding.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "2070381d-2053-4b9d-80d6-0006090c869a",
+        "date": "2025-04-11",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "0d09cc02-3ede-4b91-b865-fa743707a53a",
+    "patient_id": "4802235577",
+    "date": "2025-04-11",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [
+        {
+          "term": "Blood pressure recorded by patient at home",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "A home blood pressure reading is a clinically relevant observable entity/finding that should be coded to support hypertension monitoring and cardiovascular risk management.",
+          "snomed_search": "blood pressure recorded by patient at home"
+        }
+      ],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.75,
+      "notes": "The encounter note is minimal \u2014 a single home blood pressure entry logged by a receptionist with no numeric value, clinical context, or outcome documented. The SNOMED code XaJVi (Blood pressure recorded by patient at home) should be applied; without the actual BP value or any clinical interpretation, further coding opportunities are limited.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "0d09cc02-3ede-4b91-b865-fa743707a53a",
+        "date": "2025-04-11",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "413771a0-aba5-46f4-8ca6-c39e2ced78ee",
+    "patient_id": "4802235577",
+    "date": "2025-04-11",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.99,
+      "notes": "This encounter contains only administrative/receptionist triage text with no clinical content; there are no diagnoses, findings, procedures, or other clinically codeable concepts present. No coding gaps or errors identified.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "413771a0-aba5-46f4-8ca6-c39e2ced78ee",
+        "date": "2025-04-11",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "b992d7ca-89dc-48e1-a5ae-6c9987d220e2",
+    "patient_id": "4802235577",
+    "date": "2025-04-11",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.99,
+      "notes": "This encounter text is purely an administrative appointment booking notification with no clinical content. There are no clinical concepts to code.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "b992d7ca-89dc-48e1-a5ae-6c9987d220e2",
+        "date": "2025-04-11",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "0b4cb62d-bab7-4f6a-8734-b048f2c324db",
+    "patient_id": "4802235577",
+    "date": "2025-04-14",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.92,
+      "notes": "This is a purely administrative home BP submission encounter with a single numeric observation. The existing coding of Blood pressure (observable entity) with the recorded value is appropriate and sufficient; no clinical diagnoses, procedures, or findings requiring additional SNOMED coding are documented.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "0b4cb62d-bab7-4f6a-8734-b048f2c324db",
+        "date": "2025-04-14",
+        "coded_count": 1
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "c492671b-9203-4bac-b09f-b5c7343df1a5",
+    "patient_id": "4802235577",
+    "date": "2025-04-15",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.99,
+      "notes": "This is a purely administrative encounter (incoming mail processing) with no clinical content; no SNOMED clinical coding is required or expected.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "c492671b-9203-4bac-b09f-b5c7343df1a5",
+        "date": "2025-04-15",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "2c31df74-1971-4f7b-8e26-ad98415a765e",
+    "patient_id": "4802235577",
+    "date": "2025-05-21",
+    "result": {
+      "encounter_assessment": "incomplete",
+      "missing": [
+        {
+          "term": "Folliculitis of scalp",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Active folliculitis on the back of the head/scalp is the primary presenting complaint and was examined and treated with fusidic acid cream.",
+          "snomed_search": "folliculitis scalp"
+        },
+        {
+          "term": "Tinea (fungal skin infection) on leg",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Clinically assessed ring-shaped rash on leg consistent with tinea and treated with antifungal (miconazole) cream.",
+          "snomed_search": "tinea corporis leg fungal skin infection"
+        },
+        {
+          "term": "Sunburn with deroofed blister on ear",
+          "severity": "high",
+          "suggested_assertion": "present",
+          "reason": "Sunburn with a deroofed blister on the ear was examined and is clinically significant, particularly given the patient's history of BCC; sun protection advice was given.",
+          "snomed_search": "sunburn blister"
+        },
+        {
+          "term": "Education about sun protection",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Clinician explicitly advised the patient regarding sun protection in the context of their BCC history, which is a coded preventive intervention.",
+          "snomed_search": "sun protection advice education"
+        },
+        {
+          "term": "Home blood pressure monitoring - normal",
+          "severity": "medium",
+          "suggested_assertion": "present",
+          "reason": "Home BP monitoring was completed and results reviewed (average 125/72); this is a distinct clinical activity beyond simply recording a BP value.",
+          "snomed_search": "home blood pressure monitoring"
+        }
+      ],
+      "overcoded": [
+        {
+          "conceptId": "372130007",
+          "name": "Malignant neoplasm of skin (disorder)",
+          "severity": "medium",
+          "reason": "The note describes a history of BCC last year; a more specific historical concept (e.g. basal cell carcinoma of skin) would be more accurate, and coding both a generic malignant neoplasm of skin AND a history of malignant neoplasm situation is redundant without a specific BCC disorder code."
+        }
+      ],
+      "wrong_assertion": [
+        {
+          "conceptId": "372130007",
+          "name": "Malignant neoplasm of skin (disorder)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "high",
+          "reason": "The note states 'Hx of BCC last year' with no indication of active malignancy; asserting it as present implies current active disease, which is not supported by the encounter text."
+        },
+        {
+          "conceptId": "266987004",
+          "name": "History of malignant neoplasm (situation)",
+          "current_assertion": "present",
+          "suggested_assertion": "historical",
+          "severity": "medium",
+          "reason": "This situation concept represents a past history and should be asserted as historical rather than present to correctly reflect its nature as a past event."
+        }
+      ],
+      "confidence": 0.88,
+      "notes": "The encounter has three significant active clinical findings (folliculitis, tinea, sunburn with blister) that are entirely absent from the coded list, representing a substantial coding gap. Additionally, the BCC history is incorrectly asserted as 'present' for an active disorder when the note clearly describes a past event, which carries a safety implication given the clinical context.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "2c31df74-1971-4f7b-8e26-ad98415a765e",
+        "date": "2025-05-21",
+        "coded_count": 3
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "7e677bd9-60d3-484f-8009-0ee5e5cff90a",
+    "patient_id": "4802235577",
+    "date": "2025-06-20",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "The encounter record contains only an administrative entry (receptionist access role timestamp) with no clinical content, diagnoses, findings, procedures, or observations to code. No coding gaps or errors identified.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "7e677bd9-60d3-484f-8009-0ee5e5cff90a",
+        "date": "2025-06-20",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "883498d6-26a3-4f70-922a-e797d7292dfe",
+    "patient_id": "4802235577",
+    "date": "2025-06-20",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.99,
+      "notes": "This encounter record contains only an administrative SMS notification about car park closure; there is no clinical content requiring SNOMED CT coding.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "883498d6-26a3-4f70-922a-e797d7292dfe",
+        "date": "2025-06-20",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "23f29f12-c56b-426f-a22c-24e7680deeeb",
+    "patient_id": "4802235577",
+    "date": "2025-08-01",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "The encounter record contains only an administrative entry (receptionist access role timestamp) with no clinical content, diagnoses, findings, procedures, or observations to code. No coding gaps or errors identified.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "23f29f12-c56b-426f-a22c-24e7680deeeb",
+        "date": "2025-08-01",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "8abab9bc-78c3-4cb0-8145-a7d293eefe43",
+    "patient_id": "4802235577",
+    "date": "2025-08-01",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.99,
+      "notes": "This encounter record contains only an administrative SMS invitation for flu vaccination with no clinical findings, diagnoses, procedures performed, or patient-reported information to code. No SNOMED concepts are warranted.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "8abab9bc-78c3-4cb0-8145-a7d293eefe43",
+        "date": "2025-08-01",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "37c77ae9-2fba-4308-a20d-31f7f8ce919f",
+    "patient_id": "4802235577",
+    "date": "2025-09-15",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "The encounter record contains only an administrative entry (receptionist access role timestamp) with no clinical content, diagnoses, findings, procedures, or observations to code. No coding gaps or errors identified.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "37c77ae9-2fba-4308-a20d-31f7f8ce919f",
+        "date": "2025-09-15",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "5321dbed-7dbe-4e50-8342-e91fabf28036",
+    "patient_id": "4802235577",
+    "date": "2025-09-15",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.99,
+      "notes": "This encounter contains only an administrative SMS notification regarding car park closure; there is no clinical content to code.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "5321dbed-7dbe-4e50-8342-e91fabf28036",
+        "date": "2025-09-15",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  },
+  {
+    "encounter_id": "55496433-5434-46be-98d9-29731e73b456",
+    "patient_id": "4802235577",
+    "date": "2025-12-22",
+    "result": {
+      "encounter_assessment": "clean",
+      "missing": [],
+      "overcoded": [],
+      "wrong_assertion": [],
+      "confidence": 0.95,
+      "notes": "The encounter record contains only an administrative access log entry by a non-clinical staff member with no clinical content, diagnoses, findings, procedures, or observations documented; there is nothing to code.",
+      "_meta": {
+        "patient_id": "4802235577",
+        "encounter_id": "55496433-5434-46be-98d9-29731e73b456",
+        "date": "2025-12-22",
+        "coded_count": 0
+      }
+    },
+    "status": "done"
+  }
+]

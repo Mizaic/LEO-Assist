@@ -1,0 +1,78 @@
+# -- VT-LEO-AI-071 -- Avoidable Delay Assessment Verification
+# IEC 62304 Verification Test Protocol
+
+- id: "VT-LEO-AI-071"
+  version: "1.0"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-071"]
+    risks: ["R-LEO-AI-021"]
+
+  metadata:
+    title: "Avoidable Delay Assessment Service Verification"
+    description: >
+      Verifies that the avoidable delay assessment service identifies delays
+      exceeding programme-defined thresholds, classifies them by cause
+      category, calculates impact on pathway duration, and stores results
+      per episode.
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    test_file_paths:
+      - "services/api/tests/test_delay_assessor.py"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites: []
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-071-TC-001"
+      case_name: "Identifies delay exceeding programme-defined threshold"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Provide episode timeline with known delay exceeding threshold"
+          expected_result: "Delay identified and reported with correct duration"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Delay identified for all timelines exceeding programme threshold"
+
+    - case_id: "VT-071-TC-002"
+      case_name: "Classifies delay by cause category"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Provide episode with provider-attributable delay"
+          expected_result: "Delay classified as provider, patient, or system"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Delay category matches expected classification for each test case"
+
+    - case_id: "VT-071-TC-003"
+      case_name: "Delay classifications are proposals requiring human review"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Verify output includes proposal status flag"
+          expected_result: "Assessment marked as requires_review=true"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "All assessments produced with requires_review flag set to true"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-071/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history: []

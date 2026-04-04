@@ -1,0 +1,452 @@
+[
+  {
+    "abbreviation": "2WW",
+    "expansion": "two week wait cancer referral",
+    "recommended_concept_id": "199251000000107",
+    "recommended_term": "Fast track cancer referral (procedure)",
+    "semantic_tag": "procedure",
+    "score": 6.166,
+    "note": "All tumour-site 2WW SNOMED codes",
+    "currently_resolves": false
+  },
+  {
+    "abbreviation": "FIT",
+    "expansion": "faecal immunochemical test",
+    "recommended_concept_id": "149421000000109",
+    "recommended_term": "Provision of faecal immunochemical test kit (procedure)",
+    "semantic_tag": "procedure",
+    "score": 10.191,
+    "note": "Bowel cancer screening FIT",
+    "currently_resolves": false
+  },
+  {
+    "abbreviation": "FOBT",
+    "expansion": "faecal occult blood test",
+    "recommended_concept_id": "104435004",
+    "recommended_term": "Screening for occult blood in feces (procedure)",
+    "semantic_tag": "procedure",
+    "score": 10.833,
+    "note": "Older FOBT term",
+    "currently_resolves": false
+  },
+  {
+    "abbreviation": "FOB",
+    "expansion": "faecal occult blood",
+    "recommended_concept_id": "104435004",
+    "recommended_term": "Screening for occult blood in feces (procedure)",
+    "semantic_tag": "procedure",
+    "score": 10.833,
+    "note": "Short form of FOBT",
+    "currently_resolves": false
+  },
+  {
+    "abbreviation": "SLL",
+    "expansion": "small lymphocytic lymphoma",
+    "recommended_concept_id": "302841002",
+    "recommended_term": "Malignant lymphoma - small lymphocytic (disorder)",
+    "semantic_tag": "disorder",
+    "score": 11.492,
+    "note": "Same entity as CLL variant",
+    "currently_resolves": false
+  },
+  {
+    "abbreviation": "CLL",
+    "expansion": "chronic lymphocytic leukaemia",
+    "recommended_concept_id": "430338009",
+    "recommended_term": "Smoldering chronic lymphocytic leukemia (disorder)",
+    "semantic_tag": "disorder",
+    "score": 10.517,
+    "note": "Most common adult leukaemia",
+    "currently_resolves": false
+  },
+  {
+    "abbreviation": "BCC",
+    "expansion": "basal cell carcinoma",
+    "recommended_concept_id": "69408002",
+    "recommended_term": "Gorlin syndrome (disorder)",
+    "semantic_tag": "disorder",
+    "score": 8.827,
+    "note": "Skin cancer - very common",
+    "currently_resolves": false
+  },
+  {
+    "abbreviation": "SCC",
+    "expansion": "squamous cell carcinoma",
+    "recommended_concept_id": "402815007",
+    "recommended_term": "Squamous cell carcinoma (disorder)",
+    "semantic_tag": "disorder",
+    "score": 9.533,
+    "note": "Skin/lung/other SCC",
+    "currently_resolves": false
+  },
+  {
+    "abbreviation": "CA",
+    "expansion": "malignant neoplasm",
+    "recommended_concept_id": "363346000",
+    "recommended_term": "Malignant neoplastic disease (disorder)",
+    "semantic_tag": "disorder",
+    "score": 5.472,
+    "note": "'prostate CA', 'CA breast'",
+    "currently_resolves": false
+  },
+  {
+    "abbreviation": "CA125",
+    "expansion": "cancer antigen 125 serum",
+    "recommended_concept_id": "1000461000000109",
+    "recommended_term": "Serum cancer antigen 125 level (observable entity)",
+    "semantic_tag": "observable entity",
+    "score": 11.067,
+    "note": "Ovarian cancer marker",
+    "currently_resolves": false
+  },
+  {
+    "abbreviation": "ADT",
+    "expansion": "androgen deprivation therapy",
+    "recommended_concept_id": "707266006",
+    "recommended_term": "Androgen deprivation therapy (procedure)",
+    "semantic_tag": "procedure",
+    "score": 12.84,
+    "note": "Prostate cancer treatment",
+    "currently_resolves": false
+  },
+  {
+    "abbreviation": "GOJ",
+    "expansion": "gastro-oesophageal junction adenocarcinoma",
+    "recommended_concept_id": "187734007",
+    "recommended_term": "Malignant neoplasm of cardioesophageal junction of stomach (disorder)",
+    "semantic_tag": "disorder",
+    "score": 9.924,
+    "note": "GOJ adenocarcinoma",
+    "currently_resolves": false
+  },
+  {
+    "abbreviation": "PSA",
+    "expansion": "prostate specific antigen",
+    "recommended_concept_id": "1030791000000100",
+    "recommended_term": "Prostate specific antigen level (observable entity)",
+    "semantic_tag": "observable entity",
+    "score": 8.564,
+    "note": "PSA level",
+    "currently_resolves": false
+  },
+  {
+    "abbreviation": "HTN",
+    "expansion": "hypertension",
+    "recommended_concept_id": "38341003",
+    "recommended_term": "Hypertensive disorder, systemic arterial (disorder)",
+    "semantic_tag": "disorder",
+    "score": 4.631,
+    "note": "74 hits - biggest gap",
+    "currently_resolves": false
+  },
+  {
+    "abbreviation": "HbA1c",
+    "expansion": "haemoglobin A1c level",
+    "recommended_concept_id": "443911005",
+    "recommended_term": "Ordinal level of hemoglobin A1c (observable entity)",
+    "semantic_tag": "observable entity",
+    "score": 11.4,
+    "note": "HbA1c standalone",
+    "currently_resolves": false
+  },
+  {
+    "abbreviation": "CKD",
+    "expansion": "chronic kidney disease",
+    "recommended_concept_id": "709044004",
+    "recommended_term": "Chronic kidney disease (disorder)",
+    "semantic_tag": "disorder",
+    "score": 8.652,
+    "note": "30 hits",
+    "currently_resolves": false
+  },
+  {
+    "abbreviation": "CBG",
+    "expansion": "capillary blood glucose",
+    "recommended_concept_id": "1464731000000106",
+    "recommended_term": "Mean substance concentration of glucose in capillary blood by self-monitoring of blood glucose using blood glucose meter (observable entity)",
+    "semantic_tag": "observable entity",
+    "score": 7.196,
+    "note": "CBG BB'fast",
+    "currently_resolves": false
+  },
+  {
+    "abbreviation": "HF",
+    "expansion": "heart failure",
+    "recommended_concept_id": "84114007",
+    "recommended_term": "Heart failure (disorder)",
+    "semantic_tag": "disorder",
+    "score": 7.199,
+    "note": "Known HF, COPD, HF",
+    "currently_resolves": false
+  },
+  {
+    "abbreviation": "IHD",
+    "expansion": "ischaemic heart disease",
+    "recommended_concept_id": "414545008",
+    "recommended_term": "Ischemic heart disease (disorder)",
+    "semantic_tag": "disorder",
+    "score": 9.894,
+    "note": "venlafaxine CI due to IHD",
+    "currently_resolves": false
+  },
+  {
+    "abbreviation": "IDA",
+    "expansion": "iron deficiency anaemia",
+    "recommended_concept_id": "87522002",
+    "recommended_term": "Iron deficiency anemia (disorder)",
+    "semantic_tag": "disorder",
+    "score": 11.02,
+    "note": "gastroscopy for IDA",
+    "currently_resolves": false
+  },
+  {
+    "abbreviation": "GORD",
+    "expansion": "gastro-oesophageal reflux disease",
+    "recommended_concept_id": "235595009",
+    "recommended_term": "Gastroesophageal reflux disease (disorder)",
+    "semantic_tag": "disorder",
+    "score": 14.243,
+    "note": "Diagnosis: GORD",
+    "currently_resolves": false
+  },
+  {
+    "abbreviation": "T2DM",
+    "expansion": "type 2 diabetes mellitus",
+    "recommended_concept_id": "44054006",
+    "recommended_term": "Diabetes mellitus type 2 (disorder)",
+    "semantic_tag": "disorder",
+    "score": 11.271,
+    "note": "T2DM variant spelling",
+    "currently_resolves": false
+  },
+  {
+    "abbreviation": "IDDM",
+    "expansion": "insulin dependent diabetes mellitus",
+    "recommended_concept_id": "28032008",
+    "recommended_term": "Insulin dependent diabetes mellitus type IB (disorder)",
+    "semantic_tag": "disorder",
+    "score": 11.629,
+    "note": "IDDM variant",
+    "currently_resolves": false
+  },
+  {
+    "abbreviation": "BPH",
+    "expansion": "benign prostatic hyperplasia",
+    "recommended_concept_id": "266569009",
+    "recommended_term": "Benign prostatic hyperplasia (disorder)",
+    "semantic_tag": "disorder",
+    "score": 11.826,
+    "note": "BG of IHD, ILD, COPD, BPH",
+    "currently_resolves": false
+  },
+  {
+    "abbreviation": "ILD",
+    "expansion": "interstitial lung disease",
+    "recommended_concept_id": "233703007",
+    "recommended_term": "Interstitial lung disease (disorder)",
+    "semantic_tag": "disorder",
+    "score": 9.909,
+    "note": "BG of IHD, ILD, COPD",
+    "currently_resolves": false
+  },
+  {
+    "abbreviation": "SOBOE",
+    "expansion": "shortness of breath on exertion",
+    "recommended_concept_id": "60845006",
+    "recommended_term": "Dyspnea on exertion (finding)",
+    "semantic_tag": "finding",
+    "score": 14.809,
+    "note": "11 hits - very common",
+    "currently_resolves": false
+  },
+  {
+    "abbreviation": "SOB",
+    "expansion": "dyspnoea",
+    "recommended_concept_id": "267036007",
+    "recommended_term": "Dyspnea (finding)",
+    "semantic_tag": "finding",
+    "score": 6.19,
+    "note": "shortness of breath",
+    "currently_resolves": false
+  },
+  {
+    "abbreviation": "TATT",
+    "expansion": "fatigue",
+    "recommended_concept_id": "84229001",
+    "recommended_term": "Fatigue (finding)",
+    "semantic_tag": "finding",
+    "score": 5.828,
+    "note": "tired all the time",
+    "currently_resolves": false
+  },
+  {
+    "abbreviation": "CIBH",
+    "expansion": "change in bowel habit",
+    "recommended_concept_id": "88111009",
+    "recommended_term": "Altered bowel function (finding)",
+    "semantic_tag": "finding",
+    "score": 13.661,
+    "note": "persistent CIBH",
+    "currently_resolves": false
+  },
+  {
+    "abbreviation": "CP",
+    "expansion": "chest pain",
+    "recommended_concept_id": "29857009",
+    "recommended_term": "Chest pain (finding)",
+    "semantic_tag": "finding",
+    "score": 7.511,
+    "note": "CP / dizziness",
+    "currently_resolves": false
+  },
+  {
+    "abbreviation": "PV",
+    "expansion": "vaginal bleeding",
+    "recommended_concept_id": "289530006",
+    "recommended_term": "Bleeding from vagina (finding)",
+    "semantic_tag": "finding",
+    "score": 8.339,
+    "note": "PV bleeding",
+    "currently_resolves": false
+  },
+  {
+    "abbreviation": "NAD",
+    "expansion": "no abnormality detected",
+    "recommended_concept_id": "281900007",
+    "recommended_term": "No abnormality detected (finding)",
+    "semantic_tag": "finding",
+    "score": 9.909,
+    "note": "Xray NAD, FOBT NAD",
+    "currently_resolves": false
+  },
+  {
+    "abbreviation": "OOH",
+    "expansion": "out of hours",
+    "recommended_concept_id": "185511000000107",
+    "recommended_term": "Seen in out of hours centre (finding)",
+    "semantic_tag": "finding",
+    "score": 6.445,
+    "note": "OOH report",
+    "currently_resolves": false
+  },
+  {
+    "abbreviation": "TWOC",
+    "expansion": "trial without catheter",
+    "recommended_concept_id": "110465008",
+    "recommended_term": "Clinical trial (procedure)",
+    "semantic_tag": "procedure",
+    "score": 4.965,
+    "note": "failed TWOC - urinary retention",
+    "currently_resolves": false
+  },
+  {
+    "abbreviation": "IMB",
+    "expansion": "intermenstrual bleeding",
+    "recommended_concept_id": "237130006",
+    "recommended_term": "Bleeding between periods (finding)",
+    "semantic_tag": "finding",
+    "score": 11.096,
+    "note": "1x episode IMB",
+    "currently_resolves": false
+  },
+  {
+    "abbreviation": "PR",
+    "expansion": "per rectum bleeding",
+    "recommended_concept_id": "163328008",
+    "recommended_term": "On examination - per rectum - rectum empty (finding)",
+    "semantic_tag": "finding",
+    "score": 7.224,
+    "note": "PR bleeding on wiping",
+    "currently_resolves": false
+  },
+  {
+    "abbreviation": "XR",
+    "expansion": "plain x-ray",
+    "recommended_concept_id": "168537006",
+    "recommended_term": "Plain X-ray (procedure)",
+    "semantic_tag": "procedure",
+    "score": 9.146,
+    "note": "26 hits - f/u XR",
+    "currently_resolves": false
+  },
+  {
+    "abbreviation": "US",
+    "expansion": "ultrasonography",
+    "recommended_concept_id": "16310003",
+    "recommended_term": "Ultrasonography (procedure)",
+    "semantic_tag": "procedure",
+    "score": 4.853,
+    "note": "US Pelvis",
+    "currently_resolves": false
+  },
+  {
+    "abbreviation": "ECHO",
+    "expansion": "echocardiogram",
+    "recommended_concept_id": "40701008",
+    "recommended_term": "Echocardiography (procedure)",
+    "semantic_tag": "procedure",
+    "score": 6.786,
+    "note": "ECHO severe AS",
+    "currently_resolves": false
+  },
+  {
+    "abbreviation": "GFR",
+    "expansion": "estimated glomerular filtration rate",
+    "recommended_concept_id": "80274001",
+    "recommended_term": "Glomerular filtration rate (observable entity)",
+    "semantic_tag": "observable entity",
+    "score": 13.123,
+    "note": "GFR G3b",
+    "currently_resolves": false
+  },
+  {
+    "abbreviation": "eGFR",
+    "expansion": "estimated glomerular filtration rate",
+    "recommended_concept_id": "80274001",
+    "recommended_term": "Glomerular filtration rate (observable entity)",
+    "semantic_tag": "observable entity",
+    "score": 13.123,
+    "note": "eGFR in context",
+    "currently_resolves": false
+  },
+  {
+    "abbreviation": "TSH",
+    "expansion": "thyroid stimulating hormone level",
+    "recommended_concept_id": "1027151000000105",
+    "recommended_term": "Thyroid stimulating hormone level (observable entity)",
+    "semantic_tag": "observable entity",
+    "score": 11.74,
+    "note": "Serum TSH",
+    "currently_resolves": false
+  },
+  {
+    "abbreviation": "HBPM",
+    "expansion": "home blood pressure monitoring",
+    "recommended_concept_id": "1285115008",
+    "recommended_term": "Average home blood pressure (observable entity)",
+    "semantic_tag": "observable entity",
+    "score": 8.459,
+    "note": "Average HBPM",
+    "currently_resolves": false
+  },
+  {
+    "abbreviation": "MSK",
+    "expansion": "musculoskeletal",
+    "recommended_concept_id": "10379002",
+    "recommended_term": "Musculoskeletal hypomobility (finding)",
+    "semantic_tag": "finding",
+    "score": 4.445,
+    "note": "MSK back pain",
+    "currently_resolves": false
+  },
+  {
+    "abbreviation": "LUTS",
+    "expansion": "lower urinary tract symptoms",
+    "recommended_concept_id": "307541003",
+    "recommended_term": "Lower urinary tract symptoms (finding)",
+    "semantic_tag": "finding",
+    "score": 11.687,
+    "note": "LUTS / haematuria",
+    "currently_resolves": false
+  }
+]

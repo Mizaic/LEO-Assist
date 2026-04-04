@@ -20,6 +20,7 @@ ON CREATE SET
     t.context_text = $context_text,
     t.candidate_id = $candidate_id,
     t.confidence = $confidence,
+    t.source = $source,
     t.status = 'pending',
     t.created_at = datetime()
 ON MATCH SET
@@ -27,7 +28,8 @@ ON MATCH SET
     t.suggested_term = $suggested_term,
     t.candidates_json = $candidates_json,
     t.context_text = $context_text,
-    t.confidence = $confidence
+    t.confidence = $confidence,
+    t.source = $source
 WITH t
 OPTIONAL MATCH (c:TrainingCandidate {candidate_id: $candidate_id})
 FOREACH (_ IN CASE WHEN c IS NULL THEN [] ELSE [1] END |
@@ -48,6 +50,7 @@ RETURN
     t.suggested_term AS suggested_term,
     t.candidate_id AS candidate_id,
     t.confidence AS confidence,
+    t.source AS source,
     t.status AS status,
     toString(t.created_at) AS created_at
 ORDER BY t.created_at DESC
@@ -74,6 +77,7 @@ RETURN
     t.context_text AS context_text,
     t.candidate_id AS candidate_id,
     t.confidence AS confidence,
+    t.source AS source,
     t.status AS status,
     t.resolved_concept AS resolved_concept,
     t.resolved_by AS resolved_by,
@@ -94,6 +98,59 @@ RETURN t.task_id AS task_id, t.status AS status
 DELETE_ALL_SURFACE_FORM_TASKS = """
 MATCH (t:SurfaceFormTask)
 DETACH DELETE t
+"""
+
+# -- Revoke a surface form and cascade to affected encounters ---------------
+
+REVOKE_SURFACE_FORM = """
+MATCH (sf:SurfaceForm {normalized: $normalized})
+OPTIONAL MATCH (sf)-[m:MAPS_TO]->()
+DELETE m
+SET sf.status = 'revoked', sf.revoked_at = datetime()
+WITH sf
+OPTIONAL MATCH (t:SurfaceFormTask)
+WHERE t.entity_text = $normalized OR lower(t.entity_text) = $normalized
+SET t.status = 'revoked'
+RETURN
+    sf.normalized AS normalized,
+    sf.first_used_at AS first_used_at
+"""
+
+GET_ENCOUNTERS_FOR_REVOKED_CONCEPT = """
+MATCH (e:Encounter)-[r:DOCUMENTS]->(s)
+WHERE toString(s.conceptId) = $concept_id
+  AND r.source = 'terminology_api'
+  AND (r.coded_at >= $first_used_at OR $first_used_at IS NULL)
+RETURN DISTINCT toString(e.id) AS encounter_id
+LIMIT 500
+"""
+
+CREATE_REVOCATION_CASCADE_REVIEW = """
+MERGE (cr:CodingReview {review_id: $review_id})
+ON CREATE SET
+    cr.encounter_id  = $encounter_id,
+    cr.review_type   = 'revocation_cascade',
+    cr.priority      = 'urgent',
+    cr.status        = 'pending',
+    cr.revoked_concept = $concept_id,
+    cr.created_at    = datetime()
+RETURN cr.review_id AS review_id
+"""
+
+# -- Impact tracking: increment use_count / set first_used_at on SurfaceForm --
+
+INCREMENT_SURFACE_FORM_USE = """
+MATCH (sf:SurfaceForm {normalized: $normalized})
+SET
+    sf.use_count    = coalesce(sf.use_count, 0) + 1,
+    sf.first_used_at = coalesce(sf.first_used_at, datetime())
+RETURN sf.use_count AS use_count
+"""
+
+COUNT_PENDING_SURFACE_FORM_TASKS = """
+MATCH (t:SurfaceFormTask)
+WHERE t.status = 'pending'
+RETURN count(t) AS total
 """
 
 

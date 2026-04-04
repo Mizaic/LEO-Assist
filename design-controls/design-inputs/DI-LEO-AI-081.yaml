@@ -1,0 +1,103 @@
+# -- DI-LEO-AI-081 -- Ambiguous Abbreviation Disambiguation in Extraction and Resolution
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-081"
+  type: "Functional"
+  derived_from: ["UN-LEO-AI-002"]
+  requirement: >
+    The NLP coding pipeline SHALL apply abbreviation-specific disambiguation
+    rules at three layers -- (1) the LLM extraction prompt, (2) the LLM
+    escalation prompt, and (3) the terminology resolver client -- to prevent
+    clinically incorrect SNOMED CT codes being assigned to ambiguous GP
+    abbreviations. Specifically:
+    (a) "CA" SHALL NOT be extracted unless an organ or body site is explicitly
+    stated in the same sentence; standalone "CA" SHALL be left uncoded and
+    flagged for review.
+    (b) "MSK" used as a specialty or body-system tag SHALL NOT be extracted
+    as a clinical entity; only the specific symptom or diagnosis stated
+    alongside MSK SHALL be coded.
+    (c) "NAD" SHALL always be suppressed and left uncoded. NAD is ambiguous
+    between "No abnormality detected" (SNOMED 281900007) and "No apparent
+    distress" (no SNOMED equivalent); the meaning cannot be determined from the
+    abbreviation alone. NAD SHALL be placed in an always-ignore set in the
+    terminology client so that no SNOMED concept is assigned, and the extraction
+    and escalation prompts SHALL instruct the LLM not to extract or code NAD.
+    This supersedes an earlier requirement (rev 1.0) that NAD resolve to 281900007;
+    revised April 2026 after clinical review identified the second common meaning.
+    The biochemistry NAD concepts SHALL also never be resolved (as a secondary
+    nicotinamide adenine dinucleotide concepts (104695007, 124316006, 131143000).
+
+  rationale: >
+    The April 2026 coding quality audit identified systematic miscoding from
+    three GP abbreviations that have multiple valid clinical meanings. "CA"
+    without a body site produced generic cancer codes with no specificity for
+    clinical use. "MSK" as a specialty tag was coded as a clinical finding
+    rather than a routing/category label. "NAD" (no abnormality detected)
+    was occasionally resolved to biochemistry substance/procedure concepts
+    sharing the acronym NAD (nicotinamide adenine dinucleotide), which are
+    not clinically relevant in primary care context. These miscodes affect
+    patient record accuracy and downstream quality metrics.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: >
+          Standalone "CA" in extraction prompt and escalation prompt returns
+          no coded entity (not_codeable or suppressed) unless organ site is
+          co-present in the sentence.
+      - type: "functional"
+        spec: >
+          "MSK" used as a specialty tag (e.g. "MSK clinic", "referred to MSK")
+          returns no coded entity. "MSK back pain" returns "back pain" entity,
+          not an MSK entity.
+      - type: "safety"
+        spec: >
+          "NAD" resolves ONLY to 281900007 (No abnormality detected) and
+          NEVER to concept IDs 104695007, 124316006, or 131143000, regardless
+          of the semantic_tag requested.
+      - type: "functional"
+        spec: >
+          All 43 approved abbreviation surface forms written in April 2026
+          audit resolve at score >= 0.95 via the terminology client.
+
+    constraints:
+      - type: "safety"
+        spec: >
+          The biochemistry NAD blocklist SHALL be applied to both synchronous
+          TerminologyClient.resolve() and async AsyncTerminologyClient.resolve_raw().
+      - type: "safety"
+        spec: >
+          Disambiguation rules in the escalation prompt SHALL be consistent
+          with those in the extraction prompt (dual-path parity).
+
+    dependencies: ["DI-LEO-AI-004", "DI-LEO-AI-080"]
+    downstream_impacts:
+      - "libs/prompts/extraction_v1.py (CA/MSK/NAD rules added)"
+      - "libs/llm_client/escalation.py (CA/MSK/NAD rules added to both prompts)"
+      - "libs/terminology/client.py (_ABBREV_BLOCKED_CONCEPTS blocklist)"
+
+    technical_details:
+      language: "Python"
+      framework: "libs/prompts, libs/llm_client, libs/terminology"
+      file_structure:
+        - "libs/prompts/extraction_v1.py"
+        - "libs/llm_client/escalation.py"
+        - "libs/terminology/client.py"
+      estimated_loc: 60
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      All test cases in VT-LEO-AI-081 pass: NAD blocklist suppresses
+      biochemistry concepts, CA/MSK rules fire correctly, abbreviation
+      surface forms resolve at expected scores. 100% pass required.
+    test_protocol: "VT-LEO-AI-081"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-055"]
+  tags:
+    - "nlp-pipeline"
+    - "abbreviation-disambiguation"
+    - "precision-gate"
+    - "overcoding-prevention"

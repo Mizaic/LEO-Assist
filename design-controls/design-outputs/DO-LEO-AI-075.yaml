@@ -1,0 +1,69 @@
+# -- DO-LEO-AI-075 -- Loop 3: De-identified Evidence Collection Implementation
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-075"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-077"]
+    user_needs: ["UN-LEO-AI-050"]
+    risks_addressed: ["R-LEO-AI-052"]
+    verification_tests: ["VT-LEO-AI-077"]
+
+  specification:
+    title: "deidentify_with_span Helper and DOCUMENTS Evidence Sentence Storage"
+    description: |
+      Adds deidentify_with_span() to libs/utils/deidentify.py: de-identifies
+      the sentence then re-locates the span by case-insensitive search, returning
+      (-1, -1) sentinel when the span is not found. Updates
+      write_documents_from_sentences_payload to call this function and store
+      evidence_sentence, evidence_start, evidence_end, sentence_index, holdout
+      on every DOCUMENTS relationship.
+    acceptance_criteria:
+      - criterion: "Sentinel behaviour"
+        type: "safety"
+        measurement: "Test"
+        target: "deidentify_with_span returns (deident, -1, -1) when span not found after de-identification"
+      - criterion: "DOCUMENTS schema"
+        type: "functional"
+        measurement: "Test"
+        target: "evidence_sentence, evidence_start, evidence_end, sentence_index, holdout written on every DOCUMENTS rel"
+      - criterion: "Zero PII in stored evidence"
+        type: "safety"
+        measurement: "Test"
+        target: "detect_phi() returns empty list for all evidence_sentence values in 500-record sample"
+      - criterion: "Sentinel exclusion"
+        type: "safety"
+        measurement: "Test"
+        target: "Export query WHERE clause excludes r.evidence_start < 0 records"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "libs/utils/deidentify.py"
+        description: "deidentify_with_span(sentence, span_text) -> (str, int, int)"
+      - artifact_type: "source_code"
+        location: "libs/cypher/documents_queries.py"
+        description: "write_documents_from_sentences_payload extended with evidence fields and holdout"
+    storage_location: "git"
+    technical_details:
+      language: "Python"
+      loc: 100
+      key_functions:
+        - "deidentify_with_span"
+        - "write_documents_from_sentences_payload"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "deidentify_with_span ensures no raw patient text is stored as evidence_sentence"
+      - "-1 sentinel explicitly marks corrupted offsets so callers cannot silently write bad training data"
+    risk_control_measures:
+      - "De-identification applied at point of storage, not deferred to export"
+      - "Sentinel forces caller to skip record rather than writing incorrect offsets"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false

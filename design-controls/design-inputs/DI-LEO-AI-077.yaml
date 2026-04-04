@@ -1,0 +1,62 @@
+# -- DI-LEO-AI-077 -- Loop 3: De-identified Evidence Collection
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-077"
+  type: "Safety"
+  derived_from: ["UN-LEO-AI-050"]
+  requirement: >
+    The system SHALL store a de-identified sentence and character-level span
+    offsets on every DOCUMENTS relationship written by the coding pipeline,
+    using a deidentify_with_span() helper that returns a -1 sentinel when the
+    span cannot be re-located after de-identification, and SHALL exclude any
+    DOCUMENTS relationship with a -1 sentinel from training exports.
+  rationale: >
+    NER models require sentence-level context for accurate boundary detection
+    and negation scope. The full de-identified sentence must be stored at the
+    point of creation, not reconstructed later, because the original encounter
+    text may be modified or deleted. The -1 sentinel explicitly marks records
+    where de-identification removed the span text, preventing corrupt training
+    offsets from entering the training corpus.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "safety"
+        spec: "deidentify_with_span() returns (deident_sentence, -1, -1) when span cannot be found after de-identification; callers skip records with start == -1"
+      - type: "functional"
+        spec: "DOCUMENTS relationships store: evidence_sentence (de-identified), evidence_start, evidence_end, sentence_index, holdout (default false)"
+      - type: "safety"
+        spec: "Zero PII tokens detected when running detect_phi() against 100% of stored evidence_sentence values in a 500-record random sample"
+      - type: "functional"
+        spec: "Records with evidence_start == -1 are stored but excluded from all training exports via WHERE r.evidence_start >= 0"
+      - type: "functional"
+        spec: "Monthly scheduled check: detect_phi() on random 500-record sample; result logged; pipeline halted if PII found"
+    constraints:
+      - type: "safety"
+        spec: "De-identification must be applied BEFORE storing the sentence; raw encounter text must never be stored in evidence_sentence"
+      - type: "safety"
+        spec: "AWS Bedrock LLM calls (if any) for de-identification must use eu-west-2 region"
+    dependencies: []
+    downstream_impacts:
+      - "Training data export (DI-LEO-AI-079)"
+      - "Holdout set integrity (DI-LEO-AI-078)"
+      - "Backfill script for existing DOCUMENTS"
+    technical_details:
+      language: "Python"
+      framework: "Neo4j / FastAPI"
+      file_structure:
+        - "libs/utils/deidentify.py"
+        - "libs/cypher/documents_queries.py"
+      estimated_loc: 100
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      All VT-077 test cases pass: deidentify_with_span -1 sentinel behaviour,
+      evidence_sentence stored on DOCUMENTS, zero PII in 500-record sample,
+      -1 records excluded from export query.
+    test_protocol: "VT-LEO-AI-077"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-052"]
+  tags: ["loop3", "de-identification", "evidence-sentence", "pii", "ner-training", "gdpr"]

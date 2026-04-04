@@ -53,6 +53,11 @@ PATIENT_SCHEMA_CONSTRAINTS = [
     "CREATE CONSTRAINT reference_range_id IF NOT EXISTS FOR (r:ReferenceRange) REQUIRE r.range_id IS UNIQUE",
     "CREATE INDEX reference_range_concept IF NOT EXISTS FOR (r:ReferenceRange) ON (r.conceptId)",
     "CREATE INDEX reference_range_org IF NOT EXISTS FOR (r:ReferenceRange) ON (r.org_id)",
+    # Three learning loops — Loop 1 audit nodes (Sprint 1)
+    "CREATE CONSTRAINT audit_run_id IF NOT EXISTS FOR (a:AuditRun) REQUIRE a.run_id IS UNIQUE",
+    "CREATE INDEX audit_run_status IF NOT EXISTS FOR (a:AuditRun) ON (a.status)",
+    "CREATE CONSTRAINT drift_metric_id IF NOT EXISTS FOR (d:DriftMetric) REQUIRE d.metric_id IS UNIQUE",
+    "CREATE CONSTRAINT loop_config_id IF NOT EXISTS FOR (c:LoopConfig) REQUIRE c.loop_id IS UNIQUE",
 ]
 
 CODING_SCHEMA_CONSTRAINTS: list[str] = [

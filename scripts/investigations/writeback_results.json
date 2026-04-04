@@ -1,0 +1,482 @@
+[
+  {
+    "abbreviation": "2WW",
+    "concept_id": "199251000000107",
+    "term": "Fast track cancer referral (procedure)",
+    "status": "OK",
+    "response": {
+      "normalized": "2ww",
+      "form": "2ww",
+      "concept_id": "199251000000107",
+      "concept_fsn": "Fast track cancer referral (procedure)"
+    }
+  },
+  {
+    "abbreviation": "FIT",
+    "concept_id": "149421000000109",
+    "term": "Provision of faecal immunochemical test kit (procedure)",
+    "status": "OK",
+    "response": {
+      "normalized": "fit",
+      "form": "FIT",
+      "concept_id": "149421000000109",
+      "concept_fsn": "Provision of faecal immunochemical test kit (procedure)"
+    }
+  },
+  {
+    "abbreviation": "FOBT",
+    "concept_id": "104435004",
+    "term": "Screening for occult blood in feces (procedure)",
+    "status": "OK",
+    "response": {
+      "normalized": "fobt",
+      "form": "FOBT",
+      "concept_id": "104435004",
+      "concept_fsn": "Screening for occult blood in feces (procedure)"
+    }
+  },
+  {
+    "abbreviation": "FOB",
+    "concept_id": "104435004",
+    "term": "Screening for occult blood in feces (procedure)",
+    "status": "OK",
+    "response": {
+      "normalized": "fob",
+      "form": "FOB",
+      "concept_id": "104435004",
+      "concept_fsn": "Screening for occult blood in feces (procedure)"
+    }
+  },
+  {
+    "abbreviation": "SLL",
+    "concept_id": "302841002",
+    "term": "Malignant lymphoma - small lymphocytic (disorder)",
+    "status": "OK",
+    "response": {
+      "normalized": "sll",
+      "form": "SLL",
+      "concept_id": "302841002",
+      "concept_fsn": "Malignant lymphoma - small lymphocytic (disorder)"
+    }
+  },
+  {
+    "abbreviation": "CLL",
+    "concept_id": "92814006",
+    "term": "Chronic lymphoid leukemia, disease (disorder)",
+    "status": "OK",
+    "response": {
+      "normalized": "cll",
+      "form": "CLL",
+      "concept_id": "92814006",
+      "concept_fsn": "Chronic lymphoid leukemia, disease (disorder)"
+    }
+  },
+  {
+    "abbreviation": "BCC",
+    "concept_id": "254701007",
+    "term": "Basal cell carcinoma of skin (disorder)",
+    "status": "OK",
+    "response": {
+      "normalized": "bcc",
+      "form": "BCC",
+      "concept_id": "254701007",
+      "concept_fsn": "Basal cell carcinoma of skin (disorder)"
+    }
+  },
+  {
+    "abbreviation": "SCC",
+    "concept_id": "402815007",
+    "term": "Squamous cell carcinoma (disorder)",
+    "status": "OK",
+    "response": {
+      "normalized": "scc",
+      "form": "SCC",
+      "concept_id": "402815007",
+      "concept_fsn": "Squamous cell carcinoma (disorder)"
+    }
+  },
+  {
+    "abbreviation": "CA125",
+    "concept_id": "1000461000000109",
+    "term": "Serum cancer antigen 125 level (observable entity)",
+    "status": "OK",
+    "response": {
+      "normalized": "ca125",
+      "form": "CA125",
+      "concept_id": "1000461000000109",
+      "concept_fsn": "Serum cancer antigen 125 level (observable entity)"
+    }
+  },
+  {
+    "abbreviation": "ADT",
+    "concept_id": "707266006",
+    "term": "Androgen deprivation therapy (procedure)",
+    "status": "OK",
+    "response": {
+      "normalized": "adt",
+      "form": "ADT",
+      "concept_id": "707266006",
+      "concept_fsn": "Androgen deprivation therapy (procedure)"
+    }
+  },
+  {
+    "abbreviation": "GOJ",
+    "concept_id": "187734007",
+    "term": "Malignant neoplasm of cardioesophageal junction of stomach (disorder)",
+    "status": "OK",
+    "response": {
+      "normalized": "goj",
+      "form": "GOJ",
+      "concept_id": "187734007",
+      "concept_fsn": "Malignant neoplasm of cardioesophageal junction of stomach (disorder)"
+    }
+  },
+  {
+    "abbreviation": "PSA",
+    "concept_id": "1030791000000100",
+    "term": "Prostate specific antigen level (observable entity)",
+    "status": "OK",
+    "response": {
+      "normalized": "psa",
+      "form": "PSA",
+      "concept_id": "1030791000000100",
+      "concept_fsn": "Prostate specific antigen level (observable entity)"
+    }
+  },
+  {
+    "abbreviation": "HTN",
+    "concept_id": "38341003",
+    "term": "Hypertensive disorder, systemic arterial (disorder)",
+    "status": "OK",
+    "response": {
+      "normalized": "htn",
+      "form": "HTN",
+      "concept_id": "38341003",
+      "concept_fsn": "Hypertensive disorder, systemic arterial (disorder)"
+    }
+  },
+  {
+    "abbreviation": "HbA1c",
+    "concept_id": "1003671000000109",
+    "term": "Haemoglobin A1c level (observable entity)",
+    "status": "OK",
+    "response": {
+      "normalized": "hba1c",
+      "form": "HbA1c",
+      "concept_id": "1003671000000109",
+      "concept_fsn": "Haemoglobin A1c level (observable entity)"
+    }
+  },
+  {
+    "abbreviation": "CKD",
+    "concept_id": "709044004",
+    "term": "Chronic kidney disease (disorder)",
+    "status": "OK",
+    "response": {
+      "normalized": "ckd",
+      "form": "CKD",
+      "concept_id": "709044004",
+      "concept_fsn": "Chronic kidney disease (disorder)"
+    }
+  },
+  {
+    "abbreviation": "CBG",
+    "concept_id": "434912009",
+    "term": "Blood glucose concentration (observable entity)",
+    "status": "OK",
+    "response": {
+      "normalized": "cbg",
+      "form": "CBG",
+      "concept_id": "434912009",
+      "concept_fsn": "Blood glucose concentration (observable entity)"
+    }
+  },
+  {
+    "abbreviation": "HF",
+    "concept_id": "84114007",
+    "term": "Heart failure (disorder)",
+    "status": "OK",
+    "response": {
+      "normalized": "hf",
+      "form": "HF",
+      "concept_id": "84114007",
+      "concept_fsn": "Heart failure (disorder)"
+    }
+  },
+  {
+    "abbreviation": "IHD",
+    "concept_id": "414545008",
+    "term": "Ischemic heart disease (disorder)",
+    "status": "OK",
+    "response": {
+      "normalized": "ihd",
+      "form": "IHD",
+      "concept_id": "414545008",
+      "concept_fsn": "Ischemic heart disease (disorder)"
+    }
+  },
+  {
+    "abbreviation": "IDA",
+    "concept_id": "87522002",
+    "term": "Iron deficiency anemia (disorder)",
+    "status": "OK",
+    "response": {
+      "normalized": "ida",
+      "form": "IDA",
+      "concept_id": "87522002",
+      "concept_fsn": "Iron deficiency anemia (disorder)"
+    }
+  },
+  {
+    "abbreviation": "GORD",
+    "concept_id": "235595009",
+    "term": "Gastroesophageal reflux disease (disorder)",
+    "status": "OK",
+    "response": {
+      "normalized": "gord",
+      "form": "GORD",
+      "concept_id": "235595009",
+      "concept_fsn": "Gastroesophageal reflux disease (disorder)"
+    }
+  },
+  {
+    "abbreviation": "T2DM",
+    "concept_id": "44054006",
+    "term": "Diabetes mellitus type 2 (disorder)",
+    "status": "OK",
+    "response": {
+      "normalized": "t2dm",
+      "form": "T2DM",
+      "concept_id": "44054006",
+      "concept_fsn": "Diabetes mellitus type 2 (disorder)"
+    }
+  },
+  {
+    "abbreviation": "IDDM",
+    "concept_id": "46635009",
+    "term": "Diabetes mellitus type 1 (disorder)",
+    "status": "OK",
+    "response": {
+      "normalized": "iddm",
+      "form": "IDDM",
+      "concept_id": "46635009",
+      "concept_fsn": "Diabetes mellitus type 1 (disorder)"
+    }
+  },
+  {
+    "abbreviation": "BPH",
+    "concept_id": "266569009",
+    "term": "Benign prostatic hyperplasia (disorder)",
+    "status": "OK",
+    "response": {
+      "normalized": "bph",
+      "form": "BPH",
+      "concept_id": "266569009",
+      "concept_fsn": "Benign prostatic hyperplasia (disorder)"
+    }
+  },
+  {
+    "abbreviation": "ILD",
+    "concept_id": "233703007",
+    "term": "Interstitial lung disease (disorder)",
+    "status": "OK",
+    "response": {
+      "normalized": "ild",
+      "form": "ILD",
+      "concept_id": "233703007",
+      "concept_fsn": "Interstitial lung disease (disorder)"
+    }
+  },
+  {
+    "abbreviation": "SOBOE",
+    "concept_id": "60845006",
+    "term": "Dyspnea on exertion (finding)",
+    "status": "OK",
+    "response": {
+      "normalized": "soboe",
+      "form": "SOBOE",
+      "concept_id": "60845006",
+      "concept_fsn": "Dyspnea on exertion (finding)"
+    }
+  },
+  {
+    "abbreviation": "SOB",
+    "concept_id": "267036007",
+    "term": "Dyspnea (finding)",
+    "status": "OK",
+    "response": {
+      "normalized": "sob",
+      "form": "SOB",
+      "concept_id": "267036007",
+      "concept_fsn": "Dyspnea (finding)"
+    }
+  },
+  {
+    "abbreviation": "TATT",
+    "concept_id": "84229001",
+    "term": "Fatigue (finding)",
+    "status": "OK",
+    "response": {
+      "normalized": "tatt",
+      "form": "TATT",
+      "concept_id": "84229001",
+      "concept_fsn": "Fatigue (finding)"
+    }
+  },
+  {
+    "abbreviation": "CIBH",
+    "concept_id": "88111009",
+    "term": "Altered bowel function (finding)",
+    "status": "OK",
+    "response": {
+      "normalized": "cibh",
+      "form": "CIBH",
+      "concept_id": "88111009",
+      "concept_fsn": "Altered bowel function (finding)"
+    }
+  },
+  {
+    "abbreviation": "CP",
+    "concept_id": "29857009",
+    "term": "Chest pain (finding)",
+    "status": "OK",
+    "response": {
+      "normalized": "cp",
+      "form": "CP",
+      "concept_id": "29857009",
+      "concept_fsn": "Chest pain (finding)"
+    }
+  },
+  {
+    "abbreviation": "PV",
+    "concept_id": "289530006",
+    "term": "Bleeding from vagina (finding)",
+    "status": "OK",
+    "response": {
+      "normalized": "pv",
+      "form": "PV",
+      "concept_id": "289530006",
+      "concept_fsn": "Bleeding from vagina (finding)"
+    }
+  },
+  {
+    "abbreviation": "IMB",
+    "concept_id": "237130006",
+    "term": "Bleeding between periods (finding)",
+    "status": "OK",
+    "response": {
+      "normalized": "imb",
+      "form": "IMB",
+      "concept_id": "237130006",
+      "concept_fsn": "Bleeding between periods (finding)"
+    }
+  },
+  {
+    "abbreviation": "PR",
+    "concept_id": "405729008",
+    "term": "Hematochezia (finding)",
+    "status": "OK",
+    "response": {
+      "normalized": "pr",
+      "form": "PR",
+      "concept_id": "405729008",
+      "concept_fsn": "Hematochezia (finding)"
+    }
+  },
+  {
+    "abbreviation": "XR",
+    "concept_id": "168537006",
+    "term": "Plain X-ray (procedure)",
+    "status": "OK",
+    "response": {
+      "normalized": "xr",
+      "form": "XR",
+      "concept_id": "168537006",
+      "concept_fsn": "Plain X-ray (procedure)"
+    }
+  },
+  {
+    "abbreviation": "US",
+    "concept_id": "16310003",
+    "term": "Ultrasonography (procedure)",
+    "status": "OK",
+    "response": {
+      "normalized": "us",
+      "form": "US",
+      "concept_id": "16310003",
+      "concept_fsn": "Ultrasonography (procedure)"
+    }
+  },
+  {
+    "abbreviation": "ECHO",
+    "concept_id": "40701008",
+    "term": "Echocardiography (procedure)",
+    "status": "OK",
+    "response": {
+      "normalized": "echo",
+      "form": "ECHO",
+      "concept_id": "40701008",
+      "concept_fsn": "Echocardiography (procedure)"
+    }
+  },
+  {
+    "abbreviation": "GFR",
+    "concept_id": "80274001",
+    "term": "Glomerular filtration rate (observable entity)",
+    "status": "OK",
+    "response": {
+      "normalized": "gfr",
+      "form": "GFR",
+      "concept_id": "80274001",
+      "concept_fsn": "Glomerular filtration rate (observable entity)"
+    }
+  },
+  {
+    "abbreviation": "eGFR",
+    "concept_id": "80274001",
+    "term": "Glomerular filtration rate (observable entity)",
+    "status": "OK",
+    "response": {
+      "normalized": "egfr",
+      "form": "eGFR",
+      "concept_id": "80274001",
+      "concept_fsn": "Glomerular filtration rate (observable entity)"
+    }
+  },
+  {
+    "abbreviation": "TSH",
+    "concept_id": "1027151000000105",
+    "term": "Thyroid stimulating hormone level (observable entity)",
+    "status": "OK",
+    "response": {
+      "normalized": "tsh",
+      "form": "TSH",
+      "concept_id": "1027151000000105",
+      "concept_fsn": "Thyroid stimulating hormone level (observable entity)"
+    }
+  },
+  {
+    "abbreviation": "HBPM",
+    "concept_id": "1285115008",
+    "term": "Average home blood pressure (observable entity)",
+    "status": "OK",
+    "response": {
+      "normalized": "hbpm",
+      "form": "HBPM",
+      "concept_id": "1285115008",
+      "concept_fsn": "Average home blood pressure (observable entity)"
+    }
+  },
+  {
+    "abbreviation": "LUTS",
+    "concept_id": "307541003",
+    "term": "Lower urinary tract symptoms (finding)",
+    "status": "OK",
+    "response": {
+      "normalized": "luts",
+      "form": "LUTS",
+      "concept_id": "307541003",
+      "concept_fsn": "Lower urinary tract symptoms (finding)"
+    }
+  }
+]

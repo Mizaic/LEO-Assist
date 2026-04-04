@@ -1,0 +1,76 @@
+# -- DO-LEO-AI-071 -- Loop 1: Drift Detection and Alerting Implementation
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-071"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-073"]
+    user_needs: ["UN-LEO-AI-049"]
+    risks_addressed: ["R-LEO-AI-047", "R-LEO-AI-048"]
+    verification_tests: ["VT-LEO-AI-073"]
+
+  specification:
+    title: "SafetyNetAlert with Dedup, Escalation, and LoopConfig Kill Switch"
+    description: |
+      Implements SafetyNetAlert creation with deduplication (minimum 100 encounters,
+      new critical terms only or >3% drop), time-based escalation (48h/7d/14d),
+      auto-pause at 14d, LoopConfig Neo4j node as kill switch, audit quality
+      API router, and UI notification badge.
+    acceptance_criteria:
+      - criterion: "Alert deduplication"
+        type: "safety"
+        measurement: "Test"
+        target: "Alert only created when encounter_count >= 100 AND thresholds breached with NEW terms"
+      - criterion: "Escalation schedule"
+        type: "safety"
+        measurement: "Test"
+        target: "escalation_level increments at 48h; email at 7d; LoopConfig.enabled=false at 14d"
+      - criterion: "LoopConfig kill switch"
+        type: "functional"
+        measurement: "Test"
+        target: "PATCH /operations/quality/config/{loop_id} toggles enabled without redeployment"
+      - criterion: "Notification badge"
+        type: "functional"
+        measurement: "Test"
+        target: "Red badge visible on Quality tab when any unacknowledged alert exists"
+      - criterion: "Model version tracking"
+        type: "functional"
+        measurement: "Test"
+        target: "model_version_changed=true on DriftMetric when auditor_model_version differs from prior run"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "scripts/investigations/audit_encounter_coding.py"
+        description: "Alert creation logic with dedup guard and escalation scheduler"
+      - artifact_type: "source_code"
+        location: "services/api/app/routers/audit_quality.py"
+        description: "New router: /operations/quality/* endpoints for runs, drift, alerts, config"
+      - artifact_type: "source_code"
+        location: "services/ui/src/components/operations/QualitySection.tsx"
+        description: "Drift chart, alert panel, notification badge, loop toggle switches"
+    storage_location: "git"
+    technical_details:
+      language: "Python / TypeScript"
+      loc: 250
+      key_functions:
+        - "_create_safety_net_alert"
+        - "_check_dedup_guard"
+        - "_run_escalation_check"
+        - "ask_leo_quality_alerts"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Alert escalation auto-pause at 14 days prevents indefinite suppression of regressions"
+      - "LoopConfig kill switch allows immediate disable of audit loop without code change"
+    risk_control_measures:
+      - "Minimum sample size guard prevents percentage swings on small cohorts from generating noise alerts"
+      - "Alert deduplication against prior week's top_missing_terms prevents alert fatigue"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false
