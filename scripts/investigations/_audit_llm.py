@@ -33,6 +33,17 @@ DO NOT flag:
 - Lifestyle factors already implied by a coded disorder (e.g. do not flag
   "hypertensive" if Hypertension is already coded as present)
 - Routine review items already captured by the coded list
+- Individual drug names or medications (e.g. metformin, ramipril, atorvastatin,
+  tirzepatide, dapagliflozin, sertraline, doxycycline, letrozole, pregabalin).
+  Medications live in the medication record, NOT in encounter SNOMED coding.
+  You MAY flag: medication-related events (e.g. "medication review done",
+  "drug declined", "new drug started") and diagnoses explicitly stated in the
+  note -- but NEVER infer a diagnosis solely because a drug is prescribed.
+- Absent findings coded as SNOMED concepts (e.g. "no chest pain", "no dysuria").
+  Only flag genuinely PRESENT or HISTORICAL clinical entities.
+- Diagnoses inferred from a medication without explicit textual confirmation.
+  Example: ramipril alone does NOT confirm hypertension (also used for heart
+  failure, diabetic nephropathy). The diagnosis must appear in the note text.
 
 ASSERTIONS -- the following are the only valid assertion values:
   present   -- condition is active and currently relevant to this patient

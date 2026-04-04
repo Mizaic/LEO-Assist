@@ -243,13 +243,13 @@ def write_documents_from_sentences_payload(
                         _increment_surface_form_use(session, span_text)
                     written += 1
                 except Exception:
-                logger.warning(
-                    "write_documents_from_sentences_payload: failed for "
-                    "encounter=%s concept=%s",
-                    encounter_id,
-                    concept_id,
-                    exc_info=True,
-                )
+                    logger.warning(
+                        "write_documents_from_sentences_payload: failed for "
+                        "encounter=%s concept=%s",
+                        encounter_id,
+                        concept_id,
+                        exc_info=True,
+                    )
 
     return written
 

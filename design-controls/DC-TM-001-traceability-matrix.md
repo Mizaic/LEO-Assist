@@ -366,6 +366,30 @@ cannot be auto-coded. Revision captured in VT-081-RUN-002 (33 tests, all pass).
 | R-LEO-AI-054 | Administrative header lines coded as clinical SNOMED findings | clinical_safety | 24 | 4 | acceptable | DI-080 |
 | R-LEO-AI-055 | Ambiguous abbreviation miscoding (CA, MSK, NAD) | clinical_safety | 18 | 4 | acceptable | DI-081 |
 
+### 6.8 Audit-Driven Automated Encounter Remediation (April 2026)
+
+| Artefact | ID | Status | Notes |
+|----------|----|--------|-------|
+| User Need | UN-LEO-AI-049 | draft | Extends existing coding quality monitoring UN |
+| Design Input | DI-LEO-AI-082 | draft | Audit-Driven Automated Encounter Remediation |
+| Design Output | DO-LEO-AI-080 | draft | Remediation script + Cypher query module |
+| Risk | R-LEO-AI-056 | analyzed | Incorrect automated fix changes clinical coding |
+| Verification Test | VT-LEO-AI-082 | draft | LLM gate, audit trail, idempotency, terminology miss |
+
+Remediation approach (April 2026 run):
+- Phase A -- Systematic Cypher fixes (no LLM): deleted 539 NAD "Normal appearance"
+  (281900007) codes and 104 "Seen in GP surgery" (185202000) codes from telephone
+  encounter records. Total: 643 DOCUMENTS relationships removed from Neo4j.
+- Phase B -- Sonnet verification pass: 10,136 encounters with audit findings sent
+  to Claude Sonnet 4.6 for independent clinical verification. Only changes with
+  confidence >= 0.80 and agree=true are applied. Disputes written to disputes.jsonl
+  for human review. Status: in progress (April 4, 2026).
+- Phase C -- Re-audit: planned after Phase B completes to verify pct_clean improvement.
+
+| Artefact | ID | Risk | VT |
+|----------|----|------|-----|
+| DI-LEO-AI-082 | Audit-Driven Remediation | R-LEO-AI-056 | VT-LEO-AI-082 |
+
 ### 6.7 Terminology Coverage Expansion (April 2026)
 
 118 synonym and structured result surface forms added to terminology server.

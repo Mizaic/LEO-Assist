@@ -1,0 +1,81 @@
+# -- DO-LEO-AI-080 -- Audit-Driven Automated Encounter Remediation Script
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-080"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-082"]
+    user_needs: ["UN-LEO-AI-049"]
+    risks_addressed: ["R-LEO-AI-056"]
+    verification_tests: ["VT-LEO-AI-082"]
+
+  specification:
+    title: "Audit-Driven Automated Encounter Remediation"
+    description: |
+      A Python script and supporting Cypher query module that reads the
+      audit SQLite checkpoint, groups findings by encounter, fetches
+      encounter text and current DOCUMENTS from Neo4j, submits all
+      proposed changes for each encounter to Claude Sonnet for independent
+      verification, and applies confirmed changes (agree=true,
+      confidence >= 0.80) to Neo4j. Changes below threshold are written
+      to a disputes log.
+
+      Three action types are supported:
+        delete -- removes an overcoded DOCUMENTS relationship (and patient
+                  shortcut if no other encounter codes the concept)
+        add    -- resolves the snomed_search term via terminology API and
+                  creates a new DOCUMENTS relationship with the correct
+                  assertion and evidence
+        update_assertion -- updates the assertion field on an existing
+                  DOCUMENTS relationship
+
+      A SQLite remediation table provides idempotency and the audit trail.
+    acceptance_criteria:
+      - criterion: "LLM gate"
+        type: "safety"
+        measurement: "Test"
+        target: "No change applied when Sonnet confidence < 0.80 or agree=false"
+      - criterion: "Audit trail completeness"
+        type: "functional"
+        measurement: "Test"
+        target: "Every applied change has a row in remediation SQLite with before/after state"
+      - criterion: "Idempotency"
+        type: "functional"
+        measurement: "Test"
+        target: "Re-running the script on already-remediated encounters makes no Neo4j changes"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "scripts/remediate_audit_findings.py"
+        description: "Main remediation orchestrator with concurrent Sonnet workers"
+      - artifact_type: "source_code"
+        location: "libs/cypher/remediation_queries.py"
+        description: "Cypher queries for delete, add, and assertion-update operations"
+    storage_location: "git"
+    technical_details:
+      language: "Python"
+      loc: 420
+      key_functions:
+        - "remediate_encounter"
+        - "verify_with_sonnet"
+        - "apply_delete"
+        - "apply_add"
+        - "apply_assertion_update"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "LLM confidence gate preventing low-confidence changes from being applied"
+      - "Audit trail recording before/after state of every DOCUMENTS change"
+    risk_control_measures:
+      - "Sonnet confidence threshold >= 0.80 as mandatory gate"
+      - "Disputes log for all rejected proposed changes"
+      - "Idempotency prevents duplicate fixes"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false

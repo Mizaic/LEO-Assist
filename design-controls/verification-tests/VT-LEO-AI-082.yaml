@@ -1,0 +1,117 @@
+- id: "VT-LEO-AI-082"
+  version: "1.0"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-082"]
+    risks: ["R-LEO-AI-056"]
+
+  metadata:
+    title: "Automated Encounter Remediation - LLM Gate and Audit Trail"
+    description: >
+      Verifies that the remediation script applies changes only when Sonnet
+      confidence >= 0.80, that all changes are logged in the audit trail,
+      that idempotency is enforced, and that the terminology API miss path
+      leaves the encounter unchanged.
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    test_file_paths:
+      - "tests/test_remediation.py"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites:
+      - "Neo4j test instance with seed encounters"
+      - "Terminology API running on localhost:8001"
+      - "AWS Bedrock credentials configured"
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: true
+
+  test_cases:
+    - case_id: "VT-082-TC-001"
+      case_name: "Low-confidence Sonnet response is not applied"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Submit a proposed DELETE with mocked Sonnet returning confidence=0.70"
+          expected_result: "No DOCUMENTS relationship deleted; dispute written to log"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Neo4j DOCUMENTS count unchanged after call"
+        - "Disputes log has one entry with confidence=0.70"
+
+    - case_id: "VT-082-TC-002"
+      case_name: "Sonnet agree=false is not applied"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Submit a proposed ADD with mocked Sonnet returning agree=false confidence=0.90"
+          expected_result: "No DOCUMENTS relationship added; dispute written to log"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "No new DOCUMENTS relationship created in Neo4j"
+        - "Disputes log has one entry for this encounter"
+
+    - case_id: "VT-082-TC-003"
+      case_name: "High-confidence DELETE is applied and audit trail written"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Submit a proposed DELETE with mocked Sonnet returning agree=true confidence=0.95"
+          expected_result: "DOCUMENTS relationship deleted; audit trail entry written"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "DOCUMENTS relationship no longer exists in Neo4j"
+        - "Audit trail entry has action=delete, concept_id, before_state populated"
+
+    - case_id: "VT-082-TC-004"
+      case_name: "Idempotency - second run skips already-remediated encounter"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Run remediation on an encounter; run again on the same encounter"
+          expected_result: "Second run makes zero Neo4j writes and Sonnet is not called again"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Sonnet call count == 1 across both runs (mocked)"
+        - "Neo4j DOCUMENTS count unchanged after second run"
+
+    - case_id: "VT-082-TC-005"
+      case_name: "Terminology API miss leaves encounter unchanged"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Submit a proposed ADD where terminology API returns no concept for snomed_search"
+          expected_result: "No DOCUMENTS relationship added; skip logged"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "No new DOCUMENTS relationship created"
+        - "Skip log entry contains reason='terminology_not_found'"
+
+    - case_id: "VT-082-TC-006"
+      case_name: "UPDATE assertion applied correctly"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Submit a proposed assertion update (present -> historical) with Sonnet agree=true"
+          expected_result: "DOCUMENTS relationship assertion updated; audit trail written"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "DOCUMENTS relationship assertion = 'historical' after update"
+        - "Audit trail entry has action=update_assertion, old_value=present, new_value=historical"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-082/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history: []
